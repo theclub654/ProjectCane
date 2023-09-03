@@ -1,0 +1,162 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;c++;cppm;ixx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hh;hpp;hxx;h++;hm;inl;inc;ipp;xsd</Extensions>
+    </Filter>
+    <Filter Include="Resource Files">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="phasemem.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="transition.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="bis.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="brx.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="spaprops.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="sw.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="lo.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="dl.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="alo.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="find.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="splicemap.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="serialize.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="difficulty.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="cm.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="vec.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="gl.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="main.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="shd.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="shdanim.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="font.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="rip.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="so.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="util.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="phasemem.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="transition.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="bis.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="brx.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="spaprops.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="sw.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="lo.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="dl.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="alo.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="find.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="splicemap.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="serialize.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="difficulty.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="cm.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="vec.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="glad.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="gl.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="shd.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="shdanim.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="main.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="font.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="rip.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="so.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="util.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+  </ItemGroup>
+</Project>

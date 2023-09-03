@@ -1,0 +1,3 @@
+# ignore game assets
+*.vs/
+*x64
