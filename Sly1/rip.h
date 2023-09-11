@@ -1,8 +1,6 @@
 #pragma once
 #include "so.h"
 
-class LO;
-
 enum RIPGT 
 {
     RIPGT_Nil = -1,
@@ -12,14 +10,13 @@ enum RIPGT
     RIPGT_Max = 3
 };
 
-class RIPG
+class RIPG : public SO
 {
 	public:
-		SO ripg;
 		RIPGT ripgt;
 		float sExpand;
 		DL dlRip;
-		RIPG* pripgNext;
+		RIPG *pripgNext;
 };
 
 void InitRipg(RIPG *pripg); // NOT FINISHED

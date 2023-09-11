@@ -20,10 +20,10 @@ void ClearDle(DLE *pdle)
 	pdle->pvPrev = (void*)0x0;
 }
 
-DLE* PdleFromDlEntry(DL* pdl, void* pv)
+DLE* PdleFromDlEntry(DL *pdl, void *pv)
 {
 	// Returning the offset to entry
-	return (DLE*)pv + pdl->ibDle;
+	return (DLE*)((uintptr_t)pv + pdl->ibDle);
 }
 
 void AppendDlEntry(DL *pdl, void *pv)
@@ -106,11 +106,10 @@ void RemoveDlEntry(DL *pdl, void *pv)
 			}
 
 			else
-			{
 				entry2 = entry2->m_pdliNext;
-			}
 
 			if (entry2 == 0x0) break;
+
 			entry1 = (DLE*)entry2->m_ppv;
 		}
 
@@ -139,10 +138,10 @@ void RemoveDlEntry(DL *pdl, void *pv)
 	entry0->pvNext = 0x0;
 }
 
-int FFindDlEntry(DL* pdl, void* pv)
+int FFindDlEntry(DL *pdl, void *pv)
 {
 	// Loading entry from list
-	DLE* entry = PdleFromDlEntry(pdl, pv);
+	DLE *entry = PdleFromDlEntry(pdl, pv);
 
 	// Checks to see if list has a entry
 	if (entry->pvNext != 0 || pdl->pvLast == pv)

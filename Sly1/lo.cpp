@@ -11,41 +11,57 @@ void SetLoDefaults(LO* parentLo)
 
 }
 
-void AddLo(LO* plo)
+void AddLo(LO *plo)
 {
-	// Loading object's parent
-	ALO* objectParent = plo->paloParent;
-
 	// Loading objects parent child list
-	DL* objectChild = &plo->paloParent->dlChild;
+	DL *objectChildList = &plo->paloParent->dlChild;
 
 	// If object doesnt have a parent load up the static world dlChild
-	if (objectParent == nullptr)
-		objectChild = &plo->psw->dlChild;
+	if (plo->paloParent == nullptr)
+		objectChildList = &plo->psw->dlChild;
 
 	// Returns if parent LO or SW has a child object or not
-	bool isFound = FFindDlEntry(objectChild, plo);
+	bool isFound = FFindDlEntry(objectChildList, plo);
 
 	if (isFound == 0)
 	{
 		// Storing object child in parent LO
-		AppendDlEntry(objectChild, plo);
+		AppendDlEntry(objectChildList, plo);
 		// Returns if LO is in world or not
 		isFound = FIsLoInWorld(plo);
 
 		if (isFound != 0)
 		{
-			ALO *object = (ALO*)plo;
 			switch (plo->cid)
 			{
-				case CID::CID_SW:
+				case CID::CID_VISMAP:
 				{
-					
+					AddLoHierarchy(plo);
 					break;
 				}
 			}
 		}
 	}
+}
+
+void AddLoHierarchy(LO *plo)
+{
+	SendLoMessage(plo, MSGID_added, plo);
+}
+
+void RemoveLoHierarchy(LO* plo)
+{
+	SendLoMessage(plo, MSGID_removed, plo);
+}
+
+void SendLoMessage(LO *plo, MSGID msgid, void *pv)
+{
+
+}
+
+void LoadLoFromBrx(LO* plo, CBinaryInputStream* pbis)
+{
+	LoadOptionFromBrx(plo, pbis);
 }
 
 void RemoveLo(LO* plo)
@@ -73,11 +89,14 @@ void RemoveLo(LO* plo)
 		else
 		{
 			RemoveDlEntry(objectChild, plo);
-			ALO *object = (ALO*)plo;
 
 			switch (plo->cid)
 			{
-
+				case CID::CID_VISMAP:
+				{
+					RemoveLoHierarchy(plo);
+					break;
+				}
 			}
 		}
 	}

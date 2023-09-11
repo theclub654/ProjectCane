@@ -10,6 +10,13 @@ struct LM
 	{}
 };
 
+struct CLQ
+{
+	float g0;
+	float g1;
+	float g2;
+	float gUnused;
+};
 float RadNormalize(float param_1);
 float GLimitAbs(float param_1, float param_2);
 //TODO: GSmooth

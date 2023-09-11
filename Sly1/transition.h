@@ -1,8 +1,6 @@
 #pragma once
 #include "brx.h"
-#include "bis.h"
 #include "phasemem.h"
-#include "sw.h"
 
 typedef int GRFTRANS;
 
@@ -18,7 +16,7 @@ enum FTRANS {
 class CTransition
 {
 protected:
-    char* m_pchzWorld;      // This is the ptr to level sector offset and size in memory
+    char *m_pchzWorld;      // This is the ptr to level sector offset and size in memory
     OID   m_oidWarp;        // Which checkpoint you spawn at when you start a level
     OID   m_oidWarpContext;
 

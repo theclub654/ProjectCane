@@ -1,5 +1,8 @@
 #include "main.h"
 
+// Temporary flag
+bool loadEmitMesh = 0;
+
 int main(int cphzArgs, char* aphzArgs[])
 {
 	// Initializing all things needed for game to be started

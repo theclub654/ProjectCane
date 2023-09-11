@@ -6,7 +6,8 @@
 #include "font.h"
 
 // Color property's
-struct RGBA {
+struct RGBA 
+{
     byte bRed;
     byte bGreen;
     byte bBlue;

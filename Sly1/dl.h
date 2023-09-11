@@ -1,5 +1,5 @@
 #pragma once
-
+#include <iostream>
 // Stores ptr to first entry in list and ptr to last entry in list
 struct DL
 {

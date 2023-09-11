@@ -30,19 +30,10 @@
     <ClInclude Include="spaprops.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="sw.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="lo.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="dl.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="alo.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="find.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="splicemap.h">
@@ -52,9 +43,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="difficulty.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="cm.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="vec.h">
@@ -78,10 +66,160 @@
     <ClInclude Include="rip.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="util.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="vis.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="basic.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="keyhole.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="geom.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="glob.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="emitter.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="xform.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="alo.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="so.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="util.h">
+    <ClInclude Include="cm.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="sw.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="crv.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="proxy.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="coin.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="pnt.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="sm.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="jt.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="po.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="step.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="stepguard.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="mb.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="rog.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="puffer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="mgv.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="break.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="button.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="squish.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="pzo.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="sensor.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="cnvo.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="hide.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="bomb.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="missile.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="fly.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="rat.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="dart.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="jlo.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="chkpnt.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="flash.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="tn.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="dialog.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="mouthgame.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="jack.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="shape.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="hnd.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="target.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="aseg.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="ac.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="path.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="rchm.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="dec.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
@@ -101,19 +239,10 @@
     <ClCompile Include="spaprops.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="sw.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="lo.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="dl.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="alo.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="find.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="splicemap.cpp">
@@ -123,9 +252,6 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="difficulty.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="cm.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="vec.cpp">
@@ -152,10 +278,157 @@
     <ClCompile Include="rip.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="util.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="vis.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="basic.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="keyhole.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="geom.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="glob.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="emitter.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="xform.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="alo.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="so.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="util.cpp">
+    <ClCompile Include="cm.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="sw.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="crv.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="proxy.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="coin.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="pnt.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="sm.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="jt.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="po.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="step.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="stepguard.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="mb.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="rog.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="puffer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="mgv.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="break.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="button.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="squish.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="pzo.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="sensor.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="cnvo.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="hide.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="bomb.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="missile.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="fly.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="rat.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="dart.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="jlo.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="chkpnt.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="flash.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="tn.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="dialog.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="mouthgame.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="jack.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="shape.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="hnd.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="target.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="aseg.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="ac.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="path.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="rchm.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

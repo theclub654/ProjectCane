@@ -10,42 +10,42 @@ SW::SW(CID cid, ALO* paloParent, OID oid)
 		InitDl(&objectParents[i], 0xC);
 }
 
-void InitSw(SW *psw)
+void InitSw(SW* psw)
 {
 	InitLo((LO*)psw);
 
-	InitDl(&psw->dlChild, 0x1C);
-	InitDl(&psw->dlMRD, 0x54);
-	InitDl(&psw->dlMRDRealClock, 0x54);
-	InitDl(&psw->dlBusy, 0x4C);
-	InitDl(&psw->dlBusySo, 0x434);
-	InitDl(&psw->dlRoot, 0x2e0);
-	InitDl(&psw->dlAsega, 0x34);
-	InitDl(&psw->dlAsegaRealClock, 0x34);
-	InitDl(&psw->dlAsegaPending, 0x34);
-	InitDl(&psw->dlSma, 0x10);
-	InitDl(&psw->dlAmb, 0x60);
-	InitDl(&psw->dlExc, 4);
-	InitDl(&psw->dlLight, 0x420);
-	InitDl(&psw->dlShadow, 0xb8);
-	InitDl(&psw->dlExplste, 100);
-	InitDl(&psw->dlProxy, 0x2ec);
-	InitDl(&psw->dlFly, 0x60c);
-	InitDl(&psw->dlDprize, 900);
-	InitDl(&psw->dlRat, 0x630);
-	InitDl(&psw->dlRathole, 0x90);
-	InitDl(&psw->dlDartFree, 0x59c);
-	InitDl(&psw->dlSpire, 0x50);
-	InitDl(&psw->dlRail, 0x50);
-	InitDl(&psw->dlLanding, 0x50);
-	InitDl(&psw->dlBusyLasen, 0xb20);
-	InitDl(&psw->dlBlipg, 0x640);
-	InitDl(&psw->dlBlipgFree, 0x640);
-	InitDl(&psw->dlFader, 0xc);
-	InitDl(&psw->dlRealClockFader, 0xc);
-	InitDl(&psw->dlCrfod, 0xb90);
-	InitDl(&psw->dlShape, 0x44);
-	InitDl(&psw->dlPathzone, 100);
+	InitDl(&psw->dlChild, 0x1C + 0xC);
+	InitDl(&psw->dlMRD, 0x54 + 0xC);
+	InitDl(&psw->dlMRDRealClock, 0x54 + 0xC);
+	InitDl(&psw->dlBusy, 0x4C + 0xC);
+	InitDl(&psw->dlBusySo, 0x434 + 0xC);
+	InitDl(&psw->dlRoot, 0x2e0 + 0xC);
+	InitDl(&psw->dlAsega, 0x34 + 0xC);
+	InitDl(&psw->dlAsegaRealClock, 0x34 + 0xC);
+	InitDl(&psw->dlAsegaPending, 0x34 + 0xC);
+	InitDl(&psw->dlSma, 0x10 + 0xC);
+	InitDl(&psw->dlAmb, 0x60 + 0xC);
+	InitDl(&psw->dlExc, 4 + 0xC);
+	InitDl(&psw->dlLight, 0x420 + 0xC);
+	InitDl(&psw->dlShadow, 0xb8 + 0xC);
+	InitDl(&psw->dlExplste, 100 + 0xC);
+	InitDl(&psw->dlProxy, 0x2ec + 0xC);
+	InitDl(&psw->dlFly, 0x60c + 0xC);
+	InitDl(&psw->dlDprize, 900 + 0xC);
+	InitDl(&psw->dlRat, 0x630 + 0xC);
+	InitDl(&psw->dlRathole, 0x90 + 0xC);
+	InitDl(&psw->dlDartFree, 0x59c + 0xC);
+	InitDl(&psw->dlSpire, 0x50 + 0xC);
+	InitDl(&psw->dlRail, 0x50 + 0xC);
+	InitDl(&psw->dlLanding, 0x50 + 0xC);
+	InitDl(&psw->dlBusyLasen, 0xb20 + 0xC);
+	InitDl(&psw->dlBlipg, 0x640 + 0xC);
+	InitDl(&psw->dlBlipgFree, 0x640 + 0xC);
+	InitDl(&psw->dlFader, 0xc + 0xC);
+	InitDl(&psw->dlRealClockFader, 0xc + 0xC);
+	InitDl(&psw->dlCrfod, 0xb90 + 0xC);
+	InitDl(&psw->dlShape, 0x44 + 0xC);
+	InitDl(&psw->dlPathzone, 100 + 0xC);
 }
 
 void LoadSwFromBrx(SW* psw, CBinaryInputStream* pbis)
@@ -89,14 +89,12 @@ void LoadWorldTableFromBrx(CBinaryInputStream* pbis)
 	// Storing number of world tables from binary file
 	int worldTableCount = pbis->U32Read();
 
-	std::string temp;
-
 	// Loading world table from binary file
 	for (int i = 0; i < worldTableCount; i++)
-		pbis->ReadStringSw(&temp);
+		pbis->ReadStringSw();
 }
 
 void DeleteSw(SW* psw)
 {
-
+	g_pcm = 0x0;
 }
