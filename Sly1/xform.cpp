@@ -24,6 +24,11 @@ void LoadWarpFromBrx(WARP* pwarp, CBinaryInputStream* pbis)
 
 		switch (cid)
 		{
+		case CID_LO:
+		{
+			LoadLoFromBrx(0, pbis);
+			break;
+		}
 		case CID_ALO:
 		{
 			//ALO* palo = (ALO*)PloNew(cid, psw, paloParent, oid, isplice);
@@ -1005,8 +1010,11 @@ void LoadExitFromBrx(EXIT* pexit, CBinaryInputStream* pbis)
 
 		switch (cid)
 		{
-			switch (cid)
+			case CID_LO:
 			{
+				LoadLoFromBrx(0, pbis);
+				break;
+			}
 			case CID_ALO:
 			{
 				//ALO* palo = (ALO*)PloNew(cid, psw, paloParent, oid, isplice);
@@ -1958,7 +1966,7 @@ void LoadExitFromBrx(EXIT* pexit, CBinaryInputStream* pbis)
 				std::cout << "Default hit EXIT:\n";
 				break;
 			}
-			}
+			
 		}
 	}
 

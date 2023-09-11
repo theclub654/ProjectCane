@@ -97,13 +97,16 @@ void LoadSwObjectsFromBrx(SW *psw, ALO *paloParent, CBinaryInputStream *pbis)
 		CID cid = (CID)pbis->S16Read();
 		// Objects ID
 		OID oid = (OID)pbis->S16Read();
-		/*std::cout << std::hex << cid << "\n";
-		std::cout << std::hex << pbis->file.tellg() << "\n";*/
 		// Objects splice event index
 		int isplice = pbis->S16Read();
 
 		switch (cid)
 		{
+			case CID_LO:
+			{
+				LoadLoFromBrx(0, pbis);
+				break;
+			}
 			case CID_ALO:
 			{
 				//ALO *palo = (ALO*)PloNew(cid, psw, paloParent, oid, isplice);

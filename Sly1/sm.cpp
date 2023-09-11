@@ -2,9 +2,9 @@
 
 void LoadSmFromBrx(SM* psm, CBinaryInputStream* pbis)
 {
-	LoadSmFromBrxCount++;
+	/*LoadSmFromBrxCount++;
 	std::cout << std::dec << "LoadSmFromBrx: " << LoadSmFromBrxCount <<"\n";
-	std::cout << std::hex << pbis->file.tellg() << "\n";
+	std::cout << std::hex << pbis->file.tellg() << "\n";*/
 
 	byte unk0 = pbis->U8Read();
 
@@ -37,6 +37,11 @@ void LoadSmFromBrx(SM* psm, CBinaryInputStream* pbis)
 
 		switch (cid)
 		{
+		case CID_LO:
+		{
+			LoadLoFromBrx(0, pbis);
+			break;
+		}
 		case CID_ALO:
 		{
 			//ALO* palo = (ALO*)PloNew(cid, psw, paloParent, oid, isplice);

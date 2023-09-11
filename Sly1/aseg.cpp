@@ -2,9 +2,9 @@
 
 void LoadAsegFromBrx(ASEG* paseg, CBinaryInputStream* pbis)
 {
-    LoadAsegaCount++;
+    /*LoadAsegaCount++;
     std::cout << "LoadAsegFromBrx: " << std::dec << LoadAsegaCount << "\n";
-    std::cout << std::hex << pbis->file.tellg() << "\n";
+    std::cout << std::hex << pbis->file.tellg() << "\n";*/
     int16_t unk_0 = pbis->U16Read();
     int16_t unk_1 = pbis->U16Read();
     uint16_t unk_2 = pbis->U16Read();
@@ -97,15 +97,10 @@ void LoadAsegFromBrx(ASEG* paseg, CBinaryInputStream* pbis)
         }
     }
 
-    std::cout << std::hex << pbis->file.tellg() << "\n";
     LoadAsegEventsFromBrx(pbis, 0);
-    std::cout << std::hex << pbis->file.tellg() << "\n";
     LoadAsegEventsFromBrx(pbis, 1);
-    std::cout << std::hex << pbis->file.tellg() << "\n";
     LoadAsegEventsFromBrx(pbis, 0);
-    std::cout << std::hex << pbis->file.tellg() << "\n";
     LoadOptionFromBrx(0, pbis);
-    std::cout << std::hex << pbis->file.tellg() << "\n";
 }
 
 void LoadAsegEventsFromBrx(CBinaryInputStream* pbis, int fFrame)
