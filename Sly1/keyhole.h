@@ -20,8 +20,6 @@ class KEYHOLE : public LO
 		glm::vec4 posMax;
 		float dx;
 		KS mpkpks[5];
-
-		KEYHOLE(CID cid, SW* psw, ALO* paloParent, OID oid);
 };
 
 void InitKeyhole(KEYHOLE *pkeyhole);

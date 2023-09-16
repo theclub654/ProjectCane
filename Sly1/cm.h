@@ -24,8 +24,6 @@ public:
 	float sNearFog;
 	float sFarFog;
 	float uFogMax;
-
-	CM(CID cid, SW* psw, ALO* paloParent, OID oid);
 };
 
 // Initialize camera object

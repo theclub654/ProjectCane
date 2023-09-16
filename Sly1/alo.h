@@ -2,6 +2,9 @@
 #include "lo.h"
 #include "glob.h"
 
+class SO;
+void OnSoAdd(SO *pso);
+
 class ALO : public LO
 {
 public:
@@ -21,13 +24,18 @@ public:
 	glm::mat3 matOrig;
 	glm::vec3 eulOrig;
 	DL dlAct;
-
-	ALO(CID cid, SW* psw, ALO* paloParent, OID oid);
+	float sFastShadowRadius;
+	float sFastShadowDepth;
+	int fRealClock;
+	float dtUpdatePause;
+	float sRadiusRenderSelf;
+	float sRadiusRenderAll;
 };
 
 // Initialize ALO object
 void InitAlo(ALO* palo); // NOT FINISHED
-void RemoveAloHierarchy(ALO* palo); // NOT FINISHED
+void AddAloHierarchy(ALO *palo); // NOT FINISHED
+void RemoveAloHierarchy(ALO *palo); // NOT FINISHED
 // Loads ALO object from binary file
 void LoadAloFromBrx(ALO* palo, CBinaryInputStream* pbis);
 void LoadAloAloxFromBrx(CBinaryInputStream* pbis);

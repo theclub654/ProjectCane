@@ -2,5 +2,5 @@
 
 void LoadHndFromBrx(HND* phnd, CBinaryInputStream* pbis)
 {
-	LoadXfmFromBrx(pbis);
+	LoadXfmFromBrx(phnd, pbis);
 }

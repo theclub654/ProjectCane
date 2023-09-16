@@ -1,15 +1,5 @@
 #include "sw.h"
 
-SW::SW(CID cid, ALO* paloParent, OID oid)
-{
-	this->cid = cid;
-	this->paloParent;
-	this->oid = oid;
-
-	for (int i = 0; i < 0x200; i++)
-		InitDl(&objectParents[i], 0xC);
-}
-
 void InitSw(SW* psw)
 {
 	InitLo((LO*)psw);
@@ -48,6 +38,12 @@ void InitSw(SW* psw)
 	InitDl(&psw->dlPathzone, 100 + 0xC);
 }
 
+void InitSwDlHash(SW* psw)
+{
+	for (int i = 0; i < 0x200; i++)
+		InitDl(&psw->objectParents[i], 0xC + 0xC);
+}
+
 void LoadSwFromBrx(SW* psw, CBinaryInputStream* pbis)
 {
 	// Setting difficulty for world
@@ -77,6 +73,7 @@ void LoadSwFromBrx(SW* psw, CBinaryInputStream* pbis)
 	LoadShadersFromBrx(pbis);
 	// Loads all the static world objects from the binary file
 	LoadSwObjectsFromBrx(psw, 0x0, pbis);
+	pbis->Align(0x10);
 }
 
 void LoadNameTableFromBrx(CBinaryInputStream* pbis)
@@ -97,4 +94,14 @@ void LoadWorldTableFromBrx(CBinaryInputStream* pbis)
 void DeleteSw(SW* psw)
 {
 	g_pcm = 0x0;
+}
+
+void UpdateSw(SW *psw, float dt)
+{
+
+}
+
+void GetSwParams(SW* psw, SOP** ppsop)
+{
+
 }

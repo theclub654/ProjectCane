@@ -20,5 +20,6 @@ public:
 	GEOM geomWorld;
 };
 
-void InitSo(SO* pso); // NOT FINISHED
-void LoadSoFromBrx(SO* pso, CBinaryInputStream* pbis);
+void InitSo(SO *pso); // NOT FINISHED
+void OnSoAdd(SO *pso);
+void LoadSoFromBrx(SO* pso, CBinaryInputStream* pbis);// NOT FINISHED

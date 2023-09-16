@@ -1,13 +1,5 @@
 #include "keyhole.h"
 
-KEYHOLE::KEYHOLE(CID cid, SW* psw, ALO* paloParent, OID oid)
-{
-	this->cid = cid;
-	this->psw = psw;
-	this->paloParent;
-	this->oid = oid;
-}
-
 void InitKeyhole(KEYHOLE *pkeyhole)
 {
 	InitLo(pkeyhole);

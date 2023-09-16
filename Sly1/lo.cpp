@@ -32,14 +32,7 @@ void AddLo(LO *plo)
 
 		if (isFound != 0)
 		{
-			switch (plo->cid)
-			{
-				case CID::CID_VISMAP:
-				{
-					AddLoHierarchy(plo);
-					break;
-				}
-			}
+			
 		}
 	}
 }
@@ -52,6 +45,14 @@ void AddLoHierarchy(LO *plo)
 void RemoveLoHierarchy(LO* plo)
 {
 	SendLoMessage(plo, MSGID_removed, plo);
+}
+
+void CloneLoHierarchy(LO* plo, LO* ploBase)
+{
+}
+
+void CloneLo(LO* plo, LO* ploBase)
+{
 }
 
 void SendLoMessage(LO *plo, MSGID msgid, void *pv)
@@ -90,14 +91,7 @@ void RemoveLo(LO* plo)
 		{
 			RemoveDlEntry(objectChild, plo);
 
-			switch (plo->cid)
-			{
-				case CID::CID_VISMAP:
-				{
-					RemoveLoHierarchy(plo);
-					break;
-				}
-			}
+			///
 		}
 	}
 }
@@ -136,4 +130,30 @@ int FIsLoInWorld(LO* plo)
 
 	// If object is found return 1
 	return 1;
+}
+
+void PostLoLoad(LO* plo)
+{
+
+}
+
+void SetLoParent(LO *plo, ALO *paloParent)
+{
+
+}
+
+void SubscribeLoObject(LO* plo, LO* ploTarget)
+{
+}
+
+void UnsubscribeLoObject(LO* plo, LO* ploTarget)
+{
+}
+
+void SubscribeLoStruct(LO* plo, void* pfnmq, void* pvContext)
+{
+}
+
+void UnsubscribeLoStruct(LO* plo, void* pfnmq, void* pvContext)
+{
 }

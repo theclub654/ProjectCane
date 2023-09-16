@@ -1,5 +1,5 @@
 #pragma once
-#include "spaprops.h"
+#include "basic.h"
 #include "dl.h"
 #include "bis.h"
 #include "shd.h"
@@ -9,15 +9,14 @@
 class SW;
 class ALO;
 
-void* PloNew(CID cid, SW* psw, ALO* paloParent, OID oid, int isplice);
+LO* PloNew(CID cid, SW* psw, ALO* paloParent, OID oid, int isplice);
 void LoadSwObjectsFromBrx(SW* psw, ALO* paloParent, CBinaryInputStream* pbis);
 void LoadOptionFromBrx(void* pvObject, CBinaryInputStream* pbis);
 
-class LO
+class LO : public BASIC
 {
 	public:
-		// Class ID
-		CID cid;
+        //VTLO *pvtlo;
 		// Object ID
 		OID oid;
 		DLE dleOid;
@@ -63,7 +62,13 @@ enum MSGID
     MSGID_param_write = 25,
     MSGID_Max = 26
 };
-
+struct SOP 
+{
+    LO *plo;
+    int cpar;
+    struct PAR* apar;
+    struct SOP* psopNext;
+};
 // Initializes Local Object
 void InitLo(LO *parentLo);
 void SetLoDefaults(LO* parentLo);
@@ -71,12 +76,19 @@ void SetLoDefaults(LO* parentLo);
 void AddLo(LO* plo); // GOTTA COME BACK
 void AddLoHierarchy(LO* plo);
 void RemoveLoHierarchy(LO* plo);
+void CloneLoHierarchy(LO* plo, LO* ploBase);
+void CloneLo(LO* plo, LO* ploBase);
 void SendLoMessage(LO *plo, MSGID msgid, void *pv); // GOTTA COME BACK
-void LoadLoFromBrx(LO* plo, CBinaryInputStream* pbis);
-// Remove LO 
-void RemoveLo(LO* plo); // GOTTA COME BACK
+void LoadLoFromBrx(LO *plo, CBinaryInputStream* pbis);
+void RemoveLo(LO *plo); // GOTTA COME BACK
 // Returns whether LO is in world or not
-int FIsLoInWorld(LO* plo);
+int  FIsLoInWorld(LO *plo);
+void PostLoLoad(LO *plo); // GOTTA COMEB BACK
+void SetLoParent(LO *plo, ALO *paloParent);
+void SubscribeLoObject(LO* plo, LO* ploTarget);
+void UnsubscribeLoObject(LO* plo, LO* ploTarget);
+void SubscribeLoStruct(LO* plo, void* pfnmq, void* pvContext);
+void UnsubscribeLoStruct(LO* plo, void * pfnmq, void* pvContext);
 
 #include "sw.h"
 #include "alo.h"

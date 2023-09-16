@@ -9,6 +9,11 @@ void InitSo(SO* pso)
 	InitGeom(&pso->geomLocal);
 }
 
+void OnSoAdd(SO* pso)
+{
+
+}
+
 void LoadSoFromBrx(SO* pso, CBinaryInputStream* pbis)
 {
 	byte unk0 = pbis->U8Read();

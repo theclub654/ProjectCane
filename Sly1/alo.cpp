@@ -1,21 +1,14 @@
 #include "alo.h"
 
-ALO::ALO(CID cid, SW* psw, ALO* paloParent, OID oid)
-{
-	this->cid = cid;
-	this->psw = psw;
-	this->paloParent;
-	this->oid = oid;
-}
-
-void RemoveAloHierarchy(ALO* palo)
+void RemoveAloHierarchy(ALO *palo)
 {
 	DLI plo;
 
-	// Loading objects child list
+	// Loading objects child
 	plo.m_pdl = &palo->dlChild;
-	// Loading base offset to object child
+	// Loading object's chile base offset to object child entry
 	plo.m_ibDle = palo->dlChild.ibDle;
+
 	plo.m_pdliNext = s_pdliFirst;
 
 	// Storing parent object in global parent list
@@ -23,14 +16,11 @@ void RemoveAloHierarchy(ALO* palo)
 	plo.m_ppv = (void**)plo.m_pdl;
 
 	// Loading object header from RIPG object
-	LO* LocalObject = (LO*)palo;
+	LO *LocalObject = (LO*)palo;
 
 	while (true)
 	{
-		switch (LocalObject->cid)
-		{
-
-		}
+		
 
 		break;
 	}
@@ -49,6 +39,25 @@ void InitAlo(ALO* palo)
 	InitDl(&palo->dlAct, 8 + 0xC);
 }
 
+void AddAloHierarchy(ALO* palo)
+{
+	DLI plo;
+
+	// Loading objects child object
+	plo.m_pdl = &palo->dlChild;
+	// Loading the object base offset to child entry list
+	plo.m_ibDle = palo->dlChild.ibDle;
+	// Loading the first parent of the object
+	plo.m_pdliNext = s_pdliFirst;
+
+	s_pdliFirst = &plo;
+
+	while (true)
+	{
+
+	}
+}
+
 void LoadAloFromBrx(ALO* palo, CBinaryInputStream* pbis)
 {
 	pbis->ReadMatrix();
@@ -63,11 +72,9 @@ void LoadAloFromBrx(ALO* palo, CBinaryInputStream* pbis)
 	pbis->F32Read();
 	pbis->F32Read();
 	LoadOptionFromBrx(palo, pbis);
-	//std::cout << std::hex << pbis->file.tellg() <<"\n";
 	byte unk = LoadGlobsetFromBrx(pbis);
-	//std::cout << std::hex << pbis->file.tellg() << "\n";
 	LoadAloAloxFromBrx(pbis);
-	//std::cout << std::hex << pbis->file.tellg() << "\n";
+
 	byte unk_8 = pbis->U8Read();
 
 	for (int i = 0; i < unk_8; i++)
@@ -83,7 +90,7 @@ void LoadAloFromBrx(ALO* palo, CBinaryInputStream* pbis)
 				pbis->F32Read();
 		}
 	}
-	//std::cout << std::hex << pbis->file.tellg()<<"\n";
+
 	LoadSwObjectsFromBrx(0, palo, pbis);
 }
 

@@ -27,7 +27,7 @@ void CTransition::Execute()
 	// Initializing parent SW object
 	g_psw = (SW*)PloNew(CID::CID_SW, 0, 0, OID::OID__WORLD, -1);
 	// Loads parent static world from binary file.
-	LoadSwFromBrx(g_psw, &file);
+	g_psw->pvtlo->pfnLoadLoFromBrx(g_psw, &file);
 	// Closing binary object
 	file.Close();
 	// Setting the level pending flag to 0

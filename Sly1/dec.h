@@ -1,5 +1,4 @@
 #pragma once
-
 // Forward declarations
 
 class CBinaryInputStream;
@@ -53,11 +52,48 @@ class DPRIZE;
 class PNT;
 class KEYHOLE;
 class PROXY;
+class SW;
+class CM;
+class EMITTER;
+class EXPLG;
+class VISMAP;
+struct SOP;
+struct CRVL;
+struct CRVC;
+class EXPLO;
+class XFM;
+enum MSGID;
 extern bool loadEmitMesh;
 
+// Static World
+void InitSw(SW* psw);
+void LoadSwFromBrx(SW* psw, CBinaryInputStream* pbis);
+void UpdateSw(SW* psw, float dt);
+void GetSwParams(SW* psw, SOP** ppsop);
+
+void LoadCrvlFromBrx(CBinaryInputStream* pbis);
+void LoadCrvcFromBrx(CBinaryInputStream* pbis);
+
+void InitCm(CM* pcm);
+void InitLo(LO *plo);
+void SetLoDefaults(LO *plo);
+void AddLo(LO *plo);
+void RemoveLo(LO* plo);
+void AddLoHierarchy(LO* plo);
+void RemoveLoHierarchy(LO* plo);
+void CloneLoHierarchy(LO* plo, LO* ploBase);
+void CloneLo(LO* plo, LO* ploBase);
+void LoadLoFromBrx(LO* plo, CBinaryInputStream* pbis);
+void SendLoMessage(LO* plo, MSGID msgid, void* pv);
+void PostLoLoad(LO* plo);
+void SetLoParent(LO* plo, ALO* paloParent);
+void SubscribeLoObject(LO* plo, LO* ploTarget);
+void UnsubscribeLoObject(LO* plo, LO* ploTarget);
+void SubscribeLoStruct(LO* plo, void* pfnmq, void* pvContext);
+void UnsubscribeLoStruct(LO* plo, void* pfnmq, void* pvContext);
 void LoadProxyFromBrx(PROXY* pproxy, CBinaryInputStream* pbis);
 void LoadKeyholeFromBrx(KEYHOLE* pkeyhole, CBinaryInputStream* pbis);
-void LoadVismapFromBrx(CBinaryInputStream* pbis);
+void LoadVismapFromBrx(VISMAP* pvismap, CBinaryInputStream* pbis);
 void LoadSoFromBrx(SO* pso, CBinaryInputStream* pbis);
 void LoadJtFromBrx(JT* pjt, CBinaryInputStream* pbis);
 void LoadStepGuardFromBrx(STEPGUARD* pstepguard, CBinaryInputStream* pbis);
@@ -86,7 +122,7 @@ void LoadFlyFromBrx(FLY* pfly, CBinaryInputStream* pbis);
 void LoadRatFromBrx(RAT* prat, CBinaryInputStream* pbis);
 void LoadRovFromBrx(ROV* prov, CBinaryInputStream* pbis);
 void LoadRohFromBrx(ROH* proh, CBinaryInputStream* pbis);
-void LoadEmitterFromBrx(CBinaryInputStream* pbis);
+void LoadEmitterFromBrx(EMITTER* pemitter, CBinaryInputStream* pbis);
 void LoadRocFromBrx(ROC* proc, CBinaryInputStream* pbis);
 void LoadRostFromBrx(ROST* prost, CBinaryInputStream* pbis);
 void LoadRopFromBrx(ROP* prop, CBinaryInputStream* pbis);
@@ -94,9 +130,9 @@ void LoadDartFromBrx(DART* pdart, CBinaryInputStream* pbis);
 void LoadJloFromBrx(JLO* pjlo, CBinaryInputStream* pbis);
 void LoadJlocFromBrx(JLOC* pjloc, CBinaryInputStream* pbis);
 void LoadChkpntFromBrx(CHKPNT* pchkpnt, CBinaryInputStream* pbis);
-void LoadExploFromBrx(CBinaryInputStream* pbis);
+void LoadExploFromBrx(EXPLO* pexplo, CBinaryInputStream* pbis);
 void LoadPntFromBrx(PNT* pnt, CBinaryInputStream* pbis);
-void LoadExplgFromBrx(CBinaryInputStream* pbis);
+void LoadExplgFromBrx(EXPLG* pexplg, CBinaryInputStream* pbis);
 void LoadVolFromBrx(VOL* pvol, CBinaryInputStream* pbis);
 void LoadSprizeFromBrx(SPRIZE* psprize, CBinaryInputStream* pbis);
 void LoadDprizeFromBrx(DPRIZE* pdprize, CBinaryInputStream* pbis);
@@ -119,6 +155,19 @@ void LoadHndFromBrx(HND* phnd, CBinaryInputStream* pbis);
 void LoadChkpntFromBrx(CHKPNT* pchkpnt, CBinaryInputStream* pbis);
 void LoadVolFromBrx(VOL* pvol, CBinaryInputStream* pbis);
 void LoadAsegFromBrx(ASEG* paseg, CBinaryInputStream* pbis);
+void LoadAloFromBrx(ALO* palo, CBinaryInputStream* pbis);
 void LoadSmFromBrx(SM* psm, CBinaryInputStream* pbis);
 void LoadPathZoneFromBrx(PATHZONE* ppathzone, CBinaryInputStream* pbis);
 void LoadRchmFromBrx(RCHM* prchm, CBinaryInputStream* pbis);
+void LoadAcpcFromBrx(CBinaryInputStream* pbis);
+void LoadAcpvFromBrx(CBinaryInputStream* pbis);
+void LoadAkvbFromBrx(CBinaryInputStream* pbis);
+void LoadAcrcFromBrx(CBinaryInputStream* pbis);
+void LoadAcscFromBrx(CBinaryInputStream* pbis);
+void LoadAcrbFromBrx(CBinaryInputStream* pbis);
+void LoadApacgFromBrx(CBinaryInputStream* pbis);
+void LoadAcgbFromBrx(CBinaryInputStream* pbis);
+void LoadAcgbwFromBrx(CBinaryInputStream* pbis);
+void LoadAcglFromBrx(CBinaryInputStream* pbis);
+void LoadAcpbFromBrx(CBinaryInputStream* pbis);
+void LoadXfmFromBrx(XFM* pxfm, CBinaryInputStream* pbis);

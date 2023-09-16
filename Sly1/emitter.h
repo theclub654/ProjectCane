@@ -1,11 +1,10 @@
 #pragma once
 #include "xform.h"
 
-struct CRVL;
-struct CRVC;
-
-void LoadCrvlFromBrx(CBinaryInputStream* pbis);
-void LoadCrvcFromBrx(CBinaryInputStream* pbis);
+class EMITTER : public ALO
+{
+	public:
+};
 
 class EXPL : public XFM
 {
@@ -30,6 +29,6 @@ class EXPLO : public EXPL
 
 void LoadEmitMeshFromBrx(CBinaryInputStream* pbis);
 void LoadEmitblipColorsFromBrx(int crgba, CBinaryInputStream* pbis);
-void LoadEmitterFromBrx(CBinaryInputStream *pbis);
-void LoadExplgFromBrx(CBinaryInputStream *pbis);
-void LoadExploFromBrx(CBinaryInputStream *pbis);
+void LoadEmitterFromBrx(EMITTER* pemitter, CBinaryInputStream* pbis);
+void LoadExplgFromBrx(EXPLG* pexplg, CBinaryInputStream* pbis);
+void LoadExploFromBrx(EXPLO *pexplo, CBinaryInputStream *pbis);

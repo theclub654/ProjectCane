@@ -1,6 +1,6 @@
 #include "vis.h"
 
-void LoadVismapFromBrx(CBinaryInputStream *pbis)
+void LoadVismapFromBrx(VISMAP *pvismap, CBinaryInputStream *pbis)
 {
 	pbis->ReadVbsp();
 

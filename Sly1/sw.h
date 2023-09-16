@@ -7,6 +7,7 @@
 class SW : public LO
 {
 public:
+	// Number of SO in world
 	int cpsoAll;
 	int cpsoRoot;
 	DL dlRoot;
@@ -46,12 +47,11 @@ public:
 	DL dlCrfod;
 	// Sound bank index for level
 	int ibnk;
-
-	SW(CID cid, ALO* paloParent, OID oid);
 };
 
 // Initializing SW object
 void InitSw(SW* psw); // GOTTA COME BACK TO THIS
+void InitSwDlHash(SW *psw);
 // Loads all world data from binary file
 void LoadSwFromBrx(SW* psw, CBinaryInputStream* pbis);// NOT FINISHED
 // Loads level filenames from file
@@ -61,5 +61,7 @@ void LoadWorldTableFromBrx(CBinaryInputStream* pbis);
 // Resets SW object
 void DeleteSw(SW* psw);
 
+void UpdateSw(SW *psw, float dt);
+void GetSwParams(SW* psw, SOP** ppsop);
 // Global pointer to parent static world object
 static SW* g_psw;

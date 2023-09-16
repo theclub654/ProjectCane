@@ -1,5 +1,4 @@
 #pragma once
-#include "dec.h"
 #include "alo.h"
 #include "vec.h"
 
@@ -19,6 +18,6 @@ class EXIT : public ALO
 	public:
 };
 
-void LoadXfmFromBrx(CBinaryInputStream *pbis);
+void LoadXfmFromBrx(XFM* pxfm, CBinaryInputStream* pbis);
 void LoadWarpFromBrx(WARP* pwarp, CBinaryInputStream* pbis); // GOTTA COME BACK TO THIS
 void LoadExitFromBrx(EXIT *pexit, CBinaryInputStream* pbis); // GOTTA COME BACK TO THIS
