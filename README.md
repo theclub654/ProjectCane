@@ -3,7 +3,7 @@
 This is rewrite and decompilation project of the PS2 games Sly 1 Sly 2 Sly 3.
 
 # GOAL:
-The goal for this project is to decompile the games but also rewrite parts of the games that needs to be rewritten to turn into a workable PC port.
+The goal for this project is to decompile and understand the workings of the game as in the future when we get a pc port up and running it would make modding the game alot easier since we know how to game works, and also rewrite parts of the games that needs to be rewritten to turn into a workable PC port.
 
 # Current Goal:
 The current goal is to decompile the Sly 1 May 19, 2002 Prototype build of the game and make that version a PC port, than after make the PS2 release version asset files compatible with the PC port thus turning the May 19, 2002 port into the release build.
