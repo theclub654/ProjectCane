@@ -3,15 +3,22 @@
 void InitSo(SO* pso)
 {
 	//CREF cref;
-	InitDl(&pso->dlPhys, 0x2f4 + 0xC);
-	InitAlo((ALO*)pso);
+	InitDl(&pso->dlPhys, 0x2f4);
+	InitAlo(pso);
 
 	InitGeom(&pso->geomLocal);
 }
 
-void OnSoAdd(SO* pso)
+void OnSoAdd(SO *pso)
 {
+	pso->psw->cpsoAll++;
 
+	if (pso->paloParent == nullptr)
+	{
+		AppendDlEntry(&pso->psw->dlRoot, pso);
+	}
+
+	OnAloAdd(pso);
 }
 
 void LoadSoFromBrx(SO* pso, CBinaryInputStream* pbis)
@@ -51,4 +58,9 @@ void LoadSoFromBrx(SO* pso, CBinaryInputStream* pbis)
 	pbis->ReadBspc();
 
 	LoadAloFromBrx(pso, pbis);
+}
+
+void UpdateSo(SO* pso, float dt)
+{
+
 }

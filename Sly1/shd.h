@@ -64,7 +64,7 @@ struct SHDF
     byte ctex;
 };
 // Shader property's
-struct SHD
+struct SHD : public SHDF
 {
     SHDF SHD;
     struct TEX *atex;
@@ -72,7 +72,7 @@ struct SHD
     int cframe;
     SAA *psaa;
 };
-struct TEX
+struct TEX : public TEXF
 {
     TEXF texf;
     SHD pshd;

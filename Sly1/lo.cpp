@@ -3,7 +3,7 @@
 void InitLo(LO* parentLo)
 {
 	SetLoDefaults(parentLo);
-	AddLo(parentLo);
+	parentLo->pvtlo->pfnAddLo(parentLo);
 }
 
 void SetLoDefaults(LO* parentLo)
@@ -31,9 +31,7 @@ void AddLo(LO *plo)
 		isFound = FIsLoInWorld(plo);
 
 		if (isFound != 0)
-		{
-			
-		}
+			plo->pvtlo->pfnAddLoHierarchy(plo);
 	}
 }
 
@@ -90,10 +88,19 @@ void RemoveLo(LO* plo)
 		else
 		{
 			RemoveDlEntry(objectChild, plo);
-
-			///
+			plo->pvtlo->pfnRemoveLoHierarchy(plo);
 		}
 	}
+}
+
+void OnLoAdd(LO* plo)
+{
+
+}
+
+void OnLoRemove(LO* plo)
+{
+
 }
 
 int FIsLoInWorld(LO* plo)

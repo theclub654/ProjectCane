@@ -186,6 +186,7 @@
     <ClInclude Include="pzo.h" />
     <ClInclude Include="rat.h" />
     <ClInclude Include="rchm.h" />
+    <ClInclude Include="ref.h" />
     <ClInclude Include="rip.h" />
     <ClInclude Include="rog.h" />
     <ClInclude Include="sensor.h" />
@@ -193,6 +194,7 @@
     <ClInclude Include="shape.h" />
     <ClInclude Include="shd.h" />
     <ClInclude Include="shdanim.h" />
+    <ClInclude Include="sidebag.h" />
     <ClInclude Include="sm.h" />
     <ClInclude Include="so.h" />
     <ClInclude Include="spaprops.h" />
@@ -257,6 +259,7 @@
     <ClCompile Include="pzo.cpp" />
     <ClCompile Include="rat.cpp" />
     <ClCompile Include="rchm.cpp" />
+    <ClCompile Include="ref.cpp" />
     <ClCompile Include="rip.cpp" />
     <ClCompile Include="rog.cpp" />
     <ClCompile Include="sensor.cpp" />
@@ -264,6 +267,7 @@
     <ClCompile Include="shape.cpp" />
     <ClCompile Include="shd.cpp" />
     <ClCompile Include="shdanim.cpp" />
+    <ClCompile Include="sidebag.cpp" />
     <ClCompile Include="sm.cpp" />
     <ClCompile Include="so.cpp" />
     <ClCompile Include="spaprops.cpp" />

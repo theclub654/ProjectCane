@@ -16,7 +16,6 @@ void LoadOptionFromBrx(void* pvObject, CBinaryInputStream* pbis);
 class LO : public BASIC
 {
 	public:
-        //VTLO *pvtlo;
 		// Object ID
 		OID oid;
 		DLE dleOid;
@@ -81,6 +80,8 @@ void CloneLo(LO* plo, LO* ploBase);
 void SendLoMessage(LO *plo, MSGID msgid, void *pv); // GOTTA COME BACK
 void LoadLoFromBrx(LO *plo, CBinaryInputStream* pbis);
 void RemoveLo(LO *plo); // GOTTA COME BACK
+void OnLoAdd(LO *plo);
+void OnLoRemove(LO *plo);
 // Returns whether LO is in world or not
 int  FIsLoInWorld(LO *plo);
 void PostLoLoad(LO *plo); // GOTTA COMEB BACK

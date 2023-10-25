@@ -1,20 +1,33 @@
 #include "glob.h"
 #include "shd.h"
 
-byte LoadGlobsetFromBrx(CBinaryInputStream *pbis)
+void LoadGlobsetFromBrx(GLOBSET *pglobset, CBinaryInputStream *pbis)
 {
-	byte unk0 = pbis->U8Read();
-	byte unk1 = pbis->U8Read();
+    pglobset->cpsaa = 0;
 
-    for (int i = 0; i < unk1; i++)
-        pbis->S16Read();
+	pbis->U8Read();
+	pglobset->cbnd = pbis->U8Read();
+    
+    pglobset->mpibndoid = (OID*) new OID[pglobset->cbnd << 2]();
 
-    byte unk_3 = pbis->U8Read();
-    pbis->file.seekg(unk_3 << 2, SEEK_CUR);
-    uint16_t unk_4 = pbis->U16Read();
+    for (int i = 0; i < pglobset->cbnd; i++)
+        pglobset->mpibndoid[i] = (OID)pbis->S16Read();
+    
+    pglobset->cpose = pbis->U8Read();
+    pbis->file.seekg(pglobset->cpose << 2, SEEK_CUR);
+    // Loading number of submodels for model
+    pglobset->cglob = pbis->U16Read();
 
-    for (int i = 0; i < unk_4; i++)
+    // Allocating memory for submodel data
+    pglobset->aglob = (GLOB*)new GLOB[pglobset->cglob << 7]();
+    pglobset->aglobi = (GLOBI*)new GLOBI[pglobset->cglob * 0x28]();
+
+    // Loading each submodel for a model
+    for (int i = 0; i < pglobset->cglob; i++)
     {
+        GLOB *pglob = pglobset->aglob + i;
+        GLOBI *pglobi = pglobset->aglobi + i;
+
         uint16_t unk_5 = pbis->U16Read();
 
         if ((unk_5 & 1) != 0)
@@ -28,22 +41,22 @@ byte LoadGlobsetFromBrx(CBinaryInputStream *pbis)
         }
 
         if ((unk_5 & 2) != 0)
-            pbis->U32Read();
+            pglobi->grfzon = pbis->U32Read();
 
         if ((unk_5 & 0x200) != 0)
-            pbis->F32Read();;
+            pglob->rSubglobRadius = pbis->F32Read();
 
         if ((unk_5 & 4) != 0)
-            pbis->F32Read();;
+            pbis->F32Read();
 
         if ((unk_5 & 8) != 0)
-            pbis->F32Read();;
+            pglob->uFog = pbis->F32Read();
 
         if ((unk_5 & 0x10) != 0)
-            pbis->F32Read();;
+            pbis->F32Read();
 
         if ((unk_5 & 0x20) != 0)
-            pbis->F32Read();;
+            pbis->F32Read();
 
         if ((unk_5 & 0x40) != 0)
             PsaaLoadFromBrx(pbis);
@@ -57,15 +70,15 @@ byte LoadGlobsetFromBrx(CBinaryInputStream *pbis)
         if ((unk_5 & 0x100) != 0)
         {
 
-            int16_t unk_7 = pbis->S16Read();
+            pbis->S16Read();
             int8_t unk_8 = pbis->S8Read();
 
             if (unk_8 != -1)
             {
-                pbis->F32Read();;
-                pbis->F32Read();;
-                pbis->F32Read();;
-                pbis->F32Read();;
+                pbis->F32Read();
+                pbis->F32Read();
+                pbis->F32Read();
+                pbis->F32Read();
                 pbis->file.seekg(0x30, SEEK_CUR); //ReadMatrix4
             }
 
@@ -74,26 +87,30 @@ byte LoadGlobsetFromBrx(CBinaryInputStream *pbis)
             pbis->U8Read();
         }
 
-        pbis->ReadVector();
-        pbis->F32Read();;
-        int16_t unk_9 = pbis->S16Read();
-        byte unk_10 = pbis->U8Read();
-        byte unk_11 = pbis->U8Read();
-        byte unk_12 = pbis->U8Read();
+        pglob->posCenter = pbis->ReadVector();
+        pglob->sRadius = pbis->F32Read();
+        pbis->S16Read();
+        pbis->U8Read();
+        pbis->U8Read();
+        pglob->oid = (OID)pbis->U8Read();
 
         if ((unk_5 & 1) == 0)
         {
-            //std::cout << "Model Start: " << std::hex << file.tellg()<<"\n";
-            uint16_t numSubMesh0 = pbis->U16Read();
+            // std::cout << "Model Start: " << std::hex << file.tellg()<<"\n";
+            // Number of submodels
+            pglob->csubglob = pbis->U16Read();
 
-            for (int i = 0; i < numSubMesh0; i++)
+            pglob->asubglob = (SUBGLOB*)new SUBGLOB[pglob->csubglob * 0x50]();
+
+            for (int i = 0; i < pglob->csubglob; i++)
             {
-                pbis->ReadVector();
-                pbis->F32Read();;
+                // Loading submodel origin
+                pglob->asubglob->posCenter = pbis->ReadVector();
+                pglob->asubglob->sRadius = pbis->F32Read();
 
                 byte vertexCount = pbis->U8Read();
                 //std::cout << std::dec << "Vertex Count: " << (uint32_t)vertexCount << "\n";
-                byte normalsCount = pbis->U8Read();
+                byte normalCount = pbis->U8Read();
                 //std::cout << std::dec << "Rotations Count: " << (uint32_t)rotationsCount << "\n";
                 byte vertexColorCount = pbis->U8Read();
                 //std::cout << std::dec << "Vertex Color Count: " << (uint32_t)vertexColorCount << "\n";
@@ -105,23 +122,20 @@ byte LoadGlobsetFromBrx(CBinaryInputStream *pbis)
                 pbis->Align(4);
 
                 //std::cout << "Vertices: " << std::hex << file.tellg() << "\n";
-                for (int i = 0; i < vertexCount; i++)
-                    pbis->ReadVector();
+                glm::vec3 *pos = (glm::vec3*)new glm::vec3[vertexCount * 0xC]();
+                pbis->file.read((char*)pos, vertexCount * 0xC);
 
                 //std::cout << "Normals: " << std::hex << file.tellg() << "\n";
-                for (int i = 0; i < normalsCount; i++)
-                    pbis->ReadVector();
+                glm::vec3 *normal = (glm::vec3*)new glm::vec3[normalCount * 0xC]();
+                pbis->file.read((char*)normal, normalCount * 0xC);
 
                 //std::cout << "Vertex Colors: " << std::hex << file.tellg() << "\n";
                 for (int i = 0; i < vertexColorCount; i++)
                     pbis->U32Read();
 
                 //std::cout << "Texcoords: " << std::hex << file.tellg() << "\n";
-                for (int i = 0; i < texCoordCount; i++)
-                {
-                    pbis->F32Read();
-                    pbis->F32Read();
-                }
+                glm::vec2 *uv = (glm::vec2*)new glm::vec2[texCoordCount << 3]();
+                pbis->file.read((char*)uv, texCoordCount << 3);
 
                 //std::cout << "Indexes: " << std::hex << file.tellg() << "\n\n";
 
@@ -133,17 +147,17 @@ byte LoadGlobsetFromBrx(CBinaryInputStream *pbis)
                     pbis->U8Read();
                 }
 
-                uint16_t textureID = pbis->U16Read();
+                uint16_t shaderID = pbis->U16Read();
 
-                byte unk_19 = pbis->U8Read();
-                byte unk_20 = pbis->U8Read();
+                pglob->asubglob->unSelfIllum = pbis->U8Read();
+                pglob->asubglob->cibnd = pbis->U8Read();
 
-                for (int i = 0; i < unk_20; i++)
+                for (int i = 0; i < pglob->asubglob->cibnd; i++)
                     pbis->U8Read();
 
-                pbis->file.seekg(vertexCount * unk_20 * 4, SEEK_CUR);
+                pbis->file.seekg(vertexCount * pglob->asubglob->cibnd * 4, SEEK_CUR);
 
-                if (unk_3 != 0)
+                if (pglobset->cpose != 0)
                 {
                     uint16_t vertexCount1 = pbis->U16Read();
 
@@ -155,7 +169,7 @@ byte LoadGlobsetFromBrx(CBinaryInputStream *pbis)
                     for (int i = 0; i < normalCount; i++)
                         pbis->ReadVector();
 
-                    for (int i = 0; i < unk_3; i++)
+                    for (int i = 0; i < pglobset->cpose; i++)
                     {
                         for (int i = 0; i < indexCount; i++)
                         {
@@ -170,6 +184,7 @@ byte LoadGlobsetFromBrx(CBinaryInputStream *pbis)
                         }
                     }
                 }
+                pglob->asubglob++;
             }
 
             uint16_t numSubMesh1 = pbis->U16Read();
@@ -199,14 +214,14 @@ byte LoadGlobsetFromBrx(CBinaryInputStream *pbis)
 
                 pbis->file.seekg(unk_26 * vertexCount2 * 4, SEEK_CUR);
 
-                if (unk_3 != 0)
+                if (pglobset->cpose != 0)
                 {
                     uint16_t vertexCount3 = pbis->U16Read();
 
                     for (int i = 0; i < vertexCount3; i++)
                         pbis->ReadVector();
 
-                    for (int i = 0; i < unk_3; i++)
+                    for (int i = 0; i < pglobset->cpose; i++)
                     {
                         for (int i = 0; i < vertexCount2; i++)
                         {
@@ -217,6 +232,4 @@ byte LoadGlobsetFromBrx(CBinaryInputStream *pbis)
             }
         }
     }
-
-    return unk_3;
 }

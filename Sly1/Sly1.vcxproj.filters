@@ -222,6 +222,12 @@
     <ClInclude Include="dec.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="ref.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="sidebag.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="phasemem.cpp">
@@ -429,6 +435,12 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="rchm.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="ref.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="sidebag.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

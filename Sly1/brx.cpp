@@ -27,9 +27,10 @@ LO* PloNew(CID cid, SW* psw, ALO* paloParent, OID oid, int isplice)
 
 	localObject->psw = psw;
 
-	//AppendDlEntry(PdlFromSwOid(localObject->psw, localObject->oid), localObject);
+	if(cid == CID_CM || cid == CID_MS || cid == CID_SW || cid == CID_VISMAP)
+		AppendDlEntry(PdlFromSwOid(localObject->psw, localObject->oid), localObject);
 	
-	if(localObject->pvtlo->pfnInitLo != nullptr)
+	if (cid == CID_CM || cid == CID_MS || cid == CID_SW || cid == CID_VISMAP)
 		localObject->pvtlo->pfnInitLo(localObject);
 
 	return (LO*)localObject;
@@ -49,14 +50,14 @@ void LoadSwObjectsFromBrx(SW *psw, ALO *paloParent, CBinaryInputStream *pbis)
 		// Objects splice event index
 		int isplice = pbis->S16Read();
 
-		LO *plo = PloNew(cid, psw, paloParent, oid, isplice);
+		LO* plo = PloNew(cid, psw, paloParent, oid, isplice);
 		plo->pvtlo->pfnLoadLoFromBrx(plo, pbis);
 	}
 }
 
 DL* PdlFromSwOid(SW *psw, OID oid)
 {
-	return psw->objectParents + (oid * 0x95675 & 0x1ff);
+	return psw->firstObjectParents + (oid * 0x95675 & 0x1ff);
 }
 
 void LoadOptionFromBrx(void* pvObject, CBinaryInputStream* pbis)

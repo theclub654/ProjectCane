@@ -16,20 +16,20 @@ void CTransition::Execute()
 	// Setting the global game state to load because where loading a file
 	SetPhase(PHASE_Load);
 	// THIS IS HERE TEMPORARILY I PLAN ON REWRITING THE WAY THE GAME LOADS FILES
-	CBinaryInputStream file("jb_intro");
+	CBinaryInputStream bis("jb_intro");
 	// Deleting parent SW object
 	DeleteSw(g_psw);
 	g_psw = nullptr;
 	// Reading data thats not needed
-	file.S32Read();
+	bis.S32Read();
 	// Reading data thats not needed
-	file.S32Read();
+	bis.S32Read();
 	// Initializing parent SW object
 	g_psw = (SW*)PloNew(CID::CID_SW, 0, 0, OID::OID__WORLD, -1);
 	// Loads parent static world from binary file.
-	g_psw->pvtlo->pfnLoadLoFromBrx(g_psw, &file);
+	g_psw->pvtlo->pfnLoadLoFromBrx(g_psw, &bis);
 	// Closing binary object
-	file.Close();
+	bis.Close();
 	// Setting the level pending flag to 0
 	m_fPending = 0;
 }

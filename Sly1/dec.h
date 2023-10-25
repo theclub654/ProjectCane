@@ -1,83 +1,18 @@
 #pragma once
 // Forward declarations
-
 class CBinaryInputStream;
-class LO;
 class ALO;
-class SO;
-class JT;
-class STEPGUARD;
-class MBG;
-class ROV;
-class ROH;
-class ROC;
-class ROST;
-class ROP;
-class PUFFER;
-class MGV;
-class BRK;
-class BUTTON;
-class VOLBTN;
-class SQUISH;
-class SPRIZE;
-class CLUE;
-class LOCK;
-class LOCKG;
-class LASEN;
-class CNVO;
-class HBSK;
-class BOMB;
-class MISSILE;
-class FLY;
-class RAT;
-class DART;
-class JLO;
-class JLOC;
-class CHKPNT;
-class VOL;
-class FLASH;
-class TN;
-class DIALOG;
-class MGC;
-class JACKN;
-class SHAPE;
-class WARP;
-class EXIT;
-class HND;
-class ASEG;
-class SM;
-class PATHZONE;
-class RCHM;
-class DPRIZE;
-class PNT;
-class KEYHOLE;
-class PROXY;
-class SW;
-class CM;
-class EMITTER;
-class EXPLG;
-class VISMAP;
-struct SOP;
-struct CRVL;
-struct CRVC;
-class EXPLO;
-class XFM;
-enum MSGID;
 extern bool loadEmitMesh;
 
-// Static World
-void InitSw(SW* psw);
-void LoadSwFromBrx(SW* psw, CBinaryInputStream* pbis);
-void UpdateSw(SW* psw, float dt);
-void GetSwParams(SW* psw, SOP** ppsop);
 
-void LoadCrvlFromBrx(CBinaryInputStream* pbis);
-void LoadCrvcFromBrx(CBinaryInputStream* pbis);
-
-void InitCm(CM* pcm);
-void InitLo(LO *plo);
-void SetLoDefaults(LO *plo);
-void AddLo(LO *plo);
+// Local Obeject
+class LO;
+enum MSGID;
+void InitLo(LO* plo);
+void SetLoDefaults(LO* plo);
+void AddLo(LO* plo);
+void OnLoAdd(LO* plo);
+void OnLoRemove(LO* plo);
 void RemoveLo(LO* plo);
 void AddLoHierarchy(LO* plo);
 void RemoveLoHierarchy(LO* plo);
@@ -91,74 +26,213 @@ void SubscribeLoObject(LO* plo, LO* ploTarget);
 void UnsubscribeLoObject(LO* plo, LO* ploTarget);
 void SubscribeLoStruct(LO* plo, void* pfnmq, void* pvContext);
 void UnsubscribeLoStruct(LO* plo, void* pfnmq, void* pvContext);
-void LoadProxyFromBrx(PROXY* pproxy, CBinaryInputStream* pbis);
-void LoadKeyholeFromBrx(KEYHOLE* pkeyhole, CBinaryInputStream* pbis);
-void LoadVismapFromBrx(VISMAP* pvismap, CBinaryInputStream* pbis);
+
+// A Local Object;
+void InitAlo(ALO* palo);
+void AddAloHierarchy(ALO* palo);
+void RemoveAloHierarchy(ALO* palo);
+void OnAloAdd(ALO* palo);
+void OnAloRemove(ALO* palo);
+void CloneAloHierarchy(ALO* palo);
+void CloneAlo(ALO* palo);
+void LoadAloFromBrx(ALO* palo, CBinaryInputStream* pbis);
+void UpdateAlo(ALO* palo, float dt);
+
+// Static Object
+class SO;
+struct SOP;
+void InitSo(SO* pso);
+void OnSoAdd(SO* pso);
 void LoadSoFromBrx(SO* pso, CBinaryInputStream* pbis);
+void UpdateSo(SO* pso, float dt);
+
+// Sly
+class JT;
 void LoadJtFromBrx(JT* pjt, CBinaryInputStream* pbis);
-void LoadStepGuardFromBrx(STEPGUARD* pstepguard, CBinaryInputStream* pbis);
-void LoadMbgFromBrx(MBG* pmbg, CBinaryInputStream* pbis);
-void LoadRovFromBrx(ROV* prov, CBinaryInputStream* pbis);
-void LoadRohFromBrx(ROH* proh, CBinaryInputStream* pbis);
-void LoadRocFromBrx(ROC* proc, CBinaryInputStream* pbis);
-void LoadRostFromBrx(ROST* prost, CBinaryInputStream* pbis);
-void LoadRopFromBrx(ROP* prop, CBinaryInputStream* pbis);
-void LoadPufferFromBrx(PUFFER* ppuffer, CBinaryInputStream* pbis);
-void LoadMgvFromBrx(MGV* pmgv, CBinaryInputStream* pbis);
-void LoadBrkFromBrx(BRK* pbrk, CBinaryInputStream* pbis);
+
+// Guard
+class STEPGUARD;
+void LoadStepGuardFromBrx(STEPGUARD *pstepguard, CBinaryInputStream* pbis);
+
+class MBG;
+void LoadMbgFromBrx(MBG *pmbg, CBinaryInputStream* pbis);
+
+class ROV;
+void LoadRovFromBrx(ROV *prov, CBinaryInputStream* pbis);
+
+class PUFFER;
+void LoadPufferFromBrx(PUFFER *ppuffer, CBinaryInputStream* pbis);
+
+class MGV;
+void LoadMgvFromBrx(MGV *pmgv, CBinaryInputStream* pbis);
+
+class BRK;
+void LoadBrkFromBrx(BRK *pbrk, CBinaryInputStream* pbis);
+
+class BUTTON;
 void LoadButtonFromBrx(BUTTON* pbutton, CBinaryInputStream* pbis);
+
+class VOLBTN;
 void LoadVolbtnFromBrx(VOLBTN* pvolbtn, CBinaryInputStream* pbis);
+
+class SQUISH;
 void LoadSquishFromBrx(SQUISH* psquish, CBinaryInputStream* pbis);
+
+class SPRIZE;
 void LoadSprizeFromBrx(SPRIZE* psprize, CBinaryInputStream* pbis);
+
+class CLUE;
 void LoadClueFromBrx(CLUE* pclue, CBinaryInputStream* pbis);
-void LoadLockFromBrx(LOCK* plock, CBinaryInputStream* pbis);
-void LoadLockgFromBrx(LOCKG* plockg, CBinaryInputStream* pbis);
+
+// Laser Sensor
+class LASEN;
 void LoadLasenFromBrx(LASEN* plasen, CBinaryInputStream* pbis);
+
+// Convo
+class CNVO;
 void LoadCnvoFromBrx(CNVO* pcnvo, CBinaryInputStream* pbis);
+
+class HBSK;
 void LoadHbskFromBrx(HBSK* phbsk, CBinaryInputStream* pbis);
+
+class BOMB;
 void LoadBombFromBrx(BOMB* pbomb, CBinaryInputStream* pbis);
+
+class MISSILE;
 void LoadMissileFromBrx(MISSILE* pmissile, CBinaryInputStream* pbis);
+
+class FLY;
 void LoadFlyFromBrx(FLY* pfly, CBinaryInputStream* pbis);
+
+class RAT;
 void LoadRatFromBrx(RAT* prat, CBinaryInputStream* pbis);
-void LoadRovFromBrx(ROV* prov, CBinaryInputStream* pbis);
+
+class ROH;
 void LoadRohFromBrx(ROH* proh, CBinaryInputStream* pbis);
-void LoadEmitterFromBrx(EMITTER* pemitter, CBinaryInputStream* pbis);
+
+class ROC;
 void LoadRocFromBrx(ROC* proc, CBinaryInputStream* pbis);
+
+class ROST;
 void LoadRostFromBrx(ROST* prost, CBinaryInputStream* pbis);
+
+class ROP;
 void LoadRopFromBrx(ROP* prop, CBinaryInputStream* pbis);
+
+class DART;
 void LoadDartFromBrx(DART* pdart, CBinaryInputStream* pbis);
+
+class JLO;
 void LoadJloFromBrx(JLO* pjlo, CBinaryInputStream* pbis);
-void LoadJlocFromBrx(JLOC* pjloc, CBinaryInputStream* pbis);
+
+class EMITTER;
+void LoadEmitterFromBrx(EMITTER* pemitter, CBinaryInputStream* pbis);
+
+// Check Point
+class CHKPNT;
 void LoadChkpntFromBrx(CHKPNT* pchkpnt, CBinaryInputStream* pbis);
-void LoadExploFromBrx(EXPLO* pexplo, CBinaryInputStream* pbis);
-void LoadPntFromBrx(PNT* pnt, CBinaryInputStream* pbis);
-void LoadExplgFromBrx(EXPLG* pexplg, CBinaryInputStream* pbis);
-void LoadVolFromBrx(VOL* pvol, CBinaryInputStream* pbis);
-void LoadSprizeFromBrx(SPRIZE* psprize, CBinaryInputStream* pbis);
+
+class PROXY;
+void LoadProxyFromBrx(PROXY* pproxy, CBinaryInputStream* pbis);
+
+class DPRIZE;
 void LoadDprizeFromBrx(DPRIZE* pdprize, CBinaryInputStream* pbis);
-void LoadClueFromBrx(CLUE* pclue, CBinaryInputStream* pbis);
+
+class LOCK;
 void LoadLockFromBrx(LOCK* plock, CBinaryInputStream* pbis);
+
+class LOCKG;
 void LoadLockgFromBrx(LOCKG* plockg, CBinaryInputStream* pbis);
+
+class FLASH;
 void LoadFlashFromBrx(FLASH* pflash, CBinaryInputStream* pbis);
+
+class TN;
 void LoadTnFromBrx(TN* ptn, CBinaryInputStream* pbis);
 void LoadTbspFromBrx(CBinaryInputStream* pbis);
-void LoadJloFromBrx(JLO* pjlo, CBinaryInputStream* pbis);
+
+class JLOC;
 void LoadJlocFromBrx(JLOC* pjloc, CBinaryInputStream* pbis);
+
+class DIALOG;
 void LoadDialogFromBrx(DIALOG* pdialog, CBinaryInputStream* pbis);
+
+class MGC;
 void LoadMgcFromBrx(MGC* pmgc, CBinaryInputStream* pbis);
+
+class JACKN;
 void LoadJacknFromBrx(JACKN* pjackn, CBinaryInputStream* pbis);
+
+// Static World
+class SW;
+void InitSw(SW* psw);
+void LoadSwFromBrx(SW* psw, CBinaryInputStream* pbis);
+void UpdateSw(SW* psw, float dt);
+void GetSwParams(SW* psw, SOP** ppsop);
+
+// Camera
+class CM;
+void InitCm(CM* pcm);
+
+class SHAPE;
 void LoadShapeFromBrx(SHAPE* pshape, CBinaryInputStream* pbis);
-void LoadXfmFromBrx(CBinaryInputStream* pbis);
+
+class XFM;
+void LoadXfmFromBrx(XFM* pxfm, CBinaryInputStream* pbis);
+
+class WARP;
 void LoadWarpFromBrx(WARP* pwarp, CBinaryInputStream* pbis);
-void LoadExitFromBrx(EXIT* pexit, CBinaryInputStream* pbis);
+
+class HND;
 void LoadHndFromBrx(HND* phnd, CBinaryInputStream* pbis);
-void LoadChkpntFromBrx(CHKPNT* pchkpnt, CBinaryInputStream* pbis);
+
+class EXPLG;
+void LoadExplgFromBrx(EXPLG* pexplg, CBinaryInputStream* pbis);
+
+class EXPLO;
+void LoadExploFromBrx(EXPLO* pexplo, CBinaryInputStream* pbis);
+
+class VOL;
 void LoadVolFromBrx(VOL* pvol, CBinaryInputStream* pbis);
+
+class EXIT;
+void LoadExitFromBrx(EXIT* pexit, CBinaryInputStream* pbis);
+
+class PNT;
+void LoadPntFromBrx(PNT* pnt, CBinaryInputStream* pbis);
+
+// Animation Segment
+class ASEG;
 void LoadAsegFromBrx(ASEG* paseg, CBinaryInputStream* pbis);
-void LoadAloFromBrx(ALO* palo, CBinaryInputStream* pbis);
+
+// Visibility Map
+class VISMAP;
+void InitVismap(VISMAP* pvismap);
+void LoadVismapFromBrx(VISMAP* pvismap, CBinaryInputStream* pbis);
+
+class SM;
 void LoadSmFromBrx(SM* psm, CBinaryInputStream* pbis);
+
+// AI Path's
+class PATHZONE;
 void LoadPathZoneFromBrx(PATHZONE* ppathzone, CBinaryInputStream* pbis);
+
+// Reach Map
+class RCHM;
 void LoadRchmFromBrx(RCHM* prchm, CBinaryInputStream* pbis);
+
+class KEYHOLE;
+void LoadKeyholeFromBrx(KEYHOLE* pkeyhole, CBinaryInputStream* pbis);
+
+
+
+
+struct CRVL;
+struct CRVC;
+void LoadCrvlFromBrx(CBinaryInputStream* pbis);
+void LoadCrvcFromBrx(CBinaryInputStream* pbis);
+
+
 void LoadAcpcFromBrx(CBinaryInputStream* pbis);
 void LoadAcpvFromBrx(CBinaryInputStream* pbis);
 void LoadAkvbFromBrx(CBinaryInputStream* pbis);
@@ -170,4 +244,3 @@ void LoadAcgbFromBrx(CBinaryInputStream* pbis);
 void LoadAcgbwFromBrx(CBinaryInputStream* pbis);
 void LoadAcglFromBrx(CBinaryInputStream* pbis);
 void LoadAcpbFromBrx(CBinaryInputStream* pbis);
-void LoadXfmFromBrx(XFM* pxfm, CBinaryInputStream* pbis);

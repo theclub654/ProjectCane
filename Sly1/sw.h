@@ -17,7 +17,7 @@ public:
 	DL dlBusySo;
 	DL dlMRDRealClock;
 	// Used to store the first parent of a local object.
-	DL objectParents[512];
+	DL firstObjectParents[512];
 	LO* aploCidHead[162];
 	DL dlAsega;
 	DL dlAsegaRealClock;
@@ -47,10 +47,12 @@ public:
 	DL dlCrfod;
 	// Sound bank index for level
 	int ibnk;
+	class VISMAP *pvismap;
 };
 
 // Initializing SW object
 void InitSw(SW* psw); // GOTTA COME BACK TO THIS
+// Initializing the base offset to data
 void InitSwDlHash(SW *psw);
 // Loads all world data from binary file
 void LoadSwFromBrx(SW* psw, CBinaryInputStream* pbis);// NOT FINISHED
@@ -60,8 +62,8 @@ void LoadNameTableFromBrx(CBinaryInputStream* pbis);
 void LoadWorldTableFromBrx(CBinaryInputStream* pbis);
 // Resets SW object
 void DeleteSw(SW* psw);
-
-void UpdateSw(SW *psw, float dt);
+// Update World
+void UpdateSw(SW *psw, float dt); // Gotta come back to this
 void GetSwParams(SW* psw, SOP** ppsop);
 // Global pointer to parent static world object
 static SW* g_psw;

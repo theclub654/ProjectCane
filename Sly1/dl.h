@@ -3,12 +3,24 @@
 // Stores ptr to first entry in list and ptr to last entry in list
 struct DL
 {
-	// Stores the first ptr to data
-	void* pvFirst;
-	// Stores the last ptr to the last data in list
-	void* pvLast;
+	union
+	{
+		// Stores the first ptr to data
+		void *pvFirst;
+		class LO *ploFirst;
+		class ALO *paloFirst;
+	};
+
+	union
+	{
+		// Stores the last ptr to the last data in list
+		void *pvLast;
+		class LO *ploLast;
+		class ALO *paloLast;
+	};
+
 	// Base offset to DL entry (DLE)
-	int ibDle;
+	uint64_t ibDle;
 };
 
 // DLE stores the next and previous ptr to data
@@ -17,9 +29,9 @@ struct DL
 struct DLE
 {
 	// Stores ptr to next data
-	void* pvNext;
+	void *pvNext;
 	// Stores ptr to previous data
-	void* pvPrev;
+	void *pvPrev;
 };
 
 
@@ -28,16 +40,13 @@ struct DLI
 {
 	// Used for parent DL list
 	DL *m_pdl;
-	// Used for parent PV
+	// Parent pointer value
 	void **m_ppv;
 	// Used for base offset to entry for parent object
-	int m_ibDle;
-	// Used to take you to next parent object
+	uint64_t m_ibDle;
+	// Pointer to next parent object
 	DLI *m_pdliNext;
 };
-
-// Global DLI pointer to a parent object
-static DLI *s_pdliFirst;
 
 // Initializing list
 void InitDl(DL *pdl, int ibDle);
@@ -57,3 +66,7 @@ void RemoveDlEntry(DL *pdl, void *pv);
 int FFindDlEntry(DL *pdl, void *pv);
 // Returns whether DL list is empty or not
 int FIsDlEmpty(DL *pdl);
+
+
+// Global DLI pointer to a parent object
+static DLI *s_pdliFirst;

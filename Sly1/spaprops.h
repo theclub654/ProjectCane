@@ -2125,7 +2125,6 @@ struct OPTDAT
     void *pfnsetUser;
     void *pfnensure;
 };
-
 // Each Option ID
 struct EOPID
 {

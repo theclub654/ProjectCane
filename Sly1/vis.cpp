@@ -1,5 +1,11 @@
 #include "vis.h"
 
+void InitVismap(VISMAP *pvismap)
+{
+	InitLo((LO*)pvismap);
+	pvismap->psw->pvismap = pvismap;
+}
+
 void LoadVismapFromBrx(VISMAP *pvismap, CBinaryInputStream *pbis)
 {
 	pbis->ReadVbsp();

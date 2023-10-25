@@ -2,5 +2,5 @@
 
 void LoadLasenFromBrx(LASEN* plasen, CBinaryInputStream* pbis)
 {
-	LoadSoFromBrx(0, pbis);
+	LoadSoFromBrx(plasen, pbis);
 }

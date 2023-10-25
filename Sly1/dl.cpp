@@ -3,7 +3,7 @@
 void InitDl(DL *pdl, int ibDle)
 {
 	// Setting base offset to data entry linked list
-	pdl->ibDle = ibDle;
+	pdl->ibDle = ibDle + 0x1C;
 }
 
 void ClearDl(DL *pdl)
