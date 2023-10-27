@@ -18,7 +18,7 @@ void LoadGlobsetFromBrx(GLOBSET *pglobset, CBinaryInputStream *pbis)
     // Loading number of submodels for model
     pglobset->cglob = pbis->U16Read();
 
-    // Allocating memory for submodel data
+    // Allocating memory for submodel data for model
     pglobset->aglob = (GLOB*)new GLOB[pglobset->cglob << 7]();
     pglobset->aglobi = (GLOBI*)new GLOBI[pglobset->cglob * 0x28]();
 
@@ -191,7 +191,6 @@ void LoadGlobsetFromBrx(GLOBSET *pglobset, CBinaryInputStream *pbis)
 
             for (int i = 0; i < numSubMesh1; i++)
             {
-
                 byte vertexCount2 = pbis->U8Read();
 
                 for (int i = 0; i < vertexCount2; i++)

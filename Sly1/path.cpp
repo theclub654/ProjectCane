@@ -2,7 +2,7 @@
 
 void LoadPathZoneFromBrx(PATHZONE* ppathzone, CBinaryInputStream* pbis)
 {
-    LoadLoFromBrx(0, pbis);
+    LoadLoFromBrx(ppathzone, pbis);
     uint16_t unk_0 = pbis->U16Read();
     uint16_t unk_1 = pbis->U16Read();
     uint16_t unk_2 = pbis->U16Read();

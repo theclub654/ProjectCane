@@ -103,39 +103,33 @@ void OnLoRemove(LO* plo)
 
 }
 
-int FIsLoInWorld(LO* plo)
+int FIsLoInWorld(LO *plo)
 {
-	if (plo != 0)
+	if (plo != nullptr) 
 	{
-		// Loading objects parent
-		ALO* palo = plo->paloParent;
+		ALO *loPaloParent = plo->paloParent;
 
-		while (true)
+		while (true) 
 		{
-			// Loading objects child list
-			DL* objectChild = &palo->dlChild;
+			ALO *palo = loPaloParent;
 
-			// Loading SW dlChild if parent LO doenst have a parent
-			if (palo == nullptr)
-				objectChild = &plo->psw->dlChild;
+			DL *pdl = &palo->dlChild;
 
-			// Checks to see if object has a child 
-			bool isFound = FFindDlEntry(objectChild, plo);
+			if (palo == (ALO*)0x0) 
+				pdl = &plo->psw->dlChild;
 
-			// If not found than return 0
+			int isFound = FFindDlEntry(pdl, plo);
+
 			if (isFound == 0)
 				return 0;
+			
+			if (palo == (ALO*)0x0) break;
 
-			// If object doesnt have a parent
-			if (palo == 0x0)
-				break;
+			loPaloParent = palo->paloParent;
 
-			// Loading parent object if LO has one
-			plo = (LO*)palo->paloParent;
+			plo = (LO*)palo;
 		}
 	}
-
-	// If object is found return 1
 	return 1;
 }
 

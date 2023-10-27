@@ -15,6 +15,7 @@ void OnSoAdd(SO *pso)
 
 	if (pso->paloParent == nullptr)
 	{
+		pso->psw->cpsoRoot++;
 		AppendDlEntry(&pso->psw->dlRoot, pso);
 	}
 
@@ -23,7 +24,7 @@ void OnSoAdd(SO *pso)
 
 void LoadSoFromBrx(SO* pso, CBinaryInputStream* pbis)
 {
-	byte unk0 = pbis->U8Read();
+	pbis->U8Read();
 
 	uint16_t vertexCount = pbis->ReadGeom();
 	pbis->ReadBspc();

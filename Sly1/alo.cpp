@@ -44,19 +44,17 @@ void OnAloAdd(ALO* palo)
 			palo->paloFreezeRoot = palo;
 			palo->dlFreeze.paloLast = palo;
 			palo->dlFreeze.paloFirst = palo;
-
-			// 
-
 		}
 		else
 			AppendDlEntry(&palo->psw->dlMRDRealClock, palo);
 	}
 
-	else
-	{
-		palo->paloRoot = parentObject->paloRoot;
+	//
 
-	}
+	if (palo->pshadow != 0)
+		AppendDlEntry(&palo->psw->dlShadow, palo->pshadow);
+	//
+	ResolveAlo(palo);
 }
 
 void OnAloRemove(ALO* palo)
@@ -71,6 +69,13 @@ void CloneAloHierarchy(ALO* palo)
 void CloneAlo(ALO* palo)
 {
 
+}
+
+void ResolveAlo(ALO* palo)
+{
+	if (palo->paloRoot != nullptr) 
+		palo->paloRoot->cframeStatic = 0;
+	
 }
 
 void InitAlo(ALO* palo)
@@ -89,7 +94,6 @@ void InitAlo(ALO* palo)
 void AddAloHierarchy(ALO* palo)
 {
 	DLI plo;
-
 	// Loads parent object child entry
 	plo.m_pdl = &palo->dlChild;
 	// Loads the object base offset to child entry list
@@ -136,9 +140,9 @@ void LoadAloFromBrx(ALO* palo, CBinaryInputStream* pbis)
 	LoadGlobsetFromBrx(&palo->globset, pbis);
 	LoadAloAloxFromBrx(pbis);
 
-	byte unk_8 = pbis->U8Read();
+	palo->cposec = pbis->U8Read();
 
-	for (int i = 0; i < unk_8; i++)
+	for (int i = 0; i < palo->cposec; i++)
 	{
 		pbis->S16Read();
 
@@ -146,7 +150,7 @@ void LoadAloFromBrx(ALO* palo, CBinaryInputStream* pbis)
 			pbis->F32Read();
 	}
 
-	LoadSwObjectsFromBrx(0, palo, pbis);
+	LoadSwObjectsFromBrx(palo->psw, palo, pbis);
 }
 
 void LoadAloAloxFromBrx(CBinaryInputStream* pbis)

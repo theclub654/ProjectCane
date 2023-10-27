@@ -1,5 +1,6 @@
 #pragma once
 #include "lo.h"
+#include "freeze.h"
 #include "glob.h"
 
 struct XF
@@ -35,34 +36,28 @@ public:
 	glm::mat3 matOrig;
 	glm::vec3 eulOrig;
 	DL dlAct;
+	int cframeStatic;
 	GLOBSET globset;
+	struct SHADOW *pshadow;
 	float sFastShadowRadius;
 	float sFastShadowDepth;
 	int fRealClock;
 	float dtUpdatePause;
 	float sRadiusRenderSelf;
 	float sRadiusRenderAll;
-};
-
-// Merge
-// Used to merge ALO object's
-struct MRG
-{
-	DLE dle;
-	// Number of ALO objects to be merged
-	int cpalo;
-	// The ALO object thats gonna be merged
-	ALO **apalo;
+	int cposec;
 };
 
 // Initialize ALO object
 void InitAlo(ALO* palo); // NOT FINISHED
+// Adds ALO object to parent ALO object
 void AddAloHierarchy(ALO *palo); // NOT FINISHED
 void RemoveAloHierarchy(ALO *palo); // NOT FINISHED
 void OnAloAdd(ALO* palo); // NOT FINISHED
 void OnAloRemove(ALO* palo);
 void CloneAloHierarchy(ALO* palo);
 void CloneAlo(ALO* palo);
+void ResolveAlo(ALO *palo);
 // Loads ALO object from binary file
 void LoadAloFromBrx(ALO* palo, CBinaryInputStream* pbis);
 void LoadAloAloxFromBrx(CBinaryInputStream* pbis);

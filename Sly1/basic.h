@@ -356,7 +356,7 @@ struct VTPO
     int grfcid = 0xB;
     int cb = 0x5D0;
 
-    void (*pfnInitLo) () = nullptr;
+    void (*pfnInitLo) (PO*) = InitPo;
     void (*pfnSetLoDefaults) () = nullptr;
     void (*pfnAddLo) () = nullptr;
     void (*pfnRemoveLo)() = nullptr;
@@ -396,7 +396,7 @@ struct VTSTEP
     int grfcid = 0xB;
     int cb = 0x6E0;
 
-    void (*pfnInitLo) () = nullptr;
+    void (*pfnInitLo) (STEP*) = InitStep;
     void (*pfnSetLoDefaults) () = nullptr;
     void (*pfnAddLo) () = nullptr;
     void (*pfnRemoveLo)() = nullptr;
@@ -436,7 +436,7 @@ struct VTJT
     int grfcid = 0xB;
     int cb = 0x2730;
 
-    void (*pfnInitLo) () = nullptr;
+    void (*pfnInitLo) (JT*) = InitJt;
     void (*pfnSetLoDefaults) () = nullptr;
     void (*pfnAddLo) () = nullptr;
     void (*pfnRemoveLo)() = nullptr;
@@ -476,7 +476,7 @@ struct VTSTEPGUARD
     int grfcid = 0xB;
     int cb = 0xB90;
 
-    void (*pfnInitLo) () = nullptr;
+    void (*pfnInitLo) (STEPGUARD*) = InitStepGuard;
     void (*pfnSetLoDefaults) () = nullptr;
     void (*pfnAddLo) () = nullptr;
     void (*pfnRemoveLo)() = nullptr;
@@ -516,7 +516,7 @@ struct VTSMARTGUARD
     int grfcid = 0xB;
     int cb = 0xC50;
 
-    void (*pfnInitLo) () = nullptr;
+    void (*pfnInitLo) (SMARTGUARD*) = InitSmartGuard;
     void (*pfnSetLoDefaults) () = nullptr;
     void (*pfnAddLo) () = nullptr;
     void (*pfnRemoveLo)() = nullptr;
@@ -556,7 +556,7 @@ struct VTGOMER
     int grfcid = 0xB;
     int cb = 0xBD0;
 
-    void (*pfnInitLo) () = nullptr;
+    void (*pfnInitLo) (GOMER*) = InitGomer;
     void (*pfnSetLoDefaults) () = nullptr;
     void (*pfnAddLo) () = nullptr;
     void (*pfnRemoveLo)() = nullptr;
@@ -596,7 +596,7 @@ struct VTUBG
     int grfcid = 0xB;
     int cb = 0xC20;
 
-    void (*pfnInitLo) () = nullptr;
+    void (*pfnInitLo) (UBG*) = InitUbg;
     void (*pfnSetLoDefaults) () = nullptr;
     void (*pfnAddLo) () = nullptr;
     void (*pfnRemoveLo)() = nullptr;
@@ -636,7 +636,7 @@ struct VTMBG
     int grfcid = 0xB;
     int cb = 0xDC0;
 
-    void (*pfnInitLo) () = nullptr;
+    void (*pfnInitLo) (MBG*) = InitMbg;
     void (*pfnSetLoDefaults) () = nullptr;
     void (*pfnAddLo) () = nullptr;
     void (*pfnRemoveLo)() = nullptr;
@@ -676,7 +676,7 @@ struct VTBHG
     int grfcid = 0xB;
     int cb = 0xBA0;
 
-    void (*pfnInitLo) () = nullptr;
+    void (*pfnInitLo) (BHG*) = InitBhg;
     void (*pfnSetLoDefaults) () = nullptr;
     void (*pfnAddLo) () = nullptr;
     void (*pfnRemoveLo)() = nullptr;
@@ -716,7 +716,7 @@ struct VTMURRAY
     int grfcid = 0xB;
     int cb = 0xBC0;
 
-    void (*pfnInitLo) () = nullptr;
+    void (*pfnInitLo) (MURRAY*) = InitMurray;
     void (*pfnSetLoDefaults) () = nullptr;
     void (*pfnAddLo) () = nullptr;
     void (*pfnRemoveLo)() = nullptr;
@@ -756,7 +756,7 @@ struct VTPUFFC
     int grfcid = 0xB;
     int cb = 0xBC0;
 
-    void (*pfnInitLo) () = nullptr;
+    void (*pfnInitLo) (STEPGUARD*) = InitStepGuard;
     void (*pfnSetLoDefaults) () = nullptr;
     void (*pfnAddLo) () = nullptr;
     void (*pfnRemoveLo)() = nullptr;
@@ -796,7 +796,7 @@ struct VTCRFOD
     int grfcid = 0xB;
     int cb = 0xBA0;
 
-    void (*pfnInitLo) () = nullptr;
+    void (*pfnInitLo) (STEPGUARD*) = InitStepGuard;
     void (*pfnSetLoDefaults) () = nullptr;
     void (*pfnAddLo) () = nullptr;
     void (*pfnRemoveLo)() = nullptr;
@@ -836,7 +836,7 @@ struct VTCRFODB
     int grfcid = 0xB;
     int cb = 0xBB0;
 
-    void (*pfnInitLo) () = nullptr;
+    void (*pfnInitLo) (CRFODB*) = InitCrfodb;
     void (*pfnSetLoDefaults) () = nullptr;
     void (*pfnAddLo) () = nullptr;
     void (*pfnRemoveLo)() = nullptr;
@@ -876,7 +876,7 @@ struct VTCRFODK
     int grfcid = 0xB;
     int cb = 0xBA0;
 
-    void (*pfnInitLo) () = nullptr;
+    void (*pfnInitLo) (STEPGUARD*) = InitStepGuard;
     void (*pfnSetLoDefaults) () = nullptr;
     void (*pfnAddLo) () = nullptr;
     void (*pfnRemoveLo)() = nullptr;
@@ -916,7 +916,7 @@ struct VTTANK
     int grfcid = 0xB;
     int cb = 0x730;
 
-    void (*pfnInitLo) () = nullptr;
+    void (*pfnInitLo) (TANK*) = InitTank;
     void (*pfnSetLoDefaults) () = nullptr;
     void (*pfnAddLo) () = nullptr;
     void (*pfnRemoveLo)() = nullptr;
@@ -956,7 +956,7 @@ struct VTJP
     int grfcid = 0xB;
     int cb = 0x950;
 
-    void (*pfnInitLo) () = nullptr;
+    void (*pfnInitLo) (JP*) = InitJp;
     void (*pfnSetLoDefaults) () = nullptr;
     void (*pfnAddLo) () = nullptr;
     void (*pfnRemoveLo)() = nullptr;
@@ -996,7 +996,7 @@ struct VTHG
     int grfcid = 0xB;
     int cb = 0x900;
 
-    void (*pfnInitLo) () = nullptr;
+    void (*pfnInitLo) (HG*) = InitHg;
     void (*pfnSetLoDefaults) () = nullptr;
     void (*pfnAddLo) () = nullptr;
     void (*pfnRemoveLo)() = nullptr;

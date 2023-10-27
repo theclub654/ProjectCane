@@ -2,7 +2,7 @@
 
 void LoadCnvoFromBrx(CNVO* pcnvo, CBinaryInputStream* pbis)
 {
-	LoadSoFromBrx(0, pbis);
+	LoadSoFromBrx(pcnvo, pbis);
 	pbis->F32Read();
 	pbis->F32Read();
 }

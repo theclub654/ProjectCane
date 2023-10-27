@@ -2,5 +2,5 @@
 
 void LoadSquishFromBrx(SQUISH* psquish, CBinaryInputStream* pbis)
 {
-	LoadSoFromBrx(0, pbis);
+	LoadSoFromBrx(psquish, pbis);
 }

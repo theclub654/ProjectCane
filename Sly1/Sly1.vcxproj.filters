@@ -228,6 +228,36 @@
     <ClInclude Include="sidebag.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="smartguard.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="gomer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="ub.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="murray.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="crusher.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="tank.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="jp.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="hg.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="freeze.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="shadow.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="phasemem.cpp">
@@ -443,5 +473,40 @@
     <ClCompile Include="sidebag.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="smartguard.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="gomer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="ub.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="murray.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="crusher.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="tank.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="jp.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="hg.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="freeze.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="shadow.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\README.md">
+      <Filter>Resource Files</Filter>
+    </None>
   </ItemGroup>
 </Project>

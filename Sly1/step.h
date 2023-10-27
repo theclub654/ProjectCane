@@ -32,3 +32,5 @@ class STEP : public PO
 		glm::vec3 *pposBumper;
 		SO *psoPhys;
 };
+
+void InitStep(STEP* pstep);

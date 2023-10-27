@@ -74,6 +74,7 @@ void LoadSwFromBrx(SW* psw, CBinaryInputStream* pbis)
 	// Loads all the static world objects from the binary file
 	LoadSwObjectsFromBrx(psw, 0x0, pbis);
 	pbis->Align(0x10);
+	//std::cout << std::dec << sizeof(LO);
 	std::cout << "File Loaded Successfully\n";
 }
 

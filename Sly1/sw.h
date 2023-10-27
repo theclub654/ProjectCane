@@ -18,7 +18,7 @@ public:
 	DL dlMRDRealClock;
 	// Used to store the first parent of a local object.
 	DL firstObjectParents[512];
-	LO* aploCidHead[162];
+	LO *aploCidHead[162];
 	DL dlAsega;
 	DL dlAsegaRealClock;
 	DL dlAsegaPending;

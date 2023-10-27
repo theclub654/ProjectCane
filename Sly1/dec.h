@@ -46,16 +46,59 @@ void OnSoAdd(SO* pso);
 void LoadSoFromBrx(SO* pso, CBinaryInputStream* pbis);
 void UpdateSo(SO* pso, float dt);
 
+// Player Object
+class PO;
+void InitPo(PO* ppo);
+
+class STEP;
+void InitStep(STEP* pstep);
+
 // Sly
 class JT;
+void InitJt(JT* pjt);
 void LoadJtFromBrx(JT* pjt, CBinaryInputStream* pbis);
 
 // Guard
 class STEPGUARD;
+void InitStepGuard(STEPGUARD *pstepguard);
 void LoadStepGuardFromBrx(STEPGUARD *pstepguard, CBinaryInputStream* pbis);
 
+class SMARTGUARD;
+void InitSmartGuard(SMARTGUARD* psmartguard);
+
+class GOMER;
+void InitGomer(GOMER* pgomer);
+
+class UBG;
+void InitUbg(UBG* pubg);
+
 class MBG;
+void InitMbg(MBG* pmbg);
 void LoadMbgFromBrx(MBG *pmbg, CBinaryInputStream* pbis);
+
+class BHG;
+void InitBhg(BHG* pbhg);
+
+class MURRAY;
+void InitMurray(MURRAY* pmurray);
+
+class PUFFC;
+
+class CRFOD;
+
+class CRFODB;
+void InitCrfodb(CRFODB* pcrfodb);
+
+class CRFODK;
+
+class TANK;
+void InitTank(TANK* ptank);
+
+class JP;
+void InitJp(JP* pjp);
+
+class HG;
+void InitHg(HG* phg);
 
 class ROV;
 void LoadRovFromBrx(ROV *prov, CBinaryInputStream* pbis);
