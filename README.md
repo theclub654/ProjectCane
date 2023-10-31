@@ -1,6 +1,6 @@
 ![test](https://github.com/theclub654/ProjectCane/assets/61169936/4fbeb46a-7deb-4cae-92dc-727e4d36005b)
 # GOAL:
-The goal for this project is to decompile and understand the workings of the game as in the future when we get a pc port up and running it would make modding the game alot easier since we know how the game works, and also rewrite parts of the games that needs to be rewritten to turn into a workable PC port.
+The goal for this project is to decompile all three games and understand the workings of the games as in the future when we get a pc port up and running it would make modding the games alot easier since we know how the games works, and also rewrite parts of the games that needs to be rewritten to turn into a workable PC port.
 
 # Current Goal:
 The current goal is to decompile the Sly 1 May 19, 2002 Prototype build of the game and make that version a PC port, than after make the PS2 release version asset files compatible with the PC port thus turning the May 19, 2002 port into the release build.
