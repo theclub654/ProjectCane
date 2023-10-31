@@ -1,7 +1,4 @@
-# Project Cane
-
-This is rewrite and decompilation project of the PS2 games Sly 1 Sly 2 Sly 3.
-
+![test](https://github.com/theclub654/ProjectCane/assets/61169936/4fbeb46a-7deb-4cae-92dc-727e4d36005b)
 # GOAL:
 The goal for this project is to decompile and understand the workings of the game as in the future when we get a pc port up and running it would make modding the game alot easier since we know how the game works, and also rewrite parts of the games that needs to be rewritten to turn into a workable PC port.
 
