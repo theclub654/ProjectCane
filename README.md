@@ -1,5 +1,5 @@
 ![test](https://github.com/theclub654/ProjectCane/assets/61169936/4fbeb46a-7deb-4cae-92dc-727e4d36005b)
-# GOAL:
+# Description:
 The goal for this project is to decompile all three games and understand the workings of the games as in the future when we get a pc port up and running it would make modding the games alot easier since we know how the games works, and also rewrite parts of the games that needs to be rewritten to turn into a workable PC port.
 
 # Current Goal:
