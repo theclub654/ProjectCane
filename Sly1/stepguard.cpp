@@ -1,8 +1,18 @@
 #include "stepguard.h"
 
+void InitSgg(SGG* psgg)
+{
+	InitLo(psgg);
+}
+
 void InitStepGuard(STEPGUARD* pstepguard)
 {
 	InitStep(pstepguard);
+}
+
+void OnStepguardAdd(STEPGUARD* pstepguard)
+{
+	OnPoAdd(pstepguard);
 }
 
 void LoadStepGuardFromBrx(STEPGUARD* pstepguard, CBinaryInputStream* pbis)

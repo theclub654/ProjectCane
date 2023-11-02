@@ -1,5 +1,21 @@
 #include "alo.h"
 
+void InitAlo(ALO* palo)
+{
+	/*InitAloCounter++;
+	std::cout << InitAloCounter << "\n";*/
+
+	InitDl(&palo->dlChild, 0x1C + 0x28);
+	InitDl(&palo->dlFreeze, 0x64 + 0x28);
+
+	InitLo(palo);
+	palo->sCelBorderMRD = 2139095039;
+	palo->sMRD = 2139095039;
+	palo->grfzon = -1;
+
+	InitDl(&palo->dlAct, 0x8);
+}
+
 void RemoveAloHierarchy(ALO *palo)
 {
 	DLI plo;
@@ -28,7 +44,7 @@ void RemoveAloHierarchy(ALO *palo)
 void OnAloAdd(ALO* palo)
 {
 	ALO *parentObject = palo->paloParent;
-
+	
 	if (parentObject == nullptr)
 	{
 		palo->paloRoot = palo;
@@ -76,19 +92,6 @@ void ResolveAlo(ALO* palo)
 	if (palo->paloRoot != nullptr) 
 		palo->paloRoot->cframeStatic = 0;
 	
-}
-
-void InitAlo(ALO* palo)
-{
-	InitDl(&palo->dlChild, 0x1C);
-	InitDl(&palo->dlFreeze, 0x64);
-
-	InitLo(palo);
-	palo->sCelBorderMRD = 2139095039;
-	palo->sMRD = 2139095039;
-	palo->grfzon = -1;
-
-	InitDl(&palo->dlAct, 0x8);
 }
 
 void AddAloHierarchy(ALO* palo)
@@ -222,6 +225,31 @@ void LoadAloAloxFromBrx(CBinaryInputStream* pbis)
 }
 
 void UpdateAlo(ALO* palo, float dt)
+{
+
+}
+
+void RenderAloAll(ALO* palo, CM* pcm, RO* proDup)
+{
+
+}
+
+void RenderAloSelf(ALO* palo, CM* pcm, RO* pro)
+{
+
+}
+
+void RenderAloGlobset(ALO* palo, CM* pcm, RO* pro)
+{
+
+}
+
+void RenderAloLine(ALO* palo, CM* pcm, glm::vec3* ppos0, glm::vec3* ppos1, float rWidth, float uAlpha)
+{
+
+}
+
+void RenderAloAsBone(ALO* palo, CM* pcm, RO* pro)
 {
 
 }

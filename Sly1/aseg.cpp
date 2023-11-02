@@ -1,5 +1,10 @@
 #include "aseg.h"
 
+void InitAseg(ASEG* paseg)
+{
+    InitLo(paseg);
+}
+
 void LoadAsegFromBrx(ASEG* paseg, CBinaryInputStream* pbis)
 {
     /*LoadAsegaCount++;

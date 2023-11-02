@@ -27,6 +27,14 @@ class EXPLO : public EXPL
 		OID oidShape;
 };
 
+class EXPLS : public EXPLO
+{
+	public:
+};
+
+void InitExplo(EXPLO* pexplo);
+void InitEmitter(EMITTER* pemitter);
+void InitExpls(EXPLS* pexpls);
 void LoadEmitMeshFromBrx(CBinaryInputStream* pbis);
 void LoadEmitblipColorsFromBrx(int crgba, CBinaryInputStream* pbis);
 void LoadEmitterFromBrx(EMITTER* pemitter, CBinaryInputStream* pbis);

@@ -1,5 +1,35 @@
 #include "rog.h"
 
+void InitRov(ROV* prov)
+{
+	InitPo(prov);
+}
+
+void InitRoh(ROH* proh)
+{
+	InitSo(proh);
+}
+
+void InitRoc(ROC* proc)
+{
+	InitSo(proc);
+}
+
+void InitRost(ROST* prost)
+{
+	InitSo(prost);
+}
+
+void InitRop(ROP* prop)
+{
+	InitSo(prop);
+}
+
+void InitRob(ROB* prob)
+{
+	InitAlo(prob);
+}
+
 void LoadRovFromBrx(ROV* prov, CBinaryInputStream* pbis)
 {
 	LoadSoFromBrx(prov, pbis);

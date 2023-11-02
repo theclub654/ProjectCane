@@ -26,6 +26,17 @@ class ROP : public SO
 	public:
 };
 
+class ROB : public ALO
+{
+	public:
+};
+
+void InitRov(ROV* prov);
+void InitRoh(ROH* proh);
+void InitRoc(ROC* proc);
+void InitRost(ROST* prost);
+void InitRop(ROP* prop);
+void InitRob(ROB* prob);
 void LoadRovFromBrx(ROV *prov, CBinaryInputStream *pbis);
 void LoadRohFromBrx(ROH* proh, CBinaryInputStream* pbis);
 void LoadRocFromBrx(ROC* proc, CBinaryInputStream* pbis);

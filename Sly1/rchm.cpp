@@ -1,5 +1,10 @@
 #include "rchm.h"
 
+void InitRchm(RCHM* prchm)
+{
+    InitLo(prchm);
+}
+
 void LoadRchmFromBrx(RCHM* prchm, CBinaryInputStream* pbis)
 {
     for (int i = 0; i <= 0x17; i++)

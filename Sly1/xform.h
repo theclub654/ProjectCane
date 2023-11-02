@@ -18,6 +18,13 @@ class EXIT : public ALO
 	public:
 };
 
+class CAMERA : public ALO
+{
+	public:
+};
+
+void InitCamera(CAMERA* pcamera);
+void InitXfm(XFM* pxfm);
 void LoadXfmFromBrx(XFM* pxfm, CBinaryInputStream* pbis);
 void LoadWarpFromBrx(WARP* pwarp, CBinaryInputStream* pbis); // GOTTA COME BACK TO THIS
 void LoadExitFromBrx(EXIT *pexit, CBinaryInputStream* pbis); // GOTTA COME BACK TO THIS

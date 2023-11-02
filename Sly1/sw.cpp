@@ -5,9 +5,9 @@ void InitSw(SW* psw)
 	InitLo((LO*)psw);
 
 	InitDl(&psw->dlChild, 0x1C);
-	InitDl(&psw->dlMRD, 0x54);
+	InitDl(&psw->dlMRD, 0x54 + 0x18);
 	InitDl(&psw->dlMRDRealClock, 0x54);
-	InitDl(&psw->dlBusy, 0x4C);
+	InitDl(&psw->dlBusy, 0x4C + 0x10);
 	InitDl(&psw->dlBusySo, 0x434);
 	InitDl(&psw->dlRoot, 0x2e0);
 	InitDl(&psw->dlAsega, 0x34);
@@ -41,7 +41,7 @@ void InitSw(SW* psw)
 void InitSwDlHash(SW* psw)
 {
 	for (int i = 0; i < 0x200; i++)
-		InitDl(&psw->firstObjectParents[i], 0xC);
+		InitDl(&psw->adlHash[i], 0xC);
 }
 
 void LoadSwFromBrx(SW* psw, CBinaryInputStream* pbis)
@@ -74,7 +74,6 @@ void LoadSwFromBrx(SW* psw, CBinaryInputStream* pbis)
 	// Loads all the static world objects from the binary file
 	LoadSwObjectsFromBrx(psw, 0x0, pbis);
 	pbis->Align(0x10);
-	//std::cout << std::dec << sizeof(LO);
 	std::cout << "File Loaded Successfully\n";
 }
 

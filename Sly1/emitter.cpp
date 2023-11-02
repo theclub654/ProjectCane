@@ -1,5 +1,20 @@
 #include "emitter.h"
 
+void InitExplo(EXPLO* pexplo)
+{
+	InitXfm(pexplo);
+}
+
+void InitEmitter(EMITTER* pemitter)
+{
+	InitAlo(pemitter);
+}
+
+void InitExpls(EXPLS* pexpls)
+{
+	InitExplo(pexpls);
+}
+
 void LoadEmitMeshFromBrx(CBinaryInputStream* pbis)
 {
 	uint16_t cpos = pbis->U16Read();

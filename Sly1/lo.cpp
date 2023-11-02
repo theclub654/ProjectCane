@@ -1,9 +1,9 @@
 #include "lo.h"
 
-void InitLo(LO* parentLo)
+void InitLo(LO* plo)
 {
-	SetLoDefaults(parentLo);
-	parentLo->pvtlo->pfnAddLo(parentLo);
+	plo->pvtlo->pfnSetLoDefaults(plo);
+	plo->pvtlo->pfnAddLo(plo);
 }
 
 void SetLoDefaults(LO* parentLo)

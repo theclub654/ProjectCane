@@ -1,5 +1,10 @@
 #include "dialog.h"
 
+void InitDialog(DIALOG* pdialog)
+{
+	InitAlo(pdialog);
+}
+
 void LoadDialogFromBrx(DIALOG* pdialog, CBinaryInputStream* pbis)
 {
 	LoadAloFromBrx(pdialog, pbis);

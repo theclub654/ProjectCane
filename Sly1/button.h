@@ -11,5 +11,7 @@ class VOLBTN : public SO
 	public:
 };
 
+void InitButton(BUTTON* pbutton);
+void InitVolbtn(VOLBTN* pvolbtn);
 void LoadButtonFromBrx(BUTTON *pbutton, CBinaryInputStream *pbis);
 void LoadVolbtnFromBrx(VOLBTN *pvolbtn, CBinaryInputStream *pbis);

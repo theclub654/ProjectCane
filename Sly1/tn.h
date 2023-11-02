@@ -9,5 +9,6 @@ class TN : public ALO
 	public:
 };
 
+void InitTn(TN* ptn);
 void LoadTnFromBrx(TN* ptn, CBinaryInputStream* pbis);
 void LoadTbspFromBrx(CBinaryInputStream* pbis);

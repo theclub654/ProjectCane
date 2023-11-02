@@ -17,7 +17,7 @@ public:
 	DL dlBusySo;
 	DL dlMRDRealClock;
 	// Used to store the first parent of a local object.
-	DL firstObjectParents[512];
+	DL adlHash[512];
 	LO *aploCidHead[162];
 	DL dlAsega;
 	DL dlAsegaRealClock;
@@ -66,4 +66,4 @@ void DeleteSw(SW* psw);
 void UpdateSw(SW *psw, float dt); // Gotta come back to this
 void GetSwParams(SW* psw, SOP** ppsop);
 // Global pointer to parent static world object
-static SW* g_psw;
+extern inline SW* g_psw = nullptr;

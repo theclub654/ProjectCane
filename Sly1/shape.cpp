@@ -1,5 +1,10 @@
 #include "shape.h"
 
+void InitShape(SHAPE* pshape)
+{
+    InitLo(pshape);
+}
+
 void LoadShapeFromBrx(SHAPE* pshape, CBinaryInputStream* pbis)
 {
     byte unk_0 = pbis->U8Read();

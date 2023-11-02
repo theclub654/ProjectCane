@@ -11,7 +11,27 @@ void InitDprize(DPRIZE *pdprize)
 	
 }
 
+void InitCharm(CHARM* pcharm)
+{
+	InitDprize(pcharm);
+}
+
+void InitCoin(COIN* pcoin)
+{
+	InitDprize(pcoin);
+}
+
+void InitKey(KEY* pkey)
+{
+	InitDprize(pkey);
+}
+
+void InitGold(GOLD* pgold)
+{
+	InitDprize(pgold);
+}
+
 void LoadDprizeFromBrx(DPRIZE *pdprize, CBinaryInputStream *pbis)
 {
-	LoadAloFromBrx((ALO*)pdprize, pbis);
+	LoadAloFromBrx(pdprize, pbis);
 }

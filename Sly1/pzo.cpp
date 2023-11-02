@@ -1,5 +1,25 @@
 #include "pzo.h"
 
+void InitVault(VAULT* pvault)
+{
+	InitPo(pvault);
+}
+
+void InitSprize(SPRIZE* psprize)
+{
+	InitSo(psprize);
+}
+
+void InitScprize(SCPRIZE* pscprize)
+{
+	InitSprize(pscprize);
+}
+
+void InitClue(CLUE* pclue)
+{
+	InitSprize(pclue);
+}
+
 void LoadSprizeFromBrx(SPRIZE* psprize, CBinaryInputStream* pbis)
 {
 	LoadSoFromBrx(psprize, pbis);

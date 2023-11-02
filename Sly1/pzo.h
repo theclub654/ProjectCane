@@ -1,5 +1,5 @@
 #pragma once
-#include "so.h"
+#include "po.h"
 
 class SPRIZE : public SO
 {
@@ -22,6 +22,20 @@ class LOCKG : public ALO
 	public:
 };
 
+class VAULT : public PO
+{
+	public:
+};
+
+class SCPRIZE : public SPRIZE
+{
+	public:
+};
+
+void InitVault(VAULT* pvault);
+void InitSprize(SPRIZE* psprize);
+void InitScprize(SCPRIZE* pscprize);
+void InitClue(CLUE* pclue);
 void LoadSprizeFromBrx(SPRIZE *psprize, CBinaryInputStream *pbis);
 void LoadClueFromBrx(CLUE *pclue, CBinaryInputStream *pbis);
 void LoadLockFromBrx(LOCK* plock, CBinaryInputStream* pbis);

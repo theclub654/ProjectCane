@@ -1,5 +1,10 @@
 #include "path.h"
 
+void OnPathzoneAdd(PATHZONE* ppathzone)
+{
+    OnLoAdd(ppathzone);
+}
+
 void LoadPathZoneFromBrx(PATHZONE* ppathzone, CBinaryInputStream* pbis)
 {
     LoadLoFromBrx(ppathzone, pbis);

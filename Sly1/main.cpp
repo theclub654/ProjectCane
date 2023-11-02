@@ -16,7 +16,11 @@ int main(int cphzArgs, char* aphzArgs[])
 			// Loads level
 			g_transition.Execute();
 		}
-
+		
+		if (g_psw != nullptr)
+		{
+			RenderSw(g_psw, g_pcm);
+		}
 	}
 	return 0;
 }

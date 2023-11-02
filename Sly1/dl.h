@@ -9,6 +9,7 @@ struct DL
 		void *pvFirst;
 		class LO *ploFirst;
 		class ALO *paloFirst;
+		class SO *psoFirst;
 	};
 
 	union
@@ -17,6 +18,7 @@ struct DL
 		void *pvLast;
 		class LO *ploLast;
 		class ALO *paloLast;
+		class SO *psoLast;
 	};
 
 	// Base offset to DL entry (DLE)
@@ -28,10 +30,23 @@ struct DL
 // Entry is just another word for linked list
 struct DLE
 {
-	// Stores ptr to next data
-	void *pvNext;
-	// Stores ptr to previous data
-	void *pvPrev;
+	union
+	{
+		// Stores ptr to next data
+		void* pvNext;
+		class LO* ploNext;
+		class ALO *paloNext;
+		class SO *psoNext;
+	};
+
+	union
+	{
+		// Stores ptr to previous data
+		void *pvPrev;
+		class LO *ploPrev;
+		class ALO *paloPrev;
+		class SO *psoPrev;
+	};
 };
 
 
@@ -69,4 +84,4 @@ int FIsDlEmpty(DL *pdl);
 
 
 // Global DLI pointer to a parent object
-static DLI *s_pdliFirst;
+static DLI *s_pdliFirst = nullptr;

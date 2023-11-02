@@ -7,5 +7,7 @@ class ASEG : public LO
 };
 
 static int LoadAsegaCount;
+
+void InitAseg(ASEG* paseg);
 void LoadAsegFromBrx(ASEG* paseg, CBinaryInputStream* pbis);
 void LoadAsegEventsFromBrx(CBinaryInputStream* pbis, int fFrame);

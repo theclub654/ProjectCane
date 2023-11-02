@@ -1,5 +1,10 @@
 #include "chkpnt.h"
 
+void InitChkpnt(CHKPNT* pchkpnt)
+{
+	InitAlo(pchkpnt);
+}
+
 void LoadChkpntFromBrx(CHKPNT* pchkpnt, CBinaryInputStream* pbis)
 {
 	LoadAloFromBrx(pchkpnt, pbis);

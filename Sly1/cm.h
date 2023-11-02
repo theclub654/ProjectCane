@@ -30,4 +30,4 @@ public:
 void InitCm(CM* pcm); // NOT FINISHED
 
 // Global pointer to parent camera object
-static CM *g_pcm;
+extern inline CM *g_pcm = nullptr;

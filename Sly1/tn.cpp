@@ -1,5 +1,10 @@
 #include "tn.h"
 
+void InitTn(TN* ptn)
+{
+    InitAlo(ptn);
+}
+
 void LoadTnFromBrx(TN* ptn, CBinaryInputStream* pbis)
 {
     pbis->ReadMatrix();

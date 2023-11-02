@@ -46,5 +46,29 @@ class DPRIZE : public ALO
         float cAttract;
 };
 
+class CHARM : public DPRIZE
+{
+    public:
+};
+
+class COIN : public DPRIZE
+{
+    public:
+};
+
+class KEY : public DPRIZE
+{
+    public:
+};
+
+class GOLD : public DPRIZE
+{
+    public:
+};
+
 void InitDprize(DPRIZE *pdprize);//NOT FINISHED
+void InitCharm(CHARM* pcharm);
+void InitCoin(COIN* pcoin);
+void InitKey(KEY* pkey);
+void InitGold(GOLD* pgold);
 void LoadDprizeFromBrx(DPRIZE* pdprize, CBinaryInputStream *pbis);//NOT FINISHED

@@ -14,6 +14,12 @@ struct XF
 	glm::vec3 dv;
 	glm::vec3 dw;
 };
+struct RO
+{
+	glm::mat4 mat;
+	float uAlpha;
+	float uAlphaCelBorder;
+};
 
 class ALO : public LO
 {
@@ -48,9 +54,11 @@ public:
 	int cposec;
 };
 
+static int InitAloCounter = 0;
+
 // Initialize ALO object
 void InitAlo(ALO* palo); // NOT FINISHED
-// Adds ALO object to parent ALO object
+// Adds alo parent and all the alo childs into the world
 void AddAloHierarchy(ALO *palo); // NOT FINISHED
 void RemoveAloHierarchy(ALO *palo); // NOT FINISHED
 void OnAloAdd(ALO* palo); // NOT FINISHED
@@ -62,3 +70,8 @@ void ResolveAlo(ALO *palo);
 void LoadAloFromBrx(ALO* palo, CBinaryInputStream* pbis);
 void LoadAloAloxFromBrx(CBinaryInputStream* pbis);
 void UpdateAlo(ALO *palo, float dt);
+void RenderAloAll(ALO* palo, CM* pcm, RO* proDup);
+void RenderAloSelf(ALO* palo, CM* pcm, RO* pro);
+void RenderAloGlobset(ALO* palo, CM* pcm, RO* pro);
+void RenderAloLine(ALO* palo, CM* pcm, glm::vec3* ppos0, glm::vec3* ppos1, float rWidth, float uAlpha);
+void RenderAloAsBone(ALO* palo, CM* pcm, RO* pro);

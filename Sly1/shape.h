@@ -9,4 +9,5 @@ class SHAPE : public LO
 	public:
 };
 
+void InitShape(SHAPE* pshape);
 void LoadShapeFromBrx(SHAPE* pshape, CBinaryInputStream* pbis);

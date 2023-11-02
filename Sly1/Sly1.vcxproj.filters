@@ -258,6 +258,90 @@
     <ClInclude Include="shadow.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="render.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="mecha.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="suv.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="cycle.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="lgn.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="resource.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="water.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="can.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="dartgun.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="alarm.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="barrier.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="zap.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="mrkv.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="blip.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="light.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="tail.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="dysh.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="waypoint.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="speaker.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="rope.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="pipe.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="rwm.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="wr.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="jsg.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="rail.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="landing.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="jump.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="spire.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="phasemem.cpp">
@@ -503,10 +587,99 @@
     <ClCompile Include="shadow.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="render.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="mecha.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="suv.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="cycle.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="lgn.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="water.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="can.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="dartgun.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="alarm.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="barrier.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="zap.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="mrkv.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="blip.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="light.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="tail.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="dysh.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="waypoint.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="speaker.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="rope.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="pipe.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="rwm.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="wr.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="jsg.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="rail.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="landing.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="jump.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="spire.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\README.md">
       <Filter>Resource Files</Filter>
     </None>
+    <None Include="..\.gitignore">
+      <Filter>Resource Files</Filter>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="Sly1.rc">
+      <Filter>Resource Files</Filter>
+    </ResourceCompile>
   </ItemGroup>
 </Project>

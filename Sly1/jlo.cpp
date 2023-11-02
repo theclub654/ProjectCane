@@ -1,8 +1,22 @@
 #include "jlo.h"
 
+void InitJlovol(JLOVOL* pjlovol)
+{
+	InitVolbtn(pjlovol);
+}
+
+void InitJlo(JLO* pjlo)
+{
+	InitSo(pjlo);
+}
+
+void InitJloc(JLOC* pjloc)
+{
+	InitAlo(pjloc);
+}
+
 void LoadJloFromBrx(JLO* pjlo, CBinaryInputStream* pbis)
 {
-	//std::cout << std::hex << pbis->file.tellg() <<"\n";
 	LoadSoFromBrx(pjlo, pbis);
 }
 

@@ -8,6 +8,9 @@ void InitProxy(PROXY *pproxy)
 
 void LoadProxyFromBrx(PROXY *pproxy, CBinaryInputStream* pbis)
 {
+	//LoadProxyFromBrxCount++;
+	//std::cout << LoadProxyFromBrxCount << "\n";
+
 	pbis->ReadMatrix();
 	pbis->ReadVector();
 

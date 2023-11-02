@@ -1,5 +1,15 @@
 #include "xform.h"
 
+void InitCamera(CAMERA* pcamera)
+{
+	InitAlo(pcamera);
+}
+
+void InitXfm(XFM* pxfm)
+{
+	InitLo(pxfm);
+}
+
 void LoadXfmFromBrx(XFM *pxfm, CBinaryInputStream* pbis)
 {
 	pbis->ReadMatrix();
