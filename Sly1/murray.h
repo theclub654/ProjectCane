@@ -3,7 +3,7 @@
 
 class MURRAY : public STEPGUARD
 {
-
+	public:
 };
 
 void InitMurray(MURRAY* pmurray);

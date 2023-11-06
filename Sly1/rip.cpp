@@ -3,7 +3,7 @@
 void InitRipg(RIPG *pripg)
 {
 	InitSo(pripg);
-	InitDl(&pripg->dlRip, 0x10 + 0xC);
+	InitDl(&pripg->dlRip, 0x1C + 0x10 + 0xC);
 	pripg->sMRD = 10000000000;
 }
 

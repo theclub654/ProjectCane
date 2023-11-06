@@ -52,7 +52,7 @@ void LoadSwObjectsFromBrx(SW *psw, ALO *paloParent, CBinaryInputStream *pbis)
 		// Objects ID
 		OID oid = (OID)pbis->S16Read();
 		// Objects splice event index
-		int isplice = pbis->S16Read();
+  		int isplice = pbis->S16Read();
 		//std::cout << i << "\n";
 		LO *plo = PloNew(cid, psw, paloParent, oid, isplice);
 

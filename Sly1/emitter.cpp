@@ -122,3 +122,8 @@ void LoadExploFromBrx(EXPLO* pexplo, CBinaryInputStream* pbis)
 	if(crgba != 0)
 		LoadEmitblipColorsFromBrx(crgba, pbis);
 }
+
+void RenderEmitterSelf(EMITTER* pemitter, CM* pcm, RO* pro)
+{
+
+}

@@ -20,13 +20,17 @@ class LO : public BASIC
 		OID oid;
 		DLE dleOid;
 		// Parent SW Object
-		class SW *psw;
+		class SW* psw;
 		// Objects Parent
-		class ALO *paloParent;
+		class ALO* paloParent;
 		DLE dleChild;
-		LO *ploCidNext;
+        // Pointer to next LO
+		LO* ploCidNext;
+        void* pmqFirst;
 		// Objects name
-		char *pchzName;
+		char* pchzName;
+        void* pframe;
+        void* ppxr;
 		uint64_t dtickPerf;
 };
 

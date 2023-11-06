@@ -2,18 +2,15 @@
 
 void InitAlo(ALO* palo)
 {
-	/*InitAloCounter++;
-	std::cout << InitAloCounter << "\n";*/
-
-	InitDl(&palo->dlChild, 0x1C + 0x28);
-	InitDl(&palo->dlFreeze, 0x64 + 0x28);
+	InitDl(&palo->dlChild, 0x78);
+	InitDl(&palo->dlFreeze, 0xD0);
 
 	InitLo(palo);
 	palo->sCelBorderMRD = 2139095039;
 	palo->sMRD = 2139095039;
 	palo->grfzon = -1;
 
-	InitDl(&palo->dlAct, 0x8);
+	InitDl(&palo->dlAct, 0x1C + 0x8);
 }
 
 void RemoveAloHierarchy(ALO *palo)
@@ -44,7 +41,7 @@ void RemoveAloHierarchy(ALO *palo)
 void OnAloAdd(ALO* palo)
 {
 	ALO *parentObject = palo->paloParent;
-	
+
 	if (parentObject == nullptr)
 	{
 		palo->paloRoot = palo;

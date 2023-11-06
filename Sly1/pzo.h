@@ -40,3 +40,4 @@ void LoadSprizeFromBrx(SPRIZE *psprize, CBinaryInputStream *pbis);
 void LoadClueFromBrx(CLUE *pclue, CBinaryInputStream *pbis);
 void LoadLockFromBrx(LOCK* plock, CBinaryInputStream* pbis);
 void LoadLockgFromBrx(LOCKG* plockg, CBinaryInputStream* pbis);
+void RenderClueAll(CLUE* pclue, CM* pcm, RO* pro);

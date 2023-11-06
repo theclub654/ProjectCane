@@ -19,3 +19,8 @@ void LoadStepGuardFromBrx(STEPGUARD* pstepguard, CBinaryInputStream* pbis)
 {
 	LoadSoFromBrx(pstepguard, pbis);
 }
+
+void RenderStepguardSelf(STEPGUARD* pstepguard, CM* pcm, RO* pro)
+{
+
+}

@@ -50,6 +50,7 @@ void InitSo(SO* pso);
 void OnSoAdd(SO* pso);
 void LoadSoFromBrx(SO* pso, CBinaryInputStream* pbis);
 void UpdateSo(SO* pso, float dt);
+void RenderSoSelf(SO* pso, CM* pcm, RO* pro);
 
 // Player Object
 class PO;
@@ -63,12 +64,15 @@ void InitStep(STEP* pstep);
 class JT;
 void InitJt(JT* pjt);
 void LoadJtFromBrx(JT* pjt, CBinaryInputStream* pbis);
+void RenderJtAll(JT* pjt, CM* pcm, RO* pro);
+void RenderJtSelf(JT* pjt, CM* pcm, RO* pro);
 
 // Guard
 class STEPGUARD;
 void InitStepGuard(STEPGUARD *pstepguard);
 void OnStepguardAdd(STEPGUARD* pstepguard);
 void LoadStepGuardFromBrx(STEPGUARD *pstepguard, CBinaryInputStream* pbis);
+void RenderStepguardSelf(STEPGUARD* pstepguard, CM* pcm, RO* pro);
 
 class SMARTGUARD;
 void InitSmartGuard(SMARTGUARD* psmartguard);
@@ -77,7 +81,9 @@ class GOMER;
 void InitGomer(GOMER* pgomer);
 
 class UBG;
+class UBP;
 void InitUbg(UBG* pubg);
+void RenderUbpAll(UBP* pubp, CM* pcm, RO* pro);
 
 class MBG;
 void InitMbg(MBG* pmbg);
@@ -101,9 +107,11 @@ class CRFODK;
 
 class TANK;
 void InitTank(TANK* ptank);
+void RenderTankAll(TANK* ptank, CM* pcm, RO* pro);
 
 class JP;
 void InitJp(JP* pjp);
+void RenderJpAll(JP* pjp, CM* pcm, RO* pro);
 
 class HG;
 void InitHg(HG* phg);
@@ -131,9 +139,11 @@ void InitSuv(SUV* psuv);
 
 class CYCLE;
 void InitCycle(CYCLE* pcycle);
+void RenderCycleSelf(CYCLE* pcycle, CM* pcm, RO* pro);
 
 class LGN;
 void InitLgn(LGN* plgn);
+void RenderLgnAll(LGN* plgn, CM* pcm, RO* pro);
 
 class JACK;
 void InitJack(JACK* pjack);
@@ -177,6 +187,11 @@ void InitJlovol(JLOVOL* pjlovol);
 class SQUISH;
 void LoadSquishFromBrx(SQUISH* psquish, CBinaryInputStream* pbis);
 
+class BONE;
+class LBONE;
+void RenderBoneSelf(BONE* pbone, CM* pcm, RO* pro);
+void RenderLboneSelf(LBONE* plbone, CM* pcm, RO* pro);
+
 class SPRIZE;
 void InitSprize(SPRIZE* psprize);
 void LoadSprizeFromBrx(SPRIZE* psprize, CBinaryInputStream* pbis);
@@ -187,6 +202,7 @@ void InitScprize(SCPRIZE* pscprize);
 class CLUE;
 void InitClue(CLUE* pclue);
 void LoadClueFromBrx(CLUE* pclue, CBinaryInputStream* pbis);
+void RenderClueAll(CLUE* pclue, CM* pcm, RO* pro);
 
 class ALARM;
 void InitAlarm(ALARM* palarm);
@@ -210,6 +226,7 @@ void InitBarrier(BARRIER* pbarrier);
 
 class TZP;
 void InitTzp(TZP* ptzp);
+void RenderTzpAll(TZP* ptzp, CM* pcm, RO* pro);
 
 class VOLZP;
 void InitVolzp(VOLZP* pvolzp);
@@ -232,6 +249,7 @@ void LoadBombFromBrx(BOMB* pbomb, CBinaryInputStream* pbis);
 class MISSILE;
 void InitMissile(MISSILE* pmissile);
 void LoadMissileFromBrx(MISSILE* pmissile, CBinaryInputStream* pbis);
+void RenderMissileAll(MISSILE* pmissile, CM* pcm, RO* pro);
 
 class ACCMISS;
 void InitAccmiss(ACCMISS* paccmiss);
@@ -250,6 +268,7 @@ class RAT;
 void InitRat(RAT* prat);
 void OnRatAdd(RAT* prat);
 void LoadRatFromBrx(RAT* prat, CBinaryInputStream* pbis);
+void RenderRatAll(RAT* prat, CM* pcm, RO* pro);
 
 class ROH;
 void InitRoh(ROH* proh);
@@ -285,6 +304,7 @@ void InitLgnb(LGNB* plgnb);
 class BLIPG;
 void InitBlipg(BLIPG* pblipg);
 void OnBlipgAdd(BLIPG* pblipg);
+void RenderBlipgSelf(BLIPG* pblipg, CM* pcm, RO* pro);
 
 class CAMERA;
 void InitCamera(CAMERA* pcamera);
@@ -292,6 +312,7 @@ void InitCamera(CAMERA* pcamera);
 class EMITTER;
 void InitEmitter(EMITTER* pemitter);
 void LoadEmitterFromBrx(EMITTER* pemitter, CBinaryInputStream* pbis);
+void RenderEmitterSelf(EMITTER* pemitter, CM* pcm, RO* pro);
 
 class LIGHT;
 void InitLight(LIGHT* plight);
@@ -312,6 +333,7 @@ void LoadDprizeFromBrx(DPRIZE* pdprize, CBinaryInputStream* pbis);
 
 class CHARM;
 void InitCharm(CHARM* pcharm);
+void RenderDprizeAll(DPRIZE* pdprize, CM* pcm, RO* pro);
 
 class COIN;
 void InitCoin(COIN* pcoin);
@@ -340,6 +362,7 @@ void LoadFlashFromBrx(FLASH* pflash, CBinaryInputStream* pbis);
 
 class DYSH;
 void InitDysh(DYSH* pdysh);
+void RenderDyshSelf(DYSH* pdysh, CM* pcm, RO* pro);
 
 class SCENTMAP;
 void InitScentmap(SCENTMAP* pscentmap);
@@ -365,6 +388,10 @@ void InitSpeaker(SPEAKER* pspeaker);
 
 class ROPE;
 void InitRope(ROPE* prope);
+void RenderRopeAll(ROPE* prope, CM* pcm, RO* pro);
+
+class WM;
+void RenderWmAll(WM* pwm, CM* pcm, RO* pro);
 
 class CRBRAIN;
 void InitCrbrain(CRBRAIN* pcrbrain);

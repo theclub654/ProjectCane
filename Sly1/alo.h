@@ -54,8 +54,6 @@ public:
 	int cposec;
 };
 
-static int InitAloCounter = 0;
-
 // Initialize ALO object
 void InitAlo(ALO* palo); // NOT FINISHED
 // Adds alo parent and all the alo childs into the world

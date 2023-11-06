@@ -16,4 +16,4 @@ void InitRat(RAT* prat);
 void OnRatAdd(RAT* prat);
 void OnRatholeAdd(RATHOLE* prathole);
 void LoadRatFromBrx(RAT* prat, CBinaryInputStream* pbis);
-
+void RenderRatAll(RAT* prat, CM* pcm, RO* pro);

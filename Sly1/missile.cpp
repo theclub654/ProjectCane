@@ -24,3 +24,8 @@ void LoadMissileFromBrx(MISSILE* pmissile, CBinaryInputStream* pbis)
 {
 	LoadBombFromBrx(pmissile, pbis);
 }
+
+void RenderMissileAll(MISSILE* pmissile, CM* pcm, RO* pro)
+{
+
+}

@@ -20,3 +20,4 @@ class SWP : public BREAK
 void InitLgn(LGN* plgn);
 void InitLgnb(LGNB* plgnb);
 void InitSwp(SWP* pswp);
+void RenderLgnAll(LGN* plgn, CM* pcm, RO* pro);

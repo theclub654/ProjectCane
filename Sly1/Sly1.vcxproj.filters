@@ -342,6 +342,12 @@
     <ClInclude Include="spire.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="bone.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="wm.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="phasemem.cpp">
@@ -666,6 +672,12 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="spire.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="bone.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="wm.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

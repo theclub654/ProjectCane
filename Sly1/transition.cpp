@@ -16,6 +16,8 @@ void CTransition::Execute()
 	// Setting the global game state to load because where loading a file
 	SetPhase(PHASE_Load);
 	// THIS IS HERE TEMPORARILY I PLAN ON REWRITING THE WAY THE GAME LOADS FILES
+	// JUST ADD A LEVEL FILE TO THE PROGRAM PROJECT DIR AND CHANGE FILE NAME IN BIS PARAMETER
+	// TO CHANGE LEVEL FILE
 	CBinaryInputStream bis("jb_intro");
 	// Deleting parent SW object
 	DeleteSw(g_psw);

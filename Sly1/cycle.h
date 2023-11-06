@@ -7,3 +7,4 @@ class CYCLE : public PO
 };
 
 void InitCycle(CYCLE *pcycle);
+void RenderCycleSelf(CYCLE* pcycle, CM* pcm, RO* pro);

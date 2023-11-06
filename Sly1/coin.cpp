@@ -35,3 +35,8 @@ void LoadDprizeFromBrx(DPRIZE *pdprize, CBinaryInputStream *pbis)
 {
 	LoadAloFromBrx(pdprize, pbis);
 }
+
+void RenderDprizeAll(DPRIZE* pdprize, CM* pcm, RO* pro)
+{
+
+}

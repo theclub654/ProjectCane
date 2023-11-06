@@ -3,7 +3,7 @@
 void InitSo(SO* pso)
 {
 	//CREF cref;
-	InitDl(&pso->dlPhys, 0x2f4);
+	InitDl(&pso->dlPhys, 0x88);
 	InitAlo(pso);
 
 	InitGeom(&pso->geomLocal);
@@ -64,4 +64,9 @@ void LoadSoFromBrx(SO* pso, CBinaryInputStream* pbis)
 void UpdateSo(SO* pso, float dt)
 {
 
+}
+
+void RenderSoSelf(SO* pso, CM* pcm, RO* pro)
+{
+	RenderAloSelf(pso, pcm, pro);
 }

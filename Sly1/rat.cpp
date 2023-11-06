@@ -19,3 +19,8 @@ void LoadRatFromBrx(RAT* prat, CBinaryInputStream* pbis)
 {
 	LoadSoFromBrx(prat, pbis);
 }
+
+void RenderRatAll(RAT* prat, CM* pcm, RO* pro)
+{
+
+}

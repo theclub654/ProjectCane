@@ -418,7 +418,7 @@ struct VTMS
     void (*pfnPredictAloPosition)() = nullptr;
     void (*pfnPredictAloRotation)() = nullptr;
     void (*pfnRenderAloAll)(ALO*, CM*, RO*) = RenderAloAll;
-    void (*pfnRenderSoSelf)() = nullptr;
+    void (*pfnRenderSoSelf)(SO*, CM*, RO*) = RenderSoSelf;
     void (*pfnRenderMsGlobset)() = nullptr;
     void (*pfnUpdateAloInfluences)() = nullptr;
     void (*pfnAdjustAloPosition)() = nullptr;
@@ -694,8 +694,8 @@ struct VTJT
     void (*pfnSetSoAngularVelocityVec)() = nullptr;
     void (*pfnPredictStepPosition)() = nullptr;
     void (*pfnPredictStepRotation)() = nullptr;
-    void (*pfnRenderJtAll)() = nullptr;
-    void (*pfnRenderJtSelf)() = nullptr;
+    void (*pfnRenderJtAll)(JT*, CM*, RO*) = RenderJtAll;
+    void (*pfnRenderJtSelf)(JT*, CM*, RO*) = RenderJtSelf;
     void (*pfnRenderAloGlobset)(ALO*, CM*, RO*) = RenderAloGlobset;
     void (*pfnUpdateAloInfluences)() = nullptr;
     void (*pfnAdjustAloPosition)() = nullptr;
@@ -793,7 +793,7 @@ struct VTSTEPGUARD
     void (*pfnPredictStepPosition)() = nullptr;
     void (*pfnPredictStepRotation)() = nullptr;
     void (*pfnRenderAloAll)(ALO*, CM*, RO*) = RenderAloAll;
-    void (*pfnRenderStepguardSelf)() = nullptr;
+    void (*pfnRenderStepguardSelf)(STEPGUARD*, CM*, RO*) = RenderStepguardSelf;
     void (*pfnRenderAloGlobset)(ALO*, CM*, RO*) = RenderAloGlobset;
     void (*pfnUpdateAloInfluences)() = nullptr;
     void (*pfnAdjustAloPosition)() = nullptr;
@@ -1991,7 +1991,7 @@ struct VTTANK
     void (*pfnSetSoAngularVelocityVec)() = nullptr;
     void (*pfnPredictStepPosition)() = nullptr;
     void (*pfnPredictStepRotation)() = nullptr;
-    void (*pfnRenderTankAll)() = nullptr;
+    void (*pfnRenderTankAll)(TANK*, CM*, RO*) = RenderTankAll;
     void (*pfnRenderStepSelf)() = nullptr;
     void (*pfnRenderAloGlobset)(ALO*, CM*, RO*) = RenderAloGlobset;
     void (*pfnUpdateAloInfluences)() = nullptr;
@@ -2089,7 +2089,7 @@ struct VTJP
     void (*pfnSetSoAngularVelocityVec)() = nullptr;
     void (*pfnPredictStepPosition)() = nullptr;
     void (*pfnPredictStepRotation)() = nullptr;
-    void (*pfnRenderJpAll)() = nullptr;
+    void (*pfnRenderJpAll)(JP*, CM*, RO*) = RenderJpAll;
     void (*pfnRenderJpSelf)() = nullptr;
     void (*pfnRenderAloGlobset)(ALO*, CM*, RO*) = RenderAloGlobset;
     void (*pfnUpdateAloInfluences)() = nullptr;
@@ -2384,7 +2384,7 @@ struct VTROV
     void (*pfnPredictAloPosition)() = nullptr;
     void (*pfnPredictAloRotation)() = nullptr;
     void (*pfnRenderAloAll)(ALO*, CM*, RO*) = RenderAloAll;
-    void (*pfnRenderSoSelf)() = nullptr;
+    void (*pfnRenderSoSelf)(SO*, CM*, RO*) = RenderSoSelf;
     void (*pfnRenderAloGlobset)(ALO*, CM*, RO*) = RenderAloGlobset;
     void (*pfnUpdateAloInfluences)() = nullptr;
     void (*pfnAdjustAloPosition)() = nullptr;
@@ -2479,7 +2479,7 @@ struct VTTURRET
     void (*pfnPredictAloPosition)() = nullptr;
     void (*pfnPredictAloRotation)() = nullptr;
     void (*pfnRenderAloAll)(ALO*, CM*, RO*) = RenderAloAll;
-    void (*pfnRenderSoSelf)() = nullptr;
+    void (*pfnRenderSoSelf)(SO*, CM*, RO*) = RenderSoSelf;
     void (*pfnRenderAloGlobset)(ALO*, CM*, RO*) = RenderAloGlobset;
     void (*pfnUpdateAloInfluences)() = nullptr;
     void (*pfnAdjustAloPosition)() = nullptr;
@@ -2574,7 +2574,7 @@ struct VTVAULT
     void (*pfnPredictAloPosition)() = nullptr;
     void (*pfnPredictAloRotation)() = nullptr;
     void (*pfnRenderAloAll)(ALO*, CM*, RO*) = RenderAloAll;
-    void (*pfnRenderSoSelf)() = nullptr;
+    void (*pfnRenderSoSelf)(SO*, CM*, RO*) = RenderSoSelf;
     void (*pfnRenderAloGlobset)(ALO*, CM*, RO*) = RenderAloGlobset;
     void (*pfnUpdateAloInfluences)() = nullptr;
     void (*pfnAdjustAloPosition)() = nullptr;
@@ -2669,7 +2669,7 @@ struct VTPUFFER
     void (*pfnPredictAloPosition)() = nullptr;
     void (*pfnPredictAloRotation)() = nullptr;
     void (*pfnRenderAloAll)(ALO*, CM*, RO*) = RenderAloAll;
-    void (*pfnRenderSoSelf)() = nullptr;
+    void (*pfnRenderSoSelf)(SO*, CM*, RO*) = RenderSoSelf;
     void (*pfnRenderAloGlobset)(ALO*, CM*, RO*) = RenderAloGlobset;
     void (*pfnUpdateAloInfluences)() = nullptr;
     void (*pfnAdjustAloPosition)() = nullptr;
@@ -2764,7 +2764,7 @@ struct VTMGV
     void (*pfnPredictAloPosition)() = nullptr;
     void (*pfnPredictAloRotation)() = nullptr;
     void (*pfnRenderAloAll)(ALO*, CM*, RO*) = RenderAloAll;
-    void (*pfnRenderSoSelf)() = nullptr;
+    void (*pfnRenderSoSelf)(SO*, CM*, RO*) = RenderSoSelf;
     void (*pfnRenderAloGlobset)(ALO*, CM*, RO*) = RenderAloGlobset;
     void (*pfnUpdateAloInfluences)() = nullptr;
     void (*pfnAdjustAloPosition)() = nullptr;
@@ -2954,7 +2954,7 @@ struct VTCYCLE
     void (*pfnPredictAloPosition)() = nullptr;
     void (*pfnPredictAloRotation)() = nullptr;
     void (*pfnRenderAloAll)(ALO*, CM*, RO*) = RenderAloAll;
-    void (*pfnRenderCycleSelf)() = nullptr;
+    void (*pfnRenderCycleSelf)(CYCLE*, CM*, RO*) = RenderCycleSelf;
     void (*pfnRenderAloGlobset)(ALO*, CM*, RO*) = RenderAloGlobset;
     void (*pfnUpdateAloInfluences)() = nullptr;
     void (*pfnAdjustAloPosition)() = nullptr;
@@ -3048,8 +3048,8 @@ struct VTLGN
     void (*pfnSetSoAngularVelocityVec)() = nullptr;
     void (*pfnPredictAloPosition)() = nullptr;
     void (*pfnPredictAloRotation)() = nullptr;
-    void (*pfnRenderLgnAll)() = nullptr;
-    void (*pfnRenderSoSelf)() = nullptr;
+    void (*pfnRenderLgnAll)(LGN*, CM*, RO*) = RenderLgnAll;
+    void (*pfnRenderSoSelf)(SO*, CM*, RO*) = RenderSoSelf;
     void (*pfnRenderAloGlobset)(ALO*, CM*, RO*) = RenderAloGlobset;
     void (*pfnUpdateAloInfluences)() = nullptr;
     void (*pfnAdjustAloPosition)() = nullptr;
@@ -3144,7 +3144,7 @@ struct VTJACK
     void (*pfnPredictAloPosition)() = nullptr;
     void (*pfnPredictAloRotation)() = nullptr;
     void (*pfnRenderAloAll)(ALO*, CM*, RO*) = RenderAloAll;
-    void (*pfnRenderSoSelf)() = nullptr;
+    void (*pfnRenderSoSelf)(SO*, CM*, RO*) = RenderSoSelf;
     void (*pfnRenderAloGlobset)(ALO*, CM*, RO*) = RenderAloGlobset;
     void (*pfnUpdateAloInfluences)() = nullptr;
     void (*pfnAdjustAloPosition)() = nullptr;
@@ -3323,7 +3323,7 @@ struct VTWATER
     void (*pfnPredictAloPosition)() = nullptr;
     void (*pfnPredictAloRotation)() = nullptr;
     void (*pfnRenderAloAll)(ALO*, CM*, RO*) = RenderAloAll;
-    void (*pfnRenderSoSelf)() = nullptr;
+    void (*pfnRenderSoSelf)(SO*, CM*, RO*) = RenderSoSelf;
     void (*pfnRenderAloGlobset)(ALO*, CM*, RO*) = RenderAloGlobset;
     void (*pfnUpdateAloInfluences)() = nullptr;
     void (*pfnAdjustAloPosition)() = nullptr;
@@ -3407,7 +3407,7 @@ struct VTBRK
     void (*pfnPredictAloPosition)() = nullptr;
     void (*pfnPredictAloRotation)() = nullptr;
     void (*pfnRenderAloAll)(ALO*, CM*, RO*) = RenderAloAll;
-    void (*pfnRenderSoSelf)() = nullptr;
+    void (*pfnRenderSoSelf)(SO*, CM*, RO*) = RenderSoSelf;
     void (*pfnRenderAloGlobset)(ALO*, CM*, RO*) = RenderAloGlobset;
     void (*pfnUpdateAloInfluences)() = nullptr;
     void (*pfnAdjustAloPosition)() = nullptr;
@@ -3492,7 +3492,7 @@ struct VTBREAK
     void (*pfnPredictAloPosition)() = nullptr;
     void (*pfnPredictAloRotation)() = nullptr;
     void (*pfnRenderAloAll)(ALO*, CM*, RO*) = RenderAloAll;
-    void (*pfnRenderSoSelf)() = nullptr;
+    void (*pfnRenderSoSelf)(SO*, CM*, RO*) = RenderSoSelf;
     void (*pfnRenderAloGlobset)(ALO*, CM*, RO*) = RenderAloGlobset;
     void (*pfnUpdateAloInfluences)() = nullptr;
     void (*pfnAdjustAloPosition)() = nullptr;
@@ -3577,7 +3577,7 @@ struct VTALBRK
     void (*pfnPredictAloPosition)() = nullptr;
     void (*pfnPredictAloRotation)() = nullptr;
     void (*pfnRenderAloAll)(ALO*, CM*, RO*) = RenderAloAll;
-    void (*pfnRenderSoSelf)() = nullptr;
+    void (*pfnRenderSoSelf)(SO*, CM*, RO*) = RenderSoSelf;
     void (*pfnRenderAloGlobset)(ALO*, CM*, RO*) = RenderAloGlobset;
     void (*pfnUpdateAloInfluences)() = nullptr;
     void (*pfnAdjustAloPosition)() = nullptr;
@@ -3662,7 +3662,7 @@ struct VTCAN
     void (*pfnPredictAloPosition)() = nullptr;
     void (*pfnPredictAloRotation)() = nullptr;
     void (*pfnRenderAloAll)(ALO*, CM*, RO*) = RenderAloAll;
-    void (*pfnRenderSoSelf)() = nullptr;
+    void (*pfnRenderSoSelf)(SO*, CM*, RO*) = RenderSoSelf;
     void (*pfnRenderAloGlobset)(ALO*, CM*, RO*) = RenderAloGlobset;
     void (*pfnUpdateAloInfluences)() = nullptr;
     void (*pfnAdjustAloPosition)() = nullptr;
@@ -3747,7 +3747,7 @@ struct VTDARTGUN
     void (*pfnPredictAloPosition)() = nullptr;
     void (*pfnPredictAloRotation)() = nullptr;
     void (*pfnRenderAloAll)(ALO*, CM*, RO*) = RenderAloAll;
-    void (*pfnRenderSoSelf)() = nullptr;
+    void (*pfnRenderSoSelf)(SO*, CM*, RO*) = RenderSoSelf;
     void (*pfnRenderAloGlobset)(ALO*, CM*, RO*) = RenderAloGlobset;
     void (*pfnUpdateAloInfluences)() = nullptr;
     void (*pfnAdjustAloPosition)() = nullptr;
@@ -3832,7 +3832,7 @@ struct VTSWP
     void (*pfnPredictAloPosition)() = nullptr;
     void (*pfnPredictAloRotation)() = nullptr;
     void (*pfnRenderAloAll)(ALO*, CM*, RO*) = RenderAloAll;
-    void (*pfnRenderSoSelf)() = nullptr;
+    void (*pfnRenderSoSelf)(SO*, CM*, RO*) = RenderSoSelf;
     void (*pfnRenderAloGlobset)(ALO*, CM*, RO*) = RenderAloGlobset;
     void (*pfnUpdateAloInfluences)() = nullptr;
     void (*pfnAdjustAloPosition)() = nullptr;
@@ -3917,7 +3917,7 @@ struct VTFRAGILE
     void (*pfnPredictAloPosition)() = nullptr;
     void (*pfnPredictAloRotation)() = nullptr;
     void (*pfnRenderAloAll)(ALO*, CM*, RO*) = RenderAloAll;
-    void (*pfnRenderSoSelf)() = nullptr;
+    void (*pfnRenderSoSelf)(SO*, CM*, RO*) = RenderSoSelf;
     void (*pfnRenderAloGlobset)(ALO*, CM*, RO*) = RenderAloGlobset;
     void (*pfnUpdateAloInfluences)() = nullptr;
     void (*pfnAdjustAloPosition)() = nullptr;
@@ -4002,7 +4002,7 @@ struct VTZAPBREAK
     void (*pfnPredictAloPosition)() = nullptr;
     void (*pfnPredictAloRotation)() = nullptr;
     void (*pfnRenderAloAll)(ALO*, CM*, RO*) = RenderAloAll;
-    void (*pfnRenderSoSelf)() = nullptr;
+    void (*pfnRenderSoSelf)(SO*, CM*, RO*) = RenderSoSelf;
     void (*pfnRenderAloGlobset)(ALO*, CM*, RO*) = RenderAloGlobset;
     void (*pfnUpdateAloInfluences)() = nullptr;
     void (*pfnAdjustAloPosition)() = nullptr;
@@ -4087,7 +4087,7 @@ struct VTBRKP
     void (*pfnPredictAloPosition)() = nullptr;
     void (*pfnPredictAloRotation)() = nullptr;
     void (*pfnRenderAloAll)(ALO*, CM*, RO*) = RenderAloAll;
-    void (*pfnRenderSoSelf)() = nullptr;
+    void (*pfnRenderSoSelf)(SO*, CM*, RO*) = RenderSoSelf;
     void (*pfnRenderAloGlobset)(ALO*, CM*, RO*) = RenderAloGlobset;
     void (*pfnUpdateAloInfluences)() = nullptr;
     void (*pfnAdjustAloPosition)() = nullptr;
@@ -4171,7 +4171,7 @@ struct VTBUTTON
     void (*pfnPredictAloPosition)() = nullptr;
     void (*pfnPredictAloRotation)() = nullptr;
     void (*pfnRenderAloAll)(ALO*, CM*, RO*) = RenderAloAll;
-    void (*pfnRenderSoSelf)() = nullptr;
+    void (*pfnRenderSoSelf)(SO*, CM*, RO*) = RenderSoSelf;
     void (*pfnRenderAloGlobset)(ALO*, CM*, RO*) = RenderAloGlobset;
     void (*pfnUpdateAloInfluences)() = nullptr;
     void (*pfnAdjustAloPosition)() = nullptr;
@@ -4255,7 +4255,7 @@ struct VTVOLBTN
     void (*pfnPredictAloPosition)() = nullptr;
     void (*pfnPredictAloRotation)() = nullptr;
     void (*pfnRenderAloAll)(ALO*, CM*, RO*) = RenderAloAll;
-    void (*pfnRenderSoSelf)() = nullptr;
+    void (*pfnRenderSoSelf)(SO*, CM*, RO*) = RenderSoSelf;
     void (*pfnRenderAloGlobset)(ALO*, CM*, RO*) = RenderAloGlobset;
     void (*pfnUpdateAloInfluences)() = nullptr;
     void (*pfnAdjustAloPosition)() = nullptr;
@@ -4339,7 +4339,7 @@ struct VTJLOVOL
     void (*pfnPredictAloPosition)() = nullptr;
     void (*pfnPredictAloRotation)() = nullptr;
     void (*pfnRenderAloAll)(ALO*, CM*, RO*) = RenderAloAll;
-    void (*pfnRenderSoSelf)() = nullptr;
+    void (*pfnRenderSoSelf)(SO*, CM*, RO*) = RenderSoSelf;
     void (*pfnRenderAloGlobset)(ALO*, CM*, RO*) = RenderAloGlobset;
     void (*pfnUpdateAloInfluences)() = nullptr;
     void (*pfnAdjustAloPosition)() = nullptr;
@@ -4507,7 +4507,7 @@ struct VTBONE
     void (*pfnPredictAloPosition)() = nullptr;
     void (*pfnPredictAloRotation)() = nullptr;
     void (*pfnRenderAloAll)(ALO*, CM*, RO*) = RenderAloAll;
-    void (*pfnRenderBoneSelf)() = nullptr;
+    void (*pfnRenderBoneSelf)(BONE*, CM*, RO*) = RenderBoneSelf;
     void (*pfnRenderAloGlobset)(ALO*, CM*, RO*) = RenderAloGlobset;
     void (*pfnUpdateAloInfluences)() = nullptr;
     void (*pfnAdjustAloPosition)() = nullptr;
@@ -4591,7 +4591,7 @@ struct VTSPRIZE
     void (*pfnPredictAloPosition)() = nullptr;
     void (*pfnPredictAloRotation)() = nullptr;
     void (*pfnRenderAloAll)(ALO*, CM*, RO*) = RenderAloAll;
-    void (*pfnRenderSoSelf)() = nullptr;
+    void (*pfnRenderSoSelf)(SO*, CM*, RO*) = RenderSoSelf;
     void (*pfnRenderAloGlobset)(ALO*, CM*, RO*) = RenderAloGlobset;
     void (*pfnUpdateAloInfluences)() = nullptr;
     void (*pfnAdjustAloPosition)() = nullptr;
@@ -4678,7 +4678,7 @@ struct VTSCPRIZE
     void (*pfnPredictAloPosition)() = nullptr;
     void (*pfnPredictAloRotation)() = nullptr;
     void (*pfnRenderAloAll)(ALO*, CM*, RO*) = RenderAloAll;
-    void (*pfnRenderSoSelf)() = nullptr;
+    void (*pfnRenderSoSelf)(SO*, CM*, RO*) = RenderSoSelf;
     void (*pfnRenderAloGlobset)(ALO*, CM*, RO*) = RenderAloGlobset;
     void (*pfnUpdateAloInfluences)() = nullptr;
     void (*pfnAdjustAloPosition)() = nullptr;
@@ -4765,7 +4765,7 @@ struct VTLIFETKN
     void (*pfnPredictAloPosition)() = nullptr;
     void (*pfnPredictAloRotation)() = nullptr;
     void (*pfnRenderAloAll)(ALO*, CM*, RO*) = RenderAloAll;
-    void (*pfnRenderSoSelf)() = nullptr;
+    void (*pfnRenderSoSelf)(SO*, CM*, RO*) = RenderSoSelf;
     void (*pfnRenderAloGlobset)(ALO*, CM*, RO*) = RenderAloGlobset;
     void (*pfnUpdateAloInfluences)() = nullptr;
     void (*pfnAdjustAloPosition)() = nullptr;
@@ -4851,8 +4851,8 @@ struct VTCLUE
     void (*pfnSetSoAngularVelocityVec)() = nullptr;
     void (*pfnPredictAloPosition)() = nullptr;
     void (*pfnPredictAloRotation)() = nullptr;
-    void (*pfnRenderClueAll)() = nullptr;
-    void (*pfnRenderSoSelf)() = nullptr;
+    void (*pfnRenderClueAll)(CLUE*, CM*, RO*) = RenderClueAll;
+    void (*pfnRenderSoSelf)(SO*, CM*, RO*) = RenderSoSelf;
     void (*pfnRenderAloGlobset)(ALO*, CM*, RO*) = RenderAloGlobset;
     void (*pfnUpdateAloInfluences)() = nullptr;
     void (*pfnAdjustAloPosition)() = nullptr;
@@ -4939,7 +4939,7 @@ struct VTALARM
     void (*pfnPredictAloPosition)() = nullptr;
     void (*pfnPredictAloRotation)() = nullptr;
     void (*pfnRenderAloAll)(ALO*, CM*, RO*) = RenderAloAll;
-    void (*pfnRenderSoSelf)() = nullptr;
+    void (*pfnRenderSoSelf)(SO*, CM*, RO*) = RenderSoSelf;
     void (*pfnRenderAloGlobset)(ALO*, CM*, RO*) = RenderAloGlobset;
     void (*pfnUpdateAloInfluences)() = nullptr;
     void (*pfnAdjustAloPosition)() = nullptr;
@@ -5023,7 +5023,7 @@ struct VTSENSOR
     void (*pfnPredictAloPosition)() = nullptr;
     void (*pfnPredictAloRotation)() = nullptr;
     void (*pfnRenderAloAll)(ALO*, CM*, RO*) = RenderAloAll;
-    void (*pfnRenderSoSelf)() = nullptr;
+    void (*pfnRenderSoSelf)(SO*, CM*, RO*) = RenderSoSelf;
     void (*pfnRenderAloGlobset)(ALO*, CM*, RO*) = RenderAloGlobset;
     void (*pfnUpdateAloInfluences)() = nullptr;
     void (*pfnAdjustAloPosition)() = nullptr;
@@ -5293,7 +5293,7 @@ struct VTPRSEN
     void (*pfnPredictAloPosition)() = nullptr;
     void (*pfnPredictAloRotation)() = nullptr;
     void (*pfnRenderAloAll)(ALO*, CM*, RO*) = RenderAloAll;
-    void (*pfnRenderSoSelf)() = nullptr;
+    void (*pfnRenderSoSelf)(SO*, CM*, RO*) = RenderSoSelf;
     void (*pfnRenderAloGlobset)(ALO*, CM*, RO*) = RenderAloGlobset;
     void (*pfnUpdateAloInfluences)() = nullptr;
     void (*pfnAdjustAloPosition)() = nullptr;
@@ -5383,7 +5383,7 @@ struct VTBARRIER
     void (*pfnPredictAloPosition)() = nullptr;
     void (*pfnPredictAloRotation)() = nullptr;
     void (*pfnRenderAloAll)(ALO*, CM*, RO*) = RenderAloAll;
-    void (*pfnRenderSoSelf)() = nullptr;
+    void (*pfnRenderSoSelf)(SO*, CM*, RO*) = RenderSoSelf;
     void (*pfnRenderAloGlobset)(ALO*, CM*, RO*) = RenderAloGlobset;
     void (*pfnUpdateAloInfluences)() = nullptr;
     void (*pfnAdjustAloPosition)() = nullptr;
@@ -5550,8 +5550,8 @@ struct VTTZP
     void (*pfnSetSoAngularVelocityVec)() = nullptr;
     void (*pfnPredictAloPosition)() = nullptr;
     void (*pfnPredictAloRotation)() = nullptr;
-    void (*pfnRenderTzpAll)() = nullptr;
-    void (*pfnRenderSoSelf)() = nullptr;
+    void (*pfnRenderTzpAll)(TZP*, CM*, RO*) = RenderTzpAll;
+    void (*pfnRenderSoSelf)(SO*, CM*, RO*) = RenderSoSelf;
     void (*pfnRenderAloGlobset)(ALO*, CM*, RO*) = RenderAloGlobset;
     void (*pfnUpdateAloInfluences)() = nullptr;
     void (*pfnAdjustAloPosition)() = nullptr;
@@ -5634,8 +5634,8 @@ struct VTVOLZP
     void (*pfnSetSoAngularVelocityVec)() = nullptr;
     void (*pfnPredictAloPosition)() = nullptr;
     void (*pfnPredictAloRotation)() = nullptr;
-    void (*pfnRenderTzpAll)() = nullptr;
-    void (*pfnRenderSoSelf)() = nullptr;
+    void (*pfnRenderTzpAll)(TZP*, CM*, RO*) = RenderTzpAll;
+    void (*pfnRenderSoSelf)(SO*, CM*, RO*) = RenderSoSelf;
     void (*pfnRenderAloGlobset)(ALO*, CM*, RO*) = RenderAloGlobset;
     void (*pfnUpdateAloInfluences)() = nullptr;
     void (*pfnAdjustAloPosition)() = nullptr;
@@ -5719,7 +5719,7 @@ struct VTCNVO
     void (*pfnPredictAloPosition)() = nullptr;
     void (*pfnPredictAloRotation)() = nullptr;
     void (*pfnRenderAloAll)(ALO*, CM*, RO*) = RenderAloAll;
-    void (*pfnRenderSoSelf)() = nullptr;
+    void (*pfnRenderSoSelf)(SO*, CM*, RO*) = RenderSoSelf;
     void (*pfnRenderAloGlobset)(ALO*, CM*, RO*) = RenderAloGlobset;
     void (*pfnUpdateAloInfluences)() = nullptr;
     void (*pfnAdjustAloPosition)() = nullptr;
@@ -5803,7 +5803,7 @@ struct VTHBSK
     void (*pfnPredictAloPosition)() = nullptr;
     void (*pfnPredictAloRotation)() = nullptr;
     void (*pfnRenderAloAll)(ALO*, CM*, RO*) = RenderAloAll;
-    void (*pfnRenderSoSelf)() = nullptr;
+    void (*pfnRenderSoSelf)(SO*, CM*, RO*) = RenderSoSelf;
     void (*pfnRenderAloGlobset)(ALO*, CM*, RO*) = RenderAloGlobset;
     void (*pfnUpdateAloInfluences)() = nullptr;
     void (*pfnAdjustAloPosition)() = nullptr;
@@ -5887,7 +5887,7 @@ struct VTBOMB
     void (*pfnPredictAloPosition)() = nullptr;
     void (*pfnPredictAloRotation)() = nullptr;
     void (*pfnRenderAloAll)(ALO*, CM*, RO*) = RenderAloAll;
-    void (*pfnRenderSoSelf)() = nullptr;
+    void (*pfnRenderSoSelf)(SO*, CM*, RO*) = RenderSoSelf;
     void (*pfnRenderAloGlobset)(ALO*, CM*, RO*) = RenderAloGlobset;
     void (*pfnUpdateAloInfluences)() = nullptr;
     void (*pfnAdjustAloPosition)() = nullptr;
@@ -5970,8 +5970,8 @@ struct VTMISSILE
     void (*pfnSetSoAngularVelocityVec)() = nullptr;
     void (*pfnPredictAloPosition)() = nullptr;
     void (*pfnPredictAloRotation)() = nullptr;
-    void (*pfnRenderMissileAll)() = nullptr;
-    void (*pfnRenderSoSelf)() = nullptr;
+    void (*pfnRenderMissileAll)(MISSILE*, CM*, RO*) = RenderMissileAll;
+    void (*pfnRenderSoSelf)(SO*, CM*, RO*) = RenderSoSelf;
     void (*pfnRenderAloGlobset)(ALO*, CM*, RO*) = RenderAloGlobset;
     void (*pfnUpdateAloInfluences)() = nullptr;
     void (*pfnAdjustAloPosition)() = nullptr;
@@ -6055,8 +6055,8 @@ struct VTACCMISS
     void (*pfnSetSoAngularVelocityVec)() = nullptr;
     void (*pfnPredictAloPosition)() = nullptr;
     void (*pfnPredictAloRotation)() = nullptr;
-    void (*pfnRenderMissileAll)() = nullptr;
-    void (*pfnRenderSoSelf)() = nullptr;
+    void (*pfnRenderMissileAll)(MISSILE*, CM*, RO*) = RenderMissileAll;
+    void (*pfnRenderSoSelf)(SO*, CM*, RO*) = RenderSoSelf;
     void (*pfnRenderAloGlobset)(ALO*, CM*, RO*) = RenderAloGlobset;
     void (*pfnUpdateAloInfluences)() = nullptr;
     void (*pfnAdjustAloPosition)() = nullptr;
@@ -6140,8 +6140,8 @@ struct VTTARMISS
     void (*pfnSetSoAngularVelocityVec)() = nullptr;
     void (*pfnPredictAloPosition)() = nullptr;
     void (*pfnPredictAloRotation)() = nullptr;
-    void (*pfnRenderMissileAll)() = nullptr;
-    void (*pfnRenderSoSelf)() = nullptr;
+    void (*pfnRenderMissileAll)(MISSILE*, CM*, RO*) = RenderMissileAll;
+    void (*pfnRenderSoSelf)(SO*, CM*, RO*) = RenderSoSelf;
     void (*pfnRenderAloGlobset)(ALO*, CM*, RO*) = RenderAloGlobset;
     void (*pfnUpdateAloInfluences)() = nullptr;
     void (*pfnAdjustAloPosition)() = nullptr;
@@ -6225,8 +6225,8 @@ struct VTSPLMISS
     void (*pfnSetSoAngularVelocityVec)() = nullptr;
     void (*pfnPredictAloPosition)() = nullptr;
     void (*pfnPredictAloRotation)() = nullptr;
-    void (*pfnRenderMissileAll)() = nullptr;
-    void (*pfnRenderSoSelf)() = nullptr;
+    void (*pfnRenderMissileAll)(MISSILE*, CM*, RO*) = RenderMissileAll;
+    void (*pfnRenderSoSelf)(SO*, CM*, RO*) = RenderSoSelf;
     void (*pfnRenderAloGlobset)(ALO*, CM*, RO*) = RenderAloGlobset;
     void (*pfnUpdateAloInfluences)() = nullptr;
     void (*pfnAdjustAloPosition)() = nullptr;
@@ -6310,8 +6310,8 @@ struct VTGROUNDMISS
     void (*pfnSetSoAngularVelocityVec)() = nullptr;
     void (*pfnPredictAloPosition)() = nullptr;
     void (*pfnPredictAloRotation)() = nullptr;
-    void (*pfnRenderMissileAll)() = nullptr;
-    void (*pfnRenderSoSelf)() = nullptr;
+    void (*pfnRenderMissileAll)(MISSILE*, CM*, RO*) = RenderMissileAll;
+    void (*pfnRenderSoSelf)(SO*, CM*, RO*) = RenderSoSelf;
     void (*pfnRenderAloGlobset)(ALO*, CM*, RO*) = RenderAloGlobset;
     void (*pfnUpdateAloInfluences)() = nullptr;
     void (*pfnAdjustAloPosition)() = nullptr;
@@ -6479,8 +6479,8 @@ struct VTRAT
     void (*pfnSetSoAngularVelocityVec)() = nullptr;
     void (*pfnPredictAloPosition)() = nullptr;
     void (*pfnPredictAloRotation)() = nullptr;
-    void (*pfnRenderRatAll)() = nullptr;
-    void (*pfnRenderSoSelf)() = nullptr;
+    void (*pfnRenderRatAll)(RAT*, CM*, RO*) = RenderRatAll;
+    void (*pfnRenderSoSelf)(SO*, CM*, RO*) = RenderSoSelf;
     void (*pfnRenderAloGlobset)(ALO*, CM*, RO*) = RenderAloGlobset;
     void (*pfnUpdateAloInfluences)() = nullptr;
     void (*pfnAdjustAloPosition)() = nullptr;
@@ -6564,7 +6564,7 @@ struct VTROH
     void (*pfnPredictAloPosition)() = nullptr;
     void (*pfnPredictAloRotation)() = nullptr;
     void (*pfnRenderAloAll)(ALO*, CM*, RO*) = RenderAloAll;
-    void (*pfnRenderSoSelf)() = nullptr;
+    void (*pfnRenderSoSelf)(SO*, CM*, RO*) = RenderSoSelf;
     void (*pfnRenderAloGlobset)(ALO*, CM*, RO*) = RenderAloGlobset;
     void (*pfnUpdateAloInfluences)() = nullptr;
     void (*pfnAdjustAloPosition)() = nullptr;
@@ -6648,7 +6648,7 @@ struct VTROC
     void (*pfnPredictAloPosition)() = nullptr;
     void (*pfnPredictAloRotation)() = nullptr;
     void (*pfnRenderAloAll)(ALO*, CM*, RO*) = RenderAloAll;
-    void (*pfnRenderSoSelf)() = nullptr;
+    void (*pfnRenderSoSelf)(SO*, CM*, RO*) = RenderSoSelf;
     void (*pfnRenderAloGlobset)(ALO*, CM*, RO*) = RenderAloGlobset;
     void (*pfnUpdateAloInfluences)() = nullptr;
     void (*pfnAdjustAloPosition)() = nullptr;
@@ -6732,7 +6732,7 @@ struct VTROST
     void (*pfnPredictAloPosition)() = nullptr;
     void (*pfnPredictAloRotation)() = nullptr;
     void (*pfnRenderAloAll)(ALO*, CM*, RO*) = RenderAloAll;
-    void (*pfnRenderSoSelf)() = nullptr;
+    void (*pfnRenderSoSelf)(SO*, CM*, RO*) = RenderSoSelf;
     void (*pfnRenderAloGlobset)(ALO*, CM*, RO*) = RenderAloGlobset;
     void (*pfnUpdateAloInfluences)() = nullptr;
     void (*pfnAdjustAloPosition)() = nullptr;
@@ -6816,7 +6816,7 @@ struct VTROP
     void (*pfnPredictAloPosition)() = nullptr;
     void (*pfnPredictAloRotation)() = nullptr;
     void (*pfnRenderAloAll)(ALO*, CM*, RO*) = RenderAloAll;
-    void (*pfnRenderSoSelf)() = nullptr;
+    void (*pfnRenderSoSelf)(SO*, CM*, RO*) = RenderSoSelf;
     void (*pfnRenderAloGlobset)(ALO*, CM*, RO*) = RenderAloGlobset;
     void (*pfnUpdateAloInfluences)() = nullptr;
     void (*pfnAdjustAloPosition)() = nullptr;
@@ -6900,7 +6900,7 @@ struct VTDART
     void (*pfnPredictAloPosition)() = nullptr;
     void (*pfnPredictAloRotation)() = nullptr;
     void (*pfnRenderAloAll)(ALO*, CM*, RO*) = RenderAloAll;
-    void (*pfnRenderSoSelf)() = nullptr;
+    void (*pfnRenderSoSelf)(SO*, CM*, RO*) = RenderSoSelf;
     void (*pfnRenderAloGlobset)(ALO*, CM*, RO*) = RenderAloGlobset;
     void (*pfnUpdateAloInfluences)() = nullptr;
     void (*pfnAdjustAloPosition)() = nullptr;
@@ -6984,7 +6984,7 @@ struct VTUBV
     void (*pfnPredictAloPosition)() = nullptr;
     void (*pfnPredictAloRotation)() = nullptr;
     void (*pfnRenderAloAll)(ALO*, CM*, RO*) = RenderAloAll;
-    void (*pfnRenderSoSelf)() = nullptr;
+    void (*pfnRenderSoSelf)(SO*, CM*, RO*) = RenderSoSelf;
     void (*pfnRenderAloGlobset)(ALO*, CM*, RO*) = RenderAloGlobset;
     void (*pfnUpdateAloInfluences)() = nullptr;
     void (*pfnAdjustAloPosition)() = nullptr;
@@ -7067,8 +7067,8 @@ struct VTUBP
     void (*pfnSetSoAngularVelocityVec)() = nullptr;
     void (*pfnPredictAloPosition)() = nullptr;
     void (*pfnPredictAloRotation)() = nullptr;
-    void (*pfnRenderUbpAll)() = nullptr;
-    void (*pfnRenderSoSelf)() = nullptr;
+    void (*pfnRenderUbpAll)(UBP*, CM*, RO*) = RenderUbpAll;
+    void (*pfnRenderSoSelf)(SO*, CM*, RO*) = RenderSoSelf;
     void (*pfnRenderAloGlobset)(ALO*, CM*, RO*) = RenderAloGlobset;
     void (*pfnUpdateAloInfluences)() = nullptr;
     void (*pfnAdjustAloPosition)() = nullptr;
@@ -7152,7 +7152,7 @@ struct VTDSP
     void (*pfnPredictAloPosition)() = nullptr;
     void (*pfnPredictAloRotation)() = nullptr;
     void (*pfnRenderAloAll)(ALO*, CM*, RO*) = RenderAloAll;
-    void (*pfnRenderSoSelf)() = nullptr;
+    void (*pfnRenderSoSelf)(SO*, CM*, RO*) = RenderSoSelf;
     void (*pfnRenderAloGlobset)(ALO*, CM*, RO*) = RenderAloGlobset;
     void (*pfnUpdateAloInfluences)() = nullptr;
     void (*pfnAdjustAloPosition)() = nullptr;
@@ -7236,7 +7236,7 @@ struct VTJLO
     void (*pfnPredictAloPosition)() = nullptr;
     void (*pfnPredictAloRotation)() = nullptr;
     void (*pfnRenderAloAll)(ALO*, CM*, RO*) = RenderAloAll;
-    void (*pfnRenderSoSelf)() = nullptr;
+    void (*pfnRenderSoSelf)(SO*, CM*, RO*) = RenderSoSelf;
     void (*pfnRenderAloGlobset)(ALO*, CM*, RO*) = RenderAloGlobset;
     void (*pfnUpdateAloInfluences)() = nullptr;
     void (*pfnAdjustAloPosition)() = nullptr;
@@ -7320,7 +7320,7 @@ struct VTPUFFT
     void (*pfnPredictAloPosition)() = nullptr;
     void (*pfnPredictAloRotation)() = nullptr;
     void (*pfnRenderAloAll)(ALO*, CM*, RO*) = RenderAloAll;
-    void (*pfnRenderSoSelf)() = nullptr;
+    void (*pfnRenderSoSelf)(SO*, CM*, RO*) = RenderSoSelf;
     void (*pfnRenderAloGlobset)(ALO*, CM*, RO*) = RenderAloGlobset;
     void (*pfnUpdateAloInfluences)() = nullptr;
     void (*pfnAdjustAloPosition)() = nullptr;
@@ -7404,7 +7404,7 @@ struct VTMRKV
     void (*pfnPredictAloPosition)() = nullptr;
     void (*pfnPredictAloRotation)() = nullptr;
     void (*pfnRenderAloAll)(ALO*, CM*, RO*) = RenderAloAll;
-    void (*pfnRenderSoSelf)() = nullptr;
+    void (*pfnRenderSoSelf)(SO*, CM*, RO*) = RenderSoSelf;
     void (*pfnRenderAloGlobset)(ALO*, CM*, RO*) = RenderAloGlobset;
     void (*pfnUpdateAloInfluences)() = nullptr;
     void (*pfnAdjustAloPosition)() = nullptr;
@@ -7488,7 +7488,7 @@ struct VTLGNB
     void (*pfnPredictAloPosition)() = nullptr;
     void (*pfnPredictAloRotation)() = nullptr;
     void (*pfnRenderAloAll)(ALO*, CM*, RO*) = RenderAloAll;
-    void (*pfnRenderSoSelf)() = nullptr;
+    void (*pfnRenderSoSelf)(SO*, CM*, RO*) = RenderSoSelf;
     void (*pfnRenderAloGlobset)(ALO*, CM*, RO*) = RenderAloGlobset;
     void (*pfnUpdateAloInfluences)() = nullptr;
     void (*pfnAdjustAloPosition)() = nullptr;
@@ -7572,7 +7572,7 @@ struct VTBLIPG
     void (*pfnPredictAloPosition)() = nullptr;
     void (*pfnPredictAloRotation)() = nullptr;
     void (*pfnRenderAloAll)(ALO*, CM*, RO*) = RenderAloAll;
-    void (*pfnRenderBlipgSelf)() = nullptr;
+    void (*pfnRenderBlipgSelf)(BLIPG*, CM*, RO*) = RenderBlipgSelf;
     void (*pfnRenderAloGlobset)(ALO*, CM*, RO*) = RenderAloGlobset;
     void (*pfnUpdateAloInfluences)() = nullptr;
     void (*pfnAdjustAloPosition)() = nullptr;
@@ -7690,7 +7690,7 @@ struct VTLBONE
     void (*pfnPredictAloPosition)() = nullptr;
     void (*pfnPredictAloRotation)() = nullptr;
     void (*pfnRenderAloAll)(ALO*, CM*, RO*) = RenderAloAll;
-    void (*pfnRenderLboneSelf)() = nullptr;
+    void (*pfnRenderLboneSelf)(LBONE*, CM*, RO*) = RenderLboneSelf;
     void (*pfnRenderAloGlobset)(ALO*, CM*, RO*) = RenderAloGlobset;
     void (*pfnUpdateAloInfluences)() = nullptr;
     void (*pfnAdjustAloPosition)() = nullptr;
@@ -7749,7 +7749,7 @@ struct VTEMITTER
     void (*pfnPredictAloPosition)() = nullptr;
     void (*pfnPredictAloRotation)() = nullptr;
     void (*pfnRenderAloAll)(ALO*, CM*, RO*) = RenderAloAll;
-    void (*pfnRenderEmitterSelf)() = nullptr;
+    void (*pfnRenderEmitterSelf)(EMITTER*, CM*, RO*) = RenderEmitterSelf;
     void (*pfnRenderAloGlobset)(ALO*, CM*, RO*) = RenderAloGlobset;
     void (*pfnUpdateAloInfluences)() = nullptr;
     void (*pfnAdjustAloPosition)() = nullptr;
@@ -8161,7 +8161,7 @@ struct VTDPRIZE
     void (*pfnSetAloAngularVelocityVec)() = nullptr;
     void (*pfnPredictAloPosition)() = nullptr;
     void (*pfnPredictAloRotation)() = nullptr;
-    void (*pfnRenderDprizeAll)() = nullptr;
+    void (*pfnRenderDprizeAll)(DPRIZE*, CM*, RO*) = RenderDprizeAll;
     void (*pfnRenderAloSelf)(ALO*, CM*, RO*) = RenderAloSelf;
     void (*pfnRenderAloGlobset)(ALO*, CM*, RO*) = RenderAloGlobset;
     void (*pfnUpdateAloInfluences)() = nullptr;
@@ -8221,7 +8221,7 @@ struct VTCHARM
     void (*pfnSetAloAngularVelocityVec)() = nullptr;
     void (*pfnPredictAloPosition)() = nullptr;
     void (*pfnPredictAloRotation)() = nullptr;
-    void (*pfnRenderDprizeAll)() = nullptr;
+    void (*pfnRenderDprizeAll)(DPRIZE*, CM*, RO*) = RenderDprizeAll;
     void (*pfnRenderAloSelf)(ALO*, CM*, RO*) = RenderAloSelf;
     void (*pfnRenderAloGlobset)(ALO*, CM*, RO*) = RenderAloGlobset;
     void (*pfnUpdateAloInfluences)() = nullptr;
@@ -8281,7 +8281,7 @@ struct VTCOIN
     void (*pfnSetAloAngularVelocityVec)() = nullptr;
     void (*pfnPredictAloPosition)() = nullptr;
     void (*pfnPredictAloRotation)() = nullptr;
-    void (*pfnRenderDprizeAll)() = nullptr;
+    void (*pfnRenderDprizeAll)(DPRIZE*, CM*, RO*) = RenderDprizeAll;
     void (*pfnRenderAloSelf)(ALO*, CM*, RO*) = RenderAloSelf;
     void (*pfnRenderAloGlobset)(ALO*, CM*, RO*) = RenderAloGlobset;
     void (*pfnUpdateAloInfluences)() = nullptr;
@@ -8341,7 +8341,7 @@ struct VTKEY
     void (*pfnSetAloAngularVelocityVec)() = nullptr;
     void (*pfnPredictAloPosition)() = nullptr;
     void (*pfnPredictAloRotation)() = nullptr;
-    void (*pfnRenderDprizeAll)() = nullptr;
+    void (*pfnRenderDprizeAll)(DPRIZE*, CM*, RO*) = RenderDprizeAll;
     void (*pfnRenderAloSelf)(ALO*, CM*, RO*) = RenderAloSelf;
     void (*pfnRenderAloGlobset)(ALO*, CM*, RO*) = RenderAloGlobset;
     void (*pfnUpdateAloInfluences)() = nullptr;
@@ -8401,7 +8401,7 @@ struct VTGOLD
     void (*pfnSetAloAngularVelocityVec)() = nullptr;
     void (*pfnPredictAloPosition)() = nullptr;
     void (*pfnPredictAloRotation)() = nullptr;
-    void (*pfnRenderDprizeAll)() = nullptr;
+    void (*pfnRenderDprizeAll)(DPRIZE*, CM*, RO*) = RenderDprizeAll;
     void (*pfnRenderAloSelf)(ALO*, CM*, RO*) = RenderAloSelf;
     void (*pfnRenderAloGlobset)(ALO*, CM*, RO*) = RenderAloGlobset;
     void (*pfnUpdateAloInfluences)() = nullptr;
@@ -8757,7 +8757,7 @@ struct VTDYSH
     void (*pfnPredictAloPosition)() = nullptr;
     void (*pfnPredictAloRotation)() = nullptr;
     void (*pfnRenderAloAll)(ALO*, CM*, RO*) = RenderAloAll;
-    void (*pfnRenderDyshSelf)() = nullptr;
+    void (*pfnRenderDyshSelf)(DYSH*, CM*, RO*) = RenderDyshSelf;
     void (*pfnRenderAloGlobset)(ALO*, CM*, RO*) = RenderAloGlobset;
     void (*pfnUpdateAloInfluences)() = nullptr;
     void (*pfnAdjustAloPosition)() = nullptr;
@@ -9169,7 +9169,7 @@ struct VTROPE
     void (*pfnSetAloAngularVelocityVec)() = nullptr;
     void (*pfnPredictAloPosition)() = nullptr;
     void (*pfnPredictAloRotation)() = nullptr;
-    void (*pfnRenderRopeAll)() = nullptr;
+    void (*pfnRenderRopeAll)(ROPE*, CM*, RO*) = RenderRopeAll;
     void (*pfnRenderAloSelf)(ALO*, CM*, RO*) = RenderAloSelf;
     void (*pfnRenderAloGlobset)(ALO*, CM*, RO*) = RenderAloGlobset;
     void (*pfnUpdateAloInfluences)() = nullptr;
@@ -9228,7 +9228,7 @@ struct VTWM
     void (*pfnSetAloAngularVelocityVec)() = nullptr;
     void (*pfnPredictAloPosition)() = nullptr;
     void (*pfnPredictAloRotation)() = nullptr;
-    void (*pfnRenderWmAll)() = nullptr;
+    void (*pfnRenderWmAll)(WM*, CM*, RO*) = RenderWmAll;
     void (*pfnRenderAloSelf)(ALO*, CM*, RO*) = RenderAloSelf;
     void (*pfnRenderAloGlobset)(ALO*, CM*, RO*) = RenderAloGlobset;
     void (*pfnUpdateAloInfluences)() = nullptr;

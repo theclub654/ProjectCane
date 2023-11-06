@@ -4,51 +4,50 @@ void InitSw(SW* psw)
 {
 	InitLo((LO*)psw);
 
-	InitDl(&psw->dlChild, 0x1C);
-	InitDl(&psw->dlMRD, 0x54 + 0x18);
-	InitDl(&psw->dlMRDRealClock, 0x54);
-	InitDl(&psw->dlBusy, 0x4C + 0x10);
-	InitDl(&psw->dlBusySo, 0x434);
-	InitDl(&psw->dlRoot, 0x2e0);
-	InitDl(&psw->dlAsega, 0x34);
-	InitDl(&psw->dlAsegaRealClock, 0x34);
-	InitDl(&psw->dlAsegaPending, 0x34);
-	InitDl(&psw->dlSma, 0x10);
-	InitDl(&psw->dlAmb, 0x60);
-	InitDl(&psw->dlExc, 4);
-	InitDl(&psw->dlLight, 0x420);
-	InitDl(&psw->dlShadow, 0xb8);
-	InitDl(&psw->dlExplste, 100);
-	InitDl(&psw->dlProxy, 0x2ec);
-	InitDl(&psw->dlFly, 0x60c);
-	InitDl(&psw->dlDprize, 900);
-	InitDl(&psw->dlRat, 0x630);
-	InitDl(&psw->dlRathole, 0x90);
-	InitDl(&psw->dlDartFree, 0x59c);
-	InitDl(&psw->dlSpire, 0x50);
-	InitDl(&psw->dlRail, 0x50);
-	InitDl(&psw->dlLanding, 0x50);
-	InitDl(&psw->dlBusyLasen, 0xb20);
-	InitDl(&psw->dlBlipg, 0x640);
-	InitDl(&psw->dlBlipgFree, 0x640);
-	InitDl(&psw->dlFader, 0xc);
-	InitDl(&psw->dlRealClockFader, 0xc);
-	InitDl(&psw->dlCrfod, 0xb90);
-	InitDl(&psw->dlShape, 0x44);
-	InitDl(&psw->dlPathzone, 100);
+	InitDl(&psw->dlChild, 0x38);
+	InitDl(&psw->dlMRD, 0xA0);
+	InitDl(&psw->dlMRDRealClock, 0x1C + 0x54);
+	InitDl(&psw->dlBusy, 0x90);
+	InitDl(&psw->dlBusySo, 0x1C + 0x434);
+	InitDl(&psw->dlRoot, 0x1C + 0x2e0);
+	InitDl(&psw->dlAsega, 0x1C + 0x34);
+	InitDl(&psw->dlAsegaRealClock, 0x1C + 0x34);
+	InitDl(&psw->dlAsegaPending, 0x1C + 0x34);
+	InitDl(&psw->dlSma, 0x1C + 0x10);
+	InitDl(&psw->dlAmb, 0x1C + 0x60);
+	InitDl(&psw->dlExc, 0x1C + 4);
+	InitDl(&psw->dlLight, 0x1C + 0x420);
+	InitDl(&psw->dlShadow, 0x1C + 0xb8);
+	InitDl(&psw->dlExplste, 0x1C + 100);
+	InitDl(&psw->dlProxy, 0x1C + 0x2ec);
+	InitDl(&psw->dlFly, 0x1C + 0x60c);
+	InitDl(&psw->dlDprize, 0x1C + 900);
+	InitDl(&psw->dlRat, 0x1C + 0x630);
+	InitDl(&psw->dlRathole, 0x1C + 0x90);
+	InitDl(&psw->dlDartFree, 0x1C + 0x59c);
+	InitDl(&psw->dlSpire, 0x1C + 0x50);
+	InitDl(&psw->dlRail, 0x1C + 0x50);
+	InitDl(&psw->dlLanding, 0x1C + 0x50);
+	InitDl(&psw->dlBusyLasen, 0x1C + 0xb20);
+	InitDl(&psw->dlBlipg, 0x1C + 0x640);
+	InitDl(&psw->dlBlipgFree, 0x1C + 0x640);
+	InitDl(&psw->dlFader, 0x1C + 0xc);
+	InitDl(&psw->dlRealClockFader, 0x1C + 0xc);
+	InitDl(&psw->dlCrfod, 0x1C + 0xb90);
+	InitDl(&psw->dlShape, 0x1C + 0x44);
+	InitDl(&psw->dlPathzone, 0x1C + 100);
 }
 
 void InitSwDlHash(SW* psw)
 {
 	for (int i = 0; i < 0x200; i++)
-		InitDl(&psw->adlHash[i], 0x1C);
+		InitDl(&psw->adlHash[i], 0x1C + 0x1C);
 }
 
 void LoadSwFromBrx(SW* psw, CBinaryInputStream* pbis)
 {
 	// Setting difficulty for world
 	OnDifficultyWorldPreLoad(&g_difficulty);
-
 	//StartupSplice();
 
 	// Loading unknown debug flag from file

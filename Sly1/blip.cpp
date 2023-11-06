@@ -9,3 +9,8 @@ void OnBlipgAdd(BLIPG* pblipg)
 {
 	OnAloAdd(pblipg);
 }
+
+void RenderBlipgSelf(BLIPG* pblipg, CM* pcm, RO* pro)
+{
+
+}

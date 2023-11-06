@@ -72,3 +72,4 @@ void InitCoin(COIN* pcoin);
 void InitKey(KEY* pkey);
 void InitGold(GOLD* pgold);
 void LoadDprizeFromBrx(DPRIZE* pdprize, CBinaryInputStream *pbis);//NOT FINISHED
+void RenderDprizeAll(DPRIZE* pdprize, CM* pcm, RO* pro);

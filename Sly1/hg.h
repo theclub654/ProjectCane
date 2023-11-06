@@ -3,7 +3,7 @@
 
 class HG : public STEP
 {
-
+	public:
 };
 
 void InitHg(HG* phg);

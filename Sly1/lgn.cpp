@@ -14,3 +14,8 @@ void InitSwp(SWP* pswp)
 {
 	InitBreak(pswp);
 }
+
+void RenderLgnAll(LGN* plgn, CM* pcm, RO* pro)
+{
+
+}

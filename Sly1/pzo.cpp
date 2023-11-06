@@ -39,3 +39,8 @@ void LoadLockgFromBrx(LOCKG* plockg, CBinaryInputStream* pbis)
 {
 	LoadAloFromBrx(plockg, pbis);
 }
+
+void RenderClueAll(CLUE* pclue, CM* pcm, RO* pro)
+{
+
+}

@@ -7,3 +7,4 @@ class ROPE : public ALO
 };
 
 void InitRope(ROPE* prope);
+void RenderRopeAll(ROPE* prope, CM* pcm, RO* pro);

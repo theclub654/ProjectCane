@@ -26,3 +26,4 @@ void InitAccmiss(ACCMISS* paccmiss);
 void InitTarmiss(TARMISS* ptarmiss);
 void InitGroundmiss(GROUNDMISS* pgroundmiss);
 void LoadMissileFromBrx(MISSILE* pmissile, CBinaryInputStream* pbis);
+void RenderMissileAll(MISSILE* pmissile, CM* pcm, RO* pro);

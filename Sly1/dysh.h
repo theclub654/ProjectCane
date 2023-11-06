@@ -7,3 +7,4 @@ class DYSH : public ALO
 };
 
 void InitDysh(DYSH* pdysh);
+void RenderDyshSelf(DYSH* pdysh, CM* pcm, RO* pro);

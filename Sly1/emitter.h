@@ -40,3 +40,4 @@ void LoadEmitblipColorsFromBrx(int crgba, CBinaryInputStream* pbis);
 void LoadEmitterFromBrx(EMITTER* pemitter, CBinaryInputStream* pbis);
 void LoadExplgFromBrx(EXPLG* pexplg, CBinaryInputStream* pbis);
 void LoadExploFromBrx(EXPLO *pexplo, CBinaryInputStream *pbis);
+void RenderEmitterSelf(EMITTER* pemitter, CM* pcm, RO* pro);
