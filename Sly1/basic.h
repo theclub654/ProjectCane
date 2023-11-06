@@ -464,10 +464,10 @@ struct VTPO
     int cb = 0x5D0;
 
     void (*pfnInitPo) (PO*) = InitPo;
-    void (*pfnSetLoDefaults) () = nullptr;
-    void (*pfnAddLo) () = nullptr;
-    void (*pfnRemoveLo) () = nullptr;
-    void (*pfnAddAloHierarchy) () = nullptr;
+    void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
+    void (*pfnAddLo) (LO*) = AddLo;
+    void (*pfnRemoveLo) (LO*) = RemoveLo;
+    void (*pfnAddAloHierarchy) (ALO*) = AddAloHierarchy;
     void (*pfnRemoveAloHierarchy) () = nullptr;
     void (*pfnOnPoAdd) (PO*) = OnPoAdd;
     void (*pfnOnPoRemove) () = nullptr;
@@ -501,9 +501,9 @@ struct VTPO
     void (*pfnSetSoAngularVelocityVec) () = nullptr;
     void (*pfnPredictAloPosition) () = nullptr;
     void (*pfnPredictAloRotation) () = nullptr;
-    void (*pfnRenderAloAll) () = nullptr;
-    void (*pfnRenderSoSelf) () = nullptr;
-    void (*pfnRenderAloGlobset) () = nullptr;
+    void (*pfnRenderAloAll)(ALO*, CM*, RO*) = RenderAloAll;
+    void (*pfnRenderAloSelf)(ALO*, CM*, RO*) = RenderAloSelf;
+    void (*pfnRenderAloGlobset)(ALO*, CM*, RO*) = RenderAloGlobset;
     void (*pfnUpdateAloInfluences) () = nullptr;
     void (*pfnAdjustAloPosition) () = nullptr;
     void (*pfnAdjustAloRotation) () = nullptr;
@@ -873,7 +873,7 @@ struct VTSMARTGUARD
     void (*pfnOnStepguardRemove)() = nullptr;
     void (*pfnCloneAloHierarchy)(ALO*) = CloneAloHierarchy;
     void (*pfnCloneStepguard)() = nullptr;
-    void (*pfnLoadStepguardFromBrx)() = nullptr;
+    void (*pfnLoadStepguardFromBrx)(STEPGUARD*, CBinaryInputStream*) = LoadStepGuardFromBrx;
     void (*pfnAddLoRecursive)() = nullptr;
     void (*pfnRemoveLoRecursive)() = nullptr;
     void (*pfnHandleSmartguardMessage)() = nullptr;
@@ -974,15 +974,15 @@ struct VTGOMER
 
     void (*pfnInitGomer) (GOMER*) = InitGomer;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
-    void (*pfnAddLo) () = nullptr;
-    void (*pfnRemoveLo) () = nullptr;
-    void (*pfnAddAloHierarchy) () = nullptr;
+    void (*pfnAddLo) (LO*) = AddLo;
+    void (*pfnRemoveLo) (LO*) = RemoveLo;
+    void (*pfnAddAloHierarchy) (ALO*) = AddAloHierarchy;
     void (*pfnRemoveAloHierarchy) () = nullptr;
-    void (*pfnOnStepguardAdd) () = nullptr;
+    void (*pfnOnStepguardAdd)(STEPGUARD*) = OnStepguardAdd;
     void (*pfnOnStepguardRemove) () = nullptr;
     void (*pfnCloneAloHierarchy) () = nullptr;
     void (*pfnCloneStepguard) () = nullptr;
-    void (*pfnLoadStepguardFromBrx) () = nullptr;
+    void (*pfnLoadStepguardFromBrx)(STEPGUARD*, CBinaryInputStream*) = LoadStepGuardFromBrx;
     void (*pfnAddLoRecursive) () = nullptr;
     void (*pfnRemoveLoRecursive) () = nullptr;
     void (*pfnHandleStepguardMessage) () = nullptr;
@@ -1010,9 +1010,9 @@ struct VTGOMER
     void (*pfnSetSoAngularVelocityVec) () = nullptr;
     void (*pfnPredictStepPosition) () = nullptr;
     void (*pfnPredictStepRotation) () = nullptr;
-    void (*pfnRenderAloAll) () = nullptr;
+    void (*pfnRenderAloAll)(ALO*, CM*, RO*) = RenderAloAll;
     void (*pfnRenderGomerSelf) () = nullptr;
-    void (*pfnRenderAloGlobset) () = nullptr;
+    void (*pfnRenderAloGlobset)(ALO*, CM*, RO*) = RenderAloGlobset;
     void (*pfnUpdateAloInfluences) () = nullptr;
     void (*pfnAdjustAloPosition) () = nullptr;
     void (*pfnAdjustAloRotation) () = nullptr;
@@ -1091,7 +1091,7 @@ struct VTUBG
     void (*pfnOnStepguardRemove)() = nullptr;
     void (*pfnCloneAloHierarchy)(ALO*) = CloneAloHierarchy;
     void (*pfnCloneStepguard)() = nullptr;
-    void (*pfnLoadStepguardFromBrx)() = nullptr;
+    void (*pfnLoadStepguardFromBrx)(STEPGUARD*, CBinaryInputStream*) = LoadStepGuardFromBrx;
     void (*pfnAddLoRecursive)() = nullptr;
     void (*pfnRemoveLoRecursive)() = nullptr;
     void (*pfnHandleStepguardMessage)() = nullptr;
@@ -1309,7 +1309,7 @@ struct VTBHG
     void (*pfnOnStepguardRemove)() = nullptr;
     void (*pfnCloneAloHierarchy)(ALO*) = CloneAloHierarchy;
     void (*pfnCloneStepguard)() = nullptr;
-    void (*pfnLoadStepguardFromBrx)() = nullptr;
+    void (*pfnLoadStepguardFromBrx)(STEPGUARD*, CBinaryInputStream*) = LoadStepGuardFromBrx;
     void (*pfnAddLoRecursive)() = nullptr;
     void (*pfnRemoveLoRecursive)() = nullptr;
     void (*pfnHandleStepguardMessage)() = nullptr;
@@ -1418,7 +1418,7 @@ struct VTMURRAY
     void (*pfnOnStepguardRemove)() = nullptr;
     void (*pfnCloneAloHierarchy)(ALO*) = CloneAloHierarchy;
     void (*pfnCloneStepguard)() = nullptr;
-    void (*pfnLoadStepguardFromBrx)() = nullptr;
+    void (*pfnLoadStepguardFromBrx)(STEPGUARD*, CBinaryInputStream*) = LoadStepGuardFromBrx;
     void (*pfnAddLoRecursive)() = nullptr;
     void (*pfnRemoveLoRecursive)() = nullptr;
     void (*pfnHandleStepguardMessage)() = nullptr;
@@ -1527,7 +1527,7 @@ struct VTPUFFC
     void (*pfnOnStepguardRemove)() = nullptr;
     void (*pfnCloneAloHierarchy)(ALO*) = CloneAloHierarchy;
     void (*pfnCloneStepguard)() = nullptr;
-    void (*pfnLoadStepguardFromBrx)() = nullptr;
+    void (*pfnLoadStepguardFromBrx)(STEPGUARD*, CBinaryInputStream*) = LoadStepGuardFromBrx;
     void (*pfnAddLoRecursive)() = nullptr;
     void (*pfnRemoveLoRecursive)() = nullptr;
     void (*pfnHandlePuffcMessage)() = nullptr;
@@ -1636,7 +1636,7 @@ struct VTCRFOD
     void (*pfnOnCrfodRemove)() = nullptr;
     void (*pfnCloneAloHierarchy)(ALO*) = CloneAloHierarchy;
     void (*pfnCloneCrfod)() = nullptr;
-    void (*pfnLoadStepguardFromBrx)() = nullptr;
+    void (*pfnLoadStepguardFromBrx)(STEPGUARD*, CBinaryInputStream*) = LoadStepGuardFromBrx;
     void (*pfnAddLoRecursive)() = nullptr;
     void (*pfnRemoveLoRecursive)() = nullptr;
     void (*pfnHandleStepguardMessage)() = nullptr;
@@ -1745,7 +1745,7 @@ struct VTCRFODB
     void (*pfnOnCrfodRemove)() = nullptr;
     void (*pfnCloneAloHierarchy)(ALO*) = CloneAloHierarchy;
     void (*pfnCloneCrfod)() = nullptr;
-    void (*pfnLoadStepguardFromBrx)() = nullptr;
+    void (*pfnLoadStepguardFromBrx)(STEPGUARD*, CBinaryInputStream*) = LoadStepGuardFromBrx;
     void (*pfnAddLoRecursive)() = nullptr;
     void (*pfnRemoveLoRecursive)() = nullptr;
     void (*pfnHandleStepguardMessage)() = nullptr;
@@ -1854,7 +1854,7 @@ struct VTCRFODK
     void (*pfnOnCrfodRemove)() = nullptr;
     void (*pfnCloneAloHierarchy)(ALO*) = CloneAloHierarchy;
     void (*pfnCloneCrfod)() = nullptr;
-    void (*pfnLoadStepguardFromBrx)() = nullptr;
+    void (*pfnLoadStepguardFromBrx)(STEPGUARD*, CBinaryInputStream*) = LoadStepGuardFromBrx;
     void (*pfnAddLoRecursive)() = nullptr;
     void (*pfnRemoveLoRecursive)() = nullptr;
     void (*pfnHandleStepguardMessage)() = nullptr;
@@ -3378,7 +3378,7 @@ struct VTBRK
     void (*pfnOnSoRemove)() = nullptr;
     void (*pfnCloneAloHierarchy)(ALO*) = CloneAloHierarchy;
     void (*pfnCloneBrk)() = nullptr;
-    void (*pfnLoadBrkFromBrx)() = nullptr;
+    void (*pfnLoadBrkFromBrx)(BRK*, CBinaryInputStream*) = LoadBrkFromBrx;
     void (*pfnAddLoRecursive)() = nullptr;
     void (*pfnRemoveLoRecursive)() = nullptr;
     void (*pfnHandleAloMessage)() = nullptr;

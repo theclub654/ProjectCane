@@ -1,5 +1,21 @@
 #include "shd.h"
 
+void UnloadShaders()
+{
+	//g_pfont = (CFont*)&g_fontDebug;
+	g_cshd = 0;
+	g_ashd.clear();
+	g_cbmp = 0;
+	g_abmp.clear();
+	g_cclut = 0;
+	g_aclut.clear();
+	g_cfontBrx = 0;
+	g_afontBrx = 0x0;
+	g_grfzonShaders = 0;
+	g_cpsaa = 0;
+	g_apsaa.clear();
+}
+
 void LoadColorTablesFromBrx(CBinaryInputStream *pbis)
 {
 	// Loads the number of CLUT propertys from binary file

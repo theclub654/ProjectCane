@@ -89,6 +89,11 @@ glm::mat3 CBinaryInputStream::ReadMatrix()
     return glm::mat3 (ReadVector(), ReadVector(), ReadVector());
 }
 
+glm::mat4x2 CBinaryInputStream::ReadMatrix4x2()
+{
+    return glm::mat4x2(ReadVector(), ReadVector(), ReadVector(), ReadVector());
+}
+
 glm::mat4 CBinaryInputStream::ReadMatrix4()
 {
     return glm::mat4(ReadVector4(), ReadVector4(), ReadVector4(), ReadVector4());

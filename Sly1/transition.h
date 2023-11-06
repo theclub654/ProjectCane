@@ -13,6 +13,8 @@ enum FTRANS {
     FTRANS_ShowLives = 16
 };
 
+void UnloadShaders();
+
 class CTransition
 {
 protected:

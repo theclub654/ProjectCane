@@ -81,6 +81,7 @@ struct TEX : public TEXF
 };
 
 
+void UnloadShaders();
 // Loads CLUT entry data from binary file
 void LoadColorTablesFromBrx(CBinaryInputStream *pbis);
 // Loads texture entry data from binary file
@@ -97,6 +98,7 @@ void LoadShadersFromBrx(CBinaryInputStream *pbis);
 static int g_cclut;
 // Global vector for CLUT property's
 static std::vector <CLUT> g_aclut;
+static int g_grfzonShaders;
 // Global variable which holds the number of BMP's in a binary file
 static int g_cbmp;
 // Global vector for BMP property's

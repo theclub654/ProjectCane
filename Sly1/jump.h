@@ -4,6 +4,10 @@
 class JMT : public PNT
 {
 	public:
+		DLE dleJmt;
+		float sRadius;
+		OID oidSetIgnoreJt;
+		struct SO* psoSetIgnoreJt;
 };
 
 void OnJmtAdd(JMT* pjmt);

@@ -9,3 +9,5 @@ class JT : public STEP
 
 void InitJt(JT *pjt); // NOT FINSHED
 void LoadJtFromBrx(JT *pjt, CBinaryInputStream *pbis); // NOT FINSHED
+
+static JT *g_pjt;

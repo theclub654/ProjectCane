@@ -41,7 +41,7 @@ void InitSw(SW* psw)
 void InitSwDlHash(SW* psw)
 {
 	for (int i = 0; i < 0x200; i++)
-		InitDl(&psw->adlHash[i], 0xC);
+		InitDl(&psw->adlHash[i], 0x1C);
 }
 
 void LoadSwFromBrx(SW* psw, CBinaryInputStream* pbis)
@@ -94,6 +94,7 @@ void LoadWorldTableFromBrx(CBinaryInputStream* pbis)
 
 void DeleteSw(SW* psw)
 {
+	UnloadShaders();
 	g_pcm = 0x0;
 }
 

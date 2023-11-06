@@ -38,6 +38,8 @@ class CBinaryInputStream
 		glm::vec4 ReadVector4();
 		// Reads matrix from file
 		glm::mat3 ReadMatrix();
+		// Reads matrix4x2 from file
+		glm::mat4x2 ReadMatrix4x2();
 		// Reads matrix 4 from file
 		glm::mat4 ReadMatrix4();
 		uint16_t ReadGeom();

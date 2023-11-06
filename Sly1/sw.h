@@ -66,4 +66,4 @@ void DeleteSw(SW* psw);
 void UpdateSw(SW *psw, float dt); // Gotta come back to this
 void GetSwParams(SW* psw, SOP** ppsop);
 // Global pointer to parent static world object
-extern inline SW* g_psw = nullptr;
+extern inline SW *g_psw = nullptr;
