@@ -85,6 +85,7 @@
       <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
+      <AdditionalIncludeDirectories>$(SolutionDir)Libraries\include\imgui;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -115,6 +116,7 @@
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
+      <AdditionalIncludeDirectories>$(SolutionDir)Libraries\include\imgui;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -139,6 +141,17 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="..\Libraries\include\imgui\imconfig.h" />
+    <ClInclude Include="..\Libraries\include\imgui\imgui.h" />
+    <ClInclude Include="..\Libraries\include\imgui\ImGuiFileDialog.h" />
+    <ClInclude Include="..\Libraries\include\imgui\ImGuiFileDialogConfig.h" />
+    <ClInclude Include="..\Libraries\include\imgui\imgui_impl_glfw.h" />
+    <ClInclude Include="..\Libraries\include\imgui\imgui_impl_opengl3.h" />
+    <ClInclude Include="..\Libraries\include\imgui\imgui_impl_opengl3_loader.h" />
+    <ClInclude Include="..\Libraries\include\imgui\imgui_internal.h" />
+    <ClInclude Include="..\Libraries\include\imgui\imstb_rectpack.h" />
+    <ClInclude Include="..\Libraries\include\imgui\imstb_textedit.h" />
+    <ClInclude Include="..\Libraries\include\imgui\imstb_truetype.h" />
     <ClInclude Include="ac.h" />
     <ClInclude Include="alarm.h" />
     <ClInclude Include="alo.h" />
@@ -162,16 +175,19 @@
     <ClInclude Include="cycle.h" />
     <ClInclude Include="dart.h" />
     <ClInclude Include="dartgun.h" />
+    <ClInclude Include="debug.h" />
     <ClInclude Include="dec.h" />
     <ClInclude Include="dialog.h" />
     <ClInclude Include="difficulty.h" />
     <ClInclude Include="dl.h" />
+    <ClInclude Include="dsp.h" />
     <ClInclude Include="dysh.h" />
     <ClInclude Include="emitter.h" />
     <ClInclude Include="flash.h" />
     <ClInclude Include="fly.h" />
     <ClInclude Include="font.h" />
     <ClInclude Include="freeze.h" />
+    <ClInclude Include="frzg.h" />
     <ClInclude Include="geom.h" />
     <ClInclude Include="gl.h" />
     <ClInclude Include="glob.h" />
@@ -191,6 +207,7 @@
     <ClInclude Include="light.h" />
     <ClInclude Include="lo.h" />
     <ClInclude Include="main.h" />
+    <ClInclude Include="map2d.h" />
     <ClInclude Include="mb.h" />
     <ClInclude Include="mecha.h" />
     <ClInclude Include="mgv.h" />
@@ -223,6 +240,7 @@
     <ClInclude Include="shd.h" />
     <ClInclude Include="shdanim.h" />
     <ClInclude Include="sidebag.h" />
+    <ClInclude Include="sky.h" />
     <ClInclude Include="sm.h" />
     <ClInclude Include="smartguard.h" />
     <ClInclude Include="so.h" />
@@ -230,6 +248,7 @@
     <ClInclude Include="speaker.h" />
     <ClInclude Include="spire.h" />
     <ClInclude Include="splicemap.h" />
+    <ClInclude Include="sqtr.h" />
     <ClInclude Include="squish.h" />
     <ClInclude Include="step.h" />
     <ClInclude Include="stepguard.h" />
@@ -246,12 +265,21 @@
     <ClInclude Include="vis.h" />
     <ClInclude Include="water.h" />
     <ClInclude Include="waypoint.h" />
+    <ClInclude Include="wipe.h" />
     <ClInclude Include="wm.h" />
     <ClInclude Include="wr.h" />
     <ClInclude Include="xform.h" />
     <ClInclude Include="zap.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\Libraries\include\imgui\imgui.cpp" />
+    <ClCompile Include="..\Libraries\include\imgui\ImGuiFileDialog.cpp" />
+    <ClCompile Include="..\Libraries\include\imgui\imgui_demo.cpp" />
+    <ClCompile Include="..\Libraries\include\imgui\imgui_draw.cpp" />
+    <ClCompile Include="..\Libraries\include\imgui\imgui_impl_glfw.cpp" />
+    <ClCompile Include="..\Libraries\include\imgui\imgui_impl_opengl3.cpp" />
+    <ClCompile Include="..\Libraries\include\imgui\imgui_tables.cpp" />
+    <ClCompile Include="..\Libraries\include\imgui\imgui_widgets.cpp" />
     <ClCompile Include="ac.cpp" />
     <ClCompile Include="alarm.cpp" />
     <ClCompile Include="alo.cpp" />
@@ -275,15 +303,18 @@
     <ClCompile Include="cycle.cpp" />
     <ClCompile Include="dart.cpp" />
     <ClCompile Include="dartgun.cpp" />
+    <ClCompile Include="debug.cpp" />
     <ClCompile Include="dialog.cpp" />
     <ClCompile Include="difficulty.cpp" />
     <ClCompile Include="dl.cpp" />
+    <ClCompile Include="dsp.cpp" />
     <ClCompile Include="dysh.cpp" />
     <ClCompile Include="emitter.cpp" />
     <ClCompile Include="flash.cpp" />
     <ClCompile Include="fly.cpp" />
     <ClCompile Include="font.cpp" />
     <ClCompile Include="freeze.cpp" />
+    <ClCompile Include="frzg.cpp" />
     <ClCompile Include="geom.cpp" />
     <ClCompile Include="gl.cpp" />
     <ClCompile Include="glad.c" />
@@ -304,6 +335,7 @@
     <ClCompile Include="light.cpp" />
     <ClCompile Include="lo.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="map2d.cpp" />
     <ClCompile Include="mb.cpp" />
     <ClCompile Include="mecha.cpp" />
     <ClCompile Include="mgv.cpp" />
@@ -335,6 +367,7 @@
     <ClCompile Include="shd.cpp" />
     <ClCompile Include="shdanim.cpp" />
     <ClCompile Include="sidebag.cpp" />
+    <ClCompile Include="sky.cpp" />
     <ClCompile Include="sm.cpp" />
     <ClCompile Include="smartguard.cpp" />
     <ClCompile Include="so.cpp" />
@@ -342,6 +375,7 @@
     <ClCompile Include="speaker.cpp" />
     <ClCompile Include="spire.cpp" />
     <ClCompile Include="splicemap.cpp" />
+    <ClCompile Include="sqtr.cpp" />
     <ClCompile Include="squish.cpp" />
     <ClCompile Include="step.cpp" />
     <ClCompile Include="stepguard.cpp" />
@@ -358,6 +392,7 @@
     <ClCompile Include="vis.cpp" />
     <ClCompile Include="water.cpp" />
     <ClCompile Include="waypoint.cpp" />
+    <ClCompile Include="wipe.cpp" />
     <ClCompile Include="wm.cpp" />
     <ClCompile Include="wr.cpp" />
     <ClCompile Include="xform.cpp" />
@@ -366,6 +401,8 @@
   <ItemGroup>
     <None Include="..\.gitignore" />
     <None Include="..\README.md" />
+    <None Include="glob.frag" />
+    <None Include="glob.vert" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Sly1.rc" />

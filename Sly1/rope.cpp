@@ -2,6 +2,7 @@
 
 void InitRope(ROPE* prope)
 {
+	std::cout << "ROPE Size: " << sizeof(ROPE) << "\n";
 	InitAlo(prope);
 }
 

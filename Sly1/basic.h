@@ -194,7 +194,7 @@ struct VTLO
     VT *pvtSuper = g_vtbasic.pvtSuper;
     CID cid = CID_LO;
     int grfcid = 0;
-    int cb = 0x40;
+    int cb = 120;
 
     void (*pfnInitLo) (LO*) = InitLo;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
@@ -234,7 +234,7 @@ struct VTALO
     VT *pvtSuper = g_vtlo.pvtSuper;
     CID cid = CID_ALO;
     int grfcid = 1;
-    int cb = 0x2E0;
+    int cb = 1064;
 
     void (*pfnInitAlo) (ALO*) = InitAlo;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
@@ -293,7 +293,7 @@ struct VTSO
     VT *pvtSuper = g_vtalo.pvtSuper;
     CID cid = CID_SO;
     int grfcid = 3;
-    int cb = 0x580;
+    int cb = 2400;
 
     void (*pfnInitSo) (SO*) = InitSo;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
@@ -377,7 +377,7 @@ struct VTMS
     VT *pvtSuper = g_vtso.pvtSuper;
     CID cid = CID_MS;
     int grfcid = 3;
-    int cb = 0x580;
+    int cb = 2400;
 
     void (*pfnInitSo) (SO*) = InitSo;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
@@ -461,7 +461,7 @@ struct VTPO
     VT *pvtSuper = g_vtso.pvtSuper;
     CID cid = CID_PO;
     int grfcid = 0xB;
-    int cb = 0x5D0;
+    int cb = 2512;
 
     void (*pfnInitPo) (PO*) = InitPo;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
@@ -556,7 +556,7 @@ struct VTSTEP
     VT *pvtSuper = g_vtpo.pvtSuper;
     CID cid = CID_STEP;
     int grfcid = 0xB;
-    int cb = 0x6E0;
+    int cb = 2784;
 
     void (*pfnInitStep)(STEP*) = InitStep;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
@@ -654,7 +654,7 @@ struct VTJT
     VT *pvtSuper = g_vtstep.pvtSuper;
     CID cid = CID_JT;
     int grfcid = 0xB;
-    int cb = 0x2730;
+    int cb = 11088;
 
     void (*pfnInitJt)(JT*) = InitJt;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
@@ -752,7 +752,7 @@ struct VTSTEPGUARD
     VT *pvtSuper = g_vtstep.pvtSuper;
     CID cid = CID_STEPGUARD;
     int grfcid = 0xB;
-    int cb = 0xB90;
+    int cb = 4280;
 
     void (*pfnInitStepguard)(STEPGUARD*) = InitStepGuard;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
@@ -861,7 +861,7 @@ struct VTSMARTGUARD
     VT *pvtSuper = g_vtstepguard.pvtSuper;
     CID cid = CID_SMARTGUARD;
     int grfcid = 0xB;
-    int cb = 0xC50;
+    int cb = 4624;
 
     void (*pfnInitSmartguard)(SMARTGUARD*) = InitSmartGuard;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
@@ -970,7 +970,7 @@ struct VTGOMER
     VT *pvtSuper = g_vtstepguard.pvtSuper;
     CID cid = CID_GOMER;
     int grfcid = 0xB;
-    int cb = 0xBD0;
+    int cb = 4352;
 
     void (*pfnInitGomer) (GOMER*) = InitGomer;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
@@ -1079,7 +1079,7 @@ struct VTUBG
     VT *pvtSuper = g_vtgomer.pvtSuper;
     CID cid = CID_UBG;
     int grfcid = 0xB;
-    int cb = 0xC20;
+    int cb = 4464;
 
     void (*pfnInitLo) (UBG*) = InitUbg;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
@@ -1188,7 +1188,7 @@ struct VTMBG
     VT *pvtSuper = g_vtstepguard.pvtSuper;
     CID cid = CID_MBG;
     int grfcid = 0xB;
-    int cb = 0xDC0;
+    int cb = 0xDD0;
 
     void (*pfnInitLo) (MBG*) = InitMbg;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
@@ -1406,7 +1406,7 @@ struct VTMURRAY
     VT *pvtSuper = g_vtstepguard.pvtSuper;
     CID cid = CID_MURRAY;
     int grfcid = 0xB;
-    int cb = 0xBC0;
+    int cb = 4352;
 
     void (*pfnInitMurray) (MURRAY*) = InitMurray;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
@@ -1515,7 +1515,7 @@ struct VTPUFFC
     VT *pvtSuper = g_vtstepguard.pvtSuper;
     CID cid = CID_PUFFC;
     int grfcid = 0xB;
-    int cb = 0xBC0;
+    int cb = 4324;
 
     void (*pfnInitStepguard)() = nullptr;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
@@ -2343,7 +2343,7 @@ struct VTROV
     VT *pvtSuper = g_vtpo.pvtSuper;
     CID cid = CID_ROV;
     int grfcid = 0xB;
-    int cb = 0x650;
+    int cb = 2704;
 
     void (*pfnInitRov)(ROV*) = InitRov;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
@@ -2533,7 +2533,7 @@ struct VTVAULT
     VT *pvtSuper = g_vtpo.pvtSuper;
     CID cid = CID_VAULT;
     int grfcid = 0xB;
-    int cb = 0x7A0;
+    int cb = 2512;
 
     void (*pfnInitVault)(VAULT*) = InitVault;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
@@ -2628,7 +2628,7 @@ struct VTPUFFER
     VT *pvtSuper = g_vtpo.pvtSuper;
     CID cid = CID_PUFFER;
     int grfcid = 0xB;
-    int cb = 0x660;
+    int cb = 2668;
 
     void (*pfnInitPuffer)(PUFFER*) = InitPuffer;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
@@ -2818,7 +2818,7 @@ struct VTSUV
     VT *pvtSuper = g_vtpo.pvtSuper;
     CID cid = CID_SUV;
     int grfcid = 0xB;
-    int cb = 0xBE0;
+    int cb = 4568;
 
     void (*pfnInitSuv)(SUV*) = InitSuv;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
@@ -3282,7 +3282,7 @@ struct VTWATER
     VT *pvtSuper = g_vtso.pvtSuper;
     CID cid = CID_WATER;
     int grfcid = 0x83;
-    int cb = 0x6D0;
+    int cb = 2888;
 
     void (*pfnInitWater)(WATER*) = InitWater;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
@@ -3366,7 +3366,7 @@ struct VTBRK
     VT *pvtSuper = g_vtso.pvtSuper;
     CID cid = CID_BRK;
     int grfcid = 0x3;
-    int cb = 0x6E0;
+    int cb = 2808;
 
     void (*pfnInitBrk)(BRK*) = InitBrk;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
@@ -3451,7 +3451,7 @@ struct VTBREAK
     VT *pvtSuper = g_vtbrk.pvtSuper;
     CID cid = CID_BREAK;
     int grfcid = 0x13;
-    int cb = 0x6E0;
+    int cb = 2816;
 
     void (*pfnInitBreak)(BREAK*) = InitBreak;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
@@ -3536,7 +3536,7 @@ struct VTALBRK
     VT *pvtSuper = g_vtbreak.pvtSuper;
     CID cid = CID_ALBRK;
     int grfcid = 0x13;
-    int cb = 0x6F0;
+    int cb = 2816;
 
     void (*pfnInitBreak)(BREAK*) = InitBreak;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
@@ -3706,7 +3706,7 @@ struct VTDARTGUN
     VT *pvtSuper = g_vtbreak.pvtSuper;
     CID cid = CID_DARTGUN;
     int grfcid = 0x13;
-    int cb = 0x7E0;
+    int cb = 3136;
 
     void (*pfnInitDartgun)(DARTGUN*) = InitDartgun;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
@@ -3791,7 +3791,7 @@ struct VTSWP
     VT *pvtSuper = g_vtbreak.pvtSuper;
     CID cid = CID_SWP;
     int grfcid = 0x13;
-    int cb = 0x710;
+    int cb = 2876;
 
     void (*pfnInitSwp)(SWP*) = InitSwp;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
@@ -3876,7 +3876,7 @@ struct VTFRAGILE
     VT *pvtSuper = g_vtbrk.pvtSuper;
     CID cid = CID_FRAGILE;
     int grfcid = 0x3;
-    int cb = 0x6F0;
+    int cb = 2816;
 
     void (*pfnInitFragile)(FRAGILE*) = InitFragile;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
@@ -4046,7 +4046,7 @@ struct VTBRKP
     VT *pvtSuper = g_vtso.pvtSuper;
     CID cid = CID_BRKP;
     int grfcid = 0x3;
-    int cb = 0x5A0;
+    int cb = 2428;
 
     void (*pfnInitSo)(SO*) = InitSo;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
@@ -4130,7 +4130,7 @@ struct VTBUTTON
     VT *pvtSuper = g_vtso.pvtSuper;
     CID cid = CID_BUTTON;
     int grfcid = 0x3;
-    int cb = 0x8C0;
+    int cb = 3312;
 
     void (*pfnInitButton)(BUTTON*) = InitButton;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
@@ -4214,7 +4214,7 @@ struct VTVOLBTN
     VT *pvtSuper = g_vtso.pvtSuper;
     CID cid = CID_VOLBTN;
     int grfcid = 0x3;
-    int cb = 0x7D0;
+    int cb = 3200;
 
     void (*pfnInitVolbtn)(VOLBTN*) = InitVolbtn;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
@@ -4298,7 +4298,7 @@ struct VTJLOVOL
     VT *pvtSuper = g_vtvolbtn.pvtSuper;
     CID cid = CID_JLOVOL;
     int grfcid = 0x3;
-    int cb = 0x7F0;
+    int cb = 3248;
 
     void (*pfnInitJlovol)(JLOVOL*) = InitJlovol;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
@@ -4466,7 +4466,7 @@ struct VTBONE
     VT *pvtSuper = g_vtso.pvtSuper;
     CID cid = CID_BONE;
     int grfcid = 0x3;
-    int cb = 0x580;
+    int cb = 2400;
 
     void (*pfnInitSo)(SO*) = InitSo;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
@@ -4550,7 +4550,7 @@ struct VTSPRIZE
     VT *pvtSuper = g_vtso.pvtSuper;
     CID cid = CID_SPRIZE;
     int grfcid = 0x3;
-    int cb = 0x5D0;
+    int cb = 2504;
 
     void (*pfnInitSprize)(SPRIZE*) = InitSprize;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
@@ -4637,7 +4637,7 @@ struct VTSCPRIZE
     VT *pvtSuper = g_vtsprize.pvtSuper;
     CID cid = CID_SCPRIZE;
     int grfcid = 0x3;
-    int cb = 0x5E0;
+    int cb = 2512;
 
     void (*pfnInitScprize)(SCPRIZE*) = InitScprize;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
@@ -4724,7 +4724,7 @@ struct VTLIFETKN
     VT *pvtSuper = g_vtscprize.pvtSuper;
     CID cid = CID_LIFETKN;
     int grfcid = 0x3;
-    int cb = 0x5E0;
+    int cb = 2512;
 
     void (*pfnInitScprize)(SCPRIZE*) = InitScprize;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
@@ -4811,7 +4811,7 @@ struct VTCLUE
     VT *pvtSuper = g_vtsprize.pvtSuper;
     CID cid = CID_CLUE;
     int grfcid = 0x3;
-    int cb = 0x5F0;
+    int cb = 2544;
 
     void (*pfnInitClue)(CLUE*) = InitClue;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
@@ -4898,7 +4898,7 @@ struct VTALARM
     VT *pvtSuper = g_vtso.pvtSuper;
     CID cid = CID_ALARM;
     int grfcid = 0x3;
-    int cb = 0x6F0;
+    int cb = 2840;
 
     void (*pfnInitAlarm)(ALARM*) = InitAlarm;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
@@ -4982,7 +4982,7 @@ struct VTSENSOR
     VT *pvtSuper = g_vtso.pvtSuper;
     CID cid = CID_SENSOR;
     int grfcid = 0x3;
-    int cb = 0x600;
+    int cb = 2544;
 
     void (*pfnInitSensor)(SENSOR*) = InitSensor;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
@@ -5072,7 +5072,7 @@ struct VTLASEN
     VT *pvtSuper = g_vtsensor.pvtSuper;
     CID cid = CID_LASEN;
     int grfcid = 0x3;
-    int cb = 0xB40;
+    int cb = 4408;
 
     void (*pfnInitLasen)(LASEN*) = InitLasen;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
@@ -5162,7 +5162,7 @@ struct VTCAMSEN
     VT *pvtSuper = g_vtso.pvtSuper;
     CID cid = CID_CAMSEN;
     int grfcid = 0x3;
-    int cb = 0x620;
+    int cb = 2584;
 
     void (*pfnInitCamsen)(CAMSEN*) = InitCamsen;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
@@ -5252,7 +5252,7 @@ struct VTPRSEN
     VT *pvtSuper = g_vtsensor.pvtSuper;
     CID cid = CID_PRSEN;
     int grfcid = 0x3;
-    int cb = 0x650;
+    int cb = 2624;
 
     void (*pfnInitPrsen)(PRSEN*) = InitPrsen;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
@@ -5342,7 +5342,7 @@ struct VTBARRIER
     VT *pvtSuper = g_vtso.pvtSuper;
     CID cid = CID_BARRIER;
     int grfcid = 0x3;
-    int cb = 0x5E0;
+    int cb = 2488;
 
     void (*pfnInitBarrier)(BARRIER*) = InitBarrier;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
@@ -5426,7 +5426,7 @@ struct VTIKH
     VT *pvtSuper = g_vtso.pvtSuper;
     CID cid = CID_IKH;
     int grfcid = 0x3;
-    int cb = 0x580;
+    int cb = 2400;
 
     void (*pfnInitSo)(SO*) = InitSo;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
@@ -5510,7 +5510,7 @@ struct VTTZP
     VT *pvtSuper = g_vtso.pvtSuper;
     CID cid = CID_TZP;
     int grfcid = 0x3;
-    int cb = 0x890;
+    int cb = 3144;
 
     void (*pfnInitTzp)(TZP*) = InitTzp;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
@@ -5594,7 +5594,7 @@ struct VTVOLZP
     VT *pvtSuper = g_vttzp.pvtSuper;
     CID cid = CID_VOLZP;
     int grfcid = 0x3;
-    int cb = 0x890;
+    int cb = 3144;
 
     void (*pfnInitVolzp)(VOLZP*) = InitVolzp;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
@@ -5678,7 +5678,7 @@ struct VTCNVO
     VT *pvtSuper = g_vtso.pvtSuper;
     CID cid = CID_CNVO;
     int grfcid = 0x3;
-    int cb = 0x590;
+    int cb = 2416;
 
     void (*pfnInitCnvo)(CNVO*) = InitCnvo;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
@@ -5762,7 +5762,7 @@ struct VTHBSK
     VT *pvtSuper = g_vtso.pvtSuper;
     CID cid = CID_HBSK;
     int grfcid = 0x3;
-    int cb = 0x5A0;
+    int cb = 2432;
 
     void (*pfnInitHbsk)(HBSK*) = InitHbsk;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
@@ -5846,7 +5846,7 @@ struct VTBOMB
     VT *pvtSuper = g_vtso.pvtSuper;
     CID cid = CID_BOMB;
     int grfcid = 0x23;
-    int cb = 0x670;
+    int cb = 2680;
 
     void (*pfnInitBomb)(BOMB*) = InitBomb;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
@@ -5930,7 +5930,7 @@ struct VTMISSILE
     VT *pvtSuper = g_vtbomb.pvtSuper;
     CID cid = CID_MISSILE;
     int grfcid = 0x23;
-    int cb = 0x6A0;
+    int cb = 2736;
 
     void (*pfnInitMissile)(MISSILE*) = InitMissile;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
@@ -6015,7 +6015,7 @@ struct VTACCMISS
     VT *pvtSuper = g_vtmissile.pvtSuper;
     CID cid = CID_ACCMISS;
     int grfcid = 0x23;
-    int cb = 0x6C0;
+    int cb = 2760;
 
     void (*pfnInitAccmiss)(ACCMISS*) = InitAccmiss;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
@@ -6100,7 +6100,7 @@ struct VTTARMISS
     VT *pvtSuper = g_vtaccmiss.pvtSuper;
     CID cid = CID_TARMISS;
     int grfcid = 0x23;
-    int cb = 0x6E0;
+    int cb = 2784;
 
     void (*pfnInitTarmiss)(TARMISS*) = InitTarmiss;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
@@ -6270,7 +6270,7 @@ struct VTGROUNDMISS
     VT *pvtSuper = g_vtmissile.pvtSuper;
     CID cid = CID_GROUNDMISS;
     int grfcid = 0x23;
-    int cb = 0x6B0;
+    int cb = 2744;
 
     void (*pfnInitGroundmiss)(GROUNDMISS*) = InitGroundmiss;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
@@ -6355,7 +6355,7 @@ struct VTFLY
     VT *pvtSuper = g_vtso.pvtSuper;
     CID cid = CID_FLY;
     int grfcid = 0x3;
-    int cb = 0x6D0;
+    int cb = 2848;
 
     void (*pfnInitFly)(FLY*) = InitFly;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
@@ -6439,7 +6439,7 @@ struct VTRAT
     VT *pvtSuper = g_vtso.pvtSuper;
     CID cid = CID_RAT;
     int grfcid = 0x3;
-    int cb = 0x6A0;
+    int cb = 2824;
 
     void (*pfnInitRat)(RAT*) = InitRat;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
@@ -6523,7 +6523,7 @@ struct VTROH
     VT *pvtSuper = g_vtso.pvtSuper;
     CID cid = CID_ROH;
     int grfcid = 0x3;
-    int cb = 0x5F0;
+    int cb = 2552;
 
     void (*pfnInitRoh)(ROH*) = InitRoh;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
@@ -6607,7 +6607,7 @@ struct VTROC
     VT *pvtSuper = g_vtso.pvtSuper;
     CID cid = CID_ROC;
     int grfcid = 0x3;
-    int cb = 0x5E0;
+    int cb = 2512;
 
     void (*pfnInitRoc)(ROC*) = InitRoc;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
@@ -6691,7 +6691,7 @@ struct VTROST
     VT *pvtSuper = g_vtso.pvtSuper;
     CID cid = CID_ROST;
     int grfcid = 0x3;
-    int cb = 0x5A0;
+    int cb = 2456;
 
     void (*pfnInitRost)(ROST*) = InitRost;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
@@ -6775,7 +6775,7 @@ struct VTROP
     VT *pvtSuper = g_vtso.pvtSuper;
     CID cid = CID_ROP;
     int grfcid = 0x3;
-    int cb = 0x5A0;
+    int cb = 2448;
 
     void (*pfnInitRop)(ROP*) = InitRop;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
@@ -6859,7 +6859,7 @@ struct VTDART
     VT *pvtSuper = g_vtso.pvtSuper;
     CID cid = CID_DART;
     int grfcid = 0x3;
-    int cb = 0x5C0;
+    int cb = 2496;
 
     void (*pfnInitDart)(DART*) = InitDart;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
@@ -7027,7 +7027,7 @@ struct VTUBP
     VT *pvtSuper = g_vtso.pvtSuper;
     CID cid = CID_UBP;
     int grfcid = 0x3;
-    int cb = 0x5A0;
+    int cb = 2432;
 
     void (*pfnInitSo) (SO*) = InitSo;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
@@ -7111,7 +7111,7 @@ struct VTDSP
     VT *pvtSuper = g_vtso.pvtSuper;
     CID cid = CID_DSP;
     int grfcid = 0x3;
-    int cb = 0x5A0;
+    int cb = 2448;
 
     void (*pfnInitSo) (SO*) = InitSo;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
@@ -7195,7 +7195,7 @@ struct VTJLO
     VT *pvtSuper = g_vtso.pvtSuper;
     CID cid = CID_JLO;
     int grfcid = 0x3;
-    int cb = 0x5F0;
+    int cb = 2584;
 
     void (*pfnInitJlo)(JLO*) = InitJlo;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
@@ -7279,7 +7279,7 @@ struct VTPUFFT
     VT *pvtSuper = g_vtso.pvtSuper;
     CID cid = CID_PUFFT;
     int grfcid = 0x3;
-    int cb = 0x590;
+    int cb = 2420;
 
     void (*pfnInitSo) (SO*) = InitSo;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
@@ -7363,7 +7363,7 @@ struct VTMRKV
     VT *pvtSuper = g_vtso.pvtSuper;
     CID cid = CID_MRKV;
     int grfcid = 0x3;
-    int cb = 0x5A0;
+    int cb = 2424;
 
     void (*pfnInitMrkv)(MRKV*) = InitMrkv;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
@@ -7590,7 +7590,7 @@ struct VTCAMERA
     VT *pvtSuper = g_vtalo.pvtSuper;
     CID cid = CID_CAMERA;
     int grfcid = 0x1;
-    int cb = 0x330;
+    int cb = 1128;
 
     void (*pfnInitCamera)(CAMERA*) = InitCamera;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
@@ -7649,7 +7649,7 @@ struct VTLBONE
     VT *pvtSuper = g_vtalo.pvtSuper;
     CID cid = CID_LBONE;
     int grfcid = 0x1;
-    int cb = 0x2E0;
+    int cb = 1064;
 
     void (*pfnInitAlo)(ALO*) = InitAlo;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
@@ -7708,7 +7708,7 @@ struct VTEMITTER
     VT *pvtSuper = g_vtalo.pvtSuper;
     CID cid = CID_EMITTER;
     int grfcid = 0x1;
-    int cb = 0x360;
+    int cb = 1232;
 
     void (*pfnInitEmitter)(EMITTER*) = InitEmitter;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
@@ -7767,7 +7767,7 @@ struct VTLIGHT
     VT *pvtSuper = g_vtalo.pvtSuper;
     CID cid = CID_LIGHT;
     int grfcid = 0x1;
-    int cb = 0x630;
+    int cb = 1352;
 
     void (*pfnInitLight)(LIGHT*) = InitLight;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
@@ -7826,7 +7826,7 @@ struct VTSCH
     VT *pvtSuper = g_vtalo.pvtSuper;
     CID cid = CID_SCH;
     int grfcid = 0x1;
-    int cb = 0x2E0;
+    int cb = 1064;
 
     void (*pfnInitAlo) (ALO*) = InitAlo;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
@@ -7885,7 +7885,7 @@ struct VTLIKH
     VT *pvtSuper = g_vtalo.pvtSuper;
     CID cid = CID_LIKH;
     int grfcid = 0x1;
-    int cb = 0x2E0;
+    int cb = 1064;
 
     void (*pfnInitAlo) (ALO*) = InitAlo;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
@@ -7944,7 +7944,7 @@ struct VTCHKPNT
     VT *pvtSuper = g_vtalo.pvtSuper;
     CID cid = CID_CHKPNT;
     int grfcid = 0x1;
-    int cb = 0x340;
+    int cb = 1192;
 
     void (*pfnInitChkpnt)(CHKPNT*) = InitChkpnt;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
@@ -8003,7 +8003,7 @@ struct VTPROXY
     VT *pvtSuper = g_vtalo.pvtSuper;
     CID cid = CID_PROXY;
     int grfcid = 0x101;
-    int cb = 0x300;
+    int cb = 1104;
 
     void (*pfnInitProxy)(PROXY*) = InitProxy;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
@@ -8062,7 +8062,7 @@ struct VTSKY
     VT *pvtSuper = g_vtalo.pvtSuper;
     CID cid = CID_SKY;
     int grfcid = 0x1;
-    int cb = 0x2F0;
+    int cb = 1068;
 
     void (*pfnInitAlo) (ALO*) = InitAlo;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
@@ -8121,7 +8121,7 @@ struct VTDPRIZE
     VT *pvtSuper = g_vtalo.pvtSuper;
     CID cid = CID_DPRIZE;
     int grfcid = 0x1;
-    int cb = 0x3A0;
+    int cb = 1280;
 
     void (*pfnInitDprize)(DPRIZE*) = InitDprize;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
@@ -8181,7 +8181,7 @@ struct VTCHARM
     VT *pvtSuper = g_vtdprize.pvtSuper;
     CID cid = CID_CHARM;
     int grfcid = 0x1;
-    int cb = 0x3A0;
+    int cb = 1280;
 
     void (*pfnInitCharm)(CHARM*) = InitCharm;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
@@ -8241,7 +8241,7 @@ struct VTCOIN
     VT *pvtSuper = g_vtdprize.pvtSuper;
     CID cid = CID_COIN;
     int grfcid = 0x1;
-    int cb = 0x3B0;
+    int cb = 1296;
 
     void (*pfnInitCoin)(COIN*) = InitCoin;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
@@ -8301,7 +8301,7 @@ struct VTKEY
     VT *pvtSuper = g_vtdprize.pvtSuper;
     CID cid = CID_KEY;
     int grfcid = 0x1;
-    int cb = 0x3A0;
+    int cb = 1280;
 
     void (*pfnInitKey)(KEY*) = InitKey;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
@@ -8361,7 +8361,7 @@ struct VTGOLD
     VT *pvtSuper = g_vtdprize.pvtSuper;
     CID cid = CID_GOLD;
     int grfcid = 0x1;
-    int cb = 0x3B0;
+    int cb = 1288;
 
     void (*pfnInitGold)(GOLD*) = InitGold;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
@@ -8421,7 +8421,7 @@ struct VTLOCK
     VT *pvtSuper = g_vtalo.pvtSuper;
     CID cid = CID_LOCK;
     int grfcid = 0x1;
-    int cb = 0x2F0;
+    int cb = 1088;
 
     void (*pfnInitAlo) (ALO*) = InitAlo;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
@@ -8480,7 +8480,7 @@ struct VTLOCKG
     VT *pvtSuper = g_vtalo.pvtSuper;
     CID cid = CID_LOCKG;
     int grfcid = 0x1;
-    int cb = 0x340;
+    int cb = 1192;
 
     void (*pfnInitAlo) (ALO*) = InitAlo;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
@@ -8539,7 +8539,7 @@ struct VTTAIL
     VT *pvtSuper = g_vtalo.pvtSuper;
     CID cid = CID_TAIL;
     int grfcid = 0x1;
-    int cb = 0x340;
+    int cb = 1144;
 
     void (*pfnInitTail)(TAIL*) = InitTail;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
@@ -8598,7 +8598,7 @@ struct VTROB
     VT *pvtSuper = g_vtalo.pvtSuper;
     CID cid = CID_ROB;
     int grfcid = 0x1;
-    int cb = 0x670;
+    int cb = 1960;
 
     void (*pfnInitRob)(ROB*) = InitRob;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
@@ -8657,7 +8657,7 @@ struct VTFLASH
     VT *pvtSuper = g_vtalo.pvtSuper;
     CID cid = CID_FLASH;
     int grfcid = 0x1;
-    int cb = 0x310;
+    int cb = 1120;
 
     void (*pfnInitFlash)(FLASH*) = InitFlash;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
@@ -8716,7 +8716,7 @@ struct VTDYSH
     VT *pvtSuper = g_vtalo.pvtSuper;
     CID cid = CID_DYSH;
     int grfcid = 0x1;
-    int cb = 0x300;
+    int cb = 1072;
 
     void (*pfnInitDysh)(DYSH*) = InitDysh;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
@@ -8893,7 +8893,7 @@ struct VTTN
     VT *pvtSuper = g_vtalo.pvtSuper;
     CID cid = CID_TN;
     int grfcid = 0x1;
-    int cb = 0x440;
+    int cb = 1440;
 
     void (*pfnInitTn)(TN*) = InitTn;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
@@ -8952,7 +8952,7 @@ struct VTJLOC
     VT *pvtSuper = g_vtalo.pvtSuper;
     CID cid = CID_JLOC;
     int grfcid = 0x1;
-    int cb = 0x350;
+    int cb = 1232;
 
     void (*pfnInitJloc)(JLOC*) = InitJloc;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
@@ -9011,7 +9011,7 @@ struct VTDIALOG
     VT *pvtSuper = g_vtalo.pvtSuper;
     CID cid = CID_DIALOG;
     int grfcid = 0x1;
-    int cb = 0x340;
+    int cb = 1200;
 
     void (*pfnInitDialog)(DIALOG*) = InitDialog;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
@@ -9070,7 +9070,7 @@ struct VTSPEAKER
     VT *pvtSuper = g_vtalo.pvtSuper;
     CID cid = CID_SPEAKER;
     int grfcid = 0x1;
-    int cb = 0x340;
+    int cb = 1136;
 
     void (*pfnInitSpeaker)(SPEAKER*) = InitSpeaker;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
@@ -9188,7 +9188,7 @@ struct VTWM
     VT *pvtSuper = g_vtalo.pvtSuper;
     CID cid = CID_WM;
     int grfcid = 0x1;
-    int cb = 0x4B0;
+    int cb = 1216;
 
     void (*pfnInitAlo)(ALO*) = InitAlo;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
@@ -9247,7 +9247,7 @@ struct VTPUFFB
     VT *pvtSuper = g_vtalo.pvtSuper;
     CID cid = CID_PUFFB;
     int grfcid = 0x1;
-    int cb = 0x300;
+    int cb = 1112;
 
     void (*pfnInitAlo) (ALO*) = InitAlo;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
@@ -9601,7 +9601,7 @@ struct VTSW
     VT *pvtSuper = g_vtlo.pvtSuper;
     CID cid = CID_SW;
     int grfcid = 0;
-    int cb = 0x2420;
+    int cb = 17296;
 
     void (*pfnInitSw)(SW*) = InitSw;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
@@ -9641,7 +9641,7 @@ struct VTCM
     VT *pvtSuper = g_vtlo.pvtSuper;
     CID cid = CID_CM;
     int grfcid = 0;
-    int cb = 0x5D0;
+    int cb = 1464;
 
     void (*pfnInitCm)(CM*) = InitCm;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
@@ -9681,7 +9681,7 @@ struct VTSHAPE
     VT *pvtSuper = g_vtlo.pvtSuper;
     CID cid = CID_SHAPE;
     int grfcid = 0;
-    int cb = 0x50;
+    int cb = 144;
 
     void (*pfnInitShape)(SHAPE*) = InitShape;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
@@ -9721,7 +9721,7 @@ struct VTHSHAPE
     VT *pvtSuper = g_vtshape.pvtSuper;
     CID cid = CID_HSHAPE;
     int grfcid = 0;
-    int cb = 0x70;
+    int cb = 192;
 
     void (*pfnInitHshape)(HSHAPE*) = InitHshape;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
@@ -9761,7 +9761,7 @@ struct VTPIPE
     VT *pvtSuper = g_vtshape.pvtSuper;
     CID cid = CID_PIPE;
     int grfcid = 0;
-    int cb = 0x90;
+    int cb = 192;
 
     void (*pfnInitPipe)(PIPE*) = InitPipe;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
@@ -9801,7 +9801,7 @@ struct VTRAIL
     VT *pvtSuper = g_vtshape.pvtSuper;
     CID cid = CID_RAIL;
     int grfcid = 0;
-    int cb = 0x68;
+    int cb = 172;
 
     void (*pfnInitShape)(SHAPE*) = InitShape;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
@@ -9841,7 +9841,7 @@ struct VTLANDING
     VT *pvtSuper = g_vtshape.pvtSuper;
     CID cid = CID_LANDING;
     int grfcid = 0;
-    int cb = 0x58;
+    int cb = 152;
 
     void (*pfnInitShape)(SHAPE*) = InitShape;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
@@ -9881,7 +9881,7 @@ struct VTXFM
     VT *pvtSuper = g_vtlo.pvtSuper;
     CID cid = CID_XFM;
     int grfcid = 0;
-    int cb = 0x80;
+    int cb = 168;
 
     void (*pfnInitXfm)(XFM*) = InitXfm;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
@@ -9921,7 +9921,7 @@ struct VTWARP
     VT *pvtSuper = g_vtxfm.pvtSuper;
     CID cid = CID_WARP;
     int grfcid = 0;
-    int cb = 0x120;
+    int cb = 344;
 
     void (*pfnInitXfm)(XFM*) = InitXfm;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
@@ -9961,7 +9961,7 @@ struct VTTARGET
     VT *pvtSuper = g_vtxfm.pvtSuper;
     CID cid = CID_TARGET;
     int grfcid = 0;
-    int cb = 0xA;
+    int cb = 200;
 
     void (*pfnInitTarget)(TARGET*) = InitTarget;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
@@ -10001,7 +10001,7 @@ struct VTHND
     VT *pvtSuper = g_vttarget.pvtSuper;
     CID cid = CID_HND;
     int grfcid = 0;
-    int cb = 0xC0;
+    int cb = 224;
 
     void (*pfnInitHnd)(HND*) = InitHnd;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
@@ -10041,7 +10041,7 @@ struct VTEXPL
     VT *pvtSuper = g_vtxfm.pvtSuper;
     CID cid = CID_EXPL;
     int grfcid = 0;
-    int cb = 0x90;
+    int cb = 176;
 
     void (*pfnInitXfm)(XFM*) = InitXfm;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
@@ -10082,7 +10082,7 @@ struct VTEXPLG
     VT *pvtSuper = g_vtexpl.pvtSuper;
     CID cid = CID_EXPLG;
     int grfcid = 0;
-    int cb = 0xC0;
+    int cb = 188;
 
     void (*pfnInitXfm)(XFM*) = InitXfm;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
@@ -10123,7 +10123,7 @@ struct VTEXPLO
     VT *pvtSuper = g_vtexpl.pvtSuper;
     CID cid = CID_EXPLO;
     int grfcid = 0;
-    int cb = 0xA0;
+    int cb = 192;
 
     void (*pfnInitExplo)(EXPLO*) = InitExplo;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
@@ -10164,7 +10164,7 @@ struct VTEXPLS
     VT *pvtSuper = g_vtexplo.pvtSuper;
     CID cid = CID_EXPLS;
     int grfcid = 0;
-    int cb = 0xD0;
+    int cb = 192;
 
     void (*pfnInitExpls)(EXPLS*) = InitExpls;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
@@ -10205,7 +10205,7 @@ struct VTVOL
     VT *pvtSuper = g_vtxfm.pvtSuper;
     CID cid = CID_VOL;
     int grfcid = 0;
-    int cb = 0x90;
+    int cb = 200;
 
     void (*pfnInitXfm)(XFM*) = InitXfm;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
@@ -10245,7 +10245,7 @@ struct VTRATHOLE
     VT *pvtSuper = g_vtvol.pvtSuper;
     CID cid = CID_RATHOLE;
     int grfcid = 0;
-    int cb = 0xA0;
+    int cb = 216;
 
     void (*pfnInitXfm)(XFM*) = InitXfm;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
@@ -10285,7 +10285,7 @@ struct VTPUFFV
     VT *pvtSuper = g_vtvol.pvtSuper;
     CID cid = CID_PUFFV;
     int grfcid = 0;
-    int cb = 0xD0;
+    int cb = 260;
 
     void (*pfnInitPuffv)(PUFFV*) = InitPuffv;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
@@ -10325,7 +10325,7 @@ struct VTEXIT
     VT *pvtSuper = g_vtalo.pvtSuper;
     CID cid = CID_EXIT;
     int grfcid = 0x1;
-    int cb = 0x340;
+    int cb = 1168;
 
     void (*pfnInitAlo) (ALO*) = InitAlo;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
@@ -10384,7 +10384,7 @@ struct VTPNT
     VT *pvtSuper = g_vtlo.pvtSuper;
     CID cid = CID_PNT;
     int grfcid = 0;
-    int cb = 0x50;
+    int cb = 136;
 
     void (*pfnInitLo)(LO*) = InitLo;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
@@ -10424,7 +10424,7 @@ struct VTPNTSV
     VT *pvtSuper = g_vtpnt.pvtSuper;
     CID cid = CID_PNTSV;
     int grfcid = 0;
-    int cb = 0x60;
+    int cb = 136;
 
     void (*pfnInitLo)(LO*) = InitLo;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
@@ -10464,7 +10464,7 @@ struct VTPNTS
     VT *pvtSuper = g_vtpnt.pvtSuper;
     CID cid = CID_PNTS;
     int grfcid = 0;
-    int cb = 0x60;
+    int cb = 136;
 
     void (*pfnInitLo)(LO*) = InitLo;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
@@ -10504,7 +10504,7 @@ struct VTPNTVEC
     VT *pvtSuper = g_vtpnt.pvtSuper;
     CID cid = CID_PNTVEC;
     int grfcid = 0;
-    int cb = 0x60;
+    int cb = 136;
 
     void (*pfnInitLo)(LO*) = InitLo;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
@@ -10544,7 +10544,7 @@ struct VTHPNT
     VT *pvtSuper = g_vtpnt.pvtSuper;
     CID cid = CID_HPNT;
     int grfcid = 0;
-    int cb = 0x80;
+    int cb = 192;
 
     void (*pfnInitHpnt)(HPNT*) = InitHpnt;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
@@ -10584,7 +10584,7 @@ struct VTJMT
     VT *pvtSuper = g_vtpnt.pvtSuper;
     CID cid = CID_JMT;
     int grfcid = 0;
-    int cb = 0x70;
+    int cb = 168;
 
     void (*pfnInitLo)(LO*) = InitLo;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
@@ -10624,7 +10624,7 @@ struct VTSPIRE
     VT *pvtSuper = g_vtpnt.pvtSuper;
     CID cid = CID_SPIRE;
     int grfcid = 0;
-    int cb = 0x60;
+    int cb = 152;
 
     void (*pfnInitLo)(LO*) = InitLo;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
@@ -10664,7 +10664,7 @@ struct VTSCAN
     VT *pvtSuper = g_vtpnt.pvtSuper;
     CID cid = CID_SCAN;
     int grfcid = 0;
-    int cb = 0x60;
+    int cb = 140;
 
     void (*pfnInitLo)(LO*) = InitLo;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
@@ -10704,7 +10704,7 @@ struct VTASEG
     VT *pvtSuper = g_vtlo.pvtSuper;
     CID cid = CID_ASEG;
     int grfcid = 0x40;
-    int cb = 0xC0;
+    int cb = 288;
 
     void (*pfnInitAseg)(ASEG*) = InitAseg;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
@@ -10744,7 +10744,7 @@ struct VTMAP
     VT *pvtSuper = g_vtlo.pvtSuper;
     CID cid = CID_MAP;
     int grfcid = 0;
-    int cb = 0x60;
+    int cb = 168;
 
     void (*pfnInitLo)(LO*) = InitLo;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
@@ -10784,7 +10784,7 @@ struct VT_VISZONE
     VT *pvtSuper = g_vtlo.pvtSuper;
     CID cid = CID__VISZONE;
     int grfcid = 0;
-    int cb = 0x40;
+    int cb = 120;
 
     void (*pfnInitLo)(LO*) = InitLo;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
@@ -10824,7 +10824,7 @@ struct VTVISMAP
     VT *pvtSuper = g_vtlo.pvtSuper;
     CID cid = CID_VISMAP;
     int grfcid = 0;
-    int cb = 0x50;
+    int cb = 192;
 
     void (*pfnInitVismap)(VISMAP*) = InitVismap;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
@@ -10864,7 +10864,7 @@ struct VTFRZG
     VT *pvtSuper = g_vtlo.pvtSuper;
     CID cid = CID_FRZG;
     int grfcid = 0;
-    int cb = 0x78;
+    int cb = 184;
 
     void (*pfnInitLo)(LO*) = InitLo;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
@@ -10904,7 +10904,7 @@ struct VTSM
     VT *pvtSuper = g_vtlo.pvtSuper;
     CID cid = CID_SM;
     int grfcid = 0;
-    int cb = 0x60;
+    int cb = 172;
 
     void (*pfnInitLo)(LO*) = InitLo;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
@@ -11064,7 +11064,7 @@ struct VTRWM
     VT *pvtSuper = g_vtlo.pvtSuper;
     CID cid = CID_RWM;
     int grfcid = 0;
-    int cb = 0x1D0;
+    int cb = 528;
 
     void (*pfnInitRwm)(RWM*) = InitRwm;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
@@ -11144,7 +11144,7 @@ struct VTKEYHOLE
     VT *pvtSuper = g_vtlo.pvtSuper;
     CID cid = CID_KEYHOLE;
     int grfcid = 0;
-    int cb = 0xB0;
+    int cb = 256;
 
     void (*pfnInitKeyhole)(KEYHOLE*) = InitKeyhole;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;

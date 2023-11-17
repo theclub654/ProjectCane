@@ -2,11 +2,13 @@
 
 void InitButton(BUTTON* pbutton)
 {
+	//std::cout << "BUTTON Size: " << sizeof(BUTTON) << "\n";
 	InitSo(pbutton);
 }
 
 void InitVolbtn(VOLBTN* pvolbtn)
 {
+	//std::cout << "VOLBTN Size: " << sizeof(VOLBTN) << "\n";
 	InitSo(pvolbtn);
 }
 

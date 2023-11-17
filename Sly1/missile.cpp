@@ -2,6 +2,10 @@
 
 void InitMissile(MISSILE* pmissile)
 {
+	/*std::cout << "MISSILE Size: " << sizeof(MISSILE) << "\n";
+	std::cout << "ACCMISS Size: " << sizeof(ACCMISS) << "\n";
+	std::cout << "TARMISS Size: " << sizeof(TARMISS) << "\n";
+	std::cout << "GROUNDMISS Size: " << sizeof(GROUNDMISS) << "\n";*/
 	InitBomb(pmissile);
 }
 

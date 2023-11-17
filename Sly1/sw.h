@@ -3,6 +3,23 @@
 #include "difficulty.h"
 #include "cm.h"
 
+struct LSM
+{
+	float uShadow;
+	float uMidtone;
+};
+struct ISI
+{
+	SFXID sfxid;
+	LM lmRepeat;
+	LM lmRepDist;
+};
+struct RSE 
+{
+	REVERBK rvrbk;
+	int depth;
+};
+
 // Static World
 class SW : public LO
 {
@@ -45,9 +62,45 @@ public:
 	DL dlBlipg;
 	DL dlBlipgFree;
 	DL dlCrfod;
+	struct VAULT* pvault;
+	struct LO* aploStock[29];
+	RGBA rgbaSky;
+	LSM lsmDefault;
 	// Sound bank index for level
 	int ibnk;
+	MUSID musid;
+	int cisi;
+	ISI aisi[16];
 	class VISMAP *pvismap;
+	struct MQ* pmqCallbackFirst;
+	struct MQ* pmqCallbackLast;
+	int cpaloRemerge;
+	struct ALO** apaloRemerge;
+	// Object's gravity
+	glm::vec3 dvGravity;
+	int csplcSplice;
+	struct SPLC* asplcSplice;
+	uint32_t symidScheduledCallbackList;
+	int symidMax;
+	char** mpsymidachz;
+	int coptidExtra;
+	char** mpoptidachzExtra;
+	int cpsl;
+	PSL apsl[128];
+	// Number of clue bottles for each level
+	int cclueAll;
+	// Number of check points for level
+	int cchkpntAll;
+	float dtChallengePar;
+	// How much coins a level has
+	int cgoldAll;
+	float gexcMenu;
+	int cHandsOff;
+	RSE arse[4];
+	int irse;
+	struct MBG* pmbg;
+	float rDarken;
+	float rDarkenSmooth;
 };
 
 // Initializing SW object

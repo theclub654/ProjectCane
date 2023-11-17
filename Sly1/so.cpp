@@ -2,8 +2,7 @@
 
 void InitSo(SO* pso)
 {
-	//CREF cref;
-	InitDl(&pso->dlPhys, 0x88);
+	InitDl(&pso->dlPhys, 0x440);
 	InitAlo(pso);
 
 	InitGeom(&pso->geomLocal);
@@ -26,36 +25,38 @@ void LoadSoFromBrx(SO* pso, CBinaryInputStream* pbis)
 {
 	pbis->U8Read();
 
-	uint16_t vertexCount = pbis->ReadGeom();
+	pbis->ReadGeom(&pso->geomLocal);
 	pbis->ReadBspc();
 
-	pbis->F32Read();
+	pso->m = pbis->F32Read();
 
-	pbis->ReadMatrix();
-	pbis->ReadVector();
+	pso->momintLocal =  pbis->ReadMatrix();
+	pso->posComLocal = pbis->ReadVector();
 
-	uint16_t unk1 = pbis->U16Read();
+	pso->cnpg = pbis->U16Read();
+	pso->anpg.resize(pso->cnpg);
 
-	for (int i = 0; i < unk1; i++)
+	for (int i = 0; i < pso->cnpg; i++)
 	{
-		pbis->S16Read();
-		pbis->U16Read();
+		pso->anpg[i].cmk = pbis->S16Read();
+		pso->anpg[i].ipglob = pbis->U16Read();
 	}
 
-	uint32_t unk2 = pbis->U32Read();
+	pso->mpibspinpg.resize(pbis->U32Read());
 
-	for (int i = 0; i < unk2; i++)
-		pbis->S16Read();
+	for (int i = 0; i < pso->mpibspinpg.size(); i++)
+		pso->mpibspinpg[i] = pbis->S16Read();
 
-	uint32_t unk3 = pbis->U32Read();
+	pso->chsg = pbis->U32Read();
+	pso->ahsg.resize(pso->chsg);
 
-	for (int i = 0; i < unk3; i++)
+	for (int i = 0; i < pso->chsg; i++)
 	{
-		pbis->S16Read();
-		pbis->S16Read();
+		pso->ahsg[i].ipglob = pbis->S16Read();
+		pso->ahsg[i].ipsubglob = pbis->S16Read();
 	}
 
-	pbis->ReadGeom();
+	pbis->ReadGeom(&pso->geomCameraLocal);
 	pbis->ReadBspc();
 
 	LoadAloFromBrx(pso, pbis);

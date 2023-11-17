@@ -2,27 +2,29 @@
 
 void InitTn(TN* ptn)
 {
+    //std::cout << "TN Size: " << sizeof(TN) << "\n";
     InitAlo(ptn);
 }
 
 void LoadTnFromBrx(TN* ptn, CBinaryInputStream* pbis)
 {
-    pbis->ReadMatrix();
-    pbis->ReadVector();
+    ptn->xf.mat = pbis->ReadMatrix();
+    ptn->xf.pos = pbis->ReadVector();
 
     LoadTbspFromBrx(pbis);
 
-    int8_t unk_0 = pbis->S8Read();
+    int8_t crvk = pbis->S8Read();
 
-    if (unk_0 == -1)
+    if (crvk == -1)
     {
-        pbis->ReadMatrix();
-        pbis->ReadVector();
+        ptn->matXfm = pbis->ReadMatrix();
+        ptn->posXfm = pbis->ReadVector();
+        ptn->sTotal = 0.0;
     }
 
     else
     {
-        switch (unk_0)
+        switch (crvk)
         {
         case 0x0:
             LoadCrvlFromBrx(pbis);

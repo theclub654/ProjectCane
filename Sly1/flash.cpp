@@ -2,6 +2,7 @@
 
 void InitFlash(FLASH* pflash)
 {
+	//std::cout << "FLASH Size: " << sizeof(FLASH) << "\n";
 	InitAlo(pflash);
 }
 

@@ -1,5 +1,7 @@
 #pragma once
 #include <iostream>
+
+// Data List
 // Stores ptr to first entry in list and ptr to last entry in list
 struct DL
 {
@@ -25,6 +27,7 @@ struct DL
 	uint64_t ibDle;
 };
 
+// Data List Element
 // DLE stores the next and previous ptr to data
 // Linked list data structure
 // Entry is just another word for linked list

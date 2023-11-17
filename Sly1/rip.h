@@ -16,7 +16,7 @@ class RIPG : public SO
 		RIPGT ripgt;
 		float sExpand;
 		DL dlRip;
-		RIPG *pripgNext;
+		class RIPG *pripgNext;
 };
 
 void InitRipg(RIPG *pripg); // NOT FINISHED

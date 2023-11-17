@@ -1,6 +1,7 @@
 #pragma once
 #include <fstream>
 #include <glm/glm.hpp>
+#include "geom.h"
 
 typedef unsigned char byte;
 
@@ -11,9 +12,8 @@ class CBinaryInputStream
 		// File Object
 		std::ifstream file;
 
-		CBinaryInputStream(std::string fileName);
+		CBinaryInputStream(std::string filePath);
 
-		void Read(int numBytes, void *pv);
 		// Align bytes to n
 		void Align(int n);
 		// Reads 8 unsigned bytes from file
@@ -42,7 +42,7 @@ class CBinaryInputStream
 		glm::mat4x2 ReadMatrix4x2();
 		// Reads matrix 4 from file
 		glm::mat4 ReadMatrix4();
-		uint16_t ReadGeom();
+		void ReadGeom(GEOM *pgeom);
 		void ReadBspc();
 		void ReadVbsp(); // GOTTA COME BACK TO THIS
 		// Reads a string from file

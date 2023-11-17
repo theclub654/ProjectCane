@@ -3,8 +3,10 @@
 #include "phasemem.h"
 
 typedef int GRFTRANS;
+void UnloadShaders();
 
-enum FTRANS {
+enum FTRANS 
+{
     GRFTRANS_None = 0,
     FTRANS_Checkpoint = 1,
     FTRANS_RetryWorld = 2,
@@ -12,8 +14,14 @@ enum FTRANS {
     FTRANS_SameWorld = 8,
     FTRANS_ShowLives = 16
 };
-
-void UnloadShaders();
+struct TRANS 
+{
+    int fSet;
+    char* pchzWorld;
+    OID oidWarp;
+    OID oidWarpContext;
+    int grftrans;
+};
 
 class CTransition
 {
@@ -34,7 +42,7 @@ public:
     void Set(char* pchzWorld, OID oidWarp, OID oidWarpContext, GRFTRANS grftrans);
 
     // Executes the conditions from CTransition::Set by setting some engine vaules to default and loading the level file
-    void Execute();
+    void Execute(std::string file);
 };
 
-static CTransition g_transition;
+extern CTransition g_transition;

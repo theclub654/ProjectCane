@@ -2,6 +2,7 @@
 
 void InitCnvo(CNVO* pcnvo)
 {
+	//std::cout << "CNVO Size: " << sizeof(CNVO) << "\n";
 	InitSo(pcnvo);
 }
 

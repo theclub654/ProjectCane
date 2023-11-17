@@ -2,15 +2,13 @@
 
 void InitProxy(PROXY *pproxy)
 {
+	//std::cout << "PROXY Size: " << sizeof(PROXY) << "\n";
 	InitAlo(pproxy);
 	AppendDlEntry(&pproxy->psw->dlProxy, pproxy);
 }
 
 void LoadProxyFromBrx(PROXY *pproxy, CBinaryInputStream* pbis)
 {
-	//LoadProxyFromBrxCount++;
-	//std::cout << LoadProxyFromBrxCount << "\n";
-
 	pbis->ReadMatrix();
 	pbis->ReadVector();
 

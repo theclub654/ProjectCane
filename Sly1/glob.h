@@ -1,17 +1,45 @@
 #pragma once
-#include "bis.h"
 #include "shd.h"
+#include "bis.h"
 
 // Glob is just another word for model.
 
+// Vertex Flag
+struct VTXFLG
+{
+	// Vertex Index
+	byte ipos;
+	// Normal Index
+	byte inormal;
+	// UV Index
+	byte iuv;
+	// Strip Flag
+	byte bMisc;
+};
+
 struct SUBGLOB // NOT DONE
 {
-	glm::vec3 posCenter;
+	GLuint VAO;
+	GLuint VBO;
+	GLuint VNO;
+	GLuint VCB;
+	GLuint TCB;
+	GLuint EBO;
+	GLuint gl_texture;
+
+	glm::vec3 posCenter; // Submodel orgin
 	float sRadius;
+	std::vector <glm::vec3> vertexes;
+	std::vector <glm::vec3> normals;
+	std::vector <RGBA> vertexColors;
+	std::vector <glm::vec2> texcoords;
+	std::vector <VTXFLG> indexes;
+	std::vector <byte> indices;
 	uint32_t unSelfIllum;
 	struct SHD *pshd;
 	int cibnd;
 	int aibnd[4];
+
 }; // NOT DONE
 
 // Model data
@@ -36,7 +64,7 @@ struct GLOB // NOT DONE
 	//WRBG *pwrbg;
 	// Number of submodels for model
 	int csubglob;
-	SUBGLOB *asubglob;
+	std::vector<SUBGLOB> asubglob;
 	int csubcel;
 	//SUBCEL *asubcel;
 	glm::mat4 pdmat;
@@ -59,20 +87,25 @@ struct GLOBSET // NOT DONE
 {
 	int cbnd;
 	//BND *abnd;
-	OID *mpibndoid;
+	std::vector <OID> mpibndoid;
 	// Number of submodeles for a model
 	int cglob;
-	struct GLOB *aglob;
-	struct GLOBI *aglobi;
+	std::vector <GLOB> aglob;
+	std::vector <GLOBI> aglobi;
 	//LTFN ltfn;
 	uint32_t grfglobset;
 	struct RGBA rgbaCel;
 	int cpose;
-	float* agPoses;
-	float* agPosesOrig;
+	std::vector <float> agPoses;
+	std::vector <float> agPosesOrig;
 	//WRBG *pwrbgFirst;
 	int cpsaa;
 	struct SAA** apsaa;
 }; // NOT DONE
 
+// Loads 3D models from binary file
 void LoadGlobsetFromBrx(GLOBSET *pglobset, CBinaryInputStream *pbis); // NOT FINISHED
+// Converts tri strips to tri list
+std::vector <byte> ConvertStripsToTriLists(std::vector <VTXFLG> indexes);
+// Storing 3D models in VRAM
+std::vector <SUBGLOB> MakeGLBuffers(std::vector<SUBGLOB> asubglob);

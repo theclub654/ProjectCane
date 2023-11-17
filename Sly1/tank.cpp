@@ -2,6 +2,7 @@
 
 void InitTank(TANK* ptank)
 {
+	std::cout << "TANK Size: " << sizeof(TANK) << "\n";
 	InitStep(ptank);
 }
 

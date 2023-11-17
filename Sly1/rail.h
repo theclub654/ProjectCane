@@ -4,6 +4,10 @@
 class RAIL : public SHAPE
 {
 	public:
+		DLE dleRail;
+		int fSlippery;
+		float svMax;
+		float rdvGravity;
 };
 
 

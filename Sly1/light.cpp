@@ -8,4 +8,11 @@ void InitLight(LIGHT* plight)
 void OnLightAdd(LIGHT* plight)
 {
 	OnAloAdd(plight);
+	AddLightToSw(plight);
+}
+
+void AddLightToSw(LIGHT* plight)
+{
+	
+	AppendDlEntry(&plight->psw->dlLight, plight);
 }

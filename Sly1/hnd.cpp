@@ -2,6 +2,7 @@
 
 void InitHnd(HND* phnd)
 {
+	//std::cout << "HND Size: " << sizeof(HND) << "\n";
 	InitTarget(phnd);
 }
 

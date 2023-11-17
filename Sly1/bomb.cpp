@@ -2,6 +2,7 @@
 
 void InitBomb(BOMB* pbomb)
 {
+	//std::cout << "BOMB Size: " << sizeof(BOMB) << "\n";
 	InitSo(pbomb);
 }
 

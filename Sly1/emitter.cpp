@@ -2,16 +2,19 @@
 
 void InitExplo(EXPLO* pexplo)
 {
+	//std::cout << "EXPLO Size: " << sizeof(EXPLO) << "\n";
 	InitXfm(pexplo);
 }
 
 void InitEmitter(EMITTER* pemitter)
 {
+	//std::cout << "EMITTER Size: " << sizeof(EMITTER) << "\n";
 	InitAlo(pemitter);
 }
 
 void InitExpls(EXPLS* pexpls)
 {
+	//std::cout << "EXPLS Size: " << sizeof(EXPLS) << "\n";
 	InitExplo(pexpls);
 }
 

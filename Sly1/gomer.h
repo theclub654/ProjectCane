@@ -3,7 +3,18 @@
 
 class GOMER:public STEPGUARD
 {
-
+	public:
+        float sAbandon;
+        float dzAbandon;
+        OID oidAbandon;
+        struct VOL* pvolAbandon;
+        LM lmSDetect;
+        LM lmRadDetect;
+        OID oidDetect;
+        struct VOL* pvolDetect;
+        int fDetectLatch;
+        int fDetectLatchExternal;
+        int fAbandonExternal;
 };
 
 void InitGomer(GOMER* pgomer);

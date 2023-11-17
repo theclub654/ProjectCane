@@ -2,6 +2,7 @@
 
 void LoadPntFromBrx(PNT* pnt, CBinaryInputStream* pbis)
 {
-	pbis->ReadVector();
+	//std::cout << "PNT Size: " << sizeof(PNT) << "\n";
+	pnt->posLocal = pbis->ReadVector();
 	LoadOptionFromBrx(pnt, pbis);
 }

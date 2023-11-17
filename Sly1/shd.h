@@ -1,9 +1,14 @@
 #pragma once
-#include <iostream>
 #include <vector>
-#include "bis.h"
+#include <glad/glad.h>
+#include <string>
+#include <fstream>
+#include <sstream>
+#include <cerrno>
+
 #include "shdanim.h"
 #include "font.h"
+#include "gl.h"
 
 // Color property's
 struct RGBA 
@@ -63,33 +68,47 @@ struct SHDF
     byte rp;
     byte ctex;
 };
+struct TEX : public TEXF
+{
+    TEXF texf;
+    struct SHD* pshd;
+    BMP **apbmp;
+    CLUT **apclut;
+};
 // Shader property's
 struct SHD : public SHDF
 {
     SHDF SHD;
-    struct TEX *atex;
+    std::vector <TEX> atex;
     int cshdp;
     int cframe;
-    SAA *psaa;
+    SAA* psaa;
 };
-struct TEX : public TEXF
+class GLSHADER
 {
-    TEXF texf;
-    SHD pshd;
-    BMP **apbmp;
-    CLUT **apclut;
+public:
+
+    GLuint ID;
+
+    void Init(const char* vertexFile, const char* fragmentFile);
+
+    void Use();
+    void Delete();
+private:
+    void compileErrors(unsigned int shader, const char* type);
 };
 
-
+std::string get_file_contents(const char* filename);
+// Delete shader data
 void UnloadShaders();
 // Loads CLUT entry data from binary file
 void LoadColorTablesFromBrx(CBinaryInputStream *pbis);
 // Loads texture entry data from binary file
 void LoadBitmapsFromBrx(CBinaryInputStream *pbis);
 // Loads font property's from binary file
-void LoadFontsFromBrx(CBinaryInputStream *pbis);// GOTTA COME BACK TO THIS
+void LoadFontsFromBrx(CBinaryInputStream *pbis); // GOTTA COME BACK TO THIS
 // Loads texture tables from binary file
-void LoadTexFromBrx(CBinaryInputStream *pbis, SHD shader);
+void LoadTexFromBrx(CBinaryInputStream* pbis, TEX* ptex);
 // Loads texture and shader data from binary file
 void LoadShadersFromBrx(CBinaryInputStream *pbis);
 
@@ -106,10 +125,12 @@ static std::vector <BMP> g_abmp;
 // Global variable which holds the number of shader's in a binary file
 static int g_cshd;
 // Global vector for shader property's
-static std::vector <SHD> g_ashd;
+extern std::vector <SHD> g_ashd;
 // Global variable which holds the number of shader animation's in a binary file
 static int g_cpsaa;
 // Global vector for shader animation property's
 static std::vector <SAA> g_apsaa;
 // Table for texture property's
 static std::vector<TEX> g_atex;
+// Global OPENGL shader used for rendering
+extern GLSHADER glShader;

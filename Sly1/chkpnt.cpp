@@ -2,6 +2,7 @@
 
 void InitChkpnt(CHKPNT* pchkpnt)
 {
+	//std::cout << "VOL Size: " << sizeof(VOL) << "\n";
 	InitAlo(pchkpnt);
 }
 

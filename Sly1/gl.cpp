@@ -1,6 +1,6 @@
 #include "gl.h"
 
-void InitGL()
+void GL::InitGL()
 {
 	glfwInit();
 
@@ -17,8 +17,32 @@ void InitGL()
 	}
 
 	glfwMakeContextCurrent(window);
+	glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
 	gladLoadGL();
+
+	IMGUI_CHECKVERSION();
+	ImGui::CreateContext();
+	ImGuiIO& io = ImGui::GetIO();
+	// Setup Platform/Renderer bindings
+	ImGui_ImplGlfw_InitForOpenGL(window, true);
+	ImGui_ImplOpenGL3_Init("#version 330");
+	// Setup Dear ImGui style
+	ImGui::StyleColorsDark();
 
 	glViewport(0, 0, windowHeight, windowWidth);
 	glEnable(GL_DEPTH_TEST);
+}
+
+void GL::GLFWTerminate()
+{
+	ImGui_ImplOpenGL3_Shutdown();
+	ImGui_ImplGlfw_Shutdown();
+	ImGui::DestroyContext();
+	glfwDestroyWindow(window);
+	glfwTerminate();
+}
+
+void framebuffer_size_callback(GLFWwindow* window, int width, int height)
+{
+	glViewport(0, 0, width, height);
 }

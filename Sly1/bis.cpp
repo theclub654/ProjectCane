@@ -1,13 +1,8 @@
 #include "bis.h"
 
-CBinaryInputStream::CBinaryInputStream(std::string fileName)
+CBinaryInputStream::CBinaryInputStream(std::string filePath)
 {
-    file.open(fileName, std::ios::binary);
-}
-
-void CBinaryInputStream::Read(int numBytes, void *pv)
-{
-
+    file.open(filePath, std::ios::binary);
 }
 
 void CBinaryInputStream::Align(int n)
@@ -99,37 +94,41 @@ glm::mat4 CBinaryInputStream::ReadMatrix4()
     return glm::mat4(ReadVector4(), ReadVector4(), ReadVector4(), ReadVector4());
 }
 
-uint16_t CBinaryInputStream::ReadGeom()
+void CBinaryInputStream::ReadGeom(GEOM *pgeom)
 {
-    F32Read();
+    pgeom->sRadius = F32Read();
 
-    uint16_t vertexCount = U16Read();
+    pgeom->cpos = U16Read();
+    pgeom->apos.resize(pgeom->cpos);
 
-    for (int i = 0; i < vertexCount; i++)
-        ReadVector();
+    for (int i = 0; i < pgeom->cpos; i++)
+        pgeom->apos[i] = ReadVector();
 
-    uint16_t indexCount = U16Read();
+    pgeom->csurf = U16Read();
 
-    U16Read();
+    pgeom->asurf.resize(pgeom->csurf);
+    pgeom->mpisurfposCenter.resize(pgeom->csurf);
+    pgeom->mpisurfsRadius.resize(pgeom->csurf);
 
-    for (int i = 0; i < indexCount; i++)
+    pgeom->cedge = U16Read();
+    pgeom->aedge.resize(pgeom->cedge);
+
+    for (int i = 0; i < pgeom->csurf; i++)
     {
         U16Read();
         U16Read();
         U16Read();
-        F32Read();
-        ReadVector();
+        pgeom->mpisurfsRadius[i] = F32Read();
+        pgeom->mpisurfposCenter[i] = ReadVector();
         byte unk_0 = U8Read();
 
-        for (int i = 0; i < unk_0; i++)
+        for (int a = 0; a < unk_0; a++)
         {
             U16Read();
             U16Read();
             U16Read();
         }
     }
-
-    return vertexCount;
 }
 
 void CBinaryInputStream::ReadBspc()

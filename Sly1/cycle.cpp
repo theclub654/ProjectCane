@@ -2,6 +2,7 @@
 
 void InitCycle(CYCLE* pcycle)
 {
+	std::cout << "CYCLE Size: " << sizeof(CYCLE) << "\n";
 	InitPo(pcycle);
 }
 

@@ -2,6 +2,8 @@
 
 void InitTzp(TZP* ptzp)
 {
+	// VOLZP is the same size as TZP
+	//std::cout << "TZP Size: " << sizeof(TZP) << "\n";
 	InitSo(ptzp);
 }
 

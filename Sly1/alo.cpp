@@ -2,6 +2,7 @@
 
 void InitAlo(ALO* palo)
 {
+	//std::cout << palo << "\n";
 	InitDl(&palo->dlChild, 0x78);
 	InitDl(&palo->dlFreeze, 0xD0);
 
@@ -10,7 +11,7 @@ void InitAlo(ALO* palo)
 	palo->sMRD = 2139095039;
 	palo->grfzon = -1;
 
-	InitDl(&palo->dlAct, 0x1C + 0x8);
+	InitDl(&palo->dlAct, 0x230);
 }
 
 void RemoveAloHierarchy(ALO *palo)
@@ -127,7 +128,6 @@ void LoadAloFromBrx(ALO* palo, CBinaryInputStream* pbis)
 {
 	palo->xf.mat = pbis->ReadMatrix();
 	palo->xf.pos = pbis->ReadVector();
-	
 	pbis->U8Read();
 	pbis->U8Read();
 	pbis->U8Read();
@@ -139,15 +139,17 @@ void LoadAloFromBrx(ALO* palo, CBinaryInputStream* pbis)
 	LoadOptionFromBrx(palo, pbis);
 	LoadGlobsetFromBrx(&palo->globset, pbis);
 	LoadAloAloxFromBrx(pbis);
-
+	
 	palo->cposec = pbis->U8Read();
+	palo->aposec.resize(palo->cposec);
 
 	for (int i = 0; i < palo->cposec; i++)
 	{
-		pbis->S16Read();
+		palo->aposec[i].oid = (OID)pbis->S16Read();
+		palo->aposec[i].agPoses.resize(palo->globset.cpose);
 
-		for (int i = 0; i < palo->globset.cpose; i++)
-			pbis->F32Read();
+		for (int a = 0; a < palo->globset.cpose; a++)
+			palo->aposec[i].agPoses[a] = pbis->F32Read();
 	}
 
 	LoadSwObjectsFromBrx(palo->psw, palo, pbis);
@@ -249,4 +251,63 @@ void RenderAloLine(ALO* palo, CM* pcm, glm::vec3* ppos0, glm::vec3* ppos1, float
 void RenderAloAsBone(ALO* palo, CM* pcm, RO* pro)
 {
 
+}
+
+void DrawLo(ALO* palo)
+{
+
+	for (int i = 0; i < palo->globset.cglob; i++)
+	{
+		for (int a = 0; a < palo->globset.aglob[i].csubglob; a++)
+		{
+			
+		}
+	}
+}
+
+void FreeGLBuffers(SW* psw)
+{
+	DLI dlBusyDli;
+
+	// Loading SW object list
+	dlBusyDli.m_pdl = &psw->dlBusy;
+	// Loading base offset to next object
+	dlBusyDli.m_ibDle = psw->dlBusy.ibDle;
+
+	dlBusyDli.m_pdliNext = s_pdliFirst;
+
+	// Loading first object in SW object list
+	LO* localObject = psw->dlBusy.ploFirst;
+	// Loading pointer to next object in SW list
+	dlBusyDli.m_ppv = (void**)((uintptr_t)localObject + dlBusyDli.m_ibDle);
+
+	s_pdliFirst = &dlBusyDli;
+	int loopCounter = 0;
+	// Looping through all objects in a level
+	while (localObject != 0)
+	{
+		//std::cout << loopCounter++ << "\n";
+		if(localObject->pvtlo->cid != CID_PROXY)
+			DeleteModel((ALO*)localObject);
+		// Loading next object
+		localObject = (LO*)*dlBusyDli.m_ppv;
+		// Loading pointer to next object to render
+		dlBusyDli.m_ppv = (void**)((uintptr_t)localObject + dlBusyDli.m_ibDle);
+	}
+}
+
+void DeleteModel(ALO *palo)
+{
+	for (int i = 0; i < palo->globset.cglob; i++)
+	{
+		for (int a = 0; a < palo->globset.aglob[i].asubglob.size(); a++)
+		{
+			glDeleteVertexArrays(1, &palo->globset.aglob[i].asubglob[a].VAO);
+			glDeleteBuffers(1, &palo->globset.aglob[i].asubglob[a].VBO);
+			glDeleteBuffers(1, &palo->globset.aglob[i].asubglob[a].VNO);
+			glDeleteBuffers(1, &palo->globset.aglob[i].asubglob[a].VCB);
+			glDeleteBuffers(1, &palo->globset.aglob[i].asubglob[a].TCB);
+			glDeleteBuffers(1, &palo->globset.aglob[i].asubglob[a].EBO);
+		}
+	}
 }

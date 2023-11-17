@@ -4,6 +4,7 @@
 class LANDING : public SHAPE
 {
 	public:
+		DLE dleLanding;
 };
 
 void OnLandingAdd(LANDING* planding);

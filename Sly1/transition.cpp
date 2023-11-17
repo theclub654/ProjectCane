@@ -2,7 +2,8 @@
 
 void CTransition::Set(char* pchzWorld, OID oidWarp, OID oidWarpContext, GRFTRANS grftrans)
 {
-	if (m_fPending == 0) {
+	if (m_fPending == 0) 
+	{
 		grftrans = grftrans;
 		m_fPending = 1;
 		m_pchzWorld = pchzWorld;
@@ -11,14 +12,20 @@ void CTransition::Set(char* pchzWorld, OID oidWarp, OID oidWarpContext, GRFTRANS
 	}
 }
 
-void CTransition::Execute()
+void CTransition::Execute(std::string file)
 {
 	// Setting the global game state to load because where loading a file
 	SetPhase(PHASE_Load);
 	// THIS IS HERE TEMPORARILY I PLAN ON REWRITING THE WAY THE GAME LOADS FILES
-	// JUST ADD A LEVEL FILE TO THE PROGRAM PROJECT DIR AND CHANGE FILE NAME IN BIS PARAMETER
-	// TO CHANGE LEVEL FILE
-	CBinaryInputStream bis("jb_intro");
+	CBinaryInputStream bis(file);
+
+	if (bis.file.is_open() == false)
+	{
+		std::cout << "Error opening file\n";
+		m_fPending = 0;
+		return;
+	}
+
 	// Deleting parent SW object
 	DeleteSw(g_psw);
 	g_psw = nullptr;
@@ -27,7 +34,7 @@ void CTransition::Execute()
 	// Reading data thats not needed
 	bis.S32Read();
 	// Initializing parent SW object
-	g_psw = (SW*)PloNew(CID::CID_SW, 0, 0, OID::OID__WORLD, -1);
+	g_psw = (SW*)PloNew(CID::CID_SW, nullptr, nullptr, OID::OID__WORLD, -1);
 	// Loads parent static world from binary file.
 	g_psw->pvtlo->pfnLoadLoFromBrx(g_psw, &bis);
 	// Closing binary object

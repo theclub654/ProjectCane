@@ -2,14 +2,12 @@
 
 void InitAseg(ASEG* paseg)
 {
+    //std::cout << "ASEG Size: " << sizeof(ASEG)<<"\n";
     InitLo(paseg);
 }
 
 void LoadAsegFromBrx(ASEG* paseg, CBinaryInputStream* pbis)
 {
-    /*LoadAsegaCount++;
-    std::cout << "LoadAsegFromBrx: " << std::dec << LoadAsegaCount << "\n";
-    std::cout << std::hex << pbis->file.tellg() << "\n";*/
     int16_t unk_0 = pbis->U16Read();
     int16_t unk_1 = pbis->U16Read();
     uint16_t unk_2 = pbis->U16Read();

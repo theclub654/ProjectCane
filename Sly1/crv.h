@@ -11,13 +11,19 @@ enum CRVK {
 
 struct CRV
 {
-	public:
-		CRVK crvk;
-		int fClosed;
-		int ccv;
-		float *mpicvu;
-		float *mpicvs;
-		glm::vec3 mpicvpos;
+	union
+	{
+		struct VTCRV* pvtcrv;
+		struct VTCRVL* pvtcrvl;
+		struct VTCRVC* pvtcrvc;
+	};
+
+	CRVK crvk;
+	int fClosed;
+	int ccv;
+	float *mpicvu;
+	float *mpicvs;
+	glm::vec3 mpicvpos;
 };
 
 struct CRVL : public CRV

@@ -2,12 +2,8 @@
 
 void InitMgc(MGC* pmgc)
 {
+	std::cout << "MGC Size: " << sizeof(MGC) << "\n";
 	InitAlo(pmgc);
-}
-
-void InitMgv(MGV* pmgv)
-{
-	InitPo(pmgv);
 }
 
 void LoadMgcFromBrx(MGC* pmgc, CBinaryInputStream* pbis)

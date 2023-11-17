@@ -2,7 +2,9 @@
 
 void InitShape(SHAPE* pshape)
 {
+    //std::cout << "SHAPE Size: " << sizeof(SHAPE) << "\n";
     InitLo(pshape);
+    AppendDlEntry(&pshape->psw->dlShape, pshape);
 }
 
 void LoadShapeFromBrx(SHAPE* pshape, CBinaryInputStream* pbis)

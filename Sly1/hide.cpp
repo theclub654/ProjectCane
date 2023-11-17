@@ -2,6 +2,7 @@
 
 void InitHbsk(HBSK* phbsk)
 {
+	//std::cout << "HBSK Size: " << sizeof(HBSK) << "\n";
 	InitSo(phbsk);
 }
 
@@ -12,6 +13,7 @@ void OnHbskAdd(HBSK* phbsk)
 
 void InitHshape(HSHAPE* phshape)
 {
+	//std::cout << "HSHAPE Size: " << sizeof(HSHAPE) << "\n";
 	InitShape(phshape);
 }
 
@@ -22,6 +24,7 @@ void OnHshapeAdd(HSHAPE* phshape)
 
 void InitHpnt(HPNT* phpnt)
 {
+	//std::cout << "HPNT Size: " << sizeof(HPNT) << "\n";
 	InitLo(phpnt);
 }
 

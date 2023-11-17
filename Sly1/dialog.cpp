@@ -2,6 +2,7 @@
 
 void InitDialog(DIALOG* pdialog)
 {
+	//std::cout << "DIALOG Size: " << sizeof(DIALOG) << "\n";
 	InitAlo(pdialog);
 }
 
@@ -9,7 +10,6 @@ void LoadDialogFromBrx(DIALOG* pdialog, CBinaryInputStream* pbis)
 {
 	LoadAloFromBrx(pdialog, pbis);
 	LoadDialogEventsFromBrx(pbis);
-	//std::cout << std::hex << pbis->file.tellg();
 }
 
 void LoadDialogEventsFromBrx(CBinaryInputStream* pbis)

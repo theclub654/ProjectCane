@@ -8,7 +8,7 @@ void StartupBrx()
 LO* PloNew(CID cid, SW* psw, ALO* paloParent, OID oid, int isplice)
 {
 	VTLO *pvtlo = (VTLO*)g_mpcidpvt[cid];
-
+	
 	SW *localObject = (SW*)new int[pvtlo->cb]();
 
 	localObject->pvtlo = pvtlo;
@@ -28,15 +28,11 @@ LO* PloNew(CID cid, SW* psw, ALO* paloParent, OID oid, int isplice)
 	localObject->psw = psw;
 
 
-	// Returning a first parent list
-	DL *adlHashList = PdlFromSwOid(localObject->psw, localObject->oid);
-
 	// Appending object to fist parent list
-    AppendDlEntry(adlHashList, localObject);
+    AppendDlEntry(PdlFromSwOid(localObject->psw, localObject->oid) ,localObject);
 	
 	// Initializing local object
 	localObject->pvtlo->pfnInitLo(localObject);
-
 	return (LO*)localObject;
 }
 

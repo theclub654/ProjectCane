@@ -2,10 +2,10 @@
 
 void InitGeom(GEOM* pgeom)
 {
-	pgeom->aedge = (EDGE*)0x0;
+	pgeom->aedge.clear();
 	pgeom->cpos = 0;
-	pgeom->apos = (glm::vec3*)0x0;
+	pgeom->apos.clear();
 	pgeom->csurf = 0;
-	pgeom->asurf = (SURF*)0x0;
+	pgeom->asurf.clear();
 	pgeom->cedge = 0;
 }

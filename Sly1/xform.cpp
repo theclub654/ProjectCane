@@ -1,32 +1,29 @@
 #include "xform.h"
 
-void InitCamera(CAMERA* pcamera)
-{
-	InitAlo(pcamera);
-}
-
 void InitXfm(XFM* pxfm)
 {
+	//std::cout << "XFM Size: " << sizeof(XFM) << "\n";
+	//std::cout << "WARP Size: " << sizeof(WARP) << "\n";
 	InitLo(pxfm);
 }
 
 void LoadXfmFromBrx(XFM *pxfm, CBinaryInputStream* pbis)
 {
-	pbis->ReadMatrix();
-	pbis->ReadVector();
+	pxfm->matLocal = pbis->ReadMatrix();
+	pxfm->posLocal = pbis->ReadVector();
 	LoadOptionFromBrx(pxfm, pbis);
 }
 
 void LoadWarpFromBrx(WARP* pwarp, CBinaryInputStream* pbis)
 {
-	pbis->ReadMatrix();
-	pbis->ReadVector();
+	pwarp->matLocal = pbis->ReadMatrix();
+	pwarp->posLocal = pbis->ReadVector();
 
 	LoadOptionFromBrx(pwarp, pbis);
 
-	int numObjs = pbis->S16Read();
+	pwarp->cpaseg = pbis->S16Read();
 
-	for (int i = 0; i < numObjs; i++)
+	for (int i = 0; i < pwarp->cpaseg; i++)
 	{
 		CID cid = (CID)pbis->S16Read();
 		OID oid = (OID)pbis->S16Read();
@@ -36,16 +33,18 @@ void LoadWarpFromBrx(WARP* pwarp, CBinaryInputStream* pbis)
 		plo->pvtlo->pfnLoadLoFromBrx(plo, pbis);
 	}
 
-	pbis->S16Read();
+	pwarp->widmenu = (WID)pbis->S16Read();
 
-	uint16_t coidHide = pbis->S16Read();
+	pwarp->coidHide = pbis->S16Read();
+	pwarp->aoidHide.resize(pwarp->coidHide);
 
-	for (int i = 0; i < coidHide; i++)
-		pbis->S16Read();
+	for (int i = 0; i < pwarp->coidHide; i++)
+		pwarp->aoidHide[i] = (OID)pbis->S16Read();
 }
 
 void LoadExitFromBrx(EXIT* pexit, CBinaryInputStream* pbis)
 {
+	//std::cout << "EXIT Size: " << sizeof(EXIT) << "\n";
 	pbis->ReadMatrix();
 	pbis->ReadVector();
 
@@ -65,4 +64,11 @@ void LoadExitFromBrx(EXIT* pexit, CBinaryInputStream* pbis)
 		plo->pvtlo->pfnLoadLoFromBrx(plo, pbis);
 	}
 
+}
+
+void InitCamera(CAMERA* pcamera)
+{
+	//std::cout << "CAMERA Size: " << sizeof(CAMERA) << "\n";
+	InitAlo(pcamera);
+	pcamera->oidTarget = OID_Nil;
 }

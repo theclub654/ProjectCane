@@ -2,6 +2,7 @@
 
 void InitRchm(RCHM* prchm)
 {
+    //std::cout << "RCHM Size: " << sizeof(RCHM) << "\n";
     InitLo(prchm);
 }
 
@@ -10,11 +11,11 @@ void LoadRchmFromBrx(RCHM* prchm, CBinaryInputStream* pbis)
     for (int i = 0; i <= 0x17; i++)
         pbis->S16Read();
 
-    int16_t unk_0 = pbis->S16Read();
+    prchm->cposGrid = pbis->S16Read();
 
-    uint16_t vertexCount = pbis->ReadGeom();
+    pbis->ReadGeom(&prchm->geomLocal);
 
-    for (int i = 0; i < vertexCount; i++)
+    for (int i = 0; i < prchm->geomLocal.cpos; i++)
         pbis->S8Read();
 
     int16_t unk_1 = pbis->S16Read();
@@ -34,6 +35,6 @@ void LoadRchmFromBrx(RCHM* prchm, CBinaryInputStream* pbis)
         pbis->S16Read();
     }
 
-    float unk_3 = pbis->F32Read();
+    pbis->F32Read();
     LoadOptionFromBrx(0, pbis);
 }

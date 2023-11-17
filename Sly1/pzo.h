@@ -4,22 +4,49 @@
 class SPRIZE : public SO
 {
 	public:
-	
+		float sCollect;
+		int fCollect;
+		int fNoExit;
+		int coidAseg;
+		OID aoidAseg[4];
+		int cpaseg;
+		struct ASEG* apaseg[4];
+		struct EXPL* pexpl;
+		int mpipasegfDone[4];
+		int fJtDone;
 };
 
 class CLUE : public SPRIZE
 {
 	public:
+		int ibit;
+		float dtFrame;
+		float dtFrameMax;
+		int cpaloRender;
+		struct ALO** apaloRender;
+		float swSpin;
+		float radSpin;
+		struct ALO* paloSmack;
 };
 
 class LOCK : public ALO
 {
 	public:
+		struct SM* psm;
+		struct SMA* psma;
+		struct ALO* paloKey;
 };
 
 class LOCKG : public ALO
 {
 	public:
+		int grfws;
+		struct SM* psm;
+		struct SMA* psma;
+		int coidLock;
+		OID aoidLock[8];
+		int cplock;
+		LOCK* aplock[8];
 };
 
 class VAULT : public PO
@@ -30,6 +57,7 @@ class VAULT : public PO
 class SCPRIZE : public SPRIZE
 {
 	public:
+		int ichkCollected;
 };
 
 void InitVault(VAULT* pvault);

@@ -1,6 +1,5 @@
 #pragma once
 #include "lo.h"
-#include "dec.h"
 
 struct SMS
 {
@@ -8,11 +7,10 @@ struct SMS
 	OID oidNext;
 	int ismsNext;
 };
-
 struct SMT
 {
 	int fAseg;
-	//ASEG *paseg;
+	struct ASEG *paseg;
 	int ismsFrom;
 	int ismsTo;
 	int grfsmt;

@@ -1,6 +1,38 @@
 #pragma once
 #include "po.h"
 
+struct MRSG 
+{
+	float t;
+	float dt;
+};
+struct BL
+{
+	float u;
+	struct ASEG* paseg;
+	struct CHN* pchn;
+};
+struct BLSS : public BL
+{
+	glm::vec3 v;
+};
+struct BLCL : public BL
+{
+	float sv;
+};
+struct BLRUN
+{
+	glm::vec3 v;
+	glm::vec3 posPlant;
+	MRSG mpfootsmrsgLeft[2];
+	MRSG mpfootsmrsgRight[2];
+};
+struct SFF
+{
+	float au[2];
+	float auVol[2];
+};
+
 class STEP : public PO
 {
 	public:
@@ -31,6 +63,11 @@ class STEP : public PO
 		glm::vec3 *pposBase;
 		glm::vec3 *pposBumper;
 		SO *psoPhys;
+		SMP smpSpin;
+		CLQ clqDradToURun;
+		float rGravity;
+		SMP smpCompress;
+		SMP smpExpand;
 };
 
 void InitStep(STEP* pstep);

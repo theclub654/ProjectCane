@@ -2,6 +2,7 @@
 
 void InitKeyhole(KEYHOLE *pkeyhole)
 {
+    //std::cout << "KEYHOLE Size: " << sizeof(KEYHOLE) << "\n";
 	InitLo(pkeyhole);
 	g_pkeyhole = pkeyhole;
 }

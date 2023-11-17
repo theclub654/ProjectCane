@@ -2,11 +2,12 @@
 #include "lo.h"
 #include "vec.h"
 
-struct TRI {
+struct TRI 
+{
 	int aipos[3];
 };
-
-struct KS {
+struct KS 
+{
 	int ctri;
 	TRI *atri;
 };

@@ -6,7 +6,6 @@ class CM;
 struct RO;
 extern bool loadEmitMesh;
 
-
 // Local Obeject
 class LO;
 enum MSGID;

@@ -2,6 +2,7 @@
 
 void InitJp(JP* pjp)
 {
+	std::cout << "JP Size: " << sizeof(JP) << "\n";
 	InitStep(pjp);
 }
 

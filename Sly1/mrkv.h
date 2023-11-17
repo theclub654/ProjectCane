@@ -4,7 +4,9 @@
 class MRKV : public SO
 {
 	public:
-
+		glm::vec3 normal;
+		LM lmAlpha;
+		float sDepth;
 };
 
 void InitMrkv(MRKV* pmrkv);

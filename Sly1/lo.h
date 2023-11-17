@@ -13,27 +13,6 @@ LO* PloNew(CID cid, SW* psw, ALO* paloParent, OID oid, int isplice);
 void LoadSwObjectsFromBrx(SW* psw, ALO* paloParent, CBinaryInputStream* pbis);
 void LoadOptionFromBrx(void* pvObject, CBinaryInputStream* pbis);
 
-class LO : public BASIC
-{
-	public:
-		// Object ID
-		OID oid;
-		DLE dleOid;
-		// Parent SW Object
-		class SW* psw;
-		// Objects Parent
-		class ALO* paloParent;
-		DLE dleChild;
-        // Pointer to next LO
-		LO* ploCidNext;
-        void* pmqFirst;
-		// Objects name
-		char* pchzName;
-        void* pframe;
-        void* ppxr;
-		uint64_t dtickPerf;
-};
-
 enum MSGID
 {
     MSGID_Nil = -1,
@@ -65,13 +44,47 @@ enum MSGID
     MSGID_param_write = 25,
     MSGID_Max = 26
 };
-struct SOP 
+enum CFK
 {
-    LO *plo;
+    CFK_Nil = -1,
+    CFK_Behind = 0,
+    CFK_Side = 1,
+    CFK_Max = 2
+};
+struct SOP
+{
+    LO* plo;
     int cpar;
     struct PAR* apar;
     struct SOP* psopNext;
 };
+struct PSL 
+{
+    int cploCloneFree;
+    struct LO** aploClone;
+};
+
+class LO : public BASIC
+{
+	public:
+		// Object ID
+		OID oid;
+		DLE dleOid;
+		// Parent SW Object
+		class SW* psw;
+		// Objects Parent
+		class ALO* paloParent;
+		DLE dleChild;
+        // Pointer to next LO
+		LO* ploCidNext;
+        void* pmqFirst;
+		// Objects name
+		char* pchzName;
+        void* pframe;
+        void* ppxr;
+		uint64_t dtickPerf;
+};
+
 // Initializes Local Object
 void InitLo(LO *parentLo);
 void SetLoDefaults(LO* parentLo);

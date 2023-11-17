@@ -4,6 +4,7 @@
 class DYSH : public ALO
 {
 	public:
+		struct SHADOW* pshadowGen;
 };
 
 void InitDysh(DYSH* pdysh);

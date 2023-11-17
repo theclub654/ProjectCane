@@ -2,7 +2,9 @@
 
 void OnPathzoneAdd(PATHZONE* ppathzone)
 {
+    std::cout << "PATHZONE Size: " << sizeof(PATHZONE) << "\n";
     OnLoAdd(ppathzone);
+    AppendDlEntry(&ppathzone->psw->dlPathzone, ppathzone);
 }
 
 void LoadPathZoneFromBrx(PATHZONE* ppathzone, CBinaryInputStream* pbis)

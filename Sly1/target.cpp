@@ -2,6 +2,7 @@
 
 void InitTarget(TARGET* ptarget)
 {
+	//std::cout << "TARGET Size: " << sizeof(TARGET) << "\n";
 	InitXfm(ptarget);
 }
 

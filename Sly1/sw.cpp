@@ -2,14 +2,14 @@
 
 void InitSw(SW* psw)
 {
-	InitLo((LO*)psw);
+	InitLo(psw);
 
 	InitDl(&psw->dlChild, 0x38);
 	InitDl(&psw->dlMRD, 0xA0);
 	InitDl(&psw->dlMRDRealClock, 0x1C + 0x54);
 	InitDl(&psw->dlBusy, 0x90);
 	InitDl(&psw->dlBusySo, 0x1C + 0x434);
-	InitDl(&psw->dlRoot, 0x1C + 0x2e0);
+	InitDl(&psw->dlRoot, 0x428);
 	InitDl(&psw->dlAsega, 0x1C + 0x34);
 	InitDl(&psw->dlAsegaRealClock, 0x1C + 0x34);
 	InitDl(&psw->dlAsegaPending, 0x1C + 0x34);
@@ -41,7 +41,7 @@ void InitSw(SW* psw)
 void InitSwDlHash(SW* psw)
 {
 	for (int i = 0; i < 0x200; i++)
-		InitDl(&psw->adlHash[i], 0x1C + 0x1C);
+		InitDl(&psw->adlHash[i], 0x38);
 }
 
 void LoadSwFromBrx(SW* psw, CBinaryInputStream* pbis)
@@ -93,8 +93,12 @@ void LoadWorldTableFromBrx(CBinaryInputStream* pbis)
 
 void DeleteSw(SW* psw)
 {
-	UnloadShaders();
-	g_pcm = 0x0;
+	if (psw != nullptr)
+	{
+		FreeGLBuffers(psw);
+		UnloadShaders();
+		g_pcm = nullptr;
+	}
 }
 
 void UpdateSw(SW *psw, float dt)

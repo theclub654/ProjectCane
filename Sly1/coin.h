@@ -22,10 +22,15 @@ class DPRIZE : public ALO
         DPRIZES dprizesInit;
         OID oidInitialState;
         float dtInitialSkip;
+        struct SM* psm;
+        struct SMA* psma;
+        struct TARGET* ptarget;
         glm::vec3 posCenter;
         glm::vec3 vCenter;
         glm::vec3 dvCenter;
         float uGlintChance;
+        struct PNT* ppntFrontGlint;
+        struct PNT* ppntBackGlint;
         int fLeft;
         float tGlint;
         int fNeverReuse;
@@ -42,6 +47,8 @@ class DPRIZE : public ALO
         int fSwirlDone;
         DLE dle;
         int ichkCollected;
+        struct EXPL* pexplCollect;
+        struct EXPL* pexplAttract;
         float svcAttract;
         float cAttract;
 };
@@ -54,6 +61,8 @@ class CHARM : public DPRIZE
 class COIN : public DPRIZE
 {
     public:
+        LM lmDtMaxLifetime;
+        float tLose;
 };
 
 class KEY : public DPRIZE
@@ -64,6 +73,7 @@ class KEY : public DPRIZE
 class GOLD : public DPRIZE
 {
     public:
+        int fStartTimedChallenge;
 };
 
 void InitDprize(DPRIZE *pdprize);//NOT FINISHED

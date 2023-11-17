@@ -2,6 +2,7 @@
 
 void InitDysh(DYSH* pdysh)
 {
+	//std::cout << "DYSH Size: " << sizeof(DYSH) << "\n";
 	InitAlo(pdysh);
 }
 

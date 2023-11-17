@@ -12,7 +12,7 @@ void InitLasen(LASEN* plasen)
 
 void InitCamsen(CAMSEN* pcamsen)
 {
-	InitSensor((SENSOR*)pcamsen);
+	InitSensor(pcamsen);
 }
 
 void InitPrsen(PRSEN* pprsen)

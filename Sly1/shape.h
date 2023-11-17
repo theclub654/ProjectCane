@@ -7,6 +7,8 @@ void LoadCrvcFromBrx(CBinaryInputStream* pbis);
 class SHAPE : public LO
 {
 	public:
+		struct CRV* pcrv;
+		DLE dleShape;
 };
 
 void InitShape(SHAPE* pshape);

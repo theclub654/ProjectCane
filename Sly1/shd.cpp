@@ -1,5 +1,83 @@
 #include "shd.h"
 
+void GLSHADER::Init(const char* vertexFile, const char* fragmentFile)
+{
+	std::string vertexCode = get_file_contents(vertexFile);
+	std::string fragmentCode = get_file_contents(fragmentFile);
+
+	const char* vertexSource = vertexCode.c_str();
+	const char* fragmentSource = fragmentCode.c_str();
+
+	GLuint vertexShader = glCreateShader(GL_VERTEX_SHADER);
+	glShaderSource(vertexShader, 1, &vertexSource, NULL);
+	glCompileShader(vertexShader);
+	compileErrors(vertexShader, "VERTEX");
+
+	GLuint fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
+	glShaderSource(fragmentShader, 1, &fragmentSource, NULL);
+	glCompileShader(fragmentShader);
+	compileErrors(fragmentShader, "FRAGMENT");
+
+	ID = glCreateProgram();
+	glAttachShader(ID, vertexShader);
+	glAttachShader(ID, fragmentShader);
+	glLinkProgram(ID);
+	compileErrors(ID, "PROGRAM");
+
+	glDeleteShader(vertexShader);
+	glDeleteShader(fragmentShader);
+}
+
+void GLSHADER::Use()
+{
+	glUseProgram(ID);
+}
+
+void GLSHADER::Delete()
+{
+	glDeleteProgram(ID);
+}
+
+void GLSHADER::compileErrors(unsigned int shader, const char* type)
+{
+	GLint hasCompiled;
+	char infoLog[1024];
+	if (type != "PROGRAM")
+	{
+		glGetShaderiv(shader, GL_COMPILE_STATUS, &hasCompiled);
+		if (hasCompiled == GL_FALSE)
+		{
+			glGetShaderInfoLog(shader, 1024, NULL, infoLog);
+			std::cout << "SHADER_COMPILATION_ERROR for:" << type << "\n" << infoLog << std::endl;
+		}
+	}
+	else
+	{
+		glGetProgramiv(shader, GL_LINK_STATUS, &hasCompiled);
+		if (hasCompiled == GL_FALSE)
+		{
+			glGetProgramInfoLog(shader, 1024, NULL, infoLog);
+			std::cout << "SHADER_LINKING_ERROR for:" << type << "\n" << infoLog << std::endl;
+		}
+	}
+}
+
+std::string get_file_contents(const char* filename)
+{
+	std::ifstream in(filename, std::ios::binary);
+	if (in)
+	{
+		std::string contents;
+		in.seekg(0, std::ios::end);
+		contents.resize(in.tellg());
+		in.seekg(0, std::ios::beg);
+		in.read(&contents[0], contents.size());
+		in.close();
+		return(contents);
+	}
+	throw(errno);
+}
+
 void UnloadShaders()
 {
 	//g_pfont = (CFont*)&g_fontDebug;
@@ -66,41 +144,24 @@ void LoadFontsFromBrx(CBinaryInputStream* pbis)
 	// Loading font property's from binary file
 	for (int i = 0; i < g_cfontBrx ; i++)
 		g_afontBrx->LoadFromBrx(pbis);
-
-	if (g_cfontBrx != 0)
-	{
-		g_pfont = &g_afontBrx->CFont;
-
-		if (g_cfontBrx < 2)
-			g_pfontScreenCounters = &g_afontBrx->CFont;
-
-		if (g_cfontBrx < 3) 
-			g_pfontJoy = &g_afontBrx->CFont;
-	}
-
 }
 
-void LoadTexFromBrx(CBinaryInputStream *pbis, SHD shader)
+void LoadTexFromBrx(CBinaryInputStream *pbis, TEX *ptex)
 {
-	TEX tex;
+	ptex->oid = pbis->U16Read();
+	ptex->grftex = pbis->S16Read();
+	ptex->cibmp = pbis->U8Read();
+	ptex->ciclut = pbis->U8Read();
 
-	tex.pshd = shader;
-	tex.texf.oid = pbis->U16Read();
-	tex.texf.grftex = pbis->S16Read();
-	tex.texf.cibmp = pbis->U8Read();
-	tex.texf.ciclut = pbis->U8Read();
+	ptex->bmpIndex.resize(ptex->cibmp);
 
-	tex.texf.bmpIndex.resize(tex.texf.cibmp);
+	for (int i = 0; i < ptex->cibmp; i++)
+		ptex->bmpIndex[i] = pbis->U16Read();
 
-	for (int i = 0; i < tex.texf.cibmp; i++)
-		tex.texf.bmpIndex[i] = pbis->U16Read();
+	ptex->clutIndex.resize(ptex->ciclut);
 
-	tex.texf.clutIndex.resize(tex.texf.ciclut);
-
-	for (int i = 0; i < tex.texf.ciclut; i++)
-		tex.texf.clutIndex[i] = pbis->U16Read();
-
-	g_atex.push_back(tex);
+	for (int i = 0; i < ptex->ciclut; i++)
+		ptex->clutIndex[i] = pbis->U16Read();
 }
 
 void LoadShadersFromBrx(CBinaryInputStream *pbis)
@@ -121,33 +182,27 @@ void LoadShadersFromBrx(CBinaryInputStream *pbis)
 	for (int i = 0; i < g_cshd; i++)
 	{
 		// Loading shader property's from binary file
-		SHD shader;
+		g_ashd[i].shdk = pbis->U8Read();
+		g_ashd[i].grfshd = pbis->U8Read();
+		g_ashd[i].oid = pbis->U16Read();
 
-		shader.SHD.shdk = pbis->U8Read();
-		shader.SHD.grfshd = pbis->U8Read();
-		shader.SHD.oid = pbis->U16Read();
+		g_ashd[i].rgba = (RGBA)pbis->U32Read();
 
-		shader.SHD.rgba.bRed = pbis->U8Read();
-		shader.SHD.rgba.bGreen = pbis->U8Read();
-		shader.SHD.rgba.bBlue = pbis->U8Read();
-		shader.SHD.rgba.bAlpha = pbis->U8Read();
+		g_ashd[i].rgbaVolume = (RGBA)pbis->U32Read();
 
-		shader.SHD.rgbaVolume.bRed = pbis->U8Read();
-		shader.SHD.rgbaVolume.bGreen = pbis->U8Read();
-		shader.SHD.rgbaVolume.bBlue = pbis->U8Read();
-		shader.SHD.rgbaVolume.bAlpha = pbis->U8Read();
+		g_ashd[i].grfzon = pbis->U32Read();
+		g_ashd[i].oidAltSat = pbis->U16Read();
+		g_ashd[i].rp = pbis->U8Read();
+		g_ashd[i].ctex = pbis->U8Read();
 
-		shader.SHD.grfzon = pbis->U32Read();
-		shader.SHD.oidAltSat = pbis->U16Read();
-		shader.SHD.rp = pbis->U8Read();
-		shader.SHD.ctex = pbis->U8Read();
+		g_ashd[i].atex.resize(g_ashd[i].ctex);
 
 		// Reading shader animation from file
 		PsaaLoadFromBrx(pbis);
 
 		// Reading texture tables from file
-		for (int i = 0; i < shader.SHD.ctex; i++)
-			LoadTexFromBrx(pbis, shader);
+		for (int a = 0; a < g_ashd[i].ctex; a++)
+			LoadTexFromBrx(pbis, &g_ashd[i].atex[a]);
 	}
 
 	LoadFontsFromBrx(pbis);
