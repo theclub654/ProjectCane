@@ -29,3 +29,4 @@ class SMARTGUARD : public STEPGUARD
 };
 
 void InitSmartGuard(SMARTGUARD* psmartguard);
+void DeleteSmartGuard(LO* plo);

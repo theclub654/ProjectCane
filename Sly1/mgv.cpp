@@ -12,3 +12,8 @@ void LoadMgvFromBrx(MGV* pmgv, CBinaryInputStream* pbis)
 	std::cout << "MGV Size: " << sizeof(MGV) << "\n";
 	LoadSoFromBrx(pmgv, pbis);
 }
+
+void DeleteMGV(LO* plo)
+{
+	delete (MGV*)plo;
+}

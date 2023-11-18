@@ -30,4 +30,6 @@ class VOL : public XFM
 
 void InitChkpnt(CHKPNT* pchkpnt);
 void LoadChkpntFromBrx(CHKPNT* pchkpnt, CBinaryInputStream* pbis);
+void DeleteChkpnt(LO* plo);
 void LoadVolFromBrx(VOL* pvol, CBinaryInputStream* pbis);
+void DeleteVol(LO* plo);

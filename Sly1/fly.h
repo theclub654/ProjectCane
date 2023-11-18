@@ -69,3 +69,4 @@ class FLY : public SO
 
 void InitFly(FLY* pfly);
 void LoadFlyFromBrx(FLY* pfly, CBinaryInputStream* pbis);
+void DeleteFly(LO* plo);

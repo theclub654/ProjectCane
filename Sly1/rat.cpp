@@ -19,6 +19,11 @@ void OnRatholeAdd(RATHOLE* prathole)
 	AppendDlEntry(&prathole->psw->dlRathole, prathole);
 }
 
+void DeleteRathole(LO* plo)
+{
+	delete(RATHOLE*)plo;
+}
+
 void LoadRatFromBrx(RAT* prat, CBinaryInputStream* pbis)
 {
 	LoadSoFromBrx(prat, pbis);
@@ -27,4 +32,9 @@ void LoadRatFromBrx(RAT* prat, CBinaryInputStream* pbis)
 void RenderRatAll(RAT* prat, CM* pcm, RO* pro)
 {
 
+}
+
+void DeleteRat(LO* plo)
+{
+	delete (RAT*)plo;
 }

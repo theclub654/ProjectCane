@@ -15,3 +15,8 @@ void LoadDartFromBrx(DART* pdart, CBinaryInputStream* pbis)
 {
 	LoadSoFromBrx(pdart, pbis);
 }
+
+void DeleteDart(LO* plo)
+{
+	delete(DART*)plo;
+}

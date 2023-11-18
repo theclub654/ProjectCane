@@ -14,6 +14,11 @@ void LoadXfmFromBrx(XFM *pxfm, CBinaryInputStream* pbis)
 	LoadOptionFromBrx(pxfm, pbis);
 }
 
+void DeleteXfm(LO* plo)
+{
+	delete(XFM*)plo;
+}
+
 void LoadWarpFromBrx(WARP* pwarp, CBinaryInputStream* pbis)
 {
 	pwarp->matLocal = pbis->ReadMatrix();
@@ -42,6 +47,11 @@ void LoadWarpFromBrx(WARP* pwarp, CBinaryInputStream* pbis)
 		pwarp->aoidHide[i] = (OID)pbis->S16Read();
 }
 
+void DeleteWarp(LO* plo)
+{
+	delete(WARP*)plo;
+}
+
 void LoadExitFromBrx(EXIT* pexit, CBinaryInputStream* pbis)
 {
 	//std::cout << "EXIT Size: " << sizeof(EXIT) << "\n";
@@ -66,9 +76,19 @@ void LoadExitFromBrx(EXIT* pexit, CBinaryInputStream* pbis)
 
 }
 
+void DeleteExit(LO* plo)
+{
+	delete(EXIT*)plo;
+}
+
 void InitCamera(CAMERA* pcamera)
 {
 	//std::cout << "CAMERA Size: " << sizeof(CAMERA) << "\n";
 	InitAlo(pcamera);
 	pcamera->oidTarget = OID_Nil;
+}
+
+void DeleteCamera(LO* plo)
+{
+	delete(CAMERA*)plo;
 }

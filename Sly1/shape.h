@@ -13,3 +13,4 @@ class SHAPE : public LO
 
 void InitShape(SHAPE* pshape);
 void LoadShapeFromBrx(SHAPE* pshape, CBinaryInputStream* pbis);
+void DeleteShape(LO* plo);

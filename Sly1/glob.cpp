@@ -187,8 +187,8 @@ void LoadGlobsetFromBrx(GLOBSET* pglobset, CBinaryInputStream* pbis)
                 }
             }
 
-            /*if (pglobset->aglob[i].csubglob != 0)
-                pglobset->aglob[i].asubglob = MakeGLBuffers(pglobset->aglob[i].asubglob);*/
+            if (pglobset->aglob[i].csubglob != 0)
+                pglobset->aglob[i].asubglob = MakeGLBuffers(pglobset->aglob[i].asubglob);
 
             uint16_t numSubMesh1 = pbis->U16Read();
 

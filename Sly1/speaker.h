@@ -19,3 +19,4 @@ class SPEAKER : public ALO
 };
 
 void InitSpeaker(SPEAKER* pspeaker);
+void DeleteSpeaker(LO* plo);

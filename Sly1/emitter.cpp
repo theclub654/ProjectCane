@@ -6,16 +6,36 @@ void InitExplo(EXPLO* pexplo)
 	InitXfm(pexplo);
 }
 
+void DeleteExplo(LO* plo)
+{
+	delete(EXPLO*)plo;
+}
+
 void InitEmitter(EMITTER* pemitter)
 {
 	//std::cout << "EMITTER Size: " << sizeof(EMITTER) << "\n";
 	InitAlo(pemitter);
 }
 
+void DeleteEmitter(LO* plo)
+{
+	delete(EMITTER*)plo;
+}
+
+void DeleteExpl(LO* plo)
+{
+	delete(EXPL*)plo;
+}
+
 void InitExpls(EXPLS* pexpls)
 {
 	//std::cout << "EXPLS Size: " << sizeof(EXPLS) << "\n";
 	InitExplo(pexpls);
+}
+
+void DeleteExpls(LO* plo)
+{
+	delete(EXPLS*)plo;
 }
 
 void LoadEmitMeshFromBrx(CBinaryInputStream* pbis)
@@ -94,6 +114,11 @@ void LoadExplgFromBrx(EXPLG *pexplg,CBinaryInputStream *pbis)
 		LO* plo = PloNew(cid, pexplg->psw, pexplg->paloParent, oid, isplice);
 		plo->pvtlo->pfnLoadLoFromBrx(plo, pbis);
 	}
+}
+
+void DeleteExplg(LO* plo)
+{
+	delete(EXPLG*)plo;
 }
 
 void LoadExploFromBrx(EXPLO* pexplo, CBinaryInputStream* pbis)

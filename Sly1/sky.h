@@ -6,3 +6,5 @@ class SKY : public ALO
 	public:
 		int fFollowZ;
 };
+
+void DeleteSky(LO* plo);

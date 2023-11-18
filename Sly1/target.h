@@ -12,3 +12,4 @@ class TARGET : public XFM
 
 void InitTarget(TARGET* ptarget);
 void OnTargetAdd(TARGET* ptarget);
+void DeleteTarget(LO* plo);

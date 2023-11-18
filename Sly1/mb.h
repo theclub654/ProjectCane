@@ -57,5 +57,8 @@ class SCENTMAP : public ALO
 
 void InitMbg(MBG* pmbg);
 void InitBhg(BHG* pbhg);
+void DeleteBhg(LO* plo);
 void InitScentmap(SCENTMAP* pscentmap);
+void DeleteScentmap(LO* plo);
 void LoadMbgFromBrx(MBG *pmbg, CBinaryInputStream *pbis);
+void DeleteMbg(LO* plo);

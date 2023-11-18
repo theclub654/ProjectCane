@@ -74,5 +74,10 @@ class PUFFV : public VOL
 };
 
 void InitPuffer(PUFFER *ppuffer);
+void DeletePuffer(LO* plo);
+void DeletePuffb(LO* plo);
 void InitPuffv(PUFFV* ppuffv);
+void DeletePuffv(LO* plo);
 void LoadPufferFromBrx(PUFFER *ppuffer, CBinaryInputStream *pbis);
+void DeletePuffc(LO* plo);
+void DeletePufft(LO* plo);

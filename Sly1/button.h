@@ -89,6 +89,8 @@ class VOLBTN : public SO
 };
 
 void InitButton(BUTTON* pbutton);
+void DeleteButton(LO* plo);
 void InitVolbtn(VOLBTN* pvolbtn);
 void LoadButtonFromBrx(BUTTON *pbutton, CBinaryInputStream *pbis);
 void LoadVolbtnFromBrx(VOLBTN *pvolbtn, CBinaryInputStream *pbis);
+void DeleteVolbtn(LO* plo);

@@ -24,3 +24,4 @@ class PO : public SO
 
 void InitPo(PO *ppo);//NOT FINISHED
 void OnPoAdd(PO* ppo);
+void DeletePo(LO* plo);

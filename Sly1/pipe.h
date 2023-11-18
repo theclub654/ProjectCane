@@ -16,3 +16,4 @@ class PIPE : public SHAPE
 void InitPipe(PIPE* ppipe);
 void OnPipeAdd(PIPE* ppipe);
 void OnPipeRemove(PIPE* ppipe);
+void DeletePipe(LO* plo);

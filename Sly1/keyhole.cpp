@@ -36,3 +36,8 @@ void LoadKeyholeFromBrx(KEYHOLE* pkeyhole, CBinaryInputStream* pbis)
         }
     }
 }
+
+void DeleteKeyhole(LO* plo)
+{
+    delete(KEYHOLE*)plo;
+}

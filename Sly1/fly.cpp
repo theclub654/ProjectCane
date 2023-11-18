@@ -11,3 +11,8 @@ void LoadFlyFromBrx(FLY* pfly, CBinaryInputStream* pbis)
 {
 	LoadSoFromBrx(pfly, pbis);
 }
+
+void DeleteFly(LO* plo)
+{
+	delete (FLY*)plo;
+}

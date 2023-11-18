@@ -10,3 +10,8 @@ void RenderCycleSelf(CYCLE* pcycle, CM* pcm, RO* pro)
 {
 	RenderSoSelf(pcycle, pcm, pro);
 }
+
+void DeleteCycle(LO* plo)
+{
+	delete (CYCLE*)plo;
+}

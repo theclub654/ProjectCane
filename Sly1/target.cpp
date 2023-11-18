@@ -10,3 +10,8 @@ void OnTargetAdd(TARGET* ptarget)
 {
 	OnLoAdd(ptarget);
 }
+
+void DeleteTarget(LO* plo)
+{
+	delete(TARGET*)plo;
+}

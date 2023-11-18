@@ -60,12 +60,24 @@ class SCPRIZE : public SPRIZE
 		int ichkCollected;
 };
 
+class LIFETKN : public SCPRIZE
+{
+	public:
+};
+
 void InitVault(VAULT* pvault);
+void DeleteVault(LO* plo);
 void InitSprize(SPRIZE* psprize);
+void DeleteSprize(LO* plo);
 void InitScprize(SCPRIZE* pscprize);
+void DeleteScprize(LO* plo);
+void DeleteLifetkn(LO* plo);
 void InitClue(CLUE* pclue);
 void LoadSprizeFromBrx(SPRIZE *psprize, CBinaryInputStream *pbis);
 void LoadClueFromBrx(CLUE *pclue, CBinaryInputStream *pbis);
+void DeleteClue(LO* plo);
 void LoadLockFromBrx(LOCK* plock, CBinaryInputStream* pbis);
+void DeleteLock(LO* plo);
 void LoadLockgFromBrx(LOCKG* plockg, CBinaryInputStream* pbis);
+void DeleteLockg(LO* plo);
 void RenderClueAll(CLUE* pclue, CM* pcm, RO* pro);

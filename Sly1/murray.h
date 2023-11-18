@@ -13,3 +13,4 @@ class MURRAY : public STEPGUARD
 };
 
 void InitMurray(MURRAY* pmurray);
+void DeleteMurray(LO* plo);

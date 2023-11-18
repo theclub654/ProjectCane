@@ -12,10 +12,20 @@ void InitDprize(DPRIZE *pdprize)
 	
 }
 
+void DeleteDprize(LO* plo)
+{
+	delete(DPRIZE*)plo;
+}
+
 void InitCharm(CHARM* pcharm)
 {
 	//std::cout << "CHARM Size: " << sizeof(CHARM) << "\n";
 	InitDprize(pcharm);
+}
+
+void DeleteCharm(LO* plo)
+{
+	delete(CHARM*)plo;
 }
 
 void InitCoin(COIN* pcoin)
@@ -24,10 +34,20 @@ void InitCoin(COIN* pcoin)
 	InitDprize(pcoin);
 }
 
+void DeleteCoin(LO* plo)
+{
+	delete(COIN*)plo;
+}
+
 void InitKey(KEY* pkey)
 {
 	//std::cout << "KEY Size: " << sizeof(KEY) << "\n";
 	InitDprize(pkey);
+}
+
+void DeleteKey(LO* plo)
+{
+	delete(KEY*)plo;
 }
 
 void InitGold(GOLD* pgold)
@@ -35,6 +55,11 @@ void InitGold(GOLD* pgold)
 	//std::cout << "GOLD Size: " << sizeof(GOLD) << "\n";
 	InitDprize(pgold);
 	pgold->psw->cgoldAll++;
+}
+
+void DeleteGold(LO* plo)
+{
+	delete(GOLD*)plo;
 }
 
 void LoadDprizeFromBrx(DPRIZE *pdprize, CBinaryInputStream *pbis)

@@ -26,3 +26,4 @@ class BARRIER : public SO
 };
 
 void InitBarrier(BARRIER* pbarrier);
+void DeleteBarrier(LO* plo);

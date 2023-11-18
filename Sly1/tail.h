@@ -19,3 +19,4 @@ class TAIL : public ALO
 };
 
 void InitTail(TAIL* ptail);
+void DeleteTail(LO* plo);

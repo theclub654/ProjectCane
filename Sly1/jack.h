@@ -121,7 +121,11 @@ class JACKF : public ALO
 };
 
 void InitJack(JACK *pjack);
+void DeleteJack(LO* plo);
 void InitJackb(JACKB* pjackb);
+void DeleteJackb(LO* plo);
 void InitJackn(JACKN* pjackn);
+void DeleteJackn(LO* plo);
 void InitJackf(JACKF* pjackf);
+void DeleteJackf(LO* plo);
 void LoadJacknFromBrx(JACKN* pjackn, CBinaryInputStream* pbis);

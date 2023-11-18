@@ -8,32 +8,31 @@ void StartupBrx()
 LO* PloNew(CID cid, SW* psw, ALO* paloParent, OID oid, int isplice)
 {
 	VTLO *pvtlo = (VTLO*)g_mpcidpvt[cid];
-	
-	SW *localObject = (SW*)new int[pvtlo->cb]();
 
-	localObject->pvtlo = pvtlo;
+	SW* SWObj = (SW*)new int[pvtlo->cb]();
 
-	localObject->oid = oid;
+	SWObj->pvtlo = pvtlo;
+	SWObj->oid = oid;
 
 	if (cid == CID_SW)
 	{
-		InitSwDlHash(localObject);
-		localObject->paloParent = paloParent;
-		psw = localObject;
+		InitSwDlHash(SWObj);
+		SWObj->paloParent = paloParent;
+		psw = SWObj;
 	}
 
 	else
-		localObject->paloParent = paloParent;
+		SWObj->paloParent = paloParent;
 
-	localObject->psw = psw;
-
+	SWObj->psw = psw;
 
 	// Appending object to fist parent list
-    AppendDlEntry(PdlFromSwOid(localObject->psw, localObject->oid) ,localObject);
+    AppendDlEntry(PdlFromSwOid(SWObj->psw, SWObj->oid) , SWObj);
 	
 	// Initializing local object
-	localObject->pvtlo->pfnInitLo(localObject);
-	return (LO*)localObject;
+	SWObj->pvtlo->pfnInitLo(SWObj);
+
+	return (LO*)SWObj;
 }
 
 void LoadSwObjectsFromBrx(SW *psw, ALO *paloParent, CBinaryInputStream *pbis)

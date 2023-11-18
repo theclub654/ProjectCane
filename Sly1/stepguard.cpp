@@ -5,6 +5,11 @@ void InitSgg(SGG* psgg)
 	InitLo(psgg);
 }
 
+void DeleteSgg(LO* plo)
+{
+	delete(SGG*)plo;
+}
+
 void InitStepGuard(STEPGUARD* pstepguard)
 {
 	InitStep(pstepguard);
@@ -23,4 +28,9 @@ void LoadStepGuardFromBrx(STEPGUARD* pstepguard, CBinaryInputStream* pbis)
 void RenderStepguardSelf(STEPGUARD* pstepguard, CM* pcm, RO* pro)
 {
 
+}
+
+void DeleteStepguard(LO* plo)
+{
+	delete (STEPGUARD*)plo;
 }

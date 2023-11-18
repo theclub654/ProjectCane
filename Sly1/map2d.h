@@ -14,3 +14,4 @@ class MAP : public LO
         char* mpiposab;
 };
 
+void DeleteMap(LO* plo);

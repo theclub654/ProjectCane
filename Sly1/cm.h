@@ -203,6 +203,7 @@ public:
 
 // Initialize camera object
 void InitCm(CM* pcm); // NOT FINISHED
+void DeleteCm(LO* plo);
 
 // Global pointer to parent camera object
 extern inline CM *g_pcm = nullptr;

@@ -253,10 +253,15 @@ class ROB : public ALO
 
 void InitRov(ROV* prov);
 void InitRoh(ROH* proh);
+void DeleteRoh(LO* plo);
 void InitRoc(ROC* proc);
+void DeleteRoc(LO* plo);
 void InitRost(ROST* prost);
+void DeleteRost(LO* plo);
 void InitRop(ROP* prop);
+void DeleteRop(LO* plo);
 void InitRob(ROB* prob);
+void DeleteRob(LO* plo);
 void LoadRovFromBrx(ROV *prov, CBinaryInputStream *pbis);
 void LoadRohFromBrx(ROH* proh, CBinaryInputStream* pbis);
 void LoadRocFromBrx(ROC* proc, CBinaryInputStream* pbis);

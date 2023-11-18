@@ -10,9 +10,19 @@ void InitRoh(ROH* proh)
 	InitSo(proh);
 }
 
+void DeleteRoh(LO* plo)
+{
+	delete (ROH*)plo;
+}
+
 void InitRoc(ROC* proc)
 {
 	InitSo(proc);
+}
+
+void DeleteRoc(LO* plo)
+{
+	delete(ROC*)plo;
 }
 
 void InitRost(ROST* prost)
@@ -20,9 +30,19 @@ void InitRost(ROST* prost)
 	InitSo(prost);
 }
 
+void DeleteRost(LO* plo)
+{
+	delete(ROST*)plo;
+}
+
 void InitRop(ROP* prop)
 {
 	InitSo(prop);
+}
+
+void DeleteRop(LO* plo)
+{
+	delete (ROP*)plo;
 }
 
 void InitRob(ROB* prob)
@@ -30,9 +50,19 @@ void InitRob(ROB* prob)
 	InitAlo(prob);
 }
 
+void DeleteRob(LO* plo)
+{
+	delete(ROB*)plo;
+}
+
 void LoadRovFromBrx(ROV* prov, CBinaryInputStream* pbis)
 {
 	LoadSoFromBrx(prov, pbis);
+}
+
+void DeleteRov(LO* plo)
+{
+	delete(ROV*)plo;
 }
 
 void LoadRohFromBrx(ROH* proh, CBinaryInputStream* pbis)

@@ -21,6 +21,15 @@ class CRBRAIN : public ALO
 		float tContest;
 };
 
+class CRFODK : public CRFOD
+{
+	public:
+};
+
 void InitCrfodb(CRFODB *pcrfodb);
+void DeleteCrfodb(LO* plo);
 void OnCrfodAdd(CRFOD* pcrfod);
+void DeleteCrfod(LO* plo);
+void DeleteCrfodk(LO* plo);
 void InitCrbrain(CRBRAIN* pcrbrain);
+void DeleteCrbrain(LO* plo);

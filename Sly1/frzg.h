@@ -8,3 +8,5 @@ class FRZG : public LO
 		OID aoid[8];
 		MRG mrg;
 };
+
+void DeleteFrzg(LO* plo);

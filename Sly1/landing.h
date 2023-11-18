@@ -8,3 +8,4 @@ class LANDING : public SHAPE
 };
 
 void OnLandingAdd(LANDING* planding);
+void DeleteLanding(LO* plo);

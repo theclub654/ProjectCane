@@ -6,6 +6,11 @@ void InitButton(BUTTON* pbutton)
 	InitSo(pbutton);
 }
 
+void DeleteButton(LO* plo)
+{
+	delete(BUTTON*)plo;
+}
+
 void InitVolbtn(VOLBTN* pvolbtn)
 {
 	//std::cout << "VOLBTN Size: " << sizeof(VOLBTN) << "\n";
@@ -20,4 +25,9 @@ void LoadButtonFromBrx(BUTTON* pbutton, CBinaryInputStream* pbis)
 void LoadVolbtnFromBrx(VOLBTN* pvolbtn, CBinaryInputStream* pbis)
 {
 	LoadSoFromBrx(pvolbtn, pbis);
+}
+
+void DeleteVolbtn(LO* plo)
+{
+	delete (VOLBTN*)plo;
 }

@@ -73,3 +73,4 @@ class DIALOG : public ALO
 void InitDialog(DIALOG* pdialog);
 void LoadDialogFromBrx(DIALOG* pdialog, CBinaryInputStream* pbis);
 void LoadDialogEventsFromBrx(CBinaryInputStream *pbis);
+void DeleteDialog(LO* plo);

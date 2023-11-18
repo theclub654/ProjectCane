@@ -15,3 +15,4 @@ static int LoadProxyFromBrxCount = 0;
 
 void InitProxy(PROXY *pproxy);
 void LoadProxyFromBrx(PROXY *pproxy, CBinaryInputStream *pbis);
+void DeleteProxy(LO* plo);

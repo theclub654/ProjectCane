@@ -10,3 +10,8 @@ void RenderRopeAll(ROPE* prope, CM* pcm, RO* pro)
 {
 
 }
+
+void DeleteRope(LO* plo)
+{
+	delete(ROPE*)plo;
+}

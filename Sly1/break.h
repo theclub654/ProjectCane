@@ -86,7 +86,19 @@ class BRKP : public SO
         int fIgnoreBrkp;
 };
 
+class ZAPBREAK : public FRAGILE
+{
+    public:
+        ZPK zpk;
+        struct PO* ppoZap;
+};
+
 void InitBrk(BRK* pbrk);
+void DeleteBrk(LO* plo);
+void DeleteBrkp(LO* plo);
 void InitBreak(BREAK* pbreak);
+void DeleteBreak(LO* plo);
 void InitFragile(FRAGILE* pfragile);
+void DeleteFragile(LO* plo);
+void DeleteZapBreak(LO* plo);
 void LoadBrkFromBrx(BRK* pbrk, CBinaryInputStream* pbis);

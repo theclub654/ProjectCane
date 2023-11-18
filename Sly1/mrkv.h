@@ -10,3 +10,4 @@ class MRKV : public SO
 };
 
 void InitMrkv(MRKV* pmrkv);
+void DeleteMrkv(LO* plo);

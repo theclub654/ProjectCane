@@ -71,3 +71,8 @@ void RenderSoSelf(SO* pso, CM* pcm, RO* pro)
 {
 	RenderAloSelf(pso, pcm, pro);
 }
+
+void DeleteSo(LO* plo)
+{
+	delete(SO*)plo;
+}

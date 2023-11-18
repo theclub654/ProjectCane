@@ -38,3 +38,4 @@ class CAN : public BREAK
 };
 
 void InitCan(CAN *pcan);
+void DeleteCan(LO* plo);

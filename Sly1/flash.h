@@ -17,3 +17,4 @@ class FLASH : public ALO
 
 void InitFlash(FLASH* pflash);
 void LoadFlashFromBrx(FLASH* pflash, CBinaryInputStream* pbis);
+void DeleteFlash(LO* plo);

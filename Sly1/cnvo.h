@@ -11,3 +11,4 @@ class CNVO : public SO
 
 void InitCnvo(CNVO* pcnvo);
 void LoadCnvoFromBrx(CNVO* pcnvo, CBinaryInputStream* pbis);
+void DeleteCnvo(LO* plo);

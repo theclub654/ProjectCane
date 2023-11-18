@@ -11,3 +11,4 @@ class JMT : public PNT
 };
 
 void OnJmtAdd(JMT* pjmt);
+void DeleteJmt(LO* plo);

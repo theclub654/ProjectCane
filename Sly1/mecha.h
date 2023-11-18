@@ -41,3 +41,4 @@ class MECHA : public STEP
 };
 
 void InitMecha(MECHA* pmecha);
+void DeleteMecha(LO* plo);

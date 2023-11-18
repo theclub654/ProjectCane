@@ -281,19 +281,26 @@ void FreeGLBuffers(SW* psw)
 	// Loading pointer to next object in SW list
 	dlBusyDli.m_ppv = (void**)((uintptr_t)localObject + dlBusyDli.m_ibDle);
 
+	LO* nextLocalObject;
 	s_pdliFirst = &dlBusyDli;
-	int loopCounter = 0;
+
 	// Looping through all objects in a level
 	while (localObject != 0)
 	{
-		//std::cout << loopCounter++ << "\n";
-		if(localObject->pvtlo->cid != CID_PROXY)
-			DeleteModel((ALO*)localObject);
+		// Deleting object 3D model from VRAM
+		DeleteModel((ALO*)localObject);
 		// Loading next object
-		localObject = (LO*)*dlBusyDli.m_ppv;
-		// Loading pointer to next object to render
-		dlBusyDli.m_ppv = (void**)((uintptr_t)localObject + dlBusyDli.m_ibDle);
+		nextLocalObject = (LO*)*dlBusyDli.m_ppv;
+		// Loading pointer to next object
+		dlBusyDli.m_ppv = (void**)((uintptr_t)nextLocalObject + dlBusyDli.m_ibDle);
+		// Deleting SW object
+		DeleteObject(localObject);
+		// Loading next object to delete
+		localObject = nextLocalObject;
 	}
+
+	// Deleting SW object
+	delete (SW*)psw;
 }
 
 void DeleteModel(ALO *palo)
@@ -310,4 +317,9 @@ void DeleteModel(ALO *palo)
 			glDeleteBuffers(1, &palo->globset.aglob[i].asubglob[a].EBO);
 		}
 	}
+}
+
+void DeleteAlo(LO* palo)
+{
+	delete (ALO*)palo;
 }

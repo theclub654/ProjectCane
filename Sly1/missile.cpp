@@ -9,9 +9,19 @@ void InitMissile(MISSILE* pmissile)
 	InitBomb(pmissile);
 }
 
+void DeleteMissile(LO* plo)
+{
+	delete (MISSILE*)plo;
+}
+
 void InitAccmiss(ACCMISS* paccmiss)
 {
 	InitMissile(paccmiss);
+}
+
+void DeleteAccmiss(LO* plo)
+{
+	delete (ACCMISS*)plo;
 }
 
 void InitTarmiss(TARMISS* ptarmiss)
@@ -19,9 +29,24 @@ void InitTarmiss(TARMISS* ptarmiss)
 	InitAccmiss(ptarmiss);
 }
 
+void DeleteTarmiss(LO* plo)
+{
+	delete (TARMISS*)plo;
+}
+
+void DeleteSplmiss(LO* plo)
+{
+	delete (SPLMISS*)plo;
+}
+
 void InitGroundmiss(GROUNDMISS* pgroundmiss)
 {
 	InitMissile(pgroundmiss);
+}
+
+void DeleteGroundmiss(LO* plo)
+{
+	delete (GROUNDMISS*)plo;
 }
 
 void LoadMissileFromBrx(MISSILE* pmissile, CBinaryInputStream* pbis)

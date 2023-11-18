@@ -36,3 +36,4 @@ class TANK : public STEP
 
 void InitTank(TANK* ptank);
 void RenderTankAll(TANK* ptank, CM* pcm, RO* pro);
+void DeleteTank(LO* plo);

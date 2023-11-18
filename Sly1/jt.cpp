@@ -20,3 +20,8 @@ void RenderJtSelf(JT* pjt, CM* pcm, RO* pro)
 {
 
 }
+
+void DeleteJt(LO* plo)
+{
+	delete (JT*)plo;
+}

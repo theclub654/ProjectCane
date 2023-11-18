@@ -132,3 +132,4 @@ void DrawLo(ALO *palo);
 void FreeGLBuffers(SW* psw);
 // Deletes Model from VRAM
 void DeleteModel(ALO *palo);
+void DeleteAlo(LO *palo);

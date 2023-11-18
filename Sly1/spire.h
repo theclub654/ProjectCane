@@ -8,3 +8,4 @@ class SPIRE : public PNT
 };
 
 void OnSpireAdd(SPIRE* pspire);
+void DeleteSpire(LO* plo);

@@ -35,3 +35,4 @@ class WR : public LO
 };
 
 void InitWr(WR* pwr);
+void DeleteWr(LO* plo);

@@ -4,7 +4,7 @@
 class VISMAP : public LO
 {
 	int cvbsp;
-	//struct VBSP *avbsp;
+	struct VBSP *avbsp;
 	int cgrfzon;
 	int *agrfzonOneHop;
 };
@@ -13,3 +13,4 @@ class VISMAP : public LO
 void InitVismap(VISMAP *pvismap);
 // Loading all the visibility map data from binary file
 void LoadVismapFromBrx(VISMAP *pvismap, CBinaryInputStream *pbis);
+void DeleteVismap(LO* plo);

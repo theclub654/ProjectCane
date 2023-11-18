@@ -8,3 +8,4 @@ class PNT : public LO
 };
 
 void LoadPntFromBrx(PNT *pnt, CBinaryInputStream *pbis);
+void DeletePnt(LO* plo);

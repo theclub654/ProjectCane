@@ -23,3 +23,4 @@ class MGV :public PO
 
 void InitMgv(MGV* pmgv);
 void LoadMgvFromBrx(MGV* pmgv, CBinaryInputStream* pbis);
+void DeleteMGV(LO* plo);

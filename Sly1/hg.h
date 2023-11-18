@@ -7,3 +7,4 @@ class HG : public STEP
 };
 
 void InitHg(HG* phg);
+void DeleteHg(LO* plo);

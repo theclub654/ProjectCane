@@ -28,5 +28,23 @@ class SM : public LO
 		DL dlSma;
 };
 
+struct SMA : public BASIC
+{
+	DLE dleSm;
+	DLE dleSw;
+	struct SM* psm;
+	struct ALO* paloRoot;
+	int grfapl;
+	struct ASEGA* pasegaCur;
+	int ismsCur;
+	int ismsNext;
+	int ismsGoal;
+	struct SMT* psmtCur;
+	float svtLocal;
+	struct MQ* pmqFirst;
+};
 static int LoadSmFromBrxCount;
+
 void LoadSmFromBrx(SM *psm, CBinaryInputStream *pbis);
+void DeleteSm(LO* plo);
+void DeleteSma(LO* plo);

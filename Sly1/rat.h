@@ -54,5 +54,7 @@ class RATHOLE : public VOL
 void InitRat(RAT* prat);
 void OnRatAdd(RAT* prat);
 void OnRatholeAdd(RATHOLE* prathole);
+void DeleteRathole(LO* plo);
 void LoadRatFromBrx(RAT* prat, CBinaryInputStream* pbis);
 void RenderRatAll(RAT* prat, CM* pcm, RO* pro);
+void DeleteRat(LO* plo);

@@ -50,3 +50,4 @@ class LIGHT : public ALO
 void InitLight(LIGHT* plight);
 void OnLightAdd(LIGHT* plight);
 void AddLightToSw(LIGHT* plight);
+void DeleteLight(LO* plo);

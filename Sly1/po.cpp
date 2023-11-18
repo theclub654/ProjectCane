@@ -9,3 +9,8 @@ void OnPoAdd(PO* ppo)
 {
 	OnSoAdd(ppo);
 }
+
+void DeletePo(LO* plo)
+{
+	delete(PO*)plo;
+}

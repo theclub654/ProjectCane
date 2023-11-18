@@ -12,3 +12,4 @@ class RAIL : public SHAPE
 
 
 void OnRailAdd(RAIL* prail);
+void DeleteRail(LO* plo);

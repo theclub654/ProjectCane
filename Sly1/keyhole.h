@@ -25,5 +25,6 @@ class KEYHOLE : public LO
 
 void InitKeyhole(KEYHOLE *pkeyhole);
 void LoadKeyholeFromBrx(KEYHOLE* pkeyhole, CBinaryInputStream* pbis);
+void DeleteKeyhole(LO* plo);
 
 static KEYHOLE *g_pkeyhole;

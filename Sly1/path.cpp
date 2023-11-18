@@ -48,3 +48,8 @@ void LoadPathZoneFromBrx(PATHZONE* ppathzone, CBinaryInputStream* pbis)
         pbis->S16Read();
     }
 }
+
+void DeletePathzone(LO* plo)
+{
+    delete(PATHZONE*)plo;
+}

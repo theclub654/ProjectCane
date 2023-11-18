@@ -15,3 +15,8 @@ void OnPipeRemove(PIPE* ppipe)
 {
 	OnLoRemove(ppipe);
 }
+
+void DeletePipe(LO* plo)
+{
+	delete(PIPE*)plo;
+}

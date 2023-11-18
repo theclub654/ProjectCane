@@ -14,3 +14,8 @@ void InitCm(CM* pcm)
 	pcm->uFogMax = 0.5;
 	pcm->rMRD = 1.0;
 }
+
+void DeleteCm(LO* plo)
+{
+	delete(CM*)plo;
+}

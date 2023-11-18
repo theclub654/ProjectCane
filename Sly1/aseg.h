@@ -39,8 +39,20 @@ class ASEG : public LO
         enum OID* aoidSearchRoot;
 };
 
+class ASEGBL : public ASEG
+{
+    public:
+        int cbBl;
+        int cbl;
+        struct BL* abl;
+        int cmrsgc;
+        struct MRSGC* amrsgc;
+};
+
 static int LoadAsegaCount;
 
 void InitAseg(ASEG* paseg);
 void LoadAsegFromBrx(ASEG* paseg, CBinaryInputStream* pbis);
 void LoadAsegEventsFromBrx(CBinaryInputStream* pbis, int fFrame);
+void DeleteAseg(LO* plo);
+void DeleteAsegbl(LO* plo);

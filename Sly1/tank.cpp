@@ -10,3 +10,8 @@ void RenderTankAll(TANK* ptank, CM* pcm, RO* pro)
 {
 
 }
+
+void DeleteTank(LO* plo)
+{
+	delete(TANK*)plo;
+}

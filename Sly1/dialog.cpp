@@ -70,3 +70,8 @@ void LoadDialogEventsFromBrx(CBinaryInputStream* pbis)
 		}
 	}
 }
+
+void DeleteDialog(LO* plo)
+{
+	delete(DIALOG*)plo;
+}

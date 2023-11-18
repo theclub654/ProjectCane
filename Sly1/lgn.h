@@ -64,6 +64,9 @@ class SWP : public BREAK
 };
 
 void InitLgn(LGN* plgn);
+void DeleteLgn(LO* plo);
 void InitLgnb(LGNB* plgnb);
+void DeleteLgnb(LO* plo);
 void InitSwp(SWP* pswp);
+void DeleteSwp(LO* plo);
 void RenderLgnAll(LGN* plgn, CM* pcm, RO* pro);

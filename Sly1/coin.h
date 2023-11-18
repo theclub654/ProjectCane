@@ -77,9 +77,14 @@ class GOLD : public DPRIZE
 };
 
 void InitDprize(DPRIZE *pdprize);//NOT FINISHED
+void DeleteDprize(LO* plo);
 void InitCharm(CHARM* pcharm);
+void DeleteCharm(LO* plo);
 void InitCoin(COIN* pcoin);
+void DeleteCoin(LO* plo);
 void InitKey(KEY* pkey);
+void DeleteKey(LO* plo);
 void InitGold(GOLD* pgold);
+void DeleteGold(LO* plo);
 void LoadDprizeFromBrx(DPRIZE* pdprize, CBinaryInputStream *pbis);//NOT FINISHED
 void RenderDprizeAll(DPRIZE* pdprize, CM* pcm, RO* pro);

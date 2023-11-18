@@ -23,3 +23,8 @@ void LoadShapeFromBrx(SHAPE* pshape, CBinaryInputStream* pbis)
 
     LoadOptionFromBrx(pshape, pbis);
 }
+
+void DeleteShape(LO* plo)
+{
+    delete(SHAPE*)plo;
+}

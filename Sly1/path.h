@@ -23,3 +23,4 @@ class PATHZONE : public LO
 
 void OnPathzoneAdd(PATHZONE* ppathzone);
 void LoadPathZoneFromBrx(PATHZONE* ppathzone, CBinaryInputStream* pbis);
+void DeletePathzone(LO* plo);

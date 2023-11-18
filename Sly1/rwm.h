@@ -77,3 +77,4 @@ class RWM : public LO
 };
 
 void InitRwm(RWM* prwm);
+void DeleteRwm(LO* plo);

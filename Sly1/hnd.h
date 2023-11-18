@@ -22,3 +22,4 @@ class HND : public TARGET
 
 void InitHnd(HND* phnd);
 void LoadHndFromBrx(HND* phnd, CBinaryInputStream* pbis);
+void DeleteHnd(LO* plo);

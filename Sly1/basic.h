@@ -11184,7 +11184,7 @@ struct VTJSG
     VT *pvtSuper = g_vtlo.pvtSuper;
     CID cid = CID_JSG;
     int grfcid = 0;
-    int cb = 0x70;
+    int cb = 200;
 
     void (*pfnInitJsg)(JSG*) = InitJsg;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;

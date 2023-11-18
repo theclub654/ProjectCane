@@ -14,3 +14,4 @@ class WATER : public SO
 };
 
 void InitWater(WATER* pwater);
+void DeleteWater(LO* plo);

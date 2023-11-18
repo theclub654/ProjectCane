@@ -22,3 +22,4 @@ class MGC : public ALO
 
 void InitMgc(MGC* pmgc);
 void LoadMgcFromBrx(MGC* pmgc, CBinaryInputStream* pbis);
+void DeleteMgc(LO* plo);

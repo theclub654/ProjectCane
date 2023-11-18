@@ -132,7 +132,11 @@ class PRSEN : public SENSOR
 };
 
 void InitSensor(SENSOR* psensor);
+void DeleteSensor(LO* plo);
 void InitLasen(LASEN* plasen);
+void DeleteLasen(LO* plo);
 void InitCamsen(CAMSEN* pcamsen);
+void DeleteCamsen(LO* plo);
 void InitPrsen(PRSEN* pprsen);
+void DeletePrsen(LO* plo);
 void LoadLasenFromBrx(LASEN *plasen, CBinaryInputStream *pbis);

@@ -57,3 +57,8 @@ void LoadTbspFromBrx(CBinaryInputStream* pbis)
         pbis->S16Read();
     }
 }
+
+void DeleteTn(LO* plo)
+{
+    delete(TN*)plo;
+}

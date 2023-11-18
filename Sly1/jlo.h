@@ -83,7 +83,10 @@ class JLOVOL : public VOLBTN
 };
 
 void InitJlovol(JLOVOL* pjlovol);
+void DeleteJlovol(LO* plo);
 void InitJlo(JLO* pjlo);
+void DeleteJlo(LO* plo);
 void InitJloc(JLOC* pjloc);
+void DeleteJloc(LO* plo);
 void LoadJloFromBrx(JLO* pjlo, CBinaryInputStream* pbis);
 void LoadJlocFromBrx(JLOC* pjloc, CBinaryInputStream* pbis);

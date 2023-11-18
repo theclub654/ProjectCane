@@ -28,3 +28,8 @@ void RenderOpenFileGui()
         instance_a.Instance()->Close();
     }
 }
+
+void RenderCloseWorldGui()
+{
+    ImGui::Button("Close World");
+}

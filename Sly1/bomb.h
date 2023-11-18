@@ -44,3 +44,4 @@ class BOMB : public SO
 void InitBomb(BOMB* pbomb);
 void OnBombAdd(BOMB* pbomb);
 void LoadBombFromBrx(BOMB* pbomb, CBinaryInputStream* pbis);
+void DeleteBomb(LO* plo);

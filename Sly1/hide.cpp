@@ -11,6 +11,11 @@ void OnHbskAdd(HBSK* phbsk)
 	OnSoAdd(phbsk);
 }
 
+void DeleteHbsk(LO* plo)
+{
+	delete (HBSK*)plo;
+}
+
 void InitHshape(HSHAPE* phshape)
 {
 	//std::cout << "HSHAPE Size: " << sizeof(HSHAPE) << "\n";
@@ -22,10 +27,20 @@ void OnHshapeAdd(HSHAPE* phshape)
 	OnLoAdd(phshape);
 }
 
+void DeleteHshape(LO* plo)
+{
+	delete(HSHAPE*)plo;
+}
+
 void InitHpnt(HPNT* phpnt)
 {
 	//std::cout << "HPNT Size: " << sizeof(HPNT) << "\n";
 	InitLo(phpnt);
+}
+
+void DeleteHpnt(LO* plo)
+{
+	delete(HPNT*)plo;
 }
 
 void OnHpntAdd(HPNT* phpnt)

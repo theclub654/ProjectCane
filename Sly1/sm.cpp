@@ -39,3 +39,13 @@ void LoadSmFromBrx(SM* psm, CBinaryInputStream* pbis)
 		plo->pvtlo->pfnLoadLoFromBrx(plo, pbis);
 	}
 }
+
+void DeleteSm(LO* plo)
+{
+	delete(SM*)plo;
+}
+
+void DeleteSma(LO* plo)
+{
+	delete(SMA*)plo;
+}

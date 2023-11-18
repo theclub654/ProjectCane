@@ -24,3 +24,4 @@ class WAYPOINT : public ALO
 };
 
 void InitWaypoint(WAYPOINT* pwaypoint);
+void DeleteWaypoint(LO* plo);

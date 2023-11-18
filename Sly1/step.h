@@ -71,3 +71,4 @@ class STEP : public PO
 };
 
 void InitStep(STEP* pstep);
+void DeleteStep(LO* plo);

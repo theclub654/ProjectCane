@@ -87,6 +87,10 @@ class CAMERA : public ALO
 
 void InitXfm(XFM* pxfm);
 void LoadXfmFromBrx(XFM* pxfm, CBinaryInputStream* pbis);
+void DeleteXfm(LO* plo);
 void LoadWarpFromBrx(WARP* pwarp, CBinaryInputStream* pbis);
+void DeleteWarp(LO* plo);
 void LoadExitFromBrx(EXIT *pexit, CBinaryInputStream* pbis);
+void DeleteExit(LO* plo);
 void InitCamera(CAMERA* pcamera);
+void DeleteCamera(LO* plo);

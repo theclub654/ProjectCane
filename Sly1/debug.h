@@ -8,3 +8,4 @@
 extern std::string file;
 
 void RenderOpenFileGui();
+void RenderCloseWorldGui();

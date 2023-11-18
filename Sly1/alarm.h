@@ -42,3 +42,5 @@ class ALBRK : public BRK
 };
 
 void InitAlarm(ALARM* palarm);
+void DeleteAlarm(LO* plo);
+void DeleteAlbrk(LO* plo);

@@ -16,3 +16,8 @@ void AddLightToSw(LIGHT* plight)
 	
 	AppendDlEntry(&plight->psw->dlLight, plight);
 }
+
+void DeleteLight(LO* plo)
+{
+	delete(LIGHT*)plo;
+}

@@ -14,6 +14,22 @@ enum UBPS
     UBPS_PlaceBomb = 7,
     UBPS_Max = 8
 };
+enum UBVS
+{
+    UBVS_Nil = -1,
+    UBVS_Idle = 0,
+    UBVS_PlacePads = 1,
+    UBVS_PlaceBombs = 2,
+    UBVS_SwapPads = 3,
+    UBVS_Move = 4,
+    UBVS_Max = 5
+};
+struct SWAP 
+{
+    int row;
+    int col1;
+    int col2;
+};
 
 class UBG : public GOMER
 {
@@ -39,5 +55,24 @@ class UBP : public SO
         struct BOMB* pbomb;
 };
 
+class UBV : public SO
+{
+    public:
+        UBVS ubvs;
+        float tUbvs;
+        struct UBP* apubp[12];
+        struct UBP* apubpBase[2];
+        glm::vec3 dposPadRow;
+        glm::vec3 dposPadCol;
+        glm::vec3 dposBase;
+        int cswap;
+        int iswap;
+        SWAP aswap[24];
+        int mprowcolSafe[4];
+};
+
 void InitUbg(UBG* pubg);
 void RenderUbpAll(UBP* pubp, CM* pcm, RO* pro);
+void DeleteUbg(LO* plo);
+void DeleteUbp(LO* plo);
+void DeleteUbv(LO* plo);

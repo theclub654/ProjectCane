@@ -156,8 +156,10 @@
     <ClInclude Include="alarm.h" />
     <ClInclude Include="alo.h" />
     <ClInclude Include="aseg.h" />
+    <ClInclude Include="asega.h" />
     <ClInclude Include="barrier.h" />
     <ClInclude Include="basic.h" />
+    <ClInclude Include="binoc.h" />
     <ClInclude Include="bis.h" />
     <ClInclude Include="blip.h" />
     <ClInclude Include="bomb.h" />
@@ -183,6 +185,7 @@
     <ClInclude Include="dsp.h" />
     <ClInclude Include="dysh.h" />
     <ClInclude Include="emitter.h" />
+    <ClInclude Include="erase.h" />
     <ClInclude Include="flash.h" />
     <ClInclude Include="fly.h" />
     <ClInclude Include="font.h" />
@@ -195,6 +198,7 @@
     <ClInclude Include="hg.h" />
     <ClInclude Include="hide.h" />
     <ClInclude Include="hnd.h" />
+    <ClInclude Include="ik.h" />
     <ClInclude Include="jack.h" />
     <ClInclude Include="jlo.h" />
     <ClInclude Include="jp.h" />
@@ -259,6 +263,7 @@
     <ClInclude Include="target.h" />
     <ClInclude Include="tn.h" />
     <ClInclude Include="transition.h" />
+    <ClInclude Include="turret.h" />
     <ClInclude Include="ub.h" />
     <ClInclude Include="util.h" />
     <ClInclude Include="vec.h" />
@@ -284,8 +289,10 @@
     <ClCompile Include="alarm.cpp" />
     <ClCompile Include="alo.cpp" />
     <ClCompile Include="aseg.cpp" />
+    <ClCompile Include="asega.cpp" />
     <ClCompile Include="barrier.cpp" />
     <ClCompile Include="basic.cpp" />
+    <ClCompile Include="binoc.cpp" />
     <ClCompile Include="bis.cpp" />
     <ClCompile Include="blip.cpp" />
     <ClCompile Include="bomb.cpp" />
@@ -310,6 +317,7 @@
     <ClCompile Include="dsp.cpp" />
     <ClCompile Include="dysh.cpp" />
     <ClCompile Include="emitter.cpp" />
+    <ClCompile Include="erase.cpp" />
     <ClCompile Include="flash.cpp" />
     <ClCompile Include="fly.cpp" />
     <ClCompile Include="font.cpp" />
@@ -323,6 +331,7 @@
     <ClCompile Include="hg.cpp" />
     <ClCompile Include="hide.cpp" />
     <ClCompile Include="hnd.cpp" />
+    <ClCompile Include="ik.cpp" />
     <ClCompile Include="jack.cpp" />
     <ClCompile Include="jlo.cpp" />
     <ClCompile Include="jp.cpp" />
@@ -386,6 +395,7 @@
     <ClCompile Include="target.cpp" />
     <ClCompile Include="tn.cpp" />
     <ClCompile Include="transition.cpp" />
+    <ClCompile Include="turret.cpp" />
     <ClCompile Include="ub.cpp" />
     <ClCompile Include="util.cpp" />
     <ClCompile Include="vec.cpp" />

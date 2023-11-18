@@ -10,3 +10,18 @@ void RenderUbpAll(UBP* pubp, CM* pcm, RO* pro)
 {
 
 }
+
+void DeleteUbg(LO* plo)
+{
+	delete (UBG*)plo;
+}
+
+void DeleteUbp(LO* plo)
+{
+	delete (UBP*)plo;
+}
+
+void DeleteUbv(LO* plo)
+{
+	delete (UBV*)plo;
+}

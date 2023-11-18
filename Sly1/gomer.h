@@ -18,3 +18,4 @@ class GOMER:public STEPGUARD
 };
 
 void InitGomer(GOMER* pgomer);
+void DeleteGomer(LO* plo);

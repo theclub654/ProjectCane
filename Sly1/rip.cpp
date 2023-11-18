@@ -12,3 +12,8 @@ void OnRipgRemove(RIPG* pripg)
 {
 
 }
+
+void DeleteRipg(LO* plo)
+{
+	delete (RIPG*)plo;
+}

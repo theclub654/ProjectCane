@@ -48,3 +48,4 @@ class BLIPG : public ALO
 void InitBlipg(BLIPG* pblipg);
 void OnBlipgAdd(BLIPG* pblipg);
 void RenderBlipgSelf(BLIPG* pblipg, CM* pcm, RO* pro);
+void DeleteBlipg(LO* plo);

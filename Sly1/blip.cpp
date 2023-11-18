@@ -16,3 +16,8 @@ void RenderBlipgSelf(BLIPG* pblipg, CM* pcm, RO* pro)
 {
 
 }
+
+void DeleteBlipg(LO* plo)
+{
+	delete(BLIPG*)plo;
+}

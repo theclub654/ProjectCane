@@ -36,3 +36,4 @@ class DART : public SO
 void InitDart(DART* pdart);
 void OnDartAdd(DART* pdart);
 void LoadDartFromBrx(DART* pdart, CBinaryInputStream* pbis);
+void DeleteDart(LO* plo);

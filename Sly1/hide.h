@@ -61,8 +61,11 @@ class HPNT : public PNT
 
 void InitHbsk(HBSK* phbsk);
 void OnHbskAdd(HBSK* phbsk);
+void DeleteHbsk(LO* plo);
 void InitHshape(HSHAPE* phshape);
 void OnHshapeAdd(HSHAPE* phshape);
+void DeleteHshape(LO* plo);
 void InitHpnt(HPNT* phpnt);
+void DeleteHpnt(LO* plo);
 void OnHpntAdd(HPNT* phpnt);
 void LoadHbskFromBrx(HBSK* phbsk, CBinaryInputStream* pbis);

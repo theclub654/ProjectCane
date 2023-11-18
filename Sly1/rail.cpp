@@ -6,3 +6,8 @@ void OnRailAdd(RAIL* prail)
 	OnLoAdd(prail);
 	AppendDlEntry(&prail->psw->dlRail, prail);
 }
+
+void DeleteRail(LO* plo)
+{
+	delete(RAIL*)plo;
+}

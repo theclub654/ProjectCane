@@ -38,3 +38,8 @@ void LoadRchmFromBrx(RCHM* prchm, CBinaryInputStream* pbis)
     pbis->F32Read();
     LoadOptionFromBrx(0, pbis);
 }
+
+void DeleteRchm(LO* plo)
+{
+    delete (RCHM*)plo;
+}

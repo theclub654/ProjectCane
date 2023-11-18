@@ -299,3 +299,13 @@ void LoadAsegEventsFromBrx(CBinaryInputStream* pbis, int fFrame)
         }
     }
 }
+
+void DeleteAseg(LO* plo)
+{
+    delete(ASEG*)plo;
+}
+
+void DeleteAsegbl(LO* plo)
+{
+    delete(ASEGBL*)plo;
+}

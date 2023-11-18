@@ -463,5 +463,6 @@ void InitJt(JT *pjt); // NOT FINSHED
 void LoadJtFromBrx(JT *pjt, CBinaryInputStream *pbis); // NOT FINSHED
 void RenderJtAll(JT* pjt, CM* pcm, RO* pro);
 void RenderJtSelf(JT* pjt, CM* pcm, RO* pro);
+void DeleteJt(LO* plo);
 
 extern inline JT *g_pjt = nullptr;

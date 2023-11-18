@@ -12,3 +12,8 @@ void LoadCnvoFromBrx(CNVO* pcnvo, CBinaryInputStream* pbis)
 	pbis->F32Read();
 	pbis->F32Read();
 }
+
+void DeleteCnvo(LO* plo)
+{
+	delete (CNVO*)plo;
+}

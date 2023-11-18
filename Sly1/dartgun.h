@@ -30,3 +30,4 @@ class DARTGUN : public BREAK
 };
 
 void InitDartgun(DARTGUN* pdartgun);
+void DeleteDartGun(LO* plo);

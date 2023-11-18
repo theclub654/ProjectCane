@@ -142,3 +142,4 @@ class SUV : public PO
 };
 
 void InitSuv(SUV *psuv);
+void DeleteSUV(LO* plo);

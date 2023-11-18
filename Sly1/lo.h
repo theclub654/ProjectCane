@@ -12,6 +12,7 @@ class ALO;
 LO* PloNew(CID cid, SW* psw, ALO* paloParent, OID oid, int isplice);
 void LoadSwObjectsFromBrx(SW* psw, ALO* paloParent, CBinaryInputStream* pbis);
 void LoadOptionFromBrx(void* pvObject, CBinaryInputStream* pbis);
+void DeleteObject(LO* plo);
 
 enum MSGID
 {
@@ -63,7 +64,16 @@ struct PSL
     int cploCloneFree;
     struct LO** aploClone;
 };
-
+// Merge
+// Used to merge ALO object's
+struct MRG
+{
+    DLE dle;
+    // Number of ALO objects to be merged
+    int cpalo;
+    // The ALO object thats gonna be merged
+    struct ALO** apalo;
+};
 class LO : public BASIC
 {
 	public:
@@ -107,6 +117,7 @@ void SubscribeLoObject(LO* plo, LO* ploTarget);
 void UnsubscribeLoObject(LO* plo, LO* ploTarget);
 void SubscribeLoStruct(LO* plo, void* pfnmq, void* pvContext);
 void UnsubscribeLoStruct(LO* plo, void * pfnmq, void* pvContext);
+void DeleteLo(LO* plo);
 
 #include "sw.h"
 #include "alo.h"

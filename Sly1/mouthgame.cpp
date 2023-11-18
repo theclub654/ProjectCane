@@ -10,3 +10,8 @@ void LoadMgcFromBrx(MGC* pmgc, CBinaryInputStream* pbis)
 {
 	LoadAloFromBrx(pmgc, pbis);
 }
+
+void DeleteMgc(LO* plo)
+{
+	delete(MGC*)plo;
+}

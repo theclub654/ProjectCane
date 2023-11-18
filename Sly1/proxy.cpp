@@ -49,3 +49,8 @@ void LoadProxyFromBrx(PROXY *pproxy, CBinaryInputStream* pbis)
 	if (numProxyObjs == 1)
 		LoadSwObjectsFromBrx(pproxy->psw, pproxy, pbis);
 }
+
+void DeleteProxy(LO* plo)
+{
+	delete(PROXY*)plo;
+}

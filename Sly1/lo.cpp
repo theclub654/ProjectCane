@@ -158,3 +158,8 @@ void SubscribeLoStruct(LO* plo, void* pfnmq, void* pvContext)
 void UnsubscribeLoStruct(LO* plo, void* pfnmq, void* pvContext)
 {
 }
+
+void DeleteLo(LO* plo)
+{
+	delete (LO*)plo;
+}

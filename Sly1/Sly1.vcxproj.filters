@@ -408,6 +408,21 @@
     <ClInclude Include="dsp.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="erase.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="turret.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="ik.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="binoc.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="asega.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="phasemem.cpp">
@@ -783,6 +798,21 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="dsp.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="erase.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="turret.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="ik.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="binoc.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="asega.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

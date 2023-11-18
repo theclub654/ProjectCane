@@ -17,3 +17,8 @@ void LoadVismapFromBrx(VISMAP *pvismap, CBinaryInputStream *pbis)
 
 	pbis->U16Read();
 }
+
+void DeleteVismap(LO* plo)
+{
+	delete(VISMAP*)plo;
+}

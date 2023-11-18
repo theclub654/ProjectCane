@@ -47,3 +47,4 @@ class RCHM : public LO
 
 void InitRchm(RCHM* prchm);
 void LoadRchmFromBrx(RCHM* prchm, CBinaryInputStream* pbis);
+void DeleteRchm(LO* plo);
