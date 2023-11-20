@@ -17,9 +17,9 @@ void CTransition::Execute(std::string file)
 	// Setting the global game state to load because where loading a file
 	SetPhase(PHASE_Load);
 	// THIS IS HERE TEMPORARILY I PLAN ON REWRITING THE WAY THE GAME LOADS FILES
-	CBinaryInputStream bis(file);
+	CBinaryInputStream* pbis = new CBinaryInputStream(file);
 
-	if (bis.file.is_open() == false)
+	if (pbis->file.is_open() == false)
 	{
 		std::cout << "Error opening file\n";
 		m_fPending = 0;
@@ -30,15 +30,15 @@ void CTransition::Execute(std::string file)
 	DeleteSw(g_psw);
 	g_psw = nullptr;
 	// Reading data thats not needed
-	bis.S32Read();
+	pbis->S32Read();
 	// Reading data thats not needed
-	bis.S32Read();
+	pbis->S32Read();
 	// Initializing parent SW object
 	g_psw = (SW*)PloNew(CID::CID_SW, nullptr, nullptr, OID::OID__WORLD, -1);
 	// Loads parent static world from binary file.
-	g_psw->pvtlo->pfnLoadLoFromBrx(g_psw, &bis);
-	// Closing binary object
-	bis.Close();
+	g_psw->pvtlo->pfnLoadLoFromBrx(g_psw, pbis);
+	// Closing and deleting binary object
+	delete pbis;
 	// Setting the level pending flag to 0
 	m_fPending = 0;
 }

@@ -103,6 +103,8 @@ public:
 	float rDarkenSmooth;
 };
 
+// Create SW object
+void* CreateSw();
 // Initializing SW object
 void InitSw(SW* psw); // GOTTA COME BACK TO THIS
 // Initializing the base offset to data

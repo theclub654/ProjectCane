@@ -7,7 +7,7 @@ void RenderOpenFileGui()
     // open Dialog Simple
     ImGuiFileDialog instance_a;
 
-    if (ImGui::Button("Open File"))
+    if (ImGui::Button("Open World"))
         instance_a.Instance()->OpenDialog("ChooseFileDlgKey", "Choose File", ".brx", ".");
 
     // display
@@ -29,7 +29,8 @@ void RenderOpenFileGui()
     }
 }
 
-void RenderCloseWorldGui()
+void RenderCloseWorldGui(SW* psw)
 {
-    ImGui::Button("Close World");
+    if (ImGui::Button("Close World"))
+        DeleteSw(psw);
 }

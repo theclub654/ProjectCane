@@ -1,6 +1,9 @@
 #pragma once
 #include "lo.h"
 
+static int objCounter = 0;
+extern std::vector<void*> allWorldObjs;
+
 // Initializes Options
 void StartupBrx();
 // Returns a new static world object

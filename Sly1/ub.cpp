@@ -2,13 +2,19 @@
 
 void InitUbg(UBG* pubg)
 {
-	std::cout << "UBP Size: " << sizeof(UBP) << "\n";
+	//std::cout << "UBV Size: " << sizeof(UBP) << "\n";
 	InitGomer(pubg);
 }
 
 void RenderUbpAll(UBP* pubp, CM* pcm, RO* pro)
 {
 
+}
+
+void* CreateUbg()
+{
+	UBG ubg;
+	return &ubg;
 }
 
 void DeleteUbg(LO* plo)

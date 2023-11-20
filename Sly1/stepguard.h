@@ -178,6 +178,7 @@ class SGG : public LO
 
 void InitSgg(SGG* psgg);
 void DeleteSgg(LO* plo);
+void*CreateStepguard();
 void InitStepGuard(STEPGUARD* pstepguard);
 void OnStepguardAdd(STEPGUARD* pstepguard);
 void LoadStepGuardFromBrx(STEPGUARD *pstepguard, CBinaryInputStream *pbis);

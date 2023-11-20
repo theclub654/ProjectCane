@@ -26,10 +26,13 @@ class CRFODK : public CRFOD
 	public:
 };
 
+void*CreateCrfodb();
 void InitCrfodb(CRFODB *pcrfodb);
 void DeleteCrfodb(LO* plo);
+void*CreateCrfod();
 void OnCrfodAdd(CRFOD* pcrfod);
 void DeleteCrfod(LO* plo);
+void*CreateCrfodk();
 void DeleteCrfodk(LO* plo);
 void InitCrbrain(CRBRAIN* pcrbrain);
 void DeleteCrbrain(LO* plo);

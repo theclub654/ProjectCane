@@ -10,6 +10,12 @@ void DeleteSgg(LO* plo)
 	delete(SGG*)plo;
 }
 
+void* CreateStepguard()
+{
+	STEPGUARD stepguard;
+	return &stepguard;
+}
+
 void InitStepGuard(STEPGUARD* pstepguard)
 {
 	InitStep(pstepguard);

@@ -1,5 +1,11 @@
 #include "po.h"
 
+void* CreatePo()
+{
+	PO po;
+	return &po;
+}
+
 void InitPo(PO* ppo)
 {
 	InitSo(ppo);

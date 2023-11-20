@@ -1,5 +1,11 @@
 #include "jt.h"
 
+void* CreateJt()
+{
+	JT jt;
+	return &jt;
+}
+
 void InitJt(JT* pjt)
 {
 	InitStep(pjt);

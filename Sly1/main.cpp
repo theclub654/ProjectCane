@@ -36,6 +36,7 @@ int main(int cphzArgs, char* aphzArgs[])
 		}
 
 		RenderOpenFileGui();
+		RenderCloseWorldGui(g_psw);
 
 		ImGui::End();
 		ImGui::Render();
@@ -47,7 +48,7 @@ int main(int cphzArgs, char* aphzArgs[])
 	}
 	
 	if (g_psw != nullptr)
-		FreeGLBuffers(g_psw);
+		DeleteWorld(g_psw);
 
 	glShader.Delete();
 	g_gl.GLFWTerminate();

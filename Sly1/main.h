@@ -6,8 +6,9 @@
 
 void RenderSw(SW* psw, CM* pcm);
 void DrawSwAll(SW* psw, CM* pcm);
-void FreeGLBuffers(SW* psw);
+void DeleteWorld(SW* psw);
 
+// Main loop
 int main(int cphzArgs, char* aphzArgs[]);
 // Initializing all the things needed for the game to run
 void Startup();

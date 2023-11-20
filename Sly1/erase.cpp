@@ -639,5 +639,9 @@ void DeleteObject(LO* plo)
 		case CID_SMA:
 			DeleteSma(plo);
 		break;
+
+		default:
+			std::cout << "Default hit " << plo->pvtlo->cid<<"\n";
+		break;
 	}
 }

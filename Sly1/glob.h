@@ -3,6 +3,8 @@
 #include "bis.h"
 
 // Glob is just another word for model.
+static int GlobCounter = 0;
+class ALO;
 
 // Vertex Flag
 struct VTXFLG
@@ -94,7 +96,7 @@ struct GLOBSET // NOT DONE
 	std::vector <GLOBI> aglobi;
 	//LTFN ltfn;
 	uint32_t grfglobset;
-	struct RGBA rgbaCel;
+	RGBA rgbaCel;
 	int cpose;
 	std::vector <float> agPoses;
 	std::vector <float> agPosesOrig;
@@ -104,7 +106,7 @@ struct GLOBSET // NOT DONE
 }; // NOT DONE
 
 // Loads 3D models from binary file
-void LoadGlobsetFromBrx(GLOBSET *pglobset, CBinaryInputStream *pbis); // NOT FINISHED
+void LoadGlobsetFromBrx(GLOBSET *pglobset, CBinaryInputStream *pbis, ALO* palo); // NOT FINISHED
 // Converts tri strips to tri list
 std::vector <byte> ConvertStripsToTriLists(std::vector <VTXFLG> indexes);
 // Storing 3D models in VRAM

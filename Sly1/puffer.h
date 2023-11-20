@@ -78,6 +78,7 @@ void DeletePuffer(LO* plo);
 void DeletePuffb(LO* plo);
 void InitPuffv(PUFFV* ppuffv);
 void DeletePuffv(LO* plo);
+void*CreatePuffc();
 void LoadPufferFromBrx(PUFFER *ppuffer, CBinaryInputStream *pbis);
 void DeletePuffc(LO* plo);
 void DeletePufft(LO* plo);

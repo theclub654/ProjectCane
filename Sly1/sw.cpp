@@ -1,5 +1,11 @@
 #include "sw.h"
 
+void* CreateSw()
+{
+	SW psw;
+	return &psw;
+}
+
 void InitSw(SW* psw)
 {
 	InitLo(psw);
@@ -95,7 +101,7 @@ void DeleteSw(SW* psw)
 {
 	if (psw != nullptr)
 	{
-		FreeGLBuffers(psw);
+		DeleteWorld(psw);
 		UnloadShaders();
 		g_pcm = nullptr;
 	}

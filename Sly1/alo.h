@@ -107,6 +107,8 @@ public:
 	ACK ackRot;
 };
 
+// Create ALO
+void* CreateAlo();
 // Initialize ALO object
 void InitAlo(ALO* palo); // NOT FINISHED
 // Adds alo parent and all the alo childs into the world
@@ -128,8 +130,8 @@ void RenderAloGlobset(ALO* palo, CM* pcm, RO* pro);
 void RenderAloLine(ALO* palo, CM* pcm, glm::vec3* ppos0, glm::vec3* ppos1, float rWidth, float uAlpha);
 void RenderAloAsBone(ALO* palo, CM* pcm, RO* pro);
 void DrawLo(ALO *palo);
-// Deletes all asset data from VRAM
-void FreeGLBuffers(SW* psw);
+// Deletes all world data from memory
+void DeleteWorld(SW* psw);
 // Deletes Model from VRAM
 void DeleteModel(ALO *palo);
 void DeleteAlo(LO *palo);

@@ -1,8 +1,9 @@
 #include "glob.h"
 
 std::vector <SHD> g_ashd;
+std::vector<void*> allSWAloObjs;
 
-void LoadGlobsetFromBrx(GLOBSET* pglobset, CBinaryInputStream* pbis)
+void LoadGlobsetFromBrx(GLOBSET* pglobset, CBinaryInputStream* pbis, ALO* palo)
 {
     pglobset->cpsaa = 0;
 
@@ -22,7 +23,7 @@ void LoadGlobsetFromBrx(GLOBSET* pglobset, CBinaryInputStream* pbis)
 
     // Loading number of submodels for model
     pglobset->cglob = pbis->U16Read();
-    
+
     if (pglobset->cglob != 0)
     {
         pglobset->aglob.resize(pglobset->cglob);
@@ -188,7 +189,10 @@ void LoadGlobsetFromBrx(GLOBSET* pglobset, CBinaryInputStream* pbis)
             }
 
             if (pglobset->aglob[i].csubglob != 0)
+            {
+                allSWAloObjs.push_back(palo);
                 pglobset->aglob[i].asubglob = MakeGLBuffers(pglobset->aglob[i].asubglob);
+            }
 
             uint16_t numSubMesh1 = pbis->U16Read();
 

@@ -1,5 +1,14 @@
 #include "alo.h"
 
+std::vector<void*> allWorldObjs;
+extern std::vector<void*> allSWAloObjs;
+
+void* CreateAlo()
+{
+	ALO alo;
+	return &alo;
+}
+
 void InitAlo(ALO* palo)
 {
 	//std::cout << palo << "\n";
@@ -137,7 +146,7 @@ void LoadAloFromBrx(ALO* palo, CBinaryInputStream* pbis)
 	palo->sRadiusRenderSelf = pbis->F32Read();
 	palo->sRadiusRenderAll = pbis->F32Read();
 	LoadOptionFromBrx(palo, pbis);
-	LoadGlobsetFromBrx(&palo->globset, pbis);
+	LoadGlobsetFromBrx(&palo->globset, pbis, palo);
 	LoadAloAloxFromBrx(pbis);
 	
 	palo->cposec = pbis->U8Read();
@@ -265,47 +274,27 @@ void DrawLo(ALO* palo)
 	}
 }
 
-void FreeGLBuffers(SW* psw)
+void DeleteWorld(SW* psw)
 {
-	DLI dlBusyDli;
+	for (int i = 0; i < allSWAloObjs.size(); i++)
+		DeleteModel((ALO*)allSWAloObjs[i]);
 
-	// Loading SW object list
-	dlBusyDli.m_pdl = &psw->dlBusy;
-	// Loading base offset to next object
-	dlBusyDli.m_ibDle = psw->dlBusy.ibDle;
+	for (int i = 0; i < allWorldObjs.size(); i++)
+		DeleteObject((LO*)allWorldObjs[i]);
 
-	dlBusyDli.m_pdliNext = s_pdliFirst;
+	delete(SW*)psw;
+	
+	allSWAloObjs.clear();
+	allSWAloObjs.shrink_to_fit();
+	allWorldObjs.clear();
+	allWorldObjs.shrink_to_fit();
 
-	// Loading first object in SW object list
-	LO* localObject = psw->dlBusy.ploFirst;
-	// Loading pointer to next object in SW list
-	dlBusyDli.m_ppv = (void**)((uintptr_t)localObject + dlBusyDli.m_ibDle);
-
-	LO* nextLocalObject;
-	s_pdliFirst = &dlBusyDli;
-
-	// Looping through all objects in a level
-	while (localObject != 0)
-	{
-		// Deleting object 3D model from VRAM
-		DeleteModel((ALO*)localObject);
-		// Loading next object
-		nextLocalObject = (LO*)*dlBusyDli.m_ppv;
-		// Loading pointer to next object
-		dlBusyDli.m_ppv = (void**)((uintptr_t)nextLocalObject + dlBusyDli.m_ibDle);
-		// Deleting SW object
-		DeleteObject(localObject);
-		// Loading next object to delete
-		localObject = nextLocalObject;
-	}
-
-	// Deleting SW object
-	delete (SW*)psw;
+	g_psw = nullptr;
 }
 
 void DeleteModel(ALO *palo)
 {
-	for (int i = 0; i < palo->globset.cglob; i++)
+	for (int i = 0; i < palo->globset.aglob.size(); i++)
 	{
 		for (int a = 0; a < palo->globset.aglob[i].asubglob.size(); a++)
 		{

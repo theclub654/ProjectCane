@@ -8,174 +8,174 @@ struct BASIC
 {
     union
     {
-        struct VTBASIC *pvtbasic;
-        struct VTLO *pvtlo;
-        struct VTALO *pvtalo;
-        struct VTSO *pvtso;
-        struct VTSHAPE *pvtshape;
-        struct VTPNT *pvtpnt;
-        struct VTPNTVEC *pvtpntvec;
-        struct VTPNTSV *pvtpntsv;
-        struct VTPNTS *pvtpnts;
-        struct VTSCAN *pvtscan;
-        struct VTXFM *pvtxfm;
-        struct VTWARP *pvtwarp;
-        struct VTEXIT *pvtexit;
-        struct VTCAMERA *pvtcamera;
-        struct VTLIGHT *pvtlight;
-        struct VTPO *pvtpo;
-        struct VTKEYHOLE *pvtkeyhole;
-        struct VTWATER *pvtwater;
-        struct VTTN *pvttn;
-        struct VTBRK *pvtbrk;
-        struct VTBRKP *pvtbrkp;
-        struct VTBREAK *pvtbreak;
-        struct VTFRAGILE *pvtfragile;
-        struct VTZAPBREAK *pvtzapbreak;
-        struct VTVOLBTN *pvtvolbtn;
-        struct VTBUTTON *pvtbutton;
-        struct VTSQUISH *pvtsquish;
-        struct VTFRZG *pvtfrzg;
-        struct VTBONE *pvtbone;
-        struct VTLBONE *pvtlbone;
-        struct VTMAP *pvtmap;
-        struct VTVISMAP *pvtvismap;
-        struct VT_VISZONE *pvt_viszone;
-        struct VTASEG *pvtaseg;
-        struct VTASEGA *pvtasega;
-        struct VTASEGBL *pvtasegbl;
-        struct VTSM *pvtsm;
-        struct VTSMA *pvtsma;
-        struct VTIKH *pvtikh;
-        struct VTLIKH *pvtlikh;
-        struct VTSCH *pvtsch;
-        struct VTRIPG *pvtripg;
-        struct VTBLIPG *pvtblipg;
-        struct VTEMITTER *pvtemitter;
-        struct VTEXPL *pvtexpl;
-        struct VTEXPLG *pvtexplg;
-        struct VTEXPLO *pvtexplo;
-        struct VTEXPLS *pvtexpls;
-        struct VTPROXY *pvtproxy;
-        struct VTDIALOG *pvtdialog;
-        struct VTHSHAPE *pvthshape;
-        struct VTHPNT *pvthpnt;
-        struct VTHBSK *pvthbsk;
-        struct VTRCHM *pvtrchm;
-        struct VTSTEP *pvtstep;
-        struct VTSPRIZE *pvtsprize;
-        struct VTSCPRIZE *pvtscprize;
-        struct VTCLUE *pvtclue;
-        struct VTLIFETKN *pvtlifetkn;
-        struct VTLOCK *pvtlock;
-        struct VTLOCKG *pvtlockg;
-        struct VTVAULT *pvtvault;
-        struct VTALBRK *pvtalbrk;
-        struct VTALARM *pvtalarm;
-        struct VTSENSOR *pvtsensor;
-        struct VTLASEN *pvtlasen;
-        struct VTCAMSEN *pvtcamsen;
-        struct VTPRSEN *pvtprsen;
-        struct VTTARGET *pvttarget;
-        struct VTHND *pvthnd;
-        struct VTPIPE *pvtpipe;
-        struct VTBARRIER *pvtbarrier;
-        struct VTTAIL *pvttail;
-        struct VTJSG *pvtjsg;
-        struct VTJT *pvtjt;
-        struct VTJMT *pvtjmt;
-        struct VTSGG *pvtsgg;
-        struct VTSTEPGUARD *pvtstepguard;
-        struct VTGOMER *pvtgomer;
-        struct VTSMARTGUARD *pvtsmartguard;
-        struct VTTZP *pvttzp;
-        struct VTVOLZP *pvtvolzp;
-        struct VTVOL *pvtvol;
-        struct VTCHKPNT *pvtchkpnt;
-        struct VTPATHZONE *pvtpathzone;
-        struct VTBOMB *pvtbomb;
-        struct VTCAN *pvtcan;
-        struct VTSKY *pvtsky;
-        struct VTFLY *pvtfly;
-        struct VTDPRIZE *pvtdprize;
-        struct VTCOIN *pvtcoin;
-        struct VTCHARM *pvtcharm;
-        struct VTKEY *pvtkey;
-        struct VTGOLD *pvtgold;
-        struct VTRATHOLE *pvtrathole;
-        struct VTRAT *pvtrat;
-        struct VTROB *pvtrob;
-        struct VTROV *pvtrov;
-        struct VTROH *pvtroh;
-        struct VTROC *pvtroc;
-        struct VTROST *pvtrost;
-        struct VTROP *pvtrop;
-        struct VTDART *pvtdart;
-        struct VTDARTGUN *pvtdartgun;
-        struct VTFLASH *pvtflash;
-        struct VTMISSILE *pvtmissile;
-        struct VTACCMISS *pvtaccmiss;
-        struct VTTARMISS *pvttarmiss;
-        struct VTSPLMISS *pvtsplmiss;
-        struct VTGROUNDMISS *pvtgroundmiss;
-        struct VTRWM *pvtrwm;
-        struct VTCNVO *pvtcnvo;
-        struct VTDYSH *pvtdysh;
-        struct VTDSP *pvtdsp;
-        struct VTWAYPOINT *pvtwaypoint;
-        struct VTUBV *pvtubv;
-        struct VTUBP *pvtubp;
-        struct VTUBG *pvtubg;
-        struct VTMBG *pvtmbg;
-        struct VTSCENTMAP *pvtscentmap;
-        struct VTBHG *pvtbhg;
-        struct VTJLOC *pvtjloc;
-        struct VTJLOVOL *pvtjlovol;
-        struct VTJLO *pvtjlo;
-        struct VTSPIRE *pvtspire;
-        struct VTRAIL *pvtrail;
-        struct VTLANDING *pvtlanding;
-        struct VTROPE *pvtrope;
-        struct VTWR *pvtwr;
-        struct VTTANK *pvttank;
-        struct VTTURRET *pvtturret;
-        struct VTMURRAY *pvtmurray;
-        struct VTPUFFER *pvtpuffer;
-        struct VTPUFFC *pvtpuffc;
-        struct VTPUFFB *pvtpuffb;
-        struct VTPUFFT *pvtpufft;
-        struct VTPUFFV *pvtpuffv;
-        struct VTMRKV *pvtmrkv;
-        struct VTCRFOD *pvtcrfod;
-        struct VTCRFODB *pvtcrfodb;
-        struct VTCRFODK *pvtcrfodk;
-        struct VTCRBRAIN *pvtcrbrain;
-        struct VTMGV *pvtmgv;
-        struct VTMGC *pvtmgc;
-        struct VTSUV *pvtsuv;
-        struct VTJP *pvtjp;
-        struct VTCYCLE *pvtcycle;
-        struct VTHG *pvthg;
-        struct VTMECHA *pvtmecha;
-        struct VTSWP *pvtswp;
-        struct VTLGN *pvtlgn;
-        struct VTLGNB *pvtlgnb;
-        struct VTJACK *pvtjack;
-        struct VTJACKB *pvtjackb;
-        struct VTJACKN *pvtjackn;
-        struct VTJACKF *pvtjackf;
-        struct VTMS *pvtms;
-        struct VTSPEAKER *pvtspeaker;
-        struct VTWM *pvtwm;
-        struct VTSW *pvtsw;
-        struct VTCM *pvtcm;
+        struct VTBASIC* pvtbasic;
+        struct VTLO* pvtlo;
+        struct VTALO* pvtalo;
+        struct VTSO* pvtso;
+        struct VTSHAPE* pvtshape;
+        struct VTPNT* pvtpnt;
+        struct VTPNTVEC* pvtpntvec;
+        struct VTPNTSV* pvtpntsv;
+        struct VTPNTS* pvtpnts;
+        struct VTSCAN* pvtscan;
+        struct VTXFM* pvtxfm;
+        struct VTWARP* pvtwarp;
+        struct VTEXIT* pvtexit;
+        struct VTCAMERA* pvtcamera;
+        struct VTLIGHT* pvtlight;
+        struct VTPO* pvtpo;
+        struct VTKEYHOLE* pvtkeyhole;
+        struct VTWATER* pvtwater;
+        struct VTTN* pvttn;
+        struct VTBRK* pvtbrk;
+        struct VTBRKP* pvtbrkp;
+        struct VTBREAK* pvtbreak;
+        struct VTFRAGILE* pvtfragile;
+        struct VTZAPBREAK* pvtzapbreak;
+        struct VTVOLBTN* pvtvolbtn;
+        struct VTBUTTON* pvtbutton;
+        struct VTSQUISH* pvtsquish;
+        struct VTFRZG* pvtfrzg;
+        struct VTBONE* pvtbone;
+        struct VTLBONE* pvtlbone;
+        struct VTMAP* pvtmap;
+        struct VTVISMAP* pvtvismap;
+        struct VT_VISZONE* pvt_viszone;
+        struct VTASEG* pvtaseg;
+        struct VTASEGA* pvtasega;
+        struct VTASEGBL* pvtasegbl;
+        struct VTSM* pvtsm;
+        struct VTSMA* pvtsma;
+        struct VTIKH* pvtikh;
+        struct VTLIKH* pvtlikh;
+        struct VTSCH* pvtsch;
+        struct VTRIPG* pvtripg;
+        struct VTBLIPG* pvtblipg;
+        struct VTEMITTER* pvtemitter;
+        struct VTEXPL* pvtexpl;
+        struct VTEXPLG* pvtexplg;
+        struct VTEXPLO* pvtexplo;
+        struct VTEXPLS* pvtexpls;
+        struct VTPROXY* pvtproxy;
+        struct VTDIALOG* pvtdialog;
+        struct VTHSHAPE* pvthshape;
+        struct VTHPNT* pvthpnt;
+        struct VTHBSK* pvthbsk;
+        struct VTRCHM* pvtrchm;
+        struct VTSTEP* pvtstep;
+        struct VTSPRIZE* pvtsprize;
+        struct VTSCPRIZE* pvtscprize;
+        struct VTCLUE* pvtclue;
+        struct VTLIFETKN* pvtlifetkn;
+        struct VTLOCK* pvtlock;
+        struct VTLOCKG* pvtlockg;
+        struct VTVAULT* pvtvault;
+        struct VTALBRK* pvtalbrk;
+        struct VTALARM* pvtalarm;
+        struct VTSENSOR* pvtsensor;
+        struct VTLASEN* pvtlasen;
+        struct VTCAMSEN* pvtcamsen;
+        struct VTPRSEN* pvtprsen;
+        struct VTTARGET* pvttarget;
+        struct VTHND* pvthnd;
+        struct VTPIPE* pvtpipe;
+        struct VTBARRIER* pvtbarrier;
+        struct VTTAIL* pvttail;
+        struct VTJSG* pvtjsg;
+        struct VTJT* pvtjt;
+        struct VTJMT* pvtjmt;
+        struct VTSGG* pvtsgg;
+        struct VTSTEPGUARD* pvtstepguard;
+        struct VTGOMER* pvtgomer;
+        struct VTSMARTGUARD* pvtsmartguard;
+        struct VTTZP* pvttzp;
+        struct VTVOLZP* pvtvolzp;
+        struct VTVOL* pvtvol;
+        struct VTCHKPNT* pvtchkpnt;
+        struct VTPATHZONE* pvtpathzone;
+        struct VTBOMB* pvtbomb;
+        struct VTCAN* pvtcan;
+        struct VTSKY* pvtsky;
+        struct VTFLY* pvtfly;
+        struct VTDPRIZE* pvtdprize;
+        struct VTCOIN* pvtcoin;
+        struct VTCHARM* pvtcharm;
+        struct VTKEY* pvtkey;
+        struct VTGOLD* pvtgold;
+        struct VTRATHOLE* pvtrathole;
+        struct VTRAT* pvtrat;
+        struct VTROB* pvtrob;
+        struct VTROV* pvtrov;
+        struct VTROH* pvtroh;
+        struct VTROC* pvtroc;
+        struct VTROST* pvtrost;
+        struct VTROP* pvtrop;
+        struct VTDART* pvtdart;
+        struct VTDARTGUN* pvtdartgun;
+        struct VTFLASH* pvtflash;
+        struct VTMISSILE* pvtmissile;
+        struct VTACCMISS* pvtaccmiss;
+        struct VTTARMISS* pvttarmiss;
+        struct VTSPLMISS* pvtsplmiss;
+        struct VTGROUNDMISS* pvtgroundmiss;
+        struct VTRWM* pvtrwm;
+        struct VTCNVO* pvtcnvo;
+        struct VTDYSH* pvtdysh;
+        struct VTDSP* pvtdsp;
+        struct VTWAYPOINT* pvtwaypoint;
+        struct VTUBV* pvtubv;
+        struct VTUBP* pvtubp;
+        struct VTUBG* pvtubg;
+        struct VTMBG* pvtmbg;
+        struct VTSCENTMAP* pvtscentmap;
+        struct VTBHG* pvtbhg;
+        struct VTJLOC* pvtjloc;
+        struct VTJLOVOL* pvtjlovol;
+        struct VTJLO* pvtjlo;
+        struct VTSPIRE* pvtspire;
+        struct VTRAIL* pvtrail;
+        struct VTLANDING* pvtlanding;
+        struct VTROPE* pvtrope;
+        struct VTWR* pvtwr;
+        struct VTTANK* pvttank;
+        struct VTTURRET* pvtturret;
+        struct VTMURRAY* pvtmurray;
+        struct VTPUFFER* pvtpuffer;
+        struct VTPUFFC* pvtpuffc;
+        struct VTPUFFB* pvtpuffb;
+        struct VTPUFFT* pvtpufft;
+        struct VTPUFFV* pvtpuffv;
+        struct VTMRKV* pvtmrkv;
+        struct VTCRFOD* pvtcrfod;
+        struct VTCRFODB* pvtcrfodb;
+        struct VTCRFODK* pvtcrfodk;
+        struct VTCRBRAIN* pvtcrbrain;
+        struct VTMGV* pvtmgv;
+        struct VTMGC* pvtmgc;
+        struct VTSUV* pvtsuv;
+        struct VTJP* pvtjp;
+        struct VTCYCLE* pvtcycle;
+        struct VTHG* pvthg;
+        struct VTMECHA* pvtmecha;
+        struct VTSWP* pvtswp;
+        struct VTLGN* pvtlgn;
+        struct VTLGNB* pvtlgnb;
+        struct VTJACK* pvtjack;
+        struct VTJACKB* pvtjackb;
+        struct VTJACKN* pvtjackn;
+        struct VTJACKF* pvtjackf;
+        struct VTMS* pvtms;
+        struct VTSPEAKER* pvtspeaker;
+        struct VTWM* pvtwm;
+        struct VTSW* pvtsw;
+        struct VTCM* pvtcm;
     };
-    class CSidebag *psidebag;
+    class CSidebag* psidebag;
 };
 
-struct VT 
+struct VT
 {
-    VT *pvtSuper;
+    VT* pvtSuper;
     CID cid;
     int grfcid;
     int cb;
@@ -183,15 +183,15 @@ struct VT
 
 struct VTBASIC
 {
-    VT *pvtSuper = nullptr;
+    VT* pvtSuper = nullptr;
     CID cid = CID_BASIC;
 };
 
 static VTBASIC g_vtbasic;
 
-struct VTLO 
+struct VTLO
 {
-    VT *pvtSuper = g_vtbasic.pvtSuper;
+    VT* pvtSuper = g_vtbasic.pvtSuper;
     CID cid = CID_LO;
     int grfcid = 0;
     int cb = 120;
@@ -231,7 +231,7 @@ static VTLO g_vtlo;
 
 struct VTALO
 {
-    VT *pvtSuper = g_vtlo.pvtSuper;
+    VT* pvtSuper = g_vtlo.pvtSuper;
     CID cid = CID_ALO;
     int grfcid = 1;
     int cb = 1064;
@@ -290,7 +290,7 @@ static VTALO g_vtalo;
 
 struct VTSO
 {
-    VT *pvtSuper = g_vtalo.pvtSuper;
+    VT* pvtSuper = g_vtalo.pvtSuper;
     CID cid = CID_SO;
     int grfcid = 3;
     int cb = 2400;
@@ -374,7 +374,7 @@ static VTSO g_vtso;
 
 struct VTMS
 {
-    VT *pvtSuper = g_vtso.pvtSuper;
+    VT* pvtSuper = g_vtso.pvtSuper;
     CID cid = CID_MS;
     int grfcid = 3;
     int cb = 2400;
@@ -458,7 +458,7 @@ static VTMS g_vtms;
 
 struct VTPO
 {
-    VT *pvtSuper = g_vtso.pvtSuper;
+    VT* pvtSuper = g_vtso.pvtSuper;
     CID cid = CID_PO;
     int grfcid = 0xB;
     int cb = 2512;
@@ -553,7 +553,7 @@ static VTPO g_vtpo;
 
 struct VTSTEP
 {
-    VT *pvtSuper = g_vtpo.pvtSuper;
+    VT* pvtSuper = g_vtpo.pvtSuper;
     CID cid = CID_STEP;
     int grfcid = 0xB;
     int cb = 2784;
@@ -651,7 +651,7 @@ static VTSTEP g_vtstep;
 
 struct VTJT
 {
-    VT *pvtSuper = g_vtstep.pvtSuper;
+    VT* pvtSuper = g_vtstep.pvtSuper;
     CID cid = CID_JT;
     int grfcid = 0xB;
     int cb = 11088;
@@ -749,7 +749,7 @@ static VTJT g_vtjt;
 
 struct VTSTEPGUARD
 {
-    VT *pvtSuper = g_vtstep.pvtSuper;
+    VT* pvtSuper = g_vtstep.pvtSuper;
     CID cid = CID_STEPGUARD;
     int grfcid = 0xB;
     int cb = 4280;
@@ -858,7 +858,7 @@ static VTSTEPGUARD g_vtstepguard;
 
 struct VTSMARTGUARD
 {
-    VT *pvtSuper = g_vtstepguard.pvtSuper;
+    VT* pvtSuper = g_vtstepguard.pvtSuper;
     CID cid = CID_SMARTGUARD;
     int grfcid = 0xB;
     int cb = 4624;
@@ -967,7 +967,7 @@ static VTSMARTGUARD g_vtsmartguard;
 
 struct VTGOMER
 {
-    VT *pvtSuper = g_vtstepguard.pvtSuper;
+    VT* pvtSuper = g_vtstepguard.pvtSuper;
     CID cid = CID_GOMER;
     int grfcid = 0xB;
     int cb = 4352;
@@ -1076,7 +1076,7 @@ static VTGOMER g_vtgomer;
 
 struct VTUBG
 {
-    VT *pvtSuper = g_vtgomer.pvtSuper;
+    VT* pvtSuper = g_vtgomer.pvtSuper;
     CID cid = CID_UBG;
     int grfcid = 0xB;
     int cb = 4464;
@@ -1185,7 +1185,7 @@ static VTUBG g_vtubg;
 
 struct VTMBG
 {
-    VT *pvtSuper = g_vtstepguard.pvtSuper;
+    VT* pvtSuper = g_vtstepguard.pvtSuper;
     CID cid = CID_MBG;
     int grfcid = 0xB;
     int cb = 0xDD0;
@@ -1294,7 +1294,7 @@ static VTMBG g_vtmbg;
 
 struct VTBHG
 {
-    VT *pvtSuper = g_vtstepguard.pvtSuper;
+    VT* pvtSuper = g_vtstepguard.pvtSuper;
     CID cid = CID_BHG;
     int grfcid = 0xB;
     int cb = 0xBA0;
@@ -1403,7 +1403,7 @@ static VTBHG g_vtbhg;
 
 struct VTMURRAY
 {
-    VT *pvtSuper = g_vtstepguard.pvtSuper;
+    VT* pvtSuper = g_vtstepguard.pvtSuper;
     CID cid = CID_MURRAY;
     int grfcid = 0xB;
     int cb = 4352;
@@ -1512,7 +1512,7 @@ static VTMURRAY g_vtmurray;
 
 struct VTPUFFC
 {
-    VT *pvtSuper = g_vtstepguard.pvtSuper;
+    VT* pvtSuper = g_vtstepguard.pvtSuper;
     CID cid = CID_PUFFC;
     int grfcid = 0xB;
     int cb = 4324;
@@ -1621,7 +1621,7 @@ static VTPUFFC g_vtpuffc;
 
 struct VTCRFOD
 {
-    VT *pvtSuper = g_vtstepguard.pvtSuper;
+    VT* pvtSuper = g_vtstepguard.pvtSuper;
     CID cid = CID_CRFOD;
     int grfcid = 0xB;
     int cb = 0xBA0;
@@ -1730,7 +1730,7 @@ static VTCRFOD g_vtcrfod;
 
 struct VTCRFODB
 {
-    VT *pvtSuper = g_vtcrfod.pvtSuper;
+    VT* pvtSuper = g_vtcrfod.pvtSuper;
     CID cid = CID_CRFODB;
     int grfcid = 0xB;
     int cb = 0xBB0;
@@ -1839,7 +1839,7 @@ static VTCRFODB g_vtcrfodb;
 
 struct VTCRFODK
 {
-    VT *pvtSuper = g_vtcrfod.pvtSuper;
+    VT* pvtSuper = g_vtcrfod.pvtSuper;
     CID cid = CID_CRFODK;
     int grfcid = 0xB;
     int cb = 0xBA0;
@@ -1948,7 +1948,7 @@ static VTCRFODK g_vtcrfodk;
 
 struct VTTANK
 {
-    VT *pvtSuper = g_vtstep.pvtSuper;
+    VT* pvtSuper = g_vtstep.pvtSuper;
     CID cid = CID_TANK;
     int grfcid = 0xB;
     int cb = 0x730;
@@ -2046,7 +2046,7 @@ static VTTANK g_vttank;
 
 struct VTJP
 {
-    VT *pvtSuper = g_vtstep.pvtSuper;
+    VT* pvtSuper = g_vtstep.pvtSuper;
     CID cid = CID_JP;
     int grfcid = 0xB;
     int cb = 0x950;
@@ -2144,7 +2144,7 @@ static VTJP g_vtjp;
 
 struct VTHG
 {
-    VT *pvtSuper = g_vtstep.pvtSuper;
+    VT* pvtSuper = g_vtstep.pvtSuper;
     CID cid = CID_HG;
     int grfcid = 0xB;
     int cb = 0x900;
@@ -2242,7 +2242,7 @@ static VTHG g_vthg;
 
 struct VTMECHA
 {
-    VT *pvtSuper = g_vtstep.pvtSuper;
+    VT* pvtSuper = g_vtstep.pvtSuper;
     CID cid = CID_MECHA;
     int grfcid = 0xB;
     int cb = 0x970;
@@ -2340,7 +2340,7 @@ static VTMECHA g_vtmecha;
 
 struct VTROV
 {
-    VT *pvtSuper = g_vtpo.pvtSuper;
+    VT* pvtSuper = g_vtpo.pvtSuper;
     CID cid = CID_ROV;
     int grfcid = 0xB;
     int cb = 2704;
@@ -2435,7 +2435,7 @@ static VTROV g_vtrov;
 
 struct VTTURRET
 {
-    VT *pvtSuper = g_vtpo.pvtSuper;
+    VT* pvtSuper = g_vtpo.pvtSuper;
     CID cid = CID_TURRET;
     int grfcid = 0xB;
     int cb = 0x5F0;
@@ -2530,7 +2530,7 @@ static VTTURRET g_vtturret;
 
 struct VTVAULT
 {
-    VT *pvtSuper = g_vtpo.pvtSuper;
+    VT* pvtSuper = g_vtpo.pvtSuper;
     CID cid = CID_VAULT;
     int grfcid = 0xB;
     int cb = 2512;
@@ -2625,7 +2625,7 @@ static VTVAULT g_vtvault;
 
 struct VTPUFFER
 {
-    VT *pvtSuper = g_vtpo.pvtSuper;
+    VT* pvtSuper = g_vtpo.pvtSuper;
     CID cid = CID_PUFFER;
     int grfcid = 0xB;
     int cb = 2668;
@@ -2720,7 +2720,7 @@ static VTPUFFER g_vtpuffer;
 
 struct VTMGV
 {
-    VT *pvtSuper = g_vtpo.pvtSuper;
+    VT* pvtSuper = g_vtpo.pvtSuper;
     CID cid = CID_MGV;
     int grfcid = 0xB;
     int cb = 0x620;
@@ -2815,7 +2815,7 @@ static VTMGV g_vtmgv;
 
 struct VTSUV
 {
-    VT *pvtSuper = g_vtpo.pvtSuper;
+    VT* pvtSuper = g_vtpo.pvtSuper;
     CID cid = CID_SUV;
     int grfcid = 0xB;
     int cb = 4568;
@@ -2910,7 +2910,7 @@ static VTSUV g_vtsuv;
 
 struct VTCYCLE
 {
-    VT *pvtSuper = g_vtpo.pvtSuper;
+    VT* pvtSuper = g_vtpo.pvtSuper;
     CID cid = CID_CYCLE;
     int grfcid = 0xB;
     int cb = 0x6E0;
@@ -3005,7 +3005,7 @@ static VTCYCLE g_vtcycle;
 
 struct VTLGN
 {
-    VT *pvtSuper = g_vtpo.pvtSuper;
+    VT* pvtSuper = g_vtpo.pvtSuper;
     CID cid = CID_LGN;
     int grfcid = 0xB;
     int cb = 0x630;
@@ -3100,7 +3100,7 @@ static VTLGN g_vtlgn;
 
 struct VTJACK
 {
-    VT *pvtSuper = g_vtpo.pvtSuper;
+    VT* pvtSuper = g_vtpo.pvtSuper;
     CID cid = CID_JACK;
     int grfcid = 0xB;
     int cb = 0x750;
@@ -3195,7 +3195,7 @@ static VTJACK g_vtjack;
 
 struct VTRIPG
 {
-    VT *pvtSuper = g_vtso.pvtSuper;
+    VT* pvtSuper = g_vtso.pvtSuper;
     CID cid = CID_RIPG;
     int grfcid = 3;
     int cb = 0x5A0;
@@ -3279,7 +3279,7 @@ static VTRIPG g_vtripg;
 
 struct VTWATER
 {
-    VT *pvtSuper = g_vtso.pvtSuper;
+    VT* pvtSuper = g_vtso.pvtSuper;
     CID cid = CID_WATER;
     int grfcid = 0x83;
     int cb = 2888;
@@ -3363,7 +3363,7 @@ static VTWATER g_vtwater;
 
 struct VTBRK
 {
-    VT *pvtSuper = g_vtso.pvtSuper;
+    VT* pvtSuper = g_vtso.pvtSuper;
     CID cid = CID_BRK;
     int grfcid = 0x3;
     int cb = 2808;
@@ -3448,7 +3448,7 @@ static VTBRK g_vtbrk;
 
 struct VTBREAK
 {
-    VT *pvtSuper = g_vtbrk.pvtSuper;
+    VT* pvtSuper = g_vtbrk.pvtSuper;
     CID cid = CID_BREAK;
     int grfcid = 0x13;
     int cb = 2816;
@@ -3533,7 +3533,7 @@ static VTBREAK g_vtbreak;
 
 struct VTALBRK
 {
-    VT *pvtSuper = g_vtbreak.pvtSuper;
+    VT* pvtSuper = g_vtbreak.pvtSuper;
     CID cid = CID_ALBRK;
     int grfcid = 0x13;
     int cb = 2816;
@@ -3618,7 +3618,7 @@ static VTALBRK g_vtalbrk;
 
 struct VTCAN
 {
-    VT *pvtSuper = g_vtbreak.pvtSuper;
+    VT* pvtSuper = g_vtbreak.pvtSuper;
     CID cid = CID_CAN;
     int grfcid = 0x13;
     int cb = 0x770;
@@ -3703,7 +3703,7 @@ static VTCAN g_vtcan;
 
 struct VTDARTGUN
 {
-    VT *pvtSuper = g_vtbreak.pvtSuper;
+    VT* pvtSuper = g_vtbreak.pvtSuper;
     CID cid = CID_DARTGUN;
     int grfcid = 0x13;
     int cb = 3136;
@@ -3788,7 +3788,7 @@ static VTDARTGUN g_vtdartgun;
 
 struct VTSWP
 {
-    VT *pvtSuper = g_vtbreak.pvtSuper;
+    VT* pvtSuper = g_vtbreak.pvtSuper;
     CID cid = CID_SWP;
     int grfcid = 0x13;
     int cb = 2876;
@@ -3873,7 +3873,7 @@ static VTSWP g_vtswp;
 
 struct VTFRAGILE
 {
-    VT *pvtSuper = g_vtbrk.pvtSuper;
+    VT* pvtSuper = g_vtbrk.pvtSuper;
     CID cid = CID_FRAGILE;
     int grfcid = 0x3;
     int cb = 2816;
@@ -3958,7 +3958,7 @@ static VTFRAGILE g_vtfragile;
 
 struct VTZAPBREAK
 {
-    VT *pvtSuper = g_vtfragile.pvtSuper;
+    VT* pvtSuper = g_vtfragile.pvtSuper;
     CID cid = CID_ZAPBREAK;
     int grfcid = 0x3;
     int cb = 0x700;
@@ -4043,7 +4043,7 @@ static VTZAPBREAK g_vtzapbreak;
 
 struct VTBRKP
 {
-    VT *pvtSuper = g_vtso.pvtSuper;
+    VT* pvtSuper = g_vtso.pvtSuper;
     CID cid = CID_BRKP;
     int grfcid = 0x3;
     int cb = 2428;
@@ -4127,7 +4127,7 @@ static VTBRKP g_vtbrkp;
 
 struct VTBUTTON
 {
-    VT *pvtSuper = g_vtso.pvtSuper;
+    VT* pvtSuper = g_vtso.pvtSuper;
     CID cid = CID_BUTTON;
     int grfcid = 0x3;
     int cb = 3312;
@@ -4211,7 +4211,7 @@ static VTBUTTON g_vtbutton;
 
 struct VTVOLBTN
 {
-    VT *pvtSuper = g_vtso.pvtSuper;
+    VT* pvtSuper = g_vtso.pvtSuper;
     CID cid = CID_VOLBTN;
     int grfcid = 0x3;
     int cb = 3200;
@@ -4295,7 +4295,7 @@ static VTVOLBTN g_vtvolbtn;
 
 struct VTJLOVOL
 {
-    VT *pvtSuper = g_vtvolbtn.pvtSuper;
+    VT* pvtSuper = g_vtvolbtn.pvtSuper;
     CID cid = CID_JLOVOL;
     int grfcid = 0x3;
     int cb = 3248;
@@ -4379,7 +4379,7 @@ static VTJLOVOL g_vtjlovol;
 
 struct VTSQUISH
 {
-    VT *pvtSuper = g_vtso.pvtSuper;
+    VT* pvtSuper = g_vtso.pvtSuper;
     CID cid = CID_SQUISH;
     int grfcid = 0x3;
     int cb = 0x650;
@@ -4463,7 +4463,7 @@ static VTSQUISH g_vtsquish;
 
 struct VTBONE
 {
-    VT *pvtSuper = g_vtso.pvtSuper;
+    VT* pvtSuper = g_vtso.pvtSuper;
     CID cid = CID_BONE;
     int grfcid = 0x3;
     int cb = 2400;
@@ -4547,7 +4547,7 @@ static VTBONE g_vtbone;
 
 struct VTSPRIZE
 {
-    VT *pvtSuper = g_vtso.pvtSuper;
+    VT* pvtSuper = g_vtso.pvtSuper;
     CID cid = CID_SPRIZE;
     int grfcid = 0x3;
     int cb = 2504;
@@ -4634,7 +4634,7 @@ static VTSPRIZE g_vtsprize;
 
 struct VTSCPRIZE
 {
-    VT *pvtSuper = g_vtsprize.pvtSuper;
+    VT* pvtSuper = g_vtsprize.pvtSuper;
     CID cid = CID_SCPRIZE;
     int grfcid = 0x3;
     int cb = 2512;
@@ -4721,7 +4721,7 @@ static VTSCPRIZE g_vtscprize;
 
 struct VTLIFETKN
 {
-    VT *pvtSuper = g_vtscprize.pvtSuper;
+    VT* pvtSuper = g_vtscprize.pvtSuper;
     CID cid = CID_LIFETKN;
     int grfcid = 0x3;
     int cb = 2512;
@@ -4808,7 +4808,7 @@ static VTLIFETKN g_vtlifetkn;
 
 struct VTCLUE
 {
-    VT *pvtSuper = g_vtsprize.pvtSuper;
+    VT* pvtSuper = g_vtsprize.pvtSuper;
     CID cid = CID_CLUE;
     int grfcid = 0x3;
     int cb = 2544;
@@ -4895,7 +4895,7 @@ static VTCLUE g_vtclue;
 
 struct VTALARM
 {
-    VT *pvtSuper = g_vtso.pvtSuper;
+    VT* pvtSuper = g_vtso.pvtSuper;
     CID cid = CID_ALARM;
     int grfcid = 0x3;
     int cb = 2840;
@@ -4979,7 +4979,7 @@ static VTALARM g_vtalarm;
 
 struct VTSENSOR
 {
-    VT *pvtSuper = g_vtso.pvtSuper;
+    VT* pvtSuper = g_vtso.pvtSuper;
     CID cid = CID_SENSOR;
     int grfcid = 0x3;
     int cb = 2544;
@@ -5069,7 +5069,7 @@ static VTSENSOR g_vtsensor;
 
 struct VTLASEN
 {
-    VT *pvtSuper = g_vtsensor.pvtSuper;
+    VT* pvtSuper = g_vtsensor.pvtSuper;
     CID cid = CID_LASEN;
     int grfcid = 0x3;
     int cb = 4408;
@@ -5159,7 +5159,7 @@ static VTLASEN g_vtlasen;
 
 struct VTCAMSEN
 {
-    VT *pvtSuper = g_vtso.pvtSuper;
+    VT* pvtSuper = g_vtso.pvtSuper;
     CID cid = CID_CAMSEN;
     int grfcid = 0x3;
     int cb = 2584;
@@ -5249,7 +5249,7 @@ static VTCAMSEN g_vtcamsen;
 
 struct VTPRSEN
 {
-    VT *pvtSuper = g_vtsensor.pvtSuper;
+    VT* pvtSuper = g_vtsensor.pvtSuper;
     CID cid = CID_PRSEN;
     int grfcid = 0x3;
     int cb = 2624;
@@ -5339,7 +5339,7 @@ static VTPRSEN g_vtprsen;
 
 struct VTBARRIER
 {
-    VT *pvtSuper = g_vtso.pvtSuper;
+    VT* pvtSuper = g_vtso.pvtSuper;
     CID cid = CID_BARRIER;
     int grfcid = 0x3;
     int cb = 2488;
@@ -5423,7 +5423,7 @@ static VTBARRIER g_vtbarrier;
 
 struct VTIKH
 {
-    VT *pvtSuper = g_vtso.pvtSuper;
+    VT* pvtSuper = g_vtso.pvtSuper;
     CID cid = CID_IKH;
     int grfcid = 0x3;
     int cb = 2400;
@@ -5507,7 +5507,7 @@ static VTIKH g_vtikh;
 
 struct VTTZP
 {
-    VT *pvtSuper = g_vtso.pvtSuper;
+    VT* pvtSuper = g_vtso.pvtSuper;
     CID cid = CID_TZP;
     int grfcid = 0x3;
     int cb = 3144;
@@ -5591,7 +5591,7 @@ static VTTZP g_vttzp;
 
 struct VTVOLZP
 {
-    VT *pvtSuper = g_vttzp.pvtSuper;
+    VT* pvtSuper = g_vttzp.pvtSuper;
     CID cid = CID_VOLZP;
     int grfcid = 0x3;
     int cb = 3144;
@@ -5675,7 +5675,7 @@ static VTVOLZP g_vtvolzp;
 
 struct VTCNVO
 {
-    VT *pvtSuper = g_vtso.pvtSuper;
+    VT* pvtSuper = g_vtso.pvtSuper;
     CID cid = CID_CNVO;
     int grfcid = 0x3;
     int cb = 2416;
@@ -5759,7 +5759,7 @@ static VTCNVO g_vtcnvo;
 
 struct VTHBSK
 {
-    VT *pvtSuper = g_vtso.pvtSuper;
+    VT* pvtSuper = g_vtso.pvtSuper;
     CID cid = CID_HBSK;
     int grfcid = 0x3;
     int cb = 2432;
@@ -5843,7 +5843,7 @@ static VTHBSK g_vthbsk;
 
 struct VTBOMB
 {
-    VT *pvtSuper = g_vtso.pvtSuper;
+    VT* pvtSuper = g_vtso.pvtSuper;
     CID cid = CID_BOMB;
     int grfcid = 0x23;
     int cb = 2680;
@@ -5927,7 +5927,7 @@ static VTBOMB g_vtbomb;
 
 struct VTMISSILE
 {
-    VT *pvtSuper = g_vtbomb.pvtSuper;
+    VT* pvtSuper = g_vtbomb.pvtSuper;
     CID cid = CID_MISSILE;
     int grfcid = 0x23;
     int cb = 2736;
@@ -6012,7 +6012,7 @@ static VTMISSILE g_vtmissile;
 
 struct VTACCMISS
 {
-    VT *pvtSuper = g_vtmissile.pvtSuper;
+    VT* pvtSuper = g_vtmissile.pvtSuper;
     CID cid = CID_ACCMISS;
     int grfcid = 0x23;
     int cb = 2760;
@@ -6097,7 +6097,7 @@ static VTACCMISS g_vtaccmiss;
 
 struct VTTARMISS
 {
-    VT *pvtSuper = g_vtaccmiss.pvtSuper;
+    VT* pvtSuper = g_vtaccmiss.pvtSuper;
     CID cid = CID_TARMISS;
     int grfcid = 0x23;
     int cb = 2784;
@@ -6182,7 +6182,7 @@ static VTTARMISS g_vttarmiss;
 
 struct VTSPLMISS
 {
-    VT *pvtSuper = g_vtmissile.pvtSuper;
+    VT* pvtSuper = g_vtmissile.pvtSuper;
     CID cid = CID_SPLMISS;
     int grfcid = 0x23;
     int cb = 0x6C0;
@@ -6267,7 +6267,7 @@ static VTSPLMISS g_vtsplmiss;
 
 struct VTGROUNDMISS
 {
-    VT *pvtSuper = g_vtmissile.pvtSuper;
+    VT* pvtSuper = g_vtmissile.pvtSuper;
     CID cid = CID_GROUNDMISS;
     int grfcid = 0x23;
     int cb = 2744;
@@ -6352,7 +6352,7 @@ static VTGROUNDMISS g_vtgroundmiss;
 
 struct VTFLY
 {
-    VT *pvtSuper = g_vtso.pvtSuper;
+    VT* pvtSuper = g_vtso.pvtSuper;
     CID cid = CID_FLY;
     int grfcid = 0x3;
     int cb = 2848;
@@ -6436,7 +6436,7 @@ static VTFLY g_vtfly;
 
 struct VTRAT
 {
-    VT *pvtSuper = g_vtso.pvtSuper;
+    VT* pvtSuper = g_vtso.pvtSuper;
     CID cid = CID_RAT;
     int grfcid = 0x3;
     int cb = 2824;
@@ -6520,7 +6520,7 @@ static VTRAT g_vtrat;
 
 struct VTROH
 {
-    VT *pvtSuper = g_vtso.pvtSuper;
+    VT* pvtSuper = g_vtso.pvtSuper;
     CID cid = CID_ROH;
     int grfcid = 0x3;
     int cb = 2552;
@@ -6604,7 +6604,7 @@ static VTROH g_vtroh;
 
 struct VTROC
 {
-    VT *pvtSuper = g_vtso.pvtSuper;
+    VT* pvtSuper = g_vtso.pvtSuper;
     CID cid = CID_ROC;
     int grfcid = 0x3;
     int cb = 2512;
@@ -6688,7 +6688,7 @@ static VTROC g_vtroc;
 
 struct VTROST
 {
-    VT *pvtSuper = g_vtso.pvtSuper;
+    VT* pvtSuper = g_vtso.pvtSuper;
     CID cid = CID_ROST;
     int grfcid = 0x3;
     int cb = 2456;
@@ -6772,7 +6772,7 @@ static VTROST g_vtrost;
 
 struct VTROP
 {
-    VT *pvtSuper = g_vtso.pvtSuper;
+    VT* pvtSuper = g_vtso.pvtSuper;
     CID cid = CID_ROP;
     int grfcid = 0x3;
     int cb = 2448;
@@ -6856,7 +6856,7 @@ static VTROP g_vtrop;
 
 struct VTDART
 {
-    VT *pvtSuper = g_vtso.pvtSuper;
+    VT* pvtSuper = g_vtso.pvtSuper;
     CID cid = CID_DART;
     int grfcid = 0x3;
     int cb = 2496;
@@ -6940,10 +6940,10 @@ static VTDART g_vtdart;
 
 struct VTUBV
 {
-    VT *pvtSuper = g_vtso.pvtSuper;
+    VT* pvtSuper = g_vtso.pvtSuper;
     CID cid = CID_UBV;
     int grfcid = 0x3;
-    int cb = 0x730;
+    int cb = 2432;
 
     void (*pfnInitSo)(SO*) = InitSo;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
@@ -7024,7 +7024,7 @@ static VTUBV g_vtubv;
 
 struct VTUBP
 {
-    VT *pvtSuper = g_vtso.pvtSuper;
+    VT* pvtSuper = g_vtso.pvtSuper;
     CID cid = CID_UBP;
     int grfcid = 0x3;
     int cb = 2432;
@@ -7108,7 +7108,7 @@ static VTUBP g_vtubp;
 
 struct VTDSP
 {
-    VT *pvtSuper = g_vtso.pvtSuper;
+    VT* pvtSuper = g_vtso.pvtSuper;
     CID cid = CID_DSP;
     int grfcid = 0x3;
     int cb = 2448;
@@ -7192,7 +7192,7 @@ static VTDSP g_vtdsp;
 
 struct VTJLO
 {
-    VT *pvtSuper = g_vtso.pvtSuper;
+    VT* pvtSuper = g_vtso.pvtSuper;
     CID cid = CID_JLO;
     int grfcid = 0x3;
     int cb = 2584;
@@ -7276,7 +7276,7 @@ static VTJLO g_vtjlo;
 
 struct VTPUFFT
 {
-    VT *pvtSuper = g_vtso.pvtSuper;
+    VT* pvtSuper = g_vtso.pvtSuper;
     CID cid = CID_PUFFT;
     int grfcid = 0x3;
     int cb = 2420;
@@ -7360,7 +7360,7 @@ static VTPUFFT g_vtpufft;
 
 struct VTMRKV
 {
-    VT *pvtSuper = g_vtso.pvtSuper;
+    VT* pvtSuper = g_vtso.pvtSuper;
     CID cid = CID_MRKV;
     int grfcid = 0x3;
     int cb = 2424;
@@ -7444,7 +7444,7 @@ static VTMRKV g_vtmrkv;
 
 struct VTLGNB
 {
-    VT *pvtSuper = g_vtso.pvtSuper;
+    VT* pvtSuper = g_vtso.pvtSuper;
     CID cid = CID_LGNB;
     int grfcid = 0x3;
     int cb = 0x5C0;
@@ -7528,7 +7528,7 @@ static VTLGNB g_vtlgnb;
 
 struct VTBLIPG
 {
-    VT *pvtSuper = g_vtalo.pvtSuper;
+    VT* pvtSuper = g_vtalo.pvtSuper;
     CID cid = CID_BLIPG;
     int grfcid = 0x1;
     int cb = 0x650;
@@ -7587,7 +7587,7 @@ static VTBLIPG g_vtblipg;
 
 struct VTCAMERA
 {
-    VT *pvtSuper = g_vtalo.pvtSuper;
+    VT* pvtSuper = g_vtalo.pvtSuper;
     CID cid = CID_CAMERA;
     int grfcid = 0x1;
     int cb = 1128;
@@ -7646,7 +7646,7 @@ static VTCAMERA g_vtcamera;
 
 struct VTLBONE
 {
-    VT *pvtSuper = g_vtalo.pvtSuper;
+    VT* pvtSuper = g_vtalo.pvtSuper;
     CID cid = CID_LBONE;
     int grfcid = 0x1;
     int cb = 1064;
@@ -7705,7 +7705,7 @@ static VTLBONE g_vtlbone;
 
 struct VTEMITTER
 {
-    VT *pvtSuper = g_vtalo.pvtSuper;
+    VT* pvtSuper = g_vtalo.pvtSuper;
     CID cid = CID_EMITTER;
     int grfcid = 0x1;
     int cb = 1232;
@@ -7764,7 +7764,7 @@ static VTEMITTER g_vtemitter;
 
 struct VTLIGHT
 {
-    VT *pvtSuper = g_vtalo.pvtSuper;
+    VT* pvtSuper = g_vtalo.pvtSuper;
     CID cid = CID_LIGHT;
     int grfcid = 0x1;
     int cb = 1352;
@@ -7823,7 +7823,7 @@ static VTLIGHT g_vtlight;
 
 struct VTSCH
 {
-    VT *pvtSuper = g_vtalo.pvtSuper;
+    VT* pvtSuper = g_vtalo.pvtSuper;
     CID cid = CID_SCH;
     int grfcid = 0x1;
     int cb = 1064;
@@ -7882,7 +7882,7 @@ static VTSCH g_vtsch;
 
 struct VTLIKH
 {
-    VT *pvtSuper = g_vtalo.pvtSuper;
+    VT* pvtSuper = g_vtalo.pvtSuper;
     CID cid = CID_LIKH;
     int grfcid = 0x1;
     int cb = 1064;
@@ -7941,7 +7941,7 @@ static VTLIKH g_vtlikh;
 
 struct VTCHKPNT
 {
-    VT *pvtSuper = g_vtalo.pvtSuper;
+    VT* pvtSuper = g_vtalo.pvtSuper;
     CID cid = CID_CHKPNT;
     int grfcid = 0x1;
     int cb = 1192;
@@ -8000,7 +8000,7 @@ static VTCHKPNT g_vtchkpnt;
 
 struct VTPROXY
 {
-    VT *pvtSuper = g_vtalo.pvtSuper;
+    VT* pvtSuper = g_vtalo.pvtSuper;
     CID cid = CID_PROXY;
     int grfcid = 0x101;
     int cb = 1104;
@@ -8059,7 +8059,7 @@ static VTPROXY g_vtproxy;
 
 struct VTSKY
 {
-    VT *pvtSuper = g_vtalo.pvtSuper;
+    VT* pvtSuper = g_vtalo.pvtSuper;
     CID cid = CID_SKY;
     int grfcid = 0x1;
     int cb = 1068;
@@ -8118,7 +8118,7 @@ static VTSKY g_vtsky;
 
 struct VTDPRIZE
 {
-    VT *pvtSuper = g_vtalo.pvtSuper;
+    VT* pvtSuper = g_vtalo.pvtSuper;
     CID cid = CID_DPRIZE;
     int grfcid = 0x1;
     int cb = 1280;
@@ -8178,7 +8178,7 @@ static VTDPRIZE g_vtdprize;
 
 struct VTCHARM
 {
-    VT *pvtSuper = g_vtdprize.pvtSuper;
+    VT* pvtSuper = g_vtdprize.pvtSuper;
     CID cid = CID_CHARM;
     int grfcid = 0x1;
     int cb = 1280;
@@ -8238,7 +8238,7 @@ static VTCHARM g_vtcharm;
 
 struct VTCOIN
 {
-    VT *pvtSuper = g_vtdprize.pvtSuper;
+    VT* pvtSuper = g_vtdprize.pvtSuper;
     CID cid = CID_COIN;
     int grfcid = 0x1;
     int cb = 1296;
@@ -8298,7 +8298,7 @@ static VTCOIN g_vtcoin;
 
 struct VTKEY
 {
-    VT *pvtSuper = g_vtdprize.pvtSuper;
+    VT* pvtSuper = g_vtdprize.pvtSuper;
     CID cid = CID_KEY;
     int grfcid = 0x1;
     int cb = 1280;
@@ -8358,7 +8358,7 @@ static VTKEY g_vtkey;
 
 struct VTGOLD
 {
-    VT *pvtSuper = g_vtdprize.pvtSuper;
+    VT* pvtSuper = g_vtdprize.pvtSuper;
     CID cid = CID_GOLD;
     int grfcid = 0x1;
     int cb = 1288;
@@ -8418,7 +8418,7 @@ static VTGOLD g_vtgold;
 
 struct VTLOCK
 {
-    VT *pvtSuper = g_vtalo.pvtSuper;
+    VT* pvtSuper = g_vtalo.pvtSuper;
     CID cid = CID_LOCK;
     int grfcid = 0x1;
     int cb = 1088;
@@ -8477,7 +8477,7 @@ static VTLOCK g_vtlock;
 
 struct VTLOCKG
 {
-    VT *pvtSuper = g_vtalo.pvtSuper;
+    VT* pvtSuper = g_vtalo.pvtSuper;
     CID cid = CID_LOCKG;
     int grfcid = 0x1;
     int cb = 1192;
@@ -8536,7 +8536,7 @@ static VTLOCKG g_vtlockg;
 
 struct VTTAIL
 {
-    VT *pvtSuper = g_vtalo.pvtSuper;
+    VT* pvtSuper = g_vtalo.pvtSuper;
     CID cid = CID_TAIL;
     int grfcid = 0x1;
     int cb = 1144;
@@ -8595,7 +8595,7 @@ static VTTAIL g_vttail;
 
 struct VTROB
 {
-    VT *pvtSuper = g_vtalo.pvtSuper;
+    VT* pvtSuper = g_vtalo.pvtSuper;
     CID cid = CID_ROB;
     int grfcid = 0x1;
     int cb = 1960;
@@ -8654,7 +8654,7 @@ static VTROB g_vtrob;
 
 struct VTFLASH
 {
-    VT *pvtSuper = g_vtalo.pvtSuper;
+    VT* pvtSuper = g_vtalo.pvtSuper;
     CID cid = CID_FLASH;
     int grfcid = 0x1;
     int cb = 1120;
@@ -8713,7 +8713,7 @@ static VTFLASH g_vtflash;
 
 struct VTDYSH
 {
-    VT *pvtSuper = g_vtalo.pvtSuper;
+    VT* pvtSuper = g_vtalo.pvtSuper;
     CID cid = CID_DYSH;
     int grfcid = 0x1;
     int cb = 1072;
@@ -8772,7 +8772,7 @@ static VTDYSH g_vtdysh;
 
 struct VTSCENTMAP
 {
-    VT *pvtSuper = g_vtalo.pvtSuper;
+    VT* pvtSuper = g_vtalo.pvtSuper;
     CID cid = CID_SCENTMAP;
     int grfcid = 0x1;
     int cb = 0x320;
@@ -8831,7 +8831,7 @@ static VTSCENTMAP g_vtscentmap;
 
 struct VTWAYPOINT
 {
-    VT *pvtSuper = g_vtalo.pvtSuper;
+    VT* pvtSuper = g_vtalo.pvtSuper;
     CID cid = CID_WAYPOINT;
     int grfcid = 0x1;
     int cb = 0x340;
@@ -8890,7 +8890,7 @@ static VTWAYPOINT g_vtwaypoint;
 
 struct VTTN
 {
-    VT *pvtSuper = g_vtalo.pvtSuper;
+    VT* pvtSuper = g_vtalo.pvtSuper;
     CID cid = CID_TN;
     int grfcid = 0x1;
     int cb = 1440;
@@ -8949,7 +8949,7 @@ static VTTN g_vttn;
 
 struct VTJLOC
 {
-    VT *pvtSuper = g_vtalo.pvtSuper;
+    VT* pvtSuper = g_vtalo.pvtSuper;
     CID cid = CID_JLOC;
     int grfcid = 0x1;
     int cb = 1232;
@@ -9008,7 +9008,7 @@ static VTJLOC g_vtjloc;
 
 struct VTDIALOG
 {
-    VT *pvtSuper = g_vtalo.pvtSuper;
+    VT* pvtSuper = g_vtalo.pvtSuper;
     CID cid = CID_DIALOG;
     int grfcid = 0x1;
     int cb = 1200;
@@ -9067,7 +9067,7 @@ static VTDIALOG g_vtdialog;
 
 struct VTSPEAKER
 {
-    VT *pvtSuper = g_vtalo.pvtSuper;
+    VT* pvtSuper = g_vtalo.pvtSuper;
     CID cid = CID_SPEAKER;
     int grfcid = 0x1;
     int cb = 1136;
@@ -9126,7 +9126,7 @@ static VTSPEAKER g_vtspeaker;
 
 struct VTROPE
 {
-    VT *pvtSuper = g_vtalo.pvtSuper;
+    VT* pvtSuper = g_vtalo.pvtSuper;
     CID cid = CID_ROPE;
     int grfcid = 0x1;
     int cb = 0x320;
@@ -9185,7 +9185,7 @@ static VTROPE g_vtrope;
 
 struct VTWM
 {
-    VT *pvtSuper = g_vtalo.pvtSuper;
+    VT* pvtSuper = g_vtalo.pvtSuper;
     CID cid = CID_WM;
     int grfcid = 0x1;
     int cb = 1216;
@@ -9244,7 +9244,7 @@ static VTWM g_vtwm;
 
 struct VTPUFFB
 {
-    VT *pvtSuper = g_vtalo.pvtSuper;
+    VT* pvtSuper = g_vtalo.pvtSuper;
     CID cid = CID_PUFFB;
     int grfcid = 0x1;
     int cb = 1112;
@@ -9303,7 +9303,7 @@ static VTPUFFB g_vtpuffb;
 
 struct VTCRBRAIN
 {
-    VT *pvtSuper = g_vtalo.pvtSuper;
+    VT* pvtSuper = g_vtalo.pvtSuper;
     CID cid = CID_CRBRAIN;
     int grfcid = 0x1;
     int cb = 0x2F0;
@@ -9362,7 +9362,7 @@ static VTCRBRAIN g_vtcrbrain;
 
 struct VTMGC
 {
-    VT *pvtSuper = g_vtalo.pvtSuper;
+    VT* pvtSuper = g_vtalo.pvtSuper;
     CID cid = CID_MGC;
     int grfcid = 0x1;
     int cb = 0x330;
@@ -9421,7 +9421,7 @@ static VTMGC g_vtmgc;
 
 struct VTJACKB
 {
-    VT *pvtSuper = g_vtalo.pvtSuper;
+    VT* pvtSuper = g_vtalo.pvtSuper;
     CID cid = CID_JACKB;
     int grfcid = 0x1;
     int cb = 0x350;
@@ -9480,7 +9480,7 @@ static VTJACKB g_vtjackb;
 
 struct VTJACKN
 {
-    VT *pvtSuper = g_vtalo.pvtSuper;
+    VT* pvtSuper = g_vtalo.pvtSuper;
     CID cid = CID_JACKN;
     int grfcid = 0x1;
     int cb = 0x340;
@@ -9539,7 +9539,7 @@ static VTJACKN g_vtjackn;
 
 struct VTJACKF
 {
-    VT *pvtSuper = g_vtalo.pvtSuper;
+    VT* pvtSuper = g_vtalo.pvtSuper;
     CID cid = CID_JACKF;
     int grfcid = 0x1;
     int cb = 0x320;
@@ -9598,7 +9598,7 @@ static VTJACKF g_vtjackf;
 
 struct VTSW
 {
-    VT *pvtSuper = g_vtlo.pvtSuper;
+    VT* pvtSuper = g_vtlo.pvtSuper;
     CID cid = CID_SW;
     int grfcid = 0;
     int cb = 17296;
@@ -9638,7 +9638,7 @@ static VTSW g_vtsw;
 
 struct VTCM
 {
-    VT *pvtSuper = g_vtlo.pvtSuper;
+    VT* pvtSuper = g_vtlo.pvtSuper;
     CID cid = CID_CM;
     int grfcid = 0;
     int cb = 1464;
@@ -9678,7 +9678,7 @@ static VTCM g_vtcm;
 
 struct VTSHAPE
 {
-    VT *pvtSuper = g_vtlo.pvtSuper;
+    VT* pvtSuper = g_vtlo.pvtSuper;
     CID cid = CID_SHAPE;
     int grfcid = 0;
     int cb = 144;
@@ -9718,7 +9718,7 @@ static VTSHAPE g_vtshape;
 
 struct VTHSHAPE
 {
-    VT *pvtSuper = g_vtshape.pvtSuper;
+    VT* pvtSuper = g_vtshape.pvtSuper;
     CID cid = CID_HSHAPE;
     int grfcid = 0;
     int cb = 192;
@@ -9758,7 +9758,7 @@ static VTHSHAPE g_vthshape;
 
 struct VTPIPE
 {
-    VT *pvtSuper = g_vtshape.pvtSuper;
+    VT* pvtSuper = g_vtshape.pvtSuper;
     CID cid = CID_PIPE;
     int grfcid = 0;
     int cb = 192;
@@ -9798,7 +9798,7 @@ static VTPIPE g_vtpipe;
 
 struct VTRAIL
 {
-    VT *pvtSuper = g_vtshape.pvtSuper;
+    VT* pvtSuper = g_vtshape.pvtSuper;
     CID cid = CID_RAIL;
     int grfcid = 0;
     int cb = 172;
@@ -9838,7 +9838,7 @@ static VTRAIL g_vtrail;
 
 struct VTLANDING
 {
-    VT *pvtSuper = g_vtshape.pvtSuper;
+    VT* pvtSuper = g_vtshape.pvtSuper;
     CID cid = CID_LANDING;
     int grfcid = 0;
     int cb = 152;
@@ -9878,7 +9878,7 @@ static VTLANDING g_vtlanding;
 
 struct VTXFM
 {
-    VT *pvtSuper = g_vtlo.pvtSuper;
+    VT* pvtSuper = g_vtlo.pvtSuper;
     CID cid = CID_XFM;
     int grfcid = 0;
     int cb = 168;
@@ -9918,7 +9918,7 @@ static VTXFM g_vtxfm;
 
 struct VTWARP
 {
-    VT *pvtSuper = g_vtxfm.pvtSuper;
+    VT* pvtSuper = g_vtxfm.pvtSuper;
     CID cid = CID_WARP;
     int grfcid = 0;
     int cb = 344;
@@ -9958,7 +9958,7 @@ static VTWARP g_vtwarp;
 
 struct VTTARGET
 {
-    VT *pvtSuper = g_vtxfm.pvtSuper;
+    VT* pvtSuper = g_vtxfm.pvtSuper;
     CID cid = CID_TARGET;
     int grfcid = 0;
     int cb = 200;
@@ -9998,7 +9998,7 @@ static VTTARGET g_vttarget;
 
 struct VTHND
 {
-    VT *pvtSuper = g_vttarget.pvtSuper;
+    VT* pvtSuper = g_vttarget.pvtSuper;
     CID cid = CID_HND;
     int grfcid = 0;
     int cb = 224;
@@ -10038,7 +10038,7 @@ static VTHND g_vthnd;
 
 struct VTEXPL
 {
-    VT *pvtSuper = g_vtxfm.pvtSuper;
+    VT* pvtSuper = g_vtxfm.pvtSuper;
     CID cid = CID_EXPL;
     int grfcid = 0;
     int cb = 176;
@@ -10079,7 +10079,7 @@ static VTEXPL g_vtexpl;
 
 struct VTEXPLG
 {
-    VT *pvtSuper = g_vtexpl.pvtSuper;
+    VT* pvtSuper = g_vtexpl.pvtSuper;
     CID cid = CID_EXPLG;
     int grfcid = 0;
     int cb = 188;
@@ -10120,7 +10120,7 @@ static VTEXPLG g_vtexplg;
 
 struct VTEXPLO
 {
-    VT *pvtSuper = g_vtexpl.pvtSuper;
+    VT* pvtSuper = g_vtexpl.pvtSuper;
     CID cid = CID_EXPLO;
     int grfcid = 0;
     int cb = 192;
@@ -10161,7 +10161,7 @@ static VTEXPLO g_vtexplo;
 
 struct VTEXPLS
 {
-    VT *pvtSuper = g_vtexplo.pvtSuper;
+    VT* pvtSuper = g_vtexplo.pvtSuper;
     CID cid = CID_EXPLS;
     int grfcid = 0;
     int cb = 192;
@@ -10202,7 +10202,7 @@ static VTEXPLS g_vtexpls;
 
 struct VTVOL
 {
-    VT *pvtSuper = g_vtxfm.pvtSuper;
+    VT* pvtSuper = g_vtxfm.pvtSuper;
     CID cid = CID_VOL;
     int grfcid = 0;
     int cb = 200;
@@ -10242,7 +10242,7 @@ static VTVOL g_vtvol;
 
 struct VTRATHOLE
 {
-    VT *pvtSuper = g_vtvol.pvtSuper;
+    VT* pvtSuper = g_vtvol.pvtSuper;
     CID cid = CID_RATHOLE;
     int grfcid = 0;
     int cb = 216;
@@ -10282,7 +10282,7 @@ static VTRATHOLE g_vtrathole;
 
 struct VTPUFFV
 {
-    VT *pvtSuper = g_vtvol.pvtSuper;
+    VT* pvtSuper = g_vtvol.pvtSuper;
     CID cid = CID_PUFFV;
     int grfcid = 0;
     int cb = 260;
@@ -10322,7 +10322,7 @@ static VTPUFFV g_vtpuffv;
 
 struct VTEXIT
 {
-    VT *pvtSuper = g_vtalo.pvtSuper;
+    VT* pvtSuper = g_vtalo.pvtSuper;
     CID cid = CID_EXIT;
     int grfcid = 0x1;
     int cb = 1168;
@@ -10381,7 +10381,7 @@ static VTEXIT g_vtexit;
 
 struct VTPNT
 {
-    VT *pvtSuper = g_vtlo.pvtSuper;
+    VT* pvtSuper = g_vtlo.pvtSuper;
     CID cid = CID_PNT;
     int grfcid = 0;
     int cb = 136;
@@ -10421,7 +10421,7 @@ static VTPNT g_vtpnt;
 
 struct VTPNTSV
 {
-    VT *pvtSuper = g_vtpnt.pvtSuper;
+    VT* pvtSuper = g_vtpnt.pvtSuper;
     CID cid = CID_PNTSV;
     int grfcid = 0;
     int cb = 136;
@@ -10461,7 +10461,7 @@ static VTPNTSV g_vtpntsv;
 
 struct VTPNTS
 {
-    VT *pvtSuper = g_vtpnt.pvtSuper;
+    VT* pvtSuper = g_vtpnt.pvtSuper;
     CID cid = CID_PNTS;
     int grfcid = 0;
     int cb = 136;
@@ -10501,7 +10501,7 @@ static VTPNTS g_vtpnts;
 
 struct VTPNTVEC
 {
-    VT *pvtSuper = g_vtpnt.pvtSuper;
+    VT* pvtSuper = g_vtpnt.pvtSuper;
     CID cid = CID_PNTVEC;
     int grfcid = 0;
     int cb = 136;
@@ -10541,7 +10541,7 @@ static VTPNTVEC g_vtpntvec;
 
 struct VTHPNT
 {
-    VT *pvtSuper = g_vtpnt.pvtSuper;
+    VT* pvtSuper = g_vtpnt.pvtSuper;
     CID cid = CID_HPNT;
     int grfcid = 0;
     int cb = 192;
@@ -10581,7 +10581,7 @@ static VTHPNT g_vthpnt;
 
 struct VTJMT
 {
-    VT *pvtSuper = g_vtpnt.pvtSuper;
+    VT* pvtSuper = g_vtpnt.pvtSuper;
     CID cid = CID_JMT;
     int grfcid = 0;
     int cb = 168;
@@ -10621,7 +10621,7 @@ static VTJMT g_vtjmt;
 
 struct VTSPIRE
 {
-    VT *pvtSuper = g_vtpnt.pvtSuper;
+    VT* pvtSuper = g_vtpnt.pvtSuper;
     CID cid = CID_SPIRE;
     int grfcid = 0;
     int cb = 152;
@@ -10661,7 +10661,7 @@ static VTSPIRE g_vtspire;
 
 struct VTSCAN
 {
-    VT *pvtSuper = g_vtpnt.pvtSuper;
+    VT* pvtSuper = g_vtpnt.pvtSuper;
     CID cid = CID_SCAN;
     int grfcid = 0;
     int cb = 140;
@@ -10701,7 +10701,7 @@ static VTSCAN g_vtscan;
 
 struct VTASEG
 {
-    VT *pvtSuper = g_vtlo.pvtSuper;
+    VT* pvtSuper = g_vtlo.pvtSuper;
     CID cid = CID_ASEG;
     int grfcid = 0x40;
     int cb = 288;
@@ -10741,7 +10741,7 @@ static VTASEG g_vtaseg;
 
 struct VTMAP
 {
-    VT *pvtSuper = g_vtlo.pvtSuper;
+    VT* pvtSuper = g_vtlo.pvtSuper;
     CID cid = CID_MAP;
     int grfcid = 0;
     int cb = 168;
@@ -10781,7 +10781,7 @@ static VTMAP g_vtmap;
 
 struct VT_VISZONE
 {
-    VT *pvtSuper = g_vtlo.pvtSuper;
+    VT* pvtSuper = g_vtlo.pvtSuper;
     CID cid = CID__VISZONE;
     int grfcid = 0;
     int cb = 120;
@@ -10821,7 +10821,7 @@ static VT_VISZONE g_vt_viszone;
 
 struct VTVISMAP
 {
-    VT *pvtSuper = g_vtlo.pvtSuper;
+    VT* pvtSuper = g_vtlo.pvtSuper;
     CID cid = CID_VISMAP;
     int grfcid = 0;
     int cb = 192;
@@ -10861,7 +10861,7 @@ static VTVISMAP g_vismap;
 
 struct VTFRZG
 {
-    VT *pvtSuper = g_vtlo.pvtSuper;
+    VT* pvtSuper = g_vtlo.pvtSuper;
     CID cid = CID_FRZG;
     int grfcid = 0;
     int cb = 184;
@@ -10901,7 +10901,7 @@ static VTFRZG g_vtfrzg;
 
 struct VTSM
 {
-    VT *pvtSuper = g_vtlo.pvtSuper;
+    VT* pvtSuper = g_vtlo.pvtSuper;
     CID cid = CID_SM;
     int grfcid = 0;
     int cb = 172;
@@ -10941,7 +10941,7 @@ static VTSM g_vtsm;
 
 struct VTSGG
 {
-    VT *pvtSuper = g_vtlo.pvtSuper;
+    VT* pvtSuper = g_vtlo.pvtSuper;
     CID cid = CID_SGG;
     int grfcid = 0;
     int cb = 0x190;
@@ -10981,7 +10981,7 @@ static VTSGG g_vtsgg;
 
 struct VTPATHZONE
 {
-    VT *pvtSuper = g_vtlo.pvtSuper;
+    VT* pvtSuper = g_vtlo.pvtSuper;
     CID cid = CID_PATHZONE;
     int grfcid = 0;
     int cb = 0x70;
@@ -11021,7 +11021,7 @@ static VTPATHZONE g_vtpathzone;
 
 struct VTRCHM
 {
-    VT *pvtSuper = g_vtlo.pvtSuper;
+    VT* pvtSuper = g_vtlo.pvtSuper;
     CID cid = CID_RCHM;
     int grfcid = 0;
     int cb = 0x400;
@@ -11061,7 +11061,7 @@ static VTRCHM g_vtrchm;
 
 struct VTRWM
 {
-    VT *pvtSuper = g_vtlo.pvtSuper;
+    VT* pvtSuper = g_vtlo.pvtSuper;
     CID cid = CID_RWM;
     int grfcid = 0;
     int cb = 528;
@@ -11101,7 +11101,7 @@ static VTRWM g_vtrwm;
 
 struct VTWR
 {
-    VT *pvtSuper = g_vtlo.pvtSuper;
+    VT* pvtSuper = g_vtlo.pvtSuper;
     CID cid = CID_WR;
     int grfcid = 0;
     int cb = 0x8F0;
@@ -11141,7 +11141,7 @@ static VTWR g_vtwr;
 
 struct VTKEYHOLE
 {
-    VT *pvtSuper = g_vtlo.pvtSuper;
+    VT* pvtSuper = g_vtlo.pvtSuper;
     CID cid = CID_KEYHOLE;
     int grfcid = 0;
     int cb = 256;
@@ -11181,7 +11181,7 @@ static VTKEYHOLE g_vtkeyhole;
 
 struct VTJSG
 {
-    VT *pvtSuper = g_vtlo.pvtSuper;
+    VT* pvtSuper = g_vtlo.pvtSuper;
     CID cid = CID_JSG;
     int grfcid = 0;
     int cb = 200;

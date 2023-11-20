@@ -28,5 +28,6 @@ class SMARTGUARD : public STEPGUARD
         int cidleSearch;
 };
 
+void*CreateSmartguard();
 void InitSmartGuard(SMARTGUARD* psmartguard);
 void DeleteSmartGuard(LO* plo);

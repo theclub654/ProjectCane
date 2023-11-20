@@ -86,15 +86,17 @@ class LO : public BASIC
 		class ALO* paloParent;
 		DLE dleChild;
         // Pointer to next LO
-		LO* ploCidNext;
-        void* pmqFirst;
+		class LO* ploCidNext;
+        struct MQ* pmqFirst;
 		// Objects name
 		char* pchzName;
-        void* pframe;
-        void* ppxr;
+        struct CFrame* pframe;
+        struct PXR* ppxr;
 		uint64_t dtickPerf;
 };
 
+// Creates a new local object
+void* CreateLo();
 // Initializes Local Object
 void InitLo(LO *parentLo);
 void SetLoDefaults(LO* parentLo);

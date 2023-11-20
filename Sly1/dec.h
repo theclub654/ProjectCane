@@ -9,6 +9,7 @@ extern bool loadEmitMesh;
 // Local Obeject
 class LO;
 enum MSGID;
+void* CreateLo();
 void InitLo(LO* plo);
 void SetLoDefaults(LO* plo);
 void AddLo(LO* plo);
@@ -29,6 +30,7 @@ void SubscribeLoStruct(LO* plo, void* pfnmq, void* pvContext);
 void UnsubscribeLoStruct(LO* plo, void* pfnmq, void* pvContext);
 
 // A Local Object;
+void* CreateAlo();
 void InitAlo(ALO* palo);
 void AddAloHierarchy(ALO* palo);
 void RemoveAloHierarchy(ALO* palo);
@@ -46,6 +48,7 @@ void DeleteAlo(LO* palo);
 // Static Object
 class SO;
 struct SOP;
+void* CreateSo();
 void InitSo(SO* pso);
 void OnSoAdd(SO* pso);
 void LoadSoFromBrx(SO* pso, CBinaryInputStream* pbis);
@@ -55,16 +58,19 @@ void DeleteSo(LO* plo);
 
 // Player Object
 class PO;
+void* CreatePo();
 void InitPo(PO* ppo);
 void OnPoAdd(PO* ppo);
 void DeletePo(LO* plo);
 
 class STEP;
+void* CreateStep();
 void InitStep(STEP* pstep);
 void DeleteStep(LO* plo);
 
 // Sly
 class JT;
+void* CreateJt();
 void InitJt(JT* pjt);
 void LoadJtFromBrx(JT* pjt, CBinaryInputStream* pbis);
 void RenderJtAll(JT* pjt, CM* pcm, RO* pro);
@@ -73,6 +79,7 @@ void DeleteJt(LO* plo);
 
 // Guard
 class STEPGUARD;
+void* CreateStepguard();
 void InitStepGuard(STEPGUARD *pstepguard);
 void OnStepguardAdd(STEPGUARD* pstepguard);
 void LoadStepGuardFromBrx(STEPGUARD *pstepguard, CBinaryInputStream* pbis);
@@ -80,41 +87,51 @@ void RenderStepguardSelf(STEPGUARD* pstepguard, CM* pcm, RO* pro);
 void DeleteStepguard(LO* plo);
 
 class SMARTGUARD;
+void* CreateSmartguard();
 void InitSmartGuard(SMARTGUARD* psmartguard);
 void DeleteSmartGuard(LO* plo);
 
 class GOMER;
+void* CreateGomer();
 void InitGomer(GOMER* pgomer);
 void DeleteGomer(LO* plo);
 
 class UBG;
+void* CreateUbg();
 void DeleteUbg(LO* plo);
 
 class MBG;
+void* CreateMbg();
 void InitMbg(MBG* pmbg);
 void LoadMbgFromBrx(MBG *pmbg, CBinaryInputStream* pbis);
 void DeleteMbg(LO* plo);
 
 class BHG;
+void* CreateBhg();
 void InitBhg(BHG* pbhg);
 void DeleteBhg(LO* plo);
 
 class MURRAY;
+void* CreateMurray();
 void InitMurray(MURRAY* pmurray);
 void DeleteMurray(LO* plo);
 
 class PUFFC;
+void* CreatePuffc();
 void DeletePuffc(LO* plo);
 
 class CRFOD;
+void* CreateCrfod();
 void OnCrfodAdd(CRFOD* pcrfod);
 void DeleteCrfod(LO* plo);
 
 class CRFODB;
+void* CreateCrfodb();
 void InitCrfodb(CRFODB* pcrfodb);
 void DeleteCrfodb(LO* plo);
 
 class CRFODK;
+void* CreateCrfodk();
 void DeleteCrfodk(LO* plo);
 
 class TANK;
@@ -553,6 +570,7 @@ void DeleteJackf(LO* plo);
 
 // Static World
 class SW;
+void* CreateSw();
 void InitSw(SW* psw);
 void LoadSwFromBrx(SW* psw, CBinaryInputStream* pbis);
 void UpdateSw(SW* psw, float dt);

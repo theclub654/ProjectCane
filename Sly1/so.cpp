@@ -1,5 +1,11 @@
 #include "so.h"
 
+void* CreateSo()
+{
+	SO so;
+	return &so;
+}
+
 void InitSo(SO* pso)
 {
 	InitDl(&pso->dlPhys, 0x440);

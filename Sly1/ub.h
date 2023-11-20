@@ -73,6 +73,7 @@ class UBV : public SO
 
 void InitUbg(UBG* pubg);
 void RenderUbpAll(UBP* pubp, CM* pcm, RO* pro);
+void*CreateUbg();
 void DeleteUbg(LO* plo);
 void DeleteUbp(LO* plo);
 void DeleteUbv(LO* plo);

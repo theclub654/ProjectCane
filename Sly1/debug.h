@@ -6,6 +6,7 @@
 #include "transition.h"
 
 extern std::string file;
+void DeleteWorld(SW* psw);
 
 void RenderOpenFileGui();
-void RenderCloseWorldGui();
+void RenderCloseWorldGui(SW* psw);

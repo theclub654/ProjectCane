@@ -1,5 +1,11 @@
 #include "lo.h"
 
+void* CreateLo()
+{
+	LO lo;
+	return &lo;
+}
+
 void InitLo(LO* plo)
 {
 	plo->pvtlo->pfnSetLoDefaults(plo);

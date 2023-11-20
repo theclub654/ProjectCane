@@ -9,30 +9,33 @@ LO* PloNew(CID cid, SW* psw, ALO* paloParent, OID oid, int isplice)
 {
 	VTLO *pvtlo = (VTLO*)g_mpcidpvt[cid];
 
-	SW* SWObj = (SW*)new int[pvtlo->cb]();
+	SW* localObject = (SW*)new int[pvtlo->cb]();
 
-	SWObj->pvtlo = pvtlo;
-	SWObj->oid = oid;
+	localObject->pvtlo = pvtlo;
+	localObject->oid = oid;
 
 	if (cid == CID_SW)
 	{
-		InitSwDlHash(SWObj);
-		SWObj->paloParent = paloParent;
-		psw = SWObj;
+		InitSwDlHash(localObject);
+		localObject->paloParent = paloParent;
+		psw = localObject;
 	}
 
 	else
-		SWObj->paloParent = paloParent;
+		localObject->paloParent = paloParent;
 
-	SWObj->psw = psw;
+	localObject->psw = psw;
 
 	// Appending object to fist parent list
-    AppendDlEntry(PdlFromSwOid(SWObj->psw, SWObj->oid) , SWObj);
+    AppendDlEntry(PdlFromSwOid(localObject->psw, localObject->oid) , localObject);
 	
 	// Initializing local object
-	SWObj->pvtlo->pfnInitLo(SWObj);
+	localObject->pvtlo->pfnInitLo(localObject);
 
-	return (LO*)SWObj;
+	allWorldObjs.push_back(localObject);
+
+	//std::cout << objCounter++<<"\n";
+	return (LO*)localObject;
 }
 
 void LoadSwObjectsFromBrx(SW *psw, ALO *paloParent, CBinaryInputStream *pbis)

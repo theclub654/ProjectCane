@@ -1,10 +1,22 @@
 #include "mb.h"
 
+void* CreateMbg()
+{
+	MBG mbg;
+	return &mbg;
+}
+
 void InitMbg(MBG *pmbg)
 {
 	std::cout << "MBG Size: " << sizeof(MBG) << "\n";
 	std::cout << "BHG Size: " << sizeof(BHG) << "\n";
 	InitStepGuard(pmbg);
+}
+
+void* CreateBhg()
+{
+	BHG bhg;
+	return &bhg;
 }
 
 void InitBhg(BHG *pbhg)

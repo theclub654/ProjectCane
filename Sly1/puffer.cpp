@@ -25,6 +25,12 @@ void DeletePuffv(LO* plo)
 	delete(PUFFV*)plo;
 }
 
+void* CreatePuffc()
+{
+	PUFFC puffc;
+	return &puffc;
+}
+
 void LoadPufferFromBrx(PUFFER *ppuffer, CBinaryInputStream *pbis)
 {
 	/*std::cout << "PUFFER Size: " << sizeof(PUFFER) << "\n";
