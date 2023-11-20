@@ -1,6 +1,7 @@
 #pragma once
 #include "sw.h"
 
+extern std::vector<ALO*> allSWAloObjs;
 // Loops through all objects in a level to see which object is in camera view and stores all objects
 // in camera view in a render list
 void RenderSw(SW* psw, CM* pcm);

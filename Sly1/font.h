@@ -58,9 +58,8 @@ class CFontBrx
 // Number of fonts in binary file
 static int g_cfontBrx;
 // Font property's
-static CFontBrx *g_afontBrx;
-// Parent font 
-static CFont *g_pfont;
-static CFont *g_pfontScreenCounters;
-static CFont *g_pfontJoy;
-static std::vector<GLYFF> g_aglyff;
+static std::vector <CFontBrx> g_afontBrx;
+static std::vector <CFontBrx> g_pfont;
+static std::vector <CFontBrx> g_pfontScreenCounters;
+static std::vector <CFontBrx> g_pfontJoy;
+static std::vector <GLYFF> g_aglyff;

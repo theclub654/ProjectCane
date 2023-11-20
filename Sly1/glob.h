@@ -2,9 +2,8 @@
 #include "shd.h"
 #include "bis.h"
 
-// Glob is just another word for model.
-static int GlobCounter = 0;
 class ALO;
+// Glob is just another word for model.
 
 // Vertex Flag
 struct VTXFLG
@@ -36,7 +35,7 @@ struct SUBGLOB // NOT DONE
 	std::vector <RGBA> vertexColors;
 	std::vector <glm::vec2> texcoords;
 	std::vector <VTXFLG> indexes;
-	std::vector <byte> indices;
+	std::vector <uint16_t> indices;
 	uint32_t unSelfIllum;
 	struct SHD *pshd;
 	int cibnd;
@@ -108,6 +107,6 @@ struct GLOBSET // NOT DONE
 // Loads 3D models from binary file
 void LoadGlobsetFromBrx(GLOBSET *pglobset, CBinaryInputStream *pbis, ALO* palo); // NOT FINISHED
 // Converts tri strips to tri list
-std::vector <byte> ConvertStripsToTriLists(std::vector <VTXFLG> indexes);
+std::vector <uint16_t> ConvertStripsToTriLists(std::vector <VTXFLG> indexes);
 // Storing 3D models in VRAM
-std::vector <SUBGLOB> MakeGLBuffers(std::vector<SUBGLOB> asubglob);
+void MakeGLBuffers(GLOBSET *pglobset);

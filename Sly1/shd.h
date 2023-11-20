@@ -53,8 +53,6 @@ struct TEXF
     byte cibmp;
     // Number of CLUT's
     byte ciclut;
-    std::vector<uint16_t> bmpIndex;
-    std::vector<uint16_t> clutIndex;
 };
 struct SHDF
 {
@@ -70,10 +68,9 @@ struct SHDF
 };
 struct TEX : public TEXF
 {
-    TEXF texf;
     struct SHD* pshd;
-    BMP **apbmp;
-    CLUT **apclut;
+    std::vector<uint16_t> bmpIndex;
+    std::vector<uint16_t> clutIndex;
 };
 // Shader property's
 struct SHD : public SHDF

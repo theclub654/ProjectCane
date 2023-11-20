@@ -32,7 +32,7 @@ int main(int cphzArgs, char* aphzArgs[])
 		if (g_psw != nullptr)
 		{
 			//glShader.Use();
-			//DrawSwAll(g_psw, g_pcm);
+			DrawSwAll(g_psw, g_pcm);
 		}
 
 		RenderOpenFileGui();

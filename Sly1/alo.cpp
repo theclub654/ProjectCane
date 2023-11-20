@@ -1,7 +1,7 @@
 #include "alo.h"
 
 std::vector<void*> allWorldObjs;
-extern std::vector<void*> allSWAloObjs;
+std::vector<ALO*> allSWAloObjs;
 
 void* CreateAlo()
 {
@@ -265,9 +265,9 @@ void RenderAloAsBone(ALO* palo, CM* pcm, RO* pro)
 void DrawLo(ALO* palo)
 {
 
-	for (int i = 0; i < palo->globset.cglob; i++)
+	for (int i = 0; i < palo->globset.aglob.size(); i++)
 	{
-		for (int a = 0; a < palo->globset.aglob[i].csubglob; a++)
+		for (int a = 0; a < palo->globset.aglob[i].asubglob.size(); a++)
 		{
 			
 		}
@@ -277,7 +277,7 @@ void DrawLo(ALO* palo)
 void DeleteWorld(SW* psw)
 {
 	for (int i = 0; i < allSWAloObjs.size(); i++)
-		DeleteModel((ALO*)allSWAloObjs[i]);
+		DeleteModel(allSWAloObjs[i]);
 
 	for (int i = 0; i < allWorldObjs.size(); i++)
 		DeleteObject((LO*)allWorldObjs[i]);

@@ -80,18 +80,31 @@ std::string get_file_contents(const char* filename)
 
 void UnloadShaders()
 {
-	//g_pfont = (CFont*)&g_fontDebug;
+	
 	g_cshd = 0;
 	g_ashd.clear();
+	g_ashd.shrink_to_fit();
 	g_cbmp = 0;
 	g_abmp.clear();
+	g_abmp.shrink_to_fit();
 	g_cclut = 0;
 	g_aclut.clear();
+	g_aclut.shrink_to_fit();
 	g_cfontBrx = 0;
-	g_afontBrx = 0x0;
+	g_afontBrx.clear();
+	g_afontBrx.shrink_to_fit();
+	g_pfont.clear();
+	g_pfont.shrink_to_fit();
+	g_pfontScreenCounters.clear();
+	g_pfontScreenCounters.shrink_to_fit();
+	g_pfontJoy.clear();
+	g_pfontJoy.shrink_to_fit();
+	g_aglyff.clear();
+	g_aglyff.shrink_to_fit();
 	g_grfzonShaders = 0;
 	g_cpsaa = 0;
 	g_apsaa.clear();
+	g_apsaa.shrink_to_fit();
 }
 
 void LoadColorTablesFromBrx(CBinaryInputStream *pbis)
@@ -136,14 +149,11 @@ void LoadFontsFromBrx(CBinaryInputStream* pbis)
 {
 	// Loading number of fonts from file
 	g_cfontBrx = pbis->U16Read();
-
-	g_afontBrx = (CFontBrx*)malloc(sizeof(CFontBrx));
-	
-	g_afontBrx->m_grffont = g_cfontBrx;
+	g_afontBrx.resize(g_cfontBrx);
 
 	// Loading font property's from binary file
 	for (int i = 0; i < g_cfontBrx ; i++)
-		g_afontBrx->LoadFromBrx(pbis);
+		g_afontBrx[i].LoadFromBrx(pbis);
 }
 
 void LoadTexFromBrx(CBinaryInputStream *pbis, TEX *ptex)
@@ -154,12 +164,10 @@ void LoadTexFromBrx(CBinaryInputStream *pbis, TEX *ptex)
 	ptex->ciclut = pbis->U8Read();
 
 	ptex->bmpIndex.resize(ptex->cibmp);
-
 	for (int i = 0; i < ptex->cibmp; i++)
 		ptex->bmpIndex[i] = pbis->U16Read();
 
 	ptex->clutIndex.resize(ptex->ciclut);
-
 	for (int i = 0; i < ptex->ciclut; i++)
 		ptex->clutIndex[i] = pbis->U16Read();
 }

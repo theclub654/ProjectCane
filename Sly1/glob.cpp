@@ -1,7 +1,7 @@
 #include "glob.h"
 
 std::vector <SHD> g_ashd;
-std::vector<void*> allSWAloObjs;
+extern std::vector<ALO*> allSWAloObjs;
 
 void LoadGlobsetFromBrx(GLOBSET* pglobset, CBinaryInputStream* pbis, ALO* palo)
 {
@@ -100,7 +100,6 @@ void LoadGlobsetFromBrx(GLOBSET* pglobset, CBinaryInputStream* pbis, ALO* palo)
             // std::cout << "Model Start: " << std::hex << file.tellg()<<"\n";
             // Number of submodels
             pglobset->aglob[i].csubglob = pbis->U16Read();
-
             pglobset->aglob[i].asubglob.resize(pglobset->aglob[i].csubglob);
 
             for (int a = 0; a < pglobset->aglob[i].csubglob; a++)
@@ -188,12 +187,6 @@ void LoadGlobsetFromBrx(GLOBSET* pglobset, CBinaryInputStream* pbis, ALO* palo)
                 }
             }
 
-            if (pglobset->aglob[i].csubglob != 0)
-            {
-                allSWAloObjs.push_back(palo);
-                pglobset->aglob[i].asubglob = MakeGLBuffers(pglobset->aglob[i].asubglob);
-            }
-
             uint16_t numSubMesh1 = pbis->U16Read();
 
             for (int i = 0; i < numSubMesh1; i++)
@@ -238,19 +231,25 @@ void LoadGlobsetFromBrx(GLOBSET* pglobset, CBinaryInputStream* pbis, ALO* palo)
             }
         }
     }
+
+    if (pglobset->cglob != 0)
+    {
+        allSWAloObjs.push_back(palo);
+        MakeGLBuffers(pglobset);
+    }
 }
 
-std::vector <byte> ConvertStripsToTriLists(std::vector <VTXFLG> indexes)
+std::vector <uint16_t> ConvertStripsToTriLists(std::vector <VTXFLG> indexes)
 {
-    std::vector <byte> indices;
+    std::vector <uint16_t> indices;
 
     uint32_t idx = 0;
 
     for (int i = 2; i < indexes.size(); i++)
     {
-        byte indice0 = indexes[idx + 0].ipos;
-        byte indice1 = indexes[idx + 1].ipos;
-        byte indice2 = indexes[idx + 2].ipos;
+        uint16_t indice0 = (uint16_t)indexes[idx + 0].ipos;
+        uint16_t indice1 = (uint16_t)indexes[idx + 1].ipos;
+        uint16_t indice2 = (uint16_t)indexes[idx + 2].ipos;
         byte stripFlag = indexes[idx + 2].bMisc;
 
         if (stripFlag != 0x80 && stripFlag != 0x81 && stripFlag != 0x82 && stripFlag != 0x83 && stripFlag != 0x84 && stripFlag != 0x85 && stripFlag != 0x86 && stripFlag != 0x87 && stripFlag != 0x88 && stripFlag != 0x89 && stripFlag != 0x8A && stripFlag != 0x8B && stripFlag != 0x8C && stripFlag != 0x8D && stripFlag != 0x8E && stripFlag != 0x8F && stripFlag != 0xFF)
@@ -265,47 +264,48 @@ std::vector <byte> ConvertStripsToTriLists(std::vector <VTXFLG> indexes)
     return indices;
 }
 
-std::vector <SUBGLOB> MakeGLBuffers(std::vector<SUBGLOB> asubglob)
+void MakeGLBuffers(GLOBSET *pglobset)
 {
-    for (int i = 0; i < asubglob.size(); i++)
+    for (int i = 0; i < pglobset->aglob.size(); i++)
     {
-        glGenVertexArrays(1, &asubglob[i].VAO);
-        glBindVertexArray(asubglob[i].VAO);
+        for (int a = 0; a < pglobset->aglob[i].asubglob.size(); a++)
+        {
+            glGenVertexArrays(1, &pglobset->aglob[i].asubglob[a].VAO);
+            glBindVertexArray(pglobset->aglob[i].asubglob[a].VAO);
 
-        glGenBuffers(1, &asubglob[i].VBO);
-        glBindBuffer(GL_ARRAY_BUFFER, asubglob[i].VBO);
-        glBufferData(GL_ARRAY_BUFFER, asubglob[i].vertexes.size() * sizeof(glm::vec3), asubglob[i].vertexes.data(), GL_STATIC_DRAW);
+            glGenBuffers(1, &pglobset->aglob[i].asubglob[a].VBO);
+            glBindBuffer(GL_ARRAY_BUFFER, pglobset->aglob[i].asubglob[a].VBO);
+            glBufferData(GL_ARRAY_BUFFER, pglobset->aglob[i].asubglob[a].vertexes.size() * sizeof(glm::vec3), pglobset->aglob[i].asubglob[a].vertexes.data(), GL_STATIC_DRAW);
 
-        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), (void*)0);
-        glEnableVertexAttribArray(0);
+            glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), (void*)0);
+            glEnableVertexAttribArray(0);
 
-        glGenBuffers(1, &asubglob[i].VNO);
-        glBindBuffer(GL_ARRAY_BUFFER, asubglob[i].VNO);
-        glBufferData(GL_ARRAY_BUFFER, asubglob[i].normals.size() * sizeof(glm::vec3), asubglob[i].normals.data(), GL_STATIC_DRAW);
+            glGenBuffers(1, &pglobset->aglob[i].asubglob[a].VNO);
+            glBindBuffer(GL_ARRAY_BUFFER, pglobset->aglob[i].asubglob[a].VNO);
+            glBufferData(GL_ARRAY_BUFFER, pglobset->aglob[i].asubglob[a].normals.size() * sizeof(glm::vec3), pglobset->aglob[i].asubglob[a].normals.data(), GL_STATIC_DRAW);
 
-        glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), (void*)0);
-        glEnableVertexAttribArray(1);
+            glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), (void*)0);
+            glEnableVertexAttribArray(1);
 
-        glGenBuffers(1, &asubglob[i].VCB);
-        glBindBuffer(GL_ARRAY_BUFFER, asubglob[i].VCB);
-        glBufferData(GL_ARRAY_BUFFER, asubglob[i].vertexColors.size() * sizeof(uint32_t), asubglob[i].vertexColors.data(), GL_STATIC_DRAW);
+            glGenBuffers(1, &pglobset->aglob[i].asubglob[a].VCB);
+            glBindBuffer(GL_ARRAY_BUFFER, pglobset->aglob[i].asubglob[a].VCB);
+            glBufferData(GL_ARRAY_BUFFER, pglobset->aglob[i].asubglob[a].vertexColors.size() * sizeof(RGBA), pglobset->aglob[i].asubglob[a].vertexColors.data(), GL_STATIC_DRAW);
 
-        glVertexAttribPointer(2, 1, GL_UNSIGNED_INT, GL_TRUE, sizeof(uint32_t), (void*)0);
-        glEnableVertexAttribArray(2);
+            glVertexAttribPointer(2, 1, GL_UNSIGNED_INT, GL_TRUE, sizeof(RGBA), (void*)0);
+            glEnableVertexAttribArray(2);
 
-        glGenBuffers(1, &asubglob[i].TCB);
-        glBindBuffer(GL_ARRAY_BUFFER, asubglob[i].TCB);
-        glBufferData(GL_ARRAY_BUFFER, asubglob[i].texcoords.size() * sizeof(glm::vec2), asubglob[i].texcoords.data(), GL_STATIC_DRAW);
+            glGenBuffers(1, &pglobset->aglob[i].asubglob[a].TCB);
+            glBindBuffer(GL_ARRAY_BUFFER, pglobset->aglob[i].asubglob[a].TCB);
+            glBufferData(GL_ARRAY_BUFFER, pglobset->aglob[i].asubglob[a].texcoords.size() * sizeof(glm::vec2), pglobset->aglob[i].asubglob[a].texcoords.data(), GL_STATIC_DRAW);
 
-        glVertexAttribPointer(3, 2, GL_FLOAT, GL_FALSE, sizeof(glm::vec2), (void*)0);
-        glEnableVertexAttribArray(3);
+            glVertexAttribPointer(3, 2, GL_FLOAT, GL_FALSE, sizeof(glm::vec2), (void*)0);
+            glEnableVertexAttribArray(3);
 
-        glGenBuffers(1, &asubglob[i].EBO);
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, asubglob[i].EBO);
-        glBufferData(GL_ELEMENT_ARRAY_BUFFER, asubglob[i].indices.size() * sizeof(uint8_t), asubglob[i].indices.data(), GL_STATIC_DRAW);
+            glGenBuffers(1, &pglobset->aglob[i].asubglob[a].EBO);
+            glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, pglobset->aglob[i].asubglob[a].EBO);
+            glBufferData(GL_ELEMENT_ARRAY_BUFFER, pglobset->aglob[i].asubglob[a].indices.size() * sizeof(uint16_t), pglobset->aglob[i].asubglob[a].indices.data(), GL_STATIC_DRAW);
 
-        glBindVertexArray(0);
+            glBindVertexArray(0);
+        }
     }
-
-    return asubglob;
 }

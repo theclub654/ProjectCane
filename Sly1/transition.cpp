@@ -28,7 +28,6 @@ void CTransition::Execute(std::string file)
 
 	// Deleting parent SW object
 	DeleteSw(g_psw);
-	g_psw = nullptr;
 	// Reading data thats not needed
 	pbis->S32Read();
 	// Reading data thats not needed
