@@ -40,5 +40,6 @@ class MECHA : public STEP
         glm::vec3 vTargetCoast;
 };
 
+void*NewMecha();
 void InitMecha(MECHA* pmecha);
 void DeleteMecha(LO* plo);

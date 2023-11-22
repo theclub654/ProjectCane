@@ -1,5 +1,10 @@
 #include "fly.h"
 
+void* NewFly()
+{
+	return new FLY;
+}
+
 void InitFly(FLY* pfly)
 {
 	//std::cout << "FLY Size: " << sizeof(FLY) << "\n";

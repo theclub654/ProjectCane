@@ -1,9 +1,8 @@
 #include "smartguard.h"
 
-void* CreateSmartguard()
+void* NewSmartguard()
 {
-	SMARTGUARD smartguard;
-	return &smartguard;
+	return new SMARTGUARD;
 }
 
 void InitSmartGuard(SMARTGUARD* psmartguard)

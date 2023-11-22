@@ -42,13 +42,18 @@ class GROUNDMISS : public MISSILE
 		float sdvTrackMax;
 };
 
+void* NewMissile();
 void InitMissile(MISSILE* pmissile);
 void DeleteMissile(LO* plo);
+void* NewAccmiss();
 void InitAccmiss(ACCMISS* paccmiss);
 void DeleteAccmiss(LO* plo);
+void* NewTarmiss();
 void InitTarmiss(TARMISS* ptarmiss);
 void DeleteTarmiss(LO* plo);
+void* NewSplmiss();
 void DeleteSplmiss(LO* plo);
+void* NewGroundmiss();
 void InitGroundmiss(GROUNDMISS* pgroundmiss);
 void DeleteGroundmiss(LO* plo);
 void LoadMissileFromBrx(MISSILE* pmissile, CBinaryInputStream* pbis);

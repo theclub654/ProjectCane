@@ -85,17 +85,22 @@ class EXPLS : public EXPLO
 	public:
 };
 
+void* NewExplo();
 void InitExplo(EXPLO* pexplo);
 void DeleteExplo(LO* plo);
+void* NewEmitter();
 void InitEmitter(EMITTER* pemitter);
 void DeleteEmitter(LO* plo);
+void* NewExpl();
 void DeleteExpl(LO* plo);
+void* NewExpls();
 void InitExpls(EXPLS* pexpls);
 void DeleteExpls(LO* plo);
 void LoadEmitMeshFromBrx(CBinaryInputStream* pbis);
 void LoadEmitblipColorsFromBrx(int crgba, CBinaryInputStream* pbis);
 void LoadEmitterFromBrx(EMITTER* pemitter, CBinaryInputStream* pbis);
 void LoadExplgFromBrx(EXPLG* pexplg, CBinaryInputStream* pbis);
+void* NewExplg();
 void DeleteExplg(LO* plo);
 void LoadExploFromBrx(EXPLO *pexplo, CBinaryInputStream *pbis);
 void RenderEmitterSelf(EMITTER* pemitter, CM* pcm, RO* pro);

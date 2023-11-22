@@ -28,8 +28,10 @@ class VOL : public XFM
         struct TBSP* atbsp;
 };
 
+void* NewChkpnt();
 void InitChkpnt(CHKPNT* pchkpnt);
 void LoadChkpntFromBrx(CHKPNT* pchkpnt, CBinaryInputStream* pbis);
 void DeleteChkpnt(LO* plo);
+void* NewVol();
 void LoadVolFromBrx(VOL* pvol, CBinaryInputStream* pbis);
 void DeleteVol(LO* plo);

@@ -1,17 +1,23 @@
 #include "missile.h"
 
+void* NewMissile()
+{
+	return new MISSILE;
+}
+
 void InitMissile(MISSILE* pmissile)
 {
-	/*std::cout << "MISSILE Size: " << sizeof(MISSILE) << "\n";
-	std::cout << "ACCMISS Size: " << sizeof(ACCMISS) << "\n";
-	std::cout << "TARMISS Size: " << sizeof(TARMISS) << "\n";
-	std::cout << "GROUNDMISS Size: " << sizeof(GROUNDMISS) << "\n";*/
 	InitBomb(pmissile);
 }
 
 void DeleteMissile(LO* plo)
 {
 	delete (MISSILE*)plo;
+}
+
+void* NewAccmiss()
+{
+	return new ACCMISS;
 }
 
 void InitAccmiss(ACCMISS* paccmiss)
@@ -24,6 +30,11 @@ void DeleteAccmiss(LO* plo)
 	delete (ACCMISS*)plo;
 }
 
+void* NewTarmiss()
+{
+	return new TARMISS;
+}
+
 void InitTarmiss(TARMISS* ptarmiss)
 {
 	InitAccmiss(ptarmiss);
@@ -34,9 +45,19 @@ void DeleteTarmiss(LO* plo)
 	delete (TARMISS*)plo;
 }
 
+void* NewSplmiss()
+{
+	return new SPLMISS;
+}
+
 void DeleteSplmiss(LO* plo)
 {
 	delete (SPLMISS*)plo;
+}
+
+void* NewGroundmiss()
+{
+	return new GROUNDMISS;
 }
 
 void InitGroundmiss(GROUNDMISS* pgroundmiss)

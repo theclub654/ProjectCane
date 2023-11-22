@@ -1,5 +1,10 @@
 #include "stepguard.h"
 
+void* NewSgg()
+{
+	return new SGG;
+}
+
 void InitSgg(SGG* psgg)
 {
 	InitLo(psgg);
@@ -10,10 +15,9 @@ void DeleteSgg(LO* plo)
 	delete(SGG*)plo;
 }
 
-void* CreateStepguard()
+void* NewStepguard()
 {
-	STEPGUARD stepguard;
-	return &stepguard;
+	return new STEPGUARD;
 }
 
 void InitStepGuard(STEPGUARD* pstepguard)

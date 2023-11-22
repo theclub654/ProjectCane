@@ -7,4 +7,5 @@ class SCAN : public PNT
 		TBID tbidCaption;
 };
 
+void* NewScan();
 void DeleteScan(LO* plo);

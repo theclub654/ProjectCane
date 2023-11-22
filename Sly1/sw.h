@@ -104,7 +104,7 @@ public:
 };
 
 // Create SW object
-void* CreateSw();
+void* NewSw();
 // Initializing SW object
 void InitSw(SW* psw); // GOTTA COME BACK TO THIS
 // Initializing the base offset to data
@@ -117,6 +117,8 @@ void LoadNameTableFromBrx(CBinaryInputStream* pbis);
 void LoadWorldTableFromBrx(CBinaryInputStream* pbis);
 // Resets SW object
 void DeleteSw(SW* psw);
+// Deletes the SW obj
+void DeleteSwObj(LO* plo);
 // Update World
 void UpdateSw(SW *psw, float dt); // Gotta come back to this
 void GetSwParams(SW* psw, SOP** ppsop);

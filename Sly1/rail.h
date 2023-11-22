@@ -10,6 +10,6 @@ class RAIL : public SHAPE
 		float rdvGravity;
 };
 
-
+void* NewRail();
 void OnRailAdd(RAIL* prail);
 void DeleteRail(LO* plo);

@@ -1,8 +1,12 @@
 #include "dysh.h"
 
+void* NewDysh()
+{
+	return new DYSH;
+}
+
 void InitDysh(DYSH* pdysh)
 {
-	//std::cout << "DYSH Size: " << sizeof(DYSH) << "\n";
 	InitAlo(pdysh);
 }
 

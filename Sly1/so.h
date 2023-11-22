@@ -83,7 +83,7 @@ public:
 	void* pstso;
 };
 
-void* CreateSo();
+void* NewSo();
 void InitSo(SO *pso); // NOT FINISHED
 void OnSoAdd(SO *pso); // NOT FINISHED
 void LoadSoFromBrx(SO* pso, CBinaryInputStream* pbis); // NOT FINISHED

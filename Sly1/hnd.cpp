@@ -1,8 +1,12 @@
 #include "hnd.h"
 
+void* NewHnd()
+{
+	return new HND;
+}
+
 void InitHnd(HND* phnd)
 {
-	//std::cout << "HND Size: " << sizeof(HND) << "\n";
 	InitTarget(phnd);
 }
 

@@ -1,12 +1,16 @@
 #include "suv.h"
 
+void* NewSuv()
+{
+	return new SUV;
+}
+
 void InitSuv(SUV* psuv)
 {
-	//std::cout << "SUV Size: " << sizeof(SUV) << "\n";
 	InitPo(psuv);
 }
 
-void DeleteSUV(LO* plo)
+void DeleteSuv(LO* plo)
 {
 	delete (SUV*)plo;
 }

@@ -45,6 +45,7 @@ class BLIPG : public ALO
         DLE dle;
 };
 
+void* NewBlipg();
 void InitBlipg(BLIPG* pblipg);
 void OnBlipgAdd(BLIPG* pblipg);
 void RenderBlipgSelf(BLIPG* pblipg, CM* pcm, RO* pro);

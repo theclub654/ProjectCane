@@ -18,5 +18,6 @@ class SPEAKER : public ALO
         struct SMA* psmaIdle;
 };
 
+void* NewSpeaker();
 void InitSpeaker(SPEAKER* pspeaker);
 void DeleteSpeaker(LO* plo);

@@ -63,10 +63,13 @@ class SWP : public BREAK
         struct EXPL* pexplCrash;
 };
 
+void* NewLgn();
 void InitLgn(LGN* plgn);
 void DeleteLgn(LO* plo);
+void* NewLgnb();
 void InitLgnb(LGNB* plgnb);
 void DeleteLgnb(LO* plo);
+void* NewSwp();
 void InitSwp(SWP* pswp);
 void DeleteSwp(LO* plo);
 void RenderLgnAll(LGN* plgn, CM* pcm, RO* pro);

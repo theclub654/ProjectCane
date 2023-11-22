@@ -1,9 +1,8 @@
 #include "step.h"
 
-void* CreateStep()
+void* NewStep()
 {
-	STEP step;
-	return &step;
+	return new STEP;
 }
 
 void InitStep(STEP* pstep)

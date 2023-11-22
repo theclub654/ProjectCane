@@ -51,8 +51,10 @@ class RATHOLE : public VOL
         DLE dleRathole;
 };
 
+void* NewRat();
 void InitRat(RAT* prat);
 void OnRatAdd(RAT* prat);
+void* NewRathole();
 void OnRatholeAdd(RATHOLE* prathole);
 void DeleteRathole(LO* plo);
 void LoadRatFromBrx(RAT* prat, CBinaryInputStream* pbis);

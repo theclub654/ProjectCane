@@ -19,6 +19,7 @@ class RIPG : public SO
 		class RIPG *pripgNext;
 };
 
+void* NewRipg();
 void InitRipg(RIPG *pripg); // NOT FINISHED
 void OnRipgRemove(RIPG *pripg); // NOT FINISHED
 void DeleteRipg(LO* plo);

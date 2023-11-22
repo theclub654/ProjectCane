@@ -251,15 +251,21 @@ class ROB : public ALO
         struct DIALOG* pdialog;
 };
 
+void* NewRov();
 void InitRov(ROV* prov);
+void* NewRoh();
 void InitRoh(ROH* proh);
 void DeleteRoh(LO* plo);
+void* NewRoc();
 void InitRoc(ROC* proc);
 void DeleteRoc(LO* plo);
+void* NewRost();
 void InitRost(ROST* prost);
 void DeleteRost(LO* plo);
+void* NewRop();
 void InitRop(ROP* prop);
 void DeleteRop(LO* plo);
+void* NewRob();
 void InitRob(ROB* prob);
 void DeleteRob(LO* plo);
 void LoadRovFromBrx(ROV *prov, CBinaryInputStream *pbis);

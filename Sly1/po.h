@@ -22,7 +22,7 @@ class PO : public SO
 		struct ALO* paloUseCharm;
 };
 
-void* CreatePo();
+void* NewPo();
 void InitPo(PO *ppo);//NOT FINISHED
 void OnPoAdd(PO* ppo);
 void DeletePo(LO* plo);

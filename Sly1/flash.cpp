@@ -1,8 +1,12 @@
 #include "flash.h"
 
+void* NewFlash()
+{
+	return new FLASH;
+}
+
 void InitFlash(FLASH* pflash)
 {
-	//std::cout << "FLASH Size: " << sizeof(FLASH) << "\n";
 	InitAlo(pflash);
 }
 

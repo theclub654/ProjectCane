@@ -141,5 +141,6 @@ class SUV : public PO
         float dfrqTop;
 };
 
+void* NewSuv();
 void InitSuv(SUV *psuv);
-void DeleteSUV(LO* plo);
+void DeleteSuv(LO* plo);

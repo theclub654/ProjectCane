@@ -17,5 +17,6 @@ class JSG : public LO
         int fHideTn;
 };
 
+void* NewJsg();
 void InitJsg(JSG* pjsg);
 void DeleteJsg(LO* plo);

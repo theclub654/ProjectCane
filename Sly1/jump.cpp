@@ -1,8 +1,12 @@
 #include "jump.h"
 
+void* NewJmt()
+{
+	return new JMT;
+}
+
 void OnJmtAdd(JMT* pjmt)
 {
-	std::cout << "JMT Size: " << sizeof(JMT) << "\n";
 	OnLoAdd(pjmt);
 }
 

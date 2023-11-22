@@ -1,8 +1,12 @@
 #include "tn.h"
 
+void* NewTn()
+{
+    return new TN;
+}
+
 void InitTn(TN* ptn)
 {
-    //std::cout << "TN Size: " << sizeof(TN) << "\n";
     InitAlo(ptn);
 }
 

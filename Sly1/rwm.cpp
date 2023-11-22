@@ -1,8 +1,12 @@
 #include "rwm.h"
 
+void* NewRwm()
+{
+	return new RWM;
+}
+
 void InitRwm(RWM* prwm)
 {
-	//std::cout << "RWM Size: " << sizeof(RWM) << "\n";
 	InitLo(prwm);
 }
 

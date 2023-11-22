@@ -37,5 +37,6 @@ class CAN : public BREAK
         int cFired;
 };
 
+void* NewCan();
 void InitCan(CAN *pcan);
 void DeleteCan(LO* plo);

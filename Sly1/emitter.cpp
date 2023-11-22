@@ -1,8 +1,12 @@
 #include "emitter.h"
 
+void* NewExplo()
+{
+	return new EXPLO;
+}
+
 void InitExplo(EXPLO* pexplo)
 {
-	//std::cout << "EXPLO Size: " << sizeof(EXPLO) << "\n";
 	InitXfm(pexplo);
 }
 
@@ -11,9 +15,13 @@ void DeleteExplo(LO* plo)
 	delete(EXPLO*)plo;
 }
 
+void* NewEmitter()
+{
+	return new EMITTER;
+}
+
 void InitEmitter(EMITTER* pemitter)
 {
-	//std::cout << "EMITTER Size: " << sizeof(EMITTER) << "\n";
 	InitAlo(pemitter);
 }
 
@@ -22,14 +30,23 @@ void DeleteEmitter(LO* plo)
 	delete(EMITTER*)plo;
 }
 
+void* NewExpl()
+{
+	return new EXPL;
+}
+
 void DeleteExpl(LO* plo)
 {
 	delete(EXPL*)plo;
 }
 
+void* NewExpls()
+{
+	return new EXPLS;
+}
+
 void InitExpls(EXPLS* pexpls)
 {
-	//std::cout << "EXPLS Size: " << sizeof(EXPLS) << "\n";
 	InitExplo(pexpls);
 }
 
@@ -70,7 +87,6 @@ void LoadEmitterFromBrx(EMITTER *pemitter, CBinaryInputStream *pbis)
 {
 	LoadAloFromBrx(pemitter, pbis);
 
-	//std::cout << std::hex << pbis->file.tellg() << "\n";
 	int8_t crvType = pbis->S8Read();
 
 	if (crvType != -1)
@@ -114,6 +130,11 @@ void LoadExplgFromBrx(EXPLG *pexplg,CBinaryInputStream *pbis)
 		LO* plo = PloNew(cid, pexplg->psw, pexplg->paloParent, oid, isplice);
 		plo->pvtlo->pfnLoadLoFromBrx(plo, pbis);
 	}
+}
+
+void* NewExplg()
+{
+	return new EXPLG;
 }
 
 void DeleteExplg(LO* plo)

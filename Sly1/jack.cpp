@@ -1,17 +1,23 @@
 #include "jack.h"
 
+void* NewJack()
+{
+	return new JACK;
+}
+
 void InitJack(JACK* pjack)
 {
-	std::cout << "JACK Size: " << sizeof(JACK) << "\n";
-	std::cout << "JACKB Size: " << sizeof(JACKB) << "\n";
-	std::cout << "JACKN Size: " << sizeof(JACKN) << "\n";
-	std::cout << "JACKF Size: " << sizeof(JACKF) << "\n";
 	InitPo(pjack);
 }
 
 void DeleteJack(LO* plo)
 {
 	delete (JACK*)plo;
+}
+
+void* NewJackb()
+{
+	return new JACKB;
 }
 
 void InitJackb(JACKB* pjackb)
@@ -24,6 +30,11 @@ void DeleteJackb(LO* plo)
 	delete(JACKB*)plo;
 }
 
+void* NewJackn()
+{
+	return new JACKN;
+}
+
 void InitJackn(JACKN* pjackn)
 {
 	InitAlo(pjackn);
@@ -32,6 +43,11 @@ void InitJackn(JACKN* pjackn)
 void DeleteJackn(LO* plo)
 {
 	delete(JACKN*)plo;
+}
+
+void* NewJackf()
+{
+	return new JACKF;
 }
 
 void InitJackf(JACKF* pjackf)

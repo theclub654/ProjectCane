@@ -1,5 +1,4 @@
 #pragma once
-#include "alo.h"
 #include "po.h"
 
 class MGC : public ALO
@@ -20,6 +19,7 @@ class MGC : public ALO
         struct MGV* pmgv;
 };
 
+void* NewMgc();
 void InitMgc(MGC* pmgc);
 void LoadMgcFromBrx(MGC* pmgc, CBinaryInputStream* pbis);
 void DeleteMgc(LO* plo);

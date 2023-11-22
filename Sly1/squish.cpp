@@ -1,8 +1,12 @@
 #include "squish.h"
 
+void* NewSquish()
+{
+	return new SQUISH;
+}
+
 void LoadSquishFromBrx(SQUISH* psquish, CBinaryInputStream* pbis)
 {
-	std::cout << "SQUISH Size: " << sizeof(SQUISH) << "\n";
 	LoadSoFromBrx(psquish, pbis);
 }
 

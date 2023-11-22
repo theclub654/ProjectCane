@@ -7,5 +7,6 @@ class LANDING : public SHAPE
 		DLE dleLanding;
 };
 
+void* NewLanding();
 void OnLandingAdd(LANDING* planding);
 void DeleteLanding(LO* plo);

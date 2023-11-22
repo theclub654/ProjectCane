@@ -1,7 +1,7 @@
 #pragma once
 #include "lo.h"
 
-extern std::vector<void*> allWorldObjs;
+extern std::vector<LO*> allWorldObjs;
 
 // Initializes Options
 void StartupBrx();

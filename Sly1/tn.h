@@ -60,6 +60,7 @@ class TN : public ALO
 		int fNoSquish;
 };
 
+void* NewTn();
 void InitTn(TN* ptn);
 void LoadTnFromBrx(TN* ptn, CBinaryInputStream* pbis);
 void LoadTbspFromBrx(CBinaryInputStream* pbis);

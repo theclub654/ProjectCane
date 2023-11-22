@@ -1,8 +1,18 @@
 #include "rog.h"
 
+void* NewRov()
+{
+	return new ROV;
+}
+
 void InitRov(ROV* prov)
 {
 	InitPo(prov);
+}
+
+void* NewRoh()
+{
+	return new ROH;
 }
 
 void InitRoh(ROH* proh)
@@ -15,6 +25,11 @@ void DeleteRoh(LO* plo)
 	delete (ROH*)plo;
 }
 
+void* NewRoc()
+{
+	return new ROC;
+}
+
 void InitRoc(ROC* proc)
 {
 	InitSo(proc);
@@ -23,6 +38,11 @@ void InitRoc(ROC* proc)
 void DeleteRoc(LO* plo)
 {
 	delete(ROC*)plo;
+}
+
+void* NewRost()
+{
+	return new ROST;
 }
 
 void InitRost(ROST* prost)
@@ -35,6 +55,11 @@ void DeleteRost(LO* plo)
 	delete(ROST*)plo;
 }
 
+void* NewRop()
+{
+	return new ROP;
+}
+
 void InitRop(ROP* prop)
 {
 	InitSo(prop);
@@ -43,6 +68,11 @@ void InitRop(ROP* prop)
 void DeleteRop(LO* plo)
 {
 	delete (ROP*)plo;
+}
+
+void* NewRob()
+{
+	return new ROB;
 }
 
 void InitRob(ROB* prob)

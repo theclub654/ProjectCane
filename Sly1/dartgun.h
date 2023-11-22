@@ -29,5 +29,6 @@ class DARTGUN : public BREAK
         int fJtInTargetArea;
 };
 
+void* NewDartgun();
 void InitDartgun(DARTGUN* pdartgun);
-void DeleteDartGun(LO* plo);
+void DeleteDartgun(LO* plo);

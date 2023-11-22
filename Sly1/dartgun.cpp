@@ -1,12 +1,16 @@
 #include "dartgun.h"
 
+void* NewDartgun()
+{
+	return new DARTGUN;
+}
+
 void InitDartgun(DARTGUN* pdartgun)
 {
-	//std::cout << "DARTGUN Size: " << sizeof(DARTGUN) << "\n";
 	InitBreak(pdartgun);
 }
 
-void DeleteDartGun(LO* plo)
+void DeleteDartgun(LO* plo)
 {
 	delete (DARTGUN*)plo;
 }

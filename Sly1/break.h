@@ -93,12 +93,17 @@ class ZAPBREAK : public FRAGILE
         struct PO* ppoZap;
 };
 
+void* NewBrk();
 void InitBrk(BRK* pbrk);
 void DeleteBrk(LO* plo);
+void* NewBrkp();
 void DeleteBrkp(LO* plo);
+void* NewBreak();
 void InitBreak(BREAK* pbreak);
 void DeleteBreak(LO* plo);
+void* NewFragile();
 void InitFragile(FRAGILE* pfragile);
 void DeleteFragile(LO* plo);
-void DeleteZapBreak(LO* plo);
+void* NewZapbreak();
+void DeleteZapbreak(LO* plo);
 void LoadBrkFromBrx(BRK* pbrk, CBinaryInputStream* pbis);

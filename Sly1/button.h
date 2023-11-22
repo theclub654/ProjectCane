@@ -88,8 +88,10 @@ class VOLBTN : public SO
         int fSendChangeEvents;
 };
 
+void* NewButton();
 void InitButton(BUTTON* pbutton);
 void DeleteButton(LO* plo);
+void* NewVolbtn();
 void InitVolbtn(VOLBTN* pvolbtn);
 void LoadButtonFromBrx(BUTTON *pbutton, CBinaryInputStream *pbis);
 void LoadVolbtnFromBrx(VOLBTN *pvolbtn, CBinaryInputStream *pbis);

@@ -1,5 +1,10 @@
 #include "mgv.h"
 
+void* NewMgv()
+{
+	return new MGV;
+}
+
 void InitMgv(MGV* pmgv)
 {
 	InitPo(pmgv);
@@ -9,11 +14,10 @@ void InitMgv(MGV* pmgv)
 
 void LoadMgvFromBrx(MGV* pmgv, CBinaryInputStream* pbis)
 {
-	std::cout << "MGV Size: " << sizeof(MGV) << "\n";
 	LoadSoFromBrx(pmgv, pbis);
 }
 
-void DeleteMGV(LO* plo)
+void DeleteMgv(LO* plo)
 {
 	delete (MGV*)plo;
 }

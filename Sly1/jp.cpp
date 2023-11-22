@@ -1,8 +1,12 @@
 #include "jp.h"
 
+void* NewJp()
+{
+	return new JP;
+}
+
 void InitJp(JP* pjp)
 {
-	std::cout << "JP Size: " << sizeof(JP) << "\n";
 	InitStep(pjp);
 }
 

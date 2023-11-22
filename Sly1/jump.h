@@ -10,5 +10,6 @@ class JMT : public PNT
 		struct SO* psoSetIgnoreJt;
 };
 
+void* NewJmt();
 void OnJmtAdd(JMT* pjmt);
 void DeleteJmt(LO* plo);

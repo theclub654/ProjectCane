@@ -1,19 +1,23 @@
 #include "pzo.h"
 
+void* NewVault()
+{
+	return new VAULT;
+}
+
 void InitVault(VAULT* pvault)
 {
-	/*std::cout << "VAULT Size: " << sizeof(VAULT) << "\n";
-	std::cout << "SPRIZE Size: " << sizeof(SPRIZE) << "\n";
-	std::cout << "SCPRIZE Size: " << sizeof(SCPRIZE) << "\n";
-	std::cout << "CLUE Size: " << sizeof(CLUE) << "\n";
-	std::cout << "LOCK Size: " << sizeof(LOCK) << "\n";
-	std::cout << "LOCKG Size: " << sizeof(LOCKG) << "\n";*/
 	InitPo(pvault);
 }
 
 void DeleteVault(LO* plo)
 {
 	delete (VAULT*)plo;
+}
+
+void* NewSprize()
+{
+	return new SPRIZE;
 }
 
 void InitSprize(SPRIZE* psprize)
@@ -26,6 +30,11 @@ void DeleteSprize(LO* plo)
 	delete (SPRIZE*)plo;
 }
 
+void* NewScprize()
+{
+	return new SCPRIZE;
+}
+
 void InitScprize(SCPRIZE* pscprize)
 {
 	InitSprize(pscprize);
@@ -36,9 +45,19 @@ void DeleteScprize(LO* plo)
 	delete (SCPRIZE*)plo;
 }
 
+void* NewLifetkn()
+{
+	return new LIFETKN;
+}
+
 void DeleteLifetkn(LO* plo)
 {
 	delete (LIFETKN*)plo;
+}
+
+void* NewClue()
+{
+	return new CLUE;
 }
 
 void InitClue(CLUE* pclue)
@@ -62,6 +81,11 @@ void DeleteClue(LO* plo)
 	delete (CLUE*)plo;
 }
 
+void* NewLock()
+{
+	return new LOCK;
+}
+
 void LoadLockFromBrx(LOCK* plock, CBinaryInputStream* pbis)
 {
 	LoadAloFromBrx(plock, pbis);
@@ -70,6 +94,11 @@ void LoadLockFromBrx(LOCK* plock, CBinaryInputStream* pbis)
 void DeleteLock(LO* plo)
 {
 	delete(LOCK*)plo;
+}
+
+void* NewLockg()
+{
+	return new LOCKG;
 }
 
 void LoadLockgFromBrx(LOCKG* plockg, CBinaryInputStream* pbis)

@@ -1,8 +1,12 @@
 #include "can.h"
 
+void* NewCan()
+{
+	return new CAN;
+}
+
 void InitCan(CAN* pcan)
 {
-	std::cout << "CAN Size: " << sizeof(CAN) << "\n";
 	InitBreak(pcan);
 }
 

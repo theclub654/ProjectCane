@@ -5,8 +5,8 @@
 #include "debug.h"
 
 void RenderSw(SW* psw, CM* pcm);
-void DrawSwAll(SW* psw, CM* pcm);
-void DeleteWorld(SW* psw);
+void DrawSwAll();
+void DeleteSw(SW* psw);
 
 // Main loop
 int main(int cphzArgs, char* aphzArgs[]);

@@ -1,5 +1,10 @@
 #include "cycle.h"
 
+void* NewCycle()
+{
+	return new CYCLE;
+}
+
 void InitCycle(CYCLE* pcycle)
 {
 	std::cout << "CYCLE Size: " << sizeof(CYCLE) << "\n";

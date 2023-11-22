@@ -13,6 +13,7 @@ class PIPE : public SHAPE
 		SFXID sfxidRelease;
 };
 
+void* NewPipe();
 void InitPipe(PIPE* ppipe);
 void OnPipeAdd(PIPE* ppipe);
 void OnPipeRemove(PIPE* ppipe);

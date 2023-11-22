@@ -1,9 +1,12 @@
 #include "xform.h"
 
+void* NewXfm()
+{
+	return new XFM;
+}
+
 void InitXfm(XFM* pxfm)
 {
-	//std::cout << "XFM Size: " << sizeof(XFM) << "\n";
-	//std::cout << "WARP Size: " << sizeof(WARP) << "\n";
 	InitLo(pxfm);
 }
 
@@ -17,6 +20,11 @@ void LoadXfmFromBrx(XFM *pxfm, CBinaryInputStream* pbis)
 void DeleteXfm(LO* plo)
 {
 	delete(XFM*)plo;
+}
+
+void* NewWarp()
+{
+	return new WARP;
 }
 
 void LoadWarpFromBrx(WARP* pwarp, CBinaryInputStream* pbis)
@@ -52,9 +60,13 @@ void DeleteWarp(LO* plo)
 	delete(WARP*)plo;
 }
 
+void* NewExit()
+{
+	return new EXIT;
+}
+
 void LoadExitFromBrx(EXIT* pexit, CBinaryInputStream* pbis)
 {
-	//std::cout << "EXIT Size: " << sizeof(EXIT) << "\n";
 	pbis->ReadMatrix();
 	pbis->ReadVector();
 
@@ -81,9 +93,13 @@ void DeleteExit(LO* plo)
 	delete(EXIT*)plo;
 }
 
+void* NewCamera()
+{
+	return new CAMERA;
+}
+
 void InitCamera(CAMERA* pcamera)
 {
-	//std::cout << "CAMERA Size: " << sizeof(CAMERA) << "\n";
 	InitAlo(pcamera);
 	pcamera->oidTarget = OID_Nil;
 }

@@ -1,8 +1,12 @@
 #include "speaker.h"
 
+void* NewSpeaker()
+{
+	return new SPEAKER;
+}
+
 void InitSpeaker(SPEAKER* pspeaker)
 {
-	//std::cout << "SPEAKER Size: " << sizeof(SPEAKER) << "\n";
 	InitAlo(pspeaker);
 }
 

@@ -1,8 +1,12 @@
 #include "chkpnt.h"
 
+void* NewChkpnt()
+{
+	return new CHKPNT;
+}
+
 void InitChkpnt(CHKPNT* pchkpnt)
 {
-	//std::cout << "VOL Size: " << sizeof(VOL) << "\n";
 	InitAlo(pchkpnt);
 }
 
@@ -14,6 +18,11 @@ void LoadChkpntFromBrx(CHKPNT* pchkpnt, CBinaryInputStream* pbis)
 void DeleteChkpnt(LO* plo)
 {
 	delete(CHKPNT*)plo;
+}
+
+void* NewVol()
+{
+	return new VOL;
 }
 
 void LoadVolFromBrx(VOL* pvol, CBinaryInputStream* pbis)

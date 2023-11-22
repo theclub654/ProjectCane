@@ -1,9 +1,8 @@
 #include "jt.h"
 
-void* CreateJt()
+void* NewJt()
 {
-	JT jt;
-	return &jt;
+	return new JT;
 }
 
 void InitJt(JT* pjt)

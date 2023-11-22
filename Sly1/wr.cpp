@@ -1,8 +1,12 @@
 #include "wr.h"
 
+void* NewWr()
+{
+	return new WR;
+}
+
 void InitWr(WR* pwr)
 {
-	//std::cout << "WR Size: " << sizeof(WR) << "\n";
 	InitLo(pwr);
 }
 

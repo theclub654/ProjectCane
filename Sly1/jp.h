@@ -45,5 +45,6 @@ class JP : public STEP
         struct XP* pxpZap;
 };
 
+void* NewJp();
 void InitJp(JP* pjp);
 void RenderJpAll(JP* pjp, CM* pcm, RO* pro);

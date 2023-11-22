@@ -25,5 +25,6 @@ class BARRIER : public SO
         struct SO* psoLastWarped;
 };
 
+void* NewBarrier();
 void InitBarrier(BARRIER* pbarrier);
 void DeleteBarrier(LO* plo);

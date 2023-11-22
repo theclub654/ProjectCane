@@ -11,5 +11,7 @@ class LIKH : public ALO
 	public:
 };
 
+void* NewIkh();
 void DeleteIkh(LO* plo);
+void* NewLikh();
 void DeleteLikh(LO* plo);

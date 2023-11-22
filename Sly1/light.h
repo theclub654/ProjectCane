@@ -47,6 +47,7 @@ class LIGHT : public ALO
 		DLE dleLight;
 };
 
+void* NewLight();
 void InitLight(LIGHT* plight);
 void OnLightAdd(LIGHT* plight);
 void AddLightToSw(LIGHT* plight);

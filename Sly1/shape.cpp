@@ -1,8 +1,12 @@
 #include "shape.h"
 
+void* NewShape()
+{
+    return new SHAPE;
+}
+
 void InitShape(SHAPE* pshape)
 {
-    //std::cout << "SHAPE Size: " << sizeof(SHAPE) << "\n";
     InitLo(pshape);
     AppendDlEntry(&pshape->psw->dlShape, pshape);
 }

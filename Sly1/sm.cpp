@@ -1,10 +1,12 @@
 #include "sm.h"
 
+void* NewSm()
+{
+	return new SM;
+}
+
 void LoadSmFromBrx(SM* psm, CBinaryInputStream* pbis)
 {
-	/*LoadSmFromBrxCount++;
-	std::cout << std::dec << "LoadSmFromBrx: " << LoadSmFromBrxCount <<"\n";
-	std::cout << std::hex << pbis->file.tellg() << "\n";*/
 
 	byte unk0 = pbis->U8Read();
 
@@ -43,6 +45,11 @@ void LoadSmFromBrx(SM* psm, CBinaryInputStream* pbis)
 void DeleteSm(LO* plo)
 {
 	delete(SM*)plo;
+}
+
+void* NewSma()
+{
+	return new SMA;
 }
 
 void DeleteSma(LO* plo)

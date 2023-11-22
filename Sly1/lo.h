@@ -96,7 +96,7 @@ class LO : public BASIC
 };
 
 // Creates a new local object
-void* CreateLo();
+void* NewLo();
 // Initializes Local Object
 void InitLo(LO *parentLo);
 void SetLoDefaults(LO* parentLo);

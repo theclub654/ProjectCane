@@ -1,8 +1,12 @@
 #include "pipe.h"
 
+void* NewPipe()
+{
+	return new PIPE;
+}
+
 void InitPipe(PIPE* ppipe)
 {
-	//std::cout << "PIPE Size: " << sizeof(PIPE) << "\n";
 	InitShape(ppipe);
 }
 

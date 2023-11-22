@@ -41,6 +41,8 @@ class ALBRK : public BRK
         struct ALARM* palarm;
 };
 
+void* NewAlarm();
 void InitAlarm(ALARM* palarm);
 void DeleteAlarm(LO* plo);
+void* NewAlbrk();
 void DeleteAlbrk(LO* plo);

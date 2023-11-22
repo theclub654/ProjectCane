@@ -138,10 +138,15 @@ struct CPTN : public CPLCY
     float vz;
     glm::vec3 posEyePrev;
 };
+
 // Camera Object
 class CM : public LO
 {
 public:
+    glm::vec3 pos;
+    glm::vec4 anormalFrustrumTranspose[3];
+    glm::mat3 mat;
+    float rMRDAdjust;
     glm::mat4 matProj;
     glm::mat4 matWorldToClip;
     glm::mat4 matClipToWorld;
@@ -201,6 +206,7 @@ public:
     CPTN cptn;
 };
 
+void* NewCm();
 // Initialize camera object
 void InitCm(CM* pcm); // NOT FINISHED
 void DeleteCm(LO* plo);

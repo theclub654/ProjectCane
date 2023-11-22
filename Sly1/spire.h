@@ -7,5 +7,6 @@ class SPIRE : public PNT
 		DLE dleSpire;
 };
 
+void* NewSpire();
 void OnSpireAdd(SPIRE* pspire);
 void DeleteSpire(LO* plo);

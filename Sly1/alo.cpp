@@ -1,12 +1,11 @@
 #include "alo.h"
 
-std::vector<void*> allWorldObjs;
+std::vector<LO*> allWorldObjs;
 std::vector<ALO*> allSWAloObjs;
 
-void* CreateAlo()
+void* NewAlo()
 {
-	ALO alo;
-	return &alo;
+	return new ALO;
 }
 
 void InitAlo(ALO* palo)
@@ -262,7 +261,7 @@ void RenderAloAsBone(ALO* palo, CM* pcm, RO* pro)
 
 }
 
-void DrawLo(ALO* palo)
+void DrawAlo(ALO* palo)
 {
 
 	for (int i = 0; i < palo->globset.aglob.size(); i++)
@@ -280,9 +279,7 @@ void DeleteWorld(SW* psw)
 		DeleteModel(allSWAloObjs[i]);
 
 	for (int i = 0; i < allWorldObjs.size(); i++)
-		DeleteObject((LO*)allWorldObjs[i]);
-
-	delete(SW*)psw;
+		allWorldObjs[i]->pvtlo->pfnDeleteLo(allWorldObjs[i]);
 	
 	allSWAloObjs.clear();
 	allSWAloObjs.shrink_to_fit();
@@ -290,6 +287,7 @@ void DeleteWorld(SW* psw)
 	allWorldObjs.shrink_to_fit();
 
 	g_psw = nullptr;
+	std::cout << "World Deleted\n";
 }
 
 void DeleteModel(ALO *palo)

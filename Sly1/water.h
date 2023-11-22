@@ -13,5 +13,6 @@ class WATER : public SO
         ZPD zpd;
 };
 
+void* NewWater();
 void InitWater(WATER* pwater);
 void DeleteWater(LO* plo);

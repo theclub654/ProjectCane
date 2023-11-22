@@ -45,6 +45,7 @@ class RCHM : public LO
 		std::vector <TWR> atwr;
 };
 
+void* NewRchm();
 void InitRchm(RCHM* prchm);
 void LoadRchmFromBrx(RCHM* prchm, CBinaryInputStream* pbis);
 void DeleteRchm(LO* plo);

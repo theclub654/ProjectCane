@@ -1,5 +1,10 @@
 #include "light.h"
 
+void* NewLight()
+{
+	return new LIGHT;
+}
+
 void InitLight(LIGHT* plight)
 {
 	InitAlo(plight);

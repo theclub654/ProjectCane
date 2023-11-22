@@ -1,5 +1,10 @@
 #include "tank.h"
 
+void* NewTank()
+{
+	return new TANK;
+}
+
 void InitTank(TANK* ptank)
 {
 	std::cout << "TANK Size: " << sizeof(TANK) << "\n";

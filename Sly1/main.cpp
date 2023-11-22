@@ -32,7 +32,7 @@ int main(int cphzArgs, char* aphzArgs[])
 		if (g_psw != nullptr)
 		{
 			//glShader.Use();
-			DrawSwAll(g_psw, g_pcm);
+			DrawSwAll();
 		}
 
 		RenderOpenFileGui();
@@ -46,10 +46,8 @@ int main(int cphzArgs, char* aphzArgs[])
 		glfwSwapInterval(1);
 		glfwPollEvents();
 	}
-	
-	if (g_psw != nullptr)
-		DeleteWorld(g_psw);
 
+	DeleteSw(g_psw);
 	glShader.Delete();
 	g_gl.GLFWTerminate();
 	return 0;

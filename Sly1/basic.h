@@ -178,7 +178,6 @@ struct VT
     VT* pvtSuper;
     CID cid;
     int grfcid;
-    int cb;
 };
 
 struct VTBASIC
@@ -194,8 +193,8 @@ struct VTLO
     VT* pvtSuper = g_vtbasic.pvtSuper;
     CID cid = CID_LO;
     int grfcid = 0;
-    int cb = 120;
 
+    void*(*pfnNewLo) () = NewLo;
     void (*pfnInitLo) (LO*) = InitLo;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -225,6 +224,7 @@ struct VTLO
     void (*pfnUnsubscribeLoStruct)(LO*, void*, void*) = UnsubscribeLoStruct;
     void (*pfnGetLoParams) = nullptr;
     void (*pfnUpdateLoLiveEdit) = nullptr;
+    void (*pfnDeleteLo) (LO* plo) = DeleteLo;
 };
 
 static VTLO g_vtlo;
@@ -234,8 +234,8 @@ struct VTALO
     VT* pvtSuper = g_vtlo.pvtSuper;
     CID cid = CID_ALO;
     int grfcid = 1;
-    int cb = 1064;
 
+    void*(*pfnNewAlo) () = NewAlo;
     void (*pfnInitAlo) (ALO*) = InitAlo;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -265,6 +265,7 @@ struct VTALO
     void (*pfnUnsubscribeLoStruct)(LO*, void*, void*) = UnsubscribeLoStruct;
     void (*pfnGetAloParams) = nullptr;
     void (*pfnUpdateLoLiveEdit) = nullptr;
+    void (*pfnDeleteAlo) (LO* plo) = DeleteAlo;
     void (*pfnProjectAloTransform)() = nullptr;
     void (*pfnPresetAloAccel)() = nullptr;
     void (*pfnTranslateAloToPos)() = nullptr;
@@ -293,8 +294,8 @@ struct VTSO
     VT* pvtSuper = g_vtalo.pvtSuper;
     CID cid = CID_SO;
     int grfcid = 3;
-    int cb = 2400;
 
+    void*(*pfnNewSo) () = NewSo;
     void (*pfnInitSo) (SO*) = InitSo;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -324,6 +325,7 @@ struct VTSO
     void (*pfnUnsubscribeLoStruct)(LO*, void*, void*) = UnsubscribeLoStruct;
     void (*pfnGetSoParams) = nullptr;
     void (*pfnUpdateLoLiveEdit) = nullptr;
+    void (*pfnDeleteSo) (LO* plo) = DeleteSo;
     void (*pfnProjectSoTransform)() = nullptr;
     void (*pfnPresetSoAccel)() = nullptr;
     void (*pfnTranslateSoToPos)() = nullptr;
@@ -377,8 +379,8 @@ struct VTMS
     VT* pvtSuper = g_vtso.pvtSuper;
     CID cid = CID_MS;
     int grfcid = 3;
-    int cb = 2400;
 
+    void*(*pfnNewSo) () = NewSo;
     void (*pfnInitSo) (SO*) = InitSo;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -408,6 +410,7 @@ struct VTMS
     void (*pfnUnsubscribeLoStruct)(LO*, void*, void*) = UnsubscribeLoStruct;
     void (*pfnGetSoParams)() = nullptr;
     void (*pfnUpdateLoLiveEdit)() = nullptr;
+    void (*pfnDeleteSo) (LO* plo) = DeleteSo;
     void (*pfnProjectSoTransform)() = nullptr;
     void (*pfnPresetSoAccel)() = nullptr;
     void (*pfnTranslateSoToPos)() = nullptr;
@@ -461,8 +464,8 @@ struct VTPO
     VT* pvtSuper = g_vtso.pvtSuper;
     CID cid = CID_PO;
     int grfcid = 0xB;
-    int cb = 2512;
 
+    void*(*pfnNewPo) () = NewPo;
     void (*pfnInitPo) (PO*) = InitPo;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -492,6 +495,7 @@ struct VTPO
     void (*pfnUnsubscribeLoStruct) () = nullptr;
     void (*pfnGetSoParams) () = nullptr;
     void (*pfnUpdateLoLiveEdit) () = nullptr;
+    void (*pfnDeletePo) (LO* plo) = DeletePo;
     void (*pfnProjectSoTransform) () = nullptr;
     void (*pfnPresetSoAccel) () = nullptr;
     void (*pfnTranslateSoToPos) () = nullptr;
@@ -556,8 +560,8 @@ struct VTSTEP
     VT* pvtSuper = g_vtpo.pvtSuper;
     CID cid = CID_STEP;
     int grfcid = 0xB;
-    int cb = 2784;
 
+    void*(*pfnNewStep) () = NewStep;
     void (*pfnInitStep)(STEP*) = InitStep;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -587,6 +591,7 @@ struct VTSTEP
     void (*pfnUnsubscribeLoStruct)(LO*, void*, void*) = UnsubscribeLoStruct;
     void (*pfnGetStepParams)() = nullptr;
     void (*pfnUpdateLoLiveEdit)() = nullptr;
+    void (*pfnDeleteStep) (LO* plo) = DeleteStep;
     void (*pfnProjectSoTransform)() = nullptr;
     void (*pfnPresetStepAccel)() = nullptr;
     void (*pfnTranslateSoToPos)() = nullptr;
@@ -654,8 +659,8 @@ struct VTJT
     VT* pvtSuper = g_vtstep.pvtSuper;
     CID cid = CID_JT;
     int grfcid = 0xB;
-    int cb = 11088;
 
+    void*(*pfnNewJt) () = NewJt;
     void (*pfnInitJt)(JT*) = InitJt;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -685,6 +690,7 @@ struct VTJT
     void (*pfnUnsubscribeLoStruct)(LO*, void*, void*) = UnsubscribeLoStruct;
     void (*pfnGetStepParams)() = nullptr;
     void (*pfnUpdateLoLiveEdit)() = nullptr;
+    void (*pfnDeleteJt) (LO* plo) = DeleteJt;
     void (*pfnProjectJtTransform)() = nullptr;
     void (*pfnPresetJtAccel)() = nullptr;
     void (*pfnTranslateSoToPos)() = nullptr;
@@ -752,8 +758,8 @@ struct VTSTEPGUARD
     VT* pvtSuper = g_vtstep.pvtSuper;
     CID cid = CID_STEPGUARD;
     int grfcid = 0xB;
-    int cb = 4280;
 
+    void*(*pfnNewStepguard) () = NewStepguard;
     void (*pfnInitStepguard)(STEPGUARD*) = InitStepGuard;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -783,6 +789,7 @@ struct VTSTEPGUARD
     void (*pfnUnsubscribeLoStruct)(LO*, void*, void*) = UnsubscribeLoStruct;
     void (*pfnGetStepParams)() = nullptr;
     void (*pfnUpdateLoLiveEdit)() = nullptr;
+    void (*pfnDeleteStepguard) (LO* plo) = DeleteStepguard;
     void (*pfnProjectSoTransform)() = nullptr;
     void (*pfnPresetStepguardAccel)() = nullptr;
     void (*pfnTranslateSoToPos)() = nullptr;
@@ -861,8 +868,8 @@ struct VTSMARTGUARD
     VT* pvtSuper = g_vtstepguard.pvtSuper;
     CID cid = CID_SMARTGUARD;
     int grfcid = 0xB;
-    int cb = 4624;
 
+    void*(*pfnNewSmartguard) () = NewSmartguard;
     void (*pfnInitSmartguard)(SMARTGUARD*) = InitSmartGuard;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -892,6 +899,7 @@ struct VTSMARTGUARD
     void (*pfnUnsubscribeLoStruct)(LO*, void*, void*) = UnsubscribeLoStruct;
     void (*pfnGetStepParams)() = nullptr;
     void (*pfnUpdateLoLiveEdit)() = nullptr;
+    void (*pfnDeleteSmartguard) (LO* plo) = DeleteSmartGuard;
     void (*pfnProjectSoTransform)() = nullptr;
     void (*pfnPresetStepguardAccel)() = nullptr;
     void (*pfnTranslateSoToPos)() = nullptr;
@@ -970,8 +978,8 @@ struct VTGOMER
     VT* pvtSuper = g_vtstepguard.pvtSuper;
     CID cid = CID_GOMER;
     int grfcid = 0xB;
-    int cb = 4352;
 
+    void*(*pfnNewGomer) () = NewGomer;
     void (*pfnInitGomer) (GOMER*) = InitGomer;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -1001,6 +1009,7 @@ struct VTGOMER
     void (*pfnUnsubscribeLoStruct) () = nullptr;
     void (*pfnGetGomerParams) () = nullptr;
     void (*pfnUpdateLoLiveEdit) () = nullptr;
+    void (*pfnDeleteGomer) (LO* plo) = DeleteGomer;
     void (*pfnProjectSoTransform) () = nullptr;
     void (*pfnPresetStepguardAccel) () = nullptr;
     void (*pfnTranslateSoToPos) () = nullptr;
@@ -1079,8 +1088,8 @@ struct VTUBG
     VT* pvtSuper = g_vtgomer.pvtSuper;
     CID cid = CID_UBG;
     int grfcid = 0xB;
-    int cb = 4464;
 
+    void*(*pfnNewUbg) () = NewUbg;
     void (*pfnInitLo) (UBG*) = InitUbg;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -1110,6 +1119,7 @@ struct VTUBG
     void (*pfnUnsubscribeLoStruct)(LO*, void*, void*) = UnsubscribeLoStruct;
     void (*pfnGetGomerParams)() = nullptr;
     void (*pfnUpdateLoLiveEdit)() = nullptr;
+    void (*pfnDeleteUBG) (LO* plo) = DeleteUbg;
     void (*pfnProjectSoTransform)() = nullptr;
     void (*pfnPresetStepguardAccel)() = nullptr;
     void (*pfnTranslateSoToPos)() = nullptr;
@@ -1188,8 +1198,8 @@ struct VTMBG
     VT* pvtSuper = g_vtstepguard.pvtSuper;
     CID cid = CID_MBG;
     int grfcid = 0xB;
-    int cb = 0xDD0;
 
+    void*(*pfnNewMbg) () = NewMbg;
     void (*pfnInitLo) (MBG*) = InitMbg;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -1219,6 +1229,7 @@ struct VTMBG
     void (*pfnUnsubscribeLoStruct)(LO*, void*, void*) = UnsubscribeLoStruct;
     void (*pfnGetStepParams)() = nullptr;
     void (*pfnUpdateLoLiveEdit)() = nullptr;
+    void (*pfnDeleteMbg) (LO* plo) = DeleteMbg;
     void (*pfnProjectSoTransform)() = nullptr;
     void (*pfnPresetStepguardAccel)() = nullptr;
     void (*pfnTranslateSoToPos)() = nullptr;
@@ -1297,8 +1308,8 @@ struct VTBHG
     VT* pvtSuper = g_vtstepguard.pvtSuper;
     CID cid = CID_BHG;
     int grfcid = 0xB;
-    int cb = 0xBA0;
 
+    void*(*pfnNewBhg) () = NewBhg;
     void (*pfnInitLo) (BHG*) = InitBhg;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -1328,6 +1339,7 @@ struct VTBHG
     void (*pfnUnsubscribeLoStruct)(LO*, void*, void*) = UnsubscribeLoStruct;
     void (*pfnGetStepParams)() = nullptr;
     void (*pfnUpdateLoLiveEdit)() = nullptr;
+    void (*pfnDeleteBhg) (LO* plo) = DeleteBhg;
     void (*pfnProjectSoTransform)() = nullptr;
     void (*pfnPresetStepguardAccel)() = nullptr;
     void (*pfnTranslateSoToPos)() = nullptr;
@@ -1406,8 +1418,8 @@ struct VTMURRAY
     VT* pvtSuper = g_vtstepguard.pvtSuper;
     CID cid = CID_MURRAY;
     int grfcid = 0xB;
-    int cb = 4352;
 
+    void*(*pfnNewMurray) () = NewMurray;
     void (*pfnInitMurray) (MURRAY*) = InitMurray;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -1437,6 +1449,7 @@ struct VTMURRAY
     void (*pfnUnsubscribeLoStruct)(LO*, void*, void*) = UnsubscribeLoStruct;
     void (*pfnGetStepParams)() = nullptr;
     void (*pfnUpdateLoLiveEdit)() = nullptr;
+    void (*pfnDeleteMurray) (LO* plo) = DeleteMurray;
     void (*pfnProjectSoTransform)() = nullptr;
     void (*pfnPresetStepguardAccel)() = nullptr;
     void (*pfnTranslateSoToPos)() = nullptr;
@@ -1515,8 +1528,8 @@ struct VTPUFFC
     VT* pvtSuper = g_vtstepguard.pvtSuper;
     CID cid = CID_PUFFC;
     int grfcid = 0xB;
-    int cb = 4324;
 
+    void*(*pfnNewPuffc) () = NewPuffc;
     void (*pfnInitStepguard)() = nullptr;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -1546,6 +1559,7 @@ struct VTPUFFC
     void (*pfnUnsubscribeLoStruct)(LO*, void*, void*) = UnsubscribeLoStruct;
     void (*pfnGetStepParams)() = nullptr;
     void (*pfnUpdateLoLiveEdit)() = nullptr;
+    void (*pfnDeletePuffc) (LO* plo) = DeletePuffc;
     void (*pfnProjectSoTransform)() = nullptr;
     void (*pfnPresetPuffcAccel)() = nullptr;
     void (*pfnTranslateSoToPos)() = nullptr;
@@ -1624,8 +1638,8 @@ struct VTCRFOD
     VT* pvtSuper = g_vtstepguard.pvtSuper;
     CID cid = CID_CRFOD;
     int grfcid = 0xB;
-    int cb = 0xBA0;
 
+    void*(*pfnNewCrfod) () = NewCrfod;
     void (*pfnInitStepguard)(STEPGUARD*) = InitStepGuard;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -1655,6 +1669,7 @@ struct VTCRFOD
     void (*pfnUnsubscribeLoStruct)(LO*, void*, void*) = UnsubscribeLoStruct;
     void (*pfnGetStepParams)() = nullptr;
     void (*pfnUpdateLoLiveEdit)() = nullptr;
+    void (*pfnDeleteCrfod) (LO* plo) = DeleteCrfod;
     void (*pfnProjectSoTransform)() = nullptr;
     void (*pfnPresetStepguardAccel)() = nullptr;
     void (*pfnTranslateSoToPos)() = nullptr;
@@ -1733,8 +1748,8 @@ struct VTCRFODB
     VT* pvtSuper = g_vtcrfod.pvtSuper;
     CID cid = CID_CRFODB;
     int grfcid = 0xB;
-    int cb = 0xBB0;
 
+    void*(*pfnNewCrfodb) () = NewCrfodb;
     void (*pfnInitCrfodb)(CRFODB*) = InitCrfodb;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -1764,6 +1779,7 @@ struct VTCRFODB
     void (*pfnUnsubscribeLoStruct)(LO*, void*, void*) = UnsubscribeLoStruct;
     void (*pfnGetStepParams)() = nullptr;
     void (*pfnUpdateLoLiveEdit)() = nullptr;
+    void (*pfnDeleteCrfodb) (LO* plo) = DeleteCrfodb;
     void (*pfnProjectSoTransform)() = nullptr;
     void (*pfnPresetStepguardAccel)() = nullptr;
     void (*pfnTranslateSoToPos)() = nullptr;
@@ -1842,8 +1858,8 @@ struct VTCRFODK
     VT* pvtSuper = g_vtcrfod.pvtSuper;
     CID cid = CID_CRFODK;
     int grfcid = 0xB;
-    int cb = 0xBA0;
 
+    void*(*pfnNewCrfodk) () = NewCrfodk;
     void (*pfnInitStepguard)(STEPGUARD*) = InitStepGuard;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -1873,6 +1889,7 @@ struct VTCRFODK
     void (*pfnUnsubscribeLoStruct)(LO*, void*, void*) = UnsubscribeLoStruct;
     void (*pfnGetStepParams)() = nullptr;
     void (*pfnUpdateLoLiveEdit)() = nullptr;
+    void (*pfnDeleteCrfodk) (LO* plo) = DeleteCrfodk;
     void (*pfnProjectSoTransform)() = nullptr;
     void (*pfnPresetStepguardAccel)() = nullptr;
     void (*pfnTranslateSoToPos)() = nullptr;
@@ -1951,8 +1968,8 @@ struct VTTANK
     VT* pvtSuper = g_vtstep.pvtSuper;
     CID cid = CID_TANK;
     int grfcid = 0xB;
-    int cb = 0x730;
 
+    void*(*pfnNewTank) () = NewTank;
     void (*pfnInitTank)(TANK*) = InitTank;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -1982,6 +1999,7 @@ struct VTTANK
     void (*pfnUnsubscribeLoStruct)(LO*, void*, void*) = UnsubscribeLoStruct;
     void (*pfnGetStepParams)() = nullptr;
     void (*pfnUpdateLoLiveEdit)() = nullptr;
+    void (*pfnDeleteTank) (LO* plo) = DeleteTank;
     void (*pfnProjectSoTransform)() = nullptr;
     void (*pfnPresetStepAccel)() = nullptr;
     void (*pfnTranslateSoToPos)() = nullptr;
@@ -2049,8 +2067,8 @@ struct VTJP
     VT* pvtSuper = g_vtstep.pvtSuper;
     CID cid = CID_JP;
     int grfcid = 0xB;
-    int cb = 0x950;
 
+    void*(*pfnNewJp) () = NewJp;
     void (*pfnInitJp)(JP*) = InitJp;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -2080,6 +2098,7 @@ struct VTJP
     void (*pfnUnsubscribeLoStruct)(LO*, void*, void*) = UnsubscribeLoStruct;
     void (*pfnGetStepParams)() = nullptr;
     void (*pfnUpdateLoLiveEdit)() = nullptr;
+    void (*pfnDeleteJp) (LO* plo) = DeleteJp;
     void (*pfnProjectSoTransform)() = nullptr;
     void (*pfnPresetJpAccel)() = nullptr;
     void (*pfnTranslateSoToPos)() = nullptr;
@@ -2147,8 +2166,8 @@ struct VTHG
     VT* pvtSuper = g_vtstep.pvtSuper;
     CID cid = CID_HG;
     int grfcid = 0xB;
-    int cb = 0x900;
 
+    void*(*pfnNewHg) () = NewHg;
     void (*pfnInitHg)(HG*) = InitHg;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -2178,6 +2197,7 @@ struct VTHG
     void (*pfnUnsubscribeLoStruct)(LO*, void*, void*) = UnsubscribeLoStruct;
     void (*pfnGetStepParams)() = nullptr;
     void (*pfnUpdateLoLiveEdit)() = nullptr;
+    void (*pfnDeleteHg) (LO* plo) = DeleteHg;
     void (*pfnProjectSoTransform)() = nullptr;
     void (*pfnPresetHgAccel)() = nullptr;
     void (*pfnTranslateSoToPos)() = nullptr;
@@ -2245,8 +2265,8 @@ struct VTMECHA
     VT* pvtSuper = g_vtstep.pvtSuper;
     CID cid = CID_MECHA;
     int grfcid = 0xB;
-    int cb = 0x970;
 
+    void*(*pfnNewMecha) () = NewMecha;
     void (*pfnInitMecha)(MECHA*) = InitMecha;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -2276,6 +2296,7 @@ struct VTMECHA
     void (*pfnUnsubscribeLoStruct)(LO*, void*, void*) = UnsubscribeLoStruct;
     void (*pfnGetStepParams)() = nullptr;
     void (*pfnUpdateLoLiveEdit)() = nullptr;
+    void (*pfnDeleteMecha) (LO* plo) = DeleteMecha;
     void (*pfnProjectSoTransform)() = nullptr;
     void (*pfnPresetMechaAccel)() = nullptr;
     void (*pfnTranslateSoToPos)() = nullptr;
@@ -2343,8 +2364,8 @@ struct VTROV
     VT* pvtSuper = g_vtpo.pvtSuper;
     CID cid = CID_ROV;
     int grfcid = 0xB;
-    int cb = 2704;
 
+    void*(*pfnNewRov) () = NewRov;
     void (*pfnInitRov)(ROV*) = InitRov;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -2374,6 +2395,7 @@ struct VTROV
     void (*pfnUnsubscribeLoStruct)(LO*, void*, void*) = UnsubscribeLoStruct;
     void (*pfnGetRovParams)() = nullptr;
     void (*pfnUpdateLoLiveEdit)() = nullptr;
+    void (*pfnDeleteRov) (LO* plo) = DeleteRov;
     void (*pfnProjectSoTransform)() = nullptr;
     void (*pfnPresetRovAccel)() = nullptr;
     void (*pfnTranslateSoToPos)() = nullptr;
@@ -2438,8 +2460,8 @@ struct VTTURRET
     VT* pvtSuper = g_vtpo.pvtSuper;
     CID cid = CID_TURRET;
     int grfcid = 0xB;
-    int cb = 0x5F0;
 
+    void*(*pfnNewTurret) () = NewTurret;
     void (*pfnInitPo)(PO*) = InitPo;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -2469,6 +2491,7 @@ struct VTTURRET
     void (*pfnUnsubscribeLoStruct)(LO*, void*, void*) = UnsubscribeLoStruct;
     void (*pfnGetSoParams)() = nullptr;
     void (*pfnUpdateLoLiveEdit)() = nullptr;
+    void (*pfnDeleteTurret) (LO* plo) = DeleteTurret;
     void (*pfnProjectSoTransform)() = nullptr;
     void (*pfnPresetSoAccel)() = nullptr;
     void (*pfnTranslateSoToPos)() = nullptr;
@@ -2533,8 +2556,8 @@ struct VTVAULT
     VT* pvtSuper = g_vtpo.pvtSuper;
     CID cid = CID_VAULT;
     int grfcid = 0xB;
-    int cb = 2512;
 
+    void*(*pfnNewVault) () = NewVault;
     void (*pfnInitVault)(VAULT*) = InitVault;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -2564,6 +2587,7 @@ struct VTVAULT
     void (*pfnUnsubscribeLoStruct)(LO*, void*, void*) = UnsubscribeLoStruct;
     void (*pfnGetSoParams)() = nullptr;
     void (*pfnUpdateLoLiveEdit)() = nullptr;
+    void (*pfnDeleteVault) (LO* plo) = DeleteVault;
     void (*pfnProjectSoTransform)() = nullptr;
     void (*pfnPresetSoAccel)() = nullptr;
     void (*pfnTranslateSoToPos)() = nullptr;
@@ -2628,8 +2652,8 @@ struct VTPUFFER
     VT* pvtSuper = g_vtpo.pvtSuper;
     CID cid = CID_PUFFER;
     int grfcid = 0xB;
-    int cb = 2668;
 
+    void*(*pfnNewPuffer) () = NewPuffer;
     void (*pfnInitPuffer)(PUFFER*) = InitPuffer;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -2659,6 +2683,7 @@ struct VTPUFFER
     void (*pfnUnsubscribeLoStruct)(LO*, void*, void*) = UnsubscribeLoStruct;
     void (*pfnGetSoParams)() = nullptr;
     void (*pfnUpdateLoLiveEdit)() = nullptr;
+    void (*pfnDeletePuffer) (LO* plo) = DeletePuffer;
     void (*pfnProjectSoTransform)() = nullptr;
     void (*pfnPresetPufferAccel)() = nullptr;
     void (*pfnTranslateSoToPos)() = nullptr;
@@ -2723,8 +2748,8 @@ struct VTMGV
     VT* pvtSuper = g_vtpo.pvtSuper;
     CID cid = CID_MGV;
     int grfcid = 0xB;
-    int cb = 0x620;
 
+    void*(*pfnNewMgv) () = NewMgv;
     void (*pfnInitMgv)(MGV*) = InitMgv;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -2754,6 +2779,7 @@ struct VTMGV
     void (*pfnUnsubscribeLoStruct)(LO*, void*, void*) = UnsubscribeLoStruct;
     void (*pfnGetSoParams)() = nullptr;
     void (*pfnUpdateLoLiveEdit)() = nullptr;
+    void (*pfnDeleteMgv) (LO* plo) = DeleteMgv;
     void (*pfnProjectSoTransform)() = nullptr;
     void (*pfnPresetSoAccel)() = nullptr;
     void (*pfnTranslateSoToPos)() = nullptr;
@@ -2818,8 +2844,8 @@ struct VTSUV
     VT* pvtSuper = g_vtpo.pvtSuper;
     CID cid = CID_SUV;
     int grfcid = 0xB;
-    int cb = 4568;
 
+    void*(*pfnNewSuv) () = NewSuv;
     void (*pfnInitSuv)(SUV*) = InitSuv;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -2849,6 +2875,7 @@ struct VTSUV
     void (*pfnUnsubscribeLoStruct)(LO*, void*, void*) = UnsubscribeLoStruct;
     void (*pfnGetSoParams)() = nullptr;
     void (*pfnUpdateLoLiveEdit)() = nullptr;
+    void (*pfnDeleteSuv) (LO* plo) = DeleteSuv;
     void (*pfnProjectSoTransform)() = nullptr;
     void (*pfnPresetSuvAccel)() = nullptr;
     void (*pfnTranslateSoToPos)() = nullptr;
@@ -2913,8 +2940,8 @@ struct VTCYCLE
     VT* pvtSuper = g_vtpo.pvtSuper;
     CID cid = CID_CYCLE;
     int grfcid = 0xB;
-    int cb = 0x6E0;
 
+    void*(*pfnNewCycle) () = NewCycle;
     void (*pfnInitCycle)(CYCLE*) = InitCycle;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -2944,6 +2971,7 @@ struct VTCYCLE
     void (*pfnUnsubscribeLoStruct)(LO*, void*, void*) = UnsubscribeLoStruct;
     void (*pfnGetSoParams)() = nullptr;
     void (*pfnUpdateLoLiveEdit)() = nullptr;
+    void (*pfnDeleteCycle) (LO* plo) = DeleteCycle;
     void (*pfnProjectSoTransform)() = nullptr;
     void (*pfnPresetCycleAccel)() = nullptr;
     void (*pfnTranslateSoToPos)() = nullptr;
@@ -3008,8 +3036,8 @@ struct VTLGN
     VT* pvtSuper = g_vtpo.pvtSuper;
     CID cid = CID_LGN;
     int grfcid = 0xB;
-    int cb = 0x630;
 
+    void*(*pfnNewLgn) () = NewLgn;
     void (*pfnInitLgn)(LGN*) = InitLgn;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -3039,6 +3067,7 @@ struct VTLGN
     void (*pfnUnsubscribeLoStruct)(LO*, void*, void*) = UnsubscribeLoStruct;
     void (*pfnGetSoParams)() = nullptr;
     void (*pfnUpdateLoLiveEdit)() = nullptr;
+    void (*pfnDeleteLgn) (LO* plo) = DeleteLgn;
     void (*pfnProjectSoTransform)() = nullptr;
     void (*pfnPresetSoAccel)() = nullptr;
     void (*pfnTranslateSoToPos)() = nullptr;
@@ -3103,8 +3132,8 @@ struct VTJACK
     VT* pvtSuper = g_vtpo.pvtSuper;
     CID cid = CID_JACK;
     int grfcid = 0xB;
-    int cb = 0x750;
 
+    void*(*pfnNewJack) () = NewJack;
     void (*pfnInitJack)(JACK*) = InitJack;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -3134,6 +3163,7 @@ struct VTJACK
     void (*pfnUnsubscribeLoStruct)(LO*, void*, void*) = UnsubscribeLoStruct;
     void (*pfnGetSoParams)() = nullptr;
     void (*pfnUpdateLoLiveEdit)() = nullptr;
+    void (*pfnDeleteJack) (LO* plo) = DeleteJack;
     void (*pfnProjectSoTransform)() = nullptr;
     void (*pfnPresetSoAccel)() = nullptr;
     void (*pfnTranslateSoToPos)() = nullptr;
@@ -3198,8 +3228,8 @@ struct VTRIPG
     VT* pvtSuper = g_vtso.pvtSuper;
     CID cid = CID_RIPG;
     int grfcid = 3;
-    int cb = 0x5A0;
 
+    void*(*pfnNewRipg) () = NewRipg;
     void (*pfnInitRipg)(RIPG*) = InitRipg;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -3229,6 +3259,7 @@ struct VTRIPG
     void (*pfnUnsubscribeLoStruct)(LO*, void*, void*) = UnsubscribeLoStruct;
     void (*pfnGetSoParams)() = nullptr;
     void (*pfnUpdateLoLiveEdit)() = nullptr;
+    void (*pfnDeleteRipg) (LO* plo) = DeleteRipg;
     void (*pfnProjectRipgTransform)() = nullptr;
     void (*pfnPresetSoAccel)() = nullptr;
     void (*pfnTranslateSoToPos)() = nullptr;
@@ -3282,8 +3313,8 @@ struct VTWATER
     VT* pvtSuper = g_vtso.pvtSuper;
     CID cid = CID_WATER;
     int grfcid = 0x83;
-    int cb = 2888;
 
+    void*(*pfnNewWater) () = NewWater;
     void (*pfnInitWater)(WATER*) = InitWater;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -3313,6 +3344,7 @@ struct VTWATER
     void (*pfnUnsubscribeLoStruct)(LO*, void*, void*) = UnsubscribeLoStruct;
     void (*pfnGetSoParams)() = nullptr;
     void (*pfnUpdateLoLiveEdit)() = nullptr;
+    void (*pfnDeleteWater) (LO* plo) = DeleteWater;
     void (*pfnProjectSoTransform)() = nullptr;
     void (*pfnPresetSoAccel)() = nullptr;
     void (*pfnTranslateSoToPos)() = nullptr;
@@ -3366,8 +3398,8 @@ struct VTBRK
     VT* pvtSuper = g_vtso.pvtSuper;
     CID cid = CID_BRK;
     int grfcid = 0x3;
-    int cb = 2808;
 
+    void*(*pfnNewBrk) () = NewBrk;
     void (*pfnInitBrk)(BRK*) = InitBrk;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -3397,6 +3429,7 @@ struct VTBRK
     void (*pfnUnsubscribeLoStruct)(LO*, void*, void*) = UnsubscribeLoStruct;
     void (*pfnGetSoParams)() = nullptr;
     void (*pfnUpdateLoLiveEdit)() = nullptr;
+    void (*pfnDeleteBrk) (LO* plo) = DeleteBrk;
     void (*pfnProjectSoTransform)() = nullptr;
     void (*pfnPresetSoAccel)() = nullptr;
     void (*pfnTranslateSoToPos)() = nullptr;
@@ -3451,8 +3484,8 @@ struct VTBREAK
     VT* pvtSuper = g_vtbrk.pvtSuper;
     CID cid = CID_BREAK;
     int grfcid = 0x13;
-    int cb = 2816;
 
+    void*(*pfnNewBreak) () = NewBreak;
     void (*pfnInitBreak)(BREAK*) = InitBreak;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -3482,6 +3515,7 @@ struct VTBREAK
     void (*pfnUnsubscribeLoStruct)(LO*, void*, void*) = UnsubscribeLoStruct;
     void (*pfnGetSoParams)() = nullptr;
     void (*pfnUpdateLoLiveEdit)() = nullptr;
+    void (*pfnDeleteBreak) (LO* plo) = DeleteBreak;
     void (*pfnProjectSoTransform)() = nullptr;
     void (*pfnPresetSoAccel)() = nullptr;
     void (*pfnTranslateSoToPos)() = nullptr;
@@ -3536,8 +3570,8 @@ struct VTALBRK
     VT* pvtSuper = g_vtbreak.pvtSuper;
     CID cid = CID_ALBRK;
     int grfcid = 0x13;
-    int cb = 2816;
 
+    void*(*pfnNewAlbrk) () = NewAlbrk;
     void (*pfnInitBreak)(BREAK*) = InitBreak;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -3567,6 +3601,7 @@ struct VTALBRK
     void (*pfnUnsubscribeLoStruct)(LO*, void*, void*) = UnsubscribeLoStruct;
     void (*pfnGetSoParams)() = nullptr;
     void (*pfnUpdateLoLiveEdit)() = nullptr;
+    void (*pfnDeleteAlbrk) (LO* plo) = DeleteAlbrk;
     void (*pfnProjectSoTransform)() = nullptr;
     void (*pfnPresetSoAccel)() = nullptr;
     void (*pfnTranslateSoToPos)() = nullptr;
@@ -3621,8 +3656,8 @@ struct VTCAN
     VT* pvtSuper = g_vtbreak.pvtSuper;
     CID cid = CID_CAN;
     int grfcid = 0x13;
-    int cb = 0x770;
 
+    void*(*pfnNewCan) () = NewCan;
     void (*pfnInitCan)(CAN*) = InitCan;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -3652,6 +3687,7 @@ struct VTCAN
     void (*pfnUnsubscribeLoStruct)(LO*, void*, void*) = UnsubscribeLoStruct;
     void (*pfnGetCanParams)() = nullptr;
     void (*pfnUpdateLoLiveEdit)() = nullptr;
+    void (*pfnDeleteCan) (LO* plo) = DeleteCan;
     void (*pfnProjectSoTransform)() = nullptr;
     void (*pfnPresetSoAccel)() = nullptr;
     void (*pfnTranslateSoToPos)() = nullptr;
@@ -3706,8 +3742,8 @@ struct VTDARTGUN
     VT* pvtSuper = g_vtbreak.pvtSuper;
     CID cid = CID_DARTGUN;
     int grfcid = 0x13;
-    int cb = 3136;
 
+    void*(*pfnNewDartgun) () = NewDartgun;
     void (*pfnInitDartgun)(DARTGUN*) = InitDartgun;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -3737,6 +3773,7 @@ struct VTDARTGUN
     void (*pfnUnsubscribeLoStruct)(LO*, void*, void*) = UnsubscribeLoStruct;
     void (*pfnGetDartgunParams)() = nullptr;
     void (*pfnUpdateLoLiveEdit)() = nullptr;
+    void (*pfnDeleteDartgun) (LO* plo) = DeleteDartgun;
     void (*pfnProjectSoTransform)() = nullptr;
     void (*pfnPresetSoAccel)() = nullptr;
     void (*pfnTranslateSoToPos)() = nullptr;
@@ -3791,8 +3828,8 @@ struct VTSWP
     VT* pvtSuper = g_vtbreak.pvtSuper;
     CID cid = CID_SWP;
     int grfcid = 0x13;
-    int cb = 2876;
 
+    void*(*pfnNewSwp) () = NewSwp;
     void (*pfnInitSwp)(SWP*) = InitSwp;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -3822,6 +3859,7 @@ struct VTSWP
     void (*pfnUnsubscribeLoStruct)(LO*, void*, void*) = UnsubscribeLoStruct;
     void (*pfnGetSoParams)() = nullptr;
     void (*pfnUpdateLoLiveEdit)() = nullptr;
+    void (*pfnDeleteSwp) (LO* plo) = DeleteSwp;
     void (*pfnProjectSwpTransform)() = nullptr;
     void (*pfnPresetSoAccel)() = nullptr;
     void (*pfnTranslateSoToPos)() = nullptr;
@@ -3876,8 +3914,8 @@ struct VTFRAGILE
     VT* pvtSuper = g_vtbrk.pvtSuper;
     CID cid = CID_FRAGILE;
     int grfcid = 0x3;
-    int cb = 2816;
 
+    void*(*pfnNewFragile) () = NewFragile;
     void (*pfnInitFragile)(FRAGILE*) = InitFragile;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -3907,6 +3945,7 @@ struct VTFRAGILE
     void (*pfnUnsubscribeLoStruct)(LO*, void*, void*) = UnsubscribeLoStruct;
     void (*pfnGetSoParams)() = nullptr;
     void (*pfnUpdateLoLiveEdit)() = nullptr;
+    void (*pfnDeleteFragile) (LO* plo) = DeleteFragile;
     void (*pfnProjectSoTransform)() = nullptr;
     void (*pfnPresetSoAccel)() = nullptr;
     void (*pfnTranslateSoToPos)() = nullptr;
@@ -3961,8 +4000,8 @@ struct VTZAPBREAK
     VT* pvtSuper = g_vtfragile.pvtSuper;
     CID cid = CID_ZAPBREAK;
     int grfcid = 0x3;
-    int cb = 0x700;
 
+    void*(*pfnNewZapbreak) () = NewZapbreak;
     void (*pfnInitFragile)(FRAGILE*) = InitFragile;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -3992,6 +4031,7 @@ struct VTZAPBREAK
     void (*pfnUnsubscribeLoStruct)(LO*, void*, void*) = UnsubscribeLoStruct;
     void (*pfnGetSoParams)() = nullptr;
     void (*pfnUpdateLoLiveEdit)() = nullptr;
+    void (*pfnDeleteZapbreak) (LO* plo) = DeleteZapbreak;
     void (*pfnProjectSoTransform)() = nullptr;
     void (*pfnPresetSoAccel)() = nullptr;
     void (*pfnTranslateSoToPos)() = nullptr;
@@ -4046,8 +4086,8 @@ struct VTBRKP
     VT* pvtSuper = g_vtso.pvtSuper;
     CID cid = CID_BRKP;
     int grfcid = 0x3;
-    int cb = 2428;
 
+    void*(*pfnNewBrkp) () = NewBrkp;
     void (*pfnInitSo)(SO*) = InitSo;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -4077,6 +4117,7 @@ struct VTBRKP
     void (*pfnUnsubscribeLoStruct)(LO*, void*, void*) = UnsubscribeLoStruct;
     void (*pfnGetSoParams)() = nullptr;
     void (*pfnUpdateLoLiveEdit)() = nullptr;
+    void (*pfnDeleteBrkp) (LO* plo) = DeleteBrkp;
     void (*pfnProjectSoTransform)() = nullptr;
     void (*pfnPresetSoAccel)() = nullptr;
     void (*pfnTranslateSoToPos)() = nullptr;
@@ -4130,8 +4171,8 @@ struct VTBUTTON
     VT* pvtSuper = g_vtso.pvtSuper;
     CID cid = CID_BUTTON;
     int grfcid = 0x3;
-    int cb = 3312;
 
+    void*(*pfnNewButton) () = NewButton;
     void (*pfnInitButton)(BUTTON*) = InitButton;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -4161,6 +4202,7 @@ struct VTBUTTON
     void (*pfnUnsubscribeLoStruct)(LO*, void*, void*) = UnsubscribeLoStruct;
     void (*pfnGetButtonParams)() = nullptr;
     void (*pfnUpdateLoLiveEdit)() = nullptr;
+    void (*pfnDeleteButton) (LO* plo) = DeleteButton;
     void (*pfnProjectSoTransform)() = nullptr;
     void (*pfnPresetButtonAccel)() = nullptr;
     void (*pfnTranslateSoToPos)() = nullptr;
@@ -4214,8 +4256,8 @@ struct VTVOLBTN
     VT* pvtSuper = g_vtso.pvtSuper;
     CID cid = CID_VOLBTN;
     int grfcid = 0x3;
-    int cb = 3200;
 
+    void*(*pfnNewVolbtn) () = NewVolbtn;
     void (*pfnInitVolbtn)(VOLBTN*) = InitVolbtn;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -4245,6 +4287,7 @@ struct VTVOLBTN
     void (*pfnUnsubscribeLoStruct)(LO*, void*, void*) = UnsubscribeLoStruct;
     void (*pfnGetSoParams)() = nullptr;
     void (*pfnUpdateLoLiveEdit)() = nullptr;
+    void (*pfnDeleteVolbtn) (LO* plo) = DeleteVolbtn;
     void (*pfnProjectSoTransform)() = nullptr;
     void (*pfnPresetSoAccel)() = nullptr;
     void (*pfnTranslateSoToPos)() = nullptr;
@@ -4298,8 +4341,8 @@ struct VTJLOVOL
     VT* pvtSuper = g_vtvolbtn.pvtSuper;
     CID cid = CID_JLOVOL;
     int grfcid = 0x3;
-    int cb = 3248;
 
+    void*(*pfnNewJlovol) () = NewJlovol;
     void (*pfnInitJlovol)(JLOVOL*) = InitJlovol;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -4329,6 +4372,7 @@ struct VTJLOVOL
     void (*pfnUnsubscribeLoStruct)(LO*, void*, void*) = UnsubscribeLoStruct;
     void (*pfnGetSoParams)() = nullptr;
     void (*pfnUpdateLoLiveEdit)() = nullptr;
+    void (*pfnDeletejlovol) (LO* plo) = DeleteJlovol;
     void (*pfnProjectSoTransform)() = nullptr;
     void (*pfnPresetSoAccel)() = nullptr;
     void (*pfnTranslateSoToPos)() = nullptr;
@@ -4382,8 +4426,8 @@ struct VTSQUISH
     VT* pvtSuper = g_vtso.pvtSuper;
     CID cid = CID_SQUISH;
     int grfcid = 0x3;
-    int cb = 0x650;
 
+    void*(*pfnNewSquish) () = NewSquish;
     void (*pfnInitSo)(SO*) = InitSo;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -4413,6 +4457,7 @@ struct VTSQUISH
     void (*pfnUnsubscribeLoStruct)(LO*, void*, void*) = UnsubscribeLoStruct;
     void (*pfnGetSoParams)() = nullptr;
     void (*pfnUpdateLoLiveEdit)() = nullptr;
+    void (*pfnDeleteSquish) (LO* plo) = DeleteSquish;
     void (*pfnProjectSoTransform)() = nullptr;
     void (*pfnPresetSoAccel)() = nullptr;
     void (*pfnTranslateSoToPos)() = nullptr;
@@ -4466,8 +4511,8 @@ struct VTBONE
     VT* pvtSuper = g_vtso.pvtSuper;
     CID cid = CID_BONE;
     int grfcid = 0x3;
-    int cb = 2400;
 
+    void*(*pfnNewBone) () = NewBone;
     void (*pfnInitSo)(SO*) = InitSo;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -4497,6 +4542,7 @@ struct VTBONE
     void (*pfnUnsubscribeLoStruct)(LO*, void*, void*) = UnsubscribeLoStruct;
     void (*pfnGetSoParams)() = nullptr;
     void (*pfnUpdateLoLiveEdit)() = nullptr;
+    void (*pfnDeleteBone) (LO* plo) = DeleteBone;
     void (*pfnProjectSoTransform)() = nullptr;
     void (*pfnPresetSoAccel)() = nullptr;
     void (*pfnTranslateSoToPos)() = nullptr;
@@ -4550,8 +4596,8 @@ struct VTSPRIZE
     VT* pvtSuper = g_vtso.pvtSuper;
     CID cid = CID_SPRIZE;
     int grfcid = 0x3;
-    int cb = 2504;
 
+    void*(*pfnNewSprize) () = NewSprize;
     void (*pfnInitSprize)(SPRIZE*) = InitSprize;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -4581,6 +4627,7 @@ struct VTSPRIZE
     void (*pfnUnsubscribeLoStruct)(LO*, void*, void*) = UnsubscribeLoStruct;
     void (*pfnGetSoParams)() = nullptr;
     void (*pfnUpdateLoLiveEdit)() = nullptr;
+    void (*pfnDeleteSprize) (LO* plo) = DeleteSprize;
     void (*pfnProjectSoTransform)() = nullptr;
     void (*pfnPresetSoAccel)() = nullptr;
     void (*pfnTranslateSoToPos)() = nullptr;
@@ -4637,8 +4684,8 @@ struct VTSCPRIZE
     VT* pvtSuper = g_vtsprize.pvtSuper;
     CID cid = CID_SCPRIZE;
     int grfcid = 0x3;
-    int cb = 2512;
 
+    void*(*pfnNewScprize) () = NewScprize;
     void (*pfnInitScprize)(SCPRIZE*) = InitScprize;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -4668,6 +4715,7 @@ struct VTSCPRIZE
     void (*pfnUnsubscribeLoStruct)(LO*, void*, void*) = UnsubscribeLoStruct;
     void (*pfnGetSoParams)() = nullptr;
     void (*pfnUpdateLoLiveEdit)() = nullptr;
+    void (*pfnDeleteScprize) (LO* plo) = DeleteScprize;
     void (*pfnProjectSoTransform)() = nullptr;
     void (*pfnPresetSoAccel)() = nullptr;
     void (*pfnTranslateSoToPos)() = nullptr;
@@ -4724,8 +4772,8 @@ struct VTLIFETKN
     VT* pvtSuper = g_vtscprize.pvtSuper;
     CID cid = CID_LIFETKN;
     int grfcid = 0x3;
-    int cb = 2512;
 
+    void*(*pfnNewLifetkn) () = NewLifetkn;
     void (*pfnInitScprize)(SCPRIZE*) = InitScprize;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -4755,6 +4803,7 @@ struct VTLIFETKN
     void (*pfnUnsubscribeLoStruct)(LO*, void*, void*) = UnsubscribeLoStruct;
     void (*pfnGetSoParams)() = nullptr;
     void (*pfnUpdateLoLiveEdit)() = nullptr;
+    void (*pfnDeleteLifetkn) (LO* plo) = DeleteLifetkn;
     void (*pfnProjectSoTransform)() = nullptr;
     void (*pfnPresetSoAccel)() = nullptr;
     void (*pfnTranslateSoToPos)() = nullptr;
@@ -4811,8 +4860,8 @@ struct VTCLUE
     VT* pvtSuper = g_vtsprize.pvtSuper;
     CID cid = CID_CLUE;
     int grfcid = 0x3;
-    int cb = 2544;
 
+    void*(*pfnNewClue) () = NewClue;
     void (*pfnInitClue)(CLUE*) = InitClue;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -4842,6 +4891,7 @@ struct VTCLUE
     void (*pfnUnsubscribeLoStruct)(LO*, void*, void*) = UnsubscribeLoStruct;
     void (*pfnGetSoParams)() = nullptr;
     void (*pfnUpdateLoLiveEdit)() = nullptr;
+    void (*pfnDeleteClue) (LO* plo) = DeleteClue;
     void (*pfnProjectSoTransform)() = nullptr;
     void (*pfnPresetSoAccel)() = nullptr;
     void (*pfnTranslateSoToPos)() = nullptr;
@@ -4898,8 +4948,8 @@ struct VTALARM
     VT* pvtSuper = g_vtso.pvtSuper;
     CID cid = CID_ALARM;
     int grfcid = 0x3;
-    int cb = 2840;
 
+    void*(*pfnNewAlarm) () = NewAlarm;
     void (*pfnInitAlarm)(ALARM*) = InitAlarm;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -4929,6 +4979,7 @@ struct VTALARM
     void (*pfnUnsubscribeLoStruct)(LO*, void*, void*) = UnsubscribeLoStruct;
     void (*pfnGetAlarmParams)() = nullptr;
     void (*pfnUpdateLoLiveEdit)() = nullptr;
+    void (*pfnDeleteAlarm) (LO* plo) = DeleteAlarm;
     void (*pfnProjectSoTransform)() = nullptr;
     void (*pfnPresetSoAccel)() = nullptr;
     void (*pfnTranslateSoToPos)() = nullptr;
@@ -4982,8 +5033,8 @@ struct VTSENSOR
     VT* pvtSuper = g_vtso.pvtSuper;
     CID cid = CID_SENSOR;
     int grfcid = 0x3;
-    int cb = 2544;
 
+    void*(*pfnNewSensor) () = NewSensor;
     void (*pfnInitSensor)(SENSOR*) = InitSensor;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -5013,6 +5064,7 @@ struct VTSENSOR
     void (*pfnUnsubscribeLoStruct)(LO*, void*, void*) = UnsubscribeLoStruct;
     void (*pfnGetSensorParams)() = nullptr;
     void (*pfnUpdateLoLiveEdit)() = nullptr;
+    void (*pfnDeleteSensor) (LO* plo) = DeleteSensor;
     void (*pfnProjectSoTransform)() = nullptr;
     void (*pfnPresetSoAccel)() = nullptr;
     void (*pfnTranslateSoToPos)() = nullptr;
@@ -5072,8 +5124,8 @@ struct VTLASEN
     VT* pvtSuper = g_vtsensor.pvtSuper;
     CID cid = CID_LASEN;
     int grfcid = 0x3;
-    int cb = 4408;
 
+    void*(*pfnNewLasen) () = NewLasen;
     void (*pfnInitLasen)(LASEN*) = InitLasen;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -5103,6 +5155,7 @@ struct VTLASEN
     void (*pfnUnsubscribeLoStruct)(LO*, void*, void*) = UnsubscribeLoStruct;
     void (*pfnGetLasenParams)() = nullptr;
     void (*pfnUpdateLoLiveEdit)() = nullptr;
+    void (*pfnDeleteLasen) (LO* plo) = DeleteLasen;
     void (*pfnProjectSoTransform)() = nullptr;
     void (*pfnPresetSoAccel)() = nullptr;
     void (*pfnTranslateSoToPos)() = nullptr;
@@ -5162,8 +5215,8 @@ struct VTCAMSEN
     VT* pvtSuper = g_vtso.pvtSuper;
     CID cid = CID_CAMSEN;
     int grfcid = 0x3;
-    int cb = 2584;
 
+    void*(*pfnNewCamsen) () = NewCamsen;
     void (*pfnInitCamsen)(CAMSEN*) = InitCamsen;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -5193,6 +5246,7 @@ struct VTCAMSEN
     void (*pfnUnsubscribeLoStruct)(LO*, void*, void*) = UnsubscribeLoStruct;
     void (*pfnGetCamsenParams)() = nullptr;
     void (*pfnUpdateLoLiveEdit)() = nullptr;
+    void (*pfnDeleteCamsen) (LO* plo) = DeleteCamsen;
     void (*pfnProjectSoTransform)() = nullptr;
     void (*pfnPresetSoAccel)() = nullptr;
     void (*pfnTranslateSoToPos)() = nullptr;
@@ -5252,8 +5306,8 @@ struct VTPRSEN
     VT* pvtSuper = g_vtsensor.pvtSuper;
     CID cid = CID_PRSEN;
     int grfcid = 0x3;
-    int cb = 2624;
 
+    void*(*pfnNewPrsen) () = NewPrsen;
     void (*pfnInitPrsen)(PRSEN*) = InitPrsen;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -5283,6 +5337,7 @@ struct VTPRSEN
     void (*pfnUnsubscribeLoStruct)(LO*, void*, void*) = UnsubscribeLoStruct;
     void (*pfnGetPrsenParams)() = nullptr;
     void (*pfnUpdateLoLiveEdit)() = nullptr;
+    void (*pfnDeletePrsen) (LO* plo) = DeletePrsen;
     void (*pfnProjectSoTransform)() = nullptr;
     void (*pfnPresetSoAccel)() = nullptr;
     void (*pfnTranslateSoToPos)() = nullptr;
@@ -5342,8 +5397,8 @@ struct VTBARRIER
     VT* pvtSuper = g_vtso.pvtSuper;
     CID cid = CID_BARRIER;
     int grfcid = 0x3;
-    int cb = 2488;
 
+    void*(*pfnNewBarrier) () = NewBarrier;
     void (*pfnInitBarrier)(BARRIER*) = InitBarrier;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -5373,6 +5428,7 @@ struct VTBARRIER
     void (*pfnUnsubscribeLoStruct)(LO*, void*, void*) = UnsubscribeLoStruct;
     void (*pfnGetSoParams)() = nullptr;
     void (*pfnUpdateLoLiveEdit)() = nullptr;
+    void (*pfnDeleteBarrier) (LO* plo) = DeleteBarrier;
     void (*pfnProjectSoTransform)() = nullptr;
     void (*pfnPresetSoAccel)() = nullptr;
     void (*pfnTranslateSoToPos)() = nullptr;
@@ -5426,8 +5482,8 @@ struct VTIKH
     VT* pvtSuper = g_vtso.pvtSuper;
     CID cid = CID_IKH;
     int grfcid = 0x3;
-    int cb = 2400;
 
+    void*(*pfnNewIkh) () = NewIkh;
     void (*pfnInitSo)(SO*) = InitSo;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -5457,6 +5513,7 @@ struct VTIKH
     void (*pfnUnsubscribeLoStruct)(LO*, void*, void*) = UnsubscribeLoStruct;
     void (*pfnGetSoParams)() = nullptr;
     void (*pfnUpdateLoLiveEdit)() = nullptr;
+    void (*pfnDeleteIkh) (LO* plo) = DeleteIkh;
     void (*pfnProjectSoTransform)() = nullptr;
     void (*pfnPresetSoAccel)() = nullptr;
     void (*pfnTranslateSoToPos)() = nullptr;
@@ -5510,8 +5567,8 @@ struct VTTZP
     VT* pvtSuper = g_vtso.pvtSuper;
     CID cid = CID_TZP;
     int grfcid = 0x3;
-    int cb = 3144;
 
+    void*(*pfnNewTzp) () = NewTzp;
     void (*pfnInitTzp)(TZP*) = InitTzp;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -5541,6 +5598,7 @@ struct VTTZP
     void (*pfnUnsubscribeLoStruct)(LO*, void*, void*) = UnsubscribeLoStruct;
     void (*pfnGetSoParams)() = nullptr;
     void (*pfnUpdateLoLiveEdit)() = nullptr;
+    void (*pfnDeleteTzp) (LO* plo) = DeleteTzp;
     void (*pfnProjectSoTransform)() = nullptr;
     void (*pfnPresetSoAccel)() = nullptr;
     void (*pfnTranslateSoToPos)() = nullptr;
@@ -5594,8 +5652,8 @@ struct VTVOLZP
     VT* pvtSuper = g_vttzp.pvtSuper;
     CID cid = CID_VOLZP;
     int grfcid = 0x3;
-    int cb = 3144;
 
+    void*(*pfnNewVolzp) () = NewVolzp;
     void (*pfnInitVolzp)(VOLZP*) = InitVolzp;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -5625,6 +5683,7 @@ struct VTVOLZP
     void (*pfnUnsubscribeLoStruct)(LO*, void*, void*) = UnsubscribeLoStruct;
     void (*pfnGetSoParams)() = nullptr;
     void (*pfnUpdateLoLiveEdit)() = nullptr;
+    void (*pfnDeleteVolzp) (LO* plo) = DeleteVolzp;
     void (*pfnProjectSoTransform)() = nullptr;
     void (*pfnPresetSoAccel)() = nullptr;
     void (*pfnTranslateSoToPos)() = nullptr;
@@ -5678,8 +5737,8 @@ struct VTCNVO
     VT* pvtSuper = g_vtso.pvtSuper;
     CID cid = CID_CNVO;
     int grfcid = 0x3;
-    int cb = 2416;
 
+    void*(*pfnNewCnvo) () = NewCnvo;
     void (*pfnInitCnvo)(CNVO*) = InitCnvo;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -5709,6 +5768,7 @@ struct VTCNVO
     void (*pfnUnsubscribeLoStruct)(LO*, void*, void*) = UnsubscribeLoStruct;
     void (*pfnGetCnvoParams)() = nullptr;
     void (*pfnUpdateLoLiveEdit)() = nullptr;
+    void (*pfnDeleteCnvo) (LO* plo) = DeleteCnvo;
     void (*pfnProjectSoTransform)() = nullptr;
     void (*pfnPresetSoAccel)() = nullptr;
     void (*pfnTranslateSoToPos)() = nullptr;
@@ -5762,8 +5822,8 @@ struct VTHBSK
     VT* pvtSuper = g_vtso.pvtSuper;
     CID cid = CID_HBSK;
     int grfcid = 0x3;
-    int cb = 2432;
 
+    void*(*pfnNewHbsk) () = NewHbsk;
     void (*pfnInitHbsk)(HBSK*) = InitHbsk;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -5793,6 +5853,7 @@ struct VTHBSK
     void (*pfnUnsubscribeLoStruct)(LO*, void*, void*) = UnsubscribeLoStruct;
     void (*pfnGetSoParams)() = nullptr;
     void (*pfnUpdateLoLiveEdit)() = nullptr;
+    void (*pfnDeleteHbsk) (LO* plo) = DeleteHbsk;
     void (*pfnProjectSoTransform)() = nullptr;
     void (*pfnPresetHbskAccel)() = nullptr;
     void (*pfnTranslateSoToPos)() = nullptr;
@@ -5846,8 +5907,8 @@ struct VTBOMB
     VT* pvtSuper = g_vtso.pvtSuper;
     CID cid = CID_BOMB;
     int grfcid = 0x23;
-    int cb = 2680;
 
+    void*(*pfnNewBomb) () = NewBomb;
     void (*pfnInitBomb)(BOMB*) = InitBomb;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -5877,6 +5938,7 @@ struct VTBOMB
     void (*pfnUnsubscribeLoStruct)(LO*, void*, void*) = UnsubscribeLoStruct;
     void (*pfnGetBombParams)() = nullptr;
     void (*pfnUpdateLoLiveEdit)() = nullptr;
+    void (*pfnDeleteBomb) (LO* plo) = DeleteBomb;
     void (*pfnProjectSoTransform)() = nullptr;
     void (*pfnPresetSoAccel)() = nullptr;
     void (*pfnTranslateSoToPos)() = nullptr;
@@ -5930,8 +5992,8 @@ struct VTMISSILE
     VT* pvtSuper = g_vtbomb.pvtSuper;
     CID cid = CID_MISSILE;
     int grfcid = 0x23;
-    int cb = 2736;
 
+    void*(*pfnNewMissile) () = NewMissile;
     void (*pfnInitMissile)(MISSILE*) = InitMissile;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -5961,6 +6023,7 @@ struct VTMISSILE
     void (*pfnUnsubscribeLoStruct)(LO*, void*, void*) = UnsubscribeLoStruct;
     void (*pfnGetBombParams)() = nullptr;
     void (*pfnUpdateLoLiveEdit)() = nullptr;
+    void (*pfnDeleteMissile) (LO* plo) = DeleteMissile;
     void (*pfnProjectMissileTransform)() = nullptr;
     void (*pfnPresetSoAccel)() = nullptr;
     void (*pfnTranslateSoToPos)() = nullptr;
@@ -6015,8 +6078,8 @@ struct VTACCMISS
     VT* pvtSuper = g_vtmissile.pvtSuper;
     CID cid = CID_ACCMISS;
     int grfcid = 0x23;
-    int cb = 2760;
 
+    void*(*pfnNewAccmiss) () = NewAccmiss;
     void (*pfnInitAccmiss)(ACCMISS*) = InitAccmiss;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -6046,6 +6109,7 @@ struct VTACCMISS
     void (*pfnUnsubscribeLoStruct)(LO*, void*, void*) = UnsubscribeLoStruct;
     void (*pfnGetBombParams)() = nullptr;
     void (*pfnUpdateLoLiveEdit)() = nullptr;
+    void (*pfnDeleteAccmiss) (LO* plo) = DeleteAccmiss;
     void (*pfnProjectMissileTransform)() = nullptr;
     void (*pfnPresetAccmissAccel)() = nullptr;
     void (*pfnTranslateSoToPos)() = nullptr;
@@ -6100,8 +6164,8 @@ struct VTTARMISS
     VT* pvtSuper = g_vtaccmiss.pvtSuper;
     CID cid = CID_TARMISS;
     int grfcid = 0x23;
-    int cb = 2784;
 
+    void*(*pfnNewTarmiss) () = NewTarmiss;
     void (*pfnInitTarmiss)(TARMISS*) = InitTarmiss;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -6131,6 +6195,7 @@ struct VTTARMISS
     void (*pfnUnsubscribeLoStruct)(LO*, void*, void*) = UnsubscribeLoStruct;
     void (*pfnGetBombParams)() = nullptr;
     void (*pfnUpdateLoLiveEdit)() = nullptr;
+    void (*pfnDeleteTarmiss) (LO* plo) = DeleteTarmiss;
     void (*pfnProjectMissileTransform)() = nullptr;
     void (*pfnPresetAccmissAccel)() = nullptr;
     void (*pfnTranslateSoToPos)() = nullptr;
@@ -6185,8 +6250,8 @@ struct VTSPLMISS
     VT* pvtSuper = g_vtmissile.pvtSuper;
     CID cid = CID_SPLMISS;
     int grfcid = 0x23;
-    int cb = 0x6C0;
 
+    void*(*pfnNewSplmiss) () = NewSplmiss;
     void (*pfnInitMissile)(MISSILE*) = InitMissile;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -6216,6 +6281,7 @@ struct VTSPLMISS
     void (*pfnUnsubscribeLoStruct)(LO*, void*, void*) = UnsubscribeLoStruct;
     void (*pfnGetBombParams)() = nullptr;
     void (*pfnUpdateLoLiveEdit)() = nullptr;
+    void (*pfnDeleteSplmiss) (LO* plo) = DeleteSplmiss;
     void (*pfnProjectSplmissTransform)() = nullptr;
     void (*pfnPresetSoAccel)() = nullptr;
     void (*pfnTranslateSoToPos)() = nullptr;
@@ -6270,8 +6336,8 @@ struct VTGROUNDMISS
     VT* pvtSuper = g_vtmissile.pvtSuper;
     CID cid = CID_GROUNDMISS;
     int grfcid = 0x23;
-    int cb = 2744;
 
+    void*(*pfnNewGroundmiss) () = NewGroundmiss;
     void (*pfnInitGroundmiss)(GROUNDMISS*) = InitGroundmiss;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -6301,6 +6367,7 @@ struct VTGROUNDMISS
     void (*pfnUnsubscribeLoStruct)(LO*, void*, void*) = UnsubscribeLoStruct;
     void (*pfnGetBombParams)() = nullptr;
     void (*pfnUpdateLoLiveEdit)() = nullptr;
+    void (*pfnDeleteGroundmiss) (LO* plo) = DeleteGroundmiss;
     void (*pfnProjectMissileTransform)() = nullptr;
     void (*pfnPresetGroundmissAccel)() = nullptr;
     void (*pfnTranslateSoToPos)() = nullptr;
@@ -6355,8 +6422,8 @@ struct VTFLY
     VT* pvtSuper = g_vtso.pvtSuper;
     CID cid = CID_FLY;
     int grfcid = 0x3;
-    int cb = 2848;
 
+    void*(*pfnNewFly) () = NewFly;
     void (*pfnInitFly)(FLY*) = InitFly;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -6386,6 +6453,7 @@ struct VTFLY
     void (*pfnUnsubscribeLoStruct)(LO*, void*, void*) = UnsubscribeLoStruct;
     void (*pfnGetFlyParams)() = nullptr;
     void (*pfnUpdateLoLiveEdit)() = nullptr;
+    void (*pfnDeleteFly) (LO* plo) = DeleteFly;
     void (*pfnProjectSoTransform)() = nullptr;
     void (*pfnPresetFlyAccel)() = nullptr;
     void (*pfnTranslateSoToPos)() = nullptr;
@@ -6439,8 +6507,8 @@ struct VTRAT
     VT* pvtSuper = g_vtso.pvtSuper;
     CID cid = CID_RAT;
     int grfcid = 0x3;
-    int cb = 2824;
 
+    void*(*pfnNewRat) () = NewRat;
     void (*pfnInitRat)(RAT*) = InitRat;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -6470,6 +6538,7 @@ struct VTRAT
     void (*pfnUnsubscribeLoStruct)(LO*, void*, void*) = UnsubscribeLoStruct;
     void (*pfnGetRatParams)() = nullptr;
     void (*pfnUpdateLoLiveEdit)() = nullptr;
+    void (*pfnDeleteRat) (LO* plo) = DeleteRat;
     void (*pfnProjectSoTransform)() = nullptr;
     void (*pfnPresetRatAccel)() = nullptr;
     void (*pfnTranslateSoToPos)() = nullptr;
@@ -6523,8 +6592,8 @@ struct VTROH
     VT* pvtSuper = g_vtso.pvtSuper;
     CID cid = CID_ROH;
     int grfcid = 0x3;
-    int cb = 2552;
 
+    void*(*pfnNewRoh) () = NewRoh;
     void (*pfnInitRoh)(ROH*) = InitRoh;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -6554,6 +6623,7 @@ struct VTROH
     void (*pfnUnsubscribeLoStruct)(LO*, void*, void*) = UnsubscribeLoStruct;
     void (*pfnGetRohParams)() = nullptr;
     void (*pfnUpdateLoLiveEdit)() = nullptr;
+    void (*pfnDeleteRoh) (LO* plo) = DeleteRoh;
     void (*pfnProjectSoTransform)() = nullptr;
     void (*pfnPresetSoAccel)() = nullptr;
     void (*pfnTranslateSoToPos)() = nullptr;
@@ -6607,8 +6677,8 @@ struct VTROC
     VT* pvtSuper = g_vtso.pvtSuper;
     CID cid = CID_ROC;
     int grfcid = 0x3;
-    int cb = 2512;
 
+    void*(*pfnNewRoc) () = NewRoc;
     void (*pfnInitRoc)(ROC*) = InitRoc;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -6638,6 +6708,7 @@ struct VTROC
     void (*pfnUnsubscribeLoStruct)(LO*, void*, void*) = UnsubscribeLoStruct;
     void (*pfnGetRocParams)() = nullptr;
     void (*pfnUpdateLoLiveEdit)() = nullptr;
+    void (*pfnDeleteRoc) (LO* plo) = DeleteRoc;
     void (*pfnProjectSoTransform)() = nullptr;
     void (*pfnPresetRocAccel)() = nullptr;
     void (*pfnTranslateSoToPos)() = nullptr;
@@ -6691,8 +6762,8 @@ struct VTROST
     VT* pvtSuper = g_vtso.pvtSuper;
     CID cid = CID_ROST;
     int grfcid = 0x3;
-    int cb = 2456;
 
+    void*(*pfnNewRost) () = NewRost;
     void (*pfnInitRost)(ROST*) = InitRost;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -6722,6 +6793,7 @@ struct VTROST
     void (*pfnUnsubscribeLoStruct)(LO*, void*, void*) = UnsubscribeLoStruct;
     void (*pfnGetRostParams)() = nullptr;
     void (*pfnUpdateLoLiveEdit)() = nullptr;
+    void (*pfnDeleteRost) (LO* plo) = DeleteRost;
     void (*pfnProjectSoTransform)() = nullptr;
     void (*pfnPresetSoAccel)() = nullptr;
     void (*pfnTranslateSoToPos)() = nullptr;
@@ -6775,8 +6847,8 @@ struct VTROP
     VT* pvtSuper = g_vtso.pvtSuper;
     CID cid = CID_ROP;
     int grfcid = 0x3;
-    int cb = 2448;
 
+    void*(*pfnNewRop) () = NewRop;
     void (*pfnInitRop)(ROP*) = InitRop;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -6806,6 +6878,7 @@ struct VTROP
     void (*pfnUnsubscribeLoStruct)(LO*, void*, void*) = UnsubscribeLoStruct;
     void (*pfnGetSoParams)() = nullptr;
     void (*pfnUpdateLoLiveEdit)() = nullptr;
+    void (*pfnDeleteRop) (LO* plo) = DeleteRop;
     void (*pfnProjectSoTransform)() = nullptr;
     void (*pfnPresetSoAccel)() = nullptr;
     void (*pfnTranslateSoToPos)() = nullptr;
@@ -6859,8 +6932,8 @@ struct VTDART
     VT* pvtSuper = g_vtso.pvtSuper;
     CID cid = CID_DART;
     int grfcid = 0x3;
-    int cb = 2496;
 
+    void*(*pfnNewDart) () = NewDart;
     void (*pfnInitDart)(DART*) = InitDart;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -6890,6 +6963,7 @@ struct VTDART
     void (*pfnUnsubscribeLoStruct)(LO*, void*, void*) = UnsubscribeLoStruct;
     void (*pfnGetDartParams)() = nullptr;
     void (*pfnUpdateLoLiveEdit)() = nullptr;
+    void (*pfnDeleteDart) (LO* plo) = DeleteDart;
     void (*pfnProjectSoTransform)() = nullptr;
     void (*pfnPresetSoAccel)() = nullptr;
     void (*pfnTranslateSoToPos)() = nullptr;
@@ -6943,8 +7017,8 @@ struct VTUBV
     VT* pvtSuper = g_vtso.pvtSuper;
     CID cid = CID_UBV;
     int grfcid = 0x3;
-    int cb = 2432;
 
+    void*(*pfnNewUbv) () = NewUbv;
     void (*pfnInitSo)(SO*) = InitSo;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -6974,6 +7048,7 @@ struct VTUBV
     void (*pfnUnsubscribeLoStruct)(LO*, void*, void*) = UnsubscribeLoStruct;
     void (*pfnGetSoParams)() = nullptr;
     void (*pfnUpdateLoLiveEdit)() = nullptr;
+    void (*pfnDeleteUbv) (LO* plo) = DeleteUbv;
     void (*pfnProjectSoTransform)() = nullptr;
     void (*pfnPresetSoAccel)() = nullptr;
     void (*pfnTranslateSoToPos)() = nullptr;
@@ -7027,8 +7102,8 @@ struct VTUBP
     VT* pvtSuper = g_vtso.pvtSuper;
     CID cid = CID_UBP;
     int grfcid = 0x3;
-    int cb = 2432;
 
+    void*(*pfnNewUbp) () = NewUbp;
     void (*pfnInitSo) (SO*) = InitSo;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -7058,6 +7133,7 @@ struct VTUBP
     void (*pfnUnsubscribeLoStruct)(LO*, void*, void*) = UnsubscribeLoStruct;
     void (*pfnGetSoParams)() = nullptr;
     void (*pfnUpdateLoLiveEdit)() = nullptr;
+    void (*pfnDeleteUbp) (LO* plo) = DeleteUbp;
     void (*pfnProjectSoTransform)() = nullptr;
     void (*pfnPresetSoAccel)() = nullptr;
     void (*pfnTranslateSoToPos)() = nullptr;
@@ -7111,8 +7187,8 @@ struct VTDSP
     VT* pvtSuper = g_vtso.pvtSuper;
     CID cid = CID_DSP;
     int grfcid = 0x3;
-    int cb = 2448;
 
+    void*(*pfnNewDsp) () = NewDsp;
     void (*pfnInitSo) (SO*) = InitSo;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -7142,6 +7218,7 @@ struct VTDSP
     void (*pfnUnsubscribeLoStruct)(LO*, void*, void*) = UnsubscribeLoStruct;
     void (*pfnGetSoParams)() = nullptr;
     void (*pfnUpdateLoLiveEdit)() = nullptr;
+    void (*pfnDeleteDsp) (LO* plo) = DeleteDsp;
     void (*pfnProjectSoTransform)() = nullptr;
     void (*pfnPresetSoAccel)() = nullptr;
     void (*pfnTranslateSoToPos)() = nullptr;
@@ -7195,8 +7272,8 @@ struct VTJLO
     VT* pvtSuper = g_vtso.pvtSuper;
     CID cid = CID_JLO;
     int grfcid = 0x3;
-    int cb = 2584;
 
+    void*(*pfnNewJlo) () = NewJlo;
     void (*pfnInitJlo)(JLO*) = InitJlo;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -7226,6 +7303,7 @@ struct VTJLO
     void (*pfnUnsubscribeLoStruct)(LO*, void*, void*) = UnsubscribeLoStruct;
     void (*pfnGetSoParams)() = nullptr;
     void (*pfnUpdateLoLiveEdit)() = nullptr;
+    void (*pfnDeleteJlo) (LO* plo) = DeleteJlo;
     void (*pfnProjectSoTransform)() = nullptr;
     void (*pfnPresetJloAccel)() = nullptr;
     void (*pfnTranslateSoToPos)() = nullptr;
@@ -7279,8 +7357,8 @@ struct VTPUFFT
     VT* pvtSuper = g_vtso.pvtSuper;
     CID cid = CID_PUFFT;
     int grfcid = 0x3;
-    int cb = 2420;
 
+    void*(*pfnNewPufft) () = NewPufft;
     void (*pfnInitSo) (SO*) = InitSo;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -7310,6 +7388,7 @@ struct VTPUFFT
     void (*pfnUnsubscribeLoStruct)(LO*, void*, void*) = UnsubscribeLoStruct;
     void (*pfnGetSoParams)() = nullptr;
     void (*pfnUpdateLoLiveEdit)() = nullptr;
+    void (*pfnDeletePufft) (LO* plo) = DeletePufft;
     void (*pfnProjectSoTransform)() = nullptr;
     void (*pfnPresetSoAccel)() = nullptr;
     void (*pfnTranslateSoToPos)() = nullptr;
@@ -7363,8 +7442,8 @@ struct VTMRKV
     VT* pvtSuper = g_vtso.pvtSuper;
     CID cid = CID_MRKV;
     int grfcid = 0x3;
-    int cb = 2424;
 
+    void*(*pfnNewMrkv) () = NewMrkv;
     void (*pfnInitMrkv)(MRKV*) = InitMrkv;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -7394,6 +7473,7 @@ struct VTMRKV
     void (*pfnUnsubscribeLoStruct)(LO*, void*, void*) = UnsubscribeLoStruct;
     void (*pfnGetSoParams)() = nullptr;
     void (*pfnUpdateLoLiveEdit)() = nullptr;
+    void (*pfnDeleteMrkv) (LO* plo) = DeleteMrkv;
     void (*pfnProjectSoTransform)() = nullptr;
     void (*pfnPresetSoAccel)() = nullptr;
     void (*pfnTranslateSoToPos)() = nullptr;
@@ -7447,8 +7527,8 @@ struct VTLGNB
     VT* pvtSuper = g_vtso.pvtSuper;
     CID cid = CID_LGNB;
     int grfcid = 0x3;
-    int cb = 0x5C0;
 
+    void*(*pfnNewLgnb) () = NewLgnb;
     void (*pfnInitLgnb)(LGNB*) = InitLgnb;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -7478,6 +7558,7 @@ struct VTLGNB
     void (*pfnUnsubscribeLoStruct)(LO*, void*, void*) = UnsubscribeLoStruct;
     void (*pfnGetSoParams)() = nullptr;
     void (*pfnUpdateLoLiveEdit)() = nullptr;
+    void (*pfnDeleteLgnb) (LO* plo) = DeleteLgnb;
     void (*pfnProjectSoTransform)() = nullptr;
     void (*pfnPresetLgnbAccel)() = nullptr;
     void (*pfnTranslateSoToPos)() = nullptr;
@@ -7531,8 +7612,8 @@ struct VTBLIPG
     VT* pvtSuper = g_vtalo.pvtSuper;
     CID cid = CID_BLIPG;
     int grfcid = 0x1;
-    int cb = 0x650;
 
+    void*(*pfnNewBlipg) () = NewBlipg;
     void (*pfnInitBlipg)(BLIPG*) = InitBlipg;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -7562,6 +7643,7 @@ struct VTBLIPG
     void (*pfnUnsubscribeLoStruct)(LO*, void*, void*) = UnsubscribeLoStruct;
     void (*pfnGetAloParams)() = nullptr;
     void (*pfnUpdateLoLiveEdit)() = nullptr;
+    void (*pfnDeleteBlipg) (LO* plo) = DeleteBlipg;
     void (*pfnProjectBlipgTransform)() = nullptr;
     void (*pfnPresetAloAccel)() = nullptr;
     void (*pfnTranslateAloToPos)() = nullptr;
@@ -7590,8 +7672,8 @@ struct VTCAMERA
     VT* pvtSuper = g_vtalo.pvtSuper;
     CID cid = CID_CAMERA;
     int grfcid = 0x1;
-    int cb = 1128;
 
+    void*(*pfnNewCamera) () = NewCamera;
     void (*pfnInitCamera)(CAMERA*) = InitCamera;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -7621,6 +7703,7 @@ struct VTCAMERA
     void (*pfnUnsubscribeLoStruct)(LO*, void*, void*) = UnsubscribeLoStruct;
     void (*pfnGetAloParams)() = nullptr;
     void (*pfnUpdateLoLiveEdit)() = nullptr;
+    void (*pfnDeleteCamera) (LO* plo) = DeleteCamera;
     void (*pfnProjectAloTransform)() = nullptr;
     void (*pfnPresetAloAccel)() = nullptr;
     void (*pfnTranslateAloToPos)() = nullptr;
@@ -7649,8 +7732,8 @@ struct VTLBONE
     VT* pvtSuper = g_vtalo.pvtSuper;
     CID cid = CID_LBONE;
     int grfcid = 0x1;
-    int cb = 1064;
 
+    void*(*pfnNewLBone) () = NewLBone;
     void (*pfnInitAlo)(ALO*) = InitAlo;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -7680,6 +7763,7 @@ struct VTLBONE
     void (*pfnUnsubscribeLoStruct)(LO*, void*, void*) = UnsubscribeLoStruct;
     void (*pfnGetAloParams)() = nullptr;
     void (*pfnUpdateLoLiveEdit)() = nullptr;
+    void (*pfnDeleteLBone) (LO* plo) = DeleteLBone;
     void (*pfnProjectAloTransform)() = nullptr;
     void (*pfnPresetAloAccel)() = nullptr;
     void (*pfnTranslateAloToPos)() = nullptr;
@@ -7708,8 +7792,8 @@ struct VTEMITTER
     VT* pvtSuper = g_vtalo.pvtSuper;
     CID cid = CID_EMITTER;
     int grfcid = 0x1;
-    int cb = 1232;
 
+    void*(*pfnNewEmitter) () = NewEmitter;
     void (*pfnInitEmitter)(EMITTER*) = InitEmitter;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -7739,6 +7823,7 @@ struct VTEMITTER
     void (*pfnUnsubscribeLoStruct)(LO*, void*, void*) = UnsubscribeLoStruct;
     void (*pfnGetEmitterParams)() = nullptr;
     void (*pfnUpdateLoLiveEdit)() = nullptr;
+    void (*pfnDeleteEmitter) (LO* plo) = DeleteEmitter;
     void (*pfnProjectAloTransform)() = nullptr;
     void (*pfnPresetAloAccel)() = nullptr;
     void (*pfnTranslateAloToPos)() = nullptr;
@@ -7767,8 +7852,8 @@ struct VTLIGHT
     VT* pvtSuper = g_vtalo.pvtSuper;
     CID cid = CID_LIGHT;
     int grfcid = 0x1;
-    int cb = 1352;
 
+    void*(*pfnNewLight) () = NewLight;
     void (*pfnInitLight)(LIGHT*) = InitLight;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -7798,6 +7883,7 @@ struct VTLIGHT
     void (*pfnUnsubscribeLoStruct)(LO*, void*, void*) = UnsubscribeLoStruct;
     void (*pfnGetLightParams)() = nullptr;
     void (*pfnUpdateLoLiveEdit)() = nullptr;
+    void (*pfnDeleteLight) (LO* plo) = DeleteLight;
     void (*pfnProjectAloTransform)() = nullptr;
     void (*pfnPresetAloAccel)() = nullptr;
     void (*pfnTranslateAloToPos)() = nullptr;
@@ -7826,8 +7912,8 @@ struct VTSCH
     VT* pvtSuper = g_vtalo.pvtSuper;
     CID cid = CID_SCH;
     int grfcid = 0x1;
-    int cb = 1064;
 
+    void*(*pfnNewSch) () = NewAlo;
     void (*pfnInitAlo) (ALO*) = InitAlo;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -7857,6 +7943,7 @@ struct VTSCH
     void (*pfnUnsubscribeLoStruct)(LO*, void*, void*) = UnsubscribeLoStruct;
     void (*pfnGetAloParams)() = nullptr;
     void (*pfnUpdateLoLiveEdit)() = nullptr;
+    void (*pfnDeleteSch) (LO* plo) = DeleteAlo;
     void (*pfnProjectAloTransform)() = nullptr;
     void (*pfnPresetAloAccel)() = nullptr;
     void (*pfnTranslateAloToPos)() = nullptr;
@@ -7885,8 +7972,8 @@ struct VTLIKH
     VT* pvtSuper = g_vtalo.pvtSuper;
     CID cid = CID_LIKH;
     int grfcid = 0x1;
-    int cb = 1064;
 
+    void*(*pfnNewLikh) () = NewLikh;
     void (*pfnInitAlo) (ALO*) = InitAlo;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -7916,6 +8003,7 @@ struct VTLIKH
     void (*pfnUnsubscribeLoStruct)(LO*, void*, void*) = UnsubscribeLoStruct;
     void (*pfnGetAloParams)() = nullptr;
     void (*pfnUpdateLoLiveEdit)() = nullptr;
+    void (*pfnDeleteLikh) (LO* plo) = DeleteLikh;
     void (*pfnProjectAloTransform)() = nullptr;
     void (*pfnPresetAloAccel)() = nullptr;
     void (*pfnTranslateAloToPos)() = nullptr;
@@ -7944,8 +8032,8 @@ struct VTCHKPNT
     VT* pvtSuper = g_vtalo.pvtSuper;
     CID cid = CID_CHKPNT;
     int grfcid = 0x1;
-    int cb = 1192;
 
+    void*(*pfnNewChkpnt) () = NewChkpnt;
     void (*pfnInitChkpnt)(CHKPNT*) = InitChkpnt;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -7975,6 +8063,7 @@ struct VTCHKPNT
     void (*pfnUnsubscribeLoStruct)(LO*, void*, void*) = UnsubscribeLoStruct;
     void (*pfnGetAloParams)() = nullptr;
     void (*pfnUpdateLoLiveEdit)() = nullptr;
+    void (*pfnDeleteChkpnt) (LO* plo) = DeleteChkpnt;
     void (*pfnProjectAloTransform)() = nullptr;
     void (*pfnPresetAloAccel)() = nullptr;
     void (*pfnTranslateAloToPos)() = nullptr;
@@ -8003,8 +8092,8 @@ struct VTPROXY
     VT* pvtSuper = g_vtalo.pvtSuper;
     CID cid = CID_PROXY;
     int grfcid = 0x101;
-    int cb = 1104;
 
+    void*(*pfnNewProxy) () = NewProxy;
     void (*pfnInitProxy)(PROXY*) = InitProxy;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -8034,6 +8123,7 @@ struct VTPROXY
     void (*pfnUnsubscribeLoStruct)(LO*, void*, void*) = UnsubscribeLoStruct;
     void (*pfnGetAloParams)() = nullptr;
     void (*pfnUpdateLoLiveEdit)() = nullptr;
+    void (*pfnDeleteProxy) (LO* plo) = DeleteProxy;
     void (*pfnProjectAloTransform)() = nullptr;
     void (*pfnPresetAloAccel)() = nullptr;
     void (*pfnTranslateAloToPos)() = nullptr;
@@ -8062,8 +8152,8 @@ struct VTSKY
     VT* pvtSuper = g_vtalo.pvtSuper;
     CID cid = CID_SKY;
     int grfcid = 0x1;
-    int cb = 1068;
 
+    void*(*pfnNewSky) () = NewSky;
     void (*pfnInitAlo) (ALO*) = InitAlo;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -8093,6 +8183,7 @@ struct VTSKY
     void (*pfnUnsubscribeLoStruct)(LO*, void*, void*) = UnsubscribeLoStruct;
     void (*pfnGetAloParams)() = nullptr;
     void (*pfnUpdateLoLiveEdit)() = nullptr;
+    void (*pfnDeleteSky) (LO* plo) = DeleteSky;
     void (*pfnProjectAloTransform)() = nullptr;
     void (*pfnPresetAloAccel)() = nullptr;
     void (*pfnTranslateAloToPos)() = nullptr;
@@ -8121,8 +8212,8 @@ struct VTDPRIZE
     VT* pvtSuper = g_vtalo.pvtSuper;
     CID cid = CID_DPRIZE;
     int grfcid = 0x1;
-    int cb = 1280;
 
+    void*(*pfnNewDprize) () = NewDprize;
     void (*pfnInitDprize)(DPRIZE*) = InitDprize;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -8152,6 +8243,7 @@ struct VTDPRIZE
     void (*pfnUnsubscribeLoStruct)(LO*, void*, void*) = UnsubscribeLoStruct;
     void (*pfnGetAloParams)() = nullptr;
     void (*pfnUpdateLoLiveEdit)() = nullptr;
+    void (*pfnDeleteDprize) (LO* plo) = DeleteDprize;
     void (*pfnProjectDprizeTransform)() = nullptr;
     void (*pfnPresetAloAccel)() = nullptr;
     void (*pfnTranslateAloToPos)() = nullptr;
@@ -8181,8 +8273,8 @@ struct VTCHARM
     VT* pvtSuper = g_vtdprize.pvtSuper;
     CID cid = CID_CHARM;
     int grfcid = 0x1;
-    int cb = 1280;
 
+    void*(*pfnNewCharm) () = NewCharm;
     void (*pfnInitCharm)(CHARM*) = InitCharm;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -8212,6 +8304,7 @@ struct VTCHARM
     void (*pfnUnsubscribeLoStruct)(LO*, void*, void*) = UnsubscribeLoStruct;
     void (*pfnGetAloParams)() = nullptr;
     void (*pfnUpdateLoLiveEdit)() = nullptr;
+    void (*pfnDeleteCharm) (LO* plo) = DeleteCharm;
     void (*pfnProjectDprizeTransform)() = nullptr;
     void (*pfnPresetAloAccel)() = nullptr;
     void (*pfnTranslateAloToPos)() = nullptr;
@@ -8241,8 +8334,8 @@ struct VTCOIN
     VT* pvtSuper = g_vtdprize.pvtSuper;
     CID cid = CID_COIN;
     int grfcid = 0x1;
-    int cb = 1296;
 
+    void*(*pfnNewCoin) () = NewCoin;
     void (*pfnInitCoin)(COIN*) = InitCoin;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -8272,6 +8365,7 @@ struct VTCOIN
     void (*pfnUnsubscribeLoStruct)(LO*, void*, void*) = UnsubscribeLoStruct;
     void (*pfnGetAloParams)() = nullptr;
     void (*pfnUpdateLoLiveEdit)() = nullptr;
+    void (*pfnDeleteCoin) (LO* plo) = DeleteCoin;
     void (*pfnProjectDprizeTransform)() = nullptr;
     void (*pfnPresetAloAccel)() = nullptr;
     void (*pfnTranslateAloToPos)() = nullptr;
@@ -8301,8 +8395,8 @@ struct VTKEY
     VT* pvtSuper = g_vtdprize.pvtSuper;
     CID cid = CID_KEY;
     int grfcid = 0x1;
-    int cb = 1280;
 
+    void*(*pfnNewKey) () = NewKey;
     void (*pfnInitKey)(KEY*) = InitKey;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -8332,6 +8426,7 @@ struct VTKEY
     void (*pfnUnsubscribeLoStruct)(LO*, void*, void*) = UnsubscribeLoStruct;
     void (*pfnGetAloParams)() = nullptr;
     void (*pfnUpdateLoLiveEdit)() = nullptr;
+    void (*pfnDeleteKey) (LO* plo) = DeleteKey;
     void (*pfnProjectDprizeTransform)() = nullptr;
     void (*pfnPresetAloAccel)() = nullptr;
     void (*pfnTranslateAloToPos)() = nullptr;
@@ -8361,8 +8456,8 @@ struct VTGOLD
     VT* pvtSuper = g_vtdprize.pvtSuper;
     CID cid = CID_GOLD;
     int grfcid = 0x1;
-    int cb = 1288;
 
+    void*(*pfnNewGold) () = NewGold;
     void (*pfnInitGold)(GOLD*) = InitGold;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -8392,6 +8487,7 @@ struct VTGOLD
     void (*pfnUnsubscribeLoStruct)(LO*, void*, void*) = UnsubscribeLoStruct;
     void (*pfnGetAloParams)() = nullptr;
     void (*pfnUpdateLoLiveEdit)() = nullptr;
+    void (*pfnDeleteGold) (LO* plo) = DeleteGold;
     void (*pfnProjectDprizeTransform)() = nullptr;
     void (*pfnPresetAloAccel)() = nullptr;
     void (*pfnTranslateAloToPos)() = nullptr;
@@ -8421,8 +8517,8 @@ struct VTLOCK
     VT* pvtSuper = g_vtalo.pvtSuper;
     CID cid = CID_LOCK;
     int grfcid = 0x1;
-    int cb = 1088;
 
+    void*(*pfnNewLock) () = NewLock;
     void (*pfnInitAlo) (ALO*) = InitAlo;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -8452,6 +8548,7 @@ struct VTLOCK
     void (*pfnUnsubscribeLoStruct)(LO*, void*, void*) = UnsubscribeLoStruct;
     void (*pfnGetAloParams)() = nullptr;
     void (*pfnUpdateLoLiveEdit)() = nullptr;
+    void (*pfnDeleteLock) (LO* plo) = DeleteLock;
     void (*pfnProjectAloTransform)() = nullptr;
     void (*pfnPresetAloAccel)() = nullptr;
     void (*pfnTranslateAloToPos)() = nullptr;
@@ -8480,8 +8577,8 @@ struct VTLOCKG
     VT* pvtSuper = g_vtalo.pvtSuper;
     CID cid = CID_LOCKG;
     int grfcid = 0x1;
-    int cb = 1192;
 
+    void*(*pfnNewLockg) () = NewLockg;
     void (*pfnInitAlo) (ALO*) = InitAlo;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -8511,6 +8608,7 @@ struct VTLOCKG
     void (*pfnUnsubscribeLoStruct)(LO*, void*, void*) = UnsubscribeLoStruct;
     void (*pfnGetAloParams)() = nullptr;
     void (*pfnUpdateLoLiveEdit)() = nullptr;
+    void (*pfnDeleteLockg) (LO* plo) = DeleteLockg;
     void (*pfnProjectAloTransform)() = nullptr;
     void (*pfnPresetAloAccel)() = nullptr;
     void (*pfnTranslateAloToPos)() = nullptr;
@@ -8539,8 +8637,8 @@ struct VTTAIL
     VT* pvtSuper = g_vtalo.pvtSuper;
     CID cid = CID_TAIL;
     int grfcid = 0x1;
-    int cb = 1144;
 
+    void*(*pfnNewTail) () = NewTail;
     void (*pfnInitTail)(TAIL*) = InitTail;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -8570,6 +8668,7 @@ struct VTTAIL
     void (*pfnUnsubscribeLoStruct)(LO*, void*, void*) = UnsubscribeLoStruct;
     void (*pfnGetAloParams)() = nullptr;
     void (*pfnUpdateLoLiveEdit)() = nullptr;
+    void (*pfnDeleteTail) (LO* plo) = DeleteTail;
     void (*pfnProjectAloTransform)() = nullptr;
     void (*pfnPresetAloAccel)() = nullptr;
     void (*pfnTranslateAloToPos)() = nullptr;
@@ -8598,8 +8697,8 @@ struct VTROB
     VT* pvtSuper = g_vtalo.pvtSuper;
     CID cid = CID_ROB;
     int grfcid = 0x1;
-    int cb = 1960;
 
+    void*(*pfnNewRob) () = NewRob;
     void (*pfnInitRob)(ROB*) = InitRob;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -8629,6 +8728,7 @@ struct VTROB
     void (*pfnUnsubscribeLoStruct)(LO*, void*, void*) = UnsubscribeLoStruct;
     void (*pfnGetRobParams)() = nullptr;
     void (*pfnUpdateLoLiveEdit)() = nullptr;
+    void (*pfnDeleteRob) (LO* plo) = DeleteRob;
     void (*pfnProjectAloTransform)() = nullptr;
     void (*pfnPresetAloAccel)() = nullptr;
     void (*pfnTranslateAloToPos)() = nullptr;
@@ -8657,8 +8757,8 @@ struct VTFLASH
     VT* pvtSuper = g_vtalo.pvtSuper;
     CID cid = CID_FLASH;
     int grfcid = 0x1;
-    int cb = 1120;
 
+    void*(*pfnNewFlash) () = NewFlash;
     void (*pfnInitFlash)(FLASH*) = InitFlash;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -8688,6 +8788,7 @@ struct VTFLASH
     void (*pfnUnsubscribeLoStruct)(LO*, void*, void*) = UnsubscribeLoStruct;
     void (*pfnGetAloParams)() = nullptr;
     void (*pfnUpdateLoLiveEdit)() = nullptr;
+    void (*pfnDeleteFlash) (LO* plo) = DeleteFlash;
     void (*pfnProjectAloTransform)() = nullptr;
     void (*pfnPresetAloAccel)() = nullptr;
     void (*pfnTranslateAloToPos)() = nullptr;
@@ -8716,8 +8817,8 @@ struct VTDYSH
     VT* pvtSuper = g_vtalo.pvtSuper;
     CID cid = CID_DYSH;
     int grfcid = 0x1;
-    int cb = 1072;
 
+    void*(*pfnNewDysh) () = NewDysh;
     void (*pfnInitDysh)(DYSH*) = InitDysh;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -8747,6 +8848,7 @@ struct VTDYSH
     void (*pfnUnsubscribeLoStruct)(LO*, void*, void*) = UnsubscribeLoStruct;
     void (*pfnGetAloParams)() = nullptr;
     void (*pfnUpdateLoLiveEdit)() = nullptr;
+    void (*pfnDeleteDysh) (LO* plo) = DeleteDysh;
     void (*pfnProjectAloTransform)() = nullptr;
     void (*pfnPresetAloAccel)() = nullptr;
     void (*pfnTranslateAloToPos)() = nullptr;
@@ -8775,8 +8877,8 @@ struct VTSCENTMAP
     VT* pvtSuper = g_vtalo.pvtSuper;
     CID cid = CID_SCENTMAP;
     int grfcid = 0x1;
-    int cb = 0x320;
 
+    void*(*pfnNewScentmap) () = NewScentmap;
     void (*pfnInitScentmap)(SCENTMAP*) = InitScentmap;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -8806,6 +8908,7 @@ struct VTSCENTMAP
     void (*pfnUnsubscribeLoStruct)(LO*, void*, void*) = UnsubscribeLoStruct;
     void (*pfnGetAloParams)() = nullptr;
     void (*pfnUpdateLoLiveEdit)() = nullptr;
+    void (*pfnDeleteScentmap) (LO* plo) = DeleteScentmap;
     void (*pfnProjectAloTransform)() = nullptr;
     void (*pfnPresetAloAccel)() = nullptr;
     void (*pfnTranslateAloToPos)() = nullptr;
@@ -8834,8 +8937,8 @@ struct VTWAYPOINT
     VT* pvtSuper = g_vtalo.pvtSuper;
     CID cid = CID_WAYPOINT;
     int grfcid = 0x1;
-    int cb = 0x340;
 
+    void*(*pfnNewWaypoint) () = NewWaypoint;
     void (*pfnInitWaypoint)(WAYPOINT*) = InitWaypoint;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -8865,6 +8968,7 @@ struct VTWAYPOINT
     void (*pfnUnsubscribeLoStruct)(LO*, void*, void*) = UnsubscribeLoStruct;
     void (*pfnGetAloParams)() = nullptr;
     void (*pfnUpdateLoLiveEdit)() = nullptr;
+    void (*pfnDeleteWaypoint) (LO* plo) = DeleteWaypoint;
     void (*pfnProjectAloTransform)() = nullptr;
     void (*pfnPresetAloAccel)() = nullptr;
     void (*pfnTranslateAloToPos)() = nullptr;
@@ -8893,8 +8997,8 @@ struct VTTN
     VT* pvtSuper = g_vtalo.pvtSuper;
     CID cid = CID_TN;
     int grfcid = 0x1;
-    int cb = 1440;
 
+    void*(*pfnNewTn) () = NewTn;
     void (*pfnInitTn)(TN*) = InitTn;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -8924,6 +9028,7 @@ struct VTTN
     void (*pfnUnsubscribeLoStruct)(LO*, void*, void*) = UnsubscribeLoStruct;
     void (*pfnGetTnParams)() = nullptr;
     void (*pfnUpdateLoLiveEdit)() = nullptr;
+    void (*pfnDeleteTn) (LO* plo) = DeleteTn;
     void (*pfnProjectAloTransform)() = nullptr;
     void (*pfnPresetAloAccel)() = nullptr;
     void (*pfnTranslateAloToPos)() = nullptr;
@@ -8952,8 +9057,8 @@ struct VTJLOC
     VT* pvtSuper = g_vtalo.pvtSuper;
     CID cid = CID_JLOC;
     int grfcid = 0x1;
-    int cb = 1232;
 
+    void*(*pfnNewJloc) () = NewJloc;
     void (*pfnInitJloc)(JLOC*) = InitJloc;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -8983,6 +9088,7 @@ struct VTJLOC
     void (*pfnUnsubscribeLoStruct)(LO*, void*, void*) = UnsubscribeLoStruct;
     void (*pfnGetJlocParams)() = nullptr;
     void (*pfnUpdateLoLiveEdit)() = nullptr;
+    void (*pfnDeleteJloc) (LO* plo) = DeleteJloc;
     void (*pfnProjectAloTransform)() = nullptr;
     void (*pfnPresetAloAccel)() = nullptr;
     void (*pfnTranslateAloToPos)() = nullptr;
@@ -9011,8 +9117,8 @@ struct VTDIALOG
     VT* pvtSuper = g_vtalo.pvtSuper;
     CID cid = CID_DIALOG;
     int grfcid = 0x1;
-    int cb = 1200;
 
+    void*(*pfnNewDialog) () = NewDialog;
     void (*pfnInitDialog)(DIALOG*) = InitDialog;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -9042,6 +9148,7 @@ struct VTDIALOG
     void (*pfnUnsubscribeLoStruct)(LO*, void*, void*) = UnsubscribeLoStruct;
     void (*pfnGetAloParams)() = nullptr;
     void (*pfnUpdateLoLiveEdit)() = nullptr;
+    void (*pfnDeleteDialog) (LO* plo) = DeleteDialog;
     void (*pfnProjectAloTransform)() = nullptr;
     void (*pfnPresetAloAccel)() = nullptr;
     void (*pfnTranslateAloToPos)() = nullptr;
@@ -9070,8 +9177,8 @@ struct VTSPEAKER
     VT* pvtSuper = g_vtalo.pvtSuper;
     CID cid = CID_SPEAKER;
     int grfcid = 0x1;
-    int cb = 1136;
 
+    void*(*pfnNewSpeaker) () = NewSpeaker;
     void (*pfnInitSpeaker)(SPEAKER*) = InitSpeaker;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -9101,6 +9208,7 @@ struct VTSPEAKER
     void (*pfnUnsubscribeLoStruct)(LO*, void*, void*) = UnsubscribeLoStruct;
     void (*pfnGetSpeakerParams)() = nullptr;
     void (*pfnUpdateLoLiveEdit)() = nullptr;
+    void (*pfnDeleteSpeaker) (LO* plo) = DeleteSpeaker;
     void (*pfnProjectAloTransform)() = nullptr;
     void (*pfnPresetAloAccel)() = nullptr;
     void (*pfnTranslateAloToPos)() = nullptr;
@@ -9129,8 +9237,8 @@ struct VTROPE
     VT* pvtSuper = g_vtalo.pvtSuper;
     CID cid = CID_ROPE;
     int grfcid = 0x1;
-    int cb = 0x320;
 
+    void*(*pfnNewRope) () = NewRope;
     void (*pfnInitRope)(ROPE*) = InitRope;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -9160,6 +9268,7 @@ struct VTROPE
     void (*pfnUnsubscribeLoStruct)(LO*, void*, void*) = UnsubscribeLoStruct;
     void (*pfnGetAloParams)() = nullptr;
     void (*pfnUpdateLoLiveEdit)() = nullptr;
+    void (*pfnDeleteRope) (LO* plo) = DeleteRope;
     void (*pfnProjectAloTransform)() = nullptr;
     void (*pfnPresetAloAccel)() = nullptr;
     void (*pfnTranslateAloToPos)() = nullptr;
@@ -9188,8 +9297,8 @@ struct VTWM
     VT* pvtSuper = g_vtalo.pvtSuper;
     CID cid = CID_WM;
     int grfcid = 0x1;
-    int cb = 1216;
 
+    void*(*pfnNewWm) () = NewWm;
     void (*pfnInitAlo)(ALO*) = InitAlo;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -9219,6 +9328,7 @@ struct VTWM
     void (*pfnUnsubscribeLoStruct)(LO*, void*, void*) = UnsubscribeLoStruct;
     void (*pfnGetAloParams)() = nullptr;
     void (*pfnUpdateLoLiveEdit)() = nullptr;
+    void (*pfnDeleteWm) (LO* plo) = DeleteWm;
     void (*pfnProjectAloTransform)() = nullptr;
     void (*pfnPresetAloAccel)() = nullptr;
     void (*pfnTranslateAloToPos)() = nullptr;
@@ -9247,8 +9357,8 @@ struct VTPUFFB
     VT* pvtSuper = g_vtalo.pvtSuper;
     CID cid = CID_PUFFB;
     int grfcid = 0x1;
-    int cb = 1112;
 
+    void*(*pfnNewPuffb) () = NewPuffb;
     void (*pfnInitAlo) (ALO*) = InitAlo;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -9278,6 +9388,7 @@ struct VTPUFFB
     void (*pfnUnsubscribeLoStruct)(LO*, void*, void*) = UnsubscribeLoStruct;
     void (*pfnGetAloParams)() = nullptr;
     void (*pfnUpdateLoLiveEdit)() = nullptr;
+    void (*pfnDeletePuffb) (LO* plo) = DeletePuffb;
     void (*pfnProjectAloTransform)() = nullptr;
     void (*pfnPresetAloAccel)() = nullptr;
     void (*pfnTranslateAloToPos)() = nullptr;
@@ -9306,8 +9417,8 @@ struct VTCRBRAIN
     VT* pvtSuper = g_vtalo.pvtSuper;
     CID cid = CID_CRBRAIN;
     int grfcid = 0x1;
-    int cb = 0x2F0;
 
+    void*(*pfnNewCrbrain) () = NewCrbrain;
     void (*pfnInitCrbrain)(CRBRAIN*) = InitCrbrain;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -9337,6 +9448,7 @@ struct VTCRBRAIN
     void (*pfnUnsubscribeLoStruct)(LO*, void*, void*) = UnsubscribeLoStruct;
     void (*pfnGetAloParams)() = nullptr;
     void (*pfnUpdateLoLiveEdit)() = nullptr;
+    void (*pfnDeleteCrbrain) (LO* plo) = DeleteCrbrain;
     void (*pfnProjectAloTransform)() = nullptr;
     void (*pfnPresetAloAccel)() = nullptr;
     void (*pfnTranslateAloToPos)() = nullptr;
@@ -9365,8 +9477,8 @@ struct VTMGC
     VT* pvtSuper = g_vtalo.pvtSuper;
     CID cid = CID_MGC;
     int grfcid = 0x1;
-    int cb = 0x330;
 
+    void*(*pfnNewMgc) () = NewMgc;
     void (*pfnInitMgc)(MGC*) = InitMgc;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -9396,6 +9508,7 @@ struct VTMGC
     void (*pfnUnsubscribeLoStruct)(LO*, void*, void*) = UnsubscribeLoStruct;
     void (*pfnGetAloParams)() = nullptr;
     void (*pfnUpdateLoLiveEdit)() = nullptr;
+    void (*pfnDeleteMgc) (LO* plo) = DeleteMgc;
     void (*pfnProjectAloTransform)() = nullptr;
     void (*pfnPresetAloAccel)() = nullptr;
     void (*pfnTranslateAloToPos)() = nullptr;
@@ -9424,8 +9537,8 @@ struct VTJACKB
     VT* pvtSuper = g_vtalo.pvtSuper;
     CID cid = CID_JACKB;
     int grfcid = 0x1;
-    int cb = 0x350;
 
+    void*(*pfnNewJackb) () = NewJackb;
     void (*pfnInitJackb)(JACKB*) = InitJackb;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -9455,6 +9568,7 @@ struct VTJACKB
     void (*pfnUnsubscribeLoStruct)(LO*, void*, void*) = UnsubscribeLoStruct;
     void (*pfnGetAloParams)() = nullptr;
     void (*pfnUpdateLoLiveEdit)() = nullptr;
+    void (*pfnDeleteJackb) (LO* plo) = DeleteJackb;
     void (*pfnProjectAloTransform)() = nullptr;
     void (*pfnPresetAloAccel)() = nullptr;
     void (*pfnTranslateAloToPos)() = nullptr;
@@ -9483,8 +9597,8 @@ struct VTJACKN
     VT* pvtSuper = g_vtalo.pvtSuper;
     CID cid = CID_JACKN;
     int grfcid = 0x1;
-    int cb = 0x340;
 
+    void*(*pfnNewJackn) () = NewJackn;
     void (*pfnInitJackn)(JACKN*) = InitJackn;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -9514,6 +9628,7 @@ struct VTJACKN
     void (*pfnUnsubscribeLoStruct)(LO*, void*, void*) = UnsubscribeLoStruct;
     void (*pfnGetAloParams)() = nullptr;
     void (*pfnUpdateLoLiveEdit)() = nullptr;
+    void (*pfnDeleteJackn) (LO* plo) = DeleteJackn;
     void (*pfnProjectAloTransform)() = nullptr;
     void (*pfnPresetAloAccel)() = nullptr;
     void (*pfnTranslateAloToPos)() = nullptr;
@@ -9542,8 +9657,8 @@ struct VTJACKF
     VT* pvtSuper = g_vtalo.pvtSuper;
     CID cid = CID_JACKF;
     int grfcid = 0x1;
-    int cb = 0x320;
 
+    void*(*pfnNewJackf) () = NewJackf;
     void (*pfnInitJackf)(JACKF*) = InitJackf;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -9573,6 +9688,7 @@ struct VTJACKF
     void (*pfnUnsubscribeLoStruct)(LO*, void*, void*) = UnsubscribeLoStruct;
     void (*pfnGetAloParams)() = nullptr;
     void (*pfnUpdateLoLiveEdit)() = nullptr;
+    void (*pfnDeleteJackf) (LO* plo) = DeleteJackf;
     void (*pfnProjectAloTransform)() = nullptr;
     void (*pfnPresetAloAccel)() = nullptr;
     void (*pfnTranslateAloToPos)() = nullptr;
@@ -9601,8 +9717,8 @@ struct VTSW
     VT* pvtSuper = g_vtlo.pvtSuper;
     CID cid = CID_SW;
     int grfcid = 0;
-    int cb = 17296;
 
+    void*(*pfnNewSw) () = NewSw;
     void (*pfnInitSw)(SW*) = InitSw;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -9632,6 +9748,7 @@ struct VTSW
     void (*pfnUnsubscribeLoStruct)(LO*, void*, void*) = UnsubscribeLoStruct;
     void (*pfnGetSwParams)() = nullptr;
     void (*pfnUpdateLoLiveEdit)() = nullptr;
+    void (*pfnDeleteSw) (LO* plo) = DeleteSwObj;
 };
 
 static VTSW g_vtsw;
@@ -9641,8 +9758,8 @@ struct VTCM
     VT* pvtSuper = g_vtlo.pvtSuper;
     CID cid = CID_CM;
     int grfcid = 0;
-    int cb = 1464;
 
+    void*(*pfnNewCm) () = NewCm;
     void (*pfnInitCm)(CM*) = InitCm;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -9672,6 +9789,7 @@ struct VTCM
     void (*pfnUnsubscribeLoStruct)(LO*, void*, void*) = UnsubscribeLoStruct;
     void (*pfnGetCmParams)() = nullptr;
     void (*pfnUpdateLoLiveEdit)() = nullptr;
+    void (*pfnDeleteCm) (LO* plo) = DeleteCm;
 };
 
 static VTCM g_vtcm;
@@ -9681,8 +9799,8 @@ struct VTSHAPE
     VT* pvtSuper = g_vtlo.pvtSuper;
     CID cid = CID_SHAPE;
     int grfcid = 0;
-    int cb = 144;
 
+    void*(*pfnNewShape) () = NewShape;
     void (*pfnInitShape)(SHAPE*) = InitShape;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -9712,6 +9830,7 @@ struct VTSHAPE
     void (*pfnUnsubscribeLoStruct)(LO*, void*, void*) = UnsubscribeLoStruct;
     void (*pfnGetLoParams)() = nullptr;
     void (*pfnUpdateLoLiveEdit)() = nullptr;
+    void (*pfnDeleteShape) (LO* plo) = DeleteShape;
 };
 
 static VTSHAPE g_vtshape;
@@ -9721,8 +9840,8 @@ struct VTHSHAPE
     VT* pvtSuper = g_vtshape.pvtSuper;
     CID cid = CID_HSHAPE;
     int grfcid = 0;
-    int cb = 192;
 
+    void*(*pfnNewHshape) () = NewHshape;
     void (*pfnInitHshape)(HSHAPE*) = InitHshape;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -9752,6 +9871,7 @@ struct VTHSHAPE
     void (*pfnUnsubscribeLoStruct)(LO*, void*, void*) = UnsubscribeLoStruct;
     void (*pfnGetLoParams)() = nullptr;
     void (*pfnUpdateLoLiveEdit)() = nullptr;
+    void (*pfnDeleteHshape) (LO* plo) = DeleteHshape;
 };
 
 static VTHSHAPE g_vthshape;
@@ -9761,8 +9881,8 @@ struct VTPIPE
     VT* pvtSuper = g_vtshape.pvtSuper;
     CID cid = CID_PIPE;
     int grfcid = 0;
-    int cb = 192;
 
+    void*(*pfnNewPipe) () = NewPipe;
     void (*pfnInitPipe)(PIPE*) = InitPipe;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -9792,6 +9912,7 @@ struct VTPIPE
     void (*pfnUnsubscribeLoStruct)(LO*, void*, void*) = UnsubscribeLoStruct;
     void (*pfnGetLoParams)() = nullptr;
     void (*pfnUpdateLoLiveEdit)() = nullptr;
+    void (*pfnDeletePipe) (LO* plo) = DeletePipe;
 };
 
 static VTPIPE g_vtpipe;
@@ -9801,8 +9922,8 @@ struct VTRAIL
     VT* pvtSuper = g_vtshape.pvtSuper;
     CID cid = CID_RAIL;
     int grfcid = 0;
-    int cb = 172;
 
+    void*(*pfnNewRail) () = NewRail;
     void (*pfnInitShape)(SHAPE*) = InitShape;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -9832,6 +9953,7 @@ struct VTRAIL
     void (*pfnUnsubscribeLoStruct)(LO*, void*, void*) = UnsubscribeLoStruct;
     void (*pfnGetLoParams)() = nullptr;
     void (*pfnUpdateLoLiveEdit)() = nullptr;
+    void (*pfnDeleteRail) (LO* plo) = DeleteRail;
 };
 
 static VTRAIL g_vtrail;
@@ -9841,8 +9963,8 @@ struct VTLANDING
     VT* pvtSuper = g_vtshape.pvtSuper;
     CID cid = CID_LANDING;
     int grfcid = 0;
-    int cb = 152;
 
+    void*(*pfnNewLanding) () = NewLanding;
     void (*pfnInitShape)(SHAPE*) = InitShape;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -9872,6 +9994,7 @@ struct VTLANDING
     void (*pfnUnsubscribeLoStruct)(LO*, void*, void*) = UnsubscribeLoStruct;
     void (*pfnGetLoParams)() = nullptr;
     void (*pfnUpdateLoLiveEdit)() = nullptr;
+    void (*pfnDeleteLanding) (LO* plo) = DeleteLanding;
 };
 
 static VTLANDING g_vtlanding;
@@ -9881,8 +10004,8 @@ struct VTXFM
     VT* pvtSuper = g_vtlo.pvtSuper;
     CID cid = CID_XFM;
     int grfcid = 0;
-    int cb = 168;
 
+    void*(*pfnNewXfm) () = NewXfm;
     void (*pfnInitXfm)(XFM*) = InitXfm;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -9912,6 +10035,7 @@ struct VTXFM
     void (*pfnUnsubscribeLoStruct)(LO*, void*, void*) = UnsubscribeLoStruct;
     void (*pfnGetXfmParams)() = nullptr;
     void (*pfnUpdateLoLiveEdit)() = nullptr;
+    void (*pfnDeleteXfm) (LO* plo) = DeleteXfm;
 };
 
 static VTXFM g_vtxfm;
@@ -9921,8 +10045,8 @@ struct VTWARP
     VT* pvtSuper = g_vtxfm.pvtSuper;
     CID cid = CID_WARP;
     int grfcid = 0;
-    int cb = 344;
 
+    void*(*pfnNewWarp) () = NewWarp;
     void (*pfnInitXfm)(XFM*) = InitXfm;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -9952,6 +10076,7 @@ struct VTWARP
     void (*pfnUnsubscribeLoStruct)(LO*, void*, void*) = UnsubscribeLoStruct;
     void (*pfnGetWarpParams)() = nullptr;
     void (*pfnUpdateLoLiveEdit)() = nullptr;
+    void (*pfnDeleteWarp) (LO* plo) = DeleteWarp;
 };
 
 static VTWARP g_vtwarp;
@@ -9961,8 +10086,8 @@ struct VTTARGET
     VT* pvtSuper = g_vtxfm.pvtSuper;
     CID cid = CID_TARGET;
     int grfcid = 0;
-    int cb = 200;
 
+    void*(*pfnNewTarget) () = NewTarget;
     void (*pfnInitTarget)(TARGET*) = InitTarget;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -9992,6 +10117,7 @@ struct VTTARGET
     void (*pfnUnsubscribeLoStruct)(LO*, void*, void*) = UnsubscribeLoStruct;
     void (*pfnGetXfmParams)() = nullptr;
     void (*pfnUpdateLoLiveEdit)() = nullptr;
+    void (*pfnDeleteTarget) (LO* plo) = DeleteTarget;
 };
 
 static VTTARGET g_vttarget;
@@ -10001,8 +10127,8 @@ struct VTHND
     VT* pvtSuper = g_vttarget.pvtSuper;
     CID cid = CID_HND;
     int grfcid = 0;
-    int cb = 224;
 
+    void*(*pfnNewHnd) () = NewHnd;
     void (*pfnInitHnd)(HND*) = InitHnd;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -10032,6 +10158,7 @@ struct VTHND
     void (*pfnUnsubscribeLoStruct)(LO*, void*, void*) = UnsubscribeLoStruct;
     void (*pfnGetXfmParams)() = nullptr;
     void (*pfnUpdateLoLiveEdit)() = nullptr;
+    void (*pfnDeleteHnd) (LO* plo) = DeleteHnd;
 };
 
 static VTHND g_vthnd;
@@ -10041,8 +10168,8 @@ struct VTEXPL
     VT* pvtSuper = g_vtxfm.pvtSuper;
     CID cid = CID_EXPL;
     int grfcid = 0;
-    int cb = 176;
 
+    void*(*pfnNewExpl) () = NewExpl;
     void (*pfnInitXfm)(XFM*) = InitXfm;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -10072,6 +10199,7 @@ struct VTEXPL
     void (*pfnUnsubscribeLoStruct)(LO*, void*, void*) = UnsubscribeLoStruct;
     void (*pfnGetXfmParams)() = nullptr;
     void (*pfnUpdateLoLiveEdit)() = nullptr;
+    void (*pfnDeleteExpl) (LO* plo) = DeleteExpl;
     void (*pfnExplodeExplExplso)() = nullptr;
 };
 
@@ -10082,8 +10210,8 @@ struct VTEXPLG
     VT* pvtSuper = g_vtexpl.pvtSuper;
     CID cid = CID_EXPLG;
     int grfcid = 0;
-    int cb = 188;
 
+    void*(*pfnNewExplg) () = NewExplg;
     void (*pfnInitXfm)(XFM*) = InitXfm;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -10113,6 +10241,7 @@ struct VTEXPLG
     void (*pfnUnsubscribeLoStruct)(LO*, void*, void*) = UnsubscribeLoStruct;
     void (*pfnGetXfmParams)() = nullptr;
     void (*pfnUpdateLoLiveEdit)() = nullptr;
+    void (*pfnDeleteExplg) (LO* plo) = DeleteExplg;
     void (*pfnExplodeExplgExplso)() = nullptr;
 };
 
@@ -10123,8 +10252,8 @@ struct VTEXPLO
     VT* pvtSuper = g_vtexpl.pvtSuper;
     CID cid = CID_EXPLO;
     int grfcid = 0;
-    int cb = 192;
 
+    void*(*pfnNewExplo) () = NewExplo;
     void (*pfnInitExplo)(EXPLO*) = InitExplo;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -10154,6 +10283,7 @@ struct VTEXPLO
     void (*pfnUnsubscribeLoStruct)(LO*, void*, void*) = UnsubscribeLoStruct;
     void (*pfnGetExploParams)() = nullptr;
     void (*pfnUpdateLoLiveEdit)() = nullptr;
+    void (*pfnDeleteExplo) (LO* plo) = DeleteExplo;
     void (*pfnExplodeExploExplso)() = nullptr;
 };
 
@@ -10164,8 +10294,8 @@ struct VTEXPLS
     VT* pvtSuper = g_vtexplo.pvtSuper;
     CID cid = CID_EXPLS;
     int grfcid = 0;
-    int cb = 192;
 
+    void*(*pfnNewExpls) () = NewExpls;
     void (*pfnInitExpls)(EXPLS*) = InitExpls;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -10195,6 +10325,7 @@ struct VTEXPLS
     void (*pfnUnsubscribeLoStruct)(LO*, void*, void*) = UnsubscribeLoStruct;
     void (*pfnGetExplsParams)() = nullptr;
     void (*pfnUpdateExplsLiveEdit)() = nullptr;
+    void (*pfnDeleteExpls) (LO* plo) = DeleteExpls;
     void (*pfnExplodeExplsExplso)() = nullptr;
 };
 
@@ -10205,8 +10336,8 @@ struct VTVOL
     VT* pvtSuper = g_vtxfm.pvtSuper;
     CID cid = CID_VOL;
     int grfcid = 0;
-    int cb = 200;
 
+    void*(*pfnNewVol) () = NewVol;
     void (*pfnInitXfm)(XFM*) = InitXfm;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -10236,6 +10367,7 @@ struct VTVOL
     void (*pfnUnsubscribeLoStruct)(LO*, void*, void*) = UnsubscribeLoStruct;
     void (*pfnGetXfmParams)() = nullptr;
     void (*pfnUpdateLoLiveEdit)() = nullptr;
+    void (*pfnDeleteVol) (LO* plo) = DeleteVol;
 };
 
 static VTVOL g_vtvol;
@@ -10245,8 +10377,8 @@ struct VTRATHOLE
     VT* pvtSuper = g_vtvol.pvtSuper;
     CID cid = CID_RATHOLE;
     int grfcid = 0;
-    int cb = 216;
 
+    void*(*pfnNewRathole) () = NewRathole;
     void (*pfnInitXfm)(XFM*) = InitXfm;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -10276,6 +10408,7 @@ struct VTRATHOLE
     void (*pfnUnsubscribeLoStruct)(LO*, void*, void*) = UnsubscribeLoStruct;
     void (*pfnGetXfmParams)() = nullptr;
     void (*pfnUpdateLoLiveEdit)() = nullptr;
+    void (*pfnDeleteRathole) (LO* plo) = DeleteRathole;
 };
 
 static VTRATHOLE g_vtrathole;
@@ -10285,8 +10418,8 @@ struct VTPUFFV
     VT* pvtSuper = g_vtvol.pvtSuper;
     CID cid = CID_PUFFV;
     int grfcid = 0;
-    int cb = 260;
 
+    void*(*pfnNewPuffv) () = NewPuffv;
     void (*pfnInitPuffv)(PUFFV*) = InitPuffv;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -10316,6 +10449,7 @@ struct VTPUFFV
     void (*pfnUnsubscribeLoStruct)(LO*, void*, void*) = UnsubscribeLoStruct;
     void (*pfnGetXfmParams)() = nullptr;
     void (*pfnUpdateLoLiveEdit)() = nullptr;
+    void (*pfnDeletePuffv) (LO* plo) = DeletePuffv;
 };
 
 static VTPUFFV g_vtpuffv;
@@ -10325,8 +10459,8 @@ struct VTEXIT
     VT* pvtSuper = g_vtalo.pvtSuper;
     CID cid = CID_EXIT;
     int grfcid = 0x1;
-    int cb = 1168;
 
+    void*(*pfnNewExit) () = NewExit;
     void (*pfnInitAlo) (ALO*) = InitAlo;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -10356,6 +10490,7 @@ struct VTEXIT
     void (*pfnUnsubscribeLoStruct)(LO*, void*, void*) = UnsubscribeLoStruct;
     void (*pfnGetExitParams)() = nullptr;
     void (*pfnUpdateLoLiveEdit)() = nullptr;
+    void (*pfnDeleteExit) (LO* plo) = DeleteExit;
     void (*pfnProjectAloTransform)() = nullptr;
     void (*pfnPresetAloAccel)() = nullptr;
     void (*pfnTranslateAloToPos)() = nullptr;
@@ -10384,8 +10519,8 @@ struct VTPNT
     VT* pvtSuper = g_vtlo.pvtSuper;
     CID cid = CID_PNT;
     int grfcid = 0;
-    int cb = 136;
 
+    void*(*pfnNewPnt) () = NewPnt;
     void (*pfnInitLo)(LO*) = InitLo;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -10415,6 +10550,7 @@ struct VTPNT
     void (*pfnUnsubscribeLoStruct)(LO*, void*, void*) = UnsubscribeLoStruct;
     void (*pfnGetLoParams)() = nullptr;
     void (*pfnUpdateLoLiveEdit)() = nullptr;
+    void (*pfnDeletePnt) (LO* plo) = DeletePnt;
 };
 
 static VTPNT g_vtpnt;
@@ -10424,8 +10560,8 @@ struct VTPNTSV
     VT* pvtSuper = g_vtpnt.pvtSuper;
     CID cid = CID_PNTSV;
     int grfcid = 0;
-    int cb = 136;
 
+    void*(*pfnNewPntsv) () = NewPnt;
     void (*pfnInitLo)(LO*) = InitLo;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -10455,6 +10591,7 @@ struct VTPNTSV
     void (*pfnUnsubscribeLoStruct)(LO*, void*, void*) = UnsubscribeLoStruct;
     void (*pfnGetLoParams)() = nullptr;
     void (*pfnUpdateLoLiveEdit)() = nullptr;
+    void (*pfnDeletePntsv) (LO* plo) = DeletePnt;
 };
 
 static VTPNTSV g_vtpntsv;
@@ -10464,8 +10601,8 @@ struct VTPNTS
     VT* pvtSuper = g_vtpnt.pvtSuper;
     CID cid = CID_PNTS;
     int grfcid = 0;
-    int cb = 136;
 
+    void*(*pfnNewPnts) () = NewPnt;
     void (*pfnInitLo)(LO*) = InitLo;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -10495,6 +10632,7 @@ struct VTPNTS
     void (*pfnUnsubscribeLoStruct)(LO*, void*, void*) = UnsubscribeLoStruct;
     void (*pfnGetLoParams)() = nullptr;
     void (*pfnUpdateLoLiveEdit)() = nullptr;
+    void (*pfnDeletePnts) (LO* plo) = DeletePnt;
 };
 
 static VTPNTS g_vtpnts;
@@ -10504,8 +10642,8 @@ struct VTPNTVEC
     VT* pvtSuper = g_vtpnt.pvtSuper;
     CID cid = CID_PNTVEC;
     int grfcid = 0;
-    int cb = 136;
 
+    void*(*pfnNewPntvec) () = NewPnt;
     void (*pfnInitLo)(LO*) = InitLo;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -10535,6 +10673,7 @@ struct VTPNTVEC
     void (*pfnUnsubscribeLoStruct)(LO*, void*, void*) = UnsubscribeLoStruct;
     void (*pfnGetLoParams)() = nullptr;
     void (*pfnUpdateLoLiveEdit)() = nullptr;
+    void (*pfnDeletePntvec) (LO* plo) = DeletePnt;
 };
 
 static VTPNTVEC g_vtpntvec;
@@ -10544,8 +10683,8 @@ struct VTHPNT
     VT* pvtSuper = g_vtpnt.pvtSuper;
     CID cid = CID_HPNT;
     int grfcid = 0;
-    int cb = 192;
 
+    void*(*pfnNewHpnt) () = NewHpnt;
     void (*pfnInitHpnt)(HPNT*) = InitHpnt;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -10575,6 +10714,7 @@ struct VTHPNT
     void (*pfnUnsubscribeLoStruct)(LO*, void*, void*) = UnsubscribeLoStruct;
     void (*pfnGetLoParams)() = nullptr;
     void (*pfnUpdateLoLiveEdit)() = nullptr;
+    void (*pfnDeleteHpnt) (LO* plo) = DeleteHpnt;
 };
 
 static VTHPNT g_vthpnt;
@@ -10584,8 +10724,8 @@ struct VTJMT
     VT* pvtSuper = g_vtpnt.pvtSuper;
     CID cid = CID_JMT;
     int grfcid = 0;
-    int cb = 168;
 
+    void*(*pfnNewJmt) () = NewJmt;
     void (*pfnInitLo)(LO*) = InitLo;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -10615,6 +10755,7 @@ struct VTJMT
     void (*pfnUnsubscribeLoStruct)(LO*, void*, void*) = UnsubscribeLoStruct;
     void (*pfnGetLoParams)() = nullptr;
     void (*pfnUpdateLoLiveEdit)() = nullptr;
+    void (*pfnDeleteJmt) (LO* plo) = DeleteJmt;
 };
 
 static VTJMT g_vtjmt;
@@ -10624,8 +10765,8 @@ struct VTSPIRE
     VT* pvtSuper = g_vtpnt.pvtSuper;
     CID cid = CID_SPIRE;
     int grfcid = 0;
-    int cb = 152;
 
+    void*(*pfnNewSpire) () = NewSpire;
     void (*pfnInitLo)(LO*) = InitLo;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -10655,6 +10796,7 @@ struct VTSPIRE
     void (*pfnUnsubscribeLoStruct)(LO*, void*, void*) = UnsubscribeLoStruct;
     void (*pfnGetLoParams)() = nullptr;
     void (*pfnUpdateLoLiveEdit)() = nullptr;
+    void (*pfnDeleteSpire) (LO* plo) = DeleteSpire;
 };
 
 static VTSPIRE g_vtspire;
@@ -10664,8 +10806,8 @@ struct VTSCAN
     VT* pvtSuper = g_vtpnt.pvtSuper;
     CID cid = CID_SCAN;
     int grfcid = 0;
-    int cb = 140;
 
+    void*(*pfnNewScan) () = NewScan;
     void (*pfnInitLo)(LO*) = InitLo;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -10695,6 +10837,7 @@ struct VTSCAN
     void (*pfnUnsubscribeLoStruct)(LO*, void*, void*) = UnsubscribeLoStruct;
     void (*pfnGetLoParams)() = nullptr;
     void (*pfnUpdateLoLiveEdit)() = nullptr;
+    void (*pfnDeleteScan) (LO* plo) = DeleteScan;
 };
 
 static VTSCAN g_vtscan;
@@ -10704,8 +10847,8 @@ struct VTASEG
     VT* pvtSuper = g_vtlo.pvtSuper;
     CID cid = CID_ASEG;
     int grfcid = 0x40;
-    int cb = 288;
 
+    void*(*pfnNewAseg) () = NewAseg;
     void (*pfnInitAseg)(ASEG*) = InitAseg;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -10735,6 +10878,7 @@ struct VTASEG
     void (*pfnUnsubscribeLoStruct)(LO*, void*, void*) = UnsubscribeLoStruct;
     void (*pfnGetLoParams)() = nullptr;
     void (*pfnUpdateLoLiveEdit)() = nullptr;
+    void (*pfnDeleteAseg) (LO* plo) = DeleteAseg;
 };
 
 static VTASEG g_vtaseg;
@@ -10744,8 +10888,8 @@ struct VTMAP
     VT* pvtSuper = g_vtlo.pvtSuper;
     CID cid = CID_MAP;
     int grfcid = 0;
-    int cb = 168;
 
+    void*(*pfnNewMap) () = NewMap;
     void (*pfnInitLo)(LO*) = InitLo;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -10775,6 +10919,7 @@ struct VTMAP
     void (*pfnUnsubscribeLoStruct)(LO*, void*, void*) = UnsubscribeLoStruct;
     void (*pfnGetLoParams)() = nullptr;
     void (*pfnUpdateLoLiveEdit)() = nullptr;
+    void (*pfnDeleteMap) (LO* plo) = DeleteMap;
 };
 
 static VTMAP g_vtmap;
@@ -10784,8 +10929,8 @@ struct VT_VISZONE
     VT* pvtSuper = g_vtlo.pvtSuper;
     CID cid = CID__VISZONE;
     int grfcid = 0;
-    int cb = 120;
 
+    void*(*pfnNewVISZONE) () = NewLo;
     void (*pfnInitLo)(LO*) = InitLo;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -10815,6 +10960,7 @@ struct VT_VISZONE
     void (*pfnUnsubscribeLoStruct)(LO*, void*, void*) = UnsubscribeLoStruct;
     void (*pfnGetLoParams)() = nullptr;
     void (*pfnUpdateLoLiveEdit)() = nullptr;
+    void (*pfnDeleteVISZONE) (LO* plo) = DeleteLo;
 };
 
 static VT_VISZONE g_vt_viszone;
@@ -10824,8 +10970,8 @@ struct VTVISMAP
     VT* pvtSuper = g_vtlo.pvtSuper;
     CID cid = CID_VISMAP;
     int grfcid = 0;
-    int cb = 192;
 
+    void*(*pfnNewVismap) () = NewVismap;
     void (*pfnInitVismap)(VISMAP*) = InitVismap;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -10855,6 +11001,7 @@ struct VTVISMAP
     void (*pfnUnsubscribeLoStruct)(LO*, void*, void*) = UnsubscribeLoStruct;
     void (*pfnGetLoParams)() = nullptr;
     void (*pfnUpdateLoLiveEdit)() = nullptr;
+    void (*pfnDeleteVismap) (LO* plo) = DeleteVismap;
 };
 
 static VTVISMAP g_vismap;
@@ -10864,8 +11011,8 @@ struct VTFRZG
     VT* pvtSuper = g_vtlo.pvtSuper;
     CID cid = CID_FRZG;
     int grfcid = 0;
-    int cb = 184;
 
+    void*(*pfnNewFrzg) () = NewFrzg;
     void (*pfnInitLo)(LO*) = InitLo;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -10895,6 +11042,7 @@ struct VTFRZG
     void (*pfnUnsubscribeLoStruct)(LO*, void*, void*) = UnsubscribeLoStruct;
     void (*pfnGetLoParams)() = nullptr;
     void (*pfnUpdateLoLiveEdit)() = nullptr;
+    void (*pfnDeleteFrzg) (LO* plo) = DeleteFrzg;
 };
 
 static VTFRZG g_vtfrzg;
@@ -10904,8 +11052,8 @@ struct VTSM
     VT* pvtSuper = g_vtlo.pvtSuper;
     CID cid = CID_SM;
     int grfcid = 0;
-    int cb = 172;
 
+    void*(*pfnNewSm) () = NewSm;
     void (*pfnInitLo)(LO*) = InitLo;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -10935,6 +11083,7 @@ struct VTSM
     void (*pfnUnsubscribeLoStruct)(LO*, void*, void*) = UnsubscribeLoStruct;
     void (*pfnGetLoParams)() = nullptr;
     void (*pfnUpdateLoLiveEdit)() = nullptr;
+    void (*pfnDeleteSm) (LO* plo) = DeleteSm;
 };
 
 static VTSM g_vtsm;
@@ -10944,8 +11093,8 @@ struct VTSGG
     VT* pvtSuper = g_vtlo.pvtSuper;
     CID cid = CID_SGG;
     int grfcid = 0;
-    int cb = 0x190;
 
+    void*(*pfnNewSgg) () = NewSgg;
     void (*pfnInitSgg)(SGG*) = InitSgg;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -10975,6 +11124,7 @@ struct VTSGG
     void (*pfnUnsubscribeLoStruct)(LO*, void*, void*) = UnsubscribeLoStruct;
     void (*pfnGetLoParams)() = nullptr;
     void (*pfnUpdateLoLiveEdit)() = nullptr;
+    void (*pfnDeleteSgg) (LO* plo) = DeleteSgg;
 };
 
 static VTSGG g_vtsgg;
@@ -10984,8 +11134,8 @@ struct VTPATHZONE
     VT* pvtSuper = g_vtlo.pvtSuper;
     CID cid = CID_PATHZONE;
     int grfcid = 0;
-    int cb = 0x70;
 
+    void*(*pfnNewPathzone) () = NewPathzone;
     void (*pfnInitLo)(LO*) = InitLo;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -11015,6 +11165,7 @@ struct VTPATHZONE
     void (*pfnUnsubscribeLoStruct)(LO*, void*, void*) = UnsubscribeLoStruct;
     void (*pfnGetLoParams)() = nullptr;
     void (*pfnUpdateLoLiveEdit)() = nullptr;
+    void (*pfnDeletePathzone) (LO* plo) = DeletePathzone;
 };
 
 static VTPATHZONE g_vtpathzone;
@@ -11024,8 +11175,8 @@ struct VTRCHM
     VT* pvtSuper = g_vtlo.pvtSuper;
     CID cid = CID_RCHM;
     int grfcid = 0;
-    int cb = 0x400;
 
+    void*(*pfnNewRchm) () = NewRchm;
     void (*pfnInitRchm)(RCHM*) = InitRchm;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -11055,6 +11206,7 @@ struct VTRCHM
     void (*pfnUnsubscribeLoStruct)(LO*, void*, void*) = UnsubscribeLoStruct;
     void (*pfnGetLoParams)() = nullptr;
     void (*pfnUpdateLoLiveEdit)() = nullptr;
+    void (*pfnDeleteRchm) (LO* plo) = DeleteRchm;
 };
 
 static VTRCHM g_vtrchm;
@@ -11064,8 +11216,8 @@ struct VTRWM
     VT* pvtSuper = g_vtlo.pvtSuper;
     CID cid = CID_RWM;
     int grfcid = 0;
-    int cb = 528;
 
+    void*(*pfnNewRwm) () = NewRwm;
     void (*pfnInitRwm)(RWM*) = InitRwm;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -11095,6 +11247,7 @@ struct VTRWM
     void (*pfnUnsubscribeLoStruct)(LO*, void*, void*) = UnsubscribeLoStruct;
     void (*pfnGetLoParams)() = nullptr;
     void (*pfnUpdateLoLiveEdit)() = nullptr;
+    void (*pfnDeleteRwm) (LO* plo) = DeleteRwm;
 };
 
 static VTRWM g_vtrwm;
@@ -11104,8 +11257,8 @@ struct VTWR
     VT* pvtSuper = g_vtlo.pvtSuper;
     CID cid = CID_WR;
     int grfcid = 0;
-    int cb = 0x8F0;
 
+    void*(*pfnNewWr) () = NewWr;
     void (*pfnInitWr)(WR*) = InitWr;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -11135,6 +11288,7 @@ struct VTWR
     void (*pfnUnsubscribeLoStruct)(LO*, void*, void*) = UnsubscribeLoStruct;
     void (*pfnGetWrParams)() = nullptr;
     void (*pfnUpdateLoLiveEdit)() = nullptr;
+    void (*pfnDeleteWr) (LO* plo) = DeleteWr;
 };
 
 static VTWR g_vtwr;
@@ -11144,8 +11298,8 @@ struct VTKEYHOLE
     VT* pvtSuper = g_vtlo.pvtSuper;
     CID cid = CID_KEYHOLE;
     int grfcid = 0;
-    int cb = 256;
 
+    void*(*pfnNewKeyhole) () = NewKeyhole;
     void (*pfnInitKeyhole)(KEYHOLE*) = InitKeyhole;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -11175,6 +11329,7 @@ struct VTKEYHOLE
     void (*pfnUnsubscribeLoStruct)(LO*, void*, void*) = UnsubscribeLoStruct;
     void (*pfnGetLoParams)() = nullptr;
     void (*pfnUpdateLoLiveEdit)() = nullptr;
+    void (*pfnDeleteKeyhole) (LO* plo) = DeleteKeyhole;
 };
 
 static VTKEYHOLE g_vtkeyhole;
@@ -11184,8 +11339,8 @@ struct VTJSG
     VT* pvtSuper = g_vtlo.pvtSuper;
     CID cid = CID_JSG;
     int grfcid = 0;
-    int cb = 200;
 
+    void*(*pfnNewJsg) () = NewJsg;
     void (*pfnInitJsg)(JSG*) = InitJsg;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -11215,6 +11370,7 @@ struct VTJSG
     void (*pfnUnsubscribeLoStruct)(LO*, void*, void*) = UnsubscribeLoStruct;
     void (*pfnGetLoParams)() = nullptr;
     void (*pfnUpdateLoLiveEdit)() = nullptr;
+    void (*pfnDeleteJsg) (LO* plo) = DeleteJsg;
 };
 
 static VTJSG g_vtjsg;

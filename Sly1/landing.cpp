@@ -1,5 +1,10 @@
 #include "landing.h"
 
+void* NewLanding()
+{
+	return new LANDING;
+}
+
 void OnLandingAdd(LANDING* planding)
 {
 	OnLoAdd(planding);

@@ -1,8 +1,12 @@
 #include "path.h"
 
+void* NewPathzone()
+{
+    return new PATHZONE;
+}
+
 void OnPathzoneAdd(PATHZONE* ppathzone)
 {
-    std::cout << "PATHZONE Size: " << sizeof(PATHZONE) << "\n";
     OnLoAdd(ppathzone);
     AppendDlEntry(&ppathzone->psw->dlPathzone, ppathzone);
 }

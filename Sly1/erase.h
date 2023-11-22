@@ -1,4 +1,4 @@
 #pragma once
 #include "lo.h"
 
-void DeleteObject(LO* plo);
+//void DeleteObject(LO* plo);

@@ -9,4 +9,5 @@ class FRZG : public LO
 		MRG mrg;
 };
 
+void* NewFrzg();
 void DeleteFrzg(LO* plo);

@@ -1,8 +1,12 @@
 #include "target.h"
 
+void* NewTarget()
+{
+	return new TARGET;
+}
+
 void InitTarget(TARGET* ptarget)
 {
-	//std::cout << "TARGET Size: " << sizeof(TARGET) << "\n";
 	InitXfm(ptarget);
 }
 

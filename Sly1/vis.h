@@ -9,6 +9,7 @@ class VISMAP : public LO
 	int *agrfzonOneHop;
 };
 
+void* NewVismap();
 // Initializing vismap object
 void InitVismap(VISMAP *pvismap);
 // Loading all the visibility map data from binary file

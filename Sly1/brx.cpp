@@ -9,16 +9,16 @@ LO* PloNew(CID cid, SW* psw, ALO* paloParent, OID oid, int isplice)
 {
 	VTLO *pvtlo = (VTLO*)g_mpcidpvt[cid];
 
-	SW* localObject = (SW*)new int[pvtlo->cb]();
+	LO *localObject = (LO*)pvtlo->pfnNewLo();
 
 	localObject->pvtlo = pvtlo;
 	localObject->oid = oid;
 
 	if (cid == CID_SW)
 	{
-		InitSwDlHash(localObject);
+		InitSwDlHash((SW*)localObject);
 		localObject->paloParent = paloParent;
-		psw = localObject;
+		psw = (SW*)localObject;
 	}
 
 	else

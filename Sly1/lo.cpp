@@ -1,9 +1,8 @@
 #include "lo.h"
 
-void* CreateLo()
+void* NewLo()
 {
-	LO lo;
-	return &lo;
+	return new LO;
 }
 
 void InitLo(LO* plo)

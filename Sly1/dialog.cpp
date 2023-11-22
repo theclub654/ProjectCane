@@ -1,8 +1,12 @@
 #include "dialog.h"
 
+void* NewDialog()
+{
+	return new DIALOG;
+}
+
 void InitDialog(DIALOG* pdialog)
 {
-	//std::cout << "DIALOG Size: " << sizeof(DIALOG) << "\n";
 	InitAlo(pdialog);
 }
 

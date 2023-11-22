@@ -9,5 +9,6 @@ class MRKV : public SO
 		float sDepth;
 };
 
+void* NewMrkv();
 void InitMrkv(MRKV* pmrkv);
 void DeleteMrkv(LO* plo);

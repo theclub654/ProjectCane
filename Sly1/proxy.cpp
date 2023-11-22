@@ -1,8 +1,12 @@
 #include "proxy.h"
 
+void* NewProxy()
+{
+	return new PROXY;
+}
+
 void InitProxy(PROXY *pproxy)
 {
-	//std::cout << "PROXY Size: " << sizeof(PROXY) << "\n";
 	InitAlo(pproxy);
 	AppendDlEntry(&pproxy->psw->dlProxy, pproxy);
 }

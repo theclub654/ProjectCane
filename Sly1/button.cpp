@@ -1,8 +1,12 @@
 #include "button.h"
 
+void* NewButton()
+{
+	return new BUTTON;
+}
+
 void InitButton(BUTTON* pbutton)
 {
-	//std::cout << "BUTTON Size: " << sizeof(BUTTON) << "\n";
 	InitSo(pbutton);
 }
 
@@ -11,9 +15,13 @@ void DeleteButton(LO* plo)
 	delete(BUTTON*)plo;
 }
 
+void* NewVolbtn()
+{
+	return new VOLBTN;
+}
+
 void InitVolbtn(VOLBTN* pvolbtn)
 {
-	//std::cout << "VOLBTN Size: " << sizeof(VOLBTN) << "\n";
 	InitSo(pvolbtn);
 }
 

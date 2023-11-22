@@ -148,7 +148,7 @@ void LoadGlobsetFromBrx(GLOBSET* pglobset, CBinaryInputStream* pbis, ALO* palo)
                 for (int f = 0; f < indexCount; f++)
                     pglobset->aglob[i].asubglob[a].indexes[f] = (VTXFLG)pbis->U32Read();
 
-                pglobset->aglob[i].asubglob[a].indices = ConvertStripsToTriLists(pglobset->aglob[i].asubglob[a].indexes);
+                ConvertStripsToTriLists(pglobset->aglob[i].asubglob[a].indexes, pglobset->aglob[i].asubglob[a].indices);
 
                 pglobset->aglob[i].asubglob[a].pshd = &g_ashd[pbis->U16Read()];
                 
@@ -239,10 +239,8 @@ void LoadGlobsetFromBrx(GLOBSET* pglobset, CBinaryInputStream* pbis, ALO* palo)
     }
 }
 
-std::vector <uint16_t> ConvertStripsToTriLists(std::vector <VTXFLG> indexes)
+void ConvertStripsToTriLists(std::vector <VTXFLG> &indexes, std::vector <uint16_t> &indices)
 {
-    std::vector <uint16_t> indices;
-
     uint32_t idx = 0;
 
     for (int i = 2; i < indexes.size(); i++)
@@ -260,8 +258,6 @@ std::vector <uint16_t> ConvertStripsToTriLists(std::vector <VTXFLG> indexes)
         }
         idx++;
     }
-
-    return indices;
 }
 
 void MakeGLBuffers(GLOBSET *pglobset)

@@ -13,4 +13,5 @@ class TURRET : public PO
         float tCharmPending;
 };
 
+void* NewTurret();
 void DeleteTurret(LO* plo);

@@ -1,8 +1,12 @@
 #include "tail.h"
 
+void* NewTail()
+{
+	return new TAIL;
+}
+
 void InitTail(TAIL* ptail)
 {
-	//std::cout << "TAIL Size: " << sizeof(TAIL) << "\n";
 	InitAlo(ptail);
 }
 

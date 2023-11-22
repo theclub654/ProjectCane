@@ -13,4 +13,5 @@ class DSP : public SO
         struct TARGET* ptargetCur;
 };
 
+void* NewDsp();
 void DeleteDsp(LO* plo);

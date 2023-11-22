@@ -1,11 +1,15 @@
 #include "cm.h"
 
+void* NewCm()
+{
+	return new CM;
+}
+
 void InitCm(CM* pcm)
 {
-	//std::cout << "CM Size: " << sizeof(CM) << "\n";
 	InitLo(pcm);
 
-	pcm->radFOV = 45.0;
+	pcm->radFOV = 1.0;
 	pcm->rAspect = 1.298701;
 	pcm->sNearClip = 100.0;
 	pcm->sFarClip = 20000.0;

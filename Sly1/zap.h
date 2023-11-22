@@ -22,8 +22,10 @@ class VOLZP : public TZP
 
 };
 
+void* NewTzp();
 void InitTzp(TZP* ptzp);
 void DeleteTzp(LO* plo);
+void* NewVolzp();
 void InitVolzp(VOLZP* pvolzp);
 void RenderTzpAll(TZP* ptzp, CM* pcm, RO* pro);
 void DeleteVolzp(LO* plo);

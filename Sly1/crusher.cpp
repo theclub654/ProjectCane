@@ -1,15 +1,12 @@
 #include "crusher.h"
 
-void* CreateCrfodb()
+void* NewCrfodb()
 {
-	CRFODB crfodb;
-	return &crfodb;
+	return new CRFODB;
 }
 
 void InitCrfodb(CRFODB* pcrfodb)
 {
-	std::cout << "CRFODB Size: " << sizeof(CRFODB) << "\n";
-	std::cout << "CRBRAIN Size: " << sizeof(CRBRAIN) << "\n";
 	InitStepGuard(pcrfodb);
 }
 
@@ -18,10 +15,9 @@ void DeleteCrfodb(LO* plo)
 	delete (CRFODB*)plo;
 }
 
-void* CreateCrfod()
+void* NewCrfod()
 {
-	CRFOD crfod;
-	return &crfod;
+	return new CRFOD;
 }
 
 void OnCrfodAdd(CRFOD* pcrfod)
@@ -35,15 +31,19 @@ void DeleteCrfod(LO* plo)
 	delete (CRFOD*)plo;
 }
 
-void* CreateCrfodk()
+void* NewCrfodk()
 {
-	CRFODK crfodk;
-	return &crfodk;
+	return new CRFODK;
 }
 
 void DeleteCrfodk(LO* plo)
 {
 	delete (CRFODK*)plo;
+}
+
+void* NewCrbrain()
+{
+	return new CRBRAIN;
 }
 
 void InitCrbrain(CRBRAIN* pcrbrain)

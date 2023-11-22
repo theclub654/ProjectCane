@@ -35,8 +35,8 @@ void DrawSw(SW* psw, CM* pcm)
 
 }
 
-void DrawSwAll(SW* psw, CM* pcm)
+void DrawSwAll()
 {
 	for (int i = 0; i < allSWAloObjs.size(); i++)
-		DrawLo(allSWAloObjs[i]);
+		DrawAlo(allSWAloObjs[i]);
 }

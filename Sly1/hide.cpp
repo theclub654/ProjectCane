@@ -1,8 +1,12 @@
 #include "hide.h"
 
+void* NewHbsk()
+{
+	return new HBSK;
+}
+
 void InitHbsk(HBSK* phbsk)
 {
-	//std::cout << "HBSK Size: " << sizeof(HBSK) << "\n";
 	InitSo(phbsk);
 }
 
@@ -16,9 +20,13 @@ void DeleteHbsk(LO* plo)
 	delete (HBSK*)plo;
 }
 
+void* NewHshape()
+{
+	return new HSHAPE;
+}
+
 void InitHshape(HSHAPE* phshape)
 {
-	//std::cout << "HSHAPE Size: " << sizeof(HSHAPE) << "\n";
 	InitShape(phshape);
 }
 
@@ -32,9 +40,13 @@ void DeleteHshape(LO* plo)
 	delete(HSHAPE*)plo;
 }
 
+void* NewHpnt()
+{
+	return new HPNT;
+}
+
 void InitHpnt(HPNT* phpnt)
 {
-	//std::cout << "HPNT Size: " << sizeof(HPNT) << "\n";
 	InitLo(phpnt);
 }
 

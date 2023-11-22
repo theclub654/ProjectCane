@@ -1,8 +1,12 @@
 #include "mouthgame.h"
 
+void* NewMgc()
+{
+	return new MGC;
+}
+
 void InitMgc(MGC* pmgc)
 {
-	std::cout << "MGC Size: " << sizeof(MGC) << "\n";
 	InitAlo(pmgc);
 }
 

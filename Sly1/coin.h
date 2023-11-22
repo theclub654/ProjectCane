@@ -76,14 +76,19 @@ class GOLD : public DPRIZE
         int fStartTimedChallenge;
 };
 
+void* NewDprize();
 void InitDprize(DPRIZE *pdprize);//NOT FINISHED
 void DeleteDprize(LO* plo);
+void* NewCharm();
 void InitCharm(CHARM* pcharm);
 void DeleteCharm(LO* plo);
+void* NewCoin();
 void InitCoin(COIN* pcoin);
 void DeleteCoin(LO* plo);
+void* NewKey();
 void InitKey(KEY* pkey);
 void DeleteKey(LO* plo);
+void* NewGold();
 void InitGold(GOLD* pgold);
 void DeleteGold(LO* plo);
 void LoadDprizeFromBrx(DPRIZE* pdprize, CBinaryInputStream *pbis);//NOT FINISHED

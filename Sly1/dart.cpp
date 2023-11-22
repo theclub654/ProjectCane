@@ -1,8 +1,12 @@
 #include "dart.h"
 
+void* NewDart()
+{
+	return new DART;
+}
+
 void InitDart(DART* pdart)
 {
-	//std::cout << "DART Size: " << sizeof(DART) << "\n";
 	InitSo(pdart);
 }
 

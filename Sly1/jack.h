@@ -120,12 +120,16 @@ class JACKF : public ALO
         int c;
 };
 
+void* NewJack();
 void InitJack(JACK *pjack);
 void DeleteJack(LO* plo);
+void* NewJackb();
 void InitJackb(JACKB* pjackb);
 void DeleteJackb(LO* plo);
+void* NewJackn();
 void InitJackn(JACKN* pjackn);
 void DeleteJackn(LO* plo);
+void* NewJackf();
 void InitJackf(JACKF* pjackf);
 void DeleteJackf(LO* plo);
 void LoadJacknFromBrx(JACKN* pjackn, CBinaryInputStream* pbis);

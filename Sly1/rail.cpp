@@ -1,8 +1,12 @@
 #include "rail.h"
 
+void* NewRail()
+{
+	return new RAIL;
+}
+
 void OnRailAdd(RAIL* prail)
 {
-	std::cout << "RAIL Size: " << sizeof(RAIL) << "\n";
 	OnLoAdd(prail);
 	AppendDlEntry(&prail->psw->dlRail, prail);
 }

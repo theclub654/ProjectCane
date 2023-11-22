@@ -1,9 +1,8 @@
 #include "murray.h"
 
-void* CreateMurray()
+void* NewMurray()
 {
-	MURRAY murray;
-	return &murray;
+	return new MURRAY;
 }
 
 void InitMurray(MURRAY* pmurray)

@@ -71,9 +71,11 @@ class UBV : public SO
         int mprowcolSafe[4];
 };
 
+void* NewUbg();
 void InitUbg(UBG* pubg);
 void RenderUbpAll(UBP* pubp, CM* pcm, RO* pro);
-void*CreateUbg();
 void DeleteUbg(LO* plo);
+void* NewUbp();
 void DeleteUbp(LO* plo);
+void* NewUbv();
 void DeleteUbv(LO* plo);

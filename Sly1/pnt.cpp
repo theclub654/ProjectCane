@@ -1,8 +1,12 @@
 #include "pnt.h"
 
+void* NewPnt()
+{
+	return new PNT;
+}
+
 void LoadPntFromBrx(PNT* pnt, CBinaryInputStream* pbis)
 {
-	//std::cout << "PNT Size: " << sizeof(PNT) << "\n";
 	pnt->posLocal = pbis->ReadVector();
 	LoadOptionFromBrx(pnt, pbis);
 }

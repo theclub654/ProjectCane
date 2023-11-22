@@ -108,11 +108,11 @@ public:
 };
 
 // Create ALO
-void* CreateAlo();
+void* NewAlo();
 // Initialize ALO object
 void InitAlo(ALO* palo); // NOT FINISHED
 // Adds alo parent and all the alo childs into the world
-void AddAloHierarchy(ALO *palo); // NOT FINISHED
+void AddAloHierarchy(ALO *palo);
 void RemoveAloHierarchy(ALO *palo); // NOT FINISHED
 void OnAloAdd(ALO* palo); // NOT FINISHED
 void OnAloRemove(ALO* palo);
@@ -129,7 +129,7 @@ void RenderAloSelf(ALO* palo, CM* pcm, RO* pro);
 void RenderAloGlobset(ALO* palo, CM* pcm, RO* pro);
 void RenderAloLine(ALO* palo, CM* pcm, glm::vec3* ppos0, glm::vec3* ppos1, float rWidth, float uAlpha);
 void RenderAloAsBone(ALO* palo, CM* pcm, RO* pro);
-void DrawLo(ALO *palo);
+void DrawAlo(ALO *palo);
 // Deletes all world data from memory
 void DeleteWorld(SW* psw);
 // Deletes Model from VRAM

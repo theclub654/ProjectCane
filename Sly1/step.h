@@ -70,6 +70,6 @@ class STEP : public PO
 		SMP smpExpand;
 };
 
-void* CreateStep();
+void* NewStep();
 void InitStep(STEP* pstep);
 void DeleteStep(LO* plo);

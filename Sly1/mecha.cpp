@@ -1,8 +1,12 @@
 #include "mecha.h"
 
+void* NewMecha()
+{
+	return new MECHA;
+}
+
 void InitMecha(MECHA* pmecha)
 {
-	std::cout << "MECHA Size: " << sizeof(MECHA) << "\n";
 	InitStep(pmecha);
 }
 

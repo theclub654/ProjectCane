@@ -1,9 +1,12 @@
 #include "rat.h"
 
+void* NewRat()
+{
+	return new RAT;
+}
+
 void InitRat(RAT* prat)
 {
-	/*std::cout << "RAT Size: " << sizeof(RAT) << "\n";
-	std::cout << "RATHOLE Size: " << sizeof(RATHOLE) << "\n";*/
 	InitSo(prat);
 }
 
@@ -11,6 +14,11 @@ void OnRatAdd(RAT* prat)
 {
 	OnSoAdd(prat);
 	AppendDlEntry(&prat->psw->dlRat, prat);
+}
+
+void* NewRathole()
+{
+	return new RATHOLE;
 }
 
 void OnRatholeAdd(RATHOLE* prathole)

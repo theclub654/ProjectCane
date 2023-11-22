@@ -50,6 +50,7 @@ class CYCLE : public PO
         float tCycles;
 };
 
+void* NewCycle();
 void InitCycle(CYCLE *pcycle);
 void RenderCycleSelf(CYCLE* pcycle, CM* pcm, RO* pro);
 void DeleteCycle(LO* plo);

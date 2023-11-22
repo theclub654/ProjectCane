@@ -1,8 +1,12 @@
 #include "rchm.h"
 
+void* NewRchm()
+{
+    return new RCHM;
+}
+
 void InitRchm(RCHM* prchm)
 {
-    //std::cout << "RCHM Size: " << sizeof(RCHM) << "\n";
     InitLo(prchm);
 }
 

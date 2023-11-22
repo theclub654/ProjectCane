@@ -1,9 +1,8 @@
 #include "gomer.h"
 
-void* CreateGomer()
+void* NewGomer()
 {
-	GOMER gomer;
-	return &gomer;
+	return new GOMER;
 }
 
 void InitGomer(GOMER* pgomer)

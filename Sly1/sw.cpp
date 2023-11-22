@@ -1,9 +1,8 @@
 #include "sw.h"
 
-void* CreateSw()
+void* NewSw()
 {
-	SW psw;
-	return &psw;
+	return new SW;
 }
 
 void InitSw(SW* psw)
@@ -105,6 +104,11 @@ void DeleteSw(SW* psw)
 		UnloadShaders();
 		g_pcm = nullptr;
 	}
+}
+
+void DeleteSwObj(LO* plo)
+{
+	delete (SW*)plo;
 }
 
 void UpdateSw(SW *psw, float dt)

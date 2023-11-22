@@ -59,12 +59,15 @@ class HPNT : public PNT
 		float dzIgnore;
 };
 
+void* NewHbsk();
 void InitHbsk(HBSK* phbsk);
 void OnHbskAdd(HBSK* phbsk);
 void DeleteHbsk(LO* plo);
+void* NewHshape();
 void InitHshape(HSHAPE* phshape);
 void OnHshapeAdd(HSHAPE* phshape);
 void DeleteHshape(LO* plo);
+void* NewHpnt();
 void InitHpnt(HPNT* phpnt);
 void DeleteHpnt(LO* plo);
 void OnHpntAdd(HPNT* phpnt);

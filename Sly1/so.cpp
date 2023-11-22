@@ -1,9 +1,8 @@
 #include "so.h"
 
-void* CreateSo()
+void* NewSo()
 {
-	SO so;
-	return &so;
+	return new SO;
 }
 
 void InitSo(SO* pso)

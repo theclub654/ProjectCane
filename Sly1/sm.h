@@ -45,6 +45,8 @@ struct SMA : public BASIC
 };
 static int LoadSmFromBrxCount;
 
+void* NewSm();
 void LoadSmFromBrx(SM *psm, CBinaryInputStream *pbis);
 void DeleteSm(LO* plo);
+void* NewSma();
 void DeleteSma(LO* plo);

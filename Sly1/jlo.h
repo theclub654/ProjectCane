@@ -82,10 +82,13 @@ class JLOVOL : public VOLBTN
         DLE dleJlo;
 };
 
+void* NewJlovol();
 void InitJlovol(JLOVOL* pjlovol);
 void DeleteJlovol(LO* plo);
+void* NewJlo();
 void InitJlo(JLO* pjlo);
 void DeleteJlo(LO* plo);
+void* NewJloc();
 void InitJloc(JLOC* pjloc);
 void DeleteJloc(LO* plo);
 void LoadJloFromBrx(JLO* pjlo, CBinaryInputStream* pbis);

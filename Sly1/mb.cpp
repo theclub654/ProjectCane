@@ -1,22 +1,18 @@
 #include "mb.h"
 
-void* CreateMbg()
+void* NewMbg()
 {
-	MBG mbg;
-	return &mbg;
+	return new MBG;
 }
 
 void InitMbg(MBG *pmbg)
 {
-	std::cout << "MBG Size: " << sizeof(MBG) << "\n";
-	std::cout << "BHG Size: " << sizeof(BHG) << "\n";
 	InitStepGuard(pmbg);
 }
 
-void* CreateBhg()
+void* NewBhg()
 {
-	BHG bhg;
-	return &bhg;
+	return new BHG;
 }
 
 void InitBhg(BHG *pbhg)
@@ -29,9 +25,13 @@ void DeleteBhg(LO* plo)
 	delete (BHG*)plo;
 }
 
+void* NewScentmap()
+{
+	return new SCENTMAP;
+}
+
 void InitScentmap(SCENTMAP* pscentmap)
 {
-	std::cout << "SCENTMAP Size:" << sizeof(SCENTMAP) << "\n";
 	InitAlo(pscentmap);
 }
 

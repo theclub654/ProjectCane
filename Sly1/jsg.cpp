@@ -1,8 +1,12 @@
 #include "jsg.h"
 
+void* NewJsg()
+{
+	return new JSG;
+}
+
 void InitJsg(JSG* pjsg)
 {
-	//std::cout << "JSG Size: " << sizeof(JSG) << "\n";
 	InitLo(pjsg);
 }
 

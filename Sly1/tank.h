@@ -34,6 +34,7 @@ class TANK : public STEP
         struct PNT* ppntAnchor;
 };
 
+void* NewTank();
 void InitTank(TANK* ptank);
 void RenderTankAll(TANK* ptank, CM* pcm, RO* pro);
 void DeleteTank(LO* plo);

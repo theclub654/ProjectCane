@@ -1,8 +1,12 @@
 #include "cnvo.h"
 
+void* NewCnvo()
+{
+	return new CNVO;
+}
+
 void InitCnvo(CNVO* pcnvo)
 {
-	//std::cout << "CNVO Size: " << sizeof(CNVO) << "\n";
 	InitSo(pcnvo);
 }
 

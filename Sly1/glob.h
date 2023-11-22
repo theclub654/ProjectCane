@@ -107,6 +107,6 @@ struct GLOBSET // NOT DONE
 // Loads 3D models from binary file
 void LoadGlobsetFromBrx(GLOBSET *pglobset, CBinaryInputStream *pbis, ALO* palo); // NOT FINISHED
 // Converts tri strips to tri list
-std::vector <uint16_t> ConvertStripsToTriLists(std::vector <VTXFLG> indexes);
+void ConvertStripsToTriLists(std::vector <VTXFLG> &indexes, std::vector <uint16_t> &indices);
 // Storing 3D models in VRAM
 void MakeGLBuffers(GLOBSET *pglobset);

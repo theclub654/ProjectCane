@@ -1,12 +1,16 @@
 #include "coin.h"
 
+void* NewDprize()
+{
+	return new DPRIZE;
+}
+
 void InitDprize(DPRIZE *pdprize)
 {
 	pdprize->dprizesInit = DPRIZES_Normal;
 	pdprize->dprizes = DPRIZES_Nil;
 	pdprize->svcAttract = 30.0;
 	pdprize->oidInitialState = OID_Nil;
-	//std::cout << "DPRIZE SIZE: " << sizeof(DPRIZE) << "\n";
 	InitAlo(pdprize);
 	AppendDlEntry(&pdprize->psw->dlDprize, pdprize);
 	
@@ -17,9 +21,13 @@ void DeleteDprize(LO* plo)
 	delete(DPRIZE*)plo;
 }
 
+void* NewCharm()
+{
+	return new CHARM;
+}
+
 void InitCharm(CHARM* pcharm)
 {
-	//std::cout << "CHARM Size: " << sizeof(CHARM) << "\n";
 	InitDprize(pcharm);
 }
 
@@ -28,9 +36,13 @@ void DeleteCharm(LO* plo)
 	delete(CHARM*)plo;
 }
 
+void* NewCoin()
+{
+	return new COIN;
+}
+
 void InitCoin(COIN* pcoin)
 {
-	//std::cout << "COIN Size: " << sizeof(COIN) << "\n";
 	InitDprize(pcoin);
 }
 
@@ -39,9 +51,13 @@ void DeleteCoin(LO* plo)
 	delete(COIN*)plo;
 }
 
+void* NewKey()
+{
+	return new KEY;
+}
+
 void InitKey(KEY* pkey)
 {
-	//std::cout << "KEY Size: " << sizeof(KEY) << "\n";
 	InitDprize(pkey);
 }
 
@@ -50,9 +66,13 @@ void DeleteKey(LO* plo)
 	delete(KEY*)plo;
 }
 
+void* NewGold()
+{
+	return new GOLD;
+}
+
 void InitGold(GOLD* pgold)
 {
-	//std::cout << "GOLD Size: " << sizeof(GOLD) << "\n";
 	InitDprize(pgold);
 	pgold->psw->cgoldAll++;
 }

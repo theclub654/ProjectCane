@@ -1,5 +1,10 @@
 #include "vis.h"
 
+void* NewVismap()
+{
+	return new VISMAP;
+}
+
 void InitVismap(VISMAP *pvismap)
 {
 	InitLo((LO*)pvismap);

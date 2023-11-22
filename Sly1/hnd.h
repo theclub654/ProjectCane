@@ -20,6 +20,7 @@ class HND : public TARGET
 		float sRadiusHook;
 };
 
+void* NewHnd();
 void InitHnd(HND* phnd);
 void LoadHndFromBrx(HND* phnd, CBinaryInputStream* pbis);
 void DeleteHnd(LO* plo);

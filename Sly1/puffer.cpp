@@ -1,5 +1,10 @@
 #include "puffer.h"
 
+void* NewPuffer()
+{
+	return new PUFFER;
+}
+
 void InitPuffer(PUFFER* ppuffer)
 {
 	InitPo(ppuffer);
@@ -10,9 +15,19 @@ void DeletePuffer(LO* plo)
 	delete (PUFFER*)plo;
 }
 
+void* NewPuffb()
+{
+	return new PUFFB;
+}
+
 void DeletePuffb(LO* plo)
 {
 	delete(PUFFB*)plo;
+}
+
+void* NewPuffv()
+{
+	return new PUFFV;
 }
 
 void InitPuffv(PUFFV* ppuffv)
@@ -25,18 +40,19 @@ void DeletePuffv(LO* plo)
 	delete(PUFFV*)plo;
 }
 
-void* CreatePuffc()
+void* NewPuffc()
 {
-	PUFFC puffc;
-	return &puffc;
+	return new PUFFC;
 }
 
 void LoadPufferFromBrx(PUFFER *ppuffer, CBinaryInputStream *pbis)
 {
-	/*std::cout << "PUFFER Size: " << sizeof(PUFFER) << "\n";
-	std::cout << "PUFFC Size: " << sizeof(PUFFC) << "\n";
-	std::cout << "PUFFV Size: " << sizeof(PUFFV) << "\n";*/
 	LoadSoFromBrx(ppuffer, pbis);
+}
+
+void* NewPufft()
+{
+	return new PUFFT;
 }
 
 void DeletePuffc(LO* plo)

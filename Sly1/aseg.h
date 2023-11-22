@@ -51,8 +51,10 @@ class ASEGBL : public ASEG
 
 static int LoadAsegaCount;
 
+void* NewAseg();
 void InitAseg(ASEG* paseg);
 void LoadAsegFromBrx(ASEG* paseg, CBinaryInputStream* pbis);
 void LoadAsegEventsFromBrx(CBinaryInputStream* pbis, int fFrame);
 void DeleteAseg(LO* plo);
+void* NewAsegbl();
 void DeleteAsegbl(LO* plo);

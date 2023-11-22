@@ -1,8 +1,12 @@
 #include "aseg.h"
 
+void* NewAseg()
+{
+    return new ASEG;
+}
+
 void InitAseg(ASEG* paseg)
 {
-    //std::cout << "ASEG Size: " << sizeof(ASEG)<<"\n";
     InitLo(paseg);
 }
 
@@ -303,6 +307,11 @@ void LoadAsegEventsFromBrx(CBinaryInputStream* pbis, int fFrame)
 void DeleteAseg(LO* plo)
 {
     delete(ASEG*)plo;
+}
+
+void* NewAsegbl()
+{
+    return new ASEGBL;
 }
 
 void DeleteAsegbl(LO* plo)

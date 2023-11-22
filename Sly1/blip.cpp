@@ -1,5 +1,10 @@
 #include "blip.h"
 
+void* NewBlipg()
+{
+	return new BLIPG;
+}
+
 void InitBlipg(BLIPG* pblipg)
 {
 	//std::cout << "BLIPG Size: " << sizeof(BLIPG) << "\n";

@@ -1,9 +1,8 @@
 #include "po.h"
 
-void* CreatePo()
+void* NewPo()
 {
-	PO po;
-	return &po;
+	return new PO;
 }
 
 void InitPo(PO* ppo)
