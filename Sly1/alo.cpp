@@ -257,14 +257,7 @@ void RenderAloAsBone(ALO* palo, CM* pcm, RO* pro)
 
 void DrawAlo(ALO* palo)
 {
-
-	for (int i = 0; i < palo->globset.aglob.size(); i++)
-	{
-		for (int a = 0; a < palo->globset.aglob[i].asubglob.size(); a++)
-		{
-
-		}
-	}
+	DrawGlob(&palo->globset);
 }
 
 void DeleteModel(ALO *palo)

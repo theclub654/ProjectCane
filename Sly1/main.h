@@ -3,6 +3,7 @@
 #include "gl.h"
 #include "transition.h"
 #include "debug.h"
+#include "freecamera.h"
 
 void RenderSw(SW* psw, CM* pcm);
 void DrawSwAll();

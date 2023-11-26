@@ -32,5 +32,8 @@ void RenderOpenFileGui()
 void RenderCloseWorldGui(SW* psw)
 {
     if (ImGui::Button("Close World"))
+    {
+        glFlush;
         DeleteSw(psw);
+    }
 }

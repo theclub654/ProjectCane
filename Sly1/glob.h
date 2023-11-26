@@ -1,6 +1,6 @@
 #pragma once
-#include "shd.h"
 #include "bis.h"
+#include "gl.h"
 
 class ALO;
 // Glob is just another word for model.
@@ -118,3 +118,5 @@ void LoadGlobsetFromBrx(GLOBSET* pglobset, CBinaryInputStream* pbis, ALO* palo);
 void ConvertStripsToTriLists(std::vector <VTXFLG>& indexes, std::vector <uint16_t>& indices);
 // Storing 3D models in VRAM
 void MakeGLBuffers(GLOBSET* pglobset);
+// Draws Model
+void DrawGlob(GLOBSET *pglobset);

@@ -5,6 +5,7 @@
 #include<fstream>
 #include<sstream>
 #include<cerrno>
+#include "shd.h"
 
 class GLSHADER
 {

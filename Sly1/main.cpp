@@ -6,6 +6,7 @@ GL g_gl;
 GLSHADER glShader;
 std::string file;
 CTransition g_transition;
+FREECAMERA g_freecamera;
 
 int main(int cphzArgs, char* aphzArgs[])
 {
@@ -31,7 +32,8 @@ int main(int cphzArgs, char* aphzArgs[])
 
 		if (g_psw != nullptr)
 		{
-			glShader.Use();
+			g_freecamera.ProcessInputs(g_gl.window);
+			g_freecamera.Transformations(g_gl.windowHeight, g_gl.windowWidth);
 			DrawSwAll();
 		}
 

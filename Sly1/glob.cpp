@@ -304,3 +304,23 @@ void MakeGLBuffers(GLOBSET *pglobset)
         }
     }
 }
+
+void DrawGlob(GLOBSET *pglobset)
+{
+    for (int i = 0; i < pglobset->aglob.size(); i++)
+    {
+        for (int a = 0; a < pglobset->aglob[i].asubglob.size(); a++)
+        {
+            glShader.Use();
+
+            glm::mat4 model{ 1.0 };
+
+            int modelUniformLocation = glGetUniformLocation(glShader.ID, "model");
+            glUniformMatrix4fv(modelUniformLocation, 1, GL_FALSE, glm::value_ptr(model));
+
+            glBindVertexArray(pglobset->aglob[i].asubglob[a].VAO);
+            glDrawElements(GL_TRIANGLES, pglobset->aglob[i].asubglob[a].indices.size(), GL_UNSIGNED_SHORT, (void*)0);
+            glBindVertexArray(0);
+        }
+    }
+}

@@ -21,3 +21,6 @@ class FREECAMERA
 		void UpdateMatrix(glm::mat4 view, glm::mat4 proj);
 		void ProcessInputs(GLFWwindow* window);
 };
+
+// Global free camera class
+extern FREECAMERA g_freecamera;
