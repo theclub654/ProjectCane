@@ -10,12 +10,6 @@ enum LIGHTK
 	LIGHTK_Spot = 3,
 	LIGHTK_Max = 4
 };
-enum TWPS
-{
-	TWPS_Shadow = 0,
-	TWPS_ShadowMidtone = 1,
-	TWPS_ShadowMidtoneSaturate = 2
-};
 
 class LIGHT : public ALO
 {

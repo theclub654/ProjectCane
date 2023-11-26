@@ -31,7 +31,7 @@ int main(int cphzArgs, char* aphzArgs[])
 
 		if (g_psw != nullptr)
 		{
-			//glShader.Use();
+			glShader.Use();
 			DrawSwAll();
 		}
 

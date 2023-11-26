@@ -38,8 +38,8 @@ class CBinaryInputStream
 		glm::vec4 ReadVector4();
 		// Reads matrix from file
 		glm::mat3 ReadMatrix();
-		// Reads matrix4x2 from file
-		glm::mat4x2 ReadMatrix4x2();
+		// Reads matrix4x4 from file
+		glm::mat4x4 ReadMatrix4x4();
 		// Reads matrix 4 from file
 		glm::mat4 ReadMatrix4();
 		void ReadGeom(GEOM *pgeom);

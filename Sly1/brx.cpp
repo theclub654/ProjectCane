@@ -7,11 +7,15 @@ void StartupBrx()
 
 LO* PloNew(CID cid, SW* psw, ALO* paloParent, OID oid, int isplice)
 {
+	// Loading class object vtable
 	VTLO *pvtlo = (VTLO*)g_mpcidpvt[cid];
 
+	// Returning a address for the newly made object
 	LO *localObject = (LO*)pvtlo->pfnNewLo();
 
+	// Storing vtable with object
 	localObject->pvtlo = pvtlo;
+	// Storing the object ID with object
 	localObject->oid = oid;
 
 	if (cid == CID_SW)
@@ -24,6 +28,7 @@ LO* PloNew(CID cid, SW* psw, ALO* paloParent, OID oid, int isplice)
 	else
 		localObject->paloParent = paloParent;
 
+	// Storing pointer to static world object
 	localObject->psw = psw;
 
 	// Appending object to fist parent list
@@ -32,9 +37,10 @@ LO* PloNew(CID cid, SW* psw, ALO* paloParent, OID oid, int isplice)
 	// Initializing local object
 	localObject->pvtlo->pfnInitLo(localObject);
 
+	// Storing pointer to object in global vector
 	allWorldObjs.push_back(localObject);
 
-	//std::cout << objCounter++<<"\n";
+	// Returining newly made objects
 	return (LO*)localObject;
 }
 
@@ -51,9 +57,9 @@ void LoadSwObjectsFromBrx(SW *psw, ALO *paloParent, CBinaryInputStream *pbis)
 		OID oid = (OID)pbis->S16Read();
 		// Objects splice event index
   		int isplice = pbis->S16Read();
-		//std::cout << i << "\n";
+		// Making new object and initializing the object
 		LO *plo = PloNew(cid, psw, paloParent, oid, isplice);
-
+		// Loading object from binary file
 		plo->pvtlo->pfnLoadLoFromBrx(plo, pbis);
 	}
 }

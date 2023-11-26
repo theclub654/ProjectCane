@@ -5,6 +5,13 @@
 class ALO;
 // Glob is just another word for model.
 
+enum TWPS 
+{
+	TWPS_Shadow = 0,
+	TWPS_ShadowMidtone = 1,
+	TWPS_ShadowMidtoneSaturate = 2
+};
+
 // Vertex Flag
 struct VTXFLG
 {
@@ -37,7 +44,7 @@ struct SUBGLOB // NOT DONE
 	std::vector <VTXFLG> indexes;
 	std::vector <uint16_t> indices;
 	uint32_t unSelfIllum;
-	struct SHD *pshd;
+	struct SHD* pshd;
 	int cibnd;
 	int aibnd[4];
 
@@ -68,9 +75,10 @@ struct GLOB // NOT DONE
 	std::vector<SUBGLOB> asubglob;
 	int csubcel;
 	//SUBCEL *asubcel;
+	// Object world space coordinates
 	glm::mat4 pdmat;
 	//BLOT *pblot;
-	enum OID oid;
+	OID oid;
 	char* pchzName;
 }; // NOT DONE
 
@@ -105,8 +113,8 @@ struct GLOBSET // NOT DONE
 }; // NOT DONE
 
 // Loads 3D models from binary file
-void LoadGlobsetFromBrx(GLOBSET *pglobset, CBinaryInputStream *pbis, ALO* palo); // NOT FINISHED
+void LoadGlobsetFromBrx(GLOBSET* pglobset, CBinaryInputStream* pbis, ALO* palo); // NOT FINISHED
 // Converts tri strips to tri list
-void ConvertStripsToTriLists(std::vector <VTXFLG> &indexes, std::vector <uint16_t> &indices);
+void ConvertStripsToTriLists(std::vector <VTXFLG>& indexes, std::vector <uint16_t>& indices);
 // Storing 3D models in VRAM
-void MakeGLBuffers(GLOBSET *pglobset);
+void MakeGLBuffers(GLOBSET* pglobset);

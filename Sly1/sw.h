@@ -117,6 +117,8 @@ void LoadNameTableFromBrx(CBinaryInputStream* pbis);
 void LoadWorldTableFromBrx(CBinaryInputStream* pbis);
 // Resets SW object
 void DeleteSw(SW* psw);
+// Deletes all world data from memory
+void DeleteWorld(SW* psw);
 // Deletes the SW obj
 void DeleteSwObj(LO* plo);
 // Update World

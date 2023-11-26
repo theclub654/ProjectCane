@@ -142,7 +142,8 @@ struct CPTN : public CPLCY
 // Camera Object
 class CM : public LO
 {
-public:
+    public:
+
     glm::vec3 pos;
     glm::vec4 anormalFrustrumTranspose[3];
     glm::mat3 mat;

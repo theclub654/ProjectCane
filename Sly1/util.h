@@ -18,6 +18,14 @@ struct CLQ
 	float gUnused;
 };
 
+struct CLQC 
+{
+	float g0;
+	float g1;
+	float g2;
+	float g3;
+};
+
 struct SMP
 {
 	union

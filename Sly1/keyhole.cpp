@@ -15,9 +15,10 @@ void LoadKeyholeFromBrx(KEYHOLE* pkeyhole, CBinaryInputStream* pbis)
 {
 	LoadOptionFromBrx(pkeyhole, pbis);
 
-    uint16_t unk_0 = pbis->U16Read();
+    pkeyhole->cpos = pbis->U16Read();
+    pkeyhole->apos.resize(pkeyhole->cpos);
 
-    for (int i = 0; i < unk_0; i++)
+    for (int i = 0; i < pkeyhole->cpos; i++)
     {
         pbis->F32Read();
         pbis->F32Read();

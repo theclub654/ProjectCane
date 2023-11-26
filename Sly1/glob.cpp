@@ -38,7 +38,7 @@ void LoadGlobsetFromBrx(GLOBSET* pglobset, CBinaryInputStream* pbis, ALO* palo)
         if ((unk_5 & 1) != 0)
         {
             pbis->S16Read();
-            pglobset->aglob[i].pdmat = pbis->ReadMatrix4x2();
+            pglobset->aglob[i].pdmat = pbis->ReadMatrix4x4();
         }
 
         if ((unk_5 & 2) != 0)
@@ -70,7 +70,6 @@ void LoadGlobsetFromBrx(GLOBSET* pglobset, CBinaryInputStream* pbis, ALO* palo)
 
         if ((unk_5 & 0x100) != 0)
         {
-
             pbis->S16Read();
             int8_t unk_8 = pbis->S8Read();
 
@@ -80,7 +79,7 @@ void LoadGlobsetFromBrx(GLOBSET* pglobset, CBinaryInputStream* pbis, ALO* palo)
                 pbis->F32Read();
                 pbis->F32Read();
                 pbis->F32Read();
-                pbis->ReadMatrix4x2();
+                pbis->ReadMatrix4x4();
             }
 
             pbis->U8Read();
@@ -97,8 +96,8 @@ void LoadGlobsetFromBrx(GLOBSET* pglobset, CBinaryInputStream* pbis, ALO* palo)
 
         if ((unk_5 & 1) == 0)
         {
-            // std::cout << "Model Start: " << std::hex << file.tellg()<<"\n";
             // Number of submodels
+            // std::cout << "Model Start: " << std::hex << file.tellg()<<"\n";
             pglobset->aglob[i].csubglob = pbis->U16Read();
             pglobset->aglob[i].asubglob.resize(pglobset->aglob[i].csubglob);
 
@@ -128,7 +127,6 @@ void LoadGlobsetFromBrx(GLOBSET* pglobset, CBinaryInputStream* pbis, ALO* palo)
                 pbis->Align(4);
 
                 //std::cout << "Vertices: " << std::hex << pbis->file.tellg() << "\n";
-                
                 for (int b = 0; b < vertexCount; b++)
                     pglobset->aglob[i].asubglob[a].vertexes[b] = pbis->ReadVector();
                  
@@ -150,6 +148,7 @@ void LoadGlobsetFromBrx(GLOBSET* pglobset, CBinaryInputStream* pbis, ALO* palo)
 
                 ConvertStripsToTriLists(pglobset->aglob[i].asubglob[a].indexes, pglobset->aglob[i].asubglob[a].indices);
 
+                // Loading texture property info from vector
                 pglobset->aglob[i].asubglob[a].pshd = &g_ashd[pbis->U16Read()];
                 
                 pglobset->aglob[i].asubglob[a].unSelfIllum = pbis->U8Read();

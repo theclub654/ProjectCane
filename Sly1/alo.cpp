@@ -1,8 +1,5 @@
 #include "alo.h"
 
-std::vector<LO*> allWorldObjs;
-std::vector<ALO*> allSWAloObjs;
-
 void* NewAlo()
 {
 	return new ALO;
@@ -10,7 +7,6 @@ void* NewAlo()
 
 void InitAlo(ALO* palo)
 {
-	//std::cout << palo << "\n";
 	InitDl(&palo->dlChild, 0x78);
 	InitDl(&palo->dlFreeze, 0xD0);
 
@@ -71,11 +67,9 @@ void OnAloAdd(ALO* palo)
 			AppendDlEntry(&palo->psw->dlMRDRealClock, palo);
 	}
 
-	//
-
 	if (palo->pshadow != 0)
 		AppendDlEntry(&palo->psw->dlShadow, palo->pshadow);
-	//
+
 	ResolveAlo(palo);
 }
 
@@ -268,26 +262,9 @@ void DrawAlo(ALO* palo)
 	{
 		for (int a = 0; a < palo->globset.aglob[i].asubglob.size(); a++)
 		{
-			
+
 		}
 	}
-}
-
-void DeleteWorld(SW* psw)
-{
-	for (int i = 0; i < allSWAloObjs.size(); i++)
-		DeleteModel(allSWAloObjs[i]);
-
-	for (int i = 0; i < allWorldObjs.size(); i++)
-		allWorldObjs[i]->pvtlo->pfnDeleteLo(allWorldObjs[i]);
-	
-	allSWAloObjs.clear();
-	allSWAloObjs.shrink_to_fit();
-	allWorldObjs.clear();
-	allWorldObjs.shrink_to_fit();
-
-	g_psw = nullptr;
-	std::cout << "World Deleted\n";
 }
 
 void DeleteModel(ALO *palo)
@@ -302,6 +279,7 @@ void DeleteModel(ALO *palo)
 			glDeleteBuffers(1, &palo->globset.aglob[i].asubglob[a].VCB);
 			glDeleteBuffers(1, &palo->globset.aglob[i].asubglob[a].TCB);
 			glDeleteBuffers(1, &palo->globset.aglob[i].asubglob[a].EBO);
+			glDeleteTextures(1, &palo->globset.aglob[i].asubglob[a].gl_texture);
 		}
 	}
 }

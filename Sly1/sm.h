@@ -4,28 +4,23 @@
 struct SMS
 {
 	OID oid;
-	OID oidNext;
-	int ismsNext;
+	union
+	{
+		OID oidNext;
+		int ismsNext;
+	};
 };
 struct SMT
 {
-	int fAseg;
-	struct ASEG *paseg;
+	union
+	{
+		int fAseg;
+		struct ASEG* paseg;
+	};
 	int ismsFrom;
 	int ismsTo;
 	int grfsmt;
 	float gProbability;
-};
-
-class SM : public LO
-{
-	public:
-		int csms;
-		SMS *asms;
-		int csmt;
-		SMT *asmt;
-		int fDefault;
-		DL dlSma;
 };
 
 struct SMA : public BASIC
@@ -43,7 +38,17 @@ struct SMA : public BASIC
 	float svtLocal;
 	struct MQ* pmqFirst;
 };
-static int LoadSmFromBrxCount;
+
+class SM : public LO
+{
+	public:
+		int csms;
+		std::vector<SMS> asms;
+		int csmt;
+		std::vector<SMT> asmt;
+		int fDefault;
+		DL dlSma;
+};
 
 void* NewSm();
 void LoadSmFromBrx(SM *psm, CBinaryInputStream *pbis);

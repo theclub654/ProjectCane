@@ -8,7 +8,6 @@
 
 #include "shdanim.h"
 #include "font.h"
-#include "gl.h"
 
 // Color property's
 struct RGBA 
@@ -29,6 +28,7 @@ struct CLUT
     // Ptr to CLUT
     uint32_t baseOffset;
 };
+
 // Texture property
 struct BMP
 {
@@ -45,6 +45,7 @@ struct BMP
     // Offset to BMP in memory MIGHT NOT BE NEEDED
     uint32_t baseOffset;
 };
+
 struct TEXF
 {
     uint16_t oid;
@@ -54,6 +55,7 @@ struct TEXF
     // Number of CLUT's
     byte ciclut;
 };
+
 struct SHDF
 {
     byte shdk;
@@ -66,12 +68,14 @@ struct SHDF
     byte rp;
     byte ctex;
 };
+
 struct TEX : public TEXF
 {
     struct SHD* pshd;
     std::vector<uint16_t> bmpIndex;
     std::vector<uint16_t> clutIndex;
 };
+
 // Shader property's
 struct SHD : public SHDF
 {
@@ -81,21 +85,7 @@ struct SHD : public SHDF
     int cframe;
     SAA* psaa;
 };
-class GLSHADER
-{
-public:
 
-    GLuint ID;
-
-    void Init(const char* vertexFile, const char* fragmentFile);
-
-    void Use();
-    void Delete();
-private:
-    void compileErrors(unsigned int shader, const char* type);
-};
-
-std::string get_file_contents(const char* filename);
 // Delete shader data
 void UnloadShaders();
 // Loads CLUT entry data from binary file
@@ -108,7 +98,6 @@ void LoadFontsFromBrx(CBinaryInputStream *pbis); // GOTTA COME BACK TO THIS
 void LoadTexFromBrx(CBinaryInputStream* pbis, TEX* ptex);
 // Loads texture and shader data from binary file
 void LoadShadersFromBrx(CBinaryInputStream *pbis);
-
 
 // Global variable which holds the number of CLUT's in a binary file
 static int g_cclut;
@@ -129,5 +118,3 @@ static int g_cpsaa;
 static std::vector <SAA> g_apsaa;
 // Table for texture property's
 static std::vector<TEX> g_atex;
-// Global OPENGL shader used for rendering
-extern GLSHADER glShader;

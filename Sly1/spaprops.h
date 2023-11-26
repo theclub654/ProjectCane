@@ -1650,12 +1650,7 @@ enum WID
     WID_cw_suv = 37,
     WID_Max = 38
 };
-enum TBID 
-{
-    TBID_Nil = -1,
-    TBID_Copyright = 0,
-    TBID_Max = 1
-};
+// Audio Reverb Type
 enum REVERBK
 {
     REVERBK_Nil = -1,
@@ -1689,7 +1684,7 @@ enum MUSID
     MUSID_JB_Intro = 15,
     MUSID_Max = 16
 };
-//SFX ID
+// SFX ID
 enum SFXID 
 {
     SFXID_Nil = -1,
@@ -2142,27 +2137,52 @@ enum SFXID
     SFXID_Snd10_Clockwerk = 446,
     SFXID_Max = 447
 };
+enum TBID
+{
+    TBID_Nil = -1,
+    TBID_Copyright = 0,
+    TBID_Max = 1
+};
 // Option Data
 struct OPTDAT
 {
-    int fDef;
-    float gDef;
-    int nDef;
-    OID oidDef;
-    CID cidDef;
-    WID widDef;
-    TBID tbidDef;
-    SFXID sfxidDef;
-    int ibGet;
-    void *pfnget;
-    void *pvThunkFnUser;
-    void *pvThunkFn;
-    int ibSet;
-    void *pfnset;
-    int crefReq;
-    int ibSetUser;
-    void *pfnsetUser;
-    void *pfnensure;
+    union
+    {
+        int fDef;
+        float gDef;
+        int nDef;
+        OID oidDef;
+        CID cidDef;
+        WID widDef;
+        TBID tbidDef;
+        SFXID sfxidDef;
+    };
+    union
+    {
+        int ibGet;
+        void* pfnget;
+
+        union
+        {
+            void* pvThunkFnUser;
+            void* pvThunkFn;
+        };
+    };
+    union
+    {
+        int ibSet;
+        void* pfnset;
+        int crefReq;
+    };
+    union
+    {
+        int ibSetUser;
+        void* pfnsetUser;
+    };
+    union
+    {
+        void* pfnensure;
+    };
 };
 // Each Option ID
 struct EOPID
@@ -2171,7 +2191,6 @@ struct EOPID
     int grfeopid;
     OPTDAT optdat;
 };
-//static EOPID g_aeopid[1021];
 
 extern inline std::vector<uint32_t> g_aeopid = { 45 };
 

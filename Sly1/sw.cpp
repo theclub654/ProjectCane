@@ -1,5 +1,8 @@
 #include "sw.h"
 
+std::vector<LO*> allWorldObjs;
+std::vector<ALO*> allSWAloObjs;
+
 void* NewSw()
 {
 	return new SW;
@@ -54,7 +57,7 @@ void LoadSwFromBrx(SW* psw, CBinaryInputStream* pbis)
 	// Setting difficulty for world
 	OnDifficultyWorldPreLoad(&g_difficulty);
 	//StartupSplice();
-
+	
 	// Loading unknown debug flag from file
 	pbis->U8Read();
 	// Loading index sound bank from file
@@ -67,9 +70,6 @@ void LoadSwFromBrx(SW* psw, CBinaryInputStream* pbis)
 	// Initializing camera object for world
 	g_pcm = (CM*)PloNew(CID_CM, psw, nullptr, OID__CAMERA, -1);
 
-	DLI dli;
-	dli.m_pdl = &psw->dlChild;
-
 	// Loads all splice script events from binary file
 	LoadSwSpliceFromBrx(psw, pbis);
 	LoadOptionFromBrx(psw, pbis);
@@ -78,12 +78,12 @@ void LoadSwFromBrx(SW* psw, CBinaryInputStream* pbis)
 	// Loads all the static world objects from the binary file
 	LoadSwObjectsFromBrx(psw, 0x0, pbis);
 	pbis->Align(0x10);
-	std::cout << "File Loaded Successfully\n";
+	std::cout << "World Loaded Successfully\n";
 }
 
 void LoadNameTableFromBrx(CBinaryInputStream* pbis)
 {
-	uint32_t numNameTables = pbis->U32Read();
+	pbis->U32Read();
 }
 
 void LoadWorldTableFromBrx(CBinaryInputStream* pbis)
@@ -104,6 +104,23 @@ void DeleteSw(SW* psw)
 		UnloadShaders();
 		g_pcm = nullptr;
 	}
+}
+
+void DeleteWorld(SW* psw)
+{
+	for (int i = 0; i < allSWAloObjs.size(); i++)
+		DeleteModel(allSWAloObjs[i]);
+
+	for (int i = 0; i < allWorldObjs.size(); i++)
+		allWorldObjs[i]->pvtlo->pfnDeleteLo(allWorldObjs[i]);
+	
+	allSWAloObjs.clear();
+	allSWAloObjs.shrink_to_fit();
+	allWorldObjs.clear();
+	allWorldObjs.shrink_to_fit();
+
+	g_psw = nullptr;
+	std::cout << "World Deleted\n";
 }
 
 void DeleteSwObj(LO* plo)

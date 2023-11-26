@@ -7,18 +7,20 @@ void* NewSm()
 
 void LoadSmFromBrx(SM* psm, CBinaryInputStream* pbis)
 {
+	psm->csms = pbis->U8Read();
 
-	byte unk0 = pbis->U8Read();
+	psm->asms.resize(psm->csms);
 
-	for (int i = 0; i < unk0; i++)
+	for (int i = 0; i < psm->csms; i++)
 	{
-		pbis->S16Read();
-		pbis->S16Read();
+		psm->asms[i].oid = (OID)pbis->S16Read();
+		psm->asms[i].oidNext = (OID)pbis->S16Read();
 	}
 
-	byte unk1 = pbis->U8Read();
+	psm->csmt = pbis->U8Read();
+	psm->asmt.resize(psm->csmt);
 
-	for (int i = 0; i < unk1; i++)
+	for (int i = 0; i < psm->csmt; i++)
 	{
 		pbis->S8Read();
 		pbis->S16Read();

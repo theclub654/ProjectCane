@@ -27,8 +27,8 @@ void* NewVol()
 
 void LoadVolFromBrx(VOL* pvol, CBinaryInputStream* pbis)
 {
-	pbis->ReadMatrix();
-	pbis->ReadVector();
+	pvol->matLocal = pbis->ReadMatrix();
+	pvol->posLocal = pbis->ReadVector();
 	LoadTbspFromBrx(pbis);
 	LoadOptionFromBrx(pvol, pbis);
 }

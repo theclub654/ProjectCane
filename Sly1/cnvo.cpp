@@ -13,8 +13,8 @@ void InitCnvo(CNVO* pcnvo)
 void LoadCnvoFromBrx(CNVO* pcnvo, CBinaryInputStream* pbis)
 {
 	LoadSoFromBrx(pcnvo, pbis);
-	pbis->F32Read();
-	pbis->F32Read();
+	pcnvo->svuAvg = pbis->F32Read();
+	pcnvo->svvAvg = pbis->F32Read();
 }
 
 void DeleteCnvo(LO* plo)

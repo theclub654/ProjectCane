@@ -6,13 +6,9 @@
 #include "splicemap.h"
 #include "util.h"
 
-class SW;
-class ALO;
-
 LO* PloNew(CID cid, SW* psw, ALO* paloParent, OID oid, int isplice);
 void LoadSwObjectsFromBrx(SW* psw, ALO* paloParent, CBinaryInputStream* pbis);
 void LoadOptionFromBrx(void* pvObject, CBinaryInputStream* pbis);
-void DeleteObject(LO* plo);
 
 enum MSGID
 {

@@ -16,7 +16,7 @@ class KEYHOLE : public LO
 {
 	public:
 		int cpos;
-		glm::vec4 apos;
+		std::vector <glm::vec4> apos;
 		glm::vec4 posMin;
 		glm::vec4 posMax;
 		float dx;

@@ -1,6 +1,5 @@
 #pragma once
 #include "serialize.h"
-
-class SW;
+#include "lo.h"
 
 void LoadSwSpliceFromBrx(SW *psw, CBinaryInputStream *pbis);
