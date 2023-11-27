@@ -286,7 +286,7 @@ void MakeGLBuffers(GLOBSET *pglobset)
             glBindBuffer(GL_ARRAY_BUFFER, pglobset->aglob[i].asubglob[a].VCB);
             glBufferData(GL_ARRAY_BUFFER, pglobset->aglob[i].asubglob[a].vertexColors.size() * sizeof(RGBA), pglobset->aglob[i].asubglob[a].vertexColors.data(), GL_STATIC_DRAW);
 
-            glVertexAttribPointer(2, 1, GL_UNSIGNED_INT, GL_TRUE, sizeof(RGBA), (void*)0);
+            glVertexAttribPointer(2, 1, GL_UNSIGNED_INT, GL_FALSE, sizeof(RGBA), (void*)0);
             glEnableVertexAttribArray(2);
 
             glGenBuffers(1, &pglobset->aglob[i].asubglob[a].TCB);

@@ -114,6 +114,7 @@ void InitAlo(ALO* palo); // NOT FINISHED
 // Adds alo parent and all the alo childs into the world
 void AddAloHierarchy(ALO *palo);
 void RemoveAloHierarchy(ALO *palo); // NOT FINISHED
+// Adds ALO to Hierarchy
 void OnAloAdd(ALO* palo); // NOT FINISHED
 void OnAloRemove(ALO* palo);
 void CloneAloHierarchy(ALO* palo);
