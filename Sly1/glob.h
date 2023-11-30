@@ -76,7 +76,7 @@ struct GLOB // NOT DONE
 	int csubcel;
 	//SUBCEL *asubcel;
 	// Object world space coordinates
-	glm::mat4 pdmat;
+	glm::mat4 pdmat = glm::identity<glm::mat4>();
 	//BLOT *pblot;
 	OID oid;
 	char* pchzName;
@@ -119,4 +119,4 @@ void ConvertStripsToTriLists(std::vector <VTXFLG>& indexes, std::vector <uint16_
 // Storing 3D models in VRAM
 void MakeGLBuffers(GLOBSET* pglobset);
 // Draws Model
-void DrawGlob(GLOBSET *pglobset);
+void DrawGlob(GLOBSET *pglobset); // NOT FINISHED

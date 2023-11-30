@@ -1,5 +1,7 @@
 #include "brx.h"
 
+std::vector<void*> allSwLights;
+
 void StartupBrx()
 {
 	BuildEopids();
@@ -39,6 +41,9 @@ LO* PloNew(CID cid, SW* psw, ALO* paloParent, OID oid, int isplice)
 
 	// Storing pointer to object in global vector
 	allWorldObjs.push_back(localObject);
+
+	if (cid == CID_LIGHT)
+		allSwLights.push_back(localObject);
 
 	// Returining newly made objects
 	return (LO*)localObject;

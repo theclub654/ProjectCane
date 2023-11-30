@@ -6,6 +6,7 @@ layout (location = 2) in vec4 vertexColor;
 layout (location = 3) in vec2 texCoord;
 
 out vec4 color;
+out vec3 aNormal;
 
 uniform mat4 proj;
 uniform mat4 view;
@@ -14,5 +15,6 @@ uniform mat4 model;
 void main()
 {
     gl_Position = proj * view * model * vec4(pos.z, pos.y, pos.x, 1.0);
-    color = vertexColor;
+    color = vertexColor / 255.0;
+    aNormal = normal;
 }

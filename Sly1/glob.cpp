@@ -2,6 +2,7 @@
 
 std::vector <SHD> g_ashd;
 extern std::vector<ALO*> allSWAloObjs;
+extern std::vector<void*> allSwLights;
 
 void LoadGlobsetFromBrx(GLOBSET* pglobset, CBinaryInputStream* pbis, ALO* palo)
 {
@@ -40,6 +41,9 @@ void LoadGlobsetFromBrx(GLOBSET* pglobset, CBinaryInputStream* pbis, ALO* palo)
             pbis->S16Read();
             pglobset->aglob[i].pdmat = pbis->ReadMatrix4x4();
         }
+
+        else
+            pglobset->aglob[i].pdmat = glm::identity<glm::mat4>();
 
         if ((unk_5 & 2) != 0)
             pglobset->aglobi[i].grfzon = pbis->U32Read();
@@ -244,9 +248,9 @@ void ConvertStripsToTriLists(std::vector <VTXFLG> &indexes, std::vector <uint16_
 
     for (int i = 2; i < indexes.size(); i++)
     {
-        uint16_t indice0 = (uint16_t)indexes[idx + 0].ipos;
-        uint16_t indice1 = (uint16_t)indexes[idx + 1].ipos;
-        uint16_t indice2 = (uint16_t)indexes[idx + 2].ipos;
+        uint16_t indice0 = indexes[idx + 0].ipos;
+        uint16_t indice1 = indexes[idx + 1].ipos;
+        uint16_t indice2 = indexes[idx + 2].ipos;
         byte stripFlag = indexes[idx + 2].bMisc;
 
         if (stripFlag != 0x80 && stripFlag != 0x81 && stripFlag != 0x82 && stripFlag != 0x83 && stripFlag != 0x84 && stripFlag != 0x85 && stripFlag != 0x86 && stripFlag != 0x87 && stripFlag != 0x88 && stripFlag != 0x89 && stripFlag != 0x8A && stripFlag != 0x8B && stripFlag != 0x8C && stripFlag != 0x8D && stripFlag != 0x8E && stripFlag != 0x8F && stripFlag != 0xFF)
@@ -307,16 +311,14 @@ void MakeGLBuffers(GLOBSET *pglobset)
 
 void DrawGlob(GLOBSET *pglobset)
 {
-    for (int i = 0; i < pglobset->aglob.size(); i++)
+    for (int i = 0; i < pglobset->cglob; i++)
     {
-        for (int a = 0; a < pglobset->aglob[i].asubglob.size(); a++)
+        for (int a = 0; a < pglobset->aglob[i].csubglob; a++)
         {
             glShader.Use();
 
-            glm::mat4 model{ 1.0 };
-
             int modelUniformLocation = glGetUniformLocation(glShader.ID, "model");
-            glUniformMatrix4fv(modelUniformLocation, 1, GL_FALSE, glm::value_ptr(model));
+            glUniformMatrix4fv(modelUniformLocation, 1, GL_FALSE, glm::value_ptr(pglobset->aglob[i].pdmat));
 
             glBindVertexArray(pglobset->aglob[i].asubglob[a].VAO);
             glDrawElements(GL_TRIANGLES, pglobset->aglob[i].asubglob[a].indices.size(), GL_UNSIGNED_SHORT, (void*)0);

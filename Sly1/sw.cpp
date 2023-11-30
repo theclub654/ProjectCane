@@ -2,6 +2,7 @@
 
 std::vector<LO*> allWorldObjs;
 std::vector<ALO*> allSWAloObjs;
+extern std::vector<void*> allSwLights;
 
 void* NewSw()
 {
@@ -21,10 +22,10 @@ void InitSw(SW* psw)
 	InitDl(&psw->dlAsega, 0x1C + 0x34);
 	InitDl(&psw->dlAsegaRealClock, 0x1C + 0x34);
 	InitDl(&psw->dlAsegaPending, 0x1C + 0x34);
-	InitDl(&psw->dlSma, 0x1C + 0x10);
+	InitDl(&psw->dlSma, 0x10);
 	InitDl(&psw->dlAmb, 0x1C + 0x60);
 	InitDl(&psw->dlExc, 0x1C + 4);
-	InitDl(&psw->dlLight, 0x1C + 0x420);
+	InitDl(&psw->dlLight, 0x538);
 	InitDl(&psw->dlShadow, 0x1C + 0xb8);
 	InitDl(&psw->dlExplste, 0x1C + 100);
 	InitDl(&psw->dlProxy, 0x1C + 0x2ec);
@@ -118,6 +119,8 @@ void DeleteWorld(SW* psw)
 	allSWAloObjs.shrink_to_fit();
 	allWorldObjs.clear();
 	allWorldObjs.shrink_to_fit();
+	allSwLights.clear();
+	allSwLights.shrink_to_fit();
 
 	g_psw = nullptr;
 	std::cout << "World Deleted\n";

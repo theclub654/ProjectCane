@@ -1,6 +1,9 @@
 #pragma once
 #include "alo.h"
 
+extern std::vector<void*> allSwLights;
+
+// Light type
 enum LIGHTK 
 {
 	LIGHTK_Nil = -1,
@@ -45,4 +48,5 @@ void* NewLight();
 void InitLight(LIGHT* plight);
 void OnLightAdd(LIGHT* plight);
 void AddLightToSw(LIGHT* plight);
+void RemoveLightFromSw(LIGHT* plight);
 void DeleteLight(LO* plo);

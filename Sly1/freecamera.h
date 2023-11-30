@@ -5,10 +5,11 @@ class FREECAMERA
 {
 	public:
 		glm::vec3 cameraPos{ 0.0 };
-		glm::vec3 cameraOrientation = glm::vec3(-0.010699, 1.584016, -0.700555);
+		glm::vec3 cameraDirection = glm::vec3(-0.010699, 1.584016, -0.700555);
 		glm::vec3 cameraUp = glm::vec3(0.0f, 1.0f, 0.0f);
 
-		bool firstClick = true;
+		bool  firstClick = true;
+		float deltaTime = 0.0;
 		float speed = 10.0;
 		float sensitivity = 100.0f;
 		float yaw = -90.0f;
