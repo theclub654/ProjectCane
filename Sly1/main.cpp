@@ -6,7 +6,10 @@ GL g_gl;
 GLSHADER glShader;
 std::string file;
 CTransition g_transition;
-FREECAMERA g_freecamera;
+FREECAMERA g_freecamera(glm::vec3{0.0});
+
+float deltaTime = 0.0f;
+float lastFrame = 0.0f;
 
 int main(int cphzArgs, char* aphzArgs[])
 {
@@ -32,8 +35,13 @@ int main(int cphzArgs, char* aphzArgs[])
 
 		if (g_psw != nullptr)
 		{
-			g_freecamera.ProcessInputs(g_gl.window);
-			g_freecamera.Transformations(g_gl.windowHeight, g_gl.windowWidth);
+			double currentTime = glfwGetTime();
+			deltaTime = currentTime - lastFrame;
+			lastFrame = currentTime;
+			
+			//std::cout << glm::to_string(g_freecamera.cameraDirection) << "\n";
+			ProcessInput(g_gl.window, deltaTime);
+			g_freecamera.UpdateViewProjMatrix(g_gl.height, g_gl.width);
 			DrawSwAll();
 		}
 
@@ -62,4 +70,38 @@ void Startup()
 	StartupBrx();
 	g_gl.InitGL();
 	glShader.Init("glob.vert", "glob.frag");
+}
+
+void ProcessInput(GLFWwindow* window, double dt)
+{
+	if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
+		g_freecamera.UpdateCameraPos(CAMERADIRECTION::FORWARD, dt);
+
+	if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
+		g_freecamera.UpdateCameraPos(CAMERADIRECTION::BACKWARD, dt);
+
+	if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
+		g_freecamera.UpdateCameraPos(CAMERADIRECTION::RIGHT, dt);
+
+	if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
+		g_freecamera.UpdateCameraPos(CAMERADIRECTION::LEFT, dt);
+
+	if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS)
+		g_freecamera.UpdateCameraPos(CAMERADIRECTION::UP, dt);
+
+	if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS)
+		g_freecamera.UpdateCameraPos(CAMERADIRECTION::DOWN, dt);
+
+	double dx = MOUSE::GetDX() , dy = MOUSE::GetDY();
+
+	if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS)
+	{
+		glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_HIDDEN);
+		g_freecamera.UpdateCameraDirection(dx, dy);
+	}
+
+	double scrollDy = MOUSE::GetScrollDY();
+
+	if (scrollDy != 0)
+		g_freecamera.UpdateCameraFov(scrollDy);
 }

@@ -10,17 +10,19 @@
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
 #include "ImGuiFileDialog.h"
+#include "mouse.h"
 
 class GL
 {
 	public:
 		GLFWwindow* window;
-		int windowHeight = 800;
-		int windowWidth = 800;
+		int width = 800;
+		int height = 800;
 
 		void InitGL();
 		void GLFWTerminate();
 };
 
-void framebuffer_size_callback(GLFWwindow* window, int width, int height);
+void FrameBufferSizeCallBack(GLFWwindow* window, int width, int height);
+
 extern GL g_gl;

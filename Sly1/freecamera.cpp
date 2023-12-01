@@ -1,41 +1,105 @@
 #include "freecamera.h"
 
-void FREECAMERA::Transformations(int height, int width)
+FREECAMERA::FREECAMERA(glm::vec3 position)
+{
+	cameraPos = position;
+	worldUp = glm::vec3(0.0f, 1.0f, 0.0f);
+	yaw = -90.0;
+	pitch = 0.0f;
+	speed = 10000.0;
+	fov = 45.0f;
+	cameraDirection = glm::vec3(1.0f, 0.0f, 0.0f);
+
+	UpdateCameraVectors();
+}
+
+void FREECAMERA::UpdateCameraDirection(double dx, double dy)
+{
+	yaw += dx;
+	pitch += dy;
+
+	if (pitch > 89.0f)
+		pitch = 89.0f;
+
+	else if (pitch < -89.0f)
+		pitch = -89.0f;
+
+	UpdateCameraVectors();
+}
+
+void FREECAMERA::UpdateCameraPos(CAMERADIRECTION direction, double dt)
+{
+	float velocity = (float)dt * speed;
+
+	switch (direction)
+	{
+		case CAMERADIRECTION::FORWARD:
+			cameraPos += cameraDirection * velocity;
+		break;
+
+		case CAMERADIRECTION::BACKWARD:
+			cameraPos -= cameraDirection * velocity;
+		break;
+
+		case CAMERADIRECTION::RIGHT:
+			cameraPos += cameraRight * velocity;
+		break;
+
+		case CAMERADIRECTION::LEFT:
+			cameraPos -= cameraRight * velocity;
+		break;
+
+		case CAMERADIRECTION::UP:
+			cameraPos += cameraUp * velocity;
+		break;
+
+		case CAMERADIRECTION::DOWN:
+			cameraPos -= cameraUp * velocity;
+		break;
+	}
+}
+
+void FREECAMERA::UpdateCameraFov(double dy)
+{
+	if (fov > 1.0f && fov <= 45.0f)
+		fov -= dy;
+
+	else if (fov < 1.0f)
+		fov = 1.0f;
+
+	else
+		fov = 45.0f;
+}
+
+void FREECAMERA::UpdateViewProjMatrix(int height, int width)
 {
 	glm::mat4 proj{ 1.0 };
 	glm::mat4 view{ 1.0 };
 
 	// Creates a large frustum
-	proj = glm::perspective(glm::radians(fov), (float)height / (float)width, nearRenderDistance, farRenderDistance);
+	proj = glm::perspective(glm::radians(fov), (float)height / (float)width, 1.0f, 10000000.0f);
 	// Transform coordinates from world space to camera space
 	view = glm::lookAt(cameraPos, cameraPos + cameraDirection, cameraUp);
-	
-	UpdateMatrix(view, proj);
-}
 
-void FREECAMERA::UpdateMatrix(glm::mat4 view, glm::mat4 proj)
-{
 	glShader.Use();
 
+	// Sends view matrix to GPU shader
 	int viewUniformLocation = glGetUniformLocation(glShader.ID, "view");
 	glUniformMatrix4fv(viewUniformLocation, 1, GL_FALSE, glm::value_ptr(view));
 
+	// Sends projection matrix to GPU shader
 	int projUniformLocation = glGetUniformLocation(glShader.ID, "proj");
 	glUniformMatrix4fv(projUniformLocation, 1, GL_FALSE, glm::value_ptr(proj));
 }
 
-void FREECAMERA::ProcessInputs(GLFWwindow* window)
+void FREECAMERA::UpdateCameraVectors()
 {
-	if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
-		cameraPos += speed * cameraDirection;
-	if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
-		cameraPos -= speed * cameraDirection;
-	if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
-		cameraPos -= glm::normalize(glm::cross(cameraDirection, cameraUp)) * speed;
-	if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
-		cameraPos += glm::normalize(glm::cross(cameraDirection, cameraUp)) * speed;
-	if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS)
-		speed = 100.0f;
-	if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_RELEASE)
-		speed = 10.0f;
+	glm::vec3 direction;
+	direction.x = cos(glm::radians(yaw)) * cos(glm::radians(pitch));
+	direction.y = sin(glm::radians(pitch));
+	direction.z = sin(glm::radians(yaw)) * cos(glm::radians(pitch));
+	cameraDirection = glm::normalize(direction);
+
+	cameraRight = glm::normalize(glm::cross(cameraDirection, worldUp));
+	cameraUp = glm::normalize(glm::cross(cameraRight, cameraDirection));
 }

@@ -14,7 +14,7 @@ uniform mat4 model;
 
 void main()
 {
-    gl_Position = proj * view * model * vec4(pos.z, pos.y, pos.x, 1.0);
+    gl_Position = proj * view * model * vec4(pos.y, pos.x, pos.z, 1.0);
     color = vertexColor / 255.0;
     aNormal = normal;
 }

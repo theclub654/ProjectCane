@@ -217,6 +217,7 @@
     <ClInclude Include="mecha.h" />
     <ClInclude Include="mgv.h" />
     <ClInclude Include="missile.h" />
+    <ClInclude Include="mouse.h" />
     <ClInclude Include="mouthgame.h" />
     <ClInclude Include="mrkv.h" />
     <ClInclude Include="murray.h" />
@@ -351,6 +352,7 @@
     <ClCompile Include="mecha.cpp" />
     <ClCompile Include="mgv.cpp" />
     <ClCompile Include="missile.cpp" />
+    <ClCompile Include="mouse.cpp" />
     <ClCompile Include="mouthgame.cpp" />
     <ClCompile Include="mrkv.cpp" />
     <ClCompile Include="murray.cpp" />

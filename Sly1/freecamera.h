@@ -1,26 +1,45 @@
 #pragma once
-#include "gl.h"
+#include "glshaders.h"
+#include <GLFW/glfw3.h>
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
+#include <glm/gtx/rotate_vector.hpp>
+#include <glm/gtx/vector_angle.hpp>
+
+enum class CAMERADIRECTION
+{
+	NONE = 0,
+	FORWARD,
+	BACKWARD,
+	LEFT,
+	RIGHT,
+	UP,
+	DOWN
+};
 
 class FREECAMERA
 {
-	public:
-		glm::vec3 cameraPos{ 0.0 };
-		glm::vec3 cameraDirection = glm::vec3(-0.010699, 1.584016, -0.700555);
-		glm::vec3 cameraUp = glm::vec3(0.0f, 1.0f, 0.0f);
+public:
 
-		bool  firstClick = true;
-		float deltaTime = 0.0;
-		float speed = 10.0;
-		float sensitivity = 100.0f;
-		float yaw = -90.0f;
-		float pitch = 0.0f;
-		float fov = 45.0f;
-		float nearRenderDistance = 100.0f;
-		float farRenderDistance = 1000000.0f;
+	glm::vec3 cameraPos;
+	glm::vec3 cameraDirection;
+	glm::vec3 cameraUp;
+	glm::vec3 cameraRight;
+	glm::vec3 worldUp;
 
-		void Transformations(int height, int width);
-		void UpdateMatrix(glm::mat4 view, glm::mat4 proj);
-		void ProcessInputs(GLFWwindow* window);
+	float yaw;
+	float pitch;
+	float speed;
+	float fov;
+
+	FREECAMERA(glm::vec3 position);
+
+	void UpdateCameraDirection(double dx, double dy);
+	void UpdateCameraPos(CAMERADIRECTION direction, double dt);
+	void UpdateCameraFov(double dy);
+	void UpdateViewProjMatrix(int height, int width);
+	void UpdateCameraVectors();
 };
 
 // Global free camera class
