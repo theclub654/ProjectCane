@@ -40,3 +40,18 @@ void DrawSwAll()
 	for (int i = 0; i < allSWAloObjs.size(); i++)
 		DrawAlo(allSWAloObjs[i]);
 }
+
+void DrawSwCollisionAll()
+{
+	for (int i = 0; i < allcollisionModels.size(); i++)
+	{
+		glShaderCollision.Use();
+
+		int modelUniformLocation = glGetUniformLocation(glShaderCollision.ID, "model");
+		glUniformMatrix4fv(modelUniformLocation, 1, GL_FALSE, glm::value_ptr(glm::mat4{1.0}));
+		
+		glBindVertexArray(allcollisionModels[i]->VAO);
+		glDrawArrays(GL_TRIANGLE_STRIP, 0, allcollisionModels[i]->apos.size());
+		glBindVertexArray(0);
+	}
+}

@@ -188,6 +188,14 @@ void LoadGlobsetFromBrx(GLOBSET* pglobset, CBinaryInputStream* pbis, ALO* palo)
                         }
                     }
                 }
+
+                if (pglobset->aglob[i].asubglob[a].pshd->shdk == 1)
+                    BuildSubGlobSinglePass(pglobset, pglobset->aglob[i].asubglob[a].pshd, pglobset->aglob[i].asubglob[a].vertexes, pglobset->aglob[i].asubglob[a].normals,
+                    pglobset->aglob[i].asubglob[a].vertexColors, pglobset->aglob[i].asubglob[a].texcoords, pglobset->aglob[i].asubglob[a].indexes);
+
+                else if (pglobset->aglob[i].asubglob[a].pshd->shdk == 0)
+                    BuildSubGlobThreeWay(pglobset, pglobset->aglob[i].asubglob[a].pshd, pglobset->aglob[i].asubglob[a].vertexes, pglobset->aglob[i].asubglob[a].normals,
+                    pglobset->aglob[i].asubglob[a].vertexColors, pglobset->aglob[i].asubglob[a].texcoords, pglobset->aglob[i].asubglob[a].indexes);
             }
 
             uint16_t numSubMesh1 = pbis->U16Read();
@@ -240,6 +248,16 @@ void LoadGlobsetFromBrx(GLOBSET* pglobset, CBinaryInputStream* pbis, ALO* palo)
         allSWAloObjs.push_back(palo);
         MakeGLBuffers(pglobset);
     }
+}
+
+void BuildSubGlobSinglePass(GLOBSET* pglobset, SHD* pshd, std::vector<glm::vec3>& vertexes, std::vector<glm::vec3>& normals, std::vector<RGBA>& vertexColors, std::vector<glm::vec2>& texcoords, std::vector<VTXFLG>& indexes)
+{
+
+}
+
+void BuildSubGlobThreeWay(GLOBSET* pglobset, SHD* pshd, std::vector<glm::vec3>& vertexes, std::vector<glm::vec3>& normals, std::vector<RGBA>& vertexColors, std::vector<glm::vec2>& texcoords, std::vector<VTXFLG>& indexes)
+{
+     
 }
 
 void ConvertStripsToTriLists(std::vector <VTXFLG> &indexes, std::vector <uint16_t> &indices)
@@ -315,8 +333,6 @@ void DrawGlob(GLOBSET *pglobset)
     {
         for (int a = 0; a < pglobset->aglob[i].csubglob; a++)
         {
-            glShader.Use();
-
             int modelUniformLocation = glGetUniformLocation(glShader.ID, "model");
             glUniformMatrix4fv(modelUniformLocation, 1, GL_FALSE, glm::value_ptr(pglobset->aglob[i].pdmat));
 

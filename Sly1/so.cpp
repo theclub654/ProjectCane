@@ -67,6 +67,19 @@ void LoadSoFromBrx(SO* pso, CBinaryInputStream* pbis)
 	LoadAloFromBrx(pso, pbis);
 }
 
+void MakeCollisionGLBuffers(GEOM *pgeom)
+{
+	glGenVertexArrays(1, &pgeom->VAO);
+	glBindVertexArray(pgeom->VAO);
+
+	glGenBuffers(1, &pgeom->VBO);
+	glBindBuffer(GL_ARRAY_BUFFER, pgeom->VBO);
+	glBufferData(GL_ARRAY_BUFFER, pgeom->apos.size() * sizeof(glm::vec3), pgeom->apos.data(), GL_STATIC_DRAW);
+
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), (void*)0);
+	glEnableVertexAttribArray(0);
+}
+
 void UpdateSo(SO* pso, float dt)
 {
 

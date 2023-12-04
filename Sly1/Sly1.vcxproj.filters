@@ -841,6 +841,12 @@
     <None Include="glob.vert">
       <Filter>Resource Files</Filter>
     </None>
+    <None Include="collision.frag">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="collision.vert">
+      <Filter>Resource Files</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Sly1.rc">

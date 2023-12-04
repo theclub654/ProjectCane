@@ -1,5 +1,8 @@
 #pragma once
 #include "vec.h"
+#include <glad/glad.h>
+
+// Collision related
 
 struct EDGE 
 {
@@ -21,6 +24,10 @@ struct SURF
 
 struct GEOM
 {
+    GLuint VAO;
+    GLuint VBO;
+    GLuint VNO;
+
     float sRadius;
     int cpos;
     std::vector <glm::vec3> apos;

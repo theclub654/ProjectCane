@@ -71,7 +71,7 @@ void FREECAMERA::UpdateCameraFov(double dy)
 		fov = 45.0f;
 }
 
-void FREECAMERA::UpdateViewProjMatrix(int height, int width)
+void FREECAMERA::UpdateViewProjMatrix(int height, int width, GLSHADER shader)
 {
 	glm::mat4 proj{ 1.0 };
 	glm::mat4 view{ 1.0 };
@@ -81,7 +81,12 @@ void FREECAMERA::UpdateViewProjMatrix(int height, int width)
 	// Transform coordinates from world space to camera space
 	view = glm::lookAt(cameraPos, cameraPos + cameraDirection, cameraUp);
 
-	glShader.Use();
+	SendViewProjShader(proj, view, shader);
+}
+
+void FREECAMERA::SendViewProjShader(glm::mat4 proj, glm::mat4 view, GLSHADER shader)
+{
+	shader.Use();
 
 	// Sends view matrix to GPU shader
 	int viewUniformLocation = glGetUniformLocation(glShader.ID, "view");

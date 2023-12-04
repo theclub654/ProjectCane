@@ -38,7 +38,8 @@ public:
 	void UpdateCameraDirection(double dx, double dy);
 	void UpdateCameraPos(CAMERADIRECTION direction, double dt);
 	void UpdateCameraFov(double dy);
-	void UpdateViewProjMatrix(int height, int width);
+	void UpdateViewProjMatrix(int height, int width, GLSHADER shader);
+	void SendViewProjShader(glm::mat4 proj, glm::mat4 view, GLSHADER shader);
 	void UpdateCameraVectors();
 };
 

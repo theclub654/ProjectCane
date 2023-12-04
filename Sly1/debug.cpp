@@ -1,39 +1,48 @@
 #include "debug.h"
 
-void RenderOpenFileGui()
+void RenderMenuGui(SW* psw)
 {
-	ImGui::Begin("ProjectCane");
-
-    // open Dialog Simple
-    ImGuiFileDialog instance_a;
-
-    if (ImGui::Button("Open World"))
-        instance_a.Instance()->OpenDialog("ChooseFileDlgKey", "Choose File", ".brx", ".");
-
-    // display
-    if (instance_a.Instance()->Display("ChooseFileDlgKey"))
+    if (ImGui::BeginMainMenuBar()) 
     {
-        // action if OK
-        if (instance_a.Instance()->IsOk())
+        if (ImGui::BeginMenu("File")) 
         {
-            file = ImGuiFileDialog::Instance()->GetFilePathName();
-            std::string filePath = ImGuiFileDialog::Instance()->GetCurrentPath();
-            /*std::cout << file << "\n";
-            std::cout << filePath << "\n";*/
-            g_transition.m_fPending = 1;
-            // action
+            if (ImGui::MenuItem("Open World"))
+                instance_a.Instance()->OpenDialog("ChooseFileDlgKey", "Choose File", ".brx", ".");
+
+            if (ImGui::MenuItem("Close World"))
+                DeleteSw(psw);
+
+            ImGui::EndMenu();
         }
 
-        // close
-        instance_a.Instance()->Close();
-    }
-}
+        if (ImGui::BeginMenu("Render"))
+        {
+            if (fRenderModels == ImGui::MenuItem("Map", "", &fRenderModels))
+            {
+                
+            }
 
-void RenderCloseWorldGui(SW* psw)
-{
-    if (ImGui::Button("Close World"))
-    {
-        glFlush;
-        DeleteSw(psw);
+            if (fRenderCollision == ImGui::MenuItem("Collision", "", &fRenderCollision))
+            {
+                
+            }
+
+
+            ImGui::EndMenu();
+        }
+
+        if (instance_a.Instance()->Display("ChooseFileDlgKey"))
+        {
+            if (instance_a.Instance()->IsOk() == true)
+            {
+                file = ImGuiFileDialog::Instance()->GetFilePathName();
+                std::string filePath = ImGuiFileDialog::Instance()->GetCurrentPath();
+                g_transition.m_fPending = 1;
+            }
+
+            instance_a.Instance()->Close();
+        }
+
+        ImGui::EndMainMenuBar();
     }
 }

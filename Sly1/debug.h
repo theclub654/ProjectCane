@@ -8,5 +8,8 @@
 extern std::string file;
 void DeleteWorld(SW* psw);
 
-void RenderOpenFileGui();
-void RenderCloseWorldGui(SW* psw);
+static ImGuiFileDialog instance_a;
+extern inline bool fRenderModels = true;
+extern inline bool fRenderCollision = false;
+
+void RenderMenuGui(SW* psw);

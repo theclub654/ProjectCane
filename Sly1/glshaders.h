@@ -24,5 +24,5 @@ class GLSHADER
 
 std::string get_file_contents(const char* filename);
 
-// Global OPENGL shader used for rendering
 extern GLSHADER glShader;
+extern GLSHADER glShaderCollision;

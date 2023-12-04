@@ -4,6 +4,7 @@
 bool loadEmitMesh = 0;
 GL g_gl;
 GLSHADER glShader;
+GLSHADER glShaderCollision;
 std::string file;
 CTransition g_transition;
 FREECAMERA g_freecamera(glm::vec3{0.0});
@@ -33,22 +34,26 @@ int main(int cphzArgs, char* aphzArgs[])
 		ImGui_ImplGlfw_NewFrame();
 		ImGui::NewFrame();
 
+		RenderMenuGui(g_psw);
+
 		if (g_psw != nullptr)
 		{
 			double currentTime = glfwGetTime();
 			deltaTime = currentTime - lastFrame;
 			lastFrame = currentTime;
-			
-			//std::cout << glm::to_string(g_freecamera.cameraDirection) << "\n";
+
 			ProcessInput(g_gl.window, deltaTime);
-			g_freecamera.UpdateViewProjMatrix(g_gl.height, g_gl.width);
-			DrawSwAll();
+
+			g_freecamera.UpdateViewProjMatrix(g_gl.height, g_gl.width, glShader);
+			g_freecamera.UpdateViewProjMatrix(g_gl.height, g_gl.width, glShaderCollision);
+
+			if(fRenderModels != 0)
+				DrawSwAll();
+
+			if (fRenderCollision != 0)
+				DrawSwCollisionAll();
 		}
 
-		RenderOpenFileGui();
-		RenderCloseWorldGui(g_psw);
-
-		ImGui::End();
 		ImGui::Render();
 		ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
@@ -70,6 +75,7 @@ void Startup()
 	StartupBrx();
 	g_gl.InitGL();
 	glShader.Init("glob.vert", "glob.frag");
+	glShaderCollision.Init("collision.vert", "collision.frag");
 }
 
 void ProcessInput(GLFWwindow* window, double dt)
@@ -92,12 +98,10 @@ void ProcessInput(GLFWwindow* window, double dt)
 	if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS)
 		g_freecamera.UpdateCameraPos(CAMERADIRECTION::DOWN, dt);
 
-	double dx = MOUSE::GetDX() , dy = MOUSE::GetDY();
-
 	if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS)
 	{
 		glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_HIDDEN);
-		g_freecamera.UpdateCameraDirection(dx, dy);
+		g_freecamera.UpdateCameraDirection(MOUSE::GetDX(), MOUSE::GetDY());
 	}
 
 	double scrollDy = MOUSE::GetScrollDY();

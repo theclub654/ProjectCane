@@ -114,6 +114,8 @@ struct GLOBSET // NOT DONE
 
 // Loads 3D models from binary file
 void LoadGlobsetFromBrx(GLOBSET* pglobset, CBinaryInputStream* pbis, ALO* palo); // NOT FINISHED
+void BuildSubGlobSinglePass(GLOBSET *pglobset, SHD* pshd, std::vector <glm::vec3> &vertexes, std::vector <glm::vec3> &normals, std::vector <RGBA> &vertexColors, std::vector <glm::vec2> &texcoords, std::vector <VTXFLG> &indexes);
+void BuildSubGlobThreeWay(GLOBSET* pglobset, SHD* pshd, std::vector <glm::vec3> &vertexes, std::vector <glm::vec3> &normals, std::vector <RGBA> &vertexColors, std::vector <glm::vec2> &texcoords, std::vector <VTXFLG> &indexes);
 // Converts tri strips to tri list
 void ConvertStripsToTriLists(std::vector <VTXFLG>& indexes, std::vector <uint16_t>& indices);
 // Storing 3D models in VRAM

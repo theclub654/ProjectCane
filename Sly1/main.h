@@ -8,6 +8,7 @@
 
 void RenderSw(SW* psw, CM* pcm);
 void DrawSwAll();
+void DrawSwCollisionAll();
 void DeleteSw(SW* psw);
 
 // Game loop

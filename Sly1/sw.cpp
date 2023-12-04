@@ -1,8 +1,10 @@
 #include "sw.h"
+#include "debug.h"
 
 std::vector<LO*> allWorldObjs;
 std::vector<ALO*> allSWAloObjs;
 extern std::vector<void*> allSwLights;
+extern std::vector <GEOM> allcollisionModels;
 
 void* NewSw()
 {
@@ -121,6 +123,8 @@ void DeleteWorld(SW* psw)
 	allWorldObjs.shrink_to_fit();
 	allSwLights.clear();
 	allSwLights.shrink_to_fit();
+	allcollisionModels.clear();
+	allcollisionModels.shrink_to_fit();
 
 	g_psw = nullptr;
 	std::cout << "World Deleted\n";
