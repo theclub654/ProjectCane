@@ -17,16 +17,15 @@ void RenderMenuGui(SW* psw)
 
         if (ImGui::BeginMenu("Render"))
         {
-            if (fRenderModels == ImGui::MenuItem("Map", "", &fRenderModels))
+            if (ImGui::MenuItem("Map", "", &fRenderModels))
             {
                 
             }
 
-            if (fRenderCollision == ImGui::MenuItem("Collision", "", &fRenderCollision))
+            if (ImGui::MenuItem("Collision", "", &fRenderCollision))
             {
                 
             }
-
 
             ImGui::EndMenu();
         }

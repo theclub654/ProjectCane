@@ -51,7 +51,9 @@ int main(int cphzArgs, char* aphzArgs[])
 				DrawSwAll();
 
 			if (fRenderCollision != 0)
+			{
 				DrawSwCollisionAll();
+			}
 		}
 
 		ImGui::Render();
@@ -64,6 +66,7 @@ int main(int cphzArgs, char* aphzArgs[])
 
 	DeleteSw(g_psw);
 	glShader.Delete();
+	glShaderCollision.Delete();
 	g_gl.GLFWTerminate();
 	return 0;
 }
@@ -97,6 +100,10 @@ void ProcessInput(GLFWwindow* window, double dt)
 
 	if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS)
 		g_freecamera.UpdateCameraPos(CAMERADIRECTION::DOWN, dt);
+
+	if (glfwGetKey(window, GLFW_KEY_R) == GLFW_PRESS)
+		g_freecamera.cameraPos = glm::vec3{ 0.0 };
+
 
 	if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS)
 	{

@@ -258,7 +258,7 @@ void RenderAloAsBone(ALO* palo, CM* pcm, RO* pro)
 
 void DrawAlo(ALO* palo)
 {
-	DrawGlob(&palo->globset);
+	DrawGlob(&palo->globset, palo->xf.pos);
 }
 
 void DeleteModel(ALO *palo)

@@ -134,11 +134,11 @@ void LoadGlobsetFromBrx(GLOBSET* pglobset, CBinaryInputStream* pbis, ALO* palo)
                 for (int b = 0; b < vertexCount; b++)
                     pglobset->aglob[i].asubglob[a].vertexes[b] = pbis->ReadVector();
                  
-                //std::cout << "Normals: " << std::hex << file.tellg() << "\n";
+                //std::cout << "Normals: " << std::hex << pbis->file.tellg() << "\n";
                 for (int c = 0; c < normalCount; c++)
                     pglobset->aglob[i].asubglob[a].normals[c] = pbis->ReadVector();
 
-                //std::cout << "Vertex Colors: " << std::hex << file.tellg() << "\n";
+                //std::cout << "Vertex Colors: " << std::hex << pbis->file.tellg() << "\n";
                 for (int d = 0; d < vertexColorCount; d++)
                     pglobset->aglob[i].asubglob[a].vertexColors[d] = (RGBA)pbis->U32Read();
 
@@ -146,9 +146,14 @@ void LoadGlobsetFromBrx(GLOBSET* pglobset, CBinaryInputStream* pbis, ALO* palo)
                 for (int e = 0; e < texcoordCount; e++)
                     pglobset->aglob[i].asubglob[a].texcoords[e] = pbis->ReadVector2();
 
-                //std::cout << "Indexes: " << std::hex << file.tellg() << "\n\n";
+                //std::cout << "Indexes: " << std::hex << pbis->file.tellg() << "\n\n";
                 for (int f = 0; f < indexCount; f++)
-                    pglobset->aglob[i].asubglob[a].indexes[f] = (VTXFLG)pbis->U32Read();
+                {
+                    pglobset->aglob[i].asubglob[a].indexes[f].ipos = pbis->U8Read();
+                    pglobset->aglob[i].asubglob[a].indexes[f].inormal = pbis->U8Read();
+                    pglobset->aglob[i].asubglob[a].indexes[f].iuv = pbis->U8Read();
+                    pglobset->aglob[i].asubglob[a].indexes[f].bMisc = pbis->U8Read();
+                }
 
                 ConvertStripsToTriLists(pglobset->aglob[i].asubglob[a].indexes, pglobset->aglob[i].asubglob[a].indices);
 
@@ -277,6 +282,7 @@ void ConvertStripsToTriLists(std::vector <VTXFLG> &indexes, std::vector <uint16_
             indices.push_back(indice1);
             indices.push_back(indice2);
         }
+
         idx++;
     }
 }
@@ -327,14 +333,18 @@ void MakeGLBuffers(GLOBSET *pglobset)
     }
 }
 
-void DrawGlob(GLOBSET *pglobset)
+void DrawGlob(GLOBSET* pglobset, glm::vec3 pos)
 {
+    glShader.Use();
+
     for (int i = 0; i < pglobset->cglob; i++)
     {
         for (int a = 0; a < pglobset->aglob[i].csubglob; a++)
         {
+            glm::mat4 model{ 1.0 };
+            
             int modelUniformLocation = glGetUniformLocation(glShader.ID, "model");
-            glUniformMatrix4fv(modelUniformLocation, 1, GL_FALSE, glm::value_ptr(pglobset->aglob[i].pdmat));
+            glUniformMatrix4fv(modelUniformLocation, 1, GL_FALSE, glm::value_ptr(model));
 
             glBindVertexArray(pglobset->aglob[i].asubglob[a].VAO);
             glDrawElements(GL_TRIANGLES, pglobset->aglob[i].asubglob[a].indices.size(), GL_UNSIGNED_SHORT, (void*)0);

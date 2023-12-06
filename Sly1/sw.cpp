@@ -60,7 +60,6 @@ void LoadSwFromBrx(SW* psw, CBinaryInputStream* pbis)
 	// Setting difficulty for world
 	OnDifficultyWorldPreLoad(&g_difficulty);
 	//StartupSplice();
-	
 	// Loading unknown debug flag from file
 	pbis->U8Read();
 	// Loading index sound bank from file

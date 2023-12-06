@@ -121,4 +121,4 @@ void ConvertStripsToTriLists(std::vector <VTXFLG>& indexes, std::vector <uint16_
 // Storing 3D models in VRAM
 void MakeGLBuffers(GLOBSET* pglobset);
 // Draws Model
-void DrawGlob(GLOBSET *pglobset); // NOT FINISHED
+void DrawGlob(GLOBSET *pglobset, glm::vec3 pos); // NOT FINISHED
