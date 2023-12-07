@@ -1,5 +1,5 @@
 #include "alo.h"
-std::vector <GEOM> allcollisionModels;
+std::vector <GEOM*> allcollisionModels;
 
 void* NewAlo()
 {
@@ -273,14 +273,7 @@ void DeleteModel(ALO *palo)
 			glDeleteBuffers(1, &palo->globset.aglob[i].asubglob[a].VCB);
 			glDeleteBuffers(1, &palo->globset.aglob[i].asubglob[a].TCB);
 			glDeleteBuffers(1, &palo->globset.aglob[i].asubglob[a].EBO);
-			glDeleteTextures(1, &palo->globset.aglob[i].asubglob[a].gl_texture);
 		}
-	}
-
-	for (int i = 0; i < allcollisionModels.size(); i++)
-	{
-		glDeleteVertexArrays(1, &allcollisionModels[i].VAO);
-		glDeleteBuffers(1, &allcollisionModels[i].VBO);
 	}
 }
 

@@ -159,7 +159,7 @@ void LoadGlobsetFromBrx(GLOBSET* pglobset, CBinaryInputStream* pbis, ALO* palo)
 
                 // Loading texture property info from vector
                 pglobset->aglob[i].asubglob[a].pshd = &g_ashd[pbis->U16Read()];
-                
+
                 pglobset->aglob[i].asubglob[a].unSelfIllum = pbis->U8Read();
                 pglobset->aglob[i].asubglob[a].cibnd = pbis->U8Read();
 
@@ -345,6 +345,9 @@ void DrawGlob(GLOBSET* pglobset, glm::vec3 pos)
             
             int modelUniformLocation = glGetUniformLocation(glShader.ID, "model");
             glUniformMatrix4fv(modelUniformLocation, 1, GL_FALSE, glm::value_ptr(model));
+
+            glActiveTexture(GL_TEXTURE0);
+            glBindTexture(GL_TEXTURE_2D, pglobset->aglob[i].asubglob[a].pshd->glTexture);
 
             glBindVertexArray(pglobset->aglob[i].asubglob[a].VAO);
             glDrawElements(GL_TRIANGLES, pglobset->aglob[i].asubglob[a].indices.size(), GL_UNSIGNED_SHORT, (void*)0);

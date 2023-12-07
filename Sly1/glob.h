@@ -33,7 +33,6 @@ struct SUBGLOB // NOT DONE
 	GLuint VCB;
 	GLuint TCB;
 	GLuint EBO;
-	GLuint gl_texture;
 
 	glm::vec3 posCenter; // Submodel orgin
 	float sRadius;

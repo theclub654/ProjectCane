@@ -25,7 +25,7 @@ struct CLUT
     short numColors;
     // Color size of the CLUT
     short colorSize;
-    // Ptr to CLUT
+    // Ptr to CLUT in memory
     uint32_t baseOffset;
 };
 
@@ -35,14 +35,14 @@ struct BMP
     // BMP width
     short bmpWidth;
     // BMP height
-    short bmpheight;
+    short bmpHeight;
     uint32_t grfzon;
     byte psm;
     byte cgsRow;
     short cgsPixels;
     // BMP size
     uint32_t cbPixels;
-    // Offset to BMP in memory MIGHT NOT BE NEEDED
+    // Offset to BMP in memory
     uint32_t baseOffset;
 };
 
@@ -58,6 +58,7 @@ struct TEXF
 
 struct SHDF
 {
+    GLuint glTexture;
     byte shdk;
     byte grfshd;
     uint16_t oid;
@@ -98,6 +99,10 @@ void LoadFontsFromBrx(CBinaryInputStream *pbis); // GOTTA COME BACK TO THIS
 void LoadTexFromBrx(CBinaryInputStream* pbis, TEX* ptex);
 // Loads texture and shader data from binary file
 void LoadShadersFromBrx(CBinaryInputStream *pbis);
+void ParseTextures(CBinaryInputStream* pbis);
+std::vector <byte> MakeBmp(CBinaryInputStream* pbis, uint32_t bmpIndex);
+std::vector <byte> MakePallete(CBinaryInputStream* pbis, uint32_t clutIndex);
+void MakeTexture(CBinaryInputStream* pbis, uint32_t textureTableIndex, int16_t clutIndex, int16_t bmpIndex);
 
 // Global variable which holds the number of CLUT's in a binary file
 static int g_cclut;
@@ -118,3 +123,7 @@ static int g_cpsaa;
 static std::vector <SAA> g_apsaa;
 // Table for texture property's
 static std::vector<TEX> g_atex;
+// Unswizzled CLUT indices
+static uint8_t csm1ClutIndices[256];
+// Start of texture data
+static size_t textureDataStart;

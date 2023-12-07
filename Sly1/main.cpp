@@ -8,7 +8,7 @@ GLSHADER glShaderCollision;
 std::string file;
 CTransition g_transition;
 FREECAMERA g_freecamera(glm::vec3{0.0});
-
+bool firstClick = true;
 float deltaTime = 0.0f;
 float lastFrame = 0.0f;
 
@@ -51,9 +51,7 @@ int main(int cphzArgs, char* aphzArgs[])
 				DrawSwAll();
 
 			if (fRenderCollision != 0)
-			{
 				DrawSwCollisionAll();
-			}
 		}
 
 		ImGui::Render();

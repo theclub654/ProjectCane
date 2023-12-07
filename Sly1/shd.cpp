@@ -56,7 +56,7 @@ void LoadBitmapsFromBrx(CBinaryInputStream *pbis)
 	for (int i = 0; i < g_cbmp; i++)
 	{
 		g_abmp[i].bmpWidth = pbis->U16Read();
-		g_abmp[i].bmpheight = pbis->U16Read();
+		g_abmp[i].bmpHeight = pbis->U16Read();
 		g_abmp[i].grfzon = pbis->U32Read();
 		g_abmp[i].psm = pbis->S8Read();
 		g_abmp[i].cgsRow = pbis->S8Read();
@@ -135,4 +135,163 @@ void LoadShadersFromBrx(CBinaryInputStream *pbis)
 	}
 
 	LoadFontsFromBrx(pbis);
+}
+
+void ParseTextures(CBinaryInputStream* pbis)
+{
+    for (uint16_t i = 0; i < 0x100; i += 0x20) {
+        for (uint16_t j = i; j < i + 8; j++) {
+            csm1ClutIndices[j] = static_cast<uint8_t>(j);
+            csm1ClutIndices[j + 8] = static_cast<uint8_t>(j) + 0x10;
+            csm1ClutIndices[j + 0x10] = static_cast<uint8_t>(j) + 0x8;
+            csm1ClutIndices[j + 0x18] = static_cast<uint8_t>(j) + 0x18;
+        }
+    }
+
+    textureDataStart = pbis->file.tellg();
+
+    for (int i = 0; i < g_ashd.size(); i++)
+    {
+        for (int a = 0; a < g_ashd[i].atex.size(); a++)
+        {
+            bool is1Img1Pal = ((g_ashd[i].atex[a].bmpIndex.size() == 1) && (g_ashd[i].atex[a].clutIndex.size() == 1));
+            bool is1ImgManyPal = ((g_ashd[i].atex[a].bmpIndex.size() == 1) && (g_ashd[i].atex[a].clutIndex.size() > 1));
+            bool isManyImgManyPal = ((g_ashd[i].atex[a].bmpIndex.size() > 1) && (g_ashd[i].atex[a].clutIndex.size() > 1));
+
+            if (is1Img1Pal)
+                MakeTexture(pbis, i, g_ashd[i].atex[a].clutIndex[0], g_ashd[i].atex[a].bmpIndex[0]);
+
+            else if (is1ImgManyPal)
+            {
+                if (g_ashd[i].atex[a].clutIndex.size() == 3)
+                {
+                    MakeTexture(pbis, i, g_ashd[i].atex[a].clutIndex[1], g_ashd[i].atex[a].bmpIndex[0]);
+                    MakeTexture(pbis, i, g_ashd[i].atex[a].clutIndex[1], g_ashd[i].atex[a].bmpIndex[0]);
+                    MakeTexture(pbis, i, g_ashd[i].atex[a].clutIndex[1], g_ashd[i].atex[a].bmpIndex[0]);
+                }
+
+                else
+                    MakeTexture(pbis, i, g_ashd[i].atex[a].clutIndex[1], g_ashd[i].atex[a].bmpIndex[0]);
+            }
+
+            else if (isManyImgManyPal)
+                MakeTexture(pbis, i, g_ashd[i].atex[a].clutIndex[1], g_ashd[i].atex[a].bmpIndex[1]);
+        }
+    }
+}
+
+std::vector<byte> MakeBmp(CBinaryInputStream* pbis, uint32_t bmpIndex)
+{
+    std::vector <byte> buffer;
+    std::vector <byte> test;
+
+    size_t bufferOff = textureDataStart + g_abmp[bmpIndex].baseOffset;
+    int width = g_abmp[bmpIndex].bmpWidth;
+    int height = g_abmp[bmpIndex].bmpHeight;
+
+    buffer.resize(width * height);
+    pbis->file.seekg(bufferOff, SEEK_SET);
+
+    for (int i = 0; i < width * height; i++)
+        buffer[i] = pbis->U8Read();
+
+    return buffer;
+}
+
+std::vector<byte> MakePallete(CBinaryInputStream* pbis, uint32_t clutIndex)
+{
+    std::vector <byte> buffer;
+
+    size_t paletteBuffer = textureDataStart + g_aclut[clutIndex].baseOffset;
+    int numColors = g_aclut[clutIndex].numColors;
+    int colorSize = g_aclut[clutIndex].colorSize;
+
+    buffer.resize(numColors * colorSize * 4);
+
+    pbis->file.seekg(paletteBuffer, SEEK_SET);
+
+    for (int i = 0; i < numColors * colorSize * 4; i++)
+        buffer[i] = pbis->U8Read();
+
+    return buffer;
+}
+
+void MakeTexture(CBinaryInputStream* pbis, uint32_t textureTableIndex, int16_t clutIndex, int16_t bmpIndex)
+{
+    if (clutIndex >= g_aclut.size() || bmpIndex >= g_abmp.size())
+        return;
+
+    std::vector <byte> image;
+    std::vector <byte> pallete;
+    std::vector <byte> texture;
+
+    image = MakeBmp(pbis, bmpIndex);
+    pallete = MakePallete(pbis, clutIndex);
+
+    short width = g_abmp[bmpIndex].bmpWidth;
+    short height = g_abmp[bmpIndex].bmpHeight;
+
+    texture.resize(width * height * 4);
+
+    byte alpha;
+    if (g_aclut[clutIndex].numColors > 16)
+    {
+        for (int i = 0; i < width * height; i++)
+        {
+            int index = csm1ClutIndices[image[i]] * 4;
+
+            texture[4 * i + 0] = pallete[index + 0];
+            texture[4 * i + 1] = pallete[index + 1];
+            texture[4 * i + 2] = pallete[index + 2];
+
+            alpha = pallete[index + 3];
+            if (alpha == 0x80)
+                texture[4 * i + 3] = 0xFF;
+            else
+                texture[4 * i + 3] = pallete[index + 3];
+        }
+    }
+
+    else
+    {
+        for (int i = 0; i < width * height / 2; i++)
+        {
+            byte index1 = image[i] >> 4;
+            byte index2 = image[i] & 0x0F;
+
+            texture[8 * i + 0] = pallete[4 * index1 + 0];
+            texture[8 * i + 1] = pallete[4 * index1 + 1];
+            texture[8 * i + 2] = pallete[4 * index1 + 2];
+
+            alpha = pallete[4 * index1 + 3];
+            if (alpha == 0x80)
+                texture[8 * i + 3] = 0xFF;
+            else
+                texture[8 * i + 3] = pallete[4 * index1 + 3];
+
+            texture[8 * i + 4] = pallete[4 * index2 + 0];
+            texture[8 * i + 5] = pallete[4 * index2 + 1];
+            texture[8 * i + 6] = pallete[4 * index2 + 2];
+
+            alpha = pallete[4 * index2 + 3];
+            if (alpha == 0x80)
+                texture[8 * i + 7] = 0xFF;
+            else
+                texture[8 * i + 7] = pallete[4 * index2 + 3];
+        }
+    }
+
+    glGenTextures(1, &g_ashd[textureTableIndex].glTexture);
+    glBindTexture(GL_TEXTURE_2D, g_ashd[textureTableIndex].glTexture);
+
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, texture.data());
+
+    glBindTexture(GL_TEXTURE_2D, 0);
+    texture.clear();
+    texture.shrink_to_fit();
 }

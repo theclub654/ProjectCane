@@ -1,6 +1,6 @@
 #include "bis.h"
 
-std::vector <GEOM*> allcollisionModels;
+extern std::vector <GEOM*> allcollisionModels;
 
 CBinaryInputStream::CBinaryInputStream(std::string filePath)
 {

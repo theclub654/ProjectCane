@@ -4,7 +4,7 @@
 std::vector<LO*> allWorldObjs;
 std::vector<ALO*> allSWAloObjs;
 extern std::vector<void*> allSwLights;
-extern std::vector <GEOM> allcollisionModels;
+extern std::vector <GEOM*> allcollisionModels;
 
 void* NewSw()
 {
@@ -80,6 +80,8 @@ void LoadSwFromBrx(SW* psw, CBinaryInputStream* pbis)
 	// Loads all the static world objects from the binary file
 	LoadSwObjectsFromBrx(psw, 0x0, pbis);
 	pbis->Align(0x10);
+	std::cout << "Loading Textures\n";
+	ParseTextures(pbis);
 	std::cout << "World Loaded Successfully\n";
 }
 
@@ -110,12 +112,21 @@ void DeleteSw(SW* psw)
 
 void DeleteWorld(SW* psw)
 {
+	for (int i = 0; i < allcollisionModels.size(); i++)
+	{
+		glDeleteVertexArrays(1, &allcollisionModels[i]->VAO);
+		glDeleteBuffers(1, &allcollisionModels[i]->VBO);
+	}
+
 	for (int i = 0; i < allSWAloObjs.size(); i++)
 		DeleteModel(allSWAloObjs[i]);
 
 	for (int i = 0; i < allWorldObjs.size(); i++)
 		allWorldObjs[i]->pvtlo->pfnDeleteLo(allWorldObjs[i]);
-	
+
+	for (int i = 0; i < g_ashd.size(); i++)
+		glDeleteTextures(1, &g_ashd[i].glTexture);
+
 	allSWAloObjs.clear();
 	allSWAloObjs.shrink_to_fit();
 	allWorldObjs.clear();
