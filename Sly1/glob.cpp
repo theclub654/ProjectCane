@@ -257,12 +257,39 @@ void LoadGlobsetFromBrx(GLOBSET* pglobset, CBinaryInputStream* pbis, ALO* palo)
 
 void BuildSubGlobSinglePass(GLOBSET* pglobset, SHD* pshd, std::vector<glm::vec3>& vertexes, std::vector<glm::vec3>& normals, std::vector<RGBA>& vertexColors, std::vector<glm::vec2>& texcoords, std::vector<VTXFLG>& indexes)
 {
+    std::vector <glm::vec2> newUvs;
+    newUvs.resize(indexes.size());
+
+    for (int i = 0; i < indexes.size(); i++)
+    {
+        byte uvIndex = indexes[i].iuv;
+
+        if (uvIndex == 0xFF)
+            newUvs[i] = glm::vec2(0.0, 0.0);
+        else
+            newUvs[i] = texcoords[uvIndex];
+    }
+
+    texcoords = newUvs;
 
 }
 
 void BuildSubGlobThreeWay(GLOBSET* pglobset, SHD* pshd, std::vector<glm::vec3>& vertexes, std::vector<glm::vec3>& normals, std::vector<RGBA>& vertexColors, std::vector<glm::vec2>& texcoords, std::vector<VTXFLG>& indexes)
 {
-     
+    std::vector <glm::vec2> newUvs;
+    newUvs.resize(indexes.size());
+
+    for (int i = 0; i < indexes.size(); i++)
+    {
+        byte uvIndex = indexes[i].iuv;
+
+        if (uvIndex == 0xFF)
+            newUvs[i] = glm::vec2(0.0, 0.0);
+        else
+            newUvs[i] = texcoords[uvIndex];
+    }
+
+    texcoords = newUvs;
 }
 
 void ConvertStripsToTriLists(std::vector <VTXFLG> &indexes, std::vector <uint16_t> &indices)
