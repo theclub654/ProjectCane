@@ -12,6 +12,13 @@ enum TWPS
 	TWPS_ShadowMidtoneSaturate = 2
 };
 
+struct VERTICE
+{
+	glm::vec3 pos;
+	glm::vec3 normal;
+	glm::vec2 uv;
+};
+
 // Vertex Flag
 struct VTXFLG
 {
@@ -36,6 +43,7 @@ struct SUBGLOB // NOT DONE
 
 	glm::vec3 posCenter; // Submodel orgin
 	float sRadius;
+	std::vector <VERTICE> vertices;
 	std::vector <glm::vec3> vertexes;
 	std::vector <glm::vec3> normals;
 	std::vector <RGBA> vertexColors;
@@ -113,10 +121,7 @@ struct GLOBSET // NOT DONE
 
 // Loads 3D models from binary file
 void LoadGlobsetFromBrx(GLOBSET* pglobset, CBinaryInputStream* pbis, ALO* palo); // NOT FINISHED
-void BuildSubGlobSinglePass(GLOBSET *pglobset, SHD* pshd, std::vector <glm::vec3> &vertexes, std::vector <glm::vec3> &normals, std::vector <RGBA> &vertexColors, std::vector <glm::vec2> &texcoords, std::vector <VTXFLG> &indexes);
-void BuildSubGlobThreeWay(GLOBSET* pglobset, SHD* pshd, std::vector <glm::vec3> &vertexes, std::vector <glm::vec3> &normals, std::vector <RGBA> &vertexColors, std::vector <glm::vec2> &texcoords, std::vector <VTXFLG> &indexes);
-// Converts tri strips to tri list
-void ConvertStripsToTriLists(std::vector <VTXFLG>& indexes, std::vector <uint16_t>& indices);
+void BuildSubGlob(GLOBSET *pglobset, SHD* pshd, std::vector<VERTICE> &vertices , std::vector <glm::vec3> &vertexes, std::vector <glm::vec3> &normals, std::vector <RGBA> &vertexColors, std::vector <glm::vec2> &texcoords, std::vector <VTXFLG> &indexes, std::vector<uint16_t> &indices);
 // Storing 3D models in VRAM
 void MakeGLBuffers(GLOBSET* pglobset);
 // Draws Model

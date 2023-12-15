@@ -77,7 +77,7 @@ void FREECAMERA::UpdateViewProjMatrix(int height, int width, GLSHADER shader)
 	glm::mat4 view{ 1.0 };
 
 	// Creates a large frustum
-	proj = glm::perspective(glm::radians(fov), (float)height / (float)width, 1.0f, 10000000.0f);
+	proj = glm::perspective(glm::radians(fov), (float)height / (float)width, 100.0f, 1000000.0f);
 	// Transform coordinates from world space to camera space
 	view = glm::lookAt(cameraPos, cameraPos + cameraDirection, cameraUp);
 

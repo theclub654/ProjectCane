@@ -80,7 +80,7 @@ void LoadSwFromBrx(SW* psw, CBinaryInputStream* pbis)
 	// Loads all the static world objects from the binary file
 	LoadSwObjectsFromBrx(psw, 0x0, pbis);
 	pbis->Align(0x10);
-	std::cout << "Loading Textures\n";
+	std::cout << "Loading Textures...\n";
 	ParseTextures(pbis);
 	std::cout << "World Loaded Successfully\n";
 }

@@ -39,7 +39,13 @@ void LoadGlobsetFromBrx(GLOBSET* pglobset, CBinaryInputStream* pbis, ALO* palo)
         if ((unk_5 & 1) != 0)
         {
             pbis->S16Read();
-            pglobset->aglob[i].pdmat = pbis->ReadMatrix4x4();
+            pglobset->aglob[i].pdmat =
+            {
+                pbis->F32Read(), pbis->F32Read(),pbis->F32Read(),0.0f,
+                pbis->F32Read(), pbis->F32Read(),pbis->F32Read(),0.0f,
+                pbis->F32Read(), pbis->F32Read(),pbis->F32Read(),0.0f,
+                pbis->F32Read(), pbis->F32Read(),pbis->F32Read(),1.0f,
+            };
         }
 
         else
@@ -111,16 +117,16 @@ void LoadGlobsetFromBrx(GLOBSET* pglobset, CBinaryInputStream* pbis, ALO* palo)
                 pglobset->aglob[i].asubglob[a].posCenter = pbis->ReadVector();
                 pglobset->aglob[i].asubglob[a].sRadius = pbis->F32Read();
 
-                byte vertexCount = pbis->U8Read();
                 //std::cout << std::dec << "Vertex Count: " << (uint32_t)vertexCount << "\n";
-                byte normalCount = pbis->U8Read();
+                byte vertexCount = pbis->U8Read();
                 //std::cout << std::dec << "Rotations Count: " << (uint32_t)rotationsCount << "\n";
-                byte vertexColorCount = pbis->U8Read();
+                byte normalCount = pbis->U8Read();
                 //std::cout << std::dec << "Vertex Color Count: " << (uint32_t)vertexColorCount << "\n";
-                byte texcoordCount = pbis->U8Read();
+                byte vertexColorCount = pbis->U8Read();
                 //std::cout << std::dec << "Texcoords Count: " << (uint32_t)texCoordCount << "\n";
-                byte indexCount = pbis->U8Read();
+                byte texcoordCount = pbis->U8Read();
                 //std::cout << std::dec << "Index Count: " << (uint32_t)indexCount << "\n";
+                byte indexCount = pbis->U8Read();
                 
                 pglobset->aglob[i].asubglob[a].vertexes.resize(vertexCount);
                 pglobset->aglob[i].asubglob[a].normals.resize(normalCount);
@@ -129,10 +135,12 @@ void LoadGlobsetFromBrx(GLOBSET* pglobset, CBinaryInputStream* pbis, ALO* palo)
                 pglobset->aglob[i].asubglob[a].indexes.resize(indexCount);
 
                 pbis->Align(4);
-
+                
                 //std::cout << "Vertices: " << std::hex << pbis->file.tellg() << "\n";
                 for (int b = 0; b < vertexCount; b++)
+                {
                     pglobset->aglob[i].asubglob[a].vertexes[b] = pbis->ReadVector();
+                }
                  
                 //std::cout << "Normals: " << std::hex << pbis->file.tellg() << "\n";
                 for (int c = 0; c < normalCount; c++)
@@ -140,11 +148,19 @@ void LoadGlobsetFromBrx(GLOBSET* pglobset, CBinaryInputStream* pbis, ALO* palo)
 
                 //std::cout << "Vertex Colors: " << std::hex << pbis->file.tellg() << "\n";
                 for (int d = 0; d < vertexColorCount; d++)
-                    pglobset->aglob[i].asubglob[a].vertexColors[d] = (RGBA)pbis->U32Read();
+                {
+                    pglobset->aglob[i].asubglob[a].vertexColors[d].bRed = pbis->U8Read();
+                    pglobset->aglob[i].asubglob[a].vertexColors[d].bGreen = pbis->U8Read();
+                    pglobset->aglob[i].asubglob[a].vertexColors[d].bBlue = pbis->U8Read();
+                    pglobset->aglob[i].asubglob[a].vertexColors[d].bAlpha = pbis->U8Read();
+                }
 
                 //std::cout << "Texcoords: " << std::hex << pbis->file.tellg() << "\n";
                 for (int e = 0; e < texcoordCount; e++)
-                    pglobset->aglob[i].asubglob[a].texcoords[e] = pbis->ReadVector2();
+                {
+                    pglobset->aglob[i].asubglob[a].texcoords[e].x = pbis->F32Read();
+                    pglobset->aglob[i].asubglob[a].texcoords[e].y = pbis->F32Read();
+                }
 
                 //std::cout << "Indexes: " << std::hex << pbis->file.tellg() << "\n\n";
                 for (int f = 0; f < indexCount; f++)
@@ -154,9 +170,7 @@ void LoadGlobsetFromBrx(GLOBSET* pglobset, CBinaryInputStream* pbis, ALO* palo)
                     pglobset->aglob[i].asubglob[a].indexes[f].iuv = pbis->U8Read();
                     pglobset->aglob[i].asubglob[a].indexes[f].bMisc = pbis->U8Read();
                 }
-
-                ConvertStripsToTriLists(pglobset->aglob[i].asubglob[a].indexes, pglobset->aglob[i].asubglob[a].indices);
-
+                
                 // Loading texture property info from vector
                 pglobset->aglob[i].asubglob[a].pshd = &g_ashd[pbis->U16Read()];
 
@@ -193,14 +207,8 @@ void LoadGlobsetFromBrx(GLOBSET* pglobset, CBinaryInputStream* pbis, ALO* palo)
                         }
                     }
                 }
-
-                if (pglobset->aglob[i].asubglob[a].pshd->shdk == 1)
-                    BuildSubGlobSinglePass(pglobset, pglobset->aglob[i].asubglob[a].pshd, pglobset->aglob[i].asubglob[a].vertexes, pglobset->aglob[i].asubglob[a].normals,
-                    pglobset->aglob[i].asubglob[a].vertexColors, pglobset->aglob[i].asubglob[a].texcoords, pglobset->aglob[i].asubglob[a].indexes);
-
-                else if (pglobset->aglob[i].asubglob[a].pshd->shdk == 0)
-                    BuildSubGlobThreeWay(pglobset, pglobset->aglob[i].asubglob[a].pshd, pglobset->aglob[i].asubglob[a].vertexes, pglobset->aglob[i].asubglob[a].normals,
-                    pglobset->aglob[i].asubglob[a].vertexColors, pglobset->aglob[i].asubglob[a].texcoords, pglobset->aglob[i].asubglob[a].indexes);
+                
+                BuildSubGlob(pglobset, pglobset->aglob[i].asubglob[a].pshd, pglobset->aglob[i].asubglob[a].vertices, pglobset->aglob[i].asubglob[a].vertexes, pglobset->aglob[i].asubglob[a].normals, pglobset->aglob[i].asubglob[a].vertexColors, pglobset->aglob[i].asubglob[a].texcoords, pglobset->aglob[i].asubglob[a].indexes, pglobset->aglob[i].asubglob[a].indices);
             }
 
             uint16_t numSubMesh1 = pbis->U16Read();
@@ -255,59 +263,35 @@ void LoadGlobsetFromBrx(GLOBSET* pglobset, CBinaryInputStream* pbis, ALO* palo)
     }
 }
 
-void BuildSubGlobSinglePass(GLOBSET* pglobset, SHD* pshd, std::vector<glm::vec3>& vertexes, std::vector<glm::vec3>& normals, std::vector<RGBA>& vertexColors, std::vector<glm::vec2>& texcoords, std::vector<VTXFLG>& indexes)
+void BuildSubGlob(GLOBSET* pglobset, SHD* pshd ,std::vector<VERTICE>& vertices,std::vector<glm::vec3>& vertexes, std::vector<glm::vec3>& normals, std::vector<RGBA>& vertexColors, std::vector<glm::vec2>& texcoords, std::vector<VTXFLG>& indexes, std::vector<uint16_t> &indices)
 {
-    std::vector <glm::vec2> newUvs;
-    newUvs.resize(indexes.size());
-
     for (int i = 0; i < indexes.size(); i++)
     {
-        byte uvIndex = indexes[i].iuv;
+        VERTICE vertice;
 
-        if (uvIndex == 0xFF)
-            newUvs[i] = glm::vec2(0.0, 0.0);
+        vertice.pos = vertexes[indexes[i].ipos];
+
+        if (indexes[i].iuv == 0xFF)
+            vertice.uv = glm::vec2{0.0};
         else
-            newUvs[i] = texcoords[uvIndex];
+            vertice.uv = texcoords[indexes[i].iuv];
+
+        vertices.push_back(vertice);
     }
 
-    texcoords = newUvs;
-
-}
-
-void BuildSubGlobThreeWay(GLOBSET* pglobset, SHD* pshd, std::vector<glm::vec3>& vertexes, std::vector<glm::vec3>& normals, std::vector<RGBA>& vertexColors, std::vector<glm::vec2>& texcoords, std::vector<VTXFLG>& indexes)
-{
-    std::vector <glm::vec2> newUvs;
-    newUvs.resize(indexes.size());
-
-    for (int i = 0; i < indexes.size(); i++)
-    {
-        byte uvIndex = indexes[i].iuv;
-
-        if (uvIndex == 0xFF)
-            newUvs[i] = glm::vec2(0.0, 0.0);
-        else
-            newUvs[i] = texcoords[uvIndex];
-    }
-
-    texcoords = newUvs;
-}
-
-void ConvertStripsToTriLists(std::vector <VTXFLG> &indexes, std::vector <uint16_t> &indices)
-{
     uint32_t idx = 0;
-
     for (int i = 2; i < indexes.size(); i++)
     {
         uint16_t indice0 = indexes[idx + 0].ipos;
         uint16_t indice1 = indexes[idx + 1].ipos;
         uint16_t indice2 = indexes[idx + 2].ipos;
-        byte stripFlag = indexes[idx + 2].bMisc;
+        byte stripFlag   = indexes[idx + 2].bMisc;
 
-        if (stripFlag != 0x80 && stripFlag != 0x81 && stripFlag != 0x82 && stripFlag != 0x83 && stripFlag != 0x84 && stripFlag != 0x85 && stripFlag != 0x86 && stripFlag != 0x87 && stripFlag != 0x88 && stripFlag != 0x89 && stripFlag != 0x8A && stripFlag != 0x8B && stripFlag != 0x8C && stripFlag != 0x8D && stripFlag != 0x8E && stripFlag != 0x8F && stripFlag != 0xFF)
+        if (!(stripFlag & 0x80))
         {
-            indices.push_back(indice0);
-            indices.push_back(indice1);
-            indices.push_back(indice2);
+            indices.push_back(idx + 0);
+            indices.push_back(idx + 1);
+            indices.push_back(idx + 2);
         }
 
         idx++;
@@ -325,35 +309,20 @@ void MakeGLBuffers(GLOBSET *pglobset)
 
             glGenBuffers(1, &pglobset->aglob[i].asubglob[a].VBO);
             glBindBuffer(GL_ARRAY_BUFFER, pglobset->aglob[i].asubglob[a].VBO);
-            glBufferData(GL_ARRAY_BUFFER, pglobset->aglob[i].asubglob[a].vertexes.size() * sizeof(glm::vec3), pglobset->aglob[i].asubglob[a].vertexes.data(), GL_STATIC_DRAW);
-
-            glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), (void*)0);
-            glEnableVertexAttribArray(0);
-
-            glGenBuffers(1, &pglobset->aglob[i].asubglob[a].VNO);
-            glBindBuffer(GL_ARRAY_BUFFER, pglobset->aglob[i].asubglob[a].VNO);
-            glBufferData(GL_ARRAY_BUFFER, pglobset->aglob[i].asubglob[a].normals.size() * sizeof(glm::vec3), pglobset->aglob[i].asubglob[a].normals.data(), GL_STATIC_DRAW);
-
-            glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), (void*)0);
-            glEnableVertexAttribArray(1);
-
-            glGenBuffers(1, &pglobset->aglob[i].asubglob[a].VCB);
-            glBindBuffer(GL_ARRAY_BUFFER, pglobset->aglob[i].asubglob[a].VCB);
-            glBufferData(GL_ARRAY_BUFFER, pglobset->aglob[i].asubglob[a].vertexColors.size() * sizeof(RGBA), pglobset->aglob[i].asubglob[a].vertexColors.data(), GL_STATIC_DRAW);
-
-            glVertexAttribPointer(2, 1, GL_UNSIGNED_INT, GL_FALSE, sizeof(RGBA), (void*)0);
-            glEnableVertexAttribArray(2);
-
-            glGenBuffers(1, &pglobset->aglob[i].asubglob[a].TCB);
-            glBindBuffer(GL_ARRAY_BUFFER, pglobset->aglob[i].asubglob[a].TCB);
-            glBufferData(GL_ARRAY_BUFFER, pglobset->aglob[i].asubglob[a].texcoords.size() * sizeof(glm::vec2), pglobset->aglob[i].asubglob[a].texcoords.data(), GL_STATIC_DRAW);
-
-            glVertexAttribPointer(3, 2, GL_FLOAT, GL_FALSE, sizeof(glm::vec2), (void*)0);
-            glEnableVertexAttribArray(3);
+            glBufferData(GL_ARRAY_BUFFER, pglobset->aglob[i].asubglob[a].vertices.size() * sizeof(VERTICE), pglobset->aglob[i].asubglob[a].vertices.data(), GL_STATIC_DRAW);
 
             glGenBuffers(1, &pglobset->aglob[i].asubglob[a].EBO);
             glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, pglobset->aglob[i].asubglob[a].EBO);
             glBufferData(GL_ELEMENT_ARRAY_BUFFER, pglobset->aglob[i].asubglob[a].indices.size() * sizeof(uint16_t), pglobset->aglob[i].asubglob[a].indices.data(), GL_STATIC_DRAW);
+
+            glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(VERTICE), (void*)0);
+            glEnableVertexAttribArray(0);
+
+            glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(VERTICE), (void*)12);
+            glEnableVertexAttribArray(1);
+
+            glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(VERTICE), (void*)24);
+            glEnableVertexAttribArray(2);
 
             glBindVertexArray(0);
         }
