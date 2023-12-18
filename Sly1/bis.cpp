@@ -126,16 +126,16 @@ void CBinaryInputStream::ReadGeom(GEOM *pgeom)
 
         for (int a = 0; a < unk_0; a++)
         {
-            U16Read();
-            U16Read();
+            pgeom->indices.push_back(U16Read());
+            pgeom->indices.push_back(U16Read());
             U16Read();
         }
     }
 
     if (pgeom->cpos != 0)
     {
-        allcollisionModels.push_back(pgeom);
         MakeCollisionGLBuffers(pgeom);
+        allcollisionModels.push_back(pgeom);
     }
 }
 

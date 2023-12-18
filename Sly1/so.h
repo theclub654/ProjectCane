@@ -88,7 +88,7 @@ void* NewSo();
 void InitSo(SO *pso); // NOT FINISHED
 void OnSoAdd(SO *pso); // NOT FINISHED
 void LoadSoFromBrx(SO* pso, CBinaryInputStream* pbis); // NOT FINISHED
-void MakeCollisionGLBuffers(GEOM* pgeom);
+void MakeCollisionGLBuffers(GEOM *pgeom);
 void UpdateSo(SO *pso, float dt); // NOT FINISHED
 void RenderSoSelf(SO* pso, CM* pcm, RO* pro);
 void DeleteSo(LO* plo);

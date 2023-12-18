@@ -71,7 +71,7 @@ int main(int cphzArgs, char* aphzArgs[])
 
 void Startup()
 {
-	std::cout << "Sly Cooper 2002 Sony Computer Entertainment America & Sucker Punch Productions\n";
+	std::cout << "Sly Cooper 2002 Sony Computer Entertainment America & Sucker Punch Productions\n\n";
 	SetPhase(PHASE_Startup);
 	StartupBrx();
 	g_gl.InitGL();

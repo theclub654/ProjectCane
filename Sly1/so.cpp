@@ -76,8 +76,14 @@ void MakeCollisionGLBuffers(GEOM *pgeom)
 	glBindBuffer(GL_ARRAY_BUFFER, pgeom->VBO);
 	glBufferData(GL_ARRAY_BUFFER, pgeom->apos.size() * sizeof(glm::vec3), pgeom->apos.data(), GL_STATIC_DRAW);
 
+	glGenBuffers(1, &pgeom->EBO);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, pgeom->EBO);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, pgeom->indices.size() * sizeof(uint16_t), pgeom->indices.data(), GL_STATIC_DRAW);
+
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), (void*)0);
 	glEnableVertexAttribArray(0);
+
+	glBindVertexArray(0);
 }
 
 void UpdateSo(SO* pso, float dt)

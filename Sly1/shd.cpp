@@ -137,7 +137,7 @@ void LoadShadersFromBrx(CBinaryInputStream *pbis)
 	LoadFontsFromBrx(pbis);
 }
 
-void ParseTextures(CBinaryInputStream* pbis)
+void LoadTexturesFromBrx(CBinaryInputStream* pbis)
 {
     for (uint16_t i = 0; i < 0x100; i += 0x20) {
         for (uint16_t j = i; j < i + 8; j++) {

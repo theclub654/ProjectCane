@@ -57,6 +57,7 @@ void InitSwDlHash(SW* psw)
 
 void LoadSwFromBrx(SW* psw, CBinaryInputStream* pbis)
 {
+	std::cout << "Loading World\n";
 	// Setting difficulty for world
 	OnDifficultyWorldPreLoad(&g_difficulty);
 	//StartupSplice();
@@ -81,7 +82,7 @@ void LoadSwFromBrx(SW* psw, CBinaryInputStream* pbis)
 	LoadSwObjectsFromBrx(psw, 0x0, pbis);
 	pbis->Align(0x10);
 	std::cout << "Loading Textures...\n";
-	ParseTextures(pbis);
+	LoadTexturesFromBrx(pbis);
 	std::cout << "World Loaded Successfully\n";
 }
 
@@ -107,6 +108,7 @@ void DeleteSw(SW* psw)
 		DeleteWorld(psw);
 		UnloadShaders();
 		g_pcm = nullptr;
+		std::cout << "World Deleted\n";
 	}
 }
 
@@ -116,6 +118,7 @@ void DeleteWorld(SW* psw)
 	{
 		glDeleteVertexArrays(1, &allcollisionModels[i]->VAO);
 		glDeleteBuffers(1, &allcollisionModels[i]->VBO);
+		glDeleteBuffers(1, &allcollisionModels[i]->EBO);
 	}
 
 	for (int i = 0; i < allSWAloObjs.size(); i++)
@@ -137,7 +140,6 @@ void DeleteWorld(SW* psw)
 	allcollisionModels.shrink_to_fit();
 
 	g_psw = nullptr;
-	std::cout << "World Deleted\n";
 }
 
 void DeleteSwObj(LO* plo)

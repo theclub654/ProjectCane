@@ -99,7 +99,7 @@ void LoadFontsFromBrx(CBinaryInputStream *pbis); // GOTTA COME BACK TO THIS
 void LoadTexFromBrx(CBinaryInputStream* pbis, TEX* ptex);
 // Loads texture and shader data from binary file
 void LoadShadersFromBrx(CBinaryInputStream *pbis);
-void ParseTextures(CBinaryInputStream* pbis);
+void LoadTexturesFromBrx(CBinaryInputStream* pbis);
 std::vector <byte> MakeBmp(CBinaryInputStream* pbis, uint32_t bmpIndex);
 std::vector <byte> MakePallete(CBinaryInputStream* pbis, uint32_t clutIndex);
 void MakeTexture(CBinaryInputStream* pbis, uint32_t textureTableIndex, int16_t clutIndex, int16_t bmpIndex);

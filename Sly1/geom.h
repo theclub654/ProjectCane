@@ -26,11 +26,12 @@ struct GEOM
 {
     GLuint VAO;
     GLuint VBO;
-    GLuint VNO;
+    GLuint EBO;
 
     float sRadius;
     int cpos;
     std::vector <glm::vec3> apos;
+    std::vector <uint16_t> indices;
     int csurf;
     std::vector <SURF> asurf;
     int cedge;

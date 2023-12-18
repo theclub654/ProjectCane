@@ -5,7 +5,7 @@
 
 typedef unsigned char byte;
 
-void MakeCollisionGLBuffers(GEOM* pgeom);
+void MakeCollisionGLBuffers(GEOM *pgeom);
 
 class CBinaryInputStream
 {

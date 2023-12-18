@@ -258,7 +258,7 @@ void RenderAloAsBone(ALO* palo, CM* pcm, RO* pro)
 
 void DrawAlo(ALO* palo)
 {
-	DrawGlob(&palo->globset, palo->xf.pos);
+	DrawGlob(&palo->globset);
 }
 
 void DeleteModel(ALO *palo)
@@ -269,9 +269,6 @@ void DeleteModel(ALO *palo)
 		{
 			glDeleteVertexArrays(1, &palo->globset.aglob[i].asubglob[a].VAO);
 			glDeleteBuffers(1, &palo->globset.aglob[i].asubglob[a].VBO);
-			glDeleteBuffers(1, &palo->globset.aglob[i].asubglob[a].VNO);
-			glDeleteBuffers(1, &palo->globset.aglob[i].asubglob[a].VCB);
-			glDeleteBuffers(1, &palo->globset.aglob[i].asubglob[a].TCB);
 			glDeleteBuffers(1, &palo->globset.aglob[i].asubglob[a].EBO);
 		}
 	}

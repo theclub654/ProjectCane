@@ -36,13 +36,11 @@ struct SUBGLOB // NOT DONE
 {
 	GLuint VAO;
 	GLuint VBO;
-	GLuint VNO;
-	GLuint VCB;
-	GLuint TCB;
 	GLuint EBO;
 
 	glm::vec3 posCenter; // Submodel orgin
 	float sRadius;
+
 	std::vector <VERTICE> vertices;
 	std::vector <glm::vec3> vertexes;
 	std::vector <glm::vec3> normals;
@@ -83,7 +81,7 @@ struct GLOB // NOT DONE
 	int csubcel;
 	//SUBCEL *asubcel;
 	// Object world space coordinates
-	glm::mat4 pdmat = glm::identity<glm::mat4>();
+	glm::mat4 pdmat;
 	//BLOT *pblot;
 	OID oid;
 	char* pchzName;
@@ -125,4 +123,4 @@ void BuildSubGlob(GLOBSET *pglobset, SHD* pshd, std::vector<VERTICE> &vertices ,
 // Storing 3D models in VRAM
 void MakeGLBuffers(GLOBSET* pglobset);
 // Draws Model
-void DrawGlob(GLOBSET *pglobset, glm::vec3 pos); // NOT FINISHED
+void DrawGlob(GLOBSET *pglobset); // NOT FINISHED

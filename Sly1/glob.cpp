@@ -41,15 +41,12 @@ void LoadGlobsetFromBrx(GLOBSET* pglobset, CBinaryInputStream* pbis, ALO* palo)
             pbis->S16Read();
             pglobset->aglob[i].pdmat =
             {
-                pbis->F32Read(), pbis->F32Read(),pbis->F32Read(),0.0f,
-                pbis->F32Read(), pbis->F32Read(),pbis->F32Read(),0.0f,
-                pbis->F32Read(), pbis->F32Read(),pbis->F32Read(),0.0f,
-                pbis->F32Read(), pbis->F32Read(),pbis->F32Read(),1.0f,
+                pbis->F32Read(), pbis->F32Read(), pbis->F32Read(), 0.0f,
+                pbis->F32Read(), pbis->F32Read(), pbis->F32Read(), 0.0f,
+                pbis->F32Read(), pbis->F32Read(), pbis->F32Read(), 0.0f,
+                pbis->F32Read(), pbis->F32Read(), pbis->F32Read(), 1.0f,
             };
         }
-
-        else
-            pglobset->aglob[i].pdmat = glm::identity<glm::mat4>();
 
         if ((unk_5 & 2) != 0)
             pglobset->aglobi[i].grfzon = pbis->U32Read();
@@ -138,9 +135,7 @@ void LoadGlobsetFromBrx(GLOBSET* pglobset, CBinaryInputStream* pbis, ALO* palo)
                 
                 //std::cout << "Vertices: " << std::hex << pbis->file.tellg() << "\n";
                 for (int b = 0; b < vertexCount; b++)
-                {
                     pglobset->aglob[i].asubglob[a].vertexes[b] = pbis->ReadVector();
-                }
                  
                 //std::cout << "Normals: " << std::hex << pbis->file.tellg() << "\n";
                 for (int c = 0; c < normalCount; c++)
@@ -258,8 +253,8 @@ void LoadGlobsetFromBrx(GLOBSET* pglobset, CBinaryInputStream* pbis, ALO* palo)
 
     if (pglobset->cglob != 0)
     {
-        allSWAloObjs.push_back(palo);
         MakeGLBuffers(pglobset);
+        allSWAloObjs.push_back(palo);
     }
 }
 
@@ -270,6 +265,7 @@ void BuildSubGlob(GLOBSET* pglobset, SHD* pshd ,std::vector<VERTICE>& vertices,s
         VERTICE vertice;
 
         vertice.pos = vertexes[indexes[i].ipos];
+        vertice.normal = normals[indexes[i].inormal];
 
         if (indexes[i].iuv == 0xFF)
             vertice.uv = glm::vec2{0.0};
@@ -296,6 +292,15 @@ void BuildSubGlob(GLOBSET* pglobset, SHD* pshd ,std::vector<VERTICE>& vertices,s
 
         idx++;
     }
+
+    vertexes.clear();
+    vertexes.shrink_to_fit();
+    normals.clear();
+    normals.shrink_to_fit();
+    vertexColors.clear();
+    vertexColors.shrink_to_fit();
+    texcoords.clear();
+    texcoords.shrink_to_fit();
 }
 
 void MakeGLBuffers(GLOBSET *pglobset)
@@ -327,12 +332,12 @@ void MakeGLBuffers(GLOBSET *pglobset)
             glBindVertexArray(0);
         }
     }
+
+
 }
 
-void DrawGlob(GLOBSET* pglobset, glm::vec3 pos)
+void DrawGlob(GLOBSET* pglobset)
 {
-    glShader.Use();
-
     for (int i = 0; i < pglobset->cglob; i++)
     {
         for (int a = 0; a < pglobset->aglob[i].csubglob; a++)
