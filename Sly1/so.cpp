@@ -7,7 +7,7 @@ void* NewSo()
 
 void InitSo(SO* pso)
 {
-	InitDl(&pso->dlPhys, 0x440);
+	InitDl(&pso->dlPhys, 0x468);
 	InitAlo(pso);
 
 	InitGeom(&pso->geomLocal);

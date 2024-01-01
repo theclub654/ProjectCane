@@ -34,7 +34,7 @@ void RemoveAloHierarchy(ALO *palo)
 	s_pdliFirst = &plo;
 	plo.m_ppv = (void**)plo.m_pdl;
 
-	// Loading object header from RIPG object
+	// Loading object header from object
 	LO *LocalObject = (LO*)palo;
 
 	while (true)
@@ -131,6 +131,7 @@ void LoadAloFromBrx(ALO* palo, CBinaryInputStream* pbis)
 {
 	palo->xf.mat = pbis->ReadMatrix();
 	palo->xf.pos = pbis->ReadVector();
+
 	pbis->U8Read();
 	pbis->U8Read();
 	pbis->U8Read();
@@ -140,7 +141,7 @@ void LoadAloFromBrx(ALO* palo, CBinaryInputStream* pbis)
 	palo->sRadiusRenderSelf = pbis->F32Read();
 	palo->sRadiusRenderAll = pbis->F32Read();
 	LoadOptionFromBrx(palo, pbis);
-	LoadGlobsetFromBrx(&palo->globset, pbis, palo);
+	LoadGlobsetFromBrx(&palo->globset ,pbis, palo);
 	LoadAloAloxFromBrx(pbis);
 	
 	palo->cposec = pbis->U8Read();
@@ -258,7 +259,7 @@ void RenderAloAsBone(ALO* palo, CM* pcm, RO* pro)
 
 void DrawAlo(ALO* palo)
 {
-	DrawGlob(&palo->globset);
+	DrawGlob(&palo->globset, palo->xf.mat, palo->xf.pos);
 }
 
 void DeleteModel(ALO *palo)

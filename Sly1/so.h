@@ -51,7 +51,7 @@ public:
 	glm::vec3 posWorldPrev;
 	GEOM geomLocal;
 	GEOM geomWorld;
-	void* plvo;
+	struct LVO* plvo;
 	float sRadiusSelf;
 	float sRadiusAll;
 	float sRadiusPrune;
@@ -68,11 +68,11 @@ public:
 	glm::vec3 posMax;
 	char constrForce[32];
 	char constrTorque[32];
-	void* poxa;
+	struct OXA* poxa;
 	glm::vec3 dpos;
 	glm::vec3 drot;
-	void* pxa;
-	void* pxpInternal;
+	struct XA* pxa;
+	struct XP* pxpInternal;
 	int grfpvaXpValid;
 	int ipsoRoot;
 	int ipso;
@@ -81,7 +81,7 @@ public:
 	GEOM geomCameraLocal;
 	GEOM geomCameraWorld;
 	char bspcCamera[12];
-	void* pstso;
+	struct STSO* pstso;
 };
 
 void* NewSo();

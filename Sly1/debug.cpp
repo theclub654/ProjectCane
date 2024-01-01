@@ -27,6 +27,11 @@ void RenderMenuGui(SW* psw)
                 
             }
 
+            if (ImGui::MenuItem("Wireframe", "", &fRenderWireFrame))
+            {
+
+            }
+
             ImGui::EndMenu();
         }
 

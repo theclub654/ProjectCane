@@ -34,16 +34,13 @@ class CBinaryInputStream
 		float F32Read();
 		// Reads vector from file
 		glm::vec3 ReadVector();
-		// Reads vector 2 from file
-		glm::vec2 ReadVector2();
 		// Reads vector 4 from file
 		glm::vec4 ReadVector4();
 		// Reads matrix from file
 		glm::mat3 ReadMatrix();
-		// Reads matrix4x4 from file
-		glm::mat4x4 ReadMatrix4x4();
 		// Reads matrix 4 from file
 		glm::mat4 ReadMatrix4();
+		// Reads Collision data from file
 		void ReadGeom(GEOM *pgeom);
 		void ReadBspc();
 		void ReadVbsp(); // GOTTA COME BACK TO THIS

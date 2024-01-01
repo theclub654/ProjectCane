@@ -32,7 +32,6 @@ void GL::InitGL()
 
 	glViewport(0, 0, width, height);
 	glEnable(GL_DEPTH_TEST);
-	//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
 	IMGUI_CHECKVERSION();
 	ImGui::CreateContext(); 

@@ -3,13 +3,13 @@
 FREECAMERA::FREECAMERA(glm::vec3 position)
 {
 	cameraPos = position;
-	worldUp = glm::vec3(0.0f, 1.0f, 0.0f);
-	yaw = -90.0;
-	pitch = 0.0f;
+	worldUp = glm::vec3(0.0f, 0.0f, 1.0f);
+	yaw = -90;
+	pitch = 0;
 	speed = 10000.0;
 	fov = 45.0f;
-	cameraDirection = glm::vec3(1.0f, 0.0f, 0.0f);
-
+	cameraDirection = glm::vec3{0.0};
+	cameraRight = glm::vec3(0.0f, 0.0f, 0.0f);
 	UpdateCameraVectors();
 }
 
@@ -77,10 +77,11 @@ void FREECAMERA::UpdateViewProjMatrix(int height, int width, GLSHADER shader)
 	glm::mat4 view{ 1.0 };
 
 	// Creates a large frustum
-	proj = glm::perspective(glm::radians(fov), (float)height / (float)width, 100.0f, 1000000.0f);
+	proj = glm::perspective(fov, (float)height / (float)width, 100.0f, 1000000.0f);
+
 	// Transform coordinates from world space to camera space
 	view = glm::lookAt(cameraPos, cameraPos + cameraDirection, cameraUp);
-
+	
 	SendViewProjShader(proj, view, shader);
 }
 
@@ -100,9 +101,10 @@ void FREECAMERA::SendViewProjShader(glm::mat4 proj, glm::mat4 view, GLSHADER sha
 void FREECAMERA::UpdateCameraVectors()
 {
 	glm::vec3 direction;
-	direction.x = cos(glm::radians(yaw)) * cos(glm::radians(pitch));
-	direction.y = sin(glm::radians(pitch));
-	direction.z = sin(glm::radians(yaw)) * cos(glm::radians(pitch));
+	direction.x = cos(glm::radians(-yaw)) * cos(glm::radians(-pitch));
+	direction.z = sin(glm::radians(pitch));
+	direction.y = sin(glm::radians(-yaw)) * cos(glm::radians(-pitch));
+
 	cameraDirection = glm::normalize(direction);
 
 	cameraRight = glm::normalize(glm::cross(cameraDirection, worldUp));

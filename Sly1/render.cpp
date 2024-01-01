@@ -47,13 +47,14 @@ void DrawSwCollisionAll()
 {
 	glShaderCollision.Use();
 
+	glm::mat4 model{ 1.0 };
+
+	int modelUniformLocation = glGetUniformLocation(glShaderCollision.ID, "model");
+	glUniformMatrix4fv(modelUniformLocation, 1, GL_FALSE, glm::value_ptr(model));
+
 	for (int i = 0; i < allcollisionModels.size(); i++)
 	{
-		int modelUniformLocation = glGetUniformLocation(glShaderCollision.ID, "model");
-		glUniformMatrix4fv(modelUniformLocation, 1, GL_FALSE, glm::value_ptr(glm::mat4{1.0}));
-		
 		glBindVertexArray(allcollisionModels[i]->VAO);
 		glDrawElements(GL_LINES, allcollisionModels[i]->indices.size(), GL_UNSIGNED_SHORT, 0);
-		glBindVertexArray(0);
 	}
 }

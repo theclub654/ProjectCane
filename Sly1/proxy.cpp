@@ -13,8 +13,10 @@ void InitProxy(PROXY *pproxy)
 
 void LoadProxyFromBrx(PROXY *pproxy, CBinaryInputStream* pbis)
 {
-	pbis->ReadMatrix();
-	pbis->ReadVector();
+	InitDl(&pproxy->dlProxyRoot, 0x470);
+
+	pproxy->xf.mat = pbis->ReadMatrix();
+	pproxy->xf.pos = pbis->ReadVector();
 
 	byte numProxyObjs = pbis->U8Read();
 

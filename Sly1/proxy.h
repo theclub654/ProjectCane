@@ -11,8 +11,6 @@ class PROXY : public ALO
 		DLE dleProxy;
 };
 
-static int LoadProxyFromBrxCount = 0;
-
 void* NewProxy();
 void InitProxy(PROXY *pproxy);
 void LoadProxyFromBrx(PROXY *pproxy, CBinaryInputStream *pbis);

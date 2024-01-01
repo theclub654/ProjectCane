@@ -1,7 +1,6 @@
 #pragma once
 #include "lo.h"
 
-// GOTTA COME BACK TO THIS AND CHANGE VTABLE CB 
 enum WREK 
 {
     WREK_Nil = -1,
@@ -19,6 +18,7 @@ struct WRE
 
     };
 };
+
 class WR : public LO
 {
 	public:

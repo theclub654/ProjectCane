@@ -17,36 +17,36 @@ void InitSw(SW* psw)
 
 	InitDl(&psw->dlChild, 0x38);
 	InitDl(&psw->dlMRD, 0xA0);
-	InitDl(&psw->dlMRDRealClock, 0x1C + 0x54);
+	InitDl(&psw->dlMRDRealClock, 0x1C + 0x54); // GOTTA COME BACK TO THIS
 	InitDl(&psw->dlBusy, 0x90);
-	InitDl(&psw->dlBusySo, 0x1C + 0x434);
-	InitDl(&psw->dlRoot, 0x428);
-	InitDl(&psw->dlAsega, 0x1C + 0x34);
-	InitDl(&psw->dlAsegaRealClock, 0x1C + 0x34);
-	InitDl(&psw->dlAsegaPending, 0x1C + 0x34);
+	InitDl(&psw->dlBusySo, 0x790);
+	InitDl(&psw->dlRoot, 0x458);
+	InitDl(&psw->dlAsega, 0x1C + 0x34); // GOTTA COME BACK TO THIS
+	InitDl(&psw->dlAsegaRealClock, 0x1C + 0x34); // GOTTA COME BACK TO THIS
+	InitDl(&psw->dlAsegaPending, 0x1C + 0x34); // GOTTA COME BACK TO THIS
 	InitDl(&psw->dlSma, 0x10);
-	InitDl(&psw->dlAmb, 0x1C + 0x60);
-	InitDl(&psw->dlExc, 0x1C + 4);
-	InitDl(&psw->dlLight, 0x538);
-	InitDl(&psw->dlShadow, 0x1C + 0xb8);
-	InitDl(&psw->dlExplste, 0x1C + 100);
-	InitDl(&psw->dlProxy, 0x1C + 0x2ec);
-	InitDl(&psw->dlFly, 0x1C + 0x60c);
-	InitDl(&psw->dlDprize, 0x1C + 900);
-	InitDl(&psw->dlRat, 0x1C + 0x630);
-	InitDl(&psw->dlRathole, 0x1C + 0x90);
-	InitDl(&psw->dlDartFree, 0x1C + 0x59c);
-	InitDl(&psw->dlSpire, 0x1C + 0x50);
-	InitDl(&psw->dlRail, 0x1C + 0x50);
-	InitDl(&psw->dlLanding, 0x1C + 0x50);
-	InitDl(&psw->dlBusyLasen, 0x1C + 0xb20);
-	InitDl(&psw->dlBlipg, 0x1C + 0x640);
-	InitDl(&psw->dlBlipgFree, 0x1C + 0x640);
-	InitDl(&psw->dlFader, 0x1C + 0xc);
-	InitDl(&psw->dlRealClockFader, 0x1C + 0xc);
-	InitDl(&psw->dlCrfod, 0x1C + 0xb90);
-	InitDl(&psw->dlShape, 0x1C + 0x44);
-	InitDl(&psw->dlPathzone, 0x1C + 100);
+	InitDl(&psw->dlAmb, 0x1C + 0x60); // GOTTA COME BACK TO THIS
+	InitDl(&psw->dlExc, 0x1C + 4); // GOTTA COME BACK TO THIS
+	InitDl(&psw->dlLight, 0x568);
+	InitDl(&psw->dlShadow, 0x1C + 0xb8); // GOTTA COME BACK TO THIS
+	InitDl(&psw->dlExplste, 0x1C + 100);// GOTTA COME BACK TO THIS
+	InitDl(&psw->dlProxy, 0x470);
+	InitDl(&psw->dlFly, 0xB50);
+	InitDl(&psw->dlDprize, 0x500);
+	InitDl(&psw->dlRat, 0xB90);
+	InitDl(&psw->dlRathole, 0xC8);
+	InitDl(&psw->dlDartFree, 0xA70);
+	InitDl(&psw->dlSpire, 0x1C + 0x50); // GOTTA COME BACK TO THIS
+	InitDl(&psw->dlRail, 0x1C + 0x50); // GOTTA COME BACK TO THIS
+	InitDl(&psw->dlLanding, 0x1C + 0x50); // GOTTA COME BACK TO THIS
+	InitDl(&psw->dlBusyLasen, 0x1200);
+	InitDl(&psw->dlBlipg, 0x1C + 0x640);// GOTTA COME BACK TO THIS
+	InitDl(&psw->dlBlipgFree, 0x1C + 0x640);// GOTTA COME BACK TO THIS
+	InitDl(&psw->dlFader, 0x1C + 0xc);// GOTTA COME BACK TO THIS
+	InitDl(&psw->dlRealClockFader, 0x1C + 0xc);// GOTTA COME BACK TO THIS
+	InitDl(&psw->dlCrfod, 0x1C + 0xb90);// GOTTA COME BACK TO THIS
+	InitDl(&psw->dlShape, 0x80);
+	InitDl(&psw->dlPathzone, 0xB8);
 }
 
 void InitSwDlHash(SW* psw)
@@ -57,7 +57,7 @@ void InitSwDlHash(SW* psw)
 
 void LoadSwFromBrx(SW* psw, CBinaryInputStream* pbis)
 {
-	std::cout << "Loading World\n";
+	std::cout << "Loading World...\n";
 	// Setting difficulty for world
 	OnDifficultyWorldPreLoad(&g_difficulty);
 	//StartupSplice();

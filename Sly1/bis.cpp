@@ -67,33 +67,35 @@ float CBinaryInputStream::F32Read()
 }
 
 glm::vec3 CBinaryInputStream::ReadVector()
-{
-    return glm::vec3(F32Read(), F32Read(), F32Read());
-}
-
-glm::vec2 CBinaryInputStream::ReadVector2()
-{
-    return glm::vec2(F32Read(), F32Read());
+{   
+    glm::vec3 temp{};
+    file.read(reinterpret_cast<char*> (&temp), sizeof(glm::vec3));
+    return temp;
 }
 
 glm::vec4 CBinaryInputStream::ReadVector4()
 {
-    return glm::vec4 (F32Read(), F32Read(), F32Read(), F32Read());
+    glm::vec4 temp{};
+    file.read(reinterpret_cast<char*> (&temp), sizeof(glm::vec4));
+    return temp;
 }
 
 glm::mat3 CBinaryInputStream::ReadMatrix()
 {
-    return glm::mat3 (ReadVector(), ReadVector(), ReadVector());
-}
-
-glm::mat4x4 CBinaryInputStream::ReadMatrix4x4()
-{
-    return glm::mat4x2(ReadVector(), ReadVector(), ReadVector(), ReadVector());
+    glm::mat3 temp{};
+    file.read(reinterpret_cast<char*> (&temp), sizeof(glm::mat3));
+    return temp;
 }
 
 glm::mat4 CBinaryInputStream::ReadMatrix4()
 {
-    return glm::mat4(ReadVector4(), ReadVector4(), ReadVector4(), ReadVector4());
+    glm::mat4 temp{};
+    file.read(reinterpret_cast<char*> (&temp[0]), sizeof(glm::vec3));
+    file.read(reinterpret_cast<char*> (&temp[1]), sizeof(glm::vec3));
+    file.read(reinterpret_cast<char*> (&temp[2]), sizeof(glm::vec3));
+    file.read(reinterpret_cast<char*> (&temp[3]), sizeof(glm::vec3));
+    temp[3][3] = 1.0;
+    return temp;
 }
 
 void CBinaryInputStream::ReadGeom(GEOM *pgeom)
@@ -142,9 +144,9 @@ void CBinaryInputStream::ReadGeom(GEOM *pgeom)
 void CBinaryInputStream::ReadBspc()
 {
     U16Read();
-    uint16_t unk0 = U16Read();
+    uint16_t cbsp = U16Read();
 
-    for (int i = 0; i < unk0; i++)
+    for (int i = 0; i < cbsp; i++)
     {
         U16Read();
         U16Read();

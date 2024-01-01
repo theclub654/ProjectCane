@@ -20,27 +20,27 @@ enum class CAMERADIRECTION
 
 class FREECAMERA
 {
-public:
+	public:
 
-	glm::vec3 cameraPos;
-	glm::vec3 cameraDirection;
-	glm::vec3 cameraUp;
-	glm::vec3 cameraRight;
-	glm::vec3 worldUp;
+		glm::vec3 cameraPos;
+		glm::vec3 cameraDirection;
+		glm::vec3 cameraUp;
+		glm::vec3 cameraRight;
+		glm::vec3 worldUp;
 
-	float yaw;
-	float pitch;
-	float speed;
-	float fov;
+		float yaw;
+		float pitch;
+		float speed;
+		float fov;
 
-	FREECAMERA(glm::vec3 position);
+		FREECAMERA(glm::vec3 position);
 
-	void UpdateCameraDirection(double dx, double dy);
-	void UpdateCameraPos(CAMERADIRECTION direction, double dt);
-	void UpdateCameraFov(double dy);
-	void UpdateViewProjMatrix(int height, int width, GLSHADER shader);
-	void SendViewProjShader(glm::mat4 proj, glm::mat4 view, GLSHADER shader);
-	void UpdateCameraVectors();
+		void UpdateCameraDirection(double dx, double dy);
+		void UpdateCameraPos(CAMERADIRECTION direction, double dt);
+		void UpdateCameraFov(double dy);
+		void UpdateViewProjMatrix(int height, int width, GLSHADER shader);
+		void SendViewProjShader(glm::mat4 proj, glm::mat4 view, GLSHADER shader);
+		void UpdateCameraVectors();
 };
 
 // Global free camera class
