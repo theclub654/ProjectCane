@@ -71,28 +71,140 @@ void OnAloAdd(ALO* palo)
 	if (palo->pshadow != 0)
 		AppendDlEntry(&palo->psw->dlShadow, palo->pshadow);
 
+	palo->pvtalo->pfnUpdateAloXfWorld(palo);
+
 	ResolveAlo(palo);
 }
 
 void OnAloRemove(ALO* palo)
 {
-}
-
-void CloneAloHierarchy(ALO* palo)
-{
 
 }
 
-void CloneAlo(ALO* palo)
+void CloneAloHierarchy(ALO* palo, ALO* paloBase)
 {
+	DLI firstParentPalo;
 
+	// Storing the first parent ptr to child alo
+	firstParentPalo.m_pdl   = &paloBase->dlChild;
+
+	// Storing the base offset to child alo
+	firstParentPalo.m_ibDle = paloBase->dlChild.ibDle;
+
+	// Storing the parent ALO
+	firstParentPalo.m_pdliNext = s_pdliFirst;
+
+	// Keeping track of the first alo parent
+	s_pdliFirst = &firstParentPalo;
+
+	// Storing ptr to next alo to clone
+	firstParentPalo.m_ppv = (void**)firstParentPalo.m_pdl;
+
+	// Clones the parent alo
+	palo->pvtlo->pfnCloneLo(palo, paloBase);
+
+	// Loading next alo to clone
+	LO *plo = (LO*)*firstParentPalo.m_ppv;
+	/*firstParentPalo.m_ppv = (void**)plo + firstParentPalo.m_ibDle;
+
+	while (plo != 0)
+	{
+		PloCloneLo(plo, palo->psw, palo);
+		plo = (LO*)*firstParentPalo.m_ppv;
+		firstParentPalo.m_ppv = (void**)plo + firstParentPalo.m_ibDle;
+	}*/
+}
+
+void CloneAlo(ALO* palo, ALO* paloBase)
+{
+	LO lo = *palo;
+	*palo = *paloBase;
+	memcpy(palo, &lo, sizeof(LO));
+
+	CloneLo(palo, paloBase);
+
+	ClearDl(&palo->dlChild);
 }
 
 void ResolveAlo(ALO* palo)
 {
 	if (palo->paloRoot != nullptr) 
 		palo->paloRoot->cframeStatic = 0;
-	
+}
+
+void ApplyAloProxy(ALO* palo, PROXY* pproxyApply)
+{
+	glm::vec3 posWorld;
+	ConvertAloPos((ALO*)pproxyApply, nullptr, palo->xf.pos, posWorld);
+	palo->pvtalo->pfnTranslateAloToPos(palo, posWorld);
+
+	glm::mat3 matWorld{};
+	ConvertAloMat((ALO*)pproxyApply, nullptr, palo->xf.mat, matWorld);
+	palo->pvtalo->pfnRotateAloToMat(palo, matWorld);
+
+	palo->posOrig = palo->xf.pos;
+	palo->matOrig = palo->xf.mat;
+}
+
+void UpdateAloXfWorld(ALO* palo)
+{
+	palo->pvtalo->pfnUpdateAloXfWorldHierarchy(palo);
+}
+
+void UpdateAloXfWorldHierarchy(ALO* palo)
+{
+	palo->xf.posWorld = palo->xf.pos;
+	palo->xf.matWorld = palo->xf.mat;
+}
+
+void TranslateAloToPos(ALO* palo, glm::vec3 &ppos)
+{
+	palo->xf.pos = ppos;
+
+	palo->pvtalo->pfnUpdateAloXfWorld(palo);
+}
+
+void ConvertAloPos(ALO* paloFrom, ALO* paloTo, glm::vec3 &pposFrom, glm::vec3 &pposTo)
+{
+	if (paloFrom != paloTo)
+	{
+		if (paloFrom != nullptr)
+		{
+			pposFrom = paloFrom->xf.posWorld;
+		}
+
+		if (paloTo != nullptr)
+		{
+			pposTo = paloTo->xf.posWorld;
+		}
+	}
+
+	pposTo = pposFrom;
+}
+
+void RotateAloToMat(ALO* palo, glm::mat3 &pmat)
+{
+	palo->xf.mat = pmat;
+
+	palo->pvtalo->pfnUpdateAloXfWorld(palo);
+}
+
+void ConvertAloMat(ALO* paloFrom, ALO* paloTo, glm::mat3 &pmatFrom, glm::mat3 &pmatTo)
+{
+	if (paloFrom != paloTo)
+	{
+		if (paloFrom != nullptr)
+		{
+			pmatFrom = paloFrom->xf.mat;
+		}
+
+		if (paloTo != nullptr)
+		{
+			
+		}
+	}
+
+	pmatTo = pmatFrom;
 }
 
 void AddAloHierarchy(ALO* palo)
@@ -129,8 +241,10 @@ void AddAloHierarchy(ALO* palo)
 
 void LoadAloFromBrx(ALO* palo, CBinaryInputStream* pbis)
 {
+	// Model matrix
 	palo->xf.mat = pbis->ReadMatrix();
 	palo->xf.pos = pbis->ReadVector();
+	//
 
 	pbis->U8Read();
 	pbis->U8Read();
@@ -143,7 +257,9 @@ void LoadAloFromBrx(ALO* palo, CBinaryInputStream* pbis)
 	LoadOptionFromBrx(palo, pbis);
 	LoadGlobsetFromBrx(&palo->globset ,pbis, palo);
 	LoadAloAloxFromBrx(pbis);
-	
+
+	palo->pvtalo->pfnUpdateAloXfWorld(palo);
+
 	palo->cposec = pbis->U8Read();
 	palo->aposec.resize(palo->cposec);
 
@@ -259,7 +375,7 @@ void RenderAloAsBone(ALO* palo, CM* pcm, RO* pro)
 
 void DrawAlo(ALO* palo)
 {
-	DrawGlob(&palo->globset, palo->xf.mat, palo->xf.pos);
+	DrawGlob(&palo->globset, palo->xf.matWorld, palo->xf.posWorld);
 }
 
 void DeleteModel(ALO *palo)
@@ -273,6 +389,11 @@ void DeleteModel(ALO *palo)
 			glDeleteBuffers(1, &palo->globset.aglob[i].asubglob[a].EBO);
 		}
 	}
+}
+
+int GetAloSize()
+{
+	return sizeof(ALO);
 }
 
 void DeleteAlo(LO* palo)

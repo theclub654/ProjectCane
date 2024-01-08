@@ -5,6 +5,11 @@ void* NewPathzone()
     return new PATHZONE;
 }
 
+int GetPathzoneSize()
+{
+    return sizeof(PATHZONE);
+}
+
 void OnPathzoneAdd(PATHZONE* ppathzone)
 {
     OnLoAdd(ppathzone);
@@ -51,6 +56,15 @@ void LoadPathZoneFromBrx(PATHZONE* ppathzone, CBinaryInputStream* pbis)
         pbis->S16Read();
         pbis->S16Read();
     }
+}
+
+void ClonePathzone(PATHZONE* ppathzone, PATHZONE* ppathzoneBase)
+{
+    LO lo = *ppathzone;
+    *ppathzone = *ppathzoneBase;
+    memcpy(ppathzone, &lo, sizeof(LO));
+
+    CloneLo(ppathzone, ppathzoneBase);
 }
 
 void DeletePathzone(LO* plo)

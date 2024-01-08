@@ -51,10 +51,14 @@ class ASEGBL : public ASEG
 
 static int LoadAsegaCount;
 
-void* NewAseg();
+void*NewAseg();
 void InitAseg(ASEG* paseg);
+int  GetAsegSize();
 void LoadAsegFromBrx(ASEG* paseg, CBinaryInputStream* pbis);
 void LoadAsegEventsFromBrx(CBinaryInputStream* pbis, int fFrame);
+void CloneAseg(ASEG* paseg, ASEG* pasegBase);
+void ApplyAseg(ASEG* paseg, ALO* paloAsegRoot, float tLocal, float svtLocal, int grfapl, ASEGA** ppasega);
 void DeleteAseg(LO* plo);
+
 void* NewAsegbl();
 void DeleteAsegbl(LO* plo);

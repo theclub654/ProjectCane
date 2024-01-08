@@ -11,5 +11,7 @@ class TARGET : public XFM
 };
 
 void InitTarget(TARGET* ptarget);
+int  GetTargetSize();
 void OnTargetAdd(TARGET* ptarget);
+void CloneTarget(TARGET* ptarget, TARGET* ptargetBase);
 void DeleteTarget(LO* plo);

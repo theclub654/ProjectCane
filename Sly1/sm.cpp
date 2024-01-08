@@ -5,10 +5,14 @@ void* NewSm()
 	return new SM;
 }
 
+int GetSmSize()
+{
+	return sizeof(SM);
+}
+
 void LoadSmFromBrx(SM* psm, CBinaryInputStream* pbis)
 {
 	psm->csms = pbis->U8Read();
-
 	psm->asms.resize(psm->csms);
 
 	for (int i = 0; i < psm->csms; i++)
@@ -52,6 +56,11 @@ void DeleteSm(LO* plo)
 void* NewSma()
 {
 	return new SMA;
+}
+
+int GetSmaSize()
+{
+	return sizeof(SMA);
 }
 
 void DeleteSma(LO* plo)

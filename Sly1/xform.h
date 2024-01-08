@@ -85,16 +85,28 @@ class CAMERA : public ALO
 		int fSetCplcy;
 };
 
-void* NewXfm();
+void*NewXfm();
 void InitXfm(XFM* pxfm);
+int  GetXfmSize();
 void LoadXfmFromBrx(XFM* pxfm, CBinaryInputStream* pbis);
+void CloneXfm(XFM* pxfm, XFM* pxfmBase);
+void ApplyXfmProxy(XFM* pxfm, PROXY* pproxyApply);
 void DeleteXfm(LO* plo);
-void* NewWarp();
+
+void*NewWarp();
+int  GetWarpSize();
 void LoadWarpFromBrx(WARP* pwarp, CBinaryInputStream* pbis);
+void CloneWarp(WARP* pwarp, WARP* pwarpBase);
 void DeleteWarp(LO* plo);
-void* NewExit();
+
+void*NewExit();
+int  GetExitSize();
 void LoadExitFromBrx(EXIT *pexit, CBinaryInputStream* pbis);
+void CloneExit(EXIT* pexit, EXIT* pexitBase);
 void DeleteExit(LO* plo);
-void* NewCamera();
+
+void*NewCamera();
 void InitCamera(CAMERA* pcamera);
+int  GetCameraSize();
+void CloneCamera(CAMERA* pcamera, CAMERA* pcameraBase);
 void DeleteCamera(LO* plo);

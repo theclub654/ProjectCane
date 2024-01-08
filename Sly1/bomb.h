@@ -41,8 +41,10 @@ class BOMB : public SO
 		struct SFX* psfxDet;
 };
 
-void* NewBomb();
+void*NewBomb();
 void InitBomb(BOMB* pbomb);
+int  GetBombSize();
 void OnBombAdd(BOMB* pbomb);
+void CloneBomb(BOMB* pbomb, BOMB* pbombBase);
 void LoadBombFromBrx(BOMB* pbomb, CBinaryInputStream* pbis);
 void DeleteBomb(LO* plo);

@@ -459,11 +459,13 @@ class JT : public STEP
         float uFsp;
 };
 
-void* NewJt();
+void*NewJt();
 void InitJt(JT *pjt); // NOT FINSHED
 void LoadJtFromBrx(JT *pjt, CBinaryInputStream *pbis); // NOT FINSHED
+void CloneJt(JT* pjt, JT* pjtBase);
 void RenderJtAll(JT* pjt, CM* pcm, RO* pro);
 void RenderJtSelf(JT* pjt, CM* pcm, RO* pro);
+int  GetJtSize();
 void DeleteJt(LO* plo);
 
 extern inline JT *g_pjt = nullptr;

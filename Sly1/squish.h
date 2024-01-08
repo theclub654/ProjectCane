@@ -21,6 +21,8 @@ class SQUISH : public SO
         float dtSquish;
 };
 
-void* NewSquish();
+void*NewSquish();
+int  GetSquishSize();
 void LoadSquishFromBrx(SQUISH *psquish, CBinaryInputStream *pbis);
+void CloneSquish(SQUISH* psquish, SQUISH* psquishBase);
 void DeleteSquish(LO* plo);

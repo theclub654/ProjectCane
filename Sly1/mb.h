@@ -55,13 +55,21 @@ class SCENTMAP : public ALO
 		glm::vec3 posMax;
 };
 
-void* NewMbg();
+void*NewMbg();
 void InitMbg(MBG* pmbg);
-void* NewBhg();
-void InitBhg(BHG* pbhg);
-void DeleteBhg(LO* plo);
-void* NewScentmap();
-void InitScentmap(SCENTMAP* pscentmap);
-void DeleteScentmap(LO* plo);
-void LoadMbgFromBrx(MBG *pmbg, CBinaryInputStream *pbis);
+int  GetMbgSize();
+void LoadMbgFromBrx(MBG* pmbg, CBinaryInputStream* pbis);
+void CloneMbg(MBG* pmbg, MBG* pmbgBase);
 void DeleteMbg(LO* plo);
+
+void*NewBhg();
+void InitBhg(BHG* pbhg);
+int  GetBhgSize();
+void CloneBhg(BHG* pbhg, BHG* pbhgBase);
+void DeleteBhg(LO* plo);
+
+void*NewScentmap();
+void InitScentmap(SCENTMAP* pscentmap);
+int  GetScentmapSize();
+void CloneScentmap(SCENTMAP* pscentmap, SCENTMAP* pscentmapBase);
+void DeleteScentmap(LO* plo);

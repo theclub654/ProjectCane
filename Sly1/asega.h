@@ -25,4 +25,5 @@ class ASEGA : public BASIC
         int nPriority;
 };
 
+int  GetAsegaSize();
 void DeleteAsega(LO* plo);

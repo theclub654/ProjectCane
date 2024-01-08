@@ -210,6 +210,8 @@ class CM : public LO
 void* NewCm();
 // Initialize camera object
 void InitCm(CM* pcm); // NOT FINISHED
+int  GetCmSize();
+void CloneCm(CM* pcm, CM* pcmBase);
 void DeleteCm(LO* plo);
 
 // Global pointer to parent camera object

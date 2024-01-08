@@ -14,7 +14,7 @@ LO* PloNew(CID cid, SW* psw, ALO* paloParent, OID oid, int isplice)
 
 	// Returning a address for the newly made object
 	LO* localObject = (LO*)pvtlo->pfnNewLo();
-	
+
 	// Storing vtable with object
 	localObject->pvtlo = pvtlo;
 	// Storing the object ID with object

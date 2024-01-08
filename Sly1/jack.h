@@ -120,16 +120,27 @@ class JACKF : public ALO
         int c;
 };
 
-void* NewJack();
+void*NewJack();
 void InitJack(JACK *pjack);
+int  GetJackSize();
+void CloneJack(JACK* pjack, JACK* pjackBase);
 void DeleteJack(LO* plo);
-void* NewJackb();
+
+void*NewJackb();
 void InitJackb(JACKB* pjackb);
+int  GetJackbSize();
+void CloneJackb(JACKB* pjackb, JACKB* pjackbBase);
 void DeleteJackb(LO* plo);
-void* NewJackn();
+
+void*NewJackn();
 void InitJackn(JACKN* pjackn);
-void DeleteJackn(LO* plo);
-void* NewJackf();
-void InitJackf(JACKF* pjackf);
-void DeleteJackf(LO* plo);
+int  GetJacknSize();
 void LoadJacknFromBrx(JACKN* pjackn, CBinaryInputStream* pbis);
+void CloneJackn(JACKN* pjackn, JACKN* pjacknBase);
+void DeleteJackn(LO* plo);
+
+void*NewJackf();
+void InitJackf(JACKF* pjackf);
+int  GetJackfSize();
+void CloneJackf(JACKF* pjackf, JACKF* pjackfBase);
+void DeleteJackf(LO* plo);

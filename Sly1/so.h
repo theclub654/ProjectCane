@@ -56,7 +56,7 @@ public:
 	float sRadiusAll;
 	float sRadiusPrune;
 	glm::vec3 posPrune;
-	char BSPC[12];
+	char bspc[12];
 	int cnpg;
 	std::vector <NPG> anpg;
 	std::vector <uint32_t> mpibspinpg;
@@ -84,10 +84,17 @@ public:
 	struct STSO* pstso;
 };
 
-void* NewSo();
+void*NewSo();
 void InitSo(SO *pso); // NOT FINISHED
+int  GetSoSize();
 void OnSoAdd(SO *pso); // NOT FINISHED
+void CloneSo(SO* pso, SO* psoBase);
+void ApplySoProxy(SO* pso, PROXY* pproxyApply);
+void UpdateSoXfWorldHierarchy(SO* pso);
+void UpdateSoXfWorld(SO* pso);
 void LoadSoFromBrx(SO* pso, CBinaryInputStream* pbis); // NOT FINISHED
+void TranslateSoToPos(SO* pso, glm::vec3& ppos);
+void RotateSoToMat(SO* pso, glm::mat3& pmat);
 void MakeCollisionGLBuffers(GEOM *pgeom);
 void UpdateSo(SO *pso, float dt); // NOT FINISHED
 void RenderSoSelf(SO* pso, CM* pcm, RO* pro);

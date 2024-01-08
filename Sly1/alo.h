@@ -111,15 +111,27 @@ class ALO : public LO
 void* NewAlo();
 // Initialize ALO object
 void InitAlo(ALO* palo); // NOT FINISHED
-// Adds alo parent and all the alo childs into the world
+// Adds ALO parent and all the alo childs into the world
 void AddAloHierarchy(ALO *palo);
 void RemoveAloHierarchy(ALO *palo); // NOT FINISHED
 // Adds ALO to Hierarchy
 void OnAloAdd(ALO* palo); // NOT FINISHED
+// Removes ALO from Hierarchy
 void OnAloRemove(ALO* palo);
-void CloneAloHierarchy(ALO* palo);
-void CloneAlo(ALO* palo);
+// Makes a copy of ALO and all of its children
+void CloneAloHierarchy(ALO* palo, ALO* paloBase);
+// Makes a copy of ALO
+void CloneAlo(ALO* palo, ALO* paloBase);
 void ResolveAlo(ALO *palo);
+void ApplyAloProxy(ALO* palo, PROXY* pproxyApply);
+// Updates the ALO objects world coordinates
+void UpdateAloXfWorld(ALO* palo);
+// Updates the ALO objects world coordinate hierarchy
+void UpdateAloXfWorldHierarchy(ALO* palo);
+void TranslateAloToPos(ALO* palo, glm::vec3& ppos);
+void ConvertAloPos(ALO* paloFrom, ALO* paloTo, glm::vec3 &pposFrom, glm::vec3 &pposTo);
+void RotateAloToMat(ALO* palo, glm::mat3& pmat);
+void ConvertAloMat(ALO* paloFrom, ALO* paloTo, glm::mat3 &pmatFrom, glm::mat3 &pmatTo);
 // Loads ALO object from binary file
 void LoadAloFromBrx(ALO* palo, CBinaryInputStream* pbis);
 // Loads bone data from binary file
@@ -133,4 +145,5 @@ void RenderAloAsBone(ALO* palo, CM* pcm, RO* pro);
 void DrawAlo(ALO *palo);
 // Deletes Model from VRAM
 void DeleteModel(ALO *palo);
+int  GetAloSize();
 void DeleteAlo(LO *palo);

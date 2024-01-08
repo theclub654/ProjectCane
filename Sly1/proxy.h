@@ -11,7 +11,11 @@ class PROXY : public ALO
 		DLE dleProxy;
 };
 
-void* NewProxy();
+static int ProxyCount = 0;
+
+void*NewProxy();
 void InitProxy(PROXY *pproxy);
-void LoadProxyFromBrx(PROXY *pproxy, CBinaryInputStream *pbis);
+int  GetProxySize();
+void LoadProxyFromBrx(PROXY* pproxy, CBinaryInputStream* pbis);
+void CloneProxy(PROXY* pproxy, PROXY* pproxyBase);
 void DeleteProxy(LO* plo);

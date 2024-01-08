@@ -29,6 +29,8 @@ class HG : public STEP
         struct ASEG* pasegGlide;
 };
 
-void* NewHg();
+void*NewHg();
 void InitHg(HG* phg);
+int  GetHgSize();
+void CloneHg(HG* phg, HG* phgBase);
 void DeleteHg(LO* plo);

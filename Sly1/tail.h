@@ -18,6 +18,8 @@ class TAIL : public ALO
         glm::vec3 posTip;
 };
 
-void* NewTail();
+void*NewTail();
 void InitTail(TAIL* ptail);
+int  GetTailSize();
+void CloneTail(TAIL* ptail, TAIL* ptailBase);
 void DeleteTail(LO* plo);

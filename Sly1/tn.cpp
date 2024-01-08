@@ -10,6 +10,11 @@ void InitTn(TN* ptn)
     InitAlo(ptn);
 }
 
+int GetTnSize()
+{
+    return sizeof(TN);
+}
+
 void LoadTnFromBrx(TN* ptn, CBinaryInputStream* pbis)
 {
     ptn->xf.mat = pbis->ReadMatrix();
@@ -40,6 +45,17 @@ void LoadTnFromBrx(TN* ptn, CBinaryInputStream* pbis)
     }
 
     LoadOptionFromBrx(0, pbis);
+}
+
+void CloneTn(TN* ptn, TN* ptnBase)
+{
+    LO lo = *ptn;
+    *ptn = *ptnBase;
+    memcpy(ptn, &lo, sizeof(LO));
+
+    CloneLo(ptn, ptnBase);
+
+    ClearDl(&ptn->dlChild);
 }
 
 void LoadTbspFromBrx(CBinaryInputStream* pbis)

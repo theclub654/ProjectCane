@@ -7,8 +7,23 @@ void* NewBlipg()
 
 void InitBlipg(BLIPG* pblipg)
 {
-	//std::cout << "BLIPG Size: " << sizeof(BLIPG) << "\n";
 	InitAlo(pblipg);
+}
+
+int GetBlipgSize()
+{
+	return sizeof(BLIPG);
+}
+
+void CloneBlipg(BLIPG* pblipg, BLIPG* pblipgBase)
+{
+	LO lo = *pblipg;
+	*pblipg = *pblipgBase;
+	memcpy(pblipg, &lo, sizeof(LO));
+
+	CloneLo(pblipg, pblipgBase);
+
+	ClearDl(&pblipg->dlChild);
 }
 
 void OnBlipgAdd(BLIPG* pblipg)

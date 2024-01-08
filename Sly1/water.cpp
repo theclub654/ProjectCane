@@ -7,8 +7,27 @@ void* NewWater()
 
 void InitWater(WATER* pwater)
 {
-	//std::cout << "WATER Size: " << sizeof(WATER) << "\n";
 	InitSo(pwater);
+}
+
+int GetWaterSize()
+{
+	return sizeof(WATER);
+}
+
+void CloneWater(WATER* pwater, WATER* pwaterBase)
+{
+	LO lo = *pwater;
+	*pwater = *pwaterBase;
+	memcpy(pwater, &lo, sizeof(LO));
+
+	CloneLo(pwater, pwaterBase);
+
+	ClearDl(&pwater->dlChild);
+
+	pwater->pxa = nullptr;
+	pwater->grfpvaXpValid = 0;
+	pwater->pstso = nullptr;
 }
 
 void DeleteWater(LO* plo)

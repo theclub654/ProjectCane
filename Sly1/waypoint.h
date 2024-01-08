@@ -23,6 +23,8 @@ class WAYPOINT : public ALO
         struct WPSG* pwpsg;
 };
 
-void* NewWaypoint();
+void*NewWaypoint();
 void InitWaypoint(WAYPOINT* pwaypoint);
+int  GetWaypointSize();
+void CloneWaypoint(WAYPOINT* pwaypoint, WAYPOINT* pwaypointBase);
 void DeleteWaypoint(LO* plo);

@@ -9,5 +9,7 @@ class FRZG : public LO
 		MRG mrg;
 };
 
-void* NewFrzg();
+void*NewFrzg();
+int  GetFrzgSize();
+void CloneFrzg(FRZG* pfrzg, FRZG* pfrzgBase);
 void DeleteFrzg(LO* plo);

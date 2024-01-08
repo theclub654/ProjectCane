@@ -41,8 +41,8 @@ void LoadGlobsetFromBrx(GLOBSET* pglobset ,CBinaryInputStream* pbis, ALO* palo)
             int instanceIndex = pbis->S16Read();
             glm::mat4 pdmat = pbis->ReadMatrix4();
 
-            if(instanceIndex != 0)
-                pglobset->aglob[instanceIndex].pdmat.push_back(pdmat);
+            //if(instanceIndex != 0)
+            pglobset->aglob[instanceIndex].pdmat.push_back(pdmat);
         }
 
         if ((unk_5 & 2) != 0)
@@ -309,6 +309,11 @@ void BuildSubGlob(GLOBSET* pglobset, SHD* pshd, std::vector<VERTICE>& vertices, 
     indexes.shrink_to_fit();
 }
 
+void CloneGlobset(GLOBSET* pglobset, ALO* palo, GLOBSET* pglobsetBase)
+{
+    
+}
+
 void MakeGLBuffers(SUBGLOB *subglob)
 {
     glGenVertexArrays(1, &subglob->VAO);
@@ -337,14 +342,14 @@ void MakeGLBuffers(SUBGLOB *subglob)
     glBindVertexArray(0);
 }
 
-void DrawGlob(GLOBSET* pglobset, glm::mat3 mat, glm::vec3 pos)
+void DrawGlob(GLOBSET* pglobset, glm::mat3 matWorld, glm::vec3 posWorld)
 {
-    glm::mat4 model = mat;
+    glm::mat4 model = matWorld;
 
     // Sly 1 uses a Z up axis
-    model[3][0] = pos[0];
-    model[3][1] = pos[1];
-    model[3][2] = pos[2];
+    model[3][0] = posWorld[0];
+    model[3][1] = posWorld[1];
+    model[3][2] = posWorld[2];
     model[3][3] = 1.0;
 
     for (int i = 0; i < pglobset->cglob; i++)
@@ -359,7 +364,7 @@ void DrawGlob(GLOBSET* pglobset, glm::mat3 mat, glm::vec3 pos)
             glBindVertexArray(pglobset->aglob[i].asubglob[a].VAO);
             glDrawElements(GL_TRIANGLES, pglobset->aglob[i].asubglob[a].indices.size(), GL_UNSIGNED_SHORT, 0);
 
-            // Draws instanced models.
+            // Draws instanced models, I WILL OPTIMIZE THIS LATER
             for (int b = 0; b < pglobset->aglob[i].pdmat.size(); b++)
             {
                 glm::mat4 instanceModelMatrix = pglobset->aglob[i].pdmat[b];

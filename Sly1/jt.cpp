@@ -18,6 +18,21 @@ void LoadJtFromBrx(JT* pjt, CBinaryInputStream* pbis)
 	g_pjt = pjt;
 }
 
+void CloneJt(JT* pjt, JT* pjtBase)
+{
+	LO lo = *pjt;
+	*pjt = *pjtBase;
+	memcpy(pjt, &lo, sizeof(LO));
+
+	CloneLo(pjt, pjtBase);
+
+	ClearDl(&pjt->dlChild);
+
+	pjt->pxa = nullptr;
+	pjt->grfpvaXpValid = 0;
+	pjt->pstso = nullptr;
+}
+
 void RenderJtAll(JT* pjt, CM* pcm, RO* pro)
 {
 	
@@ -26,6 +41,11 @@ void RenderJtAll(JT* pjt, CM* pcm, RO* pro)
 void RenderJtSelf(JT* pjt, CM* pcm, RO* pro)
 {
 
+}
+
+int GetJtSize()
+{
+	return sizeof(JT);
 }
 
 void DeleteJt(LO* plo)

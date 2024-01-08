@@ -12,6 +12,7 @@ class VISMAP : public LO
 void* NewVismap();
 // Initializing vismap object
 void InitVismap(VISMAP *pvismap);
+int  GetVismapSize();
 // Loading all the visibility map data from binary file
 void LoadVismapFromBrx(VISMAP *pvismap, CBinaryInputStream *pbis);
 void DeleteVismap(LO* plo);

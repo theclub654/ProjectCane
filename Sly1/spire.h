@@ -7,6 +7,8 @@ class SPIRE : public PNT
 		DLE dleSpire;
 };
 
-void* NewSpire();
+void*NewSpire();
+int  GetSpireSize();
 void OnSpireAdd(SPIRE* pspire);
+void CloneSpire(SPIRE* pspire, SPIRE* pspireBase);
 void DeleteSpire(LO* plo);

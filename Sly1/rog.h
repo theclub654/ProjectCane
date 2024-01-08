@@ -251,25 +251,43 @@ class ROB : public ALO
         struct DIALOG* pdialog;
 };
 
-void* NewRov();
+void*NewRov();
 void InitRov(ROV* prov);
-void* NewRoh();
+int  GetRovSize();
+void LoadRovFromBrx(ROV* prov, CBinaryInputStream* pbis);
+void CloneRov(ROV* prov, ROV* provBase);
+void DeleteRov(LO* plo);
+
+void*NewRoh();
 void InitRoh(ROH* proh);
-void DeleteRoh(LO* plo);
-void* NewRoc();
-void InitRoc(ROC* proc);
-void DeleteRoc(LO* plo);
-void* NewRost();
-void InitRost(ROST* prost);
-void DeleteRost(LO* plo);
-void* NewRop();
-void InitRop(ROP* prop);
-void DeleteRop(LO* plo);
-void* NewRob();
-void InitRob(ROB* prob);
-void DeleteRob(LO* plo);
-void LoadRovFromBrx(ROV *prov, CBinaryInputStream *pbis);
+int  GetRohSize();
 void LoadRohFromBrx(ROH* proh, CBinaryInputStream* pbis);
+void CloneRoh(ROH* proh, ROH* prohBase);
+void DeleteRoh(LO* plo);
+
+void*NewRoc();
+void InitRoc(ROC* proc);
+int  GetRocSize();
 void LoadRocFromBrx(ROC* proc, CBinaryInputStream* pbis);
+void CloneRoc(ROC* proc, ROC* procBase);
+void DeleteRoc(LO* plo);
+
+void*NewRost();
+void InitRost(ROST* prost);
+int  GetRostSize();
 void LoadRostFromBrx(ROST* prost, CBinaryInputStream* pbis);
+void CloneRost(ROST* prost, ROST* prostBase);
+void DeleteRost(LO* plo);
+
+void*NewRop();
+void InitRop(ROP* prop);
+int  GetRopSize();
 void LoadRopFromBrx(ROP* prop, CBinaryInputStream* pbis);
+void CloneRop(ROP* prop, ROP* probBase);
+void DeleteRop(LO* plo);
+
+void*NewRob();
+void InitRob(ROB* prob);
+int  GetRobSize();
+void CloneRob(ROB* prob, ROB* probBase);
+void DeleteRob(LO* plo);

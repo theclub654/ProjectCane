@@ -7,6 +7,8 @@
 #include <glm/gtx/rotate_vector.hpp>
 #include <glm/gtx/vector_angle.hpp>
 
+// Sly 1 uses a Z up axis
+
 enum class CAMERADIRECTION
 {
 	NONE = 0,

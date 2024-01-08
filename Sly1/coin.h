@@ -76,20 +76,34 @@ class GOLD : public DPRIZE
         int fStartTimedChallenge;
 };
 
-void* NewDprize();
+void*NewDprize();
 void InitDprize(DPRIZE *pdprize);//NOT FINISHED
-void DeleteDprize(LO* plo);
-void* NewCharm();
-void InitCharm(CHARM* pcharm);
-void DeleteCharm(LO* plo);
-void* NewCoin();
-void InitCoin(COIN* pcoin);
-void DeleteCoin(LO* plo);
-void* NewKey();
-void InitKey(KEY* pkey);
-void DeleteKey(LO* plo);
-void* NewGold();
-void InitGold(GOLD* pgold);
-void DeleteGold(LO* plo);
-void LoadDprizeFromBrx(DPRIZE* pdprize, CBinaryInputStream *pbis);//NOT FINISHED
+int  GetDprizeSize();
+void LoadDprizeFromBrx(DPRIZE* pdprize, CBinaryInputStream* pbis);
+void CloneDprize(DPRIZE* pdprize, DPRIZE* pdprizeBase);
 void RenderDprizeAll(DPRIZE* pdprize, CM* pcm, RO* pro);
+void DeleteDprize(LO* plo);
+
+void*NewCharm();
+void InitCharm(CHARM* pcharm);
+int  GetCharmSize();
+void CloneCharm(CHARM* pcharm, CHARM* pcharmBase);
+void DeleteCharm(LO* plo);
+
+void*NewCoin();
+void InitCoin(COIN* pcoin);
+int  GetCoinSize();
+void CloneCoin(COIN* pcoin, COIN* pcoinBase);
+void DeleteCoin(LO* plo);
+
+void*NewKey();
+void InitKey(KEY* pkey);
+int  GetKeySize();
+void CloneKey(KEY* pkey, KEY* pkeyBase);
+void DeleteKey(LO* plo);
+
+void*NewGold();
+void InitGold(GOLD* pgold);
+int  GetGoldSize();
+void CloneGold(GOLD* pgold, GOLD* pgoldBase);
+void DeleteGold(LO* plo);

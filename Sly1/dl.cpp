@@ -75,10 +75,10 @@ void PrependDlEntry(DL* pdl, void* pv)
 
 void RemoveDlEntry(DL *pdl, void *pv)
 {
-	void *pv_1 = nullptr;
+	void* pv_1 = nullptr;
 	DLE* entry0;
-	DLE *entry1;
-	DLI *entry2;
+	DLE* entry1;
+	DLI* entry2;
 
 	// Loading entry thats being removed
 	entry0 = PdleFromDlEntry(pdl, pv);

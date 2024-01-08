@@ -18,10 +18,31 @@ void InitLight(LIGHT* plight)
 	InitAlo(plight);
 }
 
+int GetLightSize()
+{
+	return sizeof(LIGHT);
+}
+
 void OnLightAdd(LIGHT* plight)
 {
 	OnAloAdd(plight);
 	AddLightToSw(plight);
+}
+
+void UpdateLightXfWorldHierarchy(LIGHT* plight)
+{
+	UpdateAloXfWorldHierarchy(plight);
+}
+
+void CloneLight(LIGHT* plight, LIGHT* plightBase)
+{
+	LO lo = *plight;
+	*plight = *plightBase;
+	memcpy(plight, &lo, sizeof(LO));
+
+	CloneLo(plight, plightBase);
+
+	ClearDl(&plight->dlChild);
 }
 
 void AddLightToSw(LIGHT* plight)

@@ -10,11 +10,30 @@ void InitXfm(XFM* pxfm)
 	InitLo(pxfm);
 }
 
+int GetXfmSize()
+{
+	return sizeof(XFM);
+}
+
 void LoadXfmFromBrx(XFM *pxfm, CBinaryInputStream* pbis)
 {
 	pxfm->matLocal = pbis->ReadMatrix();
 	pxfm->posLocal = pbis->ReadVector();
 	LoadOptionFromBrx(pxfm, pbis);
+}
+
+void CloneXfm(XFM* pxfm, XFM* pxfmBase)
+{
+	LO lo = *pxfm;
+	*pxfm = *pxfmBase;
+	memcpy(pxfm, &lo, sizeof(LO));
+
+	CloneLo(pxfm, pxfmBase);
+}
+
+void ApplyXfmProxy(XFM* pxfm, PROXY* pproxyApply)
+{
+
 }
 
 void DeleteXfm(LO* plo)
@@ -25,6 +44,11 @@ void DeleteXfm(LO* plo)
 void* NewWarp()
 {
 	return new WARP;
+}
+
+int GetWarpSize()
+{
+	return sizeof(WARP);
 }
 
 void LoadWarpFromBrx(WARP* pwarp, CBinaryInputStream* pbis)
@@ -55,6 +79,15 @@ void LoadWarpFromBrx(WARP* pwarp, CBinaryInputStream* pbis)
 		pwarp->aoidHide[i] = (OID)pbis->S16Read();
 }
 
+void CloneWarp(WARP* pwarp, WARP* pwarpBase)
+{
+	LO lo = *pwarp;
+	*pwarp = *pwarpBase;
+	memcpy(pwarp, &lo, sizeof(LO));
+
+	CloneLo(pwarp, pwarpBase);
+}
+
 void DeleteWarp(LO* plo)
 {
 	delete(WARP*)plo;
@@ -63,6 +96,11 @@ void DeleteWarp(LO* plo)
 void* NewExit()
 {
 	return new EXIT;
+}
+
+int GetExitSize()
+{
+	return sizeof(EXIT);
 }
 
 void LoadExitFromBrx(EXIT* pexit, CBinaryInputStream* pbis)
@@ -88,6 +126,17 @@ void LoadExitFromBrx(EXIT* pexit, CBinaryInputStream* pbis)
 
 }
 
+void CloneExit(EXIT* pexit, EXIT* pexitBase)
+{
+	LO lo = *pexit;
+	*pexit = *pexitBase;
+	memcpy(pexit, &lo, sizeof(LO));
+
+	CloneLo(pexit, pexitBase);
+
+	ClearDl(&pexit->dlChild);
+}
+
 void DeleteExit(LO* plo)
 {
 	delete(EXIT*)plo;
@@ -96,6 +145,22 @@ void DeleteExit(LO* plo)
 void* NewCamera()
 {
 	return new CAMERA;
+}
+
+int GetCameraSize()
+{
+	return sizeof(CAMERA);
+}
+
+void CloneCamera(CAMERA* pcamera, CAMERA* pcameraBase)
+{
+	LO lo = *pcamera;
+	*pcamera = *pcameraBase;
+	memcpy(pcamera, &lo, sizeof(LO));
+
+	CloneLo(pcamera, pcameraBase);
+
+	ClearDl(&pcamera->dlChild);
 }
 
 void InitCamera(CAMERA* pcamera)

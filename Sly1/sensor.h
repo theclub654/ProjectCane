@@ -131,16 +131,27 @@ class PRSEN : public SENSOR
         int fTriggered;
 };
 
-void* NewSensor();
+void*NewSensor();
 void InitSensor(SENSOR* psensor);
+int  GetSensorSize();
+void CloneSensor(SENSOR* psensor, SENSOR* psensorBase);
 void DeleteSensor(LO* plo);
-void* NewLasen();
+
+void*NewLasen();
 void InitLasen(LASEN* plasen);
+int  GetLasenSize();
+void LoadLasenFromBrx(LASEN* plasen, CBinaryInputStream* pbis);
+void CloneLasen(LASEN* plasen, LASEN* plasenBase);
 void DeleteLasen(LO* plo);
-void* NewCamsen();
+
+void*NewCamsen();
 void InitCamsen(CAMSEN* pcamsen);
+int  GetCamsenSize();
+void CloneCamsen(CAMSEN* pcamsen, CAMSEN* pcamsenBase);
 void DeleteCamsen(LO* plo);
-void* NewPrsen();
+
+void*NewPrsen();
 void InitPrsen(PRSEN* pprsen);
+int  GetPrsenSize();
+void ClonePrsen(PRSEN* pprsen, PRSEN* pprsenBase);
 void DeletePrsen(LO* plo);
-void LoadLasenFromBrx(LASEN *plasen, CBinaryInputStream *pbis);

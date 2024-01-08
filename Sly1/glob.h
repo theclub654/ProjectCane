@@ -182,7 +182,8 @@ struct GLOBSET // NOT DONE
 void LoadGlobsetFromBrx(GLOBSET* pglobset, CBinaryInputStream* pbis, ALO* palo); // NOT FINISHED
 // Converts strips to tri lists
 void BuildSubGlob(GLOBSET *pglobset, SHD* pshd, std::vector<VERTICE> &vertices , std::vector <glm::vec3> &vertexes, std::vector <glm::vec3> &normals, std::vector <RGBA> &vertexColors, std::vector <glm::vec2> &texcoords, std::vector <VTXFLG> &indexes, std::vector<uint16_t> &indices);
+void CloneGlobset(GLOBSET *pglobset, ALO* palo, GLOBSET *pglobsetBase);
 // Storing 3D models in VRAM
 void MakeGLBuffers(SUBGLOB* subglob);
 // Draws Model
-void DrawGlob(GLOBSET* pglobset, glm::mat3 mat, glm::vec3 pos); // NOT FINISHED
+void DrawGlob(GLOBSET* pglobset, glm::mat3 matWorld, glm::vec3 posWorld); // NOT FINISHED

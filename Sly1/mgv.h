@@ -21,7 +21,9 @@ class MGV :public PO
         int cpoints;
 };
 
-void* NewMgv();
+void*NewMgv();
 void InitMgv(MGV* pmgv);
+int  GetMgvSize();
 void LoadMgvFromBrx(MGV* pmgv, CBinaryInputStream* pbis);
+void CloneMgv(MGV* pmgv, MGV* pmgvBase);
 void DeleteMgv(LO* plo);

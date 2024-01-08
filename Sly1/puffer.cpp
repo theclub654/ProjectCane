@@ -10,6 +10,31 @@ void InitPuffer(PUFFER* ppuffer)
 	InitPo(ppuffer);
 }
 
+void LoadPufferFromBrx(PUFFER* ppuffer, CBinaryInputStream* pbis)
+{
+	LoadSoFromBrx(ppuffer, pbis);
+}
+
+void ClonePuffer(PUFFER* ppuffer, PUFFER* ppufferBase)
+{
+	LO lo = *ppuffer;
+	*ppuffer = *ppufferBase;
+	memcpy(ppuffer, &lo, sizeof(LO));
+
+	CloneLo(ppuffer, ppufferBase);
+
+	ClearDl(&ppuffer->dlChild);
+
+	ppuffer->pxa = nullptr;
+	ppuffer->grfpvaXpValid = 0;
+	ppuffer->pstso = nullptr;
+}
+
+int GetPufferSize()
+{
+	return sizeof(PUFFER);
+}
+
 void DeletePuffer(LO* plo)
 {
 	delete (PUFFER*)plo;
@@ -18,6 +43,22 @@ void DeletePuffer(LO* plo)
 void* NewPuffb()
 {
 	return new PUFFB;
+}
+
+int GetPuffbSize()
+{
+	return sizeof(PUFFB);
+}
+
+void ClonePuffb(PUFFB* ppuffb, PUFFB* ppuffbBase)
+{
+	LO lo = *ppuffb;
+	*ppuffb = *ppuffbBase;
+	memcpy(ppuffb, &lo, sizeof(LO));
+
+	CloneLo(ppuffb, ppuffbBase);
+
+	ClearDl(&ppuffb->dlChild);
 }
 
 void DeletePuffb(LO* plo)
@@ -35,6 +76,20 @@ void InitPuffv(PUFFV* ppuffv)
 	InitXfm(ppuffv);
 }
 
+int GetPuffvSize()
+{
+	return sizeof(PUFFV);
+}
+
+void ClonePuffv(PUFFV* ppuffv, PUFFV* ppuffvBase)
+{
+	LO lo = *ppuffv;
+	*ppuffv = *ppuffvBase;
+	memcpy(ppuffv, &lo, sizeof(LO));
+
+	CloneLo(ppuffv, ppuffvBase);
+}
+
 void DeletePuffv(LO* plo)
 {
 	delete(PUFFV*)plo;
@@ -45,9 +100,29 @@ void* NewPuffc()
 	return new PUFFC;
 }
 
-void LoadPufferFromBrx(PUFFER *ppuffer, CBinaryInputStream *pbis)
+int GetPuffcSize()
 {
-	LoadSoFromBrx(ppuffer, pbis);
+	return sizeof(PUFFC);
+}
+
+void ClonePuffc(PUFFC* ppuffc, PUFFC* ppuffcBase)
+{
+	LO lo = *ppuffc;
+	*ppuffc = *ppuffcBase;
+	memcpy(ppuffc, &lo, sizeof(LO));
+
+	CloneLo(ppuffc, ppuffcBase);
+
+	ClearDl(&ppuffc->dlChild);
+
+	ppuffc->pxa = nullptr;
+	ppuffc->grfpvaXpValid = 0;
+	ppuffc->pstso = nullptr;
+}
+
+void DeletePuffc(LO* plo)
+{
+	delete (PUFFC*)plo;
 }
 
 void* NewPufft()
@@ -55,9 +130,24 @@ void* NewPufft()
 	return new PUFFT;
 }
 
-void DeletePuffc(LO* plo)
+int GetPufftSize()
 {
-	delete (PUFFC*)plo;
+	return sizeof(PUFFT);
+}
+
+void ClonePufft(PUFFT* ppufft, PUFFT* ppufftBase)
+{
+	LO lo = *ppufft;
+	*ppufft = *ppufftBase;
+	memcpy(ppufft, &lo, sizeof(LO));
+
+	CloneLo(ppufft, ppufftBase);
+
+	ClearDl(&ppufft->dlChild);
+
+	ppufft->pxa = nullptr;
+	ppufft->grfpvaXpValid = 0;
+	ppufft->pstso = nullptr;
 }
 
 void DeletePufft(LO* plo)

@@ -52,10 +52,24 @@ void RemoveLoHierarchy(LO* plo)
 
 void CloneLoHierarchy(LO* plo, LO* ploBase)
 {
+	plo->pvtlo->pfnCloneLo(plo, ploBase);
 }
 
 void CloneLo(LO* plo, LO* ploBase)
 {
+	RemoveDlEntry(PdlFromSwOid(plo->psw, plo->oid), plo);
+	AppendDlEntry(PdlFromSwOid(ploBase->psw, ploBase->oid), plo);
+
+	plo->oid = ploBase->oid;
+	plo->pchzName = ploBase->pchzName;
+	plo->ppxr = ploBase->ppxr;
+}
+
+LO* PloCloneLo(LO* plo, SW* psw, ALO* paloParent)
+{
+	LO* localObject = PloNew(plo->pvtbasic->cid, psw, paloParent, plo->oid, -1);
+	localObject->pvtlo->pfnCloneLoHierarchy(localObject, plo);
+	return localObject;
 }
 
 void SendLoMessage(LO *plo, MSGID msgid, void *pv)
@@ -162,6 +176,11 @@ void SubscribeLoStruct(LO* plo, void* pfnmq, void* pvContext)
 
 void UnsubscribeLoStruct(LO* plo, void* pfnmq, void* pvContext)
 {
+}
+
+int GetLoSize()
+{
+	return sizeof(LO);
 }
 
 void DeleteLo(LO* plo)

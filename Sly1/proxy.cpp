@@ -11,8 +11,15 @@ void InitProxy(PROXY *pproxy)
 	AppendDlEntry(&pproxy->psw->dlProxy, pproxy);
 }
 
-void LoadProxyFromBrx(PROXY *pproxy, CBinaryInputStream* pbis)
+int GetProxySize()
 {
+	return sizeof(PROXY);
+}
+
+void LoadProxyFromBrx(PROXY* pproxy, CBinaryInputStream* pbis)
+{
+	std::vector <LO*> proxyObjs;
+
 	InitDl(&pproxy->dlProxyRoot, 0x470);
 
 	pproxy->xf.mat = pbis->ReadMatrix();
@@ -20,20 +27,35 @@ void LoadProxyFromBrx(PROXY *pproxy, CBinaryInputStream* pbis)
 
 	byte numProxyObjs = pbis->U8Read();
 
+	pproxy->pvtalo->pfnUpdateAloXfWorld(pproxy);
+
 	for (int i = 0; i < numProxyObjs; i++)
 	{
+		LO* object = nullptr;
+		// Loads class ID
 		CID cid = (CID)pbis->S16Read();
 
 		if (cid == CID_Nil)
-			pbis->S16Read();
+		{
+			// Loads proxy source index from file
+			uint16_t ipsl = pbis->S16Read();
+			// Returns proxy source based of proxy source index
+		}
 
 		else
 		{
+			// Loads object ID from file
 			OID oid = (OID)pbis->S16Read();
+			// Loads splice index from file
 			int16_t isplice = pbis->S16Read();
-			LO *object = PloNew(cid, pproxy->psw, 0, oid, isplice);
+			// Returns new initialized proxy object
+			object = PloNew(cid, pproxy->psw, nullptr, oid, isplice);
+			proxyObjs.push_back(object);
+			// Loads proxy source object from file
 			object->pvtlo->pfnLoadLoFromBrx(object, pbis);
-			pbis->S16Read();
+			// Loads number of LO clones to make
+			uint16_t cploClone = pbis->S16Read();
+			// Adds proxy source to proxy source list
 		}
 	}
 
@@ -52,8 +74,25 @@ void LoadProxyFromBrx(PROXY *pproxy, CBinaryInputStream* pbis)
 		LoadOptionFromBrx(0, pbis);
 	}
 
+	for (int i = 0; i < proxyObjs.size(); i++)
+		proxyObjs[i]->pvtalo->pfnApplyAloProxy((ALO*)proxyObjs[i], pproxy);
+
 	if (numProxyObjs == 1)
 		LoadSwObjectsFromBrx(pproxy->psw, pproxy, pbis);
+
+	proxyObjs.clear();
+	proxyObjs.shrink_to_fit();
+}
+
+void CloneProxy(PROXY* pproxy, PROXY* pproxyBase)
+{
+	LO lo = *pproxy;
+	*pproxy = *pproxyBase;
+	memcpy(pproxy, &lo, sizeof(LO));
+
+	CloneLo(pproxy, pproxyBase);
+
+	ClearDl(&pproxy->dlChild);
 }
 
 void DeleteProxy(LO* plo)

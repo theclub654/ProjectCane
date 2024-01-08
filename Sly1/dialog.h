@@ -70,8 +70,10 @@ class DIALOG : public ALO
         int fCrucial;
 };
 
-void* NewDialog();
+void*NewDialog();
 void InitDialog(DIALOG* pdialog);
+int  GetDialogSize();
 void LoadDialogFromBrx(DIALOG* pdialog, CBinaryInputStream* pbis);
+void CloneDialog(DIALOG* pdialog, DIALOG* pdialogBase);
 void LoadDialogEventsFromBrx(CBinaryInputStream *pbis);
 void DeleteDialog(LO* plo);

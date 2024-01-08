@@ -11,7 +11,9 @@ class SHAPE : public LO
 		DLE dleShape;
 };
 
-void* NewShape();
+void*NewShape();
 void InitShape(SHAPE* pshape);
+int  GetShapeSize();
+void CloneShape(SHAPE* pshape, SHAPE* pshapeBase);
 void LoadShapeFromBrx(SHAPE* pshape, CBinaryInputStream* pbis);
 void DeleteShape(LO* plo);

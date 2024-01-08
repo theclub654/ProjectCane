@@ -67,7 +67,9 @@ class FLY : public SO
         int ccoin;
 };
 
-void* NewFly();
+void*NewFly();
 void InitFly(FLY* pfly);
+int  GetFlySize();
+void CloneFly(FLY* pfly, FLY* pflyBase);
 void LoadFlyFromBrx(FLY* pfly, CBinaryInputStream* pbis);
 void DeleteFly(LO* plo);

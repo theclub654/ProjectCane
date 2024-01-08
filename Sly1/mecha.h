@@ -42,4 +42,6 @@ class MECHA : public STEP
 
 void*NewMecha();
 void InitMecha(MECHA* pmecha);
+int  GetMechaSize();
+void CloneMecha(MECHA* pmecha, MECHA* pmechaBase);
 void DeleteMecha(LO* plo);

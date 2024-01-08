@@ -21,7 +21,9 @@ class PATHZONE : public LO
 		DLE dlePathzone;
 };
 
-void* NewPathzone();
+void*NewPathzone();
+int  GetPathzoneSize();
 void OnPathzoneAdd(PATHZONE* ppathzone);
 void LoadPathZoneFromBrx(PATHZONE* ppathzone, CBinaryInputStream* pbis);
+void ClonePathzone(PATHZONE* ppathzone, PATHZONE* ppathzoneBase);
 void DeletePathzone(LO* plo);

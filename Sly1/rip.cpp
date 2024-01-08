@@ -12,6 +12,26 @@ void InitRipg(RIPG *pripg)
 	pripg->sMRD = 10000000000;
 }
 
+int GetRipgSize()
+{
+	return sizeof(RIPG);
+}
+
+void CloneRipg(RIPG* pripg, RIPG* pripgBase)
+{
+	LO lo = *pripg;
+	*pripg = *pripgBase;
+	memcpy(pripg, &lo, sizeof(LO));
+
+	CloneLo(pripg, pripgBase);
+
+	ClearDl(&pripg->dlChild);
+
+	pripg->pxa = nullptr;
+	pripg->grfpvaXpValid = 0;
+	pripg->pstso = nullptr;
+}
+
 void OnRipgRemove(RIPG* pripg)
 {
 

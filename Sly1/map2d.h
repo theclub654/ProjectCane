@@ -14,5 +14,7 @@ class MAP : public LO
         char* mpiposab;
 };
 
-void* NewMap();
+void*NewMap();
+int  GetMapSize();
+void CloneMap(MAP* pmap, MAP* pmapBase);
 void DeleteMap(LO* plo);

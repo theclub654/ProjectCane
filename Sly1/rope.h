@@ -28,6 +28,8 @@ class ROPE : public ALO
         CLQ clqSToUMax;
 };
 
-void* NewRope();
+void*NewRope();
 void InitRope(ROPE* prope);
+int  GetRopeSize();
+void CloneRope(ROPE* prope, ROPE* propeBase);
 void RenderRopeAll(ROPE* prope, CM* pcm, RO* pro);

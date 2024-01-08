@@ -45,8 +45,10 @@ class BLIPG : public ALO
         DLE dle;
 };
 
-void* NewBlipg();
+void*NewBlipg();
 void InitBlipg(BLIPG* pblipg);
+int  GetBlipgSize();
+void CloneBlipg(BLIPG* pblipg, BLIPG* pblipgBase);
 void OnBlipgAdd(BLIPG* pblipg);
 void RenderBlipgSelf(BLIPG* pblipg, CM* pcm, RO* pro);
 void DeleteBlipg(LO* plo);

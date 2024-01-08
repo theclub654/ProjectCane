@@ -17,6 +17,8 @@ class GOMER:public STEPGUARD
         int fAbandonExternal;
 };
 
-void* NewGomer();
+void*NewGomer();
 void InitGomer(GOMER* pgomer);
+int  GetGomerSize();
+void CloneGomer(GOMER* pgomer, GOMER* pgomerBase);
 void DeleteGomer(LO* plo);

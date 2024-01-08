@@ -11,6 +11,11 @@ void InitKeyhole(KEYHOLE *pkeyhole)
 	g_pkeyhole = pkeyhole;
 }
 
+int GetKeyholeSize()
+{
+    return sizeof(KEYHOLE);
+}
+
 void LoadKeyholeFromBrx(KEYHOLE* pkeyhole, CBinaryInputStream* pbis)
 {
 	LoadOptionFromBrx(pkeyhole, pbis);
@@ -40,6 +45,15 @@ void LoadKeyholeFromBrx(KEYHOLE* pkeyhole, CBinaryInputStream* pbis)
             pbis->U16Read();
         }
     }
+}
+
+void CloneKeyhole(KEYHOLE* pkeyhole, KEYHOLE* pkeyholeBase)
+{
+    LO lo = *pkeyhole;
+    *pkeyhole = *pkeyholeBase;
+    memcpy(pkeyhole, &lo, sizeof(LO));
+
+    CloneLo(pkeyhole, pkeyholeBase);
 }
 
 void DeleteKeyhole(LO* plo)

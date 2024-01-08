@@ -49,6 +49,11 @@ void InitSw(SW* psw)
 	InitDl(&psw->dlPathzone, 0xB8);
 }
 
+int GetSwSize()
+{
+	return sizeof(SW);
+}
+
 void InitSwDlHash(SW* psw)
 {
 	for (int i = 0; i < 0x200; i++)
@@ -99,6 +104,27 @@ void LoadWorldTableFromBrx(CBinaryInputStream* pbis)
 	// Loading world table from binary file
 	for (int i = 0; i < worldTableCount; i++)
 		pbis->ReadStringSw();
+}
+
+void AddSwProxySource(SW* psw, LO* ploProxySource, int cploClone)
+{
+	cploClone--;
+
+	PSL proxySourceList;
+	proxySourceList.aploClone.resize(cploClone);
+
+	for (int i = 0; i < cploClone; i++)
+	{
+		LO* clonedLocalObject = PloCloneLo(ploProxySource, psw, nullptr);
+		proxySourceList.aploClone[i] = clonedLocalObject;
+	}
+
+	psw->cpsl++;
+}
+
+LO* PloGetSwProxySource(SW* psw, int ipsl)
+{
+	return nullptr;
 }
 
 void DeleteSw(SW* psw)

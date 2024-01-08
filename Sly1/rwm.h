@@ -76,6 +76,7 @@ class RWM : public LO
         int fPostLoad;
 };
 
-void* NewRwm();
+void*NewRwm();
 void InitRwm(RWM* prwm);
+int  GetRwmSize();
 void DeleteRwm(LO* plo);

@@ -85,8 +85,10 @@ public:
 	char** mpsymidachz;
 	int coptidExtra;
 	char** mpoptidachzExtra;
+	// Number of proxy source list
 	int cpsl;
-	PSL apsl[128];
+	// Proxy source list
+	std::vector <PSL> apsl[128];
 	// Number of clue bottles for each level
 	int cclueAll;
 	// Number of check points for level
@@ -107,6 +109,7 @@ public:
 void* NewSw();
 // Initializing SW object
 void InitSw(SW* psw); // GOTTA COME BACK TO THIS
+int  GetSwSize();
 // Initializing the base offset to data
 void InitSwDlHash(SW *psw);
 // Loads all world data from binary file
@@ -115,6 +118,10 @@ void LoadSwFromBrx(SW* psw, CBinaryInputStream* pbis);// NOT FINISHED
 void LoadNameTableFromBrx(CBinaryInputStream* pbis);
 // Loads the world table from file
 void LoadWorldTableFromBrx(CBinaryInputStream* pbis);
+// Adds a SW proxy source to apsl 
+void AddSwProxySource(SW* psw, LO* ploProxySource, int cploClone);
+// Returns SW proxy source based of proxy source index
+LO* PloGetSwProxySource(SW* psw, int ipsl);
 // Resets SW object
 void DeleteSw(SW* psw);
 // Deletes all world data from memory

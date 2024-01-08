@@ -10,6 +10,11 @@ void InitAseg(ASEG* paseg)
     InitLo(paseg);
 }
 
+int GetAsegSize()
+{
+    return sizeof(ASEG);
+}
+
 void LoadAsegFromBrx(ASEG* paseg, CBinaryInputStream* pbis)
 {
     int16_t unk_0 = pbis->U16Read();
@@ -292,9 +297,9 @@ void LoadAsegEventsFromBrx(CBinaryInputStream* pbis, int fFrame)
             pbis->S16Read();
             pbis->F32Read();
             break;
-        /*case 0x31:
-            pbis->ReadStringSw();
-            break;*/
+            /*case 0x31:
+                pbis->ReadStringSw();
+                break;*/
         case 0x36:
             pbis->S16Read();
             pbis->S16Read();
@@ -302,6 +307,20 @@ void LoadAsegEventsFromBrx(CBinaryInputStream* pbis, int fFrame)
             break;
         }
     }
+}
+
+void CloneAseg(ASEG* paseg, ASEG* pasegBase)
+{
+    LO lo = *paseg;
+    *paseg = *pasegBase;
+    memcpy(paseg, &lo, sizeof(LO));
+
+    CloneLo(paseg, pasegBase);
+}
+
+void ApplyAseg(ASEG* paseg, ALO* paloAsegRoot, float tLocal, float svtLocal, int grfapl, ASEGA** ppasega)
+{
+
 }
 
 void DeleteAseg(LO* plo)

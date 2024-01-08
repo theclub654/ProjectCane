@@ -56,7 +56,7 @@ struct DLE
 // Used for loading parent objects
 struct DLI
 {
-	// Used for parent DL list
+	// List address value
 	DL *m_pdl;
 	// Parent pointer value
 	void **m_ppv;

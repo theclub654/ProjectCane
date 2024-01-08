@@ -65,26 +65,46 @@ class LIFETKN : public SCPRIZE
 	public:
 };
 
-void* NewVault();
+void*NewVault();
 void InitVault(VAULT* pvault);
+int  GetVaultSize();
+void CloneVault(VAULT* pvault, VAULT* pvaultBase);
 void DeleteVault(LO* plo);
-void* NewSprize();
+
+void*NewSprize();
 void InitSprize(SPRIZE* psprize);
+int  GetSprizeSize();
+void LoadSprizeFromBrx(SPRIZE* psprize, CBinaryInputStream* pbis);
+void CloneSprize(SPRIZE* psprize, SPRIZE* psprizeBase);
 void DeleteSprize(LO* plo);
-void* NewScprize();
+
+void*NewScprize();
 void InitScprize(SCPRIZE* pscprize);
+int  GetScprizeSize();
+void CloneScprize(SCPRIZE* pscprize, SCPRIZE* pscprizeBase);
 void DeleteScprize(LO* plo);
-void* NewLifetkn();
+
+void*NewLifetkn();
+int  GetLifetknSize();
+void CloneLifetkn(LIFETKN* plifetkn, LIFETKN* plifetknBase);
 void DeleteLifetkn(LO* plo);
-void* NewClue();
+
+void*NewClue();
 void InitClue(CLUE* pclue);
-void LoadSprizeFromBrx(SPRIZE *psprize, CBinaryInputStream *pbis);
+int  GetClueSize();
+void CloneClue(CLUE* pclue, CLUE* pclueBase);
 void LoadClueFromBrx(CLUE *pclue, CBinaryInputStream *pbis);
-void DeleteClue(LO* plo);
-void* NewLock();
-void LoadLockFromBrx(LOCK* plock, CBinaryInputStream* pbis);
-void DeleteLock(LO* plo);
-void* NewLockg();
-void LoadLockgFromBrx(LOCKG* plockg, CBinaryInputStream* pbis);
-void DeleteLockg(LO* plo);
 void RenderClueAll(CLUE* pclue, CM* pcm, RO* pro);
+void DeleteClue(LO* plo);
+
+void*NewLock();
+int  GetLockSize();
+void LoadLockFromBrx(LOCK* plock, CBinaryInputStream* pbis);
+void CloneLock(LOCK* plock, LOCK* plockBase);
+void DeleteLock(LO* plo);
+
+void*NewLockg();
+int  GetLockgSize();
+void LoadLockgFromBrx(LOCKG* plockg, CBinaryInputStream* pbis);
+void CloneLockg(LOCKG* plockg, LOCKG* plockgBase);
+void DeleteLockg(LO* plo);

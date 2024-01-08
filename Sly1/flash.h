@@ -15,7 +15,9 @@ class FLASH : public ALO
         float gScaleTarget;
 };
 
-void* NewFlash();
+void*NewFlash();
 void InitFlash(FLASH* pflash);
+int  GetFlashSize();
 void LoadFlashFromBrx(FLASH* pflash, CBinaryInputStream* pbis);
+void CloneFlash(FLASH* pflash, FLASH* pflashBase);
 void DeleteFlash(LO* plo);

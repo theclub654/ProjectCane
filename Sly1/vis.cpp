@@ -11,6 +11,11 @@ void InitVismap(VISMAP *pvismap)
 	pvismap->psw->pvismap = pvismap;
 }
 
+int GetVismapSize()
+{
+	return sizeof(VISMAP);
+}
+
 void LoadVismapFromBrx(VISMAP *pvismap, CBinaryInputStream *pbis)
 {
 	pbis->ReadVbsp();

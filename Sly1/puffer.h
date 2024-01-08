@@ -73,16 +73,30 @@ class PUFFV : public VOL
         float tChosen;
 };
 
-void* NewPuffer();
+void*NewPuffer();
 void InitPuffer(PUFFER *ppuffer);
+int  GetPufferSize();
+void LoadPufferFromBrx(PUFFER* ppuffer, CBinaryInputStream* pbis);
+void ClonePuffer(PUFFER* ppuffer, PUFFER* ppufferBase);
 void DeletePuffer(LO* plo);
-void* NewPuffb();
+
+void*NewPuffb();
+int  GetPuffbSize();
+void ClonePuffb(PUFFB* ppuffb, PUFFB* ppuffbBase);
 void DeletePuffb(LO* plo);
-void* NewPuffv();
+
+void*NewPuffv();
 void InitPuffv(PUFFV* ppuffv);
+int  GetPuffvSize();
+void ClonePuffv(PUFFV* ppuffv, PUFFV* ppuffvBase);
 void DeletePuffv(LO* plo);
+
 void*NewPuffc();
-void LoadPufferFromBrx(PUFFER *ppuffer, CBinaryInputStream *pbis);
-void* NewPufft();
+int  GetPuffcSize();
+void ClonePuffc(PUFFC* ppuffc, PUFFC* ppuffcBase);
 void DeletePuffc(LO* plo);
+
+void*NewPufft();
+int  GetPufftSize();
+void ClonePufft(PUFFT* ppufft, PUFFT* ppufftBase);
 void DeletePufft(LO* plo);

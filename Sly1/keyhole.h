@@ -23,9 +23,11 @@ class KEYHOLE : public LO
 		KS mpkpks[5];
 };
 
-void* NewKeyhole();
+void*NewKeyhole();
 void InitKeyhole(KEYHOLE *pkeyhole);
+int  GetKeyholeSize();
 void LoadKeyholeFromBrx(KEYHOLE* pkeyhole, CBinaryInputStream* pbis);
+void CloneKeyhole(KEYHOLE* pkeyhole, KEYHOLE* pkeyholeBase);
 void DeleteKeyhole(LO* plo);
 
 static KEYHOLE *g_pkeyhole;

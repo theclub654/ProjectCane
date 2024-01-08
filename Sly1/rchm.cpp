@@ -10,6 +10,11 @@ void InitRchm(RCHM* prchm)
     InitLo(prchm);
 }
 
+int GetRchmSize()
+{
+    return sizeof(RCHM);
+}
+
 void LoadRchmFromBrx(RCHM* prchm, CBinaryInputStream* pbis)
 {
     for (int i = 0; i <= 0x17; i++)

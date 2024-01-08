@@ -85,22 +85,36 @@ class EXPLS : public EXPLO
 	public:
 };
 
-void* NewExplo();
+void*NewExplo();
 void InitExplo(EXPLO* pexplo);
+int  GetExploSize();
+void LoadExploFromBrx(EXPLO* pexplo, CBinaryInputStream* pbis);
+void CloneExplo(EXPLO* pexplo, EXPLO* pexploBase);
 void DeleteExplo(LO* plo);
-void* NewEmitter();
+
+void*NewEmitter();
 void InitEmitter(EMITTER* pemitter);
-void DeleteEmitter(LO* plo);
-void* NewExpl();
-void DeleteExpl(LO* plo);
-void* NewExpls();
-void InitExpls(EXPLS* pexpls);
-void DeleteExpls(LO* plo);
+int  GetEmitterSize();
 void LoadEmitMeshFromBrx(CBinaryInputStream* pbis);
 void LoadEmitblipColorsFromBrx(int crgba, CBinaryInputStream* pbis);
 void LoadEmitterFromBrx(EMITTER* pemitter, CBinaryInputStream* pbis);
-void LoadExplgFromBrx(EXPLG* pexplg, CBinaryInputStream* pbis);
-void* NewExplg();
-void DeleteExplg(LO* plo);
-void LoadExploFromBrx(EXPLO *pexplo, CBinaryInputStream *pbis);
+void CloneEmitter(EMITTER* pemitter, EMITTER* pemitterBase);
 void RenderEmitterSelf(EMITTER* pemitter, CM* pcm, RO* pro);
+void DeleteEmitter(LO* plo);
+
+void*NewExpl();
+int  GetExplSize();
+void CloneExpl(EXPL* pexpl, EXPL* pexplBase);
+void DeleteExpl(LO* plo);
+
+void*NewExpls();
+void InitExpls(EXPLS* pexpls);
+int  GetExplsSize();
+void CloneExpls(EXPLS* pexpls, EXPLS* pexplsBase);
+void DeleteExpls(LO* plo);
+
+void*NewExplg();
+int  GetExplgSize();
+void LoadExplgFromBrx(EXPLG* pexplg, CBinaryInputStream* pbis);
+void CloneExplg(EXPLG* pexplg, EXPLG* pexplgBase);
+void DeleteExplg(LO* plo);

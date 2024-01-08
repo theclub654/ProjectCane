@@ -12,6 +12,8 @@ class MURRAY : public STEPGUARD
 		struct TURRET* pturret;
 };
 
-void* NewMurray();
+void*NewMurray();
 void InitMurray(MURRAY* pmurray);
+int  GetMurraySize();
+void CloneMurray(MURRAY* pmurray, MURRAY* pmurrayBase);
 void DeleteMurray(LO* plo);

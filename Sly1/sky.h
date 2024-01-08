@@ -7,5 +7,7 @@ class SKY : public ALO
 		int fFollowZ;
 };
 
-void* NewSky();
+void*NewSky();
+int  GetSkySize();
+void CloneSky(SKY* psky, SKY* pskyBase);
 void DeleteSky(LO* plo);

@@ -34,6 +34,7 @@ class WR : public LO
         int fValuesChanged;
 };
 
-void* NewWr();
+void*NewWr();
 void InitWr(WR* pwr);
+int  GetWrSize();
 void DeleteWr(LO* plo);

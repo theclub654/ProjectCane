@@ -13,5 +13,7 @@ class TURRET : public PO
         float tCharmPending;
 };
 
-void* NewTurret();
+void*NewTurret();
+int  GetTurretSize();
+void CloneTurret(TURRET* pturret, TURRET* pturretBase);
 void DeleteTurret(LO* plo);

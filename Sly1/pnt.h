@@ -7,6 +7,9 @@ class PNT : public LO
 		glm::vec3 posLocal;
 };
 
-void* NewPnt();
+void*NewPnt();
+int  GetPntSize();
 void LoadPntFromBrx(PNT *pnt, CBinaryInputStream *pbis);
+void ClonePnt(PNT* pnt, PNT* pntBase);
+void ApplyPntProxy(PNT* ppnt, PROXY* pproxyApply);
 void DeletePnt(LO* plo);

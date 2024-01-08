@@ -7,6 +7,7 @@
 #include "util.h"
 
 LO* PloNew(CID cid, SW* psw, ALO* paloParent, OID oid, int isplice);
+DL* PdlFromSwOid(SW* psw, OID oid);
 void LoadSwObjectsFromBrx(SW* psw, ALO* paloParent, CBinaryInputStream* pbis);
 void LoadOptionFromBrx(void* pvObject, CBinaryInputStream* pbis);
 
@@ -55,11 +56,22 @@ struct SOP
     struct PAR* apar;
     struct SOP* psopNext;
 };
+// Proxy Source List
 struct PSL 
 {
+    // Number of cloned LO's
     int cploCloneFree;
-    struct LO** aploClone;
+    // Vector container of the cloned LO's
+    std::vector <LO*> aploClone;
 };
+struct PXR 
+{
+    struct LO* plo;
+    OID oidProxyRoot;
+    DLE dleProxyRoot;
+    char* pchzProxyRoot;
+};
+
 // Merge
 // Used to merge ALO object's
 struct MRG
@@ -102,6 +114,7 @@ void AddLoHierarchy(LO* plo);
 void RemoveLoHierarchy(LO* plo);
 void CloneLoHierarchy(LO* plo, LO* ploBase);
 void CloneLo(LO* plo, LO* ploBase);
+LO* PloCloneLo(LO* plo, SW* psw, ALO* paloParent);
 void SendLoMessage(LO *plo, MSGID msgid, void *pv); // GOTTA COME BACK
 void LoadLoFromBrx(LO *plo, CBinaryInputStream* pbis);
 void RemoveLo(LO *plo); // GOTTA COME BACK
@@ -115,6 +128,7 @@ void SubscribeLoObject(LO* plo, LO* ploTarget);
 void UnsubscribeLoObject(LO* plo, LO* ploTarget);
 void SubscribeLoStruct(LO* plo, void* pfnmq, void* pvContext);
 void UnsubscribeLoStruct(LO* plo, void * pfnmq, void* pvContext);
+int GetLoSize();
 void DeleteLo(LO* plo);
 
 #include "sw.h"

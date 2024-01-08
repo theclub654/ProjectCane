@@ -19,6 +19,20 @@ void InitCm(CM* pcm)
 	pcm->rMRD = 1.0;
 }
 
+int GetCmSize()
+{
+	return sizeof(CM);
+}
+
+void CloneCm(CM* pcm, CM* pcmBase)
+{
+	LO lo = *pcm;
+	*pcm = *pcmBase;
+	memcpy(pcm, &lo, sizeof(LO));
+
+	CloneLo(pcm, pcmBase);
+}
+
 void DeleteCm(LO* plo)
 {
 	delete(CM*)plo;

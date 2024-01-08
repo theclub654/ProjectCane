@@ -16,7 +16,7 @@ class SHADOW
         glm::vec3 posEffect;
         float sRadiusEffect;
         glm::mat4 matWorldToUv;
-        enum OID oidDysh;
+        OID oidDysh;
         struct DYSH* pdysh;
         DLE dle;
         int cqwVifs;

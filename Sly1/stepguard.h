@@ -176,12 +176,17 @@ class SGG : public LO
         int fDetect;
 };
 
-void* NewSgg();
+void*NewSgg();
 void InitSgg(SGG* psgg);
+int  GetSggSize();
+void CloneSgg(SGG* psgg, SGG* psggBase);
 void DeleteSgg(LO* plo);
-void* NewStepguard();
+
+void*NewStepguard();
 void InitStepGuard(STEPGUARD* pstepguard);
 void OnStepguardAdd(STEPGUARD* pstepguard);
+void CloneStepguard(STEPGUARD* pstepguard, STEPGUARD* pstepguardBase);
 void LoadStepGuardFromBrx(STEPGUARD *pstepguard, CBinaryInputStream *pbis);
 void RenderStepguardSelf(STEPGUARD* pstepguard, CM* pcm, RO* pro);
+int  GetStepguardSize();
 void DeleteStepguard(LO* plo);

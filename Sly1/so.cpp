@@ -13,6 +13,11 @@ void InitSo(SO* pso)
 	InitGeom(&pso->geomLocal);
 }
 
+int GetSoSize()
+{
+	return sizeof(SO);
+}
+
 void OnSoAdd(SO *pso)
 {
 	pso->psw->cpsoAll++;
@@ -24,6 +29,36 @@ void OnSoAdd(SO *pso)
 	}
 
 	OnAloAdd(pso);
+}
+
+void CloneSo(SO* pso, SO* psoBase)
+{
+	LO lo = *pso;
+	*pso = *psoBase;
+	memcpy(pso, &lo, sizeof(LO));
+
+	CloneLo(pso, psoBase);
+
+	ClearDl(&pso->dlChild);
+
+	pso->pxa = nullptr;
+	pso->grfpvaXpValid = 0;
+	pso->pstso = nullptr;
+}
+
+void ApplySoProxy(SO* pso, PROXY* pproxyApply)
+{
+	ApplyAloProxy(pso, pproxyApply);
+}
+
+void UpdateSoXfWorldHierarchy(SO* pso)
+{
+	UpdateAloXfWorldHierarchy(pso);
+}
+
+void UpdateSoXfWorld(SO* pso)
+{
+	UpdateAloXfWorld(pso);
 }
 
 void LoadSoFromBrx(SO* pso, CBinaryInputStream* pbis)
@@ -65,6 +100,20 @@ void LoadSoFromBrx(SO* pso, CBinaryInputStream* pbis)
 	pbis->ReadBspc();
 
 	LoadAloFromBrx(pso, pbis);
+}
+
+void TranslateSoToPos(SO* pso, glm::vec3& ppos)
+{
+	pso->xf.pos = ppos;
+
+	pso->pvtalo->pfnUpdateAloXfWorld(pso);
+}
+
+void RotateSoToMat(SO* pso, glm::mat3& pmat)
+{
+	pso->xf.mat = pmat;
+
+	pso->pvtalo->pfnUpdateAloXfWorld(pso);
 }
 
 void MakeCollisionGLBuffers(GEOM *pgeom)
