@@ -28,6 +28,7 @@ public:
 	int cpsoAll;
 	int cpsoRoot;
 	DL dlRoot;
+	// DL to dleChild in LO
 	DL dlChild;
 	DL dlMRD;
 	DL dlBusy;
@@ -88,7 +89,7 @@ public:
 	// Number of proxy source list
 	int cpsl;
 	// Proxy source list
-	std::vector <PSL> apsl[128];
+	std::vector <PSL> apsl;
 	// Number of clue bottles for each level
 	int cclueAll;
 	// Number of check points for level

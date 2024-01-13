@@ -2,7 +2,7 @@
 
 void* NewSensor()
 {
-	return new SENSOR;
+	return new SENSOR{};
 }
 
 void InitSensor(SENSOR* psensor)
@@ -37,7 +37,7 @@ void DeleteSensor(LO* plo)
 
 void* NewLasen()
 {
-	return new LASEN;
+	return new LASEN{};
 }
 
 void InitLasen(LASEN* plasen)
@@ -77,7 +77,7 @@ void DeleteLasen(LO* plo)
 
 void* NewCamsen()
 {
-	return new CAMSEN;
+	return new CAMSEN{};
 }
 
 void InitCamsen(CAMSEN* pcamsen)
@@ -112,7 +112,7 @@ void DeleteCamsen(LO* plo)
 
 void* NewPrsen()
 {
-	return new PRSEN;
+	return new PRSEN{};
 }
 
 void InitPrsen(PRSEN* pprsen)

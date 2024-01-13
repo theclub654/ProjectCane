@@ -2,7 +2,7 @@
 
 void* NewLight()
 {
-	return new LIGHT;
+	return new LIGHT{};
 }
 
 void InitLight(LIGHT* plight)
@@ -48,6 +48,8 @@ void CloneLight(LIGHT* plight, LIGHT* plightBase)
 void AddLightToSw(LIGHT* plight)
 {
 	AppendDlEntry(&plight->psw->dlLight, plight);
+
+	plight->pvtalo->pfnUpdateAloXfWorld(plight);
 }
 
 void RemoveLightFromSw(LIGHT* plight)

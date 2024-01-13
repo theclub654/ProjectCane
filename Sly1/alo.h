@@ -52,6 +52,7 @@ enum ACK
 class ALO : public LO
 {
 	public:
+		// Ptr to dleChild in LO
 		DL dlChild;
 		DLE dleBusy;
 		DLE dleMRD;

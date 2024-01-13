@@ -2,7 +2,7 @@
 
 void* NewMap()
 {
-	return new MAP;
+	return new MAP{};
 }
 
 int GetMapSize()

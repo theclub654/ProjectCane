@@ -2,7 +2,7 @@
 
 void* NewRwm()
 {
-	return new RWM;
+	return new RWM{};
 }
 
 void InitRwm(RWM* prwm)

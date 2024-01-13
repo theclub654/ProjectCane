@@ -2,7 +2,7 @@
 
 void* NewTail()
 {
-	return new TAIL;
+	return new TAIL{};
 }
 
 void InitTail(TAIL* ptail)

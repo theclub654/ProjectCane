@@ -2,7 +2,7 @@
 
 void* NewPuffer()
 {
-	return new PUFFER;
+	return new PUFFER{};
 }
 
 void InitPuffer(PUFFER* ppuffer)
@@ -42,7 +42,7 @@ void DeletePuffer(LO* plo)
 
 void* NewPuffb()
 {
-	return new PUFFB;
+	return new PUFFB{};
 }
 
 int GetPuffbSize()
@@ -68,7 +68,7 @@ void DeletePuffb(LO* plo)
 
 void* NewPuffv()
 {
-	return new PUFFV;
+	return new PUFFV{};
 }
 
 void InitPuffv(PUFFV* ppuffv)
@@ -97,7 +97,7 @@ void DeletePuffv(LO* plo)
 
 void* NewPuffc()
 {
-	return new PUFFC;
+	return new PUFFC{};
 }
 
 int GetPuffcSize()
@@ -127,7 +127,7 @@ void DeletePuffc(LO* plo)
 
 void* NewPufft()
 {
-	return new PUFFT;
+	return new PUFFT{};
 }
 
 int GetPufftSize()

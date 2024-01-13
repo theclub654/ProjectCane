@@ -2,7 +2,7 @@
 
 void* NewAlarm()
 {
-	return new ALARM;
+	return new ALARM{};
 }
 
 void InitAlarm(ALARM* palarm)
@@ -37,7 +37,7 @@ void DeleteAlarm(LO* plo)
 
 void* NewAlbrk()
 {
-	return new ALBRK;
+	return new ALBRK{};
 }
 
 int GetAlbrkSize()

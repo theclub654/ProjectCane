@@ -2,7 +2,7 @@
 
 void* NewPipe()
 {
-	return new PIPE;
+	return new PIPE{};
 }
 
 void InitPipe(PIPE* ppipe)

@@ -2,7 +2,7 @@
 
 void* NewRipg()
 {
-	return new RIPG;
+	return new RIPG{};
 }
 
 void InitRipg(RIPG *pripg)

@@ -2,7 +2,7 @@
 
 void* NewLgn()
 {
-	return new LGN;
+	return new LGN{};
 }
 
 void InitLgn(LGN* plgn)
@@ -42,7 +42,7 @@ void DeleteLgn(LO* plo)
 
 void* NewLgnb()
 {
-	return new LGNB;
+	return new LGNB{};
 }
 
 void InitLgnb(LGNB* plgnb)
@@ -77,7 +77,7 @@ void DeleteLgnb(LO* plo)
 
 void* NewSwp()
 {
-	return new SWP;
+	return new SWP{};
 }
 
 void InitSwp(SWP* pswp)

@@ -8,7 +8,7 @@ extern std::vector <GEOM*> allcollisionModels;
 
 void* NewSw()
 {
-	return new SW;
+	return new SW{};
 }
 
 void InitSw(SW* psw)
@@ -57,7 +57,7 @@ int GetSwSize()
 void InitSwDlHash(SW* psw)
 {
 	for (int i = 0; i < 0x200; i++)
-		InitDl(&psw->adlHash[i], 0x38);
+		InitDl(&psw->adlHash[i], 0x18);
 }
 
 void LoadSwFromBrx(SW* psw, CBinaryInputStream* pbis)
@@ -111,20 +111,28 @@ void AddSwProxySource(SW* psw, LO* ploProxySource, int cploClone)
 	cploClone--;
 
 	PSL proxySourceList;
+
+	proxySourceList.cploCloneFree = cploClone;
 	proxySourceList.aploClone.resize(cploClone);
 
+	ALO* test = (ALO*)ploProxySource;
 	for (int i = 0; i < cploClone; i++)
 	{
 		LO* clonedLocalObject = PloCloneLo(ploProxySource, psw, nullptr);
 		proxySourceList.aploClone[i] = clonedLocalObject;
 	}
 
+	psw->apsl.push_back(proxySourceList);
 	psw->cpsl++;
 }
 
 LO* PloGetSwProxySource(SW* psw, int ipsl)
 {
-	return nullptr;
+	PSL psl = psw->apsl[ipsl];
+	int numClones = psl.cploCloneFree--;
+	numClones--;
+	psl.cploCloneFree = numClones;
+	return psl.aploClone[numClones];
 }
 
 void DeleteSw(SW* psw)

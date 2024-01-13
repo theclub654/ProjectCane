@@ -2,7 +2,7 @@
 
 void* NewStep()
 {
-	return new STEP;
+	return new STEP{};
 }
 
 void InitStep(STEP* pstep)

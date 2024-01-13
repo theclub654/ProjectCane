@@ -2,7 +2,7 @@
 
 void* NewMgv()
 {
-	return new MGV;
+	return new MGV{};
 }
 
 void InitMgv(MGV* pmgv)

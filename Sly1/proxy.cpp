@@ -2,7 +2,7 @@
 
 void* NewProxy()
 {
-	return new PROXY;
+	return new PROXY{};
 }
 
 void InitProxy(PROXY *pproxy)
@@ -20,7 +20,7 @@ void LoadProxyFromBrx(PROXY* pproxy, CBinaryInputStream* pbis)
 {
 	std::vector <LO*> proxyObjs;
 
-	InitDl(&pproxy->dlProxyRoot, 0x470);
+	InitDl(&pproxy->dlProxyRoot, 0x16);
 
 	pproxy->xf.mat = pbis->ReadMatrix();
 	pproxy->xf.pos = pbis->ReadVector();
@@ -31,7 +31,7 @@ void LoadProxyFromBrx(PROXY* pproxy, CBinaryInputStream* pbis)
 
 	for (int i = 0; i < numProxyObjs; i++)
 	{
-		LO* object = nullptr;
+		LO* object{};
 		// Loads class ID
 		CID cid = (CID)pbis->S16Read();
 
@@ -39,7 +39,8 @@ void LoadProxyFromBrx(PROXY* pproxy, CBinaryInputStream* pbis)
 		{
 			// Loads proxy source index from file
 			uint16_t ipsl = pbis->S16Read();
-			// Returns proxy source based of proxy source index
+			// Returns proxy source object based of proxy source index
+			object = PloGetSwProxySource(pproxy->psw, ipsl);
 		}
 
 		else
@@ -56,7 +57,16 @@ void LoadProxyFromBrx(PROXY* pproxy, CBinaryInputStream* pbis)
 			// Loads number of LO clones to make
 			uint16_t cploClone = pbis->S16Read();
 			// Adds proxy source to proxy source list
+			AddSwProxySource(pproxy->psw, object, cploClone);
 		}
+
+		PXR proxyRoot{};
+
+		proxyRoot.plo = object;
+		proxyRoot.oidProxyRoot = pproxy->oid;
+		proxyRoot.pchzProxyRoot = pproxy->pchzName;
+		object->ppxr = &proxyRoot;
+		AppendDlEntry(&pproxy->dlProxyRoot, &proxyRoot);
 	}
 
 	byte unk0 = pbis->U8Read();

@@ -2,7 +2,7 @@
 
 void* NewButton()
 {
-	return new BUTTON;
+	return new BUTTON{};
 }
 
 void InitButton(BUTTON* pbutton)
@@ -42,7 +42,7 @@ void DeleteButton(LO* plo)
 
 void* NewVolbtn()
 {
-	return new VOLBTN;
+	return new VOLBTN{};
 }
 
 void InitVolbtn(VOLBTN* pvolbtn)

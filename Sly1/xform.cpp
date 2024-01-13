@@ -2,7 +2,7 @@
 
 void* NewXfm()
 {
-	return new XFM;
+	return new XFM{};
 }
 
 void InitXfm(XFM* pxfm)
@@ -43,7 +43,7 @@ void DeleteXfm(LO* plo)
 
 void* NewWarp()
 {
-	return new WARP;
+	return new WARP{};
 }
 
 int GetWarpSize()
@@ -95,7 +95,7 @@ void DeleteWarp(LO* plo)
 
 void* NewExit()
 {
-	return new EXIT;
+	return new EXIT{};
 }
 
 int GetExitSize()
@@ -107,6 +107,8 @@ void LoadExitFromBrx(EXIT* pexit, CBinaryInputStream* pbis)
 {
 	pbis->ReadMatrix();
 	pbis->ReadVector();
+
+	pexit->pvtalo->pfnUpdateAloXfWorld(pexit);
 
 	LoadTbspFromBrx(pbis);
 
@@ -144,7 +146,7 @@ void DeleteExit(LO* plo)
 
 void* NewCamera()
 {
-	return new CAMERA;
+	return new CAMERA{};
 }
 
 int GetCameraSize()

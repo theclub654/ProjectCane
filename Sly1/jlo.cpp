@@ -2,7 +2,7 @@
 
 void* NewJlovol()
 {
-	return new JLOVOL;
+	return new JLOVOL{};
 }
 
 void InitJlovol(JLOVOL* pjlovol)
@@ -37,7 +37,7 @@ void DeleteJlovol(LO* plo)
 
 void* NewJlo()
 {
-	return new JLO;
+	return new JLO{};
 }
 
 void InitJlo(JLO* pjlo)
@@ -77,7 +77,7 @@ void DeleteJlo(LO* plo)
 
 void* NewJloc()
 {
-	return new JLOC;
+	return new JLOC{};
 }
 
 void InitJloc(JLOC* pjloc)

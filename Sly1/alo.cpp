@@ -3,12 +3,14 @@ std::vector <GEOM*> allcollisionModels;
 
 void* NewAlo()
 {
-	return new ALO;
+	return new ALO{};
 }
 
 void InitAlo(ALO* palo)
 {
-	InitDl(&palo->dlChild, 0x78);
+	//void* test = &palo->dleOid;
+
+	InitDl(&palo->dlChild, 0x38);
 	InitDl(&palo->dlFreeze, 0xD0);
 
 	InitLo(palo);
@@ -78,41 +80,70 @@ void OnAloAdd(ALO* palo)
 
 void OnAloRemove(ALO* palo)
 {
+	if (palo->paloParent == nullptr)
+	{
+		if (palo->fRealClock != 0)
+			RemoveDlEntry(&palo->psw->dlMRDRealClock, palo);
 
+		else
+		{
+			RemoveDlEntry(&palo->psw->dlMRD, palo);
+
+			RemoveDlEntry(&palo->psw->dlBusy, palo);
+
+			if ((palo->pvtalo->grfcid & 0x2U) != 0)
+			{
+				RemoveDlEntry(&palo->psw->dlBusySo, palo);
+			}
+
+			palo->paloFreezeRoot = nullptr;
+			ClearDl(&palo->dlFreeze);
+		}
+	}
+
+	if (palo->pshadow != nullptr)
+		RemoveDlEntry(&palo->psw->dlShadow, palo->pshadow);
+
+	ResolveAlo(palo);
+	palo->paloRoot = nullptr;
 }
 
 void CloneAloHierarchy(ALO* palo, ALO* paloBase)
 {
-	DLI firstParentPalo;
+	DLI parentPalo{};
 
-	// Storing the first parent ptr to child alo
-	firstParentPalo.m_pdl   = &paloBase->dlChild;
+	// Storing the parent ptr to child ALO
+	parentPalo.m_pdl = &paloBase->dlChild;
 
-	// Storing the base offset to child alo
-	firstParentPalo.m_ibDle = paloBase->dlChild.ibDle;
+	// Storing the base offset to child ALO
+	parentPalo.m_ibDle = paloBase->dlChild.ibDle;
 
 	// Storing the parent ALO
-	firstParentPalo.m_pdliNext = s_pdliFirst;
+	parentPalo.m_pdliNext = s_pdliFirst;
 
-	// Keeping track of the first alo parent
-	s_pdliFirst = &firstParentPalo;
+	// Keeping track of the ALO parent
+	s_pdliFirst = &parentPalo;
 
-	// Storing ptr to next alo to clone
-	firstParentPalo.m_ppv = (void**)firstParentPalo.m_pdl;
+	// Storing ptr to next ALO to clone
+	parentPalo.m_ppv = (void**)parentPalo.m_pdl;
 
-	// Clones the parent alo
+	// Clones paloBase to palo
 	palo->pvtlo->pfnCloneLo(palo, paloBase);
 
-	// Loading next alo to clone
-	LO *plo = (LO*)*firstParentPalo.m_ppv;
-	/*firstParentPalo.m_ppv = (void**)plo + firstParentPalo.m_ibDle;
+	// Loading next ALO to clone
+	LO* plo = (LO*)*parentPalo.m_ppv;
+	// Loading up next ALO to clone after than one above
+	parentPalo.m_ppv = (void**) ((uint64_t)&plo->pvtlo + parentPalo.m_ibDle);
 
-	while (plo != 0)
+	while (plo != nullptr)
 	{
+		// Clones ALO object
 		PloCloneLo(plo, palo->psw, palo);
-		plo = (LO*)*firstParentPalo.m_ppv;
-		firstParentPalo.m_ppv = (void**)plo + firstParentPalo.m_ibDle;
-	}*/
+		plo = (LO*)*parentPalo.m_ppv;
+		parentPalo.m_ppv = (void**) ((uintptr_t)plo + parentPalo.m_ibDle);
+	}
+
+	s_pdliFirst = parentPalo.m_pdliNext;
 }
 
 void CloneAlo(ALO* palo, ALO* paloBase)
@@ -160,7 +191,6 @@ void UpdateAloXfWorldHierarchy(ALO* palo)
 void TranslateAloToPos(ALO* palo, glm::vec3 &ppos)
 {
 	palo->xf.pos = ppos;
-
 	palo->pvtalo->pfnUpdateAloXfWorld(palo);
 }
 

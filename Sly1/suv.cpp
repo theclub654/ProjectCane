@@ -2,7 +2,7 @@
 
 void* NewSuv()
 {
-	return new SUV;
+	return new SUV{};
 }
 
 void InitSuv(SUV* psuv)

@@ -2,7 +2,7 @@
 
 void* NewSo()
 {
-	return new SO;
+	return new SO{};
 }
 
 void InitSo(SO* pso)
@@ -29,6 +29,17 @@ void OnSoAdd(SO *pso)
 	}
 
 	OnAloAdd(pso);
+}
+
+void OnSoRemove(SO* pso)
+{
+	OnAloRemove(pso);
+	pso->psw->cpsoAll--;
+
+	if (pso->paloParent == nullptr)
+	{
+		RemoveDlEntry(&pso->psw->dlRoot, pso);
+	}
 }
 
 void CloneSo(SO* pso, SO* psoBase)

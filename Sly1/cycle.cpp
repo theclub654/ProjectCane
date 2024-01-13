@@ -2,7 +2,7 @@
 
 void* NewCycle()
 {
-	return new CYCLE;
+	return new CYCLE{};
 }
 
 void InitCycle(CYCLE* pcycle)

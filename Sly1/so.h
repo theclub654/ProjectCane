@@ -88,6 +88,7 @@ void*NewSo();
 void InitSo(SO *pso); // NOT FINISHED
 int  GetSoSize();
 void OnSoAdd(SO *pso); // NOT FINISHED
+void OnSoRemove(SO* pso);
 void CloneSo(SO* pso, SO* psoBase);
 void ApplySoProxy(SO* pso, PROXY* pproxyApply);
 void UpdateSoXfWorldHierarchy(SO* pso);

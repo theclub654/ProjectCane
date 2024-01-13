@@ -2,7 +2,7 @@
 
 void* NewRat()
 {
-	return new RAT;
+	return new RAT{};
 }
 
 void InitRat(RAT* prat)
@@ -53,7 +53,7 @@ void DeleteRat(LO* plo)
 
 void* NewRathole()
 {
-	return new RATHOLE;
+	return new RATHOLE{};
 }
 
 int GetRatholeSize()

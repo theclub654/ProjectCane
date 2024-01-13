@@ -2,7 +2,7 @@
 
 void* NewWm()
 {
-	return new WM;
+	return new WM{};
 }
 
 int GetWmSize()

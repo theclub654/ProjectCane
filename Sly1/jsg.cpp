@@ -2,7 +2,7 @@
 
 void* NewJsg()
 {
-	return new JSG;
+	return new JSG{};
 }
 
 void InitJsg(JSG* pjsg)

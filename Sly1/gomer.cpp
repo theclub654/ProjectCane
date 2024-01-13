@@ -2,7 +2,7 @@
 
 void* NewGomer()
 {
-	return new GOMER;
+	return new GOMER{};
 }
 
 void InitGomer(GOMER* pgomer)

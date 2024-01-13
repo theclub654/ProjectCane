@@ -2,7 +2,7 @@
 
 void* NewVismap()
 {
-	return new VISMAP;
+	return new VISMAP{};
 }
 
 void InitVismap(VISMAP *pvismap)

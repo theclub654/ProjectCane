@@ -2,7 +2,7 @@
 
 void* NewTurret()
 {
-	return new TURRET;
+	return new TURRET{};
 }
 
 int GetTurretSize()

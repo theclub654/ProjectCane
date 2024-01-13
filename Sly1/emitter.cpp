@@ -2,7 +2,7 @@
 
 void* NewExplo()
 {
-	return new EXPLO;
+	return new EXPLO{};
 }
 
 void InitExplo(EXPLO* pexplo)
@@ -61,7 +61,7 @@ void DeleteExplo(LO* plo)
 
 void* NewEmitter()
 {
-	return new EMITTER;
+	return new EMITTER{};
 }
 
 void InitEmitter(EMITTER* pemitter)
@@ -157,7 +157,7 @@ void DeleteEmitter(LO* plo)
 
 void* NewExpl()
 {
-	return new EXPL;
+	return new EXPL{};
 }
 
 int GetExplSize()
@@ -181,7 +181,7 @@ void DeleteExpl(LO* plo)
 
 void* NewExpls()
 {
-	return new EXPLS;
+	return new EXPLS{};
 }
 
 void InitExpls(EXPLS* pexpls)
@@ -210,7 +210,7 @@ void DeleteExpls(LO* plo)
 
 void* NewExplg()
 {
-	return new EXPLG;
+	return new EXPLG{};
 }
 
 int GetExplgSize()

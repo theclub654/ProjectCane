@@ -2,7 +2,7 @@
 
 void* NewIkh()
 {
-	return new IKH;
+	return new IKH{};
 }
 
 int GetIkhSize()
@@ -32,7 +32,7 @@ void DeleteIkh(LO* plo)
 
 void* NewLikh()
 {
-	return new LIKH;
+	return new LIKH{};
 }
 
 int GetLikhSize()

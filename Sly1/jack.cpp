@@ -2,7 +2,7 @@
 
 void* NewJack()
 {
-	return new JACK;
+	return new JACK{};
 }
 
 void InitJack(JACK* pjack)
@@ -37,7 +37,7 @@ void DeleteJack(LO* plo)
 
 void* NewJackb()
 {
-	return new JACKB;
+	return new JACKB{};
 }
 
 void InitJackb(JACKB* pjackb)
@@ -68,7 +68,7 @@ void DeleteJackb(LO* plo)
 
 void* NewJackn()
 {
-	return new JACKN;
+	return new JACKN{};
 }
 
 void InitJackn(JACKN* pjackn)
@@ -104,7 +104,7 @@ void DeleteJackn(LO* plo)
 
 void* NewJackf()
 {
-	return new JACKF;
+	return new JACKF{};
 }
 
 void InitJackf(JACKF* pjackf)

@@ -2,7 +2,7 @@
 
 void* NewSgg()
 {
-	return new SGG;
+	return new SGG{};
 }
 
 void InitSgg(SGG* psgg)
@@ -31,7 +31,7 @@ void DeleteSgg(LO* plo)
 
 void* NewStepguard()
 {
-	return new STEPGUARD;
+	return new STEPGUARD{};
 }
 
 void InitStepGuard(STEPGUARD* pstepguard)

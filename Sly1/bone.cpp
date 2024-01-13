@@ -2,7 +2,7 @@
 
 void* NewBone()
 {
-	return new BONE;
+	return new BONE{};
 }
 
 int GetBoneSize()
@@ -37,7 +37,7 @@ void DeleteBone(LO* plo)
 
 void* NewLBone()
 {
-	return new LBONE;
+	return new LBONE{};
 }
 
 int GetLBoneSize()

@@ -2,7 +2,7 @@
 
 void* NewHg()
 {
-	return new HG;
+	return new HG{};
 }
 
 void InitHg(HG* phg)

@@ -2,7 +2,7 @@
 
 void* NewKeyhole()
 {
-    return new KEYHOLE;
+    return new KEYHOLE{};
 }
 
 void InitKeyhole(KEYHOLE *pkeyhole)

@@ -2,7 +2,7 @@
 
 void* NewDartgun()
 {
-	return new DARTGUN;
+	return new DARTGUN{};
 }
 
 void InitDartgun(DARTGUN* pdartgun)

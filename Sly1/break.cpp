@@ -2,7 +2,7 @@
 
 void* NewBrk()
 {
-	return new BRK;
+	return new BRK{};
 }
 
 void InitBrk(BRK* pbrk)
@@ -42,7 +42,7 @@ void DeleteBrk(LO* plo)
 
 void* NewBrkp()
 {
-	return new BRKP;
+	return new BRKP{};
 }
 
 int GetBrkpSize()
@@ -72,7 +72,7 @@ void DeleteBrkp(LO* plo)
 
 void* NewBreak()
 {
-	return new BREAK;
+	return new BREAK{};
 }
 
 void InitBreak(BREAK* pbreak)
@@ -107,7 +107,7 @@ void DeleteBreak(LO* plo)
 
 void* NewFragile()
 {
-	return new FRAGILE;
+	return new FRAGILE{};
 }
 
 void InitFragile(FRAGILE* pfragile)
@@ -142,7 +142,7 @@ void DeleteFragile(LO* plo)
 
 void* NewZapbreak()
 {
-	return new ZAPBREAK;
+	return new ZAPBREAK{};
 }
 
 int GetZapbreakSize()

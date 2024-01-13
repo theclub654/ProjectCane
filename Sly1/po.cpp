@@ -2,7 +2,7 @@
 
 void* NewPo()
 {
-	return new PO;
+	return new PO{};
 }
 
 void InitPo(PO* ppo)

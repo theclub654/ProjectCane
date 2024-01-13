@@ -2,7 +2,7 @@
 
 void* NewSmartguard()
 {
-	return new SMARTGUARD;
+	return new SMARTGUARD{};
 }
 
 void InitSmartGuard(SMARTGUARD* psmartguard)

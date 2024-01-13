@@ -2,7 +2,7 @@
 
 void* NewSquish()
 {
-	return new SQUISH;
+	return new SQUISH{};
 }
 
 int GetSquishSize()

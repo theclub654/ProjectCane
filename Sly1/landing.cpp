@@ -2,7 +2,7 @@
 
 void* NewLanding()
 {
-	return new LANDING;
+	return new LANDING{};
 }
 
 int GetLandingSize()

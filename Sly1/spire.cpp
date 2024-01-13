@@ -2,7 +2,7 @@
 
 void* NewSpire()
 {
-	return new SPIRE;
+	return new SPIRE{};
 }
 
 int GetSpireSize()

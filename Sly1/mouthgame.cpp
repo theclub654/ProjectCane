@@ -2,7 +2,7 @@
 
 void* NewMgc()
 {
-	return new MGC;
+	return new MGC{};
 }
 
 void InitMgc(MGC* pmgc)

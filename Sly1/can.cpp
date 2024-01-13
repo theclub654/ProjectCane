@@ -2,7 +2,7 @@
 
 void* NewCan()
 {
-	return new CAN;
+	return new CAN{};
 }
 
 void InitCan(CAN* pcan)

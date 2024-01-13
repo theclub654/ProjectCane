@@ -2,7 +2,7 @@
 
 void* NewFrzg()
 {
-	return new FRZG;
+	return new FRZG{};
 }
 
 int GetFrzgSize()

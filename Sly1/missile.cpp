@@ -2,7 +2,7 @@
 
 void* NewMissile()
 {
-	return new MISSILE;
+	return new MISSILE{};
 }
 
 void InitMissile(MISSILE* pmissile)
@@ -47,7 +47,7 @@ void DeleteMissile(LO* plo)
 
 void* NewAccmiss()
 {
-	return new ACCMISS;
+	return new ACCMISS{};
 }
 
 void InitAccmiss(ACCMISS* paccmiss)
@@ -82,7 +82,7 @@ void DeleteAccmiss(LO* plo)
 
 void* NewTarmiss()
 {
-	return new TARMISS;
+	return new TARMISS{};
 }
 
 void InitTarmiss(TARMISS* ptarmiss)
@@ -117,7 +117,7 @@ void DeleteTarmiss(LO* plo)
 
 void* NewSplmiss()
 {
-	return new SPLMISS;
+	return new SPLMISS{};
 }
 
 int GetSplmissSize()
@@ -147,7 +147,7 @@ void DeleteSplmiss(LO* plo)
 
 void* NewGroundmiss()
 {
-	return new GROUNDMISS;
+	return new GROUNDMISS{};
 }
 
 void InitGroundmiss(GROUNDMISS* pgroundmiss)

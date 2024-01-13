@@ -2,7 +2,7 @@
 
 void* NewFly()
 {
-	return new FLY;
+	return new FLY{};
 }
 
 void InitFly(FLY* pfly)

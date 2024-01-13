@@ -2,7 +2,7 @@
 
 void* NewRail()
 {
-	return new RAIL;
+	return new RAIL{};
 }
 
 int GetRailSize()

@@ -2,7 +2,7 @@
 
 void* NewVault()
 {
-	return new VAULT;
+	return new VAULT{};
 }
 
 void InitVault(VAULT* pvault)
@@ -37,7 +37,7 @@ void DeleteVault(LO* plo)
 
 void* NewSprize()
 {
-	return new SPRIZE;
+	return new SPRIZE{};
 }
 
 void InitSprize(SPRIZE* psprize)
@@ -77,7 +77,7 @@ void DeleteSprize(LO* plo)
 
 void* NewScprize()
 {
-	return new SCPRIZE;
+	return new SCPRIZE{};
 }
 
 void InitScprize(SCPRIZE* pscprize)
@@ -112,7 +112,7 @@ void DeleteScprize(LO* plo)
 
 void* NewLifetkn()
 {
-	return new LIFETKN;
+	return new LIFETKN{};
 }
 
 int GetLifetknSize()
@@ -142,7 +142,7 @@ void DeleteLifetkn(LO* plo)
 
 void* NewClue()
 {
-	return new CLUE;
+	return new CLUE{};
 }
 
 void InitClue(CLUE* pclue)
@@ -188,7 +188,7 @@ void DeleteClue(LO* plo)
 
 void* NewLock()
 {
-	return new LOCK;
+	return new LOCK{};
 }
 
 int GetLockSize()
@@ -219,7 +219,7 @@ void DeleteLock(LO* plo)
 
 void* NewLockg()
 {
-	return new LOCKG;
+	return new LOCKG{};
 }
 
 int GetLockgSize()

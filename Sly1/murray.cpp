@@ -2,7 +2,7 @@
 
 void* NewMurray()
 {
-	return new MURRAY;
+	return new MURRAY{};
 }
 
 void InitMurray(MURRAY* pmurray)

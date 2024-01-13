@@ -2,7 +2,7 @@
 
 void* NewTzp()
 {
-	return new TZP;
+	return new TZP{};
 }
 
 void InitTzp(TZP* ptzp)
@@ -37,7 +37,7 @@ void DeleteTzp(LO* plo)
 
 void* NewVolzp()
 {
-	return new VOLZP;
+	return new VOLZP{};
 }
 
 void InitVolzp(VOLZP* pvolzp)

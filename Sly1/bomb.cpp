@@ -2,7 +2,7 @@
 
 void* NewBomb()
 {
-	return new BOMB;
+	return new BOMB{};
 }
 
 void InitBomb(BOMB* pbomb)

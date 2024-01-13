@@ -2,7 +2,7 @@
 
 void* NewBlipg()
 {
-	return new BLIPG;
+	return new BLIPG{};
 }
 
 void InitBlipg(BLIPG* pblipg)

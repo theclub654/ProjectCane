@@ -2,7 +2,7 @@
 
 void* NewMbg()
 {
-	return new MBG;
+	return new MBG{};
 }
 
 void InitMbg(MBG *pmbg)
@@ -42,7 +42,7 @@ void DeleteMbg(LO* plo)
 
 void* NewBhg()
 {
-	return new BHG;
+	return new BHG{};
 }
 
 void InitBhg(BHG *pbhg)
@@ -77,7 +77,7 @@ void DeleteBhg(LO* plo)
 
 void* NewScentmap()
 {
-	return new SCENTMAP;
+	return new SCENTMAP{};
 }
 
 void InitScentmap(SCENTMAP* pscentmap)

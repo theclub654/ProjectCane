@@ -383,7 +383,7 @@ struct VTMS
     CID cid = CID_MS;
     int grfcid = 3;
 
-    void*(*pfnNewSo) () = NewSo;
+    void*(*pfnNewMs) () = NewMs;
     void (*pfnInitSo) (SO*) = InitSo;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -413,8 +413,8 @@ struct VTMS
     void (*pfnUnsubscribeLoStruct)(LO*, void*, void*) = UnsubscribeLoStruct;
     void (*pfnGetSoParams)() = nullptr;
     void (*pfnUpdateLoLiveEdit)() = nullptr;
-    int  (*pfnGetMsSize) () = GetSoSize;
-    void (*pfnDeleteSo) (LO* plo) = DeleteSo;
+    int  (*pfnGetMsSize) () = GetMsSize;
+    void (*pfnDeleteSo) (LO* plo) = DeleteMs;
     void (*pfnProjectSoTransform)() = nullptr;
     void (*pfnPresetSoAccel)() = nullptr;
     void (*pfnTranslateSoToPos)(SO*,  glm::vec3&) = TranslateSoToPos;

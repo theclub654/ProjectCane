@@ -2,7 +2,7 @@
 
 void* NewDart()
 {
-	return new DART;
+	return new DART{};
 }
 
 void InitDart(DART* pdart)

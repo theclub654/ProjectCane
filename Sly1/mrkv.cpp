@@ -2,7 +2,7 @@
 
 void* NewMrkv()
 {
-	return new MRKV;
+	return new MRKV{};
 }
 
 void InitMrkv(MRKV* pmrkv)

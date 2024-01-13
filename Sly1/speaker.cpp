@@ -2,7 +2,7 @@
 
 void* NewSpeaker()
 {
-	return new SPEAKER;
+	return new SPEAKER{};
 }
 
 void InitSpeaker(SPEAKER* pspeaker)

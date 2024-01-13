@@ -2,7 +2,7 @@
 
 void* NewTank()
 {
-	return new TANK;
+	return new TANK{};
 }
 
 void InitTank(TANK* ptank)

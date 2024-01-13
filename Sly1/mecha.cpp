@@ -2,7 +2,7 @@
 
 void* NewMecha()
 {
-	return new MECHA;
+	return new MECHA{};
 }
 
 void InitMecha(MECHA* pmecha)

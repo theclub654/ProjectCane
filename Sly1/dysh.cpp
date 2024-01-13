@@ -2,7 +2,7 @@
 
 void* NewDysh()
 {
-	return new DYSH;
+	return new DYSH{};
 }
 
 void InitDysh(DYSH* pdysh)

@@ -2,7 +2,7 @@
 
 void* NewJt()
 {
-	return new JT;
+	return new JT{};
 }
 
 void InitJt(JT* pjt)

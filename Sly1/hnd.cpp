@@ -2,7 +2,7 @@
 
 void* NewHnd()
 {
-	return new HND;
+	return new HND{};
 }
 
 void InitHnd(HND* phnd)

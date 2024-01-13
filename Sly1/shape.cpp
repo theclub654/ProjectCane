@@ -2,7 +2,7 @@
 
 void* NewShape()
 {
-    return new SHAPE;
+    return new SHAPE{};
 }
 
 void InitShape(SHAPE* pshape)

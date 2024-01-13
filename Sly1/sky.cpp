@@ -2,7 +2,7 @@
 
 void* NewSky()
 {
-	return new SKY;
+	return new SKY{};
 }
 
 int GetSkySize()

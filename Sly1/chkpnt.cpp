@@ -2,7 +2,7 @@
 
 void* NewChkpnt()
 {
-	return new CHKPNT;
+	return new CHKPNT{};
 }
 
 void InitChkpnt(CHKPNT* pchkpnt)

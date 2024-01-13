@@ -2,6 +2,8 @@
 
 void RenderSw(SW *psw, CM *pcm)
 {
+	glShader.Use();
+
 	DLI dlBusyDli;
 
 	// Loading SW object list

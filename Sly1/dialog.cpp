@@ -2,7 +2,7 @@
 
 void* NewDialog()
 {
-	return new DIALOG;
+	return new DIALOG{};
 }
 
 void InitDialog(DIALOG* pdialog)

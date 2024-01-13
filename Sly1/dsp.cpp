@@ -2,7 +2,7 @@
 
 void* NewDsp()
 {
-	return new DSP;
+	return new DSP{};
 }
 
 int GetDspSize()

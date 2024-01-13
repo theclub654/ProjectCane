@@ -2,7 +2,7 @@
 
 void* NewSm()
 {
-	return new SM;
+	return new SM{};
 }
 
 int GetSmSize()
@@ -55,7 +55,7 @@ void DeleteSm(LO* plo)
 
 void* NewSma()
 {
-	return new SMA;
+	return new SMA{};
 }
 
 int GetSmaSize()

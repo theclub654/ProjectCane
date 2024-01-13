@@ -2,7 +2,7 @@
 
 void* NewCm()
 {
-	return new CM;
+	return new CM{};
 }
 
 void InitCm(CM* pcm)

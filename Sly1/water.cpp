@@ -2,7 +2,7 @@
 
 void* NewWater()
 {
-	return new WATER;
+	return new WATER{};
 }
 
 void InitWater(WATER* pwater)

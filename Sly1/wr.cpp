@@ -2,7 +2,7 @@
 
 void* NewWr()
 {
-	return new WR;
+	return new WR{};
 }
 
 void InitWr(WR* pwr)

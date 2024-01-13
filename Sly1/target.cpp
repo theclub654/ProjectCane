@@ -2,12 +2,14 @@
 
 void* NewTarget()
 {
-	return new TARGET;
+	return new TARGET{};
 }
 
 void InitTarget(TARGET* ptarget)
 {
 	InitXfm(ptarget);
+	ptarget->grftak = 0x1e;
+	ptarget->sRadiusTarget = 25.0;
 }
 
 int GetTargetSize()

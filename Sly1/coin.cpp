@@ -2,7 +2,7 @@
 
 void* NewDprize()
 {
-	return new DPRIZE;
+	return new DPRIZE{};
 }
 
 void InitDprize(DPRIZE *pdprize)
@@ -49,7 +49,7 @@ void DeleteDprize(LO* plo)
 
 void* NewCharm()
 {
-	return new CHARM;
+	return new CHARM{};
 }
 
 void InitCharm(CHARM* pcharm)
@@ -80,7 +80,7 @@ void DeleteCharm(LO* plo)
 
 void* NewCoin()
 {
-	return new COIN;
+	return new COIN{};
 }
 
 void InitCoin(COIN* pcoin)
@@ -111,7 +111,7 @@ void DeleteCoin(LO* plo)
 
 void* NewKey()
 {
-	return new KEY;
+	return new KEY{};
 }
 
 void InitKey(KEY* pkey)
@@ -142,7 +142,7 @@ void DeleteKey(LO* plo)
 
 void* NewGold()
 {
-	return new GOLD;
+	return new GOLD{};
 }
 
 void InitGold(GOLD* pgold)

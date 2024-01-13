@@ -2,7 +2,7 @@
 
 void* NewCnvo()
 {
-	return new CNVO;
+	return new CNVO{};
 }
 
 void InitCnvo(CNVO* pcnvo)

@@ -2,7 +2,7 @@
 
 void* NewAseg()
 {
-    return new ASEG;
+    return new ASEG{};
 }
 
 void InitAseg(ASEG* paseg)

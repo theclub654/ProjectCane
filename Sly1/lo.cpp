@@ -2,7 +2,7 @@
 
 void* NewLo()
 {
-	return new LO;
+	return new LO{};
 }
 
 void InitLo(LO* plo)
@@ -35,6 +35,7 @@ void AddLo(LO *plo)
 		// Returns if LO is in world or not
 		isFound = FIsLoInWorld(plo);
 
+		// Adds object to hierarchy
 		if (isFound != 0)
 			plo->pvtlo->pfnAddLoHierarchy(plo);
 	}
@@ -67,8 +68,11 @@ void CloneLo(LO* plo, LO* ploBase)
 
 LO* PloCloneLo(LO* plo, SW* psw, ALO* paloParent)
 {
+	// Returns object to be cloned
 	LO* localObject = PloNew(plo->pvtbasic->cid, psw, paloParent, plo->oid, -1);
+	// Clones the base object and it's children
 	localObject->pvtlo->pfnCloneLoHierarchy(localObject, plo);
+	// Returns cloned object
 	return localObject;
 }
 

@@ -56,6 +56,7 @@ struct SOP
     struct PAR* apar;
     struct SOP* psopNext;
 };
+
 // Proxy Source List
 struct PSL 
 {
@@ -64,6 +65,8 @@ struct PSL
     // Vector container of the cloned LO's
     std::vector <LO*> aploClone;
 };
+
+// Proxy Root
 struct PXR 
 {
     struct LO* plo;
@@ -82,6 +85,8 @@ struct MRG
     // The ALO object thats gonna be merged
     struct ALO** apalo;
 };
+
+// Local Object
 class LO : public BASIC
 {
 	public:
@@ -114,7 +119,7 @@ void AddLoHierarchy(LO* plo);
 void RemoveLoHierarchy(LO* plo);
 void CloneLoHierarchy(LO* plo, LO* ploBase);
 void CloneLo(LO* plo, LO* ploBase);
-LO* PloCloneLo(LO* plo, SW* psw, ALO* paloParent);
+LO*  PloCloneLo(LO* plo, SW* psw, ALO* paloParent);
 void SendLoMessage(LO *plo, MSGID msgid, void *pv); // GOTTA COME BACK
 void LoadLoFromBrx(LO *plo, CBinaryInputStream* pbis);
 void RemoveLo(LO *plo); // GOTTA COME BACK
@@ -128,7 +133,7 @@ void SubscribeLoObject(LO* plo, LO* ploTarget);
 void UnsubscribeLoObject(LO* plo, LO* ploTarget);
 void SubscribeLoStruct(LO* plo, void* pfnmq, void* pvContext);
 void UnsubscribeLoStruct(LO* plo, void * pfnmq, void* pvContext);
-int GetLoSize();
+int  GetLoSize();
 void DeleteLo(LO* plo);
 
 #include "sw.h"

@@ -2,7 +2,7 @@
 
 void* NewScan()
 {
-	return new SCAN;
+	return new SCAN{};
 }
 
 int GetScanSize()

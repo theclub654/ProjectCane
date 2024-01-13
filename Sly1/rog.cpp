@@ -2,7 +2,7 @@
 
 void* NewRov()
 {
-	return new ROV;
+	return new ROV{};
 }
 
 void InitRov(ROV* prov)
@@ -42,7 +42,7 @@ void DeleteRov(LO* plo)
 
 void* NewRoh()
 {
-	return new ROH;
+	return new ROH{};
 }
 
 void InitRoh(ROH* proh)
@@ -82,7 +82,7 @@ void DeleteRoh(LO* plo)
 
 void* NewRoc()
 {
-	return new ROC;
+	return new ROC{};
 }
 
 void InitRoc(ROC* proc)
@@ -122,7 +122,7 @@ void DeleteRoc(LO* plo)
 
 void* NewRost()
 {
-	return new ROST;
+	return new ROST{};
 }
 
 void InitRost(ROST* prost)
@@ -162,7 +162,7 @@ void DeleteRost(LO* plo)
 
 void* NewRop()
 {
-	return new ROP;
+	return new ROP{};
 }
 
 void InitRop(ROP* prop)
@@ -202,7 +202,7 @@ void DeleteRop(LO* plo)
 
 void* NewRob()
 {
-	return new ROB;
+	return new ROB{};
 }
 
 void InitRob(ROB* prob)

@@ -2,7 +2,7 @@
 
 void* NewPathzone()
 {
-    return new PATHZONE;
+    return new PATHZONE{};
 }
 
 int GetPathzoneSize()

@@ -2,7 +2,7 @@
 
 void* NewFlash()
 {
-	return new FLASH;
+	return new FLASH{};
 }
 
 void InitFlash(FLASH* pflash)

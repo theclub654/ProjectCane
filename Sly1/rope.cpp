@@ -2,7 +2,7 @@
 
 void* NewRope()
 {
-	return new ROPE;
+	return new ROPE{};
 }
 
 void InitRope(ROPE* prope)

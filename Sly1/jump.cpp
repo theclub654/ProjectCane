@@ -2,7 +2,7 @@
 
 void* NewJmt()
 {
-	return new JMT;
+	return new JMT{};
 }
 
 int GetJmtSize()

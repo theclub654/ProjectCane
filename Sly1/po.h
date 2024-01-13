@@ -22,7 +22,7 @@ class PO : public SO
 		struct ALO* paloUseCharm;
 };
 
-void* NewPo();
+void*NewPo();
 void InitPo(PO *ppo); //NOT FINISHED
 void OnPoAdd(PO* ppo);
 void ClonePo(PO* ppo, PO* ppoBase);

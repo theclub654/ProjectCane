@@ -2,7 +2,7 @@
 
 void* NewTn()
 {
-    return new TN;
+    return new TN{};
 }
 
 void InitTn(TN* ptn)
@@ -19,6 +19,8 @@ void LoadTnFromBrx(TN* ptn, CBinaryInputStream* pbis)
 {
     ptn->xf.mat = pbis->ReadMatrix();
     ptn->xf.pos = pbis->ReadVector();
+
+    ptn->pvtalo->pfnUpdateAloXfWorld(ptn);
 
     LoadTbspFromBrx(pbis);
 

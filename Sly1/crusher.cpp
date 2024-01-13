@@ -2,7 +2,7 @@
 
 void* NewCrfodb()
 {
-	return new CRFODB;
+	return new CRFODB{};
 }
 
 void InitCrfodb(CRFODB* pcrfodb)
@@ -37,7 +37,7 @@ void DeleteCrfodb(LO* plo)
 
 void* NewCrfod()
 {
-	return new CRFOD;
+	return new CRFOD{};
 }
 
 void OnCrfodAdd(CRFOD* pcrfod)
@@ -73,7 +73,7 @@ void DeleteCrfod(LO* plo)
 
 void* NewCrfodk()
 {
-	return new CRFODK;
+	return new CRFODK{};
 }
 
 int GetCrfodkSize()
@@ -103,7 +103,7 @@ void DeleteCrfodk(LO* plo)
 
 void* NewCrbrain()
 {
-	return new CRBRAIN;
+	return new CRBRAIN{};
 }
 
 void InitCrbrain(CRBRAIN* pcrbrain)

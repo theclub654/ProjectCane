@@ -75,6 +75,12 @@ void RenderSoSelf(SO* pso, CM* pcm, RO* pro);
 int  GetSoSize();
 void DeleteSo(LO* plo);
 
+// Merged Statics
+class MS;
+void*NewMs();
+int  GetMsSize();
+void DeleteMs(LO* plo);
+
 // Player Object
 class PO;
 void*NewPo();

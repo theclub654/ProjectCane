@@ -2,7 +2,7 @@
 
 void* NewPnt()
 {
-	return new PNT;
+	return new PNT{};
 }
 
 int GetPntSize()

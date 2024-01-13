@@ -2,7 +2,7 @@
 
 void* NewJp()
 {
-	return new JP;
+	return new JP{};
 }
 
 void InitJp(JP* pjp)

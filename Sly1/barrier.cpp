@@ -2,7 +2,7 @@
 
 void* NewBarrier()
 {
-	return new BARRIER;
+	return new BARRIER{};
 }
 
 void InitBarrier(BARRIER* pbarrier)

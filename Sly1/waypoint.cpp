@@ -2,7 +2,7 @@
 
 void* NewWaypoint()
 {
-	return new WAYPOINT;
+	return new WAYPOINT{};
 }
 
 void InitWaypoint(WAYPOINT* pwaypoint)

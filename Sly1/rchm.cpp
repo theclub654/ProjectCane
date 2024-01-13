@@ -2,7 +2,7 @@
 
 void* NewRchm()
 {
-    return new RCHM;
+    return new RCHM{};
 }
 
 void InitRchm(RCHM* prchm)

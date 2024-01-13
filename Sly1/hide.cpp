@@ -2,7 +2,7 @@
 
 void* NewHbsk()
 {
-	return new HBSK;
+	return new HBSK{};
 }
 
 void InitHbsk(HBSK* phbsk)
@@ -47,7 +47,7 @@ void DeleteHbsk(LO* plo)
 
 void* NewHshape()
 {
-	return new HSHAPE;
+	return new HSHAPE{};
 }
 
 void InitHshape(HSHAPE* phshape)
@@ -81,7 +81,7 @@ void DeleteHshape(LO* plo)
 
 void* NewHpnt()
 {
-	return new HPNT;
+	return new HPNT{};
 }
 
 void InitHpnt(HPNT* phpnt)

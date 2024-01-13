@@ -2,7 +2,7 @@
 
 void* NewUbg()
 {
-	return new UBG;
+	return new UBG{};
 }
 
 void InitUbg(UBG* pubg)
@@ -42,7 +42,7 @@ void DeleteUbg(LO* plo)
 
 void* NewUbp()
 {
-	return new UBP;
+	return new UBP{};
 }
 
 int GetUbpSize()
@@ -66,7 +66,7 @@ void DeleteUbp(LO* plo)
 
 void* NewUbv()
 {
-	return new UBV;
+	return new UBV{};
 }
 
 int GetUbvSize()
