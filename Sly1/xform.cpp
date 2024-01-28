@@ -31,9 +31,17 @@ void CloneXfm(XFM* pxfm, XFM* pxfmBase)
 	CloneLo(pxfm, pxfmBase);
 }
 
+void SetXfmParent(XFM* pxfm, ALO* paloParent)
+{
+	ConvertAloPos(pxfm->paloParent, paloParent, pxfm->posLocal, pxfm->posLocal);
+	ConvertAloMat(pxfm->paloParent, paloParent, pxfm->matLocal, pxfm->matLocal);
+	SetLoParent(pxfm, paloParent);
+}
+
 void ApplyXfmProxy(XFM* pxfm, PROXY* pproxyApply)
 {
-
+	ConvertAloPos((ALO*)pproxyApply, nullptr, pxfm->posLocal, pxfm->posLocal);
+	ConvertAloMat((ALO*)pproxyApply, nullptr, pxfm->matLocal, pxfm->matLocal);
 }
 
 void DeleteXfm(LO* plo)
@@ -66,7 +74,7 @@ void LoadWarpFromBrx(WARP* pwarp, CBinaryInputStream* pbis)
 		OID oid = (OID)pbis->S16Read();
 		uint16_t isplice = pbis->S16Read();
 
-		LO* plo = PloNew(cid, pwarp->psw, 0, oid, isplice);
+		LO* plo = PloNew(cid, pwarp->psw, nullptr, oid, isplice);
 		plo->pvtlo->pfnLoadLoFromBrx(plo, pbis);
 	}
 
@@ -105,8 +113,8 @@ int GetExitSize()
 
 void LoadExitFromBrx(EXIT* pexit, CBinaryInputStream* pbis)
 {
-	pbis->ReadMatrix();
-	pbis->ReadVector();
+	pexit->xf.mat = pbis->ReadMatrix();
+	pexit->xf.pos = pbis->ReadVector();
 
 	pexit->pvtalo->pfnUpdateAloXfWorld(pexit);
 

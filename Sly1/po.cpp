@@ -15,6 +15,11 @@ void OnPoAdd(PO* ppo)
 	OnSoAdd(ppo);
 }
 
+void OnPoRemove(PO* ppo)
+{
+	OnSoRemove(ppo);
+}
+
 void ClonePo(PO* ppo, PO* ppoBase)
 {
 	LO lo = *ppo;

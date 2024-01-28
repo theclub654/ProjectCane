@@ -22,6 +22,12 @@ void OnTargetAdd(TARGET* ptarget)
 	OnLoAdd(ptarget);
 }
 
+void OnTargetRemove(TARGET* ptarget)
+{
+	OnLoRemove(ptarget);
+	//RemoveDlEntry(&g_dlTarget, ptarget);
+}
+
 void CloneTarget(TARGET* ptarget, TARGET* ptargetBase)
 {
 	LO lo = *ptarget;

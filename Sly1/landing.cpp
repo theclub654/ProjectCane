@@ -16,6 +16,12 @@ void OnLandingAdd(LANDING* planding)
 	AppendDlEntry(&planding->psw->dlLanding, planding);
 }
 
+void OnLandingRemove(LANDING* planding)
+{
+	OnLoRemove(planding);
+	RemoveDlEntry(&planding->psw->dlLanding, planding);
+}
+
 void CloneLanding(LANDING* planding, LANDING* plandingBase)
 {
 	LO lo = *planding;

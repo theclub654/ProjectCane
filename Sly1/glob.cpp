@@ -41,8 +41,8 @@ void LoadGlobsetFromBrx(GLOBSET* pglobset ,CBinaryInputStream* pbis, ALO* palo)
             int instanceIndex = pbis->S16Read();
             glm::mat4 pdmat = pbis->ReadMatrix4();
 
-            //if(instanceIndex != 0)
-            pglobset->aglob[instanceIndex].pdmat.push_back(pdmat);
+            if(instanceIndex != 0)
+                pglobset->aglob[instanceIndex].pdmat.push_back(pdmat);
         }
 
         if ((unk_5 & 2) != 0)
@@ -254,8 +254,6 @@ void LoadGlobsetFromBrx(GLOBSET* pglobset ,CBinaryInputStream* pbis, ALO* palo)
             }
         }
     }
-
-    allSWAloObjs.push_back(palo);
 }
 
 void BuildSubGlob(GLOBSET* pglobset, SHD* pshd, std::vector<VERTICE>& vertices, std::vector <glm::vec3>& vertexes, std::vector <glm::vec3>& normals, std::vector <RGBA>& vertexColors, std::vector <glm::vec2>& texcoords, std::vector <VTXFLG>& indexes, std::vector<uint16_t>& indices)

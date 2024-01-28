@@ -44,6 +44,11 @@ void OnStepguardAdd(STEPGUARD* pstepguard)
 	OnPoAdd(pstepguard);
 }
 
+void OnStepguardRemove(STEPGUARD* pstepguard)
+{
+	OnPoRemove(pstepguard);
+}
+
 void CloneStepguard(STEPGUARD* pstepguard, STEPGUARD* pstepguardBase)
 {
 	LO lo = *pstepguard;

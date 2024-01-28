@@ -3,7 +3,7 @@
 
 std::vector<LO*> allWorldObjs;
 std::vector<ALO*> allSWAloObjs;
-extern std::vector<void*> allSwLights;
+std::vector<void*> allSwLights;
 extern std::vector <GEOM*> allcollisionModels;
 
 void* NewSw()
@@ -15,10 +15,10 @@ void InitSw(SW* psw)
 {
 	InitLo(psw);
 
-	InitDl(&psw->dlChild, 0x38);
-	InitDl(&psw->dlMRD, 0xA0);
+	InitDl(&psw->dlChild, offsetof(LO, dleChild));
+	InitDl(&psw->dlMRD, offsetof(ALO, dleMRD));
 	InitDl(&psw->dlMRDRealClock, 0x1C + 0x54); // GOTTA COME BACK TO THIS
-	InitDl(&psw->dlBusy, 0x90);
+	InitDl(&psw->dlBusy, offsetof(ALO, dleBusy));
 	InitDl(&psw->dlBusySo, 0x790);
 	InitDl(&psw->dlRoot, 0x458);
 	InitDl(&psw->dlAsega, 0x1C + 0x34); // GOTTA COME BACK TO THIS
@@ -36,15 +36,15 @@ void InitSw(SW* psw)
 	InitDl(&psw->dlRat, 0xB90);
 	InitDl(&psw->dlRathole, 0xC8);
 	InitDl(&psw->dlDartFree, 0xA70);
-	InitDl(&psw->dlSpire, 0x1C + 0x50); // GOTTA COME BACK TO THIS
-	InitDl(&psw->dlRail, 0x1C + 0x50); // GOTTA COME BACK TO THIS
-	InitDl(&psw->dlLanding, 0x1C + 0x50); // GOTTA COME BACK TO THIS
+	InitDl(&psw->dlSpire, 0x88);
+	InitDl(&psw->dlRail, 0x90);
+	InitDl(&psw->dlLanding, 0x90); 
 	InitDl(&psw->dlBusyLasen, 0x1200);
 	InitDl(&psw->dlBlipg, 0x1C + 0x640);// GOTTA COME BACK TO THIS
 	InitDl(&psw->dlBlipgFree, 0x1C + 0x640);// GOTTA COME BACK TO THIS
 	InitDl(&psw->dlFader, 0x1C + 0xc);// GOTTA COME BACK TO THIS
 	InitDl(&psw->dlRealClockFader, 0x1C + 0xc);// GOTTA COME BACK TO THIS
-	InitDl(&psw->dlCrfod, 0x1C + 0xb90);// GOTTA COME BACK TO THIS
+	InitDl(&psw->dlCrfod, 0x11A8);
 	InitDl(&psw->dlShape, 0x80);
 	InitDl(&psw->dlPathzone, 0xB8);
 }
@@ -57,7 +57,7 @@ int GetSwSize()
 void InitSwDlHash(SW* psw)
 {
 	for (int i = 0; i < 0x200; i++)
-		InitDl(&psw->adlHash[i], 0x18);
+		InitDl(&psw->adlHash[i], offsetof(LO, dleOid));
 }
 
 void LoadSwFromBrx(SW* psw, CBinaryInputStream* pbis)
@@ -74,10 +74,8 @@ void LoadSwFromBrx(SW* psw, CBinaryInputStream* pbis)
 	LoadWorldTableFromBrx(pbis);
 	// Loads level filenames from file
 	LoadNameTableFromBrx(pbis);
-
 	// Initializing camera object for world
 	g_pcm = (CM*)PloNew(CID_CM, psw, nullptr, OID__CAMERA, -1);
-
 	// Loads all splice script events from binary file
 	LoadSwSpliceFromBrx(psw, pbis);
 	LoadOptionFromBrx(psw, pbis);
@@ -85,9 +83,13 @@ void LoadSwFromBrx(SW* psw, CBinaryInputStream* pbis)
 	LoadShadersFromBrx(pbis);
 	// Loads all the static world objects from the binary file
 	LoadSwObjectsFromBrx(psw, 0x0, pbis);
+
 	pbis->Align(0x10);
 	std::cout << "Loading Textures...\n";
 	LoadTexturesFromBrx(pbis);
+	psw->lsmDefault.uShadow = psw->lsmDefault.uShadow * 0.003921569;
+	psw->lsmDefault.uMidtone = psw->lsmDefault.uMidtone * 0.003921569;
+
 	std::cout << "World Loaded Successfully\n";
 }
 
@@ -115,7 +117,6 @@ void AddSwProxySource(SW* psw, LO* ploProxySource, int cploClone)
 	proxySourceList.cploCloneFree = cploClone;
 	proxySourceList.aploClone.resize(cploClone);
 
-	ALO* test = (ALO*)ploProxySource;
 	for (int i = 0; i < cploClone; i++)
 	{
 		LO* clonedLocalObject = PloCloneLo(ploProxySource, psw, nullptr);
@@ -148,15 +149,15 @@ void DeleteSw(SW* psw)
 
 void DeleteWorld(SW* psw)
 {
+	for (int i = 0; i < allSWAloObjs.size(); i++)
+		DeleteModel(allSWAloObjs[i]);
+
 	for (int i = 0; i < allcollisionModels.size(); i++)
 	{
 		glDeleteVertexArrays(1, &allcollisionModels[i]->VAO);
 		glDeleteBuffers(1, &allcollisionModels[i]->VBO);
 		glDeleteBuffers(1, &allcollisionModels[i]->EBO);
 	}
-
-	for (int i = 0; i < allSWAloObjs.size(); i++)
-		DeleteModel(allSWAloObjs[i]);
 
 	for (int i = 0; i < allWorldObjs.size(); i++)
 		allWorldObjs[i]->pvtlo->pfnDeleteLo(allWorldObjs[i]);

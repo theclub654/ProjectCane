@@ -67,6 +67,7 @@ struct PSL
 };
 
 // Proxy Root
+// Stores all info about the proxy source object.
 struct PXR 
 {
     struct LO* plo;

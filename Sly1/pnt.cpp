@@ -25,6 +25,12 @@ void ClonePnt(PNT* pnt, PNT* pntBase)
 	CloneLo(pnt, pntBase);
 }
 
+void SetPntParent(PNT* ppnt, ALO* paloParent)
+{
+	ConvertAloPos(ppnt->paloParent, paloParent, ppnt->posLocal, ppnt->posLocal);
+	SetLoParent(ppnt, paloParent);
+}
+
 void ApplyPntProxy(PNT* ppnt, PROXY* pproxyApply)
 {
 

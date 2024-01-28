@@ -83,6 +83,17 @@ class EXPLO : public EXPL
 class EXPLS : public EXPLO
 {
 	public:
+        struct SFX* psfx;
+        struct LM lmcParticle;
+        OID oidRender;
+        OID oidNextRender;
+        OID oidTouch;
+        float dtDelay;
+        int fGrouped;
+        struct RIPG* pripg;
+        struct BLIPG* pblipg;
+        float tExplodeNext;
+        int fExplodeSiblings;
 };
 
 void*NewExplo();

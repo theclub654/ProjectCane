@@ -17,6 +17,6 @@ void*NewPipe();
 void InitPipe(PIPE* ppipe);
 int  GetPipeSize();
 void OnPipeAdd(PIPE* ppipe);
-void ClonePipe(PIPE* ppipe, PIPE* ppipeBase);
 void OnPipeRemove(PIPE* ppipe);
+void ClonePipe(PIPE* ppipe, PIPE* ppipeBase);
 void DeletePipe(LO* plo);

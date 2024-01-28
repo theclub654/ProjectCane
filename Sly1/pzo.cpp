@@ -148,7 +148,8 @@ void* NewClue()
 void InitClue(CLUE* pclue)
 {
 	InitSprize(pclue);
-	pclue->psw->cclueAll;
+	pclue->ibit = pclue->psw->cclueAll;
+	pclue->psw->cclueAll++;
 }
 
 int GetClueSize()

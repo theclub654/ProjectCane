@@ -13,5 +13,6 @@ class JMT : public PNT
 void*NewJmt();
 int  GetJmtSize();
 void OnJmtAdd(JMT* pjmt);
+void OnJmtRemove(JMT* pjmt);
 void CloneJmt(JMT* pjmt, JMT* pjmtBase);
 void DeleteJmt(LO* plo);

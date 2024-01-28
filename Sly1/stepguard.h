@@ -37,7 +37,8 @@ struct SGP
     OID oidPhys;
     struct SO* psoPhys;
 };
-enum RPK {
+enum RPK 
+{
     RPK_Nil = -1,
     RPK_Closest = 0,
     RPK_Previous = 1,
@@ -185,6 +186,7 @@ void DeleteSgg(LO* plo);
 void*NewStepguard();
 void InitStepGuard(STEPGUARD* pstepguard);
 void OnStepguardAdd(STEPGUARD* pstepguard);
+void OnStepguardRemove(STEPGUARD* pstepguard);
 void CloneStepguard(STEPGUARD* pstepguard, STEPGUARD* pstepguardBase);
 void LoadStepGuardFromBrx(STEPGUARD *pstepguard, CBinaryInputStream *pbis);
 void RenderStepguardSelf(STEPGUARD* pstepguard, CM* pcm, RO* pro);

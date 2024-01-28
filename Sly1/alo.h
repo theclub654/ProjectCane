@@ -15,17 +15,20 @@ struct XF
 	glm::vec3 dv;
 	glm::vec3 dw;
 };
+
 struct RO
 {
 	glm::mat4 mat;
 	float uAlpha;
 	float uAlphaCelBorder;
 };
+
 struct POSEC
 {
 	OID oid;
 	std::vector <float> agPoses;
 };
+
 struct RSMG
 {
 	OID oidRoot;
@@ -33,6 +36,7 @@ struct RSMG
 	OID oidTriggerGoal;
 	OID oidUntriggerGoal;
 };
+
 enum ACK
 {
 	ACK_Nil = -1,
@@ -47,6 +51,11 @@ enum ACK
 	ACK_SpringLock = 8,
 	ACK_SmoothNoLock = 9,
 	ACK_Max = 10
+};
+
+struct ALOX
+{
+	int grfalox;
 };
 
 class ALO : public LO
@@ -109,12 +118,12 @@ class ALO : public LO
 };
 
 // Create ALO
-void* NewAlo();
+void*NewAlo();
 // Initialize ALO object
 void InitAlo(ALO* palo); // NOT FINISHED
 // Adds ALO parent and all the alo childs into the world
 void AddAloHierarchy(ALO *palo);
-void RemoveAloHierarchy(ALO *palo); // NOT FINISHED
+void RemoveAloHierarchy(ALO *palo);
 // Adds ALO to Hierarchy
 void OnAloAdd(ALO* palo); // NOT FINISHED
 // Removes ALO from Hierarchy
@@ -124,10 +133,12 @@ void CloneAloHierarchy(ALO* palo, ALO* paloBase);
 // Makes a copy of ALO
 void CloneAlo(ALO* palo, ALO* paloBase);
 void ResolveAlo(ALO *palo);
+// Sets a Alo object to a parent
+void SetAloParent(ALO* palo, ALO* paloParent);
 void ApplyAloProxy(ALO* palo, PROXY* pproxyApply);
-// Updates the ALO objects world coordinates
+// Updates the ALO objects transformations
 void UpdateAloXfWorld(ALO* palo);
-// Updates the ALO objects world coordinate hierarchy
+// Updates the ALO objects world transformation hierarchy
 void UpdateAloXfWorldHierarchy(ALO* palo);
 void TranslateAloToPos(ALO* palo, glm::vec3& ppos);
 void ConvertAloPos(ALO* paloFrom, ALO* paloTo, glm::vec3 &pposFrom, glm::vec3 &pposTo);
@@ -136,7 +147,7 @@ void ConvertAloMat(ALO* paloFrom, ALO* paloTo, glm::mat3 &pmatFrom, glm::mat3 &p
 // Loads ALO object from binary file
 void LoadAloFromBrx(ALO* palo, CBinaryInputStream* pbis);
 // Loads bone data from binary file
-void LoadAloAloxFromBrx(CBinaryInputStream* pbis);
+void LoadAloAloxFromBrx(ALO* palo, CBinaryInputStream* pbis);
 void UpdateAlo(ALO *palo, float dt);
 void RenderAloAll(ALO* palo, CM* pcm, RO* proDup);
 void RenderAloSelf(ALO* palo, CM* pcm, RO* pro);

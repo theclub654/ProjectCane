@@ -15,6 +15,11 @@ int GetTnSize()
     return sizeof(TN);
 }
 
+void OnTnRemove(TN* ptn)
+{
+    OnAloRemove(ptn);
+}
+
 void LoadTnFromBrx(TN* ptn, CBinaryInputStream* pbis)
 {
     ptn->xf.mat = pbis->ReadMatrix();

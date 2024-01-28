@@ -90,6 +90,7 @@ void InitXfm(XFM* pxfm);
 int  GetXfmSize();
 void LoadXfmFromBrx(XFM* pxfm, CBinaryInputStream* pbis);
 void CloneXfm(XFM* pxfm, XFM* pxfmBase);
+void SetXfmParent(XFM* pxfm, ALO* paloParent);
 void ApplyXfmProxy(XFM* pxfm, PROXY* pproxyApply);
 void DeleteXfm(LO* plo);
 

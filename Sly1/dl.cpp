@@ -2,33 +2,33 @@
 
 void InitDl(DL *pdl, int ibDle)
 {
-	// Setting base offset to data entry linked list
+	// Setting base offset to data entry
 	pdl->ibDle = ibDle;
 }
 
 void ClearDl(DL *pdl)
 {
 	// Nulling DL
-	pdl->pvFirst = (void*)0x0;
-	pdl->pvLast = (void*)0x0;
+	pdl->pvFirst = nullptr;
+	pdl->pvLast  = nullptr;
 }
 
 void ClearDle(DLE *pdle)
 {
 	// Nulling entry list
-	pdle->pvNext = (void*)0x0;
-	pdle->pvPrev = (void*)0x0;
+	pdle->pvNext = nullptr;
+	pdle->pvPrev = nullptr;
 }
 
 DLE* PdleFromDlEntry(DL *pdl, void *pv)
 {
-	// Returning the offset to entry
+	// Returning the offset to entry list
 	return (DLE*)((uintptr_t)pv + pdl->ibDle);
 }
 
 void AppendDlEntry(DL *pdl, void *pv)
 {
-	// Loading entry from DL
+	// Loading entry from data list 
 	DLE *entry0 = PdleFromDlEntry(pdl, pv);
 
 	// Checking to see if list is empty
@@ -38,9 +38,9 @@ void AppendDlEntry(DL *pdl, void *pv)
 
 	else
 	{
-		// Loading last data's entry from list
+		// Loading last entry from list
 		DLE *entry1 = PdleFromDlEntry(pdl, pdl->pvLast);
-		entry0 = (DLE*)pdl;
+		entry0->pvPrev = (DLE*)pdl->pvLast;
 		// Storing the new next data entry in entry list
 		entry1->pvNext = pv;
 	}
@@ -55,17 +55,17 @@ void PrependDlEntry(DL* pdl, void* pv)
 	DLE *entry0 = PdleFromDlEntry(pdl, pv);
 
 	// Storing data in DL list if DL list is empty
-	if (pdl->pvFirst == 0)
+	if (pdl->pvFirst == nullptr)
 	{
 		pdl->pvFirst = pv;
-		pdl->pvLast = pv;
+		pdl->pvLast  = pv;
 	}
 
 	else
 	{
 		// Loading first entry linked list from list 
 		DLE* entry1 = PdleFromDlEntry(pdl, pdl->pvFirst);
-		entry0 = (DLE*)pdl;
+		entry0->pvNext = (DLE*)pdl->pvFirst;
 		// Storing data in first DL entry node
 		entry1->pvPrev = pv;
 		// Storing data in first DL list since where tryna insert in front
@@ -75,19 +75,23 @@ void PrependDlEntry(DL* pdl, void* pv)
 
 void RemoveDlEntry(DL *pdl, void *pv)
 {
-	void* pv_1 = nullptr;
-	DLE* entry0;
-	DLE* entry1;
-	DLI* entry2;
+	// Holds ptr to previous entry
+	void* prevEntry{};
+	// Data entry to be removed
+	DLE* entry0{};
+	DLE* entry1{};
+	DLI* entry2{};
 
-	// Loading entry thats being removed
+	// Loading data's entry thats being removed
 	entry0 = PdleFromDlEntry(pdl, pv);
 
-	if (s_pdliFirst == nullptr)
-		pv = entry0->pvPrev;
+	if (s_pdliFirst == (DLI*)nullptr)
+		// Loads ptr to previous entry data list
+		prevEntry = entry0->pvPrev;
 
 	else
 	{
+		// Loads previous entry's data list
 		entry1 = (DLE*)s_pdliFirst->m_ppv;
 		entry2 = s_pdliFirst;
 
@@ -95,12 +99,12 @@ void RemoveDlEntry(DL *pdl, void *pv)
 		{
 			if (entry1 == entry0)
 			{
-				if (entry0->pvPrev == 0x0)
-					entry2->m_ppv = (void**)pdl;
+				if (entry0->pvPrev == nullptr)
+					entry2->m_ppv = (void**)(uintptr_t)pdl;
 				else
 				{
 					entry1 = PdleFromDlEntry(pdl, entry0->pvPrev);
-					entry2->m_ppv = (void**)entry1;
+					entry2->m_ppv = (void**)(uintptr_t)entry1;
 				}
 				entry2 = entry2->m_pdliNext;
 			}
@@ -108,34 +112,35 @@ void RemoveDlEntry(DL *pdl, void *pv)
 			else
 				entry2 = entry2->m_pdliNext;
 
-			if (entry2 == 0x0) break;
+			if (entry2 == nullptr) 
+				break;
 
 			entry1 = (DLE*)entry2->m_ppv;
 		}
 
-		pv_1 = entry0->pvPrev;
+		prevEntry = entry0->pvPrev;
 	}
 
-	if (pv_1 == (void*)0x0)
-		pdl = (DL*)entry0;
+	if (prevEntry == nullptr)
+		pdl->pvFirst = (DL*)entry0->pvNext;
 
 	else
 	{
-		entry1 = PdleFromDlEntry(pdl, pv_1);
-		entry1 = entry0;
+		entry1 = PdleFromDlEntry(pdl, prevEntry);
+		entry1->pvNext = entry0->pvNext;
 	}
 
 	if (entry0->pvNext == nullptr)
-		pdl = (DL*)entry0;
+		pdl->pvLast = (DL*)entry0->pvPrev;
 
 	else
 	{
 		entry1 = PdleFromDlEntry(pdl, entry0->pvNext);
-		entry1 = entry0;
+		entry1->pvPrev = entry0->pvPrev;
 	}
 
-	entry0->pvPrev = 0x0;
-	entry0->pvNext = 0x0;
+	entry0->pvPrev = nullptr;
+	entry0->pvNext = nullptr;
 }
 
 int FFindDlEntry(DL *pdl, void *pv)
@@ -153,7 +158,7 @@ int FFindDlEntry(DL *pdl, void *pv)
 int FIsDlEmpty(DL* pdl)
 {
 	// Seeing if DL list is empty
-	if (pdl->pvFirst == (void*)0x0)
+	if (pdl->pvFirst == nullptr)
 		return 1;
 	else
 		return 0;

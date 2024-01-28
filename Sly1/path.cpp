@@ -16,6 +16,12 @@ void OnPathzoneAdd(PATHZONE* ppathzone)
     AppendDlEntry(&ppathzone->psw->dlPathzone, ppathzone);
 }
 
+void OnPathzoneRemove(PATHZONE* ppathzone)
+{
+    OnLoRemove(ppathzone);
+    RemoveDlEntry(&ppathzone->psw->dlPathzone, ppathzone);
+}
+
 void LoadPathZoneFromBrx(PATHZONE* ppathzone, CBinaryInputStream* pbis)
 {
     LoadLoFromBrx(ppathzone, pbis);

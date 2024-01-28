@@ -45,6 +45,7 @@ class GROUNDMISS : public MISSILE
 void*NewMissile();
 void InitMissile(MISSILE* pmissile);
 int  GetMissileSize();
+void OnMissileRemove(MISSILE* pmissile);
 void LoadMissileFromBrx(MISSILE* pmissile, CBinaryInputStream* pbis);
 void CloneMissile(MISSILE* pmissile, MISSILE* pmissileBase);
 void RenderMissileAll(MISSILE* pmissile, CM* pcm, RO* pro);

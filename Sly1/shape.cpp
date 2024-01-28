@@ -25,6 +25,11 @@ void CloneShape(SHAPE* pshape, SHAPE* pshapeBase)
     CloneLo(pshape, pshapeBase);
 }
 
+void SetShapeParent(SHAPE* pshape, ALO* paloParent)
+{
+    SetLoParent(pshape, paloParent);
+}
+
 void LoadShapeFromBrx(SHAPE* pshape, CBinaryInputStream* pbis)
 {
     byte unk_0 = pbis->U8Read();

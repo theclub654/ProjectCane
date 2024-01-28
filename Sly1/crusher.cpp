@@ -46,6 +46,12 @@ void OnCrfodAdd(CRFOD* pcrfod)
 	AppendDlEntry(&pcrfod->psw->dlCrfod, pcrfod);
 }
 
+void OnCrfodRemove(CRFOD* pcrfod)
+{
+	OnStepguardRemove(pcrfod);
+	RemoveDlEntry(&pcrfod->psw->dlCrfod, pcrfod);
+}
+
 void CloneCrfod(CRFOD* pcrfod, CRFOD* pcrfodBase)
 {
 	LO lo = *pcrfod;

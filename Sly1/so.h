@@ -90,6 +90,7 @@ int  GetSoSize();
 void OnSoAdd(SO *pso); // NOT FINISHED
 void OnSoRemove(SO* pso);
 void CloneSo(SO* pso, SO* psoBase);
+void SetSoParent(SO* pso, ALO* paloParent);
 void ApplySoProxy(SO* pso, PROXY* pproxyApply);
 void UpdateSoXfWorldHierarchy(SO* pso);
 void UpdateSoXfWorld(SO* pso);

@@ -24,7 +24,8 @@ void RenderSw(SW *psw, CM *pcm)
 	while (localObject != 0)
 	{
 		// Setting object up to be rendered
-		localObject->pvtalo->pfnRenderAloAll((ALO*)localObject, pcm, 0);
+		//localObject->pvtalo->pfnRenderAloAll((ALO*)localObject, pcm, 0);
+		DrawAlo((ALO*)localObject);
 		// Loading next object
 		localObject = (LO*)*dlBusyDli.m_ppv;
 		// Loading pointer to next object to render

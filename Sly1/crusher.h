@@ -4,6 +4,7 @@
 class CRFOD : public STEPGUARD
 {
 	public:
+		DLE dleCrfod;
 };
 
 class CRFODB :public CRFOD
@@ -34,6 +35,7 @@ void DeleteCrfodb(LO* plo);
 
 void*NewCrfod();
 void OnCrfodAdd(CRFOD* pcrfod);
+void OnCrfodRemove(CRFOD* pcrfod);
 void CloneCrfod(CRFOD* pcrfod, CRFOD* pcrfodBase);
 int  GetCrfodSize();
 void DeleteCrfod(LO* plo);

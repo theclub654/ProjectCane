@@ -48,6 +48,7 @@ void*NewLight();
 void InitLight(LIGHT* plight);
 int  GetLightSize();
 void OnLightAdd(LIGHT* plight);
+void OnLightRemove(LIGHT* plight);
 void UpdateLightXfWorldHierarchy(LIGHT* plight);
 void CloneLight(LIGHT* plight, LIGHT* plightBase);
 void AddLightToSw(LIGHT* plight);

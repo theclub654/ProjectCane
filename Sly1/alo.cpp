@@ -1,5 +1,8 @@
 #include "alo.h"
 std::vector <GEOM*> allcollisionModels;
+extern std::vector<ALO*> allSWAloObjs;
+
+DLI* s_pdliFirst = nullptr;
 
 void* NewAlo()
 {
@@ -8,42 +11,51 @@ void* NewAlo()
 
 void InitAlo(ALO* palo)
 {
-	//void* test = &palo->dleOid;
+	InitDl(&palo->dlChild, offsetof(LO, dleChild));
+	InitDl(&palo->dlFreeze, offsetof(ALO, dleFreeze));
 
-	InitDl(&palo->dlChild, 0x38);
-	InitDl(&palo->dlFreeze, 0xD0);
+	void* temp = &palo->xf.posWorld;
 
 	InitLo(palo);
+
 	palo->sCelBorderMRD = 2139095039;
 	palo->sMRD = 2139095039;
 	palo->grfzon = -1;
+	palo->xf.mat = glm::identity<glm::mat3>();
+	palo->xf.matWorld = glm::identity<glm::mat3>();
+	palo->matOrig = glm::identity<glm::mat3>();
 
 	InitDl(&palo->dlAct, 0x230);
+	allSWAloObjs.push_back(palo);
 }
 
 void RemoveAloHierarchy(ALO *palo)
 {
-	DLI plo;
+	DLI dliChild{};
 
-	// Loading objects child
-	plo.m_pdl = &palo->dlChild;
-	// Loading object's chile base offset to object child entry
-	plo.m_ibDle = palo->dlChild.ibDle;
+	dliChild.m_pdl = &palo->dlChild;
 
-	plo.m_pdliNext = s_pdliFirst;
+	dliChild.m_ibDle = palo->dlChild.ibDle;
 
-	// Storing parent object in global parent list
-	s_pdliFirst = &plo;
-	plo.m_ppv = (void**)plo.m_pdl;
+	dliChild.m_pdliNext = s_pdliFirst;
 
-	// Loading object header from object
-	LO *LocalObject = (LO*)palo;
+	s_pdliFirst = &dliChild;
+	dliChild.m_ppv = (void**)(uintptr_t)dliChild.m_pdl;
 
 	while (true)
 	{
+		palo->pvtlo->pfnOnLoRemove(palo);
 
-		break;
+		// Loading next object
+		void* nextParentObject = *dliChild.m_ppv;
+
+		dliChild.m_ppv = (void**)((uintptr_t)nextParentObject + dliChild.m_ibDle);
+
+		// If parent doesnt have a child break
+		if (nextParentObject == nullptr) break;
 	}
+
+	s_pdliFirst = dliChild.m_pdliNext;
 }
 
 void OnAloAdd(ALO* palo)
@@ -125,7 +137,7 @@ void CloneAloHierarchy(ALO* palo, ALO* paloBase)
 	s_pdliFirst = &parentPalo;
 
 	// Storing ptr to next ALO to clone
-	parentPalo.m_ppv = (void**)parentPalo.m_pdl;
+	parentPalo.m_ppv = (void**)(uintptr_t)parentPalo.m_pdl;
 
 	// Clones paloBase to palo
 	palo->pvtlo->pfnCloneLo(palo, paloBase);
@@ -133,13 +145,15 @@ void CloneAloHierarchy(ALO* palo, ALO* paloBase)
 	// Loading next ALO to clone
 	LO* plo = (LO*)*parentPalo.m_ppv;
 	// Loading up next ALO to clone after than one above
-	parentPalo.m_ppv = (void**) ((uint64_t)&plo->pvtlo + parentPalo.m_ibDle);
+	parentPalo.m_ppv = (void**) ((uintptr_t)plo + parentPalo.m_ibDle);
 
 	while (plo != nullptr)
 	{
 		// Clones ALO object
 		PloCloneLo(plo, palo->psw, palo);
+		// Loads next ALO object to clone
 		plo = (LO*)*parentPalo.m_ppv;
+		// Loads next ALO object to clone after this one
 		parentPalo.m_ppv = (void**) ((uintptr_t)plo + parentPalo.m_ibDle);
 	}
 
@@ -163,9 +177,27 @@ void ResolveAlo(ALO* palo)
 		palo->paloRoot->cframeStatic = 0;
 }
 
+void SetAloParent(ALO* palo, ALO* paloParent)
+{
+	if (palo->paloParent == paloParent)
+		return;
+
+	glm::vec3 posWorld = palo->xf.posWorld;
+	glm::mat3 matWorld = palo->xf.matWorld;
+
+	palo->pvtalo->pfnRemoveLo(palo);
+
+	ConvertAloPos(nullptr, paloParent, posWorld, palo->xf.pos);
+	ConvertAloMat(nullptr, paloParent, matWorld, palo->xf.mat);
+
+	palo->paloParent = paloParent;
+
+	palo->pvtlo->pfnAddLo(palo);
+}
+
 void ApplyAloProxy(ALO* palo, PROXY* pproxyApply)
 {
-	glm::vec3 posWorld;
+	glm::vec3 posWorld{};
 	ConvertAloPos((ALO*)pproxyApply, nullptr, palo->xf.pos, posWorld);
 	palo->pvtalo->pfnTranslateAloToPos(palo, posWorld);
 
@@ -184,13 +216,83 @@ void UpdateAloXfWorld(ALO* palo)
 
 void UpdateAloXfWorldHierarchy(ALO* palo)
 {
-	palo->xf.posWorld = palo->xf.pos;
-	palo->xf.matWorld = palo->xf.mat;
+	if (palo->palox == nullptr)
+	{
+		UpdateTrans:
+		if (palo->paloParent == nullptr)
+		{
+			palo->xf.posWorld = palo->xf.pos;
+			palo->xf.matWorld = palo->xf.mat;
+		}
+
+		else
+		{
+			palo->xf.pos = palo->paloParent->xf.matWorld * palo->xf.pos;
+			palo->xf.posWorld = palo->paloParent->xf.posWorld + palo->xf.pos;
+
+			palo->xf.mat = palo->xf.mat * palo->paloParent->xf.matWorld;
+			palo->xf.matWorld = palo->xf.mat;
+		}
+	}
+
+	else
+	{
+		if ((palo->palox->grfalox & 0xCU) == 0)
+		{
+			palo->paloParent = palo->paloParent;
+			goto UpdateTrans;
+		}
+
+		if (palo->paloParent == nullptr)
+		{
+			palo->xf.posWorld = palo->xf.pos;
+		}
+
+		else
+		{
+			palo->xf.pos = palo->xf.pos * palo->paloParent->xf.matWorld;
+			palo->xf.posWorld = palo->xf.pos + palo->paloParent->xf.posWorld;
+		}
+
+		if (palo->paloParent != nullptr)
+		{
+			palo->xf.matWorld = palo->xf.mat * palo->paloParent->xf.matWorld;
+			goto UpdateTrans;
+		}
+
+		palo->xf.matWorld = palo->xf.mat;
+	}
+
+	ALO* object = palo->dlChild.paloFirst;
+
+	if (object == nullptr)
+	{
+		palo->palox = palo->palox;
+	}
+
+	else
+	{
+		while (true)
+		{
+			if (object->pvtalo->pfnUpdateAloXfWorldHierarchy == nullptr)
+				object = object->dleChild.paloNext;
+
+			else 
+			{
+				object->pvtalo->pfnUpdateAloXfWorldHierarchy(object);
+				object = object->dleChild.paloNext;
+			}
+
+			if (object == nullptr) 
+				break;
+		}
+	}
 }
 
 void TranslateAloToPos(ALO* palo, glm::vec3 &ppos)
 {
 	palo->xf.pos = ppos;
+
 	palo->pvtalo->pfnUpdateAloXfWorld(palo);
 }
 
@@ -200,12 +302,16 @@ void ConvertAloPos(ALO* paloFrom, ALO* paloTo, glm::vec3 &pposFrom, glm::vec3 &p
 	{
 		if (paloFrom != nullptr)
 		{
-			pposFrom = paloFrom->xf.posWorld;
+			pposFrom = pposFrom * paloFrom->xf.matWorld;
+			pposFrom = pposFrom + paloFrom->xf.posWorld;
 		}
 
 		if (paloTo != nullptr)
 		{
-			pposTo = paloTo->xf.posWorld;
+			pposFrom = pposFrom - paloTo->xf.posWorld;
+			pposFrom = pposFrom * paloTo->xf.matWorld;
+			pposTo = pposFrom;
+			return;
 		}
 	}
 
@@ -225,12 +331,13 @@ void ConvertAloMat(ALO* paloFrom, ALO* paloTo, glm::mat3 &pmatFrom, glm::mat3 &p
 	{
 		if (paloFrom != nullptr)
 		{
-			pmatFrom = paloFrom->xf.mat;
+			pmatFrom = pmatFrom * paloFrom->xf.matWorld;
 		}
 
 		if (paloTo != nullptr)
 		{
-			
+			pmatTo = pmatFrom * paloTo->xf.matWorld;
+			return;
 		}
 	}
 
@@ -249,7 +356,7 @@ void AddAloHierarchy(ALO* palo)
 
 	s_pdliFirst = &plo;
 
-	plo.m_ppv = (void**)plo.m_pdl;
+	plo.m_ppv = (void**)(uintptr_t)plo.m_pdl;
 
 	// Looping through all the child objects 
 	while (true)
@@ -286,7 +393,7 @@ void LoadAloFromBrx(ALO* palo, CBinaryInputStream* pbis)
 	palo->sRadiusRenderAll = pbis->F32Read();
 	LoadOptionFromBrx(palo, pbis);
 	LoadGlobsetFromBrx(&palo->globset ,pbis, palo);
-	LoadAloAloxFromBrx(pbis);
+	LoadAloAloxFromBrx(palo, pbis);
 
 	palo->pvtalo->pfnUpdateAloXfWorld(palo);
 
@@ -305,33 +412,38 @@ void LoadAloFromBrx(ALO* palo, CBinaryInputStream* pbis)
 	LoadSwObjectsFromBrx(palo->psw, palo, pbis);
 }
 
-void LoadAloAloxFromBrx(CBinaryInputStream* pbis)
+void LoadAloAloxFromBrx(ALO* palo, CBinaryInputStream* pbis)
 {
-	uint32_t unk_0 = pbis->U32Read();
+	uint32_t grfalox = pbis->U32Read();
 
-	if (unk_0 != 0)
+	if (grfalox != 0)
 	{
+		ALOX alox;
+		palo->palox = &alox;
+
+		palo->palox->grfalox = grfalox;
+
 		int unk_1;
 
-		if (unk_0 & 1)
+		if (grfalox & 1)
 		{
 			pbis->ReadMatrix();
 		}
 
-		if (unk_0 & 2)
+		if (grfalox & 2)
 		{
 			pbis->ReadMatrix();
 		}
 
-		if (((unk_0 & 0xc) != 0) && (unk_1 = pbis->S16Read() != -1))
+		if (((grfalox & 0xc) != 0) && (unk_1 = pbis->S16Read() != -1))
 		{
 
 		}
 
-		if ((unk_0 & 0x10) != 0)
+		if ((grfalox & 0x10) != 0)
 			unk_1 = pbis->S16Read();
 
-		if ((unk_0 & 0x20) != 0)
+		if ((grfalox & 0x20) != 0)
 		{
 			unk_1 = pbis->S16Read();
 			pbis->ReadVector(); // Read Vector
@@ -339,18 +451,18 @@ void LoadAloAloxFromBrx(CBinaryInputStream* pbis)
 			pbis->F32Read();
 		}
 
-		if ((unk_0 & 0x40) != 0)
+		if ((grfalox & 0x40) != 0)
 		{
 			unk_1 = pbis->S16Read();
 			unk_1 = pbis->S16Read();
 		}
 
-		if ((unk_0 & 0x80) != 0)
+		if ((grfalox & 0x80) != 0)
 		{
 			pbis->ReadVector();
 			pbis->F32Read();
 
-			if ((unk_0 & 0x100) != 0)
+			if ((grfalox & 0x100) != 0)
 			{
 				pbis->S16Read();
 				pbis->S16Read();
@@ -360,13 +472,13 @@ void LoadAloAloxFromBrx(CBinaryInputStream* pbis)
 			}
 		}
 
-		if ((unk_0 & 0x200) != 0)
+		if ((grfalox & 0x200) != 0)
 		{
 			pbis->S16Read();
 			pbis->S16Read();
 		}
 
-		if ((unk_0 & 0x400) != 0)
+		if ((grfalox & 0x400) != 0)
 		{
 			pbis->U8Read();
 		}

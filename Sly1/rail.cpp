@@ -16,6 +16,12 @@ void OnRailAdd(RAIL* prail)
 	AppendDlEntry(&prail->psw->dlRail, prail);
 }
 
+void OnRailRemove(RAIL* prail)
+{
+	OnLoRemove(prail);
+	RemoveDlEntry(&prail->psw->dlRail, prail);
+}
+
 void CloneRail(RAIL* prail, RAIL* prailBase)
 {
 	LO lo = *prail;

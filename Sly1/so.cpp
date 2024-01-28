@@ -7,7 +7,7 @@ void* NewSo()
 
 void InitSo(SO* pso)
 {
-	InitDl(&pso->dlPhys, 0x468);
+	InitDl(&pso->dlPhys, offsetof(SO, dlePhys));
 	InitAlo(pso);
 
 	InitGeom(&pso->geomLocal);
@@ -39,7 +39,10 @@ void OnSoRemove(SO* pso)
 	if (pso->paloParent == nullptr)
 	{
 		RemoveDlEntry(&pso->psw->dlRoot, pso);
+		pso->psw->cpsoRoot--;
 	}
+
+	pso->pstso = nullptr;
 }
 
 void CloneSo(SO* pso, SO* psoBase)
@@ -55,6 +58,14 @@ void CloneSo(SO* pso, SO* psoBase)
 	pso->pxa = nullptr;
 	pso->grfpvaXpValid = 0;
 	pso->pstso = nullptr;
+}
+
+void SetSoParent(SO* pso, ALO* paloParent)
+{
+	if (pso->paloParent != paloParent)
+	{
+		SetAloParent(pso, paloParent);
+	}
 }
 
 void ApplySoProxy(SO* pso, PROXY* pproxyApply)
@@ -117,7 +128,8 @@ void TranslateSoToPos(SO* pso, glm::vec3& ppos)
 {
 	pso->xf.pos = ppos;
 
-	pso->pvtalo->pfnUpdateAloXfWorld(pso);
+	if(pso->paloRoot != nullptr)
+		pso->paloRoot->pvtalo->pfnUpdateAloXfWorld(pso);
 }
 
 void RotateSoToMat(SO* pso, glm::mat3& pmat)

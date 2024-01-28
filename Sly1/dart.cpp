@@ -20,6 +20,12 @@ void OnDartAdd(DART* pdart)
 	OnSoAdd(pdart);
 }
 
+void RemoveDart(DART* pdart)
+{
+	RemoveLo(pdart);
+	AppendDlEntry(&pdart->psw->dlDartFree, pdart);
+}
+
 void CloneDart(DART* pdart, DART* pdartBase)
 {
 	LO lo = *pdart;

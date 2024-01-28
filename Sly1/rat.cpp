@@ -21,6 +21,12 @@ void OnRatAdd(RAT* prat)
 	AppendDlEntry(&prat->psw->dlRat, prat);
 }
 
+void OnRatRemove(RAT* prat)
+{
+	OnSoRemove(prat);
+	RemoveDlEntry(&prat->psw->dlRat, prat);
+}
+
 void CloneRat(RAT* prat, RAT* pratBase)
 {
 	LO lo = *prat;
@@ -59,6 +65,12 @@ void* NewRathole()
 int GetRatholeSize()
 {
 	return sizeof(RATHOLE);
+}
+
+void OnRatholeRemove(RATHOLE* prathole)
+{
+	OnLoRemove((LO*)prathole);
+	RemoveDlEntry(&prathole->psw->dlRathole, prathole);
 }
 
 void CloneRathole(RATHOLE* prathole, RATHOLE* pratholeBase)

@@ -15,6 +15,11 @@ int GetMissileSize()
 	return sizeof(MISSILE);
 }
 
+void OnMissileRemove(MISSILE* pmissile)
+{
+	OnSoRemove(pmissile);
+}
+
 void LoadMissileFromBrx(MISSILE* pmissile, CBinaryInputStream* pbis)
 {
 	LoadBombFromBrx(pmissile, pbis);

@@ -16,6 +16,8 @@ void InitLight(LIGHT* plight)
 	plight->degHighlight = 180.0;
 
 	InitAlo(plight);
+
+	allSwLights.push_back(plight);
 }
 
 int GetLightSize()
@@ -27,6 +29,12 @@ void OnLightAdd(LIGHT* plight)
 {
 	OnAloAdd(plight);
 	AddLightToSw(plight);
+}
+
+void OnLightRemove(LIGHT* plight)
+{
+	OnAloRemove(plight);
+	RemoveLightFromSw(plight);
 }
 
 void UpdateLightXfWorldHierarchy(LIGHT* plight)

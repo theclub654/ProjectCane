@@ -12,6 +12,7 @@ int GetSmSize()
 
 void LoadSmFromBrx(SM* psm, CBinaryInputStream* pbis)
 {
+	InitDl(&psm->dlSma, offsetof(SMA, dleSm));
 	psm->csms = pbis->U8Read();
 	psm->asms.resize(psm->csms);
 

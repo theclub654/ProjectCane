@@ -89,6 +89,7 @@ void CloneBreak(BREAK* pbreak, BREAK* pbreakBase)
 {
 	LO lo = *pbreak;
 	*pbreak = *pbreakBase;
+
 	memcpy(pbreak, &lo, sizeof(LO));
 
 	CloneLo(pbreak, pbreakBase);

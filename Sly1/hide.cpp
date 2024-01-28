@@ -20,6 +20,12 @@ void OnHbskAdd(HBSK* phbsk)
 	OnSoAdd(phbsk);
 }
 
+void OnHbskRemove(HBSK* phbsk)
+{
+	OnSoRemove(phbsk);
+	//RemoveDlEntry(&g_dlHbsk, phbsk);
+}
+
 void LoadHbskFromBrx(HBSK* phbsk, CBinaryInputStream* pbis)
 {
 	LoadSoFromBrx(phbsk, pbis);
@@ -65,6 +71,12 @@ void OnHshapeAdd(HSHAPE* phshape)
 	OnLoAdd(phshape);
 }
 
+void OnHshapeRemove(HSHAPE* phshape)
+{
+	OnLoRemove(phshape);
+	//RemoveDlEntry(&g_dlHshape, phshape);
+}
+
 void CloneHshape(HSHAPE* phshape, HSHAPE* phshapeBase)
 {
 	LO lo = *phshape;
@@ -97,6 +109,12 @@ int GetHpntSize()
 void OnHpntAdd(HPNT* phpnt)
 {
 	OnLoAdd(phpnt);
+}
+
+void OnHpntRemove(HPNT* phpnt)
+{
+	OnLoRemove(phpnt);
+	//RemoveDlEntry(&g_dlHpnt, phpnt);
 }
 
 void CloneHpnt(HPNT* phpnt, HPNT* phpntBase)

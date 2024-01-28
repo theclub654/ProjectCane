@@ -11,7 +11,7 @@ struct DL
 		void* pvFirst;
 		class LO* ploFirst;
 		class ALO* paloFirst;
-		class SO* psoFirst;
+		/*class SO* psoFirst;
 		class ASEGA* pasegaFirst;
 		class ACTSEG* pactsegFirst;
 		class AMB* pambFirst;
@@ -53,7 +53,7 @@ struct DL
 		class JLOVOL* pjlovolFirst;
 		class EMITTER* pemitterFirst;
 		class MGCO* pmgcoFirst;
-		class JMT* pjmtFirst;
+		class JMT* pjmtFirst;*/
 	};
 
 	union
@@ -62,7 +62,7 @@ struct DL
 		void* pvLast;
 		class LO* ploLast;
 		class ALO* paloLast;
-		class SO* psoLast;
+		/*class SO* psoLast;
 		class ASEGA* pasegaLast;
 		class ACTSEG* pactsegLast;
 		class AMB* pambLast;
@@ -104,7 +104,7 @@ struct DL
 		class JLOVOL* pjlovolLast;
 		class EMITTER* pemitterLast;
 		class MGCO* pmgcoLast;
-		class JMT* pjmtLast;
+		class JMT* pjmtLast;*/
 	};
 
 	// Base offset to DL entry (DLE)
@@ -123,7 +123,7 @@ struct DLE
 		void* pvNext;
 		class LO* ploNext;
 		class ALO* paloNext;
-		class SO* psoNext;
+		/*class SO* psoNext;
 		class ASEGA* pasegaNext;
 		class ACTSEG* pactsegNext;
 		class AMB* pambNext;
@@ -165,7 +165,7 @@ struct DLE
 		class JLOVOL* pjlovolNext;
 		class EMITTER* pemitterNext;
 		class MGCO* pmgcoNext;
-		class JMT* pjmtNext;
+		class JMT* pjmtNext;*/
 	};
 
 	union
@@ -174,7 +174,7 @@ struct DLE
 		void* pvPrev;
 		class LO* ploPrev;
 		class ALO* paloPrev;
-		class SO* psoPrev;
+		/*class SO* psoPrev;
 		class ASEGA* pasegaPrev;
 		class ACTSEG* pactsegPrev;
 		class AMB* pambPrev;
@@ -216,7 +216,7 @@ struct DLE
 		class JLOVOL* pjlovolPrev;
 		class EMITTER* pemitterPrev;
 		class MGCO* pmgcoPrev;
-		class JMT* pjmtPrev;
+		class JMT* pjmtPrev;*/
 	};
 };
 
@@ -224,13 +224,13 @@ struct DLE
 struct DLI
 {
 	// List address value
-	DL *m_pdl;
+	DL* m_pdl;
 	// Parent pointer value
-	void **m_ppv;
+	void** m_ppv;
 	// Used for base offset to entry for parent object
 	uint64_t m_ibDle;
 	// Pointer to next parent object
-	DLI *m_pdliNext;
+	DLI* m_pdliNext;
 };
 
 // Initializing list
@@ -252,6 +252,4 @@ int FFindDlEntry(DL *pdl, void *pv);
 // Returns whether DL list is empty or not
 int FIsDlEmpty(DL *pdl);
 
-
-// Global DLI pointer to a parent object
-static DLI* s_pdliFirst{};
+extern DLI* s_pdliFirst;

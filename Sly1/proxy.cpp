@@ -18,9 +18,13 @@ int GetProxySize()
 
 void LoadProxyFromBrx(PROXY* pproxy, CBinaryInputStream* pbis)
 {
+	/*ProxyCount++;
+	std::cout << "ProxyCount: " << ProxyCount<<"\n";*/
+
+	// Proxy source objects to keep track of
 	std::vector <LO*> proxyObjs;
 
-	InitDl(&pproxy->dlProxyRoot, 0x16);
+	InitDl(&pproxy->dlProxyRoot, offsetof(PXR, dleProxyRoot));
 
 	pproxy->xf.mat = pbis->ReadMatrix();
 	pproxy->xf.pos = pbis->ReadVector();
@@ -31,7 +35,7 @@ void LoadProxyFromBrx(PROXY* pproxy, CBinaryInputStream* pbis)
 
 	for (int i = 0; i < numProxyObjs; i++)
 	{
-		LO* object{};
+		LO* object = nullptr;
 		// Loads class ID
 		CID cid = (CID)pbis->S16Read();
 
@@ -39,8 +43,9 @@ void LoadProxyFromBrx(PROXY* pproxy, CBinaryInputStream* pbis)
 		{
 			// Loads proxy source index from file
 			uint16_t ipsl = pbis->S16Read();
-			// Returns proxy source object based of proxy source index
+			// Returns proxy source object
 			object = PloGetSwProxySource(pproxy->psw, ipsl);
+			proxyObjs.push_back(object);
 		}
 
 		else
@@ -85,11 +90,41 @@ void LoadProxyFromBrx(PROXY* pproxy, CBinaryInputStream* pbis)
 	}
 
 	for (int i = 0; i < proxyObjs.size(); i++)
+	{
 		proxyObjs[i]->pvtalo->pfnApplyAloProxy((ALO*)proxyObjs[i], pproxy);
+		proxyObjs[i]->pvtlo->pfnSetLoParent(proxyObjs[i], pproxy->paloParent);
+	}
 
 	if (numProxyObjs == 1)
+	{
 		LoadSwObjectsFromBrx(pproxy->psw, pproxy, pbis);
+		byte isEmpty = FIsDlEmpty(&pproxy->dlChild);
 
+		if (isEmpty == false)
+		{
+			DLI proxyDLI{};
+
+			proxyDLI.m_ibDle = pproxy->dlChild.ibDle;
+			proxyDLI.m_pdliNext = s_pdliFirst;
+			LO* object = pproxy->dlChild.ploFirst;
+			proxyDLI.m_ppv = (void**)((uint64_t)&object->pvtlo + proxyDLI.m_ibDle);
+			s_pdliFirst = &proxyDLI;
+			proxyDLI.m_pdl = &pproxy->dlChild;
+
+			for (int i = 0; i < proxyObjs.size(); i++)
+			{
+				object->pvtlo->pfnSetLoParent(object, (ALO*)proxyObjs[i]);
+				object = (LO*)*proxyDLI.m_ppv;
+				proxyDLI.m_ppv = (void**)((uint64_t)&object->pvtlo + proxyDLI.m_ibDle);
+			}
+
+			s_pdliFirst = proxyDLI.m_pdliNext;
+		}
+	}
+
+	pproxy->pvtlo->pfnRemoveLo(pproxy);
+	pproxy->pvtlo->pfnAddLo(pproxy);
+	
 	proxyObjs.clear();
 	proxyObjs.shrink_to_fit();
 }

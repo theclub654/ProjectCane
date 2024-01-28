@@ -48,6 +48,7 @@ void AddLoHierarchy(LO *plo)
 
 void RemoveLoHierarchy(LO* plo)
 {
+	plo->pvtlo->pfnOnLoRemove(plo);
 	SendLoMessage(plo, MSGID_removed, plo);
 }
 
@@ -88,17 +89,15 @@ void LoadLoFromBrx(LO* plo, CBinaryInputStream* pbis)
 
 void RemoveLo(LO* plo)
 {
-	// Loading objects parent
-	ALO* objectParent = plo->paloParent;
 	// Loading objects parent child list
-	DL* objectChild = &plo->paloParent->dlChild;
+	DL* objectChildList = &plo->paloParent->dlChild;
 
 	// If object doesnt have a parent load up the static world dlChild
-	if (objectParent == nullptr)
-		objectChild = &plo->psw->dlChild;
+	if (plo->paloParent == nullptr)
+		objectChildList = &plo->psw->dlChild;
 
 	// Returns if parent LO or SW has a child object or not
-	bool isFound = FFindDlEntry(objectChild, plo);
+	bool isFound = FFindDlEntry(objectChildList, plo);
 
 	if (isFound != 0)
 	{
@@ -106,11 +105,11 @@ void RemoveLo(LO* plo)
 		isFound = FIsLoInWorld(plo);
 
 		if (isFound == 0)
-			RemoveDlEntry(objectChild, plo);
+			RemoveDlEntry(objectChildList, plo);
 
 		else
 		{
-			RemoveDlEntry(objectChild, plo);
+			RemoveDlEntry(objectChildList, plo);
 			plo->pvtlo->pfnRemoveLoHierarchy(plo);
 		}
 	}
@@ -163,7 +162,9 @@ void PostLoLoad(LO* plo)
 
 void SetLoParent(LO *plo, ALO *paloParent)
 {
-
+	plo->pvtlo->pfnRemoveLo(plo);
+	plo->paloParent = paloParent;
+	plo->pvtlo->pfnAddLo(plo);
 }
 
 void SubscribeLoObject(LO* plo, LO* ploTarget)

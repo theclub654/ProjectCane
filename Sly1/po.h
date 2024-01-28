@@ -25,6 +25,7 @@ class PO : public SO
 void*NewPo();
 void InitPo(PO *ppo); //NOT FINISHED
 void OnPoAdd(PO* ppo);
+void OnPoRemove(PO* ppo);
 void ClonePo(PO* ppo, PO* ppoBase);
 int  GetPoSize();
 void DeletePo(LO* plo);

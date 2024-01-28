@@ -63,6 +63,7 @@ class TN : public ALO
 void*NewTn();
 void InitTn(TN* ptn);
 int  GetTnSize();
+void OnTnRemove(TN* ptn);
 void LoadTnFromBrx(TN* ptn, CBinaryInputStream* pbis);
 void CloneTn(TN* ptn, TN* ptnBase);
 void LoadTbspFromBrx(CBinaryInputStream* pbis);

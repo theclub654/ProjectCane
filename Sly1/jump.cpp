@@ -15,6 +15,12 @@ void OnJmtAdd(JMT* pjmt)
 	OnLoAdd(pjmt);
 }
 
+void OnJmtRemove(JMT* pjmt)
+{
+	OnLoRemove(pjmt);
+	//RemoveDlEntry(&g_dlJmt, pjmt);
+}
+
 void CloneJmt(JMT* pjmt, JMT* pjmtBase)
 {
 	LO lo = *pjmt;

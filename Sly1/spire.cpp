@@ -16,6 +16,12 @@ void OnSpireAdd(SPIRE* pspire)
 	AppendDlEntry(&pspire->psw->dlSpire, pspire);
 }
 
+void OnSpireRemove(SPIRE* pspire)
+{
+	OnLoRemove(pspire);
+	RemoveDlEntry(&pspire->psw->dlSpire, pspire);
+}
+
 void CloneSpire(SPIRE* pspire, SPIRE* pspireBase)
 {
 	LO lo = *pspire;
