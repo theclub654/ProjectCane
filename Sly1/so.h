@@ -1,6 +1,6 @@
 #pragma once
 #include "alo.h"
-extern std::vector <GEOM*> allcollisionModels;
+extern std::vector<SO*> allSWSoObjs;
 
 enum ZPK
 {
@@ -13,6 +13,7 @@ enum ZPK
 	ZPK_Pit = 5,
 	ZPK_Max = 6
 };
+
 struct ZPD
 {
 	struct SO* pso;
@@ -24,11 +25,13 @@ struct ZPD
 	int cploThrow;
 	struct LO* aploThrow[32];
 };
+
 struct NPG
 {
 	int cmk;
 	int ipglob;
 };
+
 struct HSG
 {
 	int ipglob;
@@ -89,17 +92,27 @@ void InitSwBusySoDl(SW* psw);
 void InitSwRootDl(SW* psw);
 void InitSo(SO *pso); // NOT FINISHED
 int  GetSoSize();
+// Adds a SO to heiarchy
 void OnSoAdd(SO *pso); // NOT FINISHED
+// Removes a SO from heiarchy
 void OnSoRemove(SO* pso);
+// Clones a SO
 void CloneSo(SO* pso, SO* psoBase);
 void SetSoParent(SO* pso, ALO* paloParent);
 void ApplySoProxy(SO* pso, PROXY* pproxyApply);
 void UpdateSoXfWorldHierarchy(SO* pso);
 void UpdateSoXfWorld(SO* pso);
+// Loads SO from binary file
 void LoadSoFromBrx(SO* pso, CBinaryInputStream* pbis); // NOT FINISHED
 void TranslateSoToPos(SO* pso, glm::vec3& ppos);
 void RotateSoToMat(SO* pso, glm::mat3& pmat);
+// Stores collsion model in VRAM
 void MakeCollisionGLBuffers(GEOM *pgeom);
 void UpdateSo(SO *pso, float dt); // NOT FINISHED
 void RenderSoSelf(SO* pso, CM* pcm, RO* pro);
+// Draws static object collision
+void DrawSoCollision(SO* pso);
+// Delete SO from memory
 void DeleteSo(LO* plo);
+// Delete all collision data from VRAM
+void DeleteSwCollision();

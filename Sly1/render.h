@@ -1,8 +1,8 @@
 #pragma once
-#include "sw.h"
+#include "so.h"
 
 extern std::vector<ALO*> allSWAloObjs;
-extern std::vector <GEOM*> allcollisionModels;
+std::vector<SO*> allSWSoObjs;
 
 // Loops through all objects in a level to see which object is in camera view and stores all objects
 // in camera view in a render list

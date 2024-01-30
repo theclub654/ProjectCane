@@ -129,8 +129,8 @@ void LoadProxyFromBrx(PROXY* pproxy, CBinaryInputStream* pbis)
 		}
 	}
 
-	/*pproxy->pvtlo->pfnRemoveLo(pproxy);
-	pproxy->pvtlo->pfnAddLo(pproxy);*/
+	pproxy->pvtlo->pfnRemoveLo(pproxy);
+	pproxy->pvtlo->pfnAddLo(pproxy);
 	
 	proxyObjs.clear();
 	proxyObjs.shrink_to_fit();

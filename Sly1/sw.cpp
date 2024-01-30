@@ -4,7 +4,7 @@
 std::vector<LO*> allWorldObjs;
 std::vector<ALO*> allSWAloObjs;
 std::vector<void*> allSwLights;
-extern std::vector <GEOM*> allcollisionModels;
+extern std::vector <SO*> allSWSoObjs;
 
 void* NewSw()
 {
@@ -152,12 +152,7 @@ void DeleteWorld(SW* psw)
 	for (int i = 0; i < allSWAloObjs.size(); i++)
 		DeleteModel(allSWAloObjs[i]);
 
-	for (int i = 0; i < allcollisionModels.size(); i++)
-	{
-		glDeleteVertexArrays(1, &allcollisionModels[i]->VAO);
-		glDeleteBuffers(1, &allcollisionModels[i]->VBO);
-		glDeleteBuffers(1, &allcollisionModels[i]->EBO);
-	}
+	DeleteSwCollision();
 
 	for (int i = 0; i < allWorldObjs.size(); i++)
 		allWorldObjs[i]->pvtlo->pfnDeleteLo(allWorldObjs[i]);
@@ -171,8 +166,6 @@ void DeleteWorld(SW* psw)
 	allWorldObjs.shrink_to_fit();
 	allSwLights.clear();
 	allSwLights.shrink_to_fit();
-	allcollisionModels.clear();
-	allcollisionModels.shrink_to_fit();
 
 	g_psw = nullptr;
 }

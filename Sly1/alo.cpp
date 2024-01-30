@@ -1,5 +1,4 @@
 #include "alo.h"
-std::vector <GEOM*> allcollisionModels;
 extern std::vector<ALO*> allSWAloObjs;
 
 DLI* s_pdliFirst = nullptr;

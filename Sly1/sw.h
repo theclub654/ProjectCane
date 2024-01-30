@@ -28,6 +28,7 @@ void InitSwRealClockFader(SW* psw);
 void InitSwCrfodDl(SW* psw);
 void InitSwShapeDl(SW* psw);
 void InitSwPathzoneDl(SW* psw);
+void DeleteSwCollision();
 
 struct LSM
 {

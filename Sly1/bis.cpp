@@ -1,7 +1,5 @@
 #include "bis.h"
 
-extern std::vector <GEOM*> allcollisionModels;
-
 CBinaryInputStream::CBinaryInputStream(std::string filePath)
 {
     file.open(filePath, std::ios::binary);
@@ -135,10 +133,7 @@ void CBinaryInputStream::ReadGeom(GEOM *pgeom)
     }
 
     if (pgeom->cpos != 0)
-    {
         MakeCollisionGLBuffers(pgeom);
-        allcollisionModels.push_back(pgeom);
-    }
 }
 
 void CBinaryInputStream::ReadBspc()
