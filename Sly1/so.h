@@ -85,6 +85,8 @@ public:
 };
 
 void*NewSo();
+void InitSwBusySoDl(SW* psw);
+void InitSwRootDl(SW* psw);
 void InitSo(SO *pso); // NOT FINISHED
 int  GetSoSize();
 void OnSoAdd(SO *pso); // NOT FINISHED

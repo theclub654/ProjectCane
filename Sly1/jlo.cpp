@@ -43,6 +43,7 @@ void* NewJlo()
 void InitJlo(JLO* pjlo)
 {
 	InitSo(pjlo);
+	InitDl(&pjlo->dlJlovol, offsetof(JLOVOL, dleJlo));
 }
 
 int GetJloSize()

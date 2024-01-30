@@ -5,6 +5,11 @@ void* NewDart()
 	return new DART{};
 }
 
+void InitSwDartFreeDl(SW* psw)
+{
+	InitDl(&psw->dlRat, offsetof(DART, dleDartFree));
+}
+
 void InitDart(DART* pdart)
 {
 	InitSo(pdart);

@@ -12,6 +12,7 @@ class SHAPE : public LO
 };
 
 void*NewShape();
+void InitSwShapeDl(SW* psw);
 void InitShape(SHAPE* pshape);
 int  GetShapeSize();
 void CloneShape(SHAPE* pshape, SHAPE* pshapeBase);

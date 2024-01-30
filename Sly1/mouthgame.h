@@ -1,6 +1,14 @@
 #pragma once
 #include "po.h"
 
+struct MGCO
+{
+    struct ALO* palo;
+    struct ASEGA* pasegaPath;
+    int fGood;
+    DLE dle;
+};
+
 class MGC : public ALO
 {
 	public:

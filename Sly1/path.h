@@ -22,6 +22,7 @@ class PATHZONE : public LO
 };
 
 void*NewPathzone();
+void InitSwPathzoneDl(SW* psw);
 int  GetPathzoneSize();
 void OnPathzoneAdd(PATHZONE* ppathzone);
 void OnPathzoneRemove(PATHZONE* ppathzone);

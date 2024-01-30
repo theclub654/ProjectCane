@@ -45,7 +45,7 @@ class DPRIZE : public ALO
         float radSmooth;
         glm::vec3 normalSmooth;
         int fSwirlDone;
-        DLE dle;
+        DLE dleDprize;
         int ichkCollected;
         struct EXPL* pexplCollect;
         struct EXPL* pexplAttract;
@@ -77,6 +77,7 @@ class GOLD : public DPRIZE
 };
 
 void*NewDprize();
+void InitSwDprizeDl(SW* psw);
 void InitDprize(DPRIZE *pdprize);//NOT FINISHED
 int  GetDprizeSize();
 void LoadDprizeFromBrx(DPRIZE* pdprize, CBinaryInputStream* pbis);

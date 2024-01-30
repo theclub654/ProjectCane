@@ -5,6 +5,11 @@ void* NewLight()
 	return new LIGHT{};
 }
 
+void InitSwLightDl(SW* psw)
+{
+	InitDl(&psw->dlLight, offsetof(LIGHT, dleLight));
+}
+
 void InitLight(LIGHT* plight)
 {
 	plight->lightk = LIGHTK_Direction;

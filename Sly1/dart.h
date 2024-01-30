@@ -34,6 +34,7 @@ class DART : public SO
 };
 
 void*NewDart();
+void InitSwDartFreeDl(SW* psw);
 void InitDart(DART* pdart);
 int  GetDartSize();
 void OnDartAdd(DART* pdart);

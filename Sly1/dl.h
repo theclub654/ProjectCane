@@ -252,4 +252,5 @@ int FFindDlEntry(DL *pdl, void *pv);
 // Returns whether DL list is empty or not
 int FIsDlEmpty(DL *pdl);
 
+// Used to keep track of head node
 extern DLI* s_pdliFirst;

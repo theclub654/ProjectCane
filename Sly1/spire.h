@@ -8,6 +8,7 @@ class SPIRE : public PNT
 };
 
 void*NewSpire();
+void InitSwSpireDl(SW* psw);
 int  GetSpireSize();
 void OnSpireAdd(SPIRE* pspire);
 void OnSpireRemove(SPIRE* pspire);

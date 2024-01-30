@@ -153,6 +153,7 @@
     <ClInclude Include="..\Libraries\include\imgui\imstb_textedit.h" />
     <ClInclude Include="..\Libraries\include\imgui\imstb_truetype.h" />
     <ClInclude Include="ac.h" />
+    <ClInclude Include="act.h" />
     <ClInclude Include="alarm.h" />
     <ClInclude Include="alo.h" />
     <ClInclude Include="aseg.h" />
@@ -185,6 +186,7 @@
     <ClInclude Include="dsp.h" />
     <ClInclude Include="dysh.h" />
     <ClInclude Include="emitter.h" />
+    <ClInclude Include="fader.h" />
     <ClInclude Include="flash.h" />
     <ClInclude Include="fly.h" />
     <ClInclude Include="font.h" />
@@ -251,6 +253,7 @@
     <ClInclude Include="sm.h" />
     <ClInclude Include="smartguard.h" />
     <ClInclude Include="so.h" />
+    <ClInclude Include="sound.h" />
     <ClInclude Include="spaprops.h" />
     <ClInclude Include="speaker.h" />
     <ClInclude Include="spire.h" />
@@ -289,6 +292,7 @@
     <ClCompile Include="..\Libraries\include\imgui\imgui_tables.cpp" />
     <ClCompile Include="..\Libraries\include\imgui\imgui_widgets.cpp" />
     <ClCompile Include="ac.cpp" />
+    <ClCompile Include="act.cpp" />
     <ClCompile Include="alarm.cpp" />
     <ClCompile Include="alo.cpp" />
     <ClCompile Include="aseg.cpp" />
@@ -320,6 +324,7 @@
     <ClCompile Include="dsp.cpp" />
     <ClCompile Include="dysh.cpp" />
     <ClCompile Include="emitter.cpp" />
+    <ClCompile Include="fader.cpp" />
     <ClCompile Include="flash.cpp" />
     <ClCompile Include="fly.cpp" />
     <ClCompile Include="font.cpp" />
@@ -386,6 +391,7 @@
     <ClCompile Include="sm.cpp" />
     <ClCompile Include="smartguard.cpp" />
     <ClCompile Include="so.cpp" />
+    <ClCompile Include="sound.cpp" />
     <ClCompile Include="spaprops.cpp" />
     <ClCompile Include="speaker.cpp" />
     <ClCompile Include="spire.cpp" />

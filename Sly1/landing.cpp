@@ -5,6 +5,11 @@ void* NewLanding()
 	return new LANDING{};
 }
 
+void InitSwLandingDl(SW* psw)
+{
+	InitDl(&psw->dlLanding, offsetof(LANDING, dleLanding));
+}
+
 int GetLandingSize()
 {
 	return sizeof(LANDING);

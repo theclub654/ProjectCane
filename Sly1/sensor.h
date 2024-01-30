@@ -138,6 +138,7 @@ void CloneSensor(SENSOR* psensor, SENSOR* psensorBase);
 void DeleteSensor(LO* plo);
 
 void*NewLasen();
+void InitSwLasenDl(SW* psw);
 void InitLasen(LASEN* plasen);
 int  GetLasenSize();
 void LoadLasenFromBrx(LASEN* plasen, CBinaryInputStream* pbis);

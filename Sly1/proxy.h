@@ -14,6 +14,7 @@ class PROXY : public ALO
 static int ProxyCount = 0;
 
 void*NewProxy();
+void InitSwProxyDl(SW* psw);
 void InitProxy(PROXY *pproxy);
 int  GetProxySize();
 void LoadProxyFromBrx(PROXY* pproxy, CBinaryInputStream* pbis);

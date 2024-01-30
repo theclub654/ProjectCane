@@ -15,7 +15,6 @@ void InitAlo(ALO* palo)
 	InitDl(&palo->dlFreeze, offsetof(ALO, dleFreeze));
 
 	void* temp = &palo->xf.posWorld;
-
 	InitLo(palo);
 
 	palo->sCelBorderMRD = 2139095039;
@@ -25,7 +24,7 @@ void InitAlo(ALO* palo)
 	palo->xf.matWorld = glm::identity<glm::mat3>();
 	palo->matOrig = glm::identity<glm::mat3>();
 
-	InitDl(&palo->dlAct, 0x230);
+	InitDl(&palo->dlAct, offsetof(ACT, dleAlo));
 	allSWAloObjs.push_back(palo);
 }
 
@@ -60,9 +59,7 @@ void RemoveAloHierarchy(ALO *palo)
 
 void OnAloAdd(ALO* palo)
 {
-	ALO *parentObject = palo->paloParent;
-
-	if (parentObject == nullptr)
+	if (palo->paloParent == nullptr)
 	{
 		palo->paloRoot = palo;
 
@@ -99,13 +96,15 @@ void OnAloRemove(ALO* palo)
 
 		else
 		{
-			RemoveDlEntry(&palo->psw->dlMRD, palo);
-
-			RemoveDlEntry(&palo->psw->dlBusy, palo);
-
-			if ((palo->pvtalo->grfcid & 0x2U) != 0)
+			if (true)
 			{
-				RemoveDlEntry(&palo->psw->dlBusySo, palo);
+				RemoveDlEntry(&palo->psw->dlMRD, palo);
+				RemoveDlEntry(&palo->psw->dlBusy, palo);
+
+				if ((palo->pvtalo->grfcid & 0x2U) != 0)
+				{
+					RemoveDlEntry(&palo->psw->dlBusySo, palo);
+				}
 			}
 
 			palo->paloFreezeRoot = nullptr;
@@ -201,6 +200,7 @@ void ApplyAloProxy(ALO* palo, PROXY* pproxyApply)
 	ConvertAloPos((ALO*)pproxyApply, nullptr, palo->xf.pos, posWorld);
 	palo->pvtalo->pfnTranslateAloToPos(palo, posWorld);
 
+	void* temp = &palo->xf.mat;
 	glm::mat3 matWorld{};
 	ConvertAloMat((ALO*)pproxyApply, nullptr, palo->xf.mat, matWorld);
 	palo->pvtalo->pfnRotateAloToMat(palo, matWorld);
@@ -228,9 +228,9 @@ void UpdateAloXfWorldHierarchy(ALO* palo)
 		else
 		{
 			palo->xf.pos = palo->paloParent->xf.matWorld * palo->xf.pos;
-			palo->xf.posWorld = palo->paloParent->xf.posWorld + palo->xf.pos;
+			palo->xf.posWorld = palo->xf.pos + palo->paloParent->xf.posWorld;
 
-			palo->xf.mat = palo->xf.mat * palo->paloParent->xf.matWorld;
+			palo->xf.mat = palo->paloParent->xf.matWorld * palo->xf.mat;
 			palo->xf.matWorld = palo->xf.mat;
 		}
 	}
@@ -251,7 +251,7 @@ void UpdateAloXfWorldHierarchy(ALO* palo)
 		else
 		{
 			palo->xf.pos = palo->xf.pos * palo->paloParent->xf.matWorld;
-			palo->xf.posWorld = palo->xf.pos + palo->paloParent->xf.posWorld;
+			palo->xf.posWorld = palo->paloParent->xf.posWorld + palo->xf.pos;
 		}
 
 		if (palo->paloParent != nullptr)
@@ -302,8 +302,8 @@ void ConvertAloPos(ALO* paloFrom, ALO* paloTo, glm::vec3 &pposFrom, glm::vec3 &p
 	{
 		if (paloFrom != nullptr)
 		{
-			pposFrom = pposFrom * paloFrom->xf.matWorld;
-			pposFrom = pposFrom + paloFrom->xf.posWorld;
+			pposFrom = paloFrom->xf.matWorld * pposFrom;
+			pposFrom = paloFrom->xf.posWorld + pposFrom;
 		}
 
 		if (paloTo != nullptr)
@@ -414,7 +414,7 @@ void LoadAloFromBrx(ALO* palo, CBinaryInputStream* pbis)
 
 void LoadAloAloxFromBrx(ALO* palo, CBinaryInputStream* pbis)
 {
-	uint32_t grfalox = pbis->U32Read();
+	GRFALOX grfalox = pbis->U32Read();
 
 	if (grfalox != 0)
 	{

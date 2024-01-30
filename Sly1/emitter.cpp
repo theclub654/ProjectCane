@@ -67,6 +67,7 @@ void* NewEmitter()
 void InitEmitter(EMITTER* pemitter)
 {
 	InitAlo(pemitter);
+	InitDl(&pemitter->dlGroup, offsetof(EMITTER, dleGroup));
 }
 
 int GetEmitterSize()

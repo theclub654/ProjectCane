@@ -2,7 +2,7 @@
 #include <vector>
 
 // Class ID
-enum CID 
+enum CID : uint16_t
 {
     CID_Nil = -1,
     CID_BASIC = 0,
@@ -170,7 +170,7 @@ enum CID
     CID_Max = 162
 };
 // Object ID
-enum OID 
+enum OID : uint16_t
 {
     OID_Nil = -1,
     OID_Unknown = 0,

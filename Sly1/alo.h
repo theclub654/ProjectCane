@@ -1,8 +1,12 @@
 #pragma once
 #include "lo.h"
+#include "act.h"
 #include "freeze.h"
 #include "glob.h"
 #include "sqtr.h"
+
+typedef uint32_t GRFZON;
+typedef uint32_t GRFALOX;
 
 struct XF
 {
@@ -55,13 +59,12 @@ enum ACK
 
 struct ALOX
 {
-	int grfalox;
+	GRFALOX grfalox;
 };
 
 class ALO : public LO
 {
 	public:
-		// Ptr to dleChild in LO
 		DL dlChild;
 		DLE dleBusy;
 		DLE dleMRD;
@@ -73,7 +76,7 @@ class ALO : public LO
 		struct MRG *apmrg[4];
 		float sMRD;
 		float sCelBorderMRD;
-		int grfzon;
+		GRFZON grfzon;
 		float dsMRDSnap;
 		char frz[64];
 		XF xf;
@@ -114,6 +117,22 @@ class ALO : public LO
 		std::vector <POSEC> aposec;
 		struct ACTREF* pactrefCombo;
 		struct DLR* pdlrFirst;
+		int mtlk : 8;
+		uint32_t zons : 2;
+		uint32_t viss : 2;
+		uint32_t mrds : 2;
+		uint32_t dms : 2;
+		uint32_t fHidden : 1;
+		uint32_t fFixedPhys : 1;
+		uint32_t fMtlkFromDls : 1;
+		uint32_t fWater : 1;
+		uint32_t fForceCameraFade : 1;
+		uint32_t fBusy : 1;
+		uint32_t fFrozen : 1;
+		uint32_t fRemerge : 1;
+		uint32_t fNoFreeze : 1;
+		uint32_t cpaloFindSwObjects : 4;
+		uint32_t fApplyAseg : 1;
 		ACK ackRot;
 };
 

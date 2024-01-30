@@ -25,5 +25,8 @@ class ASEGA : public BASIC
         int nPriority;
 };
 
+void InitSwAsegaDl(SW* psw);
+void InitSwAsegaRealClockDl(SW* psw);
+void InitSwAsegaPending(SW* psw);
 int  GetAsegaSize();
 void DeleteAsega(LO* plo);

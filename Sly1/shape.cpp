@@ -5,6 +5,11 @@ void* NewShape()
     return new SHAPE{};
 }
 
+void InitSwShapeDl(SW* psw)
+{
+    InitDl(&psw->dlShape, offsetof(SHAPE, dleShape));
+}
+
 void InitShape(SHAPE* pshape)
 {
     InitLo(pshape);

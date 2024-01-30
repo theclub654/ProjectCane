@@ -5,6 +5,16 @@ void* NewBlipg()
 	return new BLIPG{};
 }
 
+void InitSwBlipgDl(SW* psw)
+{
+	InitDl(&psw->dlBlipg, offsetof(BLIPG, dleBlipg));
+}
+
+void InitSwBlipgFreeDl(SW* psw)
+{
+	InitDl(&psw->dlBlipgFree, offsetof(BLIPG, dleBlipg));
+}
+
 void InitBlipg(BLIPG* pblipg)
 {
 	InitAlo(pblipg);

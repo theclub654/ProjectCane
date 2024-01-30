@@ -5,6 +5,11 @@ void* NewProxy()
 	return new PROXY{};
 }
 
+void InitSwProxyDl(SW* psw)
+{
+	InitDl(&psw->dlProxy, offsetof(PROXY, dleProxy));
+}
+
 void InitProxy(PROXY *pproxy)
 {
 	InitAlo(pproxy);
@@ -45,6 +50,7 @@ void LoadProxyFromBrx(PROXY* pproxy, CBinaryInputStream* pbis)
 			uint16_t ipsl = pbis->S16Read();
 			// Returns proxy source object
 			object = PloGetSwProxySource(pproxy->psw, ipsl);
+			// Stores the proxy source object to keep track of.
 			proxyObjs.push_back(object);
 		}
 
@@ -56,6 +62,7 @@ void LoadProxyFromBrx(PROXY* pproxy, CBinaryInputStream* pbis)
 			int16_t isplice = pbis->S16Read();
 			// Returns new initialized proxy object
 			object = PloNew(cid, pproxy->psw, nullptr, oid, isplice);
+			// Stores the proxy source object to keep track of.
 			proxyObjs.push_back(object);
 			// Loads proxy source object from file
 			object->pvtlo->pfnLoadLoFromBrx(object, pbis);
@@ -122,8 +129,8 @@ void LoadProxyFromBrx(PROXY* pproxy, CBinaryInputStream* pbis)
 		}
 	}
 
-	pproxy->pvtlo->pfnRemoveLo(pproxy);
-	pproxy->pvtlo->pfnAddLo(pproxy);
+	/*pproxy->pvtlo->pfnRemoveLo(pproxy);
+	pproxy->pvtlo->pfnAddLo(pproxy);*/
 	
 	proxyObjs.clear();
 	proxyObjs.shrink_to_fit();

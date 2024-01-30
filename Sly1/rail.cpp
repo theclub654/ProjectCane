@@ -5,6 +5,11 @@ void* NewRail()
 	return new RAIL{};
 }
 
+void InitSwRailDl(SW* psw)
+{
+	InitDl(&psw->dlRail, offsetof(RAIL, dleRail));
+}
+
 int GetRailSize()
 {
 	return sizeof(RAIL);

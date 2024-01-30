@@ -5,6 +5,11 @@ void* NewRat()
 	return new RAT{};
 }
 
+void InitSwRatDl(SW* psw)
+{
+	InitDl(&psw->dlRat, offsetof(RAT, dleRat));
+}
+
 void InitRat(RAT* prat)
 {
 	InitSo(prat);
@@ -60,6 +65,11 @@ void DeleteRat(LO* plo)
 void* NewRathole()
 {
 	return new RATHOLE{};
+}
+
+void InitSwRatholeDl(SW* psw)
+{
+	InitDl(&psw->dlRathole, offsetof(RATHOLE, dleRathole));
 }
 
 int GetRatholeSize()

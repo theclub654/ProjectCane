@@ -17,36 +17,36 @@ void InitSw(SW* psw)
 
 	InitDl(&psw->dlChild, offsetof(LO, dleChild));
 	InitDl(&psw->dlMRD, offsetof(ALO, dleMRD));
-	InitDl(&psw->dlMRDRealClock, 0x1C + 0x54); // GOTTA COME BACK TO THIS
+	InitDl(&psw->dlMRDRealClock, offsetof(ALO, dleMRD));
 	InitDl(&psw->dlBusy, offsetof(ALO, dleBusy));
-	InitDl(&psw->dlBusySo, 0x790);
-	InitDl(&psw->dlRoot, 0x458);
-	InitDl(&psw->dlAsega, 0x1C + 0x34); // GOTTA COME BACK TO THIS
-	InitDl(&psw->dlAsegaRealClock, 0x1C + 0x34); // GOTTA COME BACK TO THIS
-	InitDl(&psw->dlAsegaPending, 0x1C + 0x34); // GOTTA COME BACK TO THIS
-	InitDl(&psw->dlSma, 0x10);
+	InitSwBusySoDl(psw);
+	InitSwRootDl(psw);
+	InitSwAsegaDl(psw);
+	InitSwAsegaRealClockDl(psw);
+	InitSwAsegaPending(psw);
+	InitSwSmaDl(psw);
 	InitDl(&psw->dlAmb, 0x1C + 0x60); // GOTTA COME BACK TO THIS
 	InitDl(&psw->dlExc, 0x1C + 4); // GOTTA COME BACK TO THIS
-	InitDl(&psw->dlLight, 0x568);
-	InitDl(&psw->dlShadow, 0x1C + 0xb8); // GOTTA COME BACK TO THIS
-	InitDl(&psw->dlExplste, 0x1C + 100);// GOTTA COME BACK TO THIS
-	InitDl(&psw->dlProxy, 0x470);
-	InitDl(&psw->dlFly, 0xB50);
-	InitDl(&psw->dlDprize, 0x500);
-	InitDl(&psw->dlRat, 0xB90);
-	InitDl(&psw->dlRathole, 0xC8);
-	InitDl(&psw->dlDartFree, 0xA70);
-	InitDl(&psw->dlSpire, 0x88);
-	InitDl(&psw->dlRail, 0x90);
-	InitDl(&psw->dlLanding, 0x90); 
-	InitDl(&psw->dlBusyLasen, 0x1200);
-	InitDl(&psw->dlBlipg, 0x1C + 0x640);// GOTTA COME BACK TO THIS
-	InitDl(&psw->dlBlipgFree, 0x1C + 0x640);// GOTTA COME BACK TO THIS
-	InitDl(&psw->dlFader, 0x1C + 0xc);// GOTTA COME BACK TO THIS
-	InitDl(&psw->dlRealClockFader, 0x1C + 0xc);// GOTTA COME BACK TO THIS
-	InitDl(&psw->dlCrfod, 0x11A8);
-	InitDl(&psw->dlShape, 0x80);
-	InitDl(&psw->dlPathzone, 0xB8);
+	InitSwLightDl(psw);
+	InitSwShadowDl(psw);
+	InitDl(&psw->dlExplste, 100);// GOTTA COME BACK TO THIS
+	InitSwProxyDl(psw);
+	InitSwFlyDl(psw);
+	InitSwDprizeDl(psw);
+	InitSwRatDl(psw);
+	InitSwRatholeDl(psw);
+	InitSwDartFreeDl(psw);
+	InitSwSpireDl(psw);
+	InitSwRailDl(psw);
+	InitSwLandingDl(psw);
+	InitSwLasenDl(psw);
+	InitSwBlipgDl(psw);
+	InitSwBlipgFreeDl(psw);
+	InitSwFaderDl(psw);
+	InitSwRealClockFader(psw);
+	InitSwCrfodDl(psw);
+	InitSwShapeDl(psw);
+	InitSwPathzoneDl(psw);
 }
 
 int GetSwSize()
@@ -56,7 +56,7 @@ int GetSwSize()
 
 void InitSwDlHash(SW* psw)
 {
-	for (int i = 0; i < 0x200; i++)
+	for (int i = 0; i < 512; i++)
 		InitDl(&psw->adlHash[i], offsetof(LO, dleOid));
 }
 
@@ -112,28 +112,28 @@ void AddSwProxySource(SW* psw, LO* ploProxySource, int cploClone)
 {
 	cploClone--;
 
-	PSL proxySourceList;
+	PSL psl{};
 
-	proxySourceList.cploCloneFree = cploClone;
-	proxySourceList.aploClone.resize(cploClone);
+	psl.cploCloneFree = cploClone;
+	psl.aploClone.resize(cploClone);
 
 	for (int i = 0; i < cploClone; i++)
 	{
 		LO* clonedLocalObject = PloCloneLo(ploProxySource, psw, nullptr);
-		proxySourceList.aploClone[i] = clonedLocalObject;
+		psl.aploClone[i] = clonedLocalObject;
 	}
 
-	psw->apsl.push_back(proxySourceList);
+	void* temp = psw->apsl;
+	psw->apsl[psw->cpsl] = psl;
 	psw->cpsl++;
 }
 
 LO* PloGetSwProxySource(SW* psw, int ipsl)
 {
-	PSL psl = psw->apsl[ipsl];
-	int numClones = psl.cploCloneFree--;
-	numClones--;
-	psl.cploCloneFree = numClones;
-	return psl.aploClone[numClones];
+	// Loads the psl
+	PSL* psl = psw->apsl + ipsl;
+	// Returns proxy source LO from that psl
+	return psl->aploClone[psl->cploCloneFree -= 1];
 }
 
 void DeleteSw(SW* psw)

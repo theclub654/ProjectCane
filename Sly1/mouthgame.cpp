@@ -8,6 +8,8 @@ void* NewMgc()
 void InitMgc(MGC* pmgc)
 {
 	InitAlo(pmgc);
+	InitDl(&pmgc->dlMgcoFree, offsetof(MGCO, dle));
+	InitDl(&pmgc->dlMgco, offsetof(MGCO, dle));
 }
 
 int GetMgcSize()

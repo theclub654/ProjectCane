@@ -56,5 +56,6 @@ void LoadSmFromBrx(SM *psm, CBinaryInputStream *pbis);
 void DeleteSm(LO* plo);
 
 void*NewSma();
+void InitSwSmaDl(SW* psw);
 int  GetSmaSize();
 void DeleteSma(LO* plo);

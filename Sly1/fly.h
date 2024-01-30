@@ -68,6 +68,7 @@ class FLY : public SO
 };
 
 void*NewFly();
+void InitSwFlyDl(SW* psw);
 void InitFly(FLY* pfly);
 int  GetFlySize();
 void CloneFly(FLY* pfly, FLY* pflyBase);

@@ -208,6 +208,13 @@ void* NewRob()
 void InitRob(ROB* prob)
 {
 	InitAlo(prob);
+	InitDl(&prob->dlRocOwned, offsetof(ROC, dleRob));
+	InitDl(&prob->dlRocUnowned, offsetof(ROC, dleRob));
+	InitDl(&prob->dlRocInactive, offsetof(ROC, dleRob));
+	InitDl(&prob->dlRohActive, offsetof(ROH, dleRob));
+	InitDl(&prob->dlRohInactive, offsetof(ROH, dleRob));
+	InitDl(&prob->dlRostAvailable, offsetof(ROST, dleRob));
+	InitDl(&prob->dlRostUnavailable, offsetof(ROST, dleRob));
 }
 
 int GetRobSize()

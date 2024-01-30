@@ -5,6 +5,11 @@ void* NewPathzone()
     return new PATHZONE{};
 }
 
+void InitSwPathzoneDl(SW* psw)
+{
+    InitDl(&psw->dlPathzone, offsetof(PATHZONE, dlePathzone));
+}
+
 int GetPathzoneSize()
 {
     return sizeof(PATHZONE);

@@ -5,6 +5,16 @@ void* NewSo()
 	return new SO{};
 }
 
+void InitSwBusySoDl(SW* psw)
+{
+	InitDl(&psw->dlBusySo, offsetof(SO, dleBusySo));
+}
+
+void InitSwRootDl(SW *psw)
+{
+	InitDl(&psw->dlRoot, offsetof(SO, dleRoot));
+}
+
 void InitSo(SO* pso)
 {
 	InitDl(&pso->dlPhys, offsetof(SO, dlePhys));
@@ -128,7 +138,7 @@ void TranslateSoToPos(SO* pso, glm::vec3& ppos)
 {
 	pso->xf.pos = ppos;
 
-	if(pso->paloRoot != nullptr)
+	if (pso->paloRoot != nullptr)
 		pso->paloRoot->pvtalo->pfnUpdateAloXfWorld(pso);
 }
 

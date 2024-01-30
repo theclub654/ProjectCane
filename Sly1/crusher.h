@@ -34,6 +34,7 @@ void CloneCrfodb(CRFODB* pcrfodb, CRFODB* pcrfodbBase);
 void DeleteCrfodb(LO* plo);
 
 void*NewCrfod();
+void InitSwCrfodDl(SW* psw);
 void OnCrfodAdd(CRFOD* pcrfod);
 void OnCrfodRemove(CRFOD* pcrfod);
 void CloneCrfod(CRFOD* pcrfod, CRFOD* pcrfodBase);

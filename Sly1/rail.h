@@ -11,6 +11,7 @@ class RAIL : public SHAPE
 };
 
 void*NewRail();
+void InitSwRailDl(SW* psw);
 int  GetRailSize();
 void OnRailAdd(RAIL* prail);
 void OnRailRemove(RAIL* prail);

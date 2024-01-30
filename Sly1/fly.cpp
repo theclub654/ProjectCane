@@ -5,6 +5,11 @@ void* NewFly()
 	return new FLY{};
 }
 
+void InitSwFlyDl(SW* psw)
+{
+	InitDl(&psw->dlFly, offsetof(FLY, dleFly));
+}
+
 void InitFly(FLY* pfly)
 {
 	InitSo(pfly);

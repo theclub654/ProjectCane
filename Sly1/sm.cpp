@@ -13,6 +13,7 @@ int GetSmSize()
 void LoadSmFromBrx(SM* psm, CBinaryInputStream* pbis)
 {
 	InitDl(&psm->dlSma, offsetof(SMA, dleSm));
+
 	psm->csms = pbis->U8Read();
 	psm->asms.resize(psm->csms);
 
@@ -57,6 +58,11 @@ void DeleteSm(LO* plo)
 void* NewSma()
 {
 	return new SMA{};
+}
+
+void InitSwSmaDl(SW* psw)
+{
+	InitDl(&psw->dlSma, offsetof(SMA, dleSw));
 }
 
 int GetSmaSize()

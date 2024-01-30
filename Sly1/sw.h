@@ -3,6 +3,32 @@
 #include "difficulty.h"
 #include "cm.h"
 
+void InitSwBusySoDl(SW* psw);
+void InitSwRootDl(SW* psw);
+void InitSwAsegaDl(SW* psw);
+void InitSwAsegaRealClockDl(SW* psw);
+void InitSwAsegaPending(SW* psw);
+void InitSwSmaDl(SW* psw);
+void InitSwLightDl(SW* psw);
+void InitSwShadowDl(SW* psw);
+void InitSwProxyDl(SW* psw);
+void InitSwFlyDl(SW* psw);
+void InitSwDprizeDl(SW* psw);
+void InitSwRatDl(SW* psw);
+void InitSwRatholeDl(SW* psw);
+void InitSwDartFreeDl(SW* psw);
+void InitSwSpireDl(SW* psw);
+void InitSwRailDl(SW* psw);
+void InitSwLandingDl(SW* psw);
+void InitSwLasenDl(SW* psw);
+void InitSwBlipgDl(SW* psw);
+void InitSwBlipgFreeDl(SW* psw);
+void InitSwFaderDl(SW* psw);
+void InitSwRealClockFader(SW* psw);
+void InitSwCrfodDl(SW* psw);
+void InitSwShapeDl(SW* psw);
+void InitSwPathzoneDl(SW* psw);
+
 struct LSM
 {
 	float uShadow;
@@ -14,7 +40,7 @@ struct ISI
 	LM lmRepeat;
 	LM lmRepDist;
 };
-struct RSE 
+struct RSE
 {
 	REVERBK rvrbk;
 	int depth;
@@ -81,7 +107,7 @@ public:
 	glm::vec3 dvGravity;
 	int csplcSplice;
 	struct SPLC* asplcSplice;
-	uint32_t symidScheduledCallbackList;
+	SYMID symidScheduledCallbackList;
 	int symidMax;
 	char** mpsymidachz;
 	int coptidExtra;
@@ -89,7 +115,7 @@ public:
 	// Number of proxy source list
 	int cpsl;
 	// Proxy source list
-	std::vector <PSL> apsl;
+	PSL apsl[128];
 	// Number of clue bottles for each level
 	int cclueAll;
 	// Number of check points for level
@@ -110,6 +136,7 @@ public:
 void* NewSw();
 // Initializing SW object
 void InitSw(SW* psw); // GOTTA COME BACK TO THIS
+// Returns size of SW
 int  GetSwSize();
 // Initializing the base offset to data
 void InitSwDlHash(SW *psw);
@@ -121,7 +148,7 @@ void LoadNameTableFromBrx(CBinaryInputStream* pbis);
 void LoadWorldTableFromBrx(CBinaryInputStream* pbis);
 // Adds a SW proxy source to apsl 
 void AddSwProxySource(SW* psw, LO* ploProxySource, int cploClone);
-// Returns SW proxy source based of proxy source index
+// Returns SW proxy source LO based of proxy source index
 LO* PloGetSwProxySource(SW* psw, int ipsl);
 // Resets SW object
 void DeleteSw(SW* psw);

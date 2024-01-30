@@ -45,6 +45,7 @@ class LIGHT : public ALO
 };
 
 void*NewLight();
+void InitSwLightDl(SW* psw);
 void InitLight(LIGHT* plight);
 int  GetLightSize();
 void OnLightAdd(LIGHT* plight);

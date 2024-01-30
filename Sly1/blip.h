@@ -42,10 +42,12 @@ class BLIPG : public ALO
         float rSFlying;
         int cblipe;
         DL dlBlip;
-        DLE dle;
+        DLE dleBlipg;
 };
 
 void*NewBlipg();
+void InitSwBlipgDl(SW* psw);
+void InitSwBlipgFreeDl(SW* psw);
 void InitBlipg(BLIPG* pblipg);
 int  GetBlipgSize();
 void CloneBlipg(BLIPG* pblipg, BLIPG* pblipgBase);

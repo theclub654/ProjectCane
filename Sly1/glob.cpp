@@ -338,6 +338,8 @@ void MakeGLBuffers(SUBGLOB *subglob)
     glEnableVertexAttribArray(3);
 
     glBindVertexArray(0);
+
+    subglob->vertices.clear();
 }
 
 void DrawGlob(GLOBSET* pglobset, glm::mat3 matWorld, glm::vec3 posWorld)

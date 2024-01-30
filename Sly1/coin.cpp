@@ -5,6 +5,11 @@ void* NewDprize()
 	return new DPRIZE{};
 }
 
+void InitSwDprizeDl(SW* psw)
+{
+	InitDl(&psw->dlDprize, offsetof(DPRIZE, dleDprize));
+}
+
 void InitDprize(DPRIZE *pdprize)
 {
 	pdprize->dprizesInit = DPRIZES_Normal;

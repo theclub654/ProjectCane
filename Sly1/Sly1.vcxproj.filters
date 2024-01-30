@@ -432,6 +432,15 @@
     <ClInclude Include="ms.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="fader.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="sound.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="act.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="phasemem.cpp">
@@ -831,6 +840,15 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="ms.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="fader.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="sound.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="act.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

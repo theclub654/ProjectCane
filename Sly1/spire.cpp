@@ -5,6 +5,11 @@ void* NewSpire()
 	return new SPIRE{};
 }
 
+void InitSwSpireDl(SW* psw)
+{
+	InitDl(&psw->dlSpire, offsetof(SPIRE, dleSpire));
+}
+
 int GetSpireSize()
 {
 	return sizeof(SPIRE);

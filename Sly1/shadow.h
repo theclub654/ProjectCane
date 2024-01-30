@@ -22,3 +22,5 @@ class SHADOW
         int cqwVifs;
         struct SUR* psur;
 };
+
+void InitSwShadowDl(SW* psw);

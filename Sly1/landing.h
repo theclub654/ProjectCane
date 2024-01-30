@@ -8,6 +8,7 @@ class LANDING : public SHAPE
 };
 
 void*NewLanding();
+void InitSwLandingDl(SW* psw);
 int  GetLandingSize();
 void OnLandingAdd(LANDING* planding);
 void OnLandingRemove(LANDING* planding);

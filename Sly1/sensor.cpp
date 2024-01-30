@@ -40,6 +40,11 @@ void* NewLasen()
 	return new LASEN{};
 }
 
+void InitSwLasenDl(SW* psw)
+{
+	InitDl(&psw->dlBusyLasen, offsetof(LASEN, dleBusyLasen));
+}
+
 void InitLasen(LASEN* plasen)
 {
 	InitSensor(plasen);

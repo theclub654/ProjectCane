@@ -83,6 +83,7 @@ enum ROBS
     ROBS_Ascend = 5,
     ROBS_Max = 6
 };
+
 struct RODD 
 {
     float crocActiveMaxEasy;

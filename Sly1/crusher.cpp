@@ -40,6 +40,11 @@ void* NewCrfod()
 	return new CRFOD{};
 }
 
+void InitSwCrfodDl(SW* psw)
+{
+	InitDl(&psw->dlCrfod, offsetof(CRFOD, dleCrfod));
+}
+
 void OnCrfodAdd(CRFOD* pcrfod)
 {
 	OnStepguardAdd(pcrfod);
