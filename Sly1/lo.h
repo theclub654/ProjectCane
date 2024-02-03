@@ -2,7 +2,7 @@
 #include "basic.h"
 #include "dl.h"
 #include "bis.h"
-#include "shd.h"
+#include "freecamera.h"
 #include "splicemap.h"
 #include "util.h"
 
@@ -11,7 +11,7 @@ typedef unsigned int SYMID;
 LO* PloNew(CID cid, SW* psw, ALO* paloParent, OID oid, int isplice);
 DL* PdlFromSwOid(SW* psw, OID oid);
 void LoadSwObjectsFromBrx(SW* psw, ALO* paloParent, CBinaryInputStream* pbis);
-void LoadOptionFromBrx(void* pvObject, CBinaryInputStream* pbis);
+void LoadOptionsFromBrx(void* pvObject, CBinaryInputStream* pbis);
 
 enum MSGID
 {

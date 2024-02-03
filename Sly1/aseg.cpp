@@ -112,7 +112,7 @@ void LoadAsegFromBrx(ASEG* paseg, CBinaryInputStream* pbis)
     LoadAsegEventsFromBrx(pbis, 0);
     LoadAsegEventsFromBrx(pbis, 1);
     LoadAsegEventsFromBrx(pbis, 0);
-    LoadOptionFromBrx(0, pbis);
+    LoadOptionsFromBrx(paseg, pbis);
 }
 
 void LoadAsegEventsFromBrx(CBinaryInputStream* pbis, int fFrame)

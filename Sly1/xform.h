@@ -104,6 +104,7 @@ void*NewExit();
 int  GetExitSize();
 void LoadExitFromBrx(EXIT *pexit, CBinaryInputStream* pbis);
 void CloneExit(EXIT* pexit, EXIT* pexitBase);
+void UpdateExit(EXIT* pexit, float dt);
 void DeleteExit(LO* plo);
 
 void*NewCamera();

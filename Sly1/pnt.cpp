@@ -13,7 +13,7 @@ int GetPntSize()
 void LoadPntFromBrx(PNT* pnt, CBinaryInputStream* pbis)
 {
 	pnt->posLocal = pbis->ReadVector();
-	LoadOptionFromBrx(pnt, pbis);
+	LoadOptionsFromBrx(pnt, pbis);
 }
 
 void ClonePnt(PNT* pnt, PNT* pntBase)

@@ -51,7 +51,7 @@ void LoadVolFromBrx(VOL* pvol, CBinaryInputStream* pbis)
 	pvol->matLocal = pbis->ReadMatrix();
 	pvol->posLocal = pbis->ReadVector();
 	LoadTbspFromBrx(pbis);
-	LoadOptionFromBrx(pvol, pbis);
+	LoadOptionsFromBrx(pvol, pbis);
 }
 
 void CloneVol(VOL* pvol, VOL* pvolBase)

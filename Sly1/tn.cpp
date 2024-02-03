@@ -51,7 +51,7 @@ void LoadTnFromBrx(TN* ptn, CBinaryInputStream* pbis)
         }
     }
 
-    LoadOptionFromBrx(0, pbis);
+    LoadOptionsFromBrx(ptn, pbis);
 }
 
 void CloneTn(TN* ptn, TN* ptnBase)

@@ -1,8 +1,18 @@
 #pragma once
 #include <vector>
+#include "dec.h"
+#include "ref.h"
 
+typedef int GRFEOPID;
+typedef int BOOL;
+
+typedef void* (*PFNGET)(void*, void*);
+typedef void* (*PFNENSURE)(void*, int);
+typedef void* (*PFNSET)(void*, int);
+
+struct BASIC;
 // Class ID
-enum CID : uint16_t
+enum CID
 {
     CID_Nil = -1,
     CID_BASIC = 0,
@@ -170,7 +180,7 @@ enum CID : uint16_t
     CID_Max = 162
 };
 // Object ID
-enum OID : uint16_t
+enum OID
 {
     OID_Nil = -1,
     OID_Unknown = 0,
@@ -1330,7 +1340,7 @@ enum OID : uint16_t
     OID_Max = 1154
 };
 // Option Type
-enum OTYP 
+enum OTYP
 {
     OTYP_List = -2147483648,
     OTYP_Bool = 0,
@@ -1607,7 +1617,7 @@ enum OTYP
     OTYP_Fcst = 8353
 };
 // World ID
-enum WID 
+enum WID
 {
     WID_Nil = -1,
     WID_stock_objects = 0,
@@ -1685,7 +1695,7 @@ enum MUSID
     MUSID_Max = 16
 };
 // SFX ID
-enum SFXID 
+enum SFXID
 {
     SFXID_Nil = -1,
     SFXID_CaneHandleUnlock = 0,
@@ -2143,12 +2153,12 @@ enum TBID
     TBID_Copyright = 0,
     TBID_Max = 1
 };
+
 // Option Data
 struct OPTDAT
 {
-    union
-    {
-        int fDef;
+    union {
+        BOOL fDef;
         float gDef;
         int nDef;
         OID oidDef;
@@ -2157,41 +2167,41 @@ struct OPTDAT
         TBID tbidDef;
         SFXID sfxidDef;
     };
-    union
-    {
-        int ibGet;
-        void* pfnget;
 
-        union
-        {
-            void* pvThunkFnUser;
-            void* pvThunkFn;
+    union {
+        int ibGet;
+        PFNGET pfnget;
+
+        struct {
+            void (*pvThunkFnUser)(void*, void*, void*);
+            void (*pvThunkFn)(void*, void*, void*);
         };
     };
-    union
-    {
+
+    union {
         int ibSet;
-        void* pfnset;
+        PFNSET pfnset;
         int crefReq;
     };
-    union
-    {
+
+    union {
         int ibSetUser;
-        void* pfnsetUser;
+        PFNSET pfnsetUser;
     };
-    union
-    {
-        void* pfnensure;
+
+    union {
+        PFNENSURE pfnensure;
     };
 };
+
 // Each Option ID
 struct EOPID
 {
     OTYP otyp;
-    int grfeopid;
+    GRFEOPID grfeopid;
     OPTDAT optdat;
 };
 
-extern inline std::vector<uint32_t> g_aeopid = { 45 };
-
 void BuildEopids();
+
+extern std::vector<EOPID> g_aeopid;

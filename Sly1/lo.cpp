@@ -84,7 +84,7 @@ void SendLoMessage(LO *plo, MSGID msgid, void *pv)
 
 void LoadLoFromBrx(LO* plo, CBinaryInputStream* pbis)
 {
-	LoadOptionFromBrx(plo, pbis);
+	LoadOptionsFromBrx(plo, pbis);
 }
 
 void RemoveLo(LO* plo)

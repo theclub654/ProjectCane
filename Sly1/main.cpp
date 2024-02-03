@@ -47,14 +47,12 @@ int main(int cphzArgs, char* aphzArgs[])
 			g_freecamera.UpdateViewProjMatrix(g_gl.height, g_gl.width, glShader);
 			g_freecamera.UpdateViewProjMatrix(g_gl.height, g_gl.width, glShaderCollision);
 
-			//RenderSw(g_psw, g_pcm);
-
-			if(fRenderWireFrame != 0)
+			if (fRenderWireFrame != 0)
 				glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 			else
 				glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
-			if(fRenderModels != 0)
+			if (fRenderModels != 0)
 				DrawSwAll();
 
 			if (fRenderCollision != 0)

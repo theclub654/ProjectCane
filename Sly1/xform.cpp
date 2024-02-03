@@ -19,7 +19,7 @@ void LoadXfmFromBrx(XFM *pxfm, CBinaryInputStream* pbis)
 {
 	pxfm->matLocal = pbis->ReadMatrix();
 	pxfm->posLocal = pbis->ReadVector();
-	LoadOptionFromBrx(pxfm, pbis);
+	LoadOptionsFromBrx(pxfm, pbis);
 }
 
 void CloneXfm(XFM* pxfm, XFM* pxfmBase)
@@ -64,7 +64,7 @@ void LoadWarpFromBrx(WARP* pwarp, CBinaryInputStream* pbis)
 	pwarp->matLocal = pbis->ReadMatrix();
 	pwarp->posLocal = pbis->ReadVector();
 
-	LoadOptionFromBrx(pwarp, pbis);
+	LoadOptionsFromBrx(pwarp, pbis);
 
 	pwarp->cpaseg = pbis->S16Read();
 
@@ -120,7 +120,7 @@ void LoadExitFromBrx(EXIT* pexit, CBinaryInputStream* pbis)
 
 	LoadTbspFromBrx(pbis);
 
-	LoadOptionFromBrx(pexit, pbis);
+	LoadOptionsFromBrx(pexit, pbis);
 
 	uint16_t numObjs = pbis->S16Read();
 
@@ -145,6 +145,11 @@ void CloneExit(EXIT* pexit, EXIT* pexitBase)
 	CloneLo(pexit, pexitBase);
 
 	ClearDl(&pexit->dlChild);
+}
+
+void UpdateExit(EXIT* pexit, float dt)
+{
+	
 }
 
 void DeleteExit(LO* plo)

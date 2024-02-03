@@ -35,7 +35,7 @@ void LoadSmFromBrx(SM* psm, CBinaryInputStream* pbis)
 		pbis->F32Read();
 	}
 
-	LoadOptionFromBrx(psm, pbis);
+	LoadOptionsFromBrx(psm, pbis);
 
 	int16_t numSmObjs = pbis->S16Read();
 

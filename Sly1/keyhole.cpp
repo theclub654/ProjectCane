@@ -18,7 +18,7 @@ int GetKeyholeSize()
 
 void LoadKeyholeFromBrx(KEYHOLE* pkeyhole, CBinaryInputStream* pbis)
 {
-	LoadOptionFromBrx(pkeyhole, pbis);
+	LoadOptionsFromBrx(pkeyhole, pbis);
 
     pkeyhole->cpos = pbis->U16Read();
     pkeyhole->apos.resize(pkeyhole->cpos);

@@ -49,7 +49,7 @@ void LoadShapeFromBrx(SHAPE* pshape, CBinaryInputStream* pbis)
         break;
     }
 
-    LoadOptionFromBrx(pshape, pbis);
+    LoadOptionsFromBrx(pshape, pbis);
 }
 
 void DeleteShape(LO* plo)

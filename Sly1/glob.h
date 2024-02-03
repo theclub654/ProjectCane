@@ -3,6 +3,7 @@
 #include "gl.h"
 
 class ALO;
+class LIGHT;
 // Glob is just another word for model.
 
 enum TWPS 
@@ -185,5 +186,5 @@ void BuildSubGlob(GLOBSET *pglobset, SHD* pshd, std::vector<VERTICE> &vertices ,
 void CloneGlobset(GLOBSET *pglobset, ALO* palo, GLOBSET *pglobsetBase);
 // Storing 3D models in VRAM
 void MakeGLBuffers(SUBGLOB* subglob);
-// Draws Model
-void DrawGlob(GLOBSET* pglobset, glm::mat3 matWorld, glm::vec3 posWorld); // NOT FINISHED
+// Draws Model, MIGHT NOT NEED THIS FUNCTION ANYMORE
+void DrawGlob(GLOBSET* pglobset); // NOT FINISHED

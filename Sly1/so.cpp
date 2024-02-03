@@ -21,6 +21,7 @@ void InitSo(SO* pso)
 	InitAlo(pso);
 
 	InitGeom(&pso->geomLocal);
+
 	allSWSoObjs.push_back(pso);
 }
 
@@ -140,14 +141,15 @@ void TranslateSoToPos(SO* pso, glm::vec3& ppos)
 	pso->xf.pos = ppos;
 
 	if (pso->paloRoot != nullptr)
-		pso->paloRoot->pvtalo->pfnUpdateAloXfWorld(pso);
+		pso->pvtalo->pfnUpdateAloXfWorld(pso);
 }
 
 void RotateSoToMat(SO* pso, glm::mat3& pmat)
 {
 	pso->xf.mat = pmat;
 
-	pso->pvtalo->pfnUpdateAloXfWorld(pso);
+	if (pso->paloRoot != nullptr)
+		pso->pvtalo->pfnUpdateAloXfWorld(pso);
 }
 
 void MakeCollisionGLBuffers(GEOM *pgeom)

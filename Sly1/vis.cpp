@@ -25,7 +25,7 @@ void LoadVismapFromBrx(VISMAP *pvismap, CBinaryInputStream *pbis)
 	for (int i = 0; i < cgrfzon; i++)
 		pbis->U32Read();
 
-	pbis->U16Read();
+	LoadOptionsFromBrx(pvismap, pbis);
 }
 
 void DeleteVismap(LO* plo)

@@ -1,7 +1,7 @@
 #pragma once
 #include "alo.h"
 
-extern std::vector<void*> allSwLights;
+extern std::vector<LIGHT*> allSwLights;
 
 // Light type
 enum LIGHTK 
@@ -53,5 +53,18 @@ void OnLightRemove(LIGHT* plight);
 void UpdateLightXfWorldHierarchy(LIGHT* plight);
 void CloneLight(LIGHT* plight, LIGHT* plightBase);
 void AddLightToSw(LIGHT* plight);
+void SetLightKind(LIGHT* plight, LIGHTK lightk);
+void SetLightHighlightColor(LIGHT* plight, glm::vec3 &pvecHighlight);
+void SetLightMidtoneStrength(LIGHT* plight, float gMidtone);
+void SetLightShadowStrength(LIGHT* plight, float gShadow);
+void SetLightHighlightAngle(LIGHT* plight, float degHighlight);
+void SetLightMidtoneAngle(LIGHT* plight, float degMidtone);
+void SetLightShadowAngle(LIGHT* plight, float degShadow);
+void SetLightDirection(LIGHT* plight, glm::vec3 &pvecDirection);
+void SetLightDynamic(LIGHT* plight, int fDynamic);
+void SetLightFallOff(LIGHT* plight, LM* plm);
+void SetLightConeAngle(LIGHT* plight, float degCone);
+void SetLightHotSpotAngle(LIGHT* plight, float degHotSpot);
+void SetLightFrustrumUp(LIGHT* plight, glm::vec3 &pvecUpLocal);
 void RemoveLightFromSw(LIGHT* plight);
 void DeleteLight(LO* plo);

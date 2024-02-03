@@ -60,7 +60,7 @@ void LoadProxyFromBrx(PROXY* pproxy, CBinaryInputStream* pbis)
 			OID oid = (OID)pbis->S16Read();
 			// Loads splice index from file
 			int16_t isplice = pbis->S16Read();
-			// Returns new initialized proxy object
+			// Returns new initialized proxy source object
 			object = PloNew(cid, pproxy->psw, nullptr, oid, isplice);
 			// Stores the proxy source object to keep track of.
 			proxyObjs.push_back(object);
@@ -85,15 +85,15 @@ void LoadProxyFromBrx(PROXY* pproxy, CBinaryInputStream* pbis)
 
 	for (int i = 0; i < unk0; i++)
 	{
-		pbis->S16Read();
-		pbis->S16Read();
+		short oid = pbis->S16Read();
+		short isplice = pbis->S16Read();
 		pbis->U32Read();
 		int8_t unk1 = pbis->S8Read();
 
 		if (unk1 == 2)
 			pbis->F32Read();
 
-		LoadOptionFromBrx(0, pbis);
+		LoadOptionsFromBrx(proxyObjs[0], pbis);
 	}
 
 	for (int i = 0; i < proxyObjs.size(); i++)

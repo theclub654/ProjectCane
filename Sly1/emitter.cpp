@@ -17,6 +17,13 @@ int GetExploSize()
 
 void LoadExploFromBrx(EXPLO* pexplo, CBinaryInputStream* pbis)
 {
+	/*LoadExploCount++;
+
+	std::cout << "LoadExploFromBrx Count: " << LoadExploCount << "\n";*/
+
+	EMITB emitb{};
+
+	pexplo->pemitb = new EMITB{};
 	LoadXfmFromBrx(pexplo, pbis);
 	int8_t crvType = pbis->S8Read();
 	if (crvType != -1)
@@ -105,6 +112,11 @@ void LoadEmitblipColorsFromBrx(int crgba, CBinaryInputStream* pbis)
 
 void LoadEmitterFromBrx(EMITTER* pemitter, CBinaryInputStream* pbis)
 {
+	/*LoadEmitterCount++;
+
+	std::cout << "LoadEmitterFromBrx Count: " << LoadEmitterCount << "\n";*/
+
+	pemitter->pemitb = new EMITB{};
 	LoadAloFromBrx(pemitter, pbis);
 
 	int8_t crvType = pbis->S8Read();
@@ -144,6 +156,11 @@ void CloneEmitter(EMITTER* pemitter, EMITTER* pemitterBase)
 	CloneLo(pemitter, pemitterBase);
 
 	ClearDl(&pemitter->dlChild);
+}
+
+EMITB* PemitbEnsureEmitter(EMITTER* pemitter, ENSK ensk)
+{
+	return pemitter->pemitb;
 }
 
 void RenderEmitterSelf(EMITTER* pemitter, CM* pcm, RO* pro)

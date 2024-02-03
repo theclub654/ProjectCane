@@ -22,7 +22,7 @@ void InitAlo(ALO* palo)
 	palo->xf.mat = glm::identity<glm::mat3>();
 	palo->xf.matWorld = glm::identity<glm::mat3>();
 	palo->matOrig = glm::identity<glm::mat3>();
-
+	
 	InitDl(&palo->dlAct, offsetof(ACT, dleAlo));
 	allSWAloObjs.push_back(palo);
 }
@@ -199,7 +199,6 @@ void ApplyAloProxy(ALO* palo, PROXY* pproxyApply)
 	ConvertAloPos((ALO*)pproxyApply, nullptr, palo->xf.pos, posWorld);
 	palo->pvtalo->pfnTranslateAloToPos(palo, posWorld);
 
-	void* temp = &palo->xf.mat;
 	glm::mat3 matWorld{};
 	ConvertAloMat((ALO*)pproxyApply, nullptr, palo->xf.mat, matWorld);
 	palo->pvtalo->pfnRotateAloToMat(palo, matWorld);
@@ -329,13 +328,11 @@ void ConvertAloMat(ALO* paloFrom, ALO* paloTo, glm::mat3 &pmatFrom, glm::mat3 &p
 	if (paloFrom != paloTo)
 	{
 		if (paloFrom != nullptr)
-		{
-			pmatFrom = pmatFrom * paloFrom->xf.matWorld;
-		}
+			pmatFrom = paloFrom->xf.matWorld * pmatFrom;
 
 		if (paloTo != nullptr)
 		{
-			pmatTo = pmatFrom * paloTo->xf.matWorld;
+			pmatTo = paloTo->xf.matWorld * pmatFrom;
 			return;
 		}
 	}
@@ -390,7 +387,7 @@ void LoadAloFromBrx(ALO* palo, CBinaryInputStream* pbis)
 	palo->sCelBorderMRD = pbis->F32Read();
 	palo->sRadiusRenderSelf = pbis->F32Read();
 	palo->sRadiusRenderAll = pbis->F32Read();
-	LoadOptionFromBrx(palo, pbis);
+	LoadOptionsFromBrx(palo, pbis);
 	LoadGlobsetFromBrx(&palo->globset ,pbis, palo);
 	LoadAloAloxFromBrx(palo, pbis);
 
@@ -514,9 +511,39 @@ void RenderAloAsBone(ALO* palo, CM* pcm, RO* pro)
 
 }
 
-void DrawAlo(ALO* palo)
+void DrawAlo(ALO* palo, int index)
 {
-	DrawGlob(&palo->globset, palo->xf.matWorld, palo->xf.posWorld);
+	glm::mat4 model = palo->xf.matWorld;
+
+	model[3][0] = palo->xf.posWorld[0];
+	model[3][1] = palo->xf.posWorld[1];
+	model[3][2] = palo->xf.posWorld[2];
+	model[3][3] = 1.0;
+
+	for (int i = 0; i < palo->globset.cglob; i++)
+	{
+		for (int a = 0; a < palo->globset.aglob[i].csubglob; a++)
+		{
+			int modelUniformLocation = glGetUniformLocation(glShader.ID, "model");
+			glUniformMatrix4fv(modelUniformLocation, 1, GL_FALSE, glm::value_ptr(model));
+
+			glBindTexture(GL_TEXTURE_2D, palo->globset.aglob[i].asubglob[a].pshd->glTexture);
+
+			glBindVertexArray(palo->globset.aglob[i].asubglob[a].VAO);
+			glDrawElements(GL_TRIANGLES, palo->globset.aglob[i].asubglob[a].indices.size(), GL_UNSIGNED_SHORT, 0);
+
+			// Draws instanced models, I WILL OPTIMIZE THIS LATER
+			for (int b = 0; b < palo->globset.aglob[i].pdmat.size(); b++)
+			{
+				glm::mat4 instanceModelMatrix = palo->globset.aglob[i].pdmat[b];
+
+				int instanceModelUniformLocation = glGetUniformLocation(glShader.ID, "model");
+				glUniformMatrix4fv(instanceModelUniformLocation, 1, GL_FALSE, glm::value_ptr(instanceModelMatrix));
+
+				glDrawElements(GL_TRIANGLES, palo->globset.aglob[i].asubglob[a].indices.size(), GL_UNSIGNED_SHORT, 0);
+			}
+		}
+	}
 }
 
 void DeleteModel(ALO *palo)

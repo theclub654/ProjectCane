@@ -25,7 +25,7 @@ void RenderSw(SW *psw, CM *pcm)
 	{
 		// Setting object up to be rendered
 		//localObject->pvtalo->pfnRenderAloAll((ALO*)localObject, pcm, 0);
-		DrawAlo((ALO*)localObject);
+		//DrawAlo((ALO*)localObject);
 		// Loading next object
 		localObject = (LO*)*dlBusyDli.m_ppv;
 		// Loading pointer to next object to render
@@ -43,7 +43,7 @@ void DrawSwAll()
 	glShader.Use();
 
 	for (int i = 0; i < allSWAloObjs.size(); i++)
-		DrawAlo(allSWAloObjs[i]);
+		DrawAlo(allSWAloObjs[i], i);
 }
 
 void DrawSwCollisionAll()

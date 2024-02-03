@@ -173,7 +173,7 @@ void RenderAloSelf(ALO* palo, CM* pcm, RO* pro);
 void RenderAloGlobset(ALO* palo, CM* pcm, RO* pro);
 void RenderAloLine(ALO* palo, CM* pcm, glm::vec3* ppos0, glm::vec3* ppos1, float rWidth, float uAlpha);
 void RenderAloAsBone(ALO* palo, CM* pcm, RO* pro);
-void DrawAlo(ALO *palo);
+void DrawAlo(ALO *palo, int index);
 // Deletes Model from VRAM
 void DeleteModel(ALO *palo);
 int  GetAloSize();

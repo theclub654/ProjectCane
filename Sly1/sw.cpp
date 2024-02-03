@@ -3,7 +3,7 @@
 
 std::vector<LO*> allWorldObjs;
 std::vector<ALO*> allSWAloObjs;
-std::vector<void*> allSwLights;
+std::vector<LIGHT*> allSwLights;
 extern std::vector <SO*> allSWSoObjs;
 
 void* NewSw()
@@ -65,7 +65,6 @@ void LoadSwFromBrx(SW* psw, CBinaryInputStream* pbis)
 	std::cout << "Loading World...\n";
 	// Setting difficulty for world
 	OnDifficultyWorldPreLoad(&g_difficulty);
-	//StartupSplice();
 	// Loading unknown debug flag from file
 	pbis->U8Read();
 	// Loading index sound bank from file
@@ -74,22 +73,23 @@ void LoadSwFromBrx(SW* psw, CBinaryInputStream* pbis)
 	LoadWorldTableFromBrx(pbis);
 	// Loads level filenames from file
 	LoadNameTableFromBrx(pbis);
-	// Initializing camera object for world
+	// Making new camera object for world
 	g_pcm = (CM*)PloNew(CID_CM, psw, nullptr, OID__CAMERA, -1);
 	// Loads all splice script events from binary file
 	LoadSwSpliceFromBrx(psw, pbis);
-	LoadOptionFromBrx(psw, pbis);
+	//LoadOptionFromBrx(psw, pbis);
+	LoadOptionsFromBrx(psw, pbis);
 	// Loads all textures and shader data from file
 	LoadShadersFromBrx(pbis);
 	// Loads all the static world objects from the binary file
-	LoadSwObjectsFromBrx(psw, 0x0, pbis);
-
+	LoadSwObjectsFromBrx(psw, nullptr, pbis);
+	// Aligns binary stream to texture data
 	pbis->Align(0x10);
 	std::cout << "Loading Textures...\n";
+	// Loads textures from binary file
 	LoadTexturesFromBrx(pbis);
 	psw->lsmDefault.uShadow = psw->lsmDefault.uShadow * 0.003921569;
 	psw->lsmDefault.uMidtone = psw->lsmDefault.uMidtone * 0.003921569;
-
 	std::cout << "World Loaded Successfully\n";
 }
 
@@ -123,7 +123,6 @@ void AddSwProxySource(SW* psw, LO* ploProxySource, int cploClone)
 		psl.aploClone[i] = clonedLocalObject;
 	}
 
-	void* temp = psw->apsl;
 	psw->apsl[psw->cpsl] = psl;
 	psw->cpsl++;
 }
@@ -177,7 +176,11 @@ void DeleteSwObj(LO* plo)
 
 void UpdateSw(SW *psw, float dt)
 {
-
+	for (int i = 0; i < allSWAloObjs.size(); i++)
+	{
+		if (allSWAloObjs[i]->pvtalo->pfnUpdateAlo != nullptr)
+			allSWAloObjs[i]->pvtalo->pfnUpdateAlo(allSWAloObjs[i], 0);
+	}
 }
 
 void GetSwParams(SW* psw, SOP** ppsop)

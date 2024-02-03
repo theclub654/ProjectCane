@@ -32,6 +32,7 @@ void GL::InitGL()
 
 	glViewport(0, 0, width, height);
 	glEnable(GL_DEPTH_TEST);
+	glEnable(GL_DEPTH_CLAMP);
 
 	IMGUI_CHECKVERSION();
 	ImGui::CreateContext(); 

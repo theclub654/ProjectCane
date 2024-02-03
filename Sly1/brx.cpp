@@ -1,5 +1,7 @@
 #include "brx.h"
 
+std::vector<EOPID> g_aeopid;
+
 void StartupBrx()
 {
 	BuildEopids();
@@ -69,222 +71,11 @@ DL* PdlFromSwOid(SW *psw, OID oid)
 	return psw->adlHash + (oid * 0x95675 & 0x1ff);
 }
 
-void LoadOptionFromBrx(void* pvObject, CBinaryInputStream* pbis)
-{
-	// THIS FUNCTION WILL BE CHANGED LATER ON WHEN I GET AROUND TO RE
-	uint16_t emitMeshFlag = 0;
-	int16_t unk_id;
-
-	while (true)
-	{
-	label0:
-		unk_id = pbis->S16Read();
-
-		if (unk_id == 0x2)
-			goto label0;
-
-		if (unk_id < 0)
-			break;
-		//std::cout << std::hex << pbis->file.tellg() <<"\n";
-		uint32_t eopid = g_aeopid[(unk_id * 8)];
-		uint32_t grfeopid = g_aeopid[(unk_id * 8) + 1];
-		uint32_t crefReq = g_aeopid[(unk_id * 8) + 5];
-
-		if ((grfeopid & 0x400) != 0)
-		{
-			for (int i = 0; i < crefReq; i++)
-			{
-				uint16_t unk_0 = pbis->S16Read();
-
-				switch (unk_0)
-				{
-				case 0x0:
-					pbis->U8Read();
-					break;
-				case 0x1:
-					pbis->F32Read();
-					break;
-				case 0x2:
-					pbis->F32Read();
-					pbis->F32Read();
-					pbis->F32Read();
-					break;
-				default:
-					if (((int)unk_0 & 0x7fffffffU) >> 0xc == 1)
-						pbis->S16Read();
-					break;
-				case 0x5:
-					pbis->S32Read();
-					break;
-				case 0x6:
-					pbis->S16Read();
-					break;
-				case 0x7:
-					pbis->S16Read();
-					break;
-				case 0xE:
-					pbis->S16Read();
-					break;
-				case 0xF:
-					pbis->S16Read();
-					break;
-				case 0x10:
-					pbis->S16Read();
-					break;
-				case 0x11:
-					pbis->S16Read();
-					break;
-				case 0x14:
-					pbis->S16Read();
-					break;
-				case 0x9:
-					pbis->F32Read();
-					pbis->F32Read();
-					pbis->F32Read();
-					break;
-				case 0xA:
-					pbis->F32Read();
-					pbis->F32Read();
-					break;
-				}
-			}
-
-			goto label0;
-		}
-
-		if ((grfeopid & 0x80) != 0)
-		{
-			switch (eopid)
-			{
-			case 0x0:
-				pbis->U8Read();
-				break;
-			case 0x1:
-				pbis->F32Read();
-				break;
-			case 0x2:
-				pbis->F32Read();
-				pbis->F32Read();
-				pbis->F32Read();
-				break;
-			case 0x9:
-				pbis->F32Read();
-				pbis->F32Read();
-				pbis->F32Read();
-				break;
-			case 0xB:
-				pbis->F32Read();
-				pbis->F32Read();
-				pbis->F32Read();
-				break;
-			case 0x3:
-				pbis->F32Read();
-				pbis->F32Read();
-				pbis->F32Read();
-				break;
-			case 0xC:
-				pbis->F32Read();
-				pbis->F32Read();
-				pbis->F32Read();
-				break;
-			case 0x4:
-				pbis->F32Read();
-				pbis->F32Read();
-				pbis->F32Read();
-				break;
-			case 0x5:
-				pbis->S32Read();
-				break;
-			default:
-				emitMeshFlag = pbis->S16Read();
-				if (emitMeshFlag == 0x4 && unk_id == 0x156)
-					loadEmitMesh = true;
-				else if (emitMeshFlag == 0x4 && unk_id == 0x18C)
-					loadEmitMesh = true;
-				break;
-			case 0xA:
-				pbis->F32Read();
-				pbis->F32Read();
-				break;
-			case 0xD:
-				pbis->U32Read();
-				break;
-			}
-		}
-		else
-		{
-			switch (eopid)
-			{
-			case 0x0:
-				pbis->U8Read();
-				break;
-			case 0x1:
-				pbis->F32Read();
-				break;
-			case 0x2:
-				pbis->F32Read();
-				pbis->F32Read();
-				pbis->F32Read();
-				break;
-			case 0x9:
-				pbis->F32Read();
-				pbis->F32Read();
-				pbis->F32Read();
-				break;
-
-			case 0xB:
-				pbis->F32Read();
-				pbis->F32Read();
-				pbis->F32Read();
-				break;
-			case 0x4:
-				pbis->F32Read();
-				pbis->F32Read();
-				pbis->F32Read();
-				break;
-			case 0x5:
-				pbis->S32Read();
-				break;
-			case 0x6:
-				pbis->S16Read();
-				break;
-			case 0x7:
-				pbis->S16Read();
-				break;
-			case 0xE:
-				pbis->S16Read();
-				break;
-			case 0xF:
-				pbis->S16Read();
-				break;
-			case 0x10:
-				pbis->S16Read();
-				break;
-			case 0x11:
-				pbis->S16Read();
-				break;
-			default:
-				emitMeshFlag = pbis->S16Read();
-				if (emitMeshFlag == 0x4 && unk_id == 0x1A5)
-					loadEmitMesh = true;
-				else if (emitMeshFlag == 0x4 && unk_id == 0x16E)
-					loadEmitMesh = true;
-				break;
-			case 0xA:
-				pbis->F32Read();
-				pbis->F32Read();
-				break;
-			case 0xD:
-				pbis->U32Read();
-				break;
-			}
-		}
-
-	}
-}
-
 void LoadOptionsFromBrx(void* pvObject, CBinaryInputStream* pbis)
 {
+	/*LoadOptionsFromBrxCount++;
+	std::cout << "LoadOptionsCount: " << LoadOptionsFromBrxCount << "\n";*/
+
 	while (true)
 	{
 		// Reading eopid from binary file
@@ -292,6 +83,192 @@ void LoadOptionsFromBrx(void* pvObject, CBinaryInputStream* pbis)
 
 		if (eopid < 0) break;
 
-		LoadOptionFromBrx(pvObject, pbis);
+		LoadOptionFromBrx(pvObject, g_aeopid[eopid], pbis);
+	}
+}
+
+void LoadOptionFromBrx(void* pvObject, EOPID peopid, CBinaryInputStream* pbis)
+{
+	void* objectDataPtr{};
+	uint16_t emitMeshFlag = 0;
+
+	if ((peopid.grfeopid & 0x400) != 0)
+	{
+		for (int i = 0; i < peopid.optdat.ibSet; i++)
+		{
+			OTYP optionType = (OTYP)pbis->S16Read();
+
+			switch (optionType)
+			{
+				case OTYP_Bool:
+					pbis->U8Read();
+				break;
+
+				case OTYP_Float:
+					pbis->F32Read();
+				break;
+
+				case OTYP_Vector:
+					pbis->ReadVector();
+				break;
+
+				case OTYP_Int:
+					pbis->S32Read();
+				break;
+
+				case OTYP_Clq:
+					pbis->F32Read();
+					pbis->F32Read();
+					pbis->F32Read();
+				break;
+
+				case OTYP_Lm:
+					pbis->F32Read();
+					pbis->F32Read();
+				break;
+
+				case OTYP_Oid:
+				case OTYP_Cid:
+				case OTYP_Sfxid:
+				case OTYP_Wid:
+				case OTYP_Tbid:
+				case OTYP_Msgid:
+				case OTYP_Optid:
+					pbis->S16Read();
+				break;
+
+				default:
+					if ((optionType & 0x7fffffffU) >> 0xc == 1)
+						pbis->S16Read();
+				break;
+			}
+		}
+
+		return;
+	}
+
+	if ((peopid.grfeopid & 0x80) != 0)
+	{
+		if ((peopid.grfeopid & 0x1000) == 0)
+		{
+
+		}
+
+		else
+		{
+			if (peopid.optdat.pfnensure != nullptr)
+				objectDataPtr = peopid.optdat.pfnensure(pvObject, 1);
+		}
+
+		switch (peopid.otyp)
+		{
+			case OTYP_Bool:
+				pbis->U8Read();
+			return;
+
+			case OTYP_Float:
+				pbis->F32Read();
+			return;
+
+			case OTYP_Matrix:
+				pbis->F32Read();
+				pbis->F32Read();
+				pbis->F32Read();
+			return;
+
+			case OTYP_Int:
+				pbis->S32Read();
+			return;
+
+			case OTYP_Lm:
+				pbis->F32Read();
+				pbis->F32Read();
+			return;
+
+			case OTYP_Vector:
+			case OTYP_Clq:
+			case OTYP_Smp:
+				pbis->F32Read();
+				pbis->F32Read();
+				pbis->F32Read();
+			return;
+
+			case OTYP_Vector4:
+			case OTYP_Smpa:
+				pbis->F32Read();
+				pbis->F32Read();
+				pbis->F32Read();
+				pbis->F32Read();
+			return;
+
+			case OTYP_Rgba:
+				pbis->U32Read();
+			return;
+
+			default:
+				emitMeshFlag = pbis->S16Read();
+				if (emitMeshFlag == 0x4 && peopid.otyp == OTYP_Emitok)
+					loadEmitMesh = true;
+			return;
+		}
+	}
+
+	switch (peopid.otyp)
+	{
+		case OTYP_Bool:
+			pbis->U8Read();
+		return;
+
+		case OTYP_Float:
+			pbis->F32Read();
+		return;
+
+		case OTYP_Matrix:
+			pbis->F32Read();
+			pbis->F32Read();
+			pbis->F32Read();
+		return;
+
+		case OTYP_Int:
+			pbis->S32Read();
+		return;
+
+		case OTYP_Lm:
+			pbis->F32Read();
+			pbis->F32Read();
+		break;
+
+		case OTYP_Vector:
+		case OTYP_Clq:
+		case OTYP_Smp:
+			pbis->F32Read();
+			pbis->F32Read();
+			pbis->F32Read();
+		break;
+
+		case OTYP_Vector4:
+		case OTYP_Smpa:
+			pbis->F32Read();
+			pbis->F32Read();
+			pbis->F32Read();
+			pbis->F32Read();
+		break;
+
+		case OTYP_Rgba:
+			pbis->U32Read();
+		break;
+
+		case OTYP_Oid:
+		case OTYP_Cid:
+		case OTYP_Sfxid:
+		case OTYP_Wid:
+		case OTYP_Tbid:
+		case OTYP_Msgid:
+			pbis->S16Read();
+		break;
+
+		default:
+			pbis->S16Read();
+		return;
 	}
 }

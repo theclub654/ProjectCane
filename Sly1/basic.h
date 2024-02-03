@@ -2,7 +2,6 @@
 #include <unordered_map>
 #include "spaprops.h"
 #include "sidebag.h"
-#include "dec.h"
 
 struct BASIC
 {
@@ -8262,7 +8261,7 @@ struct VTSKY
     void (*pfnSendLoMessage)(LO*, MSGID, void*) = SendLoMessage;
     void (*pfnBindAlo) = nullptr;
     void (*pfnPostSkyLoad) = nullptr;
-    void (*pfnUpdateSky) = nullptr;
+    void (*pfnUpdateSky)(SKY*, float) = UpdateSky;
     void (*pfnUpdateAloXfWorld)(ALO*) = UpdateAloXfWorld;;
     void (*pfnUpdateAloXfWorldHierarchy)(ALO*) = UpdateAloXfWorldHierarchy;
     void (*pfnFreezeAlo) = nullptr;
@@ -9731,7 +9730,7 @@ struct VTJACKN
     void (*pfnSendLoMessage)(LO*, MSGID, void*) = SendLoMessage;
     void (*pfnBindAlo) = nullptr;
     void (*pfnPostAloLoad) = nullptr;
-    void (*pfnUpdateJackn) = nullptr;
+    void (*pfnUpdateJackn)(JACKN*, float) = UpdateJackn;
     void (*pfnUpdateAloXfWorld)(ALO*) = UpdateAloXfWorld;;
     void (*pfnUpdateAloXfWorldHierarchy)(ALO*) = UpdateAloXfWorldHierarchy;
     void (*pfnFreezeAlo) = nullptr;
@@ -11694,3 +11693,5 @@ static std::unordered_map <CID, void*> g_mpcidpvt =
     { CID_KEYHOLE, &g_vtkeyhole },
     { CID_JSG, &g_vtjsg }
 };
+
+void GetBasicCid(BASIC* pbasic, CID* pcid);

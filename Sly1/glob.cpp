@@ -2,7 +2,7 @@
 
 std::vector <SHD> g_ashd;
 extern std::vector<ALO*> allSWAloObjs;
-extern std::vector<void*> allSwLights;
+extern std::vector<LIGHT*> allSwLights;
 
 void LoadGlobsetFromBrx(GLOBSET* pglobset ,CBinaryInputStream* pbis, ALO* palo)
 {
@@ -25,11 +25,8 @@ void LoadGlobsetFromBrx(GLOBSET* pglobset ,CBinaryInputStream* pbis, ALO* palo)
     // Loading number of submodels for model
     pglobset->cglob = pbis->U16Read();
 
-    if (pglobset->cglob != 0)
-    {
-        pglobset->aglob.resize(pglobset->cglob);
-        pglobset->aglobi.resize(pglobset->cglob);
-    }
+    pglobset->aglob.resize(pglobset->cglob);
+    pglobset->aglobi.resize(pglobset->cglob);
 
     // Loading each submodel for a model
     for (int i = 0; i < pglobset->cglob; i++)
@@ -159,7 +156,7 @@ void LoadGlobsetFromBrx(GLOBSET* pglobset ,CBinaryInputStream* pbis, ALO* palo)
                     pglobset->aglob[i].asubglob[a].texcoords[e].x = pbis->F32Read();
                     pglobset->aglob[i].asubglob[a].texcoords[e].y = pbis->F32Read();
                 }
-
+                
                 //std::cout << "Indexes: " << std::hex << pbis->file.tellg() << "\n\n";
                 for (int f = 0; f < indexCount; f++)
                 {
@@ -342,38 +339,7 @@ void MakeGLBuffers(SUBGLOB *subglob)
     subglob->vertices.clear();
 }
 
-void DrawGlob(GLOBSET* pglobset, glm::mat3 matWorld, glm::vec3 posWorld)
+void DrawGlob(GLOBSET* pglobset)
 {
-    glm::mat4 model = matWorld;
-
-    // Sly 1 uses a Z up axis
-    model[3][0] = posWorld[0];
-    model[3][1] = posWorld[1];
-    model[3][2] = posWorld[2];
-    model[3][3] = 1.0;
-
-    for (int i = 0; i < pglobset->cglob; i++)
-    {
-        for (int a = 0; a < pglobset->aglob[i].csubglob; a++)
-        {
-            int modelUniformLocation = glGetUniformLocation(glShader.ID, "model");
-            glUniformMatrix4fv(modelUniformLocation, 1, GL_FALSE, glm::value_ptr(model));
-            
-            glBindTexture(GL_TEXTURE_2D, pglobset->aglob[i].asubglob[a].pshd->glTexture);
-
-            glBindVertexArray(pglobset->aglob[i].asubglob[a].VAO);
-            glDrawElements(GL_TRIANGLES, pglobset->aglob[i].asubglob[a].indices.size(), GL_UNSIGNED_SHORT, 0);
-
-            // Draws instanced models, I WILL OPTIMIZE THIS LATER
-            for (int b = 0; b < pglobset->aglob[i].pdmat.size(); b++)
-            {
-                glm::mat4 instanceModelMatrix = pglobset->aglob[i].pdmat[b];
-
-                int instanceModelUniformLocation = glGetUniformLocation(glShader.ID, "model");
-                glUniformMatrix4fv(instanceModelUniformLocation, 1, GL_FALSE, glm::value_ptr(instanceModelMatrix));
-
-                glDrawElements(GL_TRIANGLES, pglobset->aglob[i].asubglob[a].indices.size(), GL_UNSIGNED_SHORT, 0);
-            }
-        }
-    }
+    
 }

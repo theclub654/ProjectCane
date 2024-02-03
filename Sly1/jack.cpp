@@ -97,6 +97,11 @@ void CloneJackn(JACKN* pjackn, JACKN* pjacknBase)
 	ClearDl(&pjackn->dlChild);
 }
 
+void UpdateJackn(JACKN* pjackn, float dt)
+{
+	pjackn->pvtalo->pfnTranslateAloToPos(pjackn, pjackn->xf.pos);
+}
+
 void DeleteJackn(LO* plo)
 {
 	delete(JACKN*)plo;

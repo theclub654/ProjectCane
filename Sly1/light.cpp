@@ -65,6 +65,73 @@ void AddLightToSw(LIGHT* plight)
 	plight->pvtalo->pfnUpdateAloXfWorld(plight);
 }
 
+void SetLightKind(LIGHT* plight, LIGHTK lightk)
+{
+	plight->lightk = lightk;
+
+}
+
+void SetLightHighlightColor(LIGHT* plight, glm::vec3 &pvecHighlight)
+{
+	plight->vecHighlight = pvecHighlight;
+}
+
+void SetLightMidtoneStrength(LIGHT* plight, float gMidtone)
+{
+	plight->gMidtone = gMidtone;
+}
+
+void SetLightShadowStrength(LIGHT* plight, float gShadow)
+{
+	plight->gShadow = gShadow;
+}
+
+void SetLightHighlightAngle(LIGHT* plight, float degHighlight)
+{
+	plight->degHighlight = degHighlight;
+}
+
+void SetLightMidtoneAngle(LIGHT* plight, float degMidtone)
+{
+	plight->degMidtone = degMidtone;
+}
+
+void SetLightShadowAngle(LIGHT* plight, float degShadow)
+{
+	plight->degShadow = degShadow;
+}
+
+void SetLightDirection(LIGHT* plight, glm::vec3& pvecDirection)
+{
+	plight->vecDirectionOrig = pvecDirection;
+}
+
+void SetLightDynamic(LIGHT* plight, int fDynamic)
+{
+	if (fDynamic != plight->fDynamic)
+		plight->fDynamic = fDynamic;
+}
+
+void SetLightFallOff(LIGHT* plight, LM* plm)
+{
+	plight->lmFallOffS = *plm;
+}
+
+void SetLightConeAngle(LIGHT* plight, float degCone)
+{
+	plight->degCone = degCone;
+}
+
+void SetLightHotSpotAngle(LIGHT* plight, float degHotSpot)
+{
+	plight->degHotSpot = degHotSpot;
+}
+
+void SetLightFrustrumUp(LIGHT* plight, glm::vec3& pvecUpLocal)
+{
+	plight->vecUpLocal = pvecUpLocal;
+}
+
 void RemoveLightFromSw(LIGHT* plight)
 {
 	RemoveDlEntry(&plight->psw->dlLight, plight);
