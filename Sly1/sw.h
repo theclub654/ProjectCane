@@ -150,15 +150,24 @@ void LoadWorldTableFromBrx(CBinaryInputStream* pbis);
 // Adds a SW proxy source to apsl 
 void AddSwProxySource(SW* psw, LO* ploProxySource, int cploClone);
 // Returns SW proxy source LO based of proxy source index
-LO* PloGetSwProxySource(SW* psw, int ipsl);
+LO*  PloGetSwProxySource(SW* psw, int ipsl);
+void GetSwParams(SW* psw, SOP** ppsop);
+void SetSwIllum(SW* psw, float uMidtone);
+void SetSwIllumShadow(SW* psw, float uShadow);
+void SetSwDarken(SW* psw, float rDarken);
+void SetSwDarkenSmooth(SW* psw, float rDarkenSmooth);
+void MatchSwObject(LO* ploMatch, GRFFSO grffsoMask, int fIncludeRemoved, int fProxyMatch, LO* ploContext, int cploMax, int& pcploMatch, LO** aplo, int& pcpaloBest);
+int  CploFindSwObjects(SW* psw, GRFFSO grffso, OID oid, LO* ploContext, int cploMax, LO** aplo);
+// Finds a LO
+LO*  PloFindSwObject(SW* psw, GRFFSO grffso, OID oid, LO* ploContext);
+// Update all objects in SW
+void UpdateSw(SW* psw, float dt); // Gotta come back to this
 // Resets SW object
 void DeleteSw(SW* psw);
 // Deletes all world data from memory
 void DeleteWorld(SW* psw);
 // Deletes the SW obj
 void DeleteSwObj(LO* plo);
-// Update World
-void UpdateSw(SW *psw, float dt); // Gotta come back to this
-void GetSwParams(SW* psw, SOP** ppsop);
+
 // Global pointer to parent static world object
 extern inline SW *g_psw = nullptr;

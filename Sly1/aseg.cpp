@@ -17,93 +17,69 @@ int GetAsegSize()
 
 void LoadAsegFromBrx(ASEG* paseg, CBinaryInputStream* pbis)
 {
-    int16_t unk_0 = pbis->U16Read();
-    int16_t unk_1 = pbis->U16Read();
-    uint16_t unk_2 = pbis->U16Read();
+    paseg->oidRoot = (OID)pbis->U16Read();
+    paseg->tMax = pbis->U16Read() * 0.01666667;
+    paseg->coidSearchRoot = pbis->U16Read();
 
-    for (int i = 0; i < unk_2; i++)
-        int16_t unk_3 = pbis->S16Read();
+    paseg->aoidSearchRoot.resize(paseg->coidSearchRoot);
 
-    byte unk_4 = pbis->U8Read();
+    for (int i = 0; i < paseg->coidSearchRoot; i++)
+        paseg->aoidSearchRoot[i] = (OID)pbis->S16Read();
 
-    for (int i = 0; i < unk_4; i++)
+    paseg->cchn = pbis->U8Read();
+    paseg->achn.resize(paseg->cchn);
+
+    for (int i = 0; i < paseg->cchn; i++)
     {
-        int16_t unk_5 = pbis->S16Read();
+        paseg->achn[i].oid = (OID)pbis->S16Read();
         byte unk_6 = pbis->U8Read();
+
         byte unk_7;
 
         if ((unk_6 & 1) != 0)
         {
-            unk_7 = pbis->S8Read();
-            switch (unk_7)
-            {
-            case 0:
-                LoadAcpcFromBrx(pbis);
-                break;
-            case 1:
-                LoadAcpbFromBrx(pbis);
-                break;
-            }
+            ACVK acvk = (ACVK)pbis->S8Read();
+
+            ACP *acp = PacpNew(acvk);
+            acp->pvtacpc->pfnLoadAcpcFromBrx((ACPC*)acp, pbis);
         }
 
         if ((unk_6 & 2) != 0)
         {
-            unk_7 = pbis->S8Read();
+            ACVK acvk = (ACVK)pbis->S8Read();
 
-            switch (unk_7)
-            {
-            case 0:
-                LoadAcrcFromBrx(pbis);
-                break;
-            case 1:
-                LoadAcrbFromBrx(pbis);
-                break;
-            }
+            ACR* acr = PacrNew(acvk);
+            acr->pvtacrc->pfnLoadAcrcFromBrx((ACRC*)acr, pbis);
         }
 
         if ((unk_6 & 4) != 0)
         {
-            unk_7 = pbis->S8Read();
+            ACVK acvk = (ACVK)pbis->S8Read();
 
-            switch (unk_7)
-            {
-            case 0:
-                LoadAcscFromBrx(pbis);
-                break;
-            }
+            ACS* acs = PacsNew(acvk);
+            acs->pvtacsb->pfnLoadAcsbFromBrx((ACSB*)acs, pbis);
         }
 
         if ((unk_6 & 8) != 0)
         {
-            int8_t acgk = pbis->S8Read();
+            ACGK acgk = (ACGK)pbis->S8Read();
 
-            if (acgk == 0)
-                LoadAcgbFromBrx(pbis);
-            else if (acgk == 1)
-                LoadAcgbwFromBrx(pbis);
-            else if (acgk == 2)
-                LoadAcglFromBrx(pbis);
+            ACG* acg = PacgNew(acgk);
+            acg->pvtacgb->pfnLoadAcgbFromBrx((ACGB*)acg, pbis);
         }
 
         if ((unk_6 & 0x10) != 0)
         {
-            byte unk_7 = pbis->U8Read();
+            byte cpacgPose = pbis->U8Read();
 
-            for (int i = 0; i < unk_7; i++)
+            for (int i = 0; i < cpacgPose; i++)
             {
-                int acgk = pbis->S8Read();
+                ACGK acgk = (ACGK)pbis->S8Read();
 
-                switch (acgk)
+                if (acgk != -1)
                 {
-                case 0:
-                    LoadAcgbFromBrx(pbis);
-                    break;
-                case 1:
-                    LoadAcgbwFromBrx(pbis);
-                    break;
-                case 2:
-                    LoadAcglFromBrx(pbis);
-                    break;
+                    ACG* acg = PacgNew(acgk);
+                    acg->pvtacgb->pfnLoadAcgbFromBrx((ACGB*)acg, pbis);
                 }
             }
         }

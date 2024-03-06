@@ -176,7 +176,7 @@ struct VT
 {
     VT* pvtSuper;
     CID cid;
-    int grfcid;
+    GRFCID grfcid;
 };
 
 struct VTBASIC
@@ -191,7 +191,7 @@ struct VTLO
 {
     VT* pvtSuper = g_vtbasic.pvtSuper;
     CID cid = CID_LO;
-    int grfcid = 0;
+    GRFCID grfcid = 0;
 
     void*(*pfnNewLo) () = NewLo;
     void (*pfnInitLo) (LO*) = InitLo;
@@ -233,7 +233,7 @@ struct VTALO
 {
     VT* pvtSuper = g_vtlo.pvtSuper;
     CID cid = CID_ALO;
-    int grfcid = 1;
+    GRFCID grfcid = 1;
 
     void*(*pfnNewAlo) () = NewAlo;
     void (*pfnInitAlo) (ALO*) = InitAlo;
@@ -294,7 +294,7 @@ struct VTSO
 {
     VT* pvtSuper = g_vtalo.pvtSuper;
     CID cid = CID_SO;
-    int grfcid = 3;
+    GRFCID grfcid = 3;
 
     void*(*pfnNewSo) () = NewSo;
     void (*pfnInitSo) (SO*) = InitSo;
@@ -380,7 +380,7 @@ struct VTMS
 {
     VT* pvtSuper = g_vtso.pvtSuper;
     CID cid = CID_MS;
-    int grfcid = 3;
+    GRFCID grfcid = 3;
 
     void*(*pfnNewMs) () = NewMs;
     void (*pfnInitSo) (SO*) = InitSo;
@@ -466,7 +466,7 @@ struct VTPO
 {
     VT* pvtSuper = g_vtso.pvtSuper;
     CID cid = CID_PO;
-    int grfcid = 0xB;
+    GRFCID grfcid = 0xB;
 
     void*(*pfnNewPo) () = NewPo;
     void (*pfnInitPo) (PO*) = InitPo;
@@ -563,7 +563,7 @@ struct VTSTEP
 {
     VT* pvtSuper = g_vtpo.pvtSuper;
     CID cid = CID_STEP;
-    int grfcid = 0xB;
+    GRFCID grfcid = 0xB;
 
     void*(*pfnNewStep) () = NewStep;
     void (*pfnInitStep)(STEP*) = InitStep;
@@ -663,7 +663,7 @@ struct VTJT
 {
     VT* pvtSuper = g_vtstep.pvtSuper;
     CID cid = CID_JT;
-    int grfcid = 0xB;
+    GRFCID grfcid = 0xB;
 
     void*(*pfnNewJt) () = NewJt;
     void (*pfnInitJt)(JT*) = InitJt;
@@ -763,7 +763,7 @@ struct VTSTEPGUARD
 {
     VT* pvtSuper = g_vtstep.pvtSuper;
     CID cid = CID_STEPGUARD;
-    int grfcid = 0xB;
+    GRFCID grfcid = 0xB;
 
     void*(*pfnNewStepguard) () = NewStepguard;
     void (*pfnInitStepguard)(STEPGUARD*) = InitStepGuard;
@@ -874,7 +874,7 @@ struct VTSMARTGUARD
 {
     VT* pvtSuper = g_vtstepguard.pvtSuper;
     CID cid = CID_SMARTGUARD;
-    int grfcid = 0xB;
+    GRFCID grfcid = 0xB;
 
     void*(*pfnNewSmartguard) () = NewSmartguard;
     void (*pfnInitSmartguard)(SMARTGUARD*) = InitSmartGuard;
@@ -985,7 +985,7 @@ struct VTGOMER
 {
     VT* pvtSuper = g_vtstepguard.pvtSuper;
     CID cid = CID_GOMER;
-    int grfcid = 0xB;
+    GRFCID grfcid = 0xB;
 
     void*(*pfnNewGomer) () = NewGomer;
     void (*pfnInitGomer) (GOMER*) = InitGomer;
@@ -1096,7 +1096,7 @@ struct VTUBG
 {
     VT* pvtSuper = g_vtgomer.pvtSuper;
     CID cid = CID_UBG;
-    int grfcid = 0xB;
+    GRFCID grfcid = 0xB;
 
     void*(*pfnNewUbg) () = NewUbg;
     void (*pfnInitLo) (UBG*) = InitUbg;
@@ -1207,7 +1207,7 @@ struct VTMBG
 {
     VT* pvtSuper = g_vtstepguard.pvtSuper;
     CID cid = CID_MBG;
-    int grfcid = 0xB;
+    GRFCID grfcid = 0xB;
 
     void*(*pfnNewMbg) () = NewMbg;
     void (*pfnInitLo) (MBG*) = InitMbg;
@@ -1318,7 +1318,7 @@ struct VTBHG
 {
     VT* pvtSuper = g_vtstepguard.pvtSuper;
     CID cid = CID_BHG;
-    int grfcid = 0xB;
+    GRFCID grfcid = 0xB;
 
     void*(*pfnNewBhg) () = NewBhg;
     void (*pfnInitLo) (BHG*) = InitBhg;
@@ -1429,7 +1429,7 @@ struct VTMURRAY
 {
     VT* pvtSuper = g_vtstepguard.pvtSuper;
     CID cid = CID_MURRAY;
-    int grfcid = 0xB;
+    GRFCID grfcid = 0xB;
 
     void*(*pfnNewMurray) () = NewMurray;
     void (*pfnInitMurray) (MURRAY*) = InitMurray;
@@ -1540,7 +1540,7 @@ struct VTPUFFC
 {
     VT* pvtSuper = g_vtstepguard.pvtSuper;
     CID cid = CID_PUFFC;
-    int grfcid = 0xB;
+    GRFCID grfcid = 0xB;
 
     void*(*pfnNewPuffc) () = NewPuffc;
     void (*pfnInitStepguard) = nullptr;
@@ -1651,7 +1651,7 @@ struct VTCRFOD
 {
     VT* pvtSuper = g_vtstepguard.pvtSuper;
     CID cid = CID_CRFOD;
-    int grfcid = 0xB;
+    GRFCID grfcid = 0xB;
 
     void*(*pfnNewCrfod) () = NewCrfod;
     void (*pfnInitStepguard)(STEPGUARD*) = InitStepGuard;
@@ -1762,7 +1762,7 @@ struct VTCRFODB
 {
     VT* pvtSuper = g_vtcrfod.pvtSuper;
     CID cid = CID_CRFODB;
-    int grfcid = 0xB;
+    GRFCID grfcid = 0xB;
 
     void*(*pfnNewCrfodb) () = NewCrfodb;
     void (*pfnInitCrfodb)(CRFODB*) = InitCrfodb;
@@ -1873,7 +1873,7 @@ struct VTCRFODK
 {
     VT* pvtSuper = g_vtcrfod.pvtSuper;
     CID cid = CID_CRFODK;
-    int grfcid = 0xB;
+    GRFCID grfcid = 0xB;
 
     void*(*pfnNewCrfodk) () = NewCrfodk;
     void (*pfnInitStepguard)(STEPGUARD*) = InitStepGuard;
@@ -1984,7 +1984,7 @@ struct VTTANK
 {
     VT* pvtSuper = g_vtstep.pvtSuper;
     CID cid = CID_TANK;
-    int grfcid = 0xB;
+    GRFCID grfcid = 0xB;
 
     void*(*pfnNewTank) () = NewTank;
     void (*pfnInitTank)(TANK*) = InitTank;
@@ -2084,7 +2084,7 @@ struct VTJP
 {
     VT* pvtSuper = g_vtstep.pvtSuper;
     CID cid = CID_JP;
-    int grfcid = 0xB;
+    GRFCID grfcid = 0xB;
 
     void*(*pfnNewJp) () = NewJp;
     void (*pfnInitJp)(JP*) = InitJp;
@@ -2184,7 +2184,7 @@ struct VTHG
 {
     VT* pvtSuper = g_vtstep.pvtSuper;
     CID cid = CID_HG;
-    int grfcid = 0xB;
+    GRFCID grfcid = 0xB;
 
     void*(*pfnNewHg) () = NewHg;
     void (*pfnInitHg)(HG*) = InitHg;
@@ -2284,7 +2284,7 @@ struct VTMECHA
 {
     VT* pvtSuper = g_vtstep.pvtSuper;
     CID cid = CID_MECHA;
-    int grfcid = 0xB;
+    GRFCID grfcid = 0xB;
 
     void*(*pfnNewMecha) () = NewMecha;
     void (*pfnInitMecha)(MECHA*) = InitMecha;
@@ -2384,7 +2384,7 @@ struct VTROV
 {
     VT* pvtSuper = g_vtpo.pvtSuper;
     CID cid = CID_ROV;
-    int grfcid = 0xB;
+    GRFCID grfcid = 0xB;
 
     void*(*pfnNewRov) () = NewRov;
     void (*pfnInitRov)(ROV*) = InitRov;
@@ -2481,7 +2481,7 @@ struct VTTURRET
 {
     VT* pvtSuper = g_vtpo.pvtSuper;
     CID cid = CID_TURRET;
-    int grfcid = 0xB;
+    GRFCID grfcid = 0xB;
 
     void*(*pfnNewTurret) () = NewTurret;
     void (*pfnInitPo)(PO*) = InitPo;
@@ -2578,7 +2578,7 @@ struct VTVAULT
 {
     VT* pvtSuper = g_vtpo.pvtSuper;
     CID cid = CID_VAULT;
-    int grfcid = 0xB;
+    GRFCID grfcid = 0xB;
 
     void*(*pfnNewVault) () = NewVault;
     void (*pfnInitVault)(VAULT*) = InitVault;
@@ -2675,7 +2675,7 @@ struct VTPUFFER
 {
     VT* pvtSuper = g_vtpo.pvtSuper;
     CID cid = CID_PUFFER;
-    int grfcid = 0xB;
+    GRFCID grfcid = 0xB;
 
     void*(*pfnNewPuffer) () = NewPuffer;
     void (*pfnInitPuffer)(PUFFER*) = InitPuffer;
@@ -2772,7 +2772,7 @@ struct VTMGV
 {
     VT* pvtSuper = g_vtpo.pvtSuper;
     CID cid = CID_MGV;
-    int grfcid = 0xB;
+    GRFCID grfcid = 0xB;
 
     void*(*pfnNewMgv) () = NewMgv;
     void (*pfnInitMgv)(MGV*) = InitMgv;
@@ -2869,7 +2869,7 @@ struct VTSUV
 {
     VT* pvtSuper = g_vtpo.pvtSuper;
     CID cid = CID_SUV;
-    int grfcid = 0xB;
+    GRFCID grfcid = 0xB;
 
     void*(*pfnNewSuv) () = NewSuv;
     void (*pfnInitSuv)(SUV*) = InitSuv;
@@ -2966,7 +2966,7 @@ struct VTCYCLE
 {
     VT* pvtSuper = g_vtpo.pvtSuper;
     CID cid = CID_CYCLE;
-    int grfcid = 0xB;
+    GRFCID grfcid = 0xB;
 
     void*(*pfnNewCycle) () = NewCycle;
     void (*pfnInitCycle)(CYCLE*) = InitCycle;
@@ -3063,7 +3063,7 @@ struct VTLGN
 {
     VT* pvtSuper = g_vtpo.pvtSuper;
     CID cid = CID_LGN;
-    int grfcid = 0xB;
+    GRFCID grfcid = 0xB;
 
     void*(*pfnNewLgn) () = NewLgn;
     void (*pfnInitLgn)(LGN*) = InitLgn;
@@ -3160,7 +3160,7 @@ struct VTJACK
 {
     VT* pvtSuper = g_vtpo.pvtSuper;
     CID cid = CID_JACK;
-    int grfcid = 0xB;
+    GRFCID grfcid = 0xB;
 
     void*(*pfnNewJack) () = NewJack;
     void (*pfnInitJack)(JACK*) = InitJack;
@@ -3257,7 +3257,7 @@ struct VTRIPG
 {
     VT* pvtSuper = g_vtso.pvtSuper;
     CID cid = CID_RIPG;
-    int grfcid = 3;
+    GRFCID grfcid = 3;
 
     void*(*pfnNewRipg) () = NewRipg;
     void (*pfnInitRipg)(RIPG*) = InitRipg;
@@ -3343,7 +3343,7 @@ struct VTWATER
 {
     VT* pvtSuper = g_vtso.pvtSuper;
     CID cid = CID_WATER;
-    int grfcid = 0x83;
+    GRFCID grfcid = 0x83;
 
     void*(*pfnNewWater) () = NewWater;
     void (*pfnInitWater)(WATER*) = InitWater;
@@ -3429,7 +3429,7 @@ struct VTBRK
 {
     VT* pvtSuper = g_vtso.pvtSuper;
     CID cid = CID_BRK;
-    int grfcid = 0x3;
+    GRFCID grfcid = 0x3;
 
     void*(*pfnNewBrk) () = NewBrk;
     void (*pfnInitBrk)(BRK*) = InitBrk;
@@ -3516,7 +3516,7 @@ struct VTBREAK
 {
     VT* pvtSuper = g_vtbrk.pvtSuper;
     CID cid = CID_BREAK;
-    int grfcid = 0x13;
+    GRFCID grfcid = 0x13;
 
     void*(*pfnNewBreak) () = NewBreak;
     void (*pfnInitBreak)(BREAK*) = InitBreak;
@@ -3603,7 +3603,7 @@ struct VTALBRK
 {
     VT* pvtSuper = g_vtbreak.pvtSuper;
     CID cid = CID_ALBRK;
-    int grfcid = 0x13;
+    GRFCID grfcid = 0x13;
 
     void*(*pfnNewAlbrk) () = NewAlbrk;
     void (*pfnInitBreak)(BREAK*) = InitBreak;
@@ -3690,7 +3690,7 @@ struct VTCAN
 {
     VT* pvtSuper = g_vtbreak.pvtSuper;
     CID cid = CID_CAN;
-    int grfcid = 0x13;
+    GRFCID grfcid = 0x13;
 
     void*(*pfnNewCan) () = NewCan;
     void (*pfnInitCan)(CAN*) = InitCan;
@@ -3777,7 +3777,7 @@ struct VTDARTGUN
 {
     VT* pvtSuper = g_vtbreak.pvtSuper;
     CID cid = CID_DARTGUN;
-    int grfcid = 0x13;
+    GRFCID grfcid = 0x13;
 
     void*(*pfnNewDartgun) () = NewDartgun;
     void (*pfnInitDartgun)(DARTGUN*) = InitDartgun;
@@ -3864,7 +3864,7 @@ struct VTSWP
 {
     VT* pvtSuper = g_vtbreak.pvtSuper;
     CID cid = CID_SWP;
-    int grfcid = 0x13;
+    GRFCID grfcid = 0x13;
 
     void*(*pfnNewSwp) () = NewSwp;
     void (*pfnInitSwp)(SWP*) = InitSwp;
@@ -3951,7 +3951,7 @@ struct VTFRAGILE
 {
     VT* pvtSuper = g_vtbrk.pvtSuper;
     CID cid = CID_FRAGILE;
-    int grfcid = 0x3;
+    GRFCID grfcid = 0x3;
 
     void*(*pfnNewFragile) () = NewFragile;
     void (*pfnInitFragile)(FRAGILE*) = InitFragile;
@@ -4038,7 +4038,7 @@ struct VTZAPBREAK
 {
     VT* pvtSuper = g_vtfragile.pvtSuper;
     CID cid = CID_ZAPBREAK;
-    int grfcid = 0x3;
+    GRFCID grfcid = 0x3;
 
     void*(*pfnNewZapbreak) () = NewZapbreak;
     void (*pfnInitFragile)(FRAGILE*) = InitFragile;
@@ -4125,7 +4125,7 @@ struct VTBRKP
 {
     VT* pvtSuper = g_vtso.pvtSuper;
     CID cid = CID_BRKP;
-    int grfcid = 0x3;
+    GRFCID grfcid = 0x3;
 
     void*(*pfnNewBrkp) () = NewBrkp;
     void (*pfnInitSo)(SO*) = InitSo;
@@ -4211,7 +4211,7 @@ struct VTBUTTON
 {
     VT* pvtSuper = g_vtso.pvtSuper;
     CID cid = CID_BUTTON;
-    int grfcid = 0x3;
+    GRFCID grfcid = 0x3;
 
     void*(*pfnNewButton) () = NewButton;
     void (*pfnInitButton)(BUTTON*) = InitButton;
@@ -4297,7 +4297,7 @@ struct VTVOLBTN
 {
     VT* pvtSuper = g_vtso.pvtSuper;
     CID cid = CID_VOLBTN;
-    int grfcid = 0x3;
+    GRFCID grfcid = 0x3;
 
     void*(*pfnNewVolbtn) () = NewVolbtn;
     void (*pfnInitVolbtn)(VOLBTN*) = InitVolbtn;
@@ -4383,7 +4383,7 @@ struct VTJLOVOL
 {
     VT* pvtSuper = g_vtvolbtn.pvtSuper;
     CID cid = CID_JLOVOL;
-    int grfcid = 0x3;
+    GRFCID grfcid = 0x3;
 
     void*(*pfnNewJlovol) () = NewJlovol;
     void (*pfnInitJlovol)(JLOVOL*) = InitJlovol;
@@ -4469,7 +4469,7 @@ struct VTSQUISH
 {
     VT* pvtSuper = g_vtso.pvtSuper;
     CID cid = CID_SQUISH;
-    int grfcid = 0x3;
+    GRFCID grfcid = 0x3;
 
     void*(*pfnNewSquish) () = NewSquish;
     void (*pfnInitSo)(SO*) = InitSo;
@@ -4555,7 +4555,7 @@ struct VTBONE
 {
     VT* pvtSuper = g_vtso.pvtSuper;
     CID cid = CID_BONE;
-    int grfcid = 0x3;
+    GRFCID grfcid = 0x3;
 
     void*(*pfnNewBone) () = NewBone;
     void (*pfnInitSo)(SO*) = InitSo;
@@ -4641,7 +4641,7 @@ struct VTSPRIZE
 {
     VT* pvtSuper = g_vtso.pvtSuper;
     CID cid = CID_SPRIZE;
-    int grfcid = 0x3;
+    GRFCID grfcid = 0x3;
 
     void*(*pfnNewSprize) () = NewSprize;
     void (*pfnInitSprize)(SPRIZE*) = InitSprize;
@@ -4730,7 +4730,7 @@ struct VTSCPRIZE
 {
     VT* pvtSuper = g_vtsprize.pvtSuper;
     CID cid = CID_SCPRIZE;
-    int grfcid = 0x3;
+    GRFCID grfcid = 0x3;
 
     void*(*pfnNewScprize) () = NewScprize;
     void (*pfnInitScprize)(SCPRIZE*) = InitScprize;
@@ -4819,7 +4819,7 @@ struct VTLIFETKN
 {
     VT* pvtSuper = g_vtscprize.pvtSuper;
     CID cid = CID_LIFETKN;
-    int grfcid = 0x3;
+    GRFCID grfcid = 0x3;
 
     void*(*pfnNewLifetkn) () = NewLifetkn;
     void (*pfnInitScprize)(SCPRIZE*) = InitScprize;
@@ -4908,7 +4908,7 @@ struct VTCLUE
 {
     VT* pvtSuper = g_vtsprize.pvtSuper;
     CID cid = CID_CLUE;
-    int grfcid = 0x3;
+    GRFCID grfcid = 0x3;
 
     void*(*pfnNewClue) () = NewClue;
     void (*pfnInitClue)(CLUE*) = InitClue;
@@ -4997,7 +4997,7 @@ struct VTALARM
 {
     VT* pvtSuper = g_vtso.pvtSuper;
     CID cid = CID_ALARM;
-    int grfcid = 0x3;
+    GRFCID grfcid = 0x3;
 
     void*(*pfnNewAlarm) () = NewAlarm;
     void (*pfnInitAlarm)(ALARM*) = InitAlarm;
@@ -5083,7 +5083,7 @@ struct VTSENSOR
 {
     VT* pvtSuper = g_vtso.pvtSuper;
     CID cid = CID_SENSOR;
-    int grfcid = 0x3;
+    GRFCID grfcid = 0x3;
 
     void*(*pfnNewSensor) () = NewSensor;
     void (*pfnInitSensor)(SENSOR*) = InitSensor;
@@ -5175,7 +5175,7 @@ struct VTLASEN
 {
     VT* pvtSuper = g_vtsensor.pvtSuper;
     CID cid = CID_LASEN;
-    int grfcid = 0x3;
+    GRFCID grfcid = 0x3;
 
     void*(*pfnNewLasen) () = NewLasen;
     void (*pfnInitLasen)(LASEN*) = InitLasen;
@@ -5267,7 +5267,7 @@ struct VTCAMSEN
 {
     VT* pvtSuper = g_vtso.pvtSuper;
     CID cid = CID_CAMSEN;
-    int grfcid = 0x3;
+    GRFCID grfcid = 0x3;
 
     void*(*pfnNewCamsen) () = NewCamsen;
     void (*pfnInitCamsen)(CAMSEN*) = InitCamsen;
@@ -5359,7 +5359,7 @@ struct VTPRSEN
 {
     VT* pvtSuper = g_vtsensor.pvtSuper;
     CID cid = CID_PRSEN;
-    int grfcid = 0x3;
+    GRFCID grfcid = 0x3;
 
     void*(*pfnNewPrsen) () = NewPrsen;
     void (*pfnInitPrsen)(PRSEN*) = InitPrsen;
@@ -5451,7 +5451,7 @@ struct VTBARRIER
 {
     VT* pvtSuper = g_vtso.pvtSuper;
     CID cid = CID_BARRIER;
-    int grfcid = 0x3;
+    GRFCID grfcid = 0x3;
 
     void*(*pfnNewBarrier) () = NewBarrier;
     void (*pfnInitBarrier)(BARRIER*) = InitBarrier;
@@ -5537,7 +5537,7 @@ struct VTIKH
 {
     VT* pvtSuper = g_vtso.pvtSuper;
     CID cid = CID_IKH;
-    int grfcid = 0x3;
+    GRFCID grfcid = 0x3;
 
     void*(*pfnNewIkh) () = NewIkh;
     void (*pfnInitSo)(SO*) = InitSo;
@@ -5623,7 +5623,7 @@ struct VTTZP
 {
     VT* pvtSuper = g_vtso.pvtSuper;
     CID cid = CID_TZP;
-    int grfcid = 0x3;
+    GRFCID grfcid = 0x3;
 
     void*(*pfnNewTzp) () = NewTzp;
     void (*pfnInitTzp)(TZP*) = InitTzp;
@@ -5709,7 +5709,7 @@ struct VTVOLZP
 {
     VT* pvtSuper = g_vttzp.pvtSuper;
     CID cid = CID_VOLZP;
-    int grfcid = 0x3;
+    GRFCID grfcid = 0x3;
 
     void*(*pfnNewVolzp) () = NewVolzp;
     void (*pfnInitVolzp)(VOLZP*) = InitVolzp;
@@ -5795,7 +5795,7 @@ struct VTCNVO
 {
     VT* pvtSuper = g_vtso.pvtSuper;
     CID cid = CID_CNVO;
-    int grfcid = 0x3;
+    GRFCID grfcid = 0x3;
 
     void*(*pfnNewCnvo) () = NewCnvo;
     void (*pfnInitCnvo)(CNVO*) = InitCnvo;
@@ -5881,7 +5881,7 @@ struct VTHBSK
 {
     VT* pvtSuper = g_vtso.pvtSuper;
     CID cid = CID_HBSK;
-    int grfcid = 0x3;
+    GRFCID grfcid = 0x3;
 
     void*(*pfnNewHbsk) () = NewHbsk;
     void (*pfnInitHbsk)(HBSK*) = InitHbsk;
@@ -5967,7 +5967,7 @@ struct VTBOMB
 {
     VT* pvtSuper = g_vtso.pvtSuper;
     CID cid = CID_BOMB;
-    int grfcid = 0x23;
+    GRFCID grfcid = 0x23;
 
     void*(*pfnNewBomb) () = NewBomb;
     void (*pfnInitBomb)(BOMB*) = InitBomb;
@@ -6053,7 +6053,7 @@ struct VTMISSILE
 {
     VT* pvtSuper = g_vtbomb.pvtSuper;
     CID cid = CID_MISSILE;
-    int grfcid = 0x23;
+    GRFCID grfcid = 0x23;
 
     void*(*pfnNewMissile) () = NewMissile;
     void (*pfnInitMissile)(MISSILE*) = InitMissile;
@@ -6140,7 +6140,7 @@ struct VTACCMISS
 {
     VT* pvtSuper = g_vtmissile.pvtSuper;
     CID cid = CID_ACCMISS;
-    int grfcid = 0x23;
+    GRFCID grfcid = 0x23;
 
     void*(*pfnNewAccmiss) () = NewAccmiss;
     void (*pfnInitAccmiss)(ACCMISS*) = InitAccmiss;
@@ -6227,7 +6227,7 @@ struct VTTARMISS
 {
     VT* pvtSuper = g_vtaccmiss.pvtSuper;
     CID cid = CID_TARMISS;
-    int grfcid = 0x23;
+    GRFCID grfcid = 0x23;
 
     void*(*pfnNewTarmiss) () = NewTarmiss;
     void (*pfnInitTarmiss)(TARMISS*) = InitTarmiss;
@@ -6314,7 +6314,7 @@ struct VTSPLMISS
 {
     VT* pvtSuper = g_vtmissile.pvtSuper;
     CID cid = CID_SPLMISS;
-    int grfcid = 0x23;
+    GRFCID grfcid = 0x23;
 
     void*(*pfnNewSplmiss) () = NewSplmiss;
     void (*pfnInitMissile)(MISSILE*) = InitMissile;
@@ -6401,7 +6401,7 @@ struct VTGROUNDMISS
 {
     VT* pvtSuper = g_vtmissile.pvtSuper;
     CID cid = CID_GROUNDMISS;
-    int grfcid = 0x23;
+    GRFCID grfcid = 0x23;
 
     void*(*pfnNewGroundmiss) () = NewGroundmiss;
     void (*pfnInitGroundmiss)(GROUNDMISS*) = InitGroundmiss;
@@ -6488,7 +6488,7 @@ struct VTFLY
 {
     VT* pvtSuper = g_vtso.pvtSuper;
     CID cid = CID_FLY;
-    int grfcid = 0x3;
+    GRFCID grfcid = 0x3;
 
     void*(*pfnNewFly) () = NewFly;
     void (*pfnInitFly)(FLY*) = InitFly;
@@ -6574,7 +6574,7 @@ struct VTRAT
 {
     VT* pvtSuper = g_vtso.pvtSuper;
     CID cid = CID_RAT;
-    int grfcid = 0x3;
+    GRFCID grfcid = 0x3;
 
     void*(*pfnNewRat) () = NewRat;
     void (*pfnInitRat)(RAT*) = InitRat;
@@ -6660,7 +6660,7 @@ struct VTROH
 {
     VT* pvtSuper = g_vtso.pvtSuper;
     CID cid = CID_ROH;
-    int grfcid = 0x3;
+    GRFCID grfcid = 0x3;
 
     void*(*pfnNewRoh) () = NewRoh;
     void (*pfnInitRoh)(ROH*) = InitRoh;
@@ -6746,7 +6746,7 @@ struct VTROC
 {
     VT* pvtSuper = g_vtso.pvtSuper;
     CID cid = CID_ROC;
-    int grfcid = 0x3;
+    GRFCID grfcid = 0x3;
 
     void*(*pfnNewRoc) () = NewRoc;
     void (*pfnInitRoc)(ROC*) = InitRoc;
@@ -6832,7 +6832,7 @@ struct VTROST
 {
     VT* pvtSuper = g_vtso.pvtSuper;
     CID cid = CID_ROST;
-    int grfcid = 0x3;
+    GRFCID grfcid = 0x3;
 
     void*(*pfnNewRost) () = NewRost;
     void (*pfnInitRost)(ROST*) = InitRost;
@@ -6918,7 +6918,7 @@ struct VTROP
 {
     VT* pvtSuper = g_vtso.pvtSuper;
     CID cid = CID_ROP;
-    int grfcid = 0x3;
+    GRFCID grfcid = 0x3;
 
     void*(*pfnNewRop) () = NewRop;
     void (*pfnInitRop)(ROP*) = InitRop;
@@ -7004,7 +7004,7 @@ struct VTDART
 {
     VT* pvtSuper = g_vtso.pvtSuper;
     CID cid = CID_DART;
-    int grfcid = 0x3;
+    GRFCID grfcid = 0x3;
 
     void*(*pfnNewDart) () = NewDart;
     void (*pfnInitDart)(DART*) = InitDart;
@@ -7090,7 +7090,7 @@ struct VTUBV
 {
     VT* pvtSuper = g_vtso.pvtSuper;
     CID cid = CID_UBV;
-    int grfcid = 0x3;
+    GRFCID grfcid = 0x3;
 
     void*(*pfnNewUbv) () = NewUbv;
     void (*pfnInitSo)(SO*) = InitSo;
@@ -7176,7 +7176,7 @@ struct VTUBP
 {
     VT* pvtSuper = g_vtso.pvtSuper;
     CID cid = CID_UBP;
-    int grfcid = 0x3;
+    GRFCID grfcid = 0x3;
 
     void*(*pfnNewUbp) () = NewUbp;
     void (*pfnInitSo) (SO*) = InitSo;
@@ -7262,7 +7262,7 @@ struct VTDSP
 {
     VT* pvtSuper = g_vtso.pvtSuper;
     CID cid = CID_DSP;
-    int grfcid = 0x3;
+    GRFCID grfcid = 0x3;
 
     void*(*pfnNewDsp) () = NewDsp;
     void (*pfnInitSo) (SO*) = InitSo;
@@ -7348,7 +7348,7 @@ struct VTJLO
 {
     VT* pvtSuper = g_vtso.pvtSuper;
     CID cid = CID_JLO;
-    int grfcid = 0x3;
+    GRFCID grfcid = 0x3;
 
     void*(*pfnNewJlo) () = NewJlo;
     void (*pfnInitJlo)(JLO*) = InitJlo;
@@ -7434,7 +7434,7 @@ struct VTPUFFT
 {
     VT* pvtSuper = g_vtso.pvtSuper;
     CID cid = CID_PUFFT;
-    int grfcid = 0x3;
+    GRFCID grfcid = 0x3;
 
     void*(*pfnNewPufft) () = NewPufft;
     void (*pfnInitSo) (SO*) = InitSo;
@@ -7520,7 +7520,7 @@ struct VTMRKV
 {
     VT* pvtSuper = g_vtso.pvtSuper;
     CID cid = CID_MRKV;
-    int grfcid = 0x3;
+    GRFCID grfcid = 0x3;
 
     void*(*pfnNewMrkv) () = NewMrkv;
     void (*pfnInitMrkv)(MRKV*) = InitMrkv;
@@ -7606,7 +7606,7 @@ struct VTLGNB
 {
     VT* pvtSuper = g_vtso.pvtSuper;
     CID cid = CID_LGNB;
-    int grfcid = 0x3;
+    GRFCID grfcid = 0x3;
 
     void*(*pfnNewLgnb) () = NewLgnb;
     void (*pfnInitLgnb)(LGNB*) = InitLgnb;
@@ -7692,7 +7692,7 @@ struct VTBLIPG
 {
     VT* pvtSuper = g_vtalo.pvtSuper;
     CID cid = CID_BLIPG;
-    int grfcid = 0x1;
+    GRFCID grfcid = 0x1;
 
     void*(*pfnNewBlipg) () = NewBlipg;
     void (*pfnInitBlipg)(BLIPG*) = InitBlipg;
@@ -7753,7 +7753,7 @@ struct VTCAMERA
 {
     VT* pvtSuper = g_vtalo.pvtSuper;
     CID cid = CID_CAMERA;
-    int grfcid = 0x1;
+    GRFCID grfcid = 0x1;
 
     void*(*pfnNewCamera) () = NewCamera;
     void (*pfnInitCamera)(CAMERA*) = InitCamera;
@@ -7814,7 +7814,7 @@ struct VTLBONE
 {
     VT* pvtSuper = g_vtalo.pvtSuper;
     CID cid = CID_LBONE;
-    int grfcid = 0x1;
+    GRFCID grfcid = 0x1;
 
     void*(*pfnNewLBone) () = NewLBone;
     void (*pfnInitAlo)(ALO*) = InitAlo;
@@ -7875,7 +7875,7 @@ struct VTEMITTER
 {
     VT* pvtSuper = g_vtalo.pvtSuper;
     CID cid = CID_EMITTER;
-    int grfcid = 0x1;
+    GRFCID grfcid = 0x1;
 
     void*(*pfnNewEmitter) () = NewEmitter;
     void (*pfnInitEmitter)(EMITTER*) = InitEmitter;
@@ -7936,7 +7936,7 @@ struct VTLIGHT
 {
     VT* pvtSuper = g_vtalo.pvtSuper;
     CID cid = CID_LIGHT;
-    int grfcid = 0x1;
+    GRFCID grfcid = 0x1;
 
     void*(*pfnNewLight) () = NewLight;
     void (*pfnInitLight)(LIGHT*) = InitLight;
@@ -7997,7 +7997,7 @@ struct VTSCH
 {
     VT* pvtSuper = g_vtalo.pvtSuper;
     CID cid = CID_SCH;
-    int grfcid = 0x1;
+    GRFCID grfcid = 0x1;
 
     void*(*pfnNewSch) () = NewAlo;
     void (*pfnInitAlo) (ALO*) = InitAlo;
@@ -8058,7 +8058,7 @@ struct VTLIKH
 {
     VT* pvtSuper = g_vtalo.pvtSuper;
     CID cid = CID_LIKH;
-    int grfcid = 0x1;
+    GRFCID grfcid = 0x1;
 
     void*(*pfnNewLikh) () = NewLikh;
     void (*pfnInitAlo) (ALO*) = InitAlo;
@@ -8119,7 +8119,7 @@ struct VTCHKPNT
 {
     VT* pvtSuper = g_vtalo.pvtSuper;
     CID cid = CID_CHKPNT;
-    int grfcid = 0x1;
+    GRFCID grfcid = 0x1;
 
     void*(*pfnNewChkpnt) () = NewChkpnt;
     void (*pfnInitChkpnt)(CHKPNT*) = InitChkpnt;
@@ -8180,7 +8180,7 @@ struct VTPROXY
 {
     VT* pvtSuper = g_vtalo.pvtSuper;
     CID cid = CID_PROXY;
-    int grfcid = 0x101;
+    GRFCID grfcid = 0x101;
 
     void*(*pfnNewProxy) () = NewProxy;
     void (*pfnInitProxy)(PROXY*) = InitProxy;
@@ -8241,7 +8241,7 @@ struct VTSKY
 {
     VT* pvtSuper = g_vtalo.pvtSuper;
     CID cid = CID_SKY;
-    int grfcid = 0x1;
+    GRFCID grfcid = 0x1;
 
     void*(*pfnNewSky) () = NewSky;
     void (*pfnInitAlo) (ALO*) = InitAlo;
@@ -8302,7 +8302,7 @@ struct VTDPRIZE
 {
     VT* pvtSuper = g_vtalo.pvtSuper;
     CID cid = CID_DPRIZE;
-    int grfcid = 0x1;
+    GRFCID grfcid = 0x1;
 
     void*(*pfnNewDprize) () = NewDprize;
     void (*pfnInitDprize)(DPRIZE*) = InitDprize;
@@ -8364,7 +8364,7 @@ struct VTCHARM
 {
     VT* pvtSuper = g_vtdprize.pvtSuper;
     CID cid = CID_CHARM;
-    int grfcid = 0x1;
+    GRFCID grfcid = 0x1;
 
     void*(*pfnNewCharm) () = NewCharm;
     void (*pfnInitCharm)(CHARM*) = InitCharm;
@@ -8426,7 +8426,7 @@ struct VTCOIN
 {
     VT* pvtSuper = g_vtdprize.pvtSuper;
     CID cid = CID_COIN;
-    int grfcid = 0x1;
+    GRFCID grfcid = 0x1;
 
     void*(*pfnNewCoin) () = NewCoin;
     void (*pfnInitCoin)(COIN*) = InitCoin;
@@ -8488,7 +8488,7 @@ struct VTKEY
 {
     VT* pvtSuper = g_vtdprize.pvtSuper;
     CID cid = CID_KEY;
-    int grfcid = 0x1;
+    GRFCID grfcid = 0x1;
 
     void*(*pfnNewKey) () = NewKey;
     void (*pfnInitKey)(KEY*) = InitKey;
@@ -8550,7 +8550,7 @@ struct VTGOLD
 {
     VT* pvtSuper = g_vtdprize.pvtSuper;
     CID cid = CID_GOLD;
-    int grfcid = 0x1;
+    GRFCID grfcid = 0x1;
 
     void*(*pfnNewGold) () = NewGold;
     void (*pfnInitGold)(GOLD*) = InitGold;
@@ -8612,7 +8612,7 @@ struct VTLOCK
 {
     VT* pvtSuper = g_vtalo.pvtSuper;
     CID cid = CID_LOCK;
-    int grfcid = 0x1;
+    GRFCID grfcid = 0x1;
 
     void*(*pfnNewLock) () = NewLock;
     void (*pfnInitAlo) (ALO*) = InitAlo;
@@ -8673,7 +8673,7 @@ struct VTLOCKG
 {
     VT* pvtSuper = g_vtalo.pvtSuper;
     CID cid = CID_LOCKG;
-    int grfcid = 0x1;
+    GRFCID grfcid = 0x1;
 
     void*(*pfnNewLockg) () = NewLockg;
     void (*pfnInitAlo) (ALO*) = InitAlo;
@@ -8734,7 +8734,7 @@ struct VTTAIL
 {
     VT* pvtSuper = g_vtalo.pvtSuper;
     CID cid = CID_TAIL;
-    int grfcid = 0x1;
+    GRFCID grfcid = 0x1;
 
     void*(*pfnNewTail) () = NewTail;
     void (*pfnInitTail)(TAIL*) = InitTail;
@@ -8795,7 +8795,7 @@ struct VTROB
 {
     VT* pvtSuper = g_vtalo.pvtSuper;
     CID cid = CID_ROB;
-    int grfcid = 0x1;
+    GRFCID grfcid = 0x1;
 
     void*(*pfnNewRob) () = NewRob;
     void (*pfnInitRob)(ROB*) = InitRob;
@@ -8856,7 +8856,7 @@ struct VTFLASH
 {
     VT* pvtSuper = g_vtalo.pvtSuper;
     CID cid = CID_FLASH;
-    int grfcid = 0x1;
+    GRFCID grfcid = 0x1;
 
     void*(*pfnNewFlash) () = NewFlash;
     void (*pfnInitFlash)(FLASH*) = InitFlash;
@@ -8917,7 +8917,7 @@ struct VTDYSH
 {
     VT* pvtSuper = g_vtalo.pvtSuper;
     CID cid = CID_DYSH;
-    int grfcid = 0x1;
+    GRFCID grfcid = 0x1;
 
     void*(*pfnNewDysh) () = NewDysh;
     void (*pfnInitDysh)(DYSH*) = InitDysh;
@@ -8978,7 +8978,7 @@ struct VTSCENTMAP
 {
     VT* pvtSuper = g_vtalo.pvtSuper;
     CID cid = CID_SCENTMAP;
-    int grfcid = 0x1;
+    GRFCID grfcid = 0x1;
 
     void*(*pfnNewScentmap) () = NewScentmap;
     void (*pfnInitScentmap)(SCENTMAP*) = InitScentmap;
@@ -9039,7 +9039,7 @@ struct VTWAYPOINT
 {
     VT* pvtSuper = g_vtalo.pvtSuper;
     CID cid = CID_WAYPOINT;
-    int grfcid = 0x1;
+    GRFCID grfcid = 0x1;
 
     void*(*pfnNewWaypoint) () = NewWaypoint;
     void (*pfnInitWaypoint)(WAYPOINT*) = InitWaypoint;
@@ -9100,7 +9100,7 @@ struct VTTN
 {
     VT* pvtSuper = g_vtalo.pvtSuper;
     CID cid = CID_TN;
-    int grfcid = 0x1;
+    GRFCID grfcid = 0x1;
 
     void*(*pfnNewTn) () = NewTn;
     void (*pfnInitTn)(TN*) = InitTn;
@@ -9161,7 +9161,7 @@ struct VTJLOC
 {
     VT* pvtSuper = g_vtalo.pvtSuper;
     CID cid = CID_JLOC;
-    int grfcid = 0x1;
+    GRFCID grfcid = 0x1;
 
     void*(*pfnNewJloc) () = NewJloc;
     void (*pfnInitJloc)(JLOC*) = InitJloc;
@@ -9222,7 +9222,7 @@ struct VTDIALOG
 {
     VT* pvtSuper = g_vtalo.pvtSuper;
     CID cid = CID_DIALOG;
-    int grfcid = 0x1;
+    GRFCID grfcid = 0x1;
 
     void*(*pfnNewDialog) () = NewDialog;
     void (*pfnInitDialog)(DIALOG*) = InitDialog;
@@ -9283,7 +9283,7 @@ struct VTSPEAKER
 {
     VT* pvtSuper = g_vtalo.pvtSuper;
     CID cid = CID_SPEAKER;
-    int grfcid = 0x1;
+    GRFCID grfcid = 0x1;
 
     void*(*pfnNewSpeaker) () = NewSpeaker;
     void (*pfnInitSpeaker)(SPEAKER*) = InitSpeaker;
@@ -9344,7 +9344,7 @@ struct VTROPE
 {
     VT* pvtSuper = g_vtalo.pvtSuper;
     CID cid = CID_ROPE;
-    int grfcid = 0x1;
+    GRFCID grfcid = 0x1;
 
     void*(*pfnNewRope) () = NewRope;
     void (*pfnInitRope)(ROPE*) = InitRope;
@@ -9405,7 +9405,7 @@ struct VTWM
 {
     VT* pvtSuper = g_vtalo.pvtSuper;
     CID cid = CID_WM;
-    int grfcid = 0x1;
+    GRFCID grfcid = 0x1;
 
     void*(*pfnNewWm) () = NewWm;
     void (*pfnInitAlo)(ALO*) = InitAlo;
@@ -9466,7 +9466,7 @@ struct VTPUFFB
 {
     VT* pvtSuper = g_vtalo.pvtSuper;
     CID cid = CID_PUFFB;
-    int grfcid = 0x1;
+    GRFCID grfcid = 0x1;
 
     void*(*pfnNewPuffb) () = NewPuffb;
     void (*pfnInitAlo) (ALO*) = InitAlo;
@@ -9527,7 +9527,7 @@ struct VTCRBRAIN
 {
     VT* pvtSuper = g_vtalo.pvtSuper;
     CID cid = CID_CRBRAIN;
-    int grfcid = 0x1;
+    GRFCID grfcid = 0x1;
 
     void*(*pfnNewCrbrain) () = NewCrbrain;
     void (*pfnInitCrbrain)(CRBRAIN*) = InitCrbrain;
@@ -9588,7 +9588,7 @@ struct VTMGC
 {
     VT* pvtSuper = g_vtalo.pvtSuper;
     CID cid = CID_MGC;
-    int grfcid = 0x1;
+    GRFCID grfcid = 0x1;
 
     void*(*pfnNewMgc) () = NewMgc;
     void (*pfnInitMgc)(MGC*) = InitMgc;
@@ -9649,7 +9649,7 @@ struct VTJACKB
 {
     VT* pvtSuper = g_vtalo.pvtSuper;
     CID cid = CID_JACKB;
-    int grfcid = 0x1;
+    GRFCID grfcid = 0x1;
 
     void*(*pfnNewJackb) () = NewJackb;
     void (*pfnInitJackb)(JACKB*) = InitJackb;
@@ -9710,7 +9710,7 @@ struct VTJACKN
 {
     VT* pvtSuper = g_vtalo.pvtSuper;
     CID cid = CID_JACKN;
-    int grfcid = 0x1;
+    GRFCID grfcid = 0x1;
 
     void*(*pfnNewJackn) () = NewJackn;
     void (*pfnInitJackn)(JACKN*) = InitJackn;
@@ -9771,7 +9771,7 @@ struct VTJACKF
 {
     VT* pvtSuper = g_vtalo.pvtSuper;
     CID cid = CID_JACKF;
-    int grfcid = 0x1;
+    GRFCID grfcid = 0x1;
 
     void*(*pfnNewJackf) () = NewJackf;
     void (*pfnInitJackf)(JACKF*) = InitJackf;
@@ -9832,7 +9832,7 @@ struct VTSW
 {
     VT* pvtSuper = g_vtlo.pvtSuper;
     CID cid = CID_SW;
-    int grfcid = 0;
+    GRFCID grfcid = 0;
 
     void*(*pfnNewSw) () = NewSw;
     void (*pfnInitSw)(SW*) = InitSw;
@@ -9874,7 +9874,7 @@ struct VTCM
 {
     VT* pvtSuper = g_vtlo.pvtSuper;
     CID cid = CID_CM;
-    int grfcid = 0;
+    GRFCID grfcid = 0;
 
     void*(*pfnNewCm) () = NewCm;
     void (*pfnInitCm)(CM*) = InitCm;
@@ -9916,7 +9916,7 @@ struct VTSHAPE
 {
     VT* pvtSuper = g_vtlo.pvtSuper;
     CID cid = CID_SHAPE;
-    int grfcid = 0;
+    GRFCID grfcid = 0;
 
     void*(*pfnNewShape) () = NewShape;
     void (*pfnInitShape)(SHAPE*) = InitShape;
@@ -9958,7 +9958,7 @@ struct VTHSHAPE
 {
     VT* pvtSuper = g_vtshape.pvtSuper;
     CID cid = CID_HSHAPE;
-    int grfcid = 0;
+    GRFCID grfcid = 0;
 
     void*(*pfnNewHshape) () = NewHshape;
     void (*pfnInitHshape)(HSHAPE*) = InitHshape;
@@ -10000,7 +10000,7 @@ struct VTPIPE
 {
     VT* pvtSuper = g_vtshape.pvtSuper;
     CID cid = CID_PIPE;
-    int grfcid = 0;
+    GRFCID grfcid = 0;
 
     void*(*pfnNewPipe) () = NewPipe;
     void (*pfnInitPipe)(PIPE*) = InitPipe;
@@ -10042,7 +10042,7 @@ struct VTRAIL
 {
     VT* pvtSuper = g_vtshape.pvtSuper;
     CID cid = CID_RAIL;
-    int grfcid = 0;
+    GRFCID grfcid = 0;
 
     void*(*pfnNewRail) () = NewRail;
     void (*pfnInitShape)(SHAPE*) = InitShape;
@@ -10084,7 +10084,7 @@ struct VTLANDING
 {
     VT* pvtSuper = g_vtshape.pvtSuper;
     CID cid = CID_LANDING;
-    int grfcid = 0;
+    GRFCID grfcid = 0;
 
     void*(*pfnNewLanding) () = NewLanding;
     void (*pfnInitShape)(SHAPE*) = InitShape;
@@ -10126,7 +10126,7 @@ struct VTXFM
 {
     VT* pvtSuper = g_vtlo.pvtSuper;
     CID cid = CID_XFM;
-    int grfcid = 0;
+    GRFCID grfcid = 0;
 
     void*(*pfnNewXfm) () = NewXfm;
     void (*pfnInitXfm)(XFM*) = InitXfm;
@@ -10168,7 +10168,7 @@ struct VTWARP
 {
     VT* pvtSuper = g_vtxfm.pvtSuper;
     CID cid = CID_WARP;
-    int grfcid = 0;
+    GRFCID grfcid = 0;
 
     void*(*pfnNewWarp) () = NewWarp;
     void (*pfnInitXfm)(XFM*) = InitXfm;
@@ -10210,7 +10210,7 @@ struct VTTARGET
 {
     VT* pvtSuper = g_vtxfm.pvtSuper;
     CID cid = CID_TARGET;
-    int grfcid = 0;
+    GRFCID grfcid = 0;
 
     void*(*pfnNewTarget) () = NewTarget;
     void (*pfnInitTarget)(TARGET*) = InitTarget;
@@ -10252,7 +10252,7 @@ struct VTHND
 {
     VT* pvtSuper = g_vttarget.pvtSuper;
     CID cid = CID_HND;
-    int grfcid = 0;
+    GRFCID grfcid = 0;
 
     void*(*pfnNewHnd) () = NewHnd;
     void (*pfnInitHnd)(HND*) = InitHnd;
@@ -10294,7 +10294,7 @@ struct VTEXPL
 {
     VT* pvtSuper = g_vtxfm.pvtSuper;
     CID cid = CID_EXPL;
-    int grfcid = 0;
+    GRFCID grfcid = 0;
 
     void*(*pfnNewExpl) () = NewExpl;
     void (*pfnInitXfm)(XFM*) = InitXfm;
@@ -10337,7 +10337,7 @@ struct VTEXPLG
 {
     VT* pvtSuper = g_vtexpl.pvtSuper;
     CID cid = CID_EXPLG;
-    int grfcid = 0;
+    GRFCID grfcid = 0;
 
     void*(*pfnNewExplg) () = NewExplg;
     void (*pfnInitXfm)(XFM*) = InitXfm;
@@ -10380,7 +10380,7 @@ struct VTEXPLO
 {
     VT* pvtSuper = g_vtexpl.pvtSuper;
     CID cid = CID_EXPLO;
-    int grfcid = 0;
+    GRFCID grfcid = 0;
 
     void*(*pfnNewExplo) () = NewExplo;
     void (*pfnInitExplo)(EXPLO*) = InitExplo;
@@ -10423,7 +10423,7 @@ struct VTEXPLS
 {
     VT* pvtSuper = g_vtexplo.pvtSuper;
     CID cid = CID_EXPLS;
-    int grfcid = 0;
+    GRFCID grfcid = 0;
 
     void*(*pfnNewExpls) () = NewExpls;
     void (*pfnInitExpls)(EXPLS*) = InitExpls;
@@ -10466,7 +10466,7 @@ struct VTVOL
 {
     VT* pvtSuper = g_vtxfm.pvtSuper;
     CID cid = CID_VOL;
-    int grfcid = 0;
+    GRFCID grfcid = 0;
 
     void*(*pfnNewVol) () = NewVol;
     void (*pfnInitXfm)(XFM*) = InitXfm;
@@ -10508,7 +10508,7 @@ struct VTRATHOLE
 {
     VT* pvtSuper = g_vtvol.pvtSuper;
     CID cid = CID_RATHOLE;
-    int grfcid = 0;
+    GRFCID grfcid = 0;
 
     void*(*pfnNewRathole) () = NewRathole;
     void (*pfnInitXfm)(XFM*) = InitXfm;
@@ -10550,7 +10550,7 @@ struct VTPUFFV
 {
     VT* pvtSuper = g_vtvol.pvtSuper;
     CID cid = CID_PUFFV;
-    int grfcid = 0;
+    GRFCID grfcid = 0;
 
     void*(*pfnNewPuffv) () = NewPuffv;
     void (*pfnInitPuffv)(PUFFV*) = InitPuffv;
@@ -10592,7 +10592,7 @@ struct VTEXIT
 {
     VT* pvtSuper = g_vtalo.pvtSuper;
     CID cid = CID_EXIT;
-    int grfcid = 0x1;
+    GRFCID grfcid = 0x1;
 
     void*(*pfnNewExit) () = NewExit;
     void (*pfnInitAlo) (ALO*) = InitAlo;
@@ -10653,7 +10653,7 @@ struct VTPNT
 {
     VT* pvtSuper = g_vtlo.pvtSuper;
     CID cid = CID_PNT;
-    int grfcid = 0;
+    GRFCID grfcid = 0;
 
     void*(*pfnNewPnt) () = NewPnt;
     void (*pfnInitLo)(LO*) = InitLo;
@@ -10695,7 +10695,7 @@ struct VTPNTSV
 {
     VT* pvtSuper = g_vtpnt.pvtSuper;
     CID cid = CID_PNTSV;
-    int grfcid = 0;
+    GRFCID grfcid = 0;
 
     void*(*pfnNewPntsv) () = NewPnt;
     void (*pfnInitLo)(LO*) = InitLo;
@@ -10737,7 +10737,7 @@ struct VTPNTS
 {
     VT* pvtSuper = g_vtpnt.pvtSuper;
     CID cid = CID_PNTS;
-    int grfcid = 0;
+    GRFCID grfcid = 0;
 
     void*(*pfnNewPnts) () = NewPnt;
     void (*pfnInitLo)(LO*) = InitLo;
@@ -10779,7 +10779,7 @@ struct VTPNTVEC
 {
     VT* pvtSuper = g_vtpnt.pvtSuper;
     CID cid = CID_PNTVEC;
-    int grfcid = 0;
+    GRFCID grfcid = 0;
 
     void*(*pfnNewPntvec) () = NewPnt;
     void (*pfnInitLo)(LO*) = InitLo;
@@ -10821,7 +10821,7 @@ struct VTHPNT
 {
     VT* pvtSuper = g_vtpnt.pvtSuper;
     CID cid = CID_HPNT;
-    int grfcid = 0;
+    GRFCID grfcid = 0;
 
     void*(*pfnNewHpnt) () = NewHpnt;
     void (*pfnInitHpnt)(HPNT*) = InitHpnt;
@@ -10863,7 +10863,7 @@ struct VTJMT
 {
     VT* pvtSuper = g_vtpnt.pvtSuper;
     CID cid = CID_JMT;
-    int grfcid = 0;
+    GRFCID grfcid = 0;
 
     void*(*pfnNewJmt) () = NewJmt;
     void (*pfnInitLo)(LO*) = InitLo;
@@ -10905,7 +10905,7 @@ struct VTSPIRE
 {
     VT* pvtSuper = g_vtpnt.pvtSuper;
     CID cid = CID_SPIRE;
-    int grfcid = 0;
+    GRFCID grfcid = 0;
 
     void*(*pfnNewSpire) () = NewSpire;
     void (*pfnInitLo)(LO*) = InitLo;
@@ -10947,7 +10947,7 @@ struct VTSCAN
 {
     VT* pvtSuper = g_vtpnt.pvtSuper;
     CID cid = CID_SCAN;
-    int grfcid = 0;
+    GRFCID grfcid = 0;
 
     void*(*pfnNewScan) () = NewScan;
     void (*pfnInitLo)(LO*) = InitLo;
@@ -10989,7 +10989,7 @@ struct VTASEG
 {
     VT* pvtSuper = g_vtlo.pvtSuper;
     CID cid = CID_ASEG;
-    int grfcid = 0x40;
+    GRFCID grfcid = 0x40;
 
     void*(*pfnNewAseg) () = NewAseg;
     void (*pfnInitAseg)(ASEG*) = InitAseg;
@@ -11031,7 +11031,7 @@ struct VTMAP
 {
     VT* pvtSuper = g_vtlo.pvtSuper;
     CID cid = CID_MAP;
-    int grfcid = 0;
+    GRFCID grfcid = 0;
 
     void*(*pfnNewMap) () = NewMap;
     void (*pfnInitLo)(LO*) = InitLo;
@@ -11073,7 +11073,7 @@ struct VT_VISZONE
 {
     VT* pvtSuper = g_vtlo.pvtSuper;
     CID cid = CID__VISZONE;
-    int grfcid = 0;
+    GRFCID grfcid = 0;
 
     void*(*pfnNewVISZONE) () = NewLo;
     void (*pfnInitLo)(LO*) = InitLo;
@@ -11115,7 +11115,7 @@ struct VTVISMAP
 {
     VT* pvtSuper = g_vtlo.pvtSuper;
     CID cid = CID_VISMAP;
-    int grfcid = 0;
+    GRFCID grfcid = 0;
 
     void*(*pfnNewVismap) () = NewVismap;
     void (*pfnInitVismap)(VISMAP*) = InitVismap;
@@ -11157,7 +11157,7 @@ struct VTFRZG
 {
     VT* pvtSuper = g_vtlo.pvtSuper;
     CID cid = CID_FRZG;
-    int grfcid = 0;
+    GRFCID grfcid = 0;
 
     void*(*pfnNewFrzg) () = NewFrzg;
     void (*pfnInitLo)(LO*) = InitLo;
@@ -11199,7 +11199,7 @@ struct VTSM
 {
     VT* pvtSuper = g_vtlo.pvtSuper;
     CID cid = CID_SM;
-    int grfcid = 0;
+    GRFCID grfcid = 0;
 
     void*(*pfnNewSm) () = NewSm;
     void (*pfnInitLo)(LO*) = InitLo;
@@ -11241,7 +11241,7 @@ struct VTSGG
 {
     VT* pvtSuper = g_vtlo.pvtSuper;
     CID cid = CID_SGG;
-    int grfcid = 0;
+    GRFCID grfcid = 0;
 
     void*(*pfnNewSgg) () = NewSgg;
     void (*pfnInitSgg)(SGG*) = InitSgg;
@@ -11283,7 +11283,7 @@ struct VTPATHZONE
 {
     VT* pvtSuper = g_vtlo.pvtSuper;
     CID cid = CID_PATHZONE;
-    int grfcid = 0;
+    GRFCID grfcid = 0;
 
     void*(*pfnNewPathzone) () = NewPathzone;
     void (*pfnInitLo)(LO*) = InitLo;
@@ -11325,7 +11325,7 @@ struct VTRCHM
 {
     VT* pvtSuper = g_vtlo.pvtSuper;
     CID cid = CID_RCHM;
-    int grfcid = 0;
+    GRFCID grfcid = 0;
 
     void*(*pfnNewRchm) () = NewRchm;
     void (*pfnInitRchm)(RCHM*) = InitRchm;
@@ -11367,7 +11367,7 @@ struct VTRWM
 {
     VT* pvtSuper = g_vtlo.pvtSuper;
     CID cid = CID_RWM;
-    int grfcid = 0;
+    GRFCID grfcid = 0;
 
     void*(*pfnNewRwm) () = NewRwm;
     void (*pfnInitRwm)(RWM*) = InitRwm;
@@ -11409,7 +11409,7 @@ struct VTWR
 {
     VT* pvtSuper = g_vtlo.pvtSuper;
     CID cid = CID_WR;
-    int grfcid = 0;
+    GRFCID grfcid = 0;
 
     void*(*pfnNewWr) () = NewWr;
     void (*pfnInitWr)(WR*) = InitWr;
@@ -11451,7 +11451,7 @@ struct VTKEYHOLE
 {
     VT* pvtSuper = g_vtlo.pvtSuper;
     CID cid = CID_KEYHOLE;
-    int grfcid = 0;
+    GRFCID grfcid = 0;
 
     void*(*pfnNewKeyhole) () = NewKeyhole;
     void (*pfnInitKeyhole)(KEYHOLE*) = InitKeyhole;
@@ -11493,7 +11493,7 @@ struct VTJSG
 {
     VT* pvtSuper = g_vtlo.pvtSuper;
     CID cid = CID_JSG;
-    int grfcid = 0;
+    GRFCID grfcid = 0;
 
     void*(*pfnNewJsg) () = NewJsg;
     void (*pfnInitJsg)(JSG*) = InitJsg;

@@ -73,9 +73,6 @@ DL* PdlFromSwOid(SW *psw, OID oid)
 
 void LoadOptionsFromBrx(void* pvObject, CBinaryInputStream* pbis)
 {
-	/*LoadOptionsFromBrxCount++;
-	std::cout << "LoadOptionsCount: " << LoadOptionsFromBrxCount << "\n";*/
-
 	while (true)
 	{
 		// Reading eopid from binary file
@@ -89,8 +86,7 @@ void LoadOptionsFromBrx(void* pvObject, CBinaryInputStream* pbis)
 
 void LoadOptionFromBrx(void* pvObject, EOPID peopid, CBinaryInputStream* pbis)
 {
-	void* objectDataPtr{};
-	uint16_t emitMeshFlag = 0;
+	void* objectDataPtr = nullptr;
 
 	if ((peopid.grfeopid & 0x400) != 0)
 	{
@@ -206,8 +202,7 @@ void LoadOptionFromBrx(void* pvObject, EOPID peopid, CBinaryInputStream* pbis)
 			return;
 
 			default:
-				emitMeshFlag = pbis->S16Read();
-				if (emitMeshFlag == 0x4 && peopid.otyp == OTYP_Emitok)
+				if (pbis->S16Read() == 0x4 && peopid.otyp == OTYP_Emitok)
 					loadEmitMesh = true;
 			return;
 		}
@@ -220,8 +215,12 @@ void LoadOptionFromBrx(void* pvObject, EOPID peopid, CBinaryInputStream* pbis)
 		return;
 
 		case OTYP_Float:
-			pbis->F32Read();
-		return;
+		{
+			float optionData = pbis->F32Read();
+			if (peopid.optdat.pfnset != nullptr)
+				peopid.optdat.pfnset(pvObject, optionData);
+			return;
+		}
 
 		case OTYP_Matrix:
 			pbis->F32Read();
@@ -268,7 +267,9 @@ void LoadOptionFromBrx(void* pvObject, EOPID peopid, CBinaryInputStream* pbis)
 		break;
 
 		default:
-			pbis->S16Read();
+			int16_t optionData = pbis->S16Read();
+			if (peopid.optdat.pfnset != nullptr)
+				peopid.optdat.pfnset(pvObject, optionData);
 		return;
 	}
 }

@@ -59,11 +59,14 @@ void CloneExplo(EXPLO* pexplo, EXPLO* pexploBase)
 	memcpy(pexplo, &lo, sizeof(LO));
 
 	CloneLo(pexplo, pexploBase);
+	pexplo->pemitb->cref++;
 }
 
 void DeleteExplo(LO* plo)
 {
-	delete(EXPLO*)plo;
+	EXPLO* explo = (EXPLO*)plo;
+
+	delete explo;
 }
 
 void* NewEmitter()
@@ -156,6 +159,8 @@ void CloneEmitter(EMITTER* pemitter, EMITTER* pemitterBase)
 	CloneLo(pemitter, pemitterBase);
 
 	ClearDl(&pemitter->dlChild);
+
+	pemitter->pemitb->cref++;
 }
 
 EMITB* PemitbEnsureEmitter(EMITTER* pemitter, ENSK ensk)
@@ -170,7 +175,9 @@ void RenderEmitterSelf(EMITTER* pemitter, CM* pcm, RO* pro)
 
 void DeleteEmitter(LO* plo)
 {
-	delete(EMITTER*)plo;
+	EMITTER *emitter = (EMITTER*)plo;
+
+	delete emitter;
 }
 
 void* NewExpl()
@@ -219,6 +226,7 @@ void CloneExpls(EXPLS* pexpls, EXPLS* pexplsBase)
 	memcpy(pexpls, &lo, sizeof(LO));
 
 	CloneLo(pexpls, pexplsBase);
+
 }
 
 void DeleteExpls(LO* plo)

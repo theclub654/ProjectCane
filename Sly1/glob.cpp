@@ -38,7 +38,7 @@ void LoadGlobsetFromBrx(GLOBSET* pglobset ,CBinaryInputStream* pbis, ALO* palo)
             int instanceIndex = pbis->S16Read();
             glm::mat4 pdmat = pbis->ReadMatrix4();
 
-            if(instanceIndex != 0)
+            if (instanceIndex != 0)
                 pglobset->aglob[instanceIndex].pdmat.push_back(pdmat);
         }
 
@@ -125,45 +125,54 @@ void LoadGlobsetFromBrx(GLOBSET* pglobset ,CBinaryInputStream* pbis, ALO* palo)
                 //std::cout << std::dec << "Index Count: " << (uint32_t)indexCount << "\n";
                 byte indexCount = pbis->U8Read();
                 
-                pglobset->aglob[i].asubglob[a].vertexes.resize(vertexCount);
-                pglobset->aglob[i].asubglob[a].normals.resize(normalCount);
-                pglobset->aglob[i].asubglob[a].vertexColors.resize(vertexColorCount);
-                pglobset->aglob[i].asubglob[a].texcoords.resize(texcoordCount);
-                pglobset->aglob[i].asubglob[a].indexes.resize(indexCount);
+                std::vector <glm::vec3> vertexes;
+                vertexes.resize(vertexCount);
+
+                std::vector<glm::vec3>normals;
+                normals.resize(normalCount);
+
+                std::vector<RGBA> vertexColors;
+                vertexColors.resize(vertexColorCount);
+
+                std::vector<glm::vec2> texcoords;
+                texcoords.resize(texcoordCount);
+
+                std::vector<VTXFLG> indexes;
+                indexes.resize(indexCount);
 
                 pbis->Align(4);
 
                 //std::cout << "Vertices: " << std::hex << pbis->file.tellg() << "\n";
                 for (int b = 0; b < vertexCount; b++)
-                    pglobset->aglob[i].asubglob[a].vertexes[b] = pbis->ReadVector();
+                    vertexes[b] = pbis->ReadVector();
 
                 //std::cout << "Normals: " << std::hex << pbis->file.tellg() << "\n";
                 for (int c = 0; c < normalCount; c++)
-                    pglobset->aglob[i].asubglob[a].normals[c] = pbis->ReadVector();
+                    normals[c] = pbis->ReadVector();
                 
                 //std::cout << "Vertex Colors: " << std::hex << pbis->file.tellg() << "\n";
                 for (int d = 0; d < vertexColorCount; d++)
                 {
-                    pglobset->aglob[i].asubglob[a].vertexColors[d].bRed   = pbis->U8Read();
-                    pglobset->aglob[i].asubglob[a].vertexColors[d].bGreen = pbis->U8Read();
-                    pglobset->aglob[i].asubglob[a].vertexColors[d].bBlue  = pbis->U8Read();
-                    pglobset->aglob[i].asubglob[a].vertexColors[d].bAlpha = pbis->U8Read();
+                    vertexColors[d].bRed   = pbis->U8Read();
+                    vertexColors[d].bGreen = pbis->U8Read();
+                    vertexColors[d].bBlue  = pbis->U8Read();
+                    vertexColors[d].bAlpha = pbis->U8Read();
                 }
 
                 //std::cout << "Texcoords: " << std::hex << pbis->file.tellg() << "\n";
                 for (int e = 0; e < texcoordCount; e++)
                 {
-                    pglobset->aglob[i].asubglob[a].texcoords[e].x = pbis->F32Read();
-                    pglobset->aglob[i].asubglob[a].texcoords[e].y = pbis->F32Read();
+                    texcoords[e].x = pbis->F32Read();
+                    texcoords[e].y = pbis->F32Read();
                 }
                 
                 //std::cout << "Indexes: " << std::hex << pbis->file.tellg() << "\n\n";
                 for (int f = 0; f < indexCount; f++)
                 {
-                    pglobset->aglob[i].asubglob[a].indexes[f].ipos    = pbis->U8Read();
-                    pglobset->aglob[i].asubglob[a].indexes[f].inormal = pbis->U8Read();
-                    pglobset->aglob[i].asubglob[a].indexes[f].iuv     = pbis->U8Read();
-                    pglobset->aglob[i].asubglob[a].indexes[f].bMisc   = pbis->U8Read();
+                    indexes[f].ipos    = pbis->U8Read();
+                    indexes[f].inormal = pbis->U8Read();
+                    indexes[f].iuv     = pbis->U8Read();
+                    indexes[f].bMisc   = pbis->U8Read();
                 }
 
                 // Loading texture property
@@ -203,7 +212,7 @@ void LoadGlobsetFromBrx(GLOBSET* pglobset ,CBinaryInputStream* pbis, ALO* palo)
                     }
                 }
                 
-                BuildSubGlob(pglobset, pglobset->aglob[i].asubglob[a].pshd, pglobset->aglob[i].asubglob[a].vertices, pglobset->aglob[i].asubglob[a].vertexes, pglobset->aglob[i].asubglob[a].normals, pglobset->aglob[i].asubglob[a].vertexColors, pglobset->aglob[i].asubglob[a].texcoords, pglobset->aglob[i].asubglob[a].indexes, pglobset->aglob[i].asubglob[a].indices);
+                BuildSubGlob(pglobset, pglobset->aglob[i].asubglob[a].pshd, pglobset->aglob[i].asubglob[a].vertices, vertexes, normals, vertexColors, texcoords, indexes, pglobset->aglob[i].asubglob[a].indices);
                 MakeGLBuffers(&pglobset->aglob[i].asubglob[a]);
             }
 
@@ -261,8 +270,8 @@ void BuildSubGlob(GLOBSET* pglobset, SHD* pshd, std::vector<VERTICE>& vertices, 
 
         vertice.pos    = vertexes[indexes[i].ipos];
         vertice.normal = normals[indexes[i].inormal];
-        vertice.color  = (RGBA)0;
-        
+        vertice.color  = (RGBA)NULL;
+
         if (indexes[i].iuv == 0xFF)
             vertice.uv = glm::vec2{0.0};
         else
@@ -277,10 +286,7 @@ void BuildSubGlob(GLOBSET* pglobset, SHD* pshd, std::vector<VERTICE>& vertices, 
     uint32_t idx = 0;
     for (int i = 2; i < indexes.size(); i++)
     {
-        uint16_t indice0 = indexes[idx + 0].ipos;
-        uint16_t indice1 = indexes[idx + 1].ipos;
-        uint16_t indice2 = indexes[idx + 2].ipos;
-        byte stripFlag   = indexes[idx + 2].bMisc;
+        byte stripFlag = indexes[idx + 2].bMisc;
 
         if (!(stripFlag & 0x80))
         {
@@ -291,22 +297,6 @@ void BuildSubGlob(GLOBSET* pglobset, SHD* pshd, std::vector<VERTICE>& vertices, 
 
         idx++;
     }
-
-    vertexes.clear();
-    vertexes.shrink_to_fit();
-    normals.clear();
-    normals.shrink_to_fit();
-    vertexColors.clear();
-    vertexColors.shrink_to_fit();
-    texcoords.clear();
-    texcoords.shrink_to_fit();
-    indexes.clear();
-    indexes.shrink_to_fit();
-}
-
-void CloneGlobset(GLOBSET* pglobset, ALO* palo, GLOBSET* pglobsetBase)
-{
-    
 }
 
 void MakeGLBuffers(SUBGLOB *subglob)
@@ -322,24 +312,19 @@ void MakeGLBuffers(SUBGLOB *subglob)
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, subglob->EBO);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, subglob->indices.size() * sizeof(uint16_t), subglob->indices.data(), GL_STATIC_DRAW);
 
+    // Vertex Position's
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(VERTICE), (void*)0);
     glEnableVertexAttribArray(0);
 
+    // Normal's
     glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(VERTICE), (void*)12);
     glEnableVertexAttribArray(1);
 
+    // Vertex Color's
     glVertexAttribPointer(2, 1, GL_UNSIGNED_INT, GL_FALSE, sizeof(VERTICE), (void*)24);
     glEnableVertexAttribArray(2);
 
+    // Uv's
     glVertexAttribPointer(3, 2, GL_FLOAT, GL_FALSE, sizeof(VERTICE), (void*)28);
     glEnableVertexAttribArray(3);
-
-    glBindVertexArray(0);
-
-    subglob->vertices.clear();
-}
-
-void DrawGlob(GLOBSET* pglobset)
-{
-    
 }

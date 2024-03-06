@@ -23,17 +23,19 @@ int GetProxySize()
 
 void LoadProxyFromBrx(PROXY* pproxy, CBinaryInputStream* pbis)
 {
-	/*ProxyCount++;
-	std::cout << "ProxyCount: " << ProxyCount<<"\n";*/
+	ProxyCount++;
+	//std::cout << "ProxyCount: " << ProxyCount<<"\n";
 
 	// Proxy source objects to keep track of
 	std::vector <LO*> proxyObjs;
 
 	InitDl(&pproxy->dlProxyRoot, offsetof(PXR, dleProxyRoot));
 
+	// Reading transformation for proxy object
 	pproxy->xf.mat = pbis->ReadMatrix();
 	pproxy->xf.pos = pbis->ReadVector();
 
+	// Reading number of proxy objects
 	byte numProxyObjs = pbis->U8Read();
 
 	pproxy->pvtalo->pfnUpdateAloXfWorld(pproxy);
@@ -85,14 +87,31 @@ void LoadProxyFromBrx(PROXY* pproxy, CBinaryInputStream* pbis)
 
 	for (int i = 0; i < unk0; i++)
 	{
-		short oid = pbis->S16Read();
-		short isplice = pbis->S16Read();
-		pbis->U32Read();
-		int8_t unk1 = pbis->S8Read();
+		// Loading oid needed to find
+		OID oidFind = (OID)pbis->S16Read();
+	
+		LO* pvObject = nullptr;
 
-		if (unk1 == 2)
+		/*for (int a = 0; a < proxyObjs.size(); a++)
+		{
+			if (proxyObjs[a]->oid != oidFind && (proxyObjs[a]->pvtlo->grfcid & 1U) != 0)
+				pvObject = PloFindSwObject(pproxy->psw, 0x101, oidFind, pvObject);
+
+			if (pvObject != nullptr) break;
+
+			else
+				pvObject = proxyObjs[a];
+		}*/
+
+		// Loads splice index
+		short isplice = pbis->S16Read();
+
+		pbis->U32Read();
+
+		if (pbis->S8Read() == 2)
 			pbis->F32Read();
 
+		// GOTTA COME BACK TO THIS
 		LoadOptionsFromBrx(proxyObjs[0], pbis);
 	}
 
@@ -114,15 +133,15 @@ void LoadProxyFromBrx(PROXY* pproxy, CBinaryInputStream* pbis)
 			proxyDLI.m_ibDle = pproxy->dlChild.ibDle;
 			proxyDLI.m_pdliNext = s_pdliFirst;
 			LO* object = pproxy->dlChild.ploFirst;
-			proxyDLI.m_ppv = (void**)((uint64_t)&object->pvtlo + proxyDLI.m_ibDle);
+			proxyDLI.m_ppv = (void**)((uintptr_t)object + proxyDLI.m_ibDle);
 			s_pdliFirst = &proxyDLI;
 			proxyDLI.m_pdl = &pproxy->dlChild;
 
-			for (int i = 0; i < proxyObjs.size(); i++)
+			while(object != nullptr)
 			{
-				object->pvtlo->pfnSetLoParent(object, (ALO*)proxyObjs[i]);
+				object->pvtlo->pfnSetLoParent(object, (ALO*)proxyObjs[0]);
 				object = (LO*)*proxyDLI.m_ppv;
-				proxyDLI.m_ppv = (void**)((uint64_t)&object->pvtlo + proxyDLI.m_ibDle);
+				proxyDLI.m_ppv = (void**)((uintptr_t)object + proxyDLI.m_ibDle);
 			}
 
 			s_pdliFirst = proxyDLI.m_pdliNext;
@@ -131,9 +150,6 @@ void LoadProxyFromBrx(PROXY* pproxy, CBinaryInputStream* pbis)
 
 	pproxy->pvtlo->pfnRemoveLo(pproxy);
 	pproxy->pvtlo->pfnAddLo(pproxy);
-	
-	proxyObjs.clear();
-	proxyObjs.shrink_to_fit();
 }
 
 void CloneProxy(PROXY* pproxy, PROXY* pproxyBase)
@@ -145,6 +161,7 @@ void CloneProxy(PROXY* pproxy, PROXY* pproxyBase)
 	CloneLo(pproxy, pproxyBase);
 
 	ClearDl(&pproxy->dlChild);
+	ClearDl(&pproxy->dlProxyRoot);
 }
 
 void DeleteProxy(LO* plo)

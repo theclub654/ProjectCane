@@ -2,7 +2,6 @@
 #include "lo.h"
 
 extern std::vector<LO*> allWorldObjs;
-
 static int LoadOptionsFromBrxCount = 0;
 
 // Initializes Options

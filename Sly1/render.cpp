@@ -41,7 +41,7 @@ void DrawSw(SW* psw, CM* pcm)
 void DrawSwAll()
 {
 	glShader.Use();
-
+	
 	for (int i = 0; i < allSWAloObjs.size(); i++)
 		DrawAlo(allSWAloObjs[i], i);
 }

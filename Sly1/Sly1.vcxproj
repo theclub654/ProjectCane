@@ -154,6 +154,7 @@
     <ClInclude Include="..\Libraries\include\imgui\imstb_truetype.h" />
     <ClInclude Include="ac.h" />
     <ClInclude Include="act.h" />
+    <ClInclude Include="actseg.h" />
     <ClInclude Include="alarm.h" />
     <ClInclude Include="alo.h" />
     <ClInclude Include="aseg.h" />
@@ -293,6 +294,7 @@
     <ClCompile Include="..\Libraries\include\imgui\imgui_widgets.cpp" />
     <ClCompile Include="ac.cpp" />
     <ClCompile Include="act.cpp" />
+    <ClCompile Include="actseg.cpp" />
     <ClCompile Include="alarm.cpp" />
     <ClCompile Include="alo.cpp" />
     <ClCompile Include="aseg.cpp" />
@@ -424,8 +426,10 @@
     <None Include="..\.gitignore" />
     <None Include="..\README.md" />
     <None Include="collision.frag" />
+    <None Include="collision.geom" />
     <None Include="collision.vert" />
     <None Include="glob.frag" />
+    <None Include="glob.geom" />
     <None Include="glob.vert" />
   </ItemGroup>
   <ItemGroup>

@@ -5,6 +5,7 @@
 #include "freecamera.h"
 #include "splicemap.h"
 #include "util.h"
+#include <bitset>
 
 typedef unsigned int SYMID;
 
@@ -72,8 +73,11 @@ struct PSL
 // Stores all info about the proxy source object.
 struct PXR 
 {
+    // Ptr to PRX object
     struct LO* plo;
+    // OID for proxy root
     OID oidProxyRoot;
+    // List that keeps track of PXR objects
     DLE dleProxyRoot;
     char* pchzProxyRoot;
 };

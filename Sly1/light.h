@@ -20,6 +20,7 @@ class LIGHT : public ALO
 		LIGHTK lightk;
 		TWPS twps;
 		glm::vec3 vecHighlight;
+		// Diffuse
 		float gMidtone;
 		float gShadow;
 		float degHighlight;

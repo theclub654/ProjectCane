@@ -13,7 +13,7 @@ class GLSHADER
 
     GLuint ID;
 
-    void Init(const char* vertexFile, const char* fragmentFile);
+    void Init(const char* vertexFile, const char* geometryFile, const char* fragmentFile);
 
     void Use();
     void Delete();

@@ -1,15 +1,52 @@
 #pragma once
 #include "lo.h"
 
+struct CBSP 
+{
+    glm::vec3 normal;
+    float gDot;
+
+    union
+    {
+        struct CBSP* pcbspNeg;
+        struct CGT* pcgtNeg;
+    };
+
+    union 
+    {
+        struct CBSP* pcbspPos;
+        struct CGT* pcgtPos;
+    };
+};
+
+struct CGT 
+{
+    struct CGV* apcgv[3];
+};
+
+struct CGE 
+{
+    struct CGV* apcgv[2];
+    struct CGT* apcgt[2];
+    float s;
+};
+
+struct CGV 
+{
+    glm::vec3 pos;
+    int cpcge;
+    struct CGE** apcge;
+};
+
 struct CG 
 {
     int ccgv;
-    struct CGV* acgv;
+    struct std::vector <CGV> acgv;
     int ccge;
     int ccgeBoundary;
-    struct CGE* acge;
+    std::vector <CGE> acge;
     int ccgt;
-    struct CGT* acgt;
+    std::vector <CGT> acgt;
     int ccbsp;
     struct CBSP* acbsp;
 };

@@ -8,6 +8,10 @@ void* NewJt()
 void InitJt(JT* pjt)
 {
 	InitStep(pjt);
+	pjt->jts = JTS_Nil;
+	pjt->jtcs = JTCS_Nil;
+	pjt->jtbs = JTBS_Nil;
+	pjt->jtjk = JTJK_Nil;
 }
 
 void LoadJtFromBrx(JT* pjt, CBinaryInputStream* pbis)

@@ -441,6 +441,9 @@
     <ClInclude Include="act.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="actseg.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="phasemem.cpp">
@@ -851,6 +854,9 @@
     <ClCompile Include="act.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="actseg.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\README.md">
@@ -869,6 +875,12 @@
       <Filter>Resource Files</Filter>
     </None>
     <None Include="collision.vert">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="glob.geom">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="collision.geom">
       <Filter>Resource Files</Filter>
     </None>
   </ItemGroup>

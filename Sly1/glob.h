@@ -101,12 +101,8 @@ struct SUBGLOB // NOT DONE
 
 	glm::vec3 posCenter; // Submodel orgin
 	float sRadius;
+
 	std::vector <VERTICE> vertices;
-	std::vector <glm::vec3> vertexes;
-	std::vector <glm::vec3> normals;
-	std::vector <RGBA> vertexColors;
-	std::vector <glm::vec2> texcoords;
-	std::vector <VTXFLG> indexes;
 	std::vector <uint16_t> indices;
 
 	uint32_t unSelfIllum;
@@ -183,8 +179,5 @@ struct GLOBSET // NOT DONE
 void LoadGlobsetFromBrx(GLOBSET* pglobset, CBinaryInputStream* pbis, ALO* palo); // NOT FINISHED
 // Converts strips to tri lists
 void BuildSubGlob(GLOBSET *pglobset, SHD* pshd, std::vector<VERTICE> &vertices , std::vector <glm::vec3> &vertexes, std::vector <glm::vec3> &normals, std::vector <RGBA> &vertexColors, std::vector <glm::vec2> &texcoords, std::vector <VTXFLG> &indexes, std::vector<uint16_t> &indices);
-void CloneGlobset(GLOBSET *pglobset, ALO* palo, GLOBSET *pglobsetBase);
 // Storing 3D models in VRAM
 void MakeGLBuffers(SUBGLOB* subglob);
-// Draws Model, MIGHT NOT NEED THIS FUNCTION ANYMORE
-void DrawGlob(GLOBSET* pglobset); // NOT FINISHED

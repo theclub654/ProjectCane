@@ -30,14 +30,17 @@ void OnPathzoneRemove(PATHZONE* ppathzone)
 void LoadPathZoneFromBrx(PATHZONE* ppathzone, CBinaryInputStream* pbis)
 {
     LoadLoFromBrx(ppathzone, pbis);
-    uint16_t unk_0 = pbis->U16Read();
-    uint16_t unk_1 = pbis->U16Read();
-    uint16_t unk_2 = pbis->U16Read();
-    uint16_t unk_3 = pbis->U16Read();
+    ppathzone->cg.ccgv = pbis->U16Read();
+    ppathzone->cg.acgv.resize(ppathzone->cg.ccgv);
 
-    uint16_t unk = unk_1 + unk_2;
+    ppathzone->cg.ccgeBoundary = pbis->U16Read();
+    ppathzone->cg.ccge = ppathzone->cg.ccgeBoundary + pbis->U16Read();
+    ppathzone->cg.acge.resize(ppathzone->cg.ccge);
 
-    for (int i = 0; i < unk_0; i++)
+    ppathzone->cg.ccgt = pbis->U16Read();
+    ppathzone->cg.acgt.resize(ppathzone->cg.ccgt);
+
+    for (int i = 0; i < ppathzone->cg.ccgv; i++)
     {
         pbis->ReadVector();
         byte unk_4 = pbis->U8Read();
@@ -47,13 +50,13 @@ void LoadPathZoneFromBrx(PATHZONE* ppathzone, CBinaryInputStream* pbis)
     }
 
 
-    for (int i = 0; i < unk; i++)
+    for (int i = 0; i < ppathzone->cg.ccge; i++)
     {
         for (int i = 0; i < 2; i++)
             pbis->U16Read();
     }
 
-    for (int i = 0; i < unk_3; i++)
+    for (int i = 0; i < ppathzone->cg.ccgt; i++)
     {
         for (int i = 0; i <= 2; i++)
             pbis->U16Read();

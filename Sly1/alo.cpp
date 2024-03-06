@@ -12,9 +12,26 @@ void InitAlo(ALO* palo)
 {
 	InitDl(&palo->dlChild, offsetof(LO, dleChild));
 	InitDl(&palo->dlFreeze, offsetof(ALO, dleFreeze));
+	
+	if (palo->paloParent == nullptr)
+		palo->cpaloFindSwObjects = 5;
+	else
+		palo->fNoFreeze = true;
 
-	void* temp = &palo->xf.posWorld;
 	InitLo(palo);
+
+	palo->zons = ZONS_Max;
+	palo->viss = VISS_Max;
+	palo->mrds = MRDS_Max;
+	palo->dms = DMS_UseMat;
+	palo->fHidden = true;
+	palo->fFixedPhys = true;
+	palo->fMtlkFromDls = true;
+	palo->fWater = true;
+	palo->fForceCameraFade = true;
+	palo->fBusy = true;
+	palo->fFrozen = true;
+	palo->fRemerge = true;
 
 	palo->sCelBorderMRD = 2139095039;
 	palo->sMRD = 2139095039;
@@ -24,7 +41,10 @@ void InitAlo(ALO* palo)
 	palo->matOrig = glm::identity<glm::mat3>();
 	
 	InitDl(&palo->dlAct, offsetof(ACT, dleAlo));
-	allSWAloObjs.push_back(palo);
+
+	if(palo->pvtlo->cid != CID_LIGHT)
+		allSWAloObjs.push_back(palo);
+
 }
 
 void RemoveAloHierarchy(ALO *palo)
@@ -378,15 +398,17 @@ void LoadAloFromBrx(ALO* palo, CBinaryInputStream* pbis)
 	palo->xf.mat = pbis->ReadMatrix();
 	palo->xf.pos = pbis->ReadVector();
 	//
+	
+	pbis->U8Read();
+	pbis->U8Read();
+	pbis->U8Read();
 
-	pbis->U8Read();
-	pbis->U8Read();
-	pbis->U8Read();
 	palo->grfzon = pbis->U32Read();
 	palo->sMRD = pbis->F32Read();
 	palo->sCelBorderMRD = pbis->F32Read();
 	palo->sRadiusRenderSelf = pbis->F32Read();
 	palo->sRadiusRenderAll = pbis->F32Read();
+
 	LoadOptionsFromBrx(palo, pbis);
 	LoadGlobsetFromBrx(&palo->globset ,pbis, palo);
 	LoadAloAloxFromBrx(palo, pbis);
@@ -405,6 +427,7 @@ void LoadAloFromBrx(ALO* palo, CBinaryInputStream* pbis)
 			palo->aposec[i].agPoses[a] = pbis->F32Read();
 	}
 
+	// Loads ALO children objects
 	LoadSwObjectsFromBrx(palo->psw, palo, pbis);
 }
 
@@ -524,22 +547,19 @@ void DrawAlo(ALO* palo, int index)
 	{
 		for (int a = 0; a < palo->globset.aglob[i].csubglob; a++)
 		{
-			int modelUniformLocation = glGetUniformLocation(glShader.ID, "model");
-			glUniformMatrix4fv(modelUniformLocation, 1, GL_FALSE, glm::value_ptr(model));
-
-			glBindTexture(GL_TEXTURE_2D, palo->globset.aglob[i].asubglob[a].pshd->glTexture);
-
+			glBindTexture(GL_TEXTURE_2D, palo->globset.aglob[i].asubglob[a].pshd->glDiffuseTexture);
+			
 			glBindVertexArray(palo->globset.aglob[i].asubglob[a].VAO);
-			glDrawElements(GL_TRIANGLES, palo->globset.aglob[i].asubglob[a].indices.size(), GL_UNSIGNED_SHORT, 0);
 
+			glUniformMatrix4fv(glGetUniformLocation(glShader.ID, "model"), 1, GL_FALSE, glm::value_ptr(model));
+			glDrawElements(GL_TRIANGLES, palo->globset.aglob[i].asubglob[a].indices.size(), GL_UNSIGNED_SHORT, 0);
+			
 			// Draws instanced models, I WILL OPTIMIZE THIS LATER
 			for (int b = 0; b < palo->globset.aglob[i].pdmat.size(); b++)
 			{
 				glm::mat4 instanceModelMatrix = palo->globset.aglob[i].pdmat[b];
 
-				int instanceModelUniformLocation = glGetUniformLocation(glShader.ID, "model");
-				glUniformMatrix4fv(instanceModelUniformLocation, 1, GL_FALSE, glm::value_ptr(instanceModelMatrix));
-
+				glUniformMatrix4fv(glGetUniformLocation(glShader.ID, "model"), 1, GL_FALSE, glm::value_ptr(instanceModelMatrix));
 				glDrawElements(GL_TRIANGLES, palo->globset.aglob[i].asubglob[a].indices.size(), GL_UNSIGNED_SHORT, 0);
 			}
 		}

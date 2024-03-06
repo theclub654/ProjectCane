@@ -18,7 +18,7 @@ int GetDialogSize()
 void LoadDialogFromBrx(DIALOG* pdialog, CBinaryInputStream* pbis)
 {
 	LoadAloFromBrx(pdialog, pbis);
-	LoadDialogEventsFromBrx(pbis);
+	LoadDialogEventsFromBrx(pdialog, pbis, &pdialog->cde, &pdialog->ade);
 }
 
 void CloneDialog(DIALOG* pdialog, DIALOG* pdialogBase)
@@ -32,61 +32,51 @@ void CloneDialog(DIALOG* pdialog, DIALOG* pdialogBase)
 	ClearDl(&pdialog->dlChild);
 }
 
-void LoadDialogEventsFromBrx(CBinaryInputStream* pbis)
+void LoadDialogEventsFromBrx(DIALOG* pdialog, CBinaryInputStream* pbis, int* pcde, DE** pade)
 {
-	int8_t unk0 = pbis->S8Read();
+	int8_t numDialogEvents = pbis->S8Read();
 
-	for (int i = 0; i < unk0; i++)
+	for (int i = 0; i < numDialogEvents; i++)
 	{
-		int8_t unk1 = pbis->S8Read();
+		DEK dek = (DEK)pbis->S8Read();
 
-		switch (unk1)
+		switch (dek)
 		{
-		case 10:
-		{
-			pbis->ReadStringSw();
-			break;
-		}
+			case 10:
+			case DEK_PreloadVag:
+			{
+				pbis->ReadStringSw();
+				break;
+			}
 
-		case 0:
-		{
-			pbis->ReadStringSw();
-			break;
-		}
+			
+			case DEK_SpeakerLeft:
+			case DEK_SpeakerRight:
+			{
+				pbis->S16Read();
+				pbis->S16Read();
+				break;
+			}
 
-		case 1:
-		{
-			pbis->S16Read();
-			pbis->S16Read();
-			break;
-		}
+			case DEK_Talk:
+			{
+				pbis->F32Read();
+				pbis->F32Read();
+				pbis->U8Read();
+				pbis->U8Read();
+				pbis->S16Read();
+				pbis->S16Read();
+				pbis->S16Read();
+				pbis->S16Read();
+				pbis->ReadStringSw();
+				break;
+			}
 
-		case 2:
-		{
-			pbis->S16Read();
-			pbis->S16Read();
-			break;
-		}
-
-		case 3:
-		{
-			pbis->F32Read();
-			pbis->F32Read();
-			pbis->U8Read();
-			pbis->U8Read();
-			pbis->S16Read();
-			pbis->S16Read();
-			pbis->S16Read();
-			pbis->S16Read();
-			pbis->ReadStringSw();
-			break;
-		}
-
-		case 4:
-		{
-			pbis->S16Read();
-			break;
-		}
+			case DEK_CallSplice:
+			{
+				pbis->S16Read();
+				break;
+			}
 		}
 	}
 }

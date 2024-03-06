@@ -38,6 +38,27 @@ struct HSG
 	int ipsubglob;
 };
 
+enum CT 
+{
+	CT_Free = 0,
+	CT_Tangent = 1,
+	CT_Project = 2,
+	CT_Locked = 3
+};
+
+struct CONSTR 
+{
+	glm::vec3 normal;
+	CT ct;
+};
+
+struct BSPC 
+{
+	int cbsp;
+	int cbspFull;
+	struct BSP* absp;
+};
+
 // Static Object
 class SO : public ALO
 {
@@ -59,18 +80,18 @@ public:
 	float sRadiusAll;
 	float sRadiusPrune;
 	glm::vec3 posPrune;
-	char bspc[12];
+	BSPC bspc;
 	int cnpg;
 	std::vector <NPG> anpg;
 	std::vector <uint32_t> mpibspinpg;
 	int chsg;
 	std::vector <HSG> ahsg;
-	void* mpisurfihsgMic;
+	int* mpisurfihsgMic;
 	DLE dleBusySo;
 	glm::vec3 posMin;
 	glm::vec3 posMax;
-	char constrForce[32];
-	char constrTorque[32];
+	CONSTR constrForce;
+	CONSTR constrTorque;
 	struct OXA* poxa;
 	glm::vec3 dpos;
 	glm::vec3 drot;
@@ -83,7 +104,32 @@ public:
 	SO *psoPhysHook;
 	GEOM geomCameraLocal;
 	GEOM geomCameraWorld;
-	char bspcCamera[12];
+	BSPC bspcCamera;
+	unsigned int cmk : 4;
+	unsigned int egk : 4;
+	unsigned int fSphere : 1;
+	unsigned int fClone : 1;
+	unsigned int fNoXpsAll : 1;
+	unsigned int fNoXpsSelf : 1;
+	unsigned int fNoXpsCenter : 1;
+	unsigned int fActive : 1;
+	unsigned int fVelcro : 1;
+	unsigned int fIgnoreLocked : 1;
+	unsigned int fIceable : 1;
+	unsigned int fRoot : 1;
+	unsigned int fPhys : 1;
+	unsigned int fNoGravity : 1;
+	unsigned int fCenterXp : 1;
+	unsigned int fLockedSelf : 1;
+	unsigned int fLockedAll : 1;
+	unsigned int fLockedAbove : 1;
+	unsigned int fCpsoBuildContactGroup : 1;
+	unsigned int fCpxpBuildArray : 1;
+	unsigned int fUpdateXaList1 : 1;
+	unsigned int fUpdateXaList2 : 1;
+	unsigned int fRecalcSwXpAll : 1;
+	unsigned int fHandleDiveEffect : 1;
+	unsigned int fGenSpliceTouchEvents : 1;
 	struct STSO* pstso;
 };
 
@@ -98,8 +144,11 @@ void OnSoAdd(SO *pso); // NOT FINISHED
 void OnSoRemove(SO* pso);
 // Clones a SO
 void CloneSo(SO* pso, SO* psoBase);
+// Sets a parent to a SO
 void SetSoParent(SO* pso, ALO* paloParent);
+// Apply transformtion to a proxy object
 void ApplySoProxy(SO* pso, PROXY* pproxyApply);
+// Updates the SO hierarchy transformations
 void UpdateSoXfWorldHierarchy(SO* pso);
 void UpdateSoXfWorld(SO* pso);
 // Loads SO from binary file

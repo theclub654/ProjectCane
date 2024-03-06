@@ -1,7 +1,9 @@
 #pragma once
 #include "so.h"
+#include "light.h"
 
-extern std::vector<ALO*> allSWAloObjs;
+extern std::vector <ALO*> allSWAloObjs;
+extern std::vector <LIGHT*> allSwLights;
 std::vector<SO*> allSWSoObjs;
 
 // Loops through all objects in a level to see which object is in camera view and stores all objects

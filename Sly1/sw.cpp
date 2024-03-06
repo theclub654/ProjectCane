@@ -47,6 +47,7 @@ void InitSw(SW* psw)
 	InitSwCrfodDl(psw);
 	InitSwShapeDl(psw);
 	InitSwPathzoneDl(psw);
+	psw->lsmDefault.uShadow = 50.0;
 }
 
 int GetSwSize()
@@ -135,6 +136,155 @@ LO* PloGetSwProxySource(SW* psw, int ipsl)
 	return psl->aploClone[psl->cploCloneFree -= 1];
 }
 
+void GetSwParams(SW* psw, SOP** ppsop)
+{
+
+}
+
+void SetSwIllum(SW* psw, float uMidtone)
+{
+	psw->lsmDefault.uMidtone = uMidtone;
+}
+
+void SetSwIllumShadow(SW* psw, float uShadow)
+{
+	psw->lsmDefault.uShadow = uShadow;
+}
+
+void SetSwDarken(SW* psw, float rDarken)
+{
+	psw->rDarken = rDarken;
+	psw->rDarkenSmooth = rDarken;
+}
+
+void SetSwDarkenSmooth(SW* psw, float rDarkenSmooth)
+{
+	psw->rDarkenSmooth = rDarkenSmooth;
+}
+
+void MatchSwObject(LO* ploMatch, GRFFSO grffsoMask, int fIncludeRemoved, int fProxyMatch, LO* ploContext, int cploMax, int& pcploMatch, LO** aplo, int& pcpaloBest)
+{
+	ALO* palo = nullptr;
+
+	switch (grffsoMask)
+	{
+		case 1:
+			if (ploMatch->ppxr == nullptr)
+				palo = ploMatch->paloParent;
+
+			else
+			{
+				if (fProxyMatch == 0)
+					return;
+
+				palo = ploMatch->paloParent;
+			}
+
+			if (palo == nullptr)
+				return;
+
+
+	}
+}
+
+int CploFindSwObjects(SW* psw, GRFFSO grffso, OID oid, LO* ploContext, int cploMax, LO** aplo)
+{
+	int cpaloBest = 0;
+	int cploMatch = 0;
+	int count = 0;
+	ALO* palo = nullptr;
+
+	if (oid == OID_Nil)
+		cploMatch = 0;
+
+	else
+	{
+		if ((grffso & 0xff) == 1)
+		{
+			palo = (ALO*)ploContext;
+
+			if (ploContext != nullptr && ((ploContext->pvtlo->grfcid ^ 1U) & 1) != 0)
+				palo = ploContext->paloParent;
+
+			count = 0;
+
+			if (palo != nullptr)
+			{
+				while (true)
+				{
+					count++;
+					palo = palo->paloParent;
+					if (palo == nullptr) break;
+				}
+			}
+
+			cpaloBest = 0x7fffffff;
+			if (ploContext == nullptr && (grffso & 0xff) == 3, (grffso & 0xff) == 5)
+			{
+				cploMatch = 0;
+				return cploMatch;
+			}
+		}
+
+		else if ((grffso & 0xff) == 0 || 4 < (grffso & 0xff))
+			palo = nullptr;
+
+		else
+		{
+			palo = nullptr;
+			///////////////////////////////////////////
+		}
+
+		cploMatch = 0;
+
+		LO* ploMatch = PdlFromSwOid(psw, oid)->ploFirst;
+
+		if (ploMatch != nullptr)
+		{
+			while (true)
+			{
+				if (ploMatch->oid == oid)
+				{
+					if ((ploMatch->pvtlo->grfcid & 0x100U) == 0)
+					{
+						if (ploMatch->ppxr == nullptr || ploMatch->ppxr->oidProxyRoot != ploMatch->oid)
+							MatchSwObject(ploMatch, grffso & 0xFF, grffso & 0x100, 0, ploContext, cploMax, cploMatch, aplo, cpaloBest);
+					}
+
+					else
+					{
+						///GOTTA COME BACK HERE
+					}
+
+				}
+
+				else
+					ploMatch = ploMatch->dleOid.ploNext;
+
+				if (ploMatch == nullptr) break;
+			}
+		}
+	}
+
+	return cploMatch;
+}
+
+LO* PloFindSwObject(SW* psw, GRFFSO grffso, OID oid, LO* ploContext)
+{
+	LO* plo = nullptr;
+	CploFindSwObjects(psw, grffso | 0x200, oid, ploContext, 1, &plo);
+	return plo;
+}
+
+void UpdateSw(SW* psw, float dt)
+{
+	for (int i = 0; i < allSWAloObjs.size(); i++)
+	{
+		if (allSWAloObjs[i]->pvtalo->pfnUpdateAlo != nullptr)
+			allSWAloObjs[i]->pvtalo->pfnUpdateAlo(allSWAloObjs[i], 0);
+	}
+}
+
 void DeleteSw(SW* psw)
 {
 	if (psw != nullptr)
@@ -157,7 +307,11 @@ void DeleteWorld(SW* psw)
 		allWorldObjs[i]->pvtlo->pfnDeleteLo(allWorldObjs[i]);
 
 	for (int i = 0; i < g_ashd.size(); i++)
-		glDeleteTextures(1, &g_ashd[i].glTexture);
+	{
+		glDeleteTextures(1, &g_ashd[i].glAmbientTexture);
+		glDeleteTextures(1, &g_ashd[i].glDiffuseTexture);
+		glDeleteTextures(1, &g_ashd[i].glGradiantTexture);
+	}
 
 	allSWAloObjs.clear();
 	allSWAloObjs.shrink_to_fit();
@@ -172,18 +326,4 @@ void DeleteWorld(SW* psw)
 void DeleteSwObj(LO* plo)
 {
 	delete (SW*)plo;
-}
-
-void UpdateSw(SW *psw, float dt)
-{
-	for (int i = 0; i < allSWAloObjs.size(); i++)
-	{
-		if (allSWAloObjs[i]->pvtalo->pfnUpdateAlo != nullptr)
-			allSWAloObjs[i]->pvtalo->pfnUpdateAlo(allSWAloObjs[i], 0);
-	}
-}
-
-void GetSwParams(SW* psw, SOP** ppsop)
-{
-
 }

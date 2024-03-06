@@ -6,14 +6,16 @@ in vec3 aNormal;
 in vec4 aColor;
 in vec2 aTexcoord;
 
-uniform sampler2D Texture;
+in vec4 result;
+
+uniform sampler2D diffuseTexture;
 
 void main()
 {
-    vec4 texColor = texture(Texture, aTexcoord);
+    vec4 texColor = texture(diffuseTexture, aTexcoord);
 
-    if(texColor.a < 0.1)
+    if (texColor.a < 0.1)
         discard;
-
+        
     FragColor = texColor;
 }

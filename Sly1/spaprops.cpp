@@ -1928,10 +1928,12 @@ void BuildEopids()
 	g_aeopid[495].optdat.ibSet = 0;
 	g_aeopid[496].otyp = OTYP_Musid;
 	g_aeopid[496].grfeopid = 0x80;
+	g_aeopid[497].optdat.pfnset = (PFNSET)SetSwIllum;
 	g_aeopid[497].otyp = OTYP_Float;
 	g_aeopid[497].grfeopid = 0xa2;
 	g_aeopid[498].grfeopid = 0xa2;
 	g_aeopid[498].otyp = OTYP_Float;
+	g_aeopid[498].optdat.pfnset = (PFNSET)SetSwIllumShadow;
 	g_aeopid[499].grfeopid = 0x80;
 	g_aeopid[499].otyp = OTYP_Rgba;
 	g_aeopid[500].otyp = OTYP_Float;
@@ -1956,8 +1958,10 @@ void BuildEopids()
 	g_aeopid[509].otyp = OTYP_Float;
 	g_aeopid[509].grfeopid = 0x22;
 	g_aeopid[510].otyp = OTYP_Float;
+	g_aeopid[510].optdat.pfnset = (PFNSET)SetSwDarken;
 	g_aeopid[510].grfeopid = 0x22;
 	g_aeopid[511].otyp = OTYP_Float;
+	g_aeopid[511].optdat.pfnset = (PFNSET)SetSwDarkenSmooth;
 	g_aeopid[511].grfeopid = 0x22;
 	g_aeopid[512].optdat.ibSetUser = 4;
 	g_aeopid[512].otyp = OTYP_Int;
@@ -2283,8 +2287,6 @@ void BuildEopids()
 	g_aeopid[591].optdat.ibSetUser = 0x700;
 	g_aeopid[592].grfeopid = 0x112;
 	g_aeopid[592].otyp = OTYP_Float;
-	g_aeopid[592].optdat.ibGet = 0x70c;
-	g_aeopid[592].optdat.ibSet = 0x70c;
 	g_aeopid[593].otyp = OTYP_Void;
 	g_aeopid[593].optdat.ibSet = 2;
 	g_aeopid[593].grfeopid = 0x400;

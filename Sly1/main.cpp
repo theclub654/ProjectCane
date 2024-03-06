@@ -80,8 +80,9 @@ void Startup()
 	SetPhase(PHASE_Startup);
 	StartupBrx();
 	g_gl.InitGL();
-	glShader.Init("glob.vert", "glob.frag");
-	glShaderCollision.Init("collision.vert", "collision.frag");
+
+	glShader.Init("glob.vert", NULL, "glob.frag");
+	glShaderCollision.Init("collision.vert", NULL, "collision.frag");
 }
 
 void ProcessInput(GLFWwindow* window, double dt)

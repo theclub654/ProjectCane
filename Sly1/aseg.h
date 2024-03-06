@@ -1,5 +1,5 @@
 #pragma once
-#include "lo.h"
+#include "ac.h"
 
 enum SEGRPT 
 {
@@ -11,12 +11,23 @@ enum SEGRPT
     SEGRPT_Max = 4
 };
 
+struct CHN 
+{
+    OID oid;
+    struct ACP* pacp;
+    struct ACR* pacr;
+    struct ACS* pacs;
+    struct ACG* pacgTwist;
+    int cpacgPose;
+    struct ACG** apacgPose;
+};
+
 class ASEG : public LO
 {
 	public:
         float tMax;
         int cchn;
-        struct CHN* achn;
+        std::vector <CHN> achn;
         OID oidRoot;
         SEGRPT segrpt;
         int fDefault;
@@ -36,7 +47,7 @@ class ASEG : public LO
         float svtMasterSuck;
         struct CHN* pchnStrip;
         int coidSearchRoot;
-        enum OID* aoidSearchRoot;
+        std::vector <OID> aoidSearchRoot;
 };
 
 class ASEGBL : public ASEG

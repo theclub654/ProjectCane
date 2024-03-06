@@ -2170,6 +2170,7 @@ struct OPTDAT
 
     union {
         int ibGet;
+        // Function that returns data to be written to
         PFNGET pfnget;
 
         struct {
@@ -2186,6 +2187,7 @@ struct OPTDAT
 
     union {
         int ibSetUser;
+        // Function that sets the data
         PFNSET pfnsetUser;
     };
 
@@ -2197,11 +2199,15 @@ struct OPTDAT
 // Each Option ID
 struct EOPID
 {
+    // Option data type
     OTYP otyp;
     GRFEOPID grfeopid;
+    // Option data
     OPTDAT optdat;
 };
 
+// Builds the eopid option vector
 void BuildEopids();
 
+// Used to store option data
 extern std::vector<EOPID> g_aeopid;

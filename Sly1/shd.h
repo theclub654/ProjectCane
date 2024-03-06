@@ -58,7 +58,10 @@ struct TEXF
 
 struct SHDF
 {
-    GLuint glTexture;
+    GLuint glAmbientTexture;
+    GLuint glDiffuseTexture;
+    GLuint glGradiantTexture;
+
     byte shdk;
     byte grfshd;
     uint16_t oid;
@@ -96,14 +99,14 @@ void LoadBitmapsFromBrx(CBinaryInputStream *pbis);
 // Loads font property's from binary file
 void LoadFontsFromBrx(CBinaryInputStream *pbis); // GOTTA COME BACK TO THIS
 // Loads texture tables from binary file
-void LoadTexFromBrx(CBinaryInputStream* pbis, TEX* ptex);
+void LoadTexFromBrx(TEX* ptex, CBinaryInputStream* pbis);
 // Loads texture and shader property's from binary file
 void LoadShadersFromBrx(CBinaryInputStream *pbis);
 // Loads texture data from binary file
 void LoadTexturesFromBrx(CBinaryInputStream* pbis);
-std::vector <byte> MakeBmp(CBinaryInputStream* pbis, uint32_t bmpIndex);
-std::vector <byte> MakePallete(CBinaryInputStream* pbis, uint32_t clutIndex);
-void MakeTexture(CBinaryInputStream* pbis, uint32_t textureTableIndex, int16_t clutIndex, int16_t bmpIndex);
+std::vector <byte> MakeBmp(uint32_t bmpIndex, CBinaryInputStream* pbis);
+std::vector <byte> MakePallete(uint32_t clutIndex, CBinaryInputStream* pbis);
+void MakeTexture(GLuint &textureReference, int16_t clutIndex, int16_t bmpIndex, CBinaryInputStream* pbis);
 
 // Global variable which holds the number of CLUT's in a binary file
 static int g_cclut;

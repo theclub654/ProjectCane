@@ -8,6 +8,68 @@
 typedef uint32_t GRFZON;
 typedef uint32_t GRFALOX;
 
+enum ACK
+{
+	ACK_Nil = -1,
+	ACK_None = 0,
+	ACK_Spring = 1,
+	ACK_Velocity = 2,
+	ACK_Smooth = 3,
+	ACK_Spline = 4,
+	ACK_Drive = 5,
+	ACK_SmoothForce = 6,
+	ACK_SmoothLock = 7,
+	ACK_SpringLock = 8,
+	ACK_SmoothNoLock = 9,
+	ACK_Max = 10
+};
+enum MTLK : int
+{
+	MTLK_Nil = -1,
+	MTLK_Default = 0,
+	MTLK_Sand = 1,
+	MTLK_Metal = 2,
+	MTLK_Wood = 3,
+	MTLK_Rock = 4,
+	MTLK_Rubber = 5,
+	MTLK_Ice = 6,
+	MTLK_Tire = 7,
+	MTLK_Velcro = 8,
+	MTLK_NoBounce = 9,
+	MTLK_NoFriction = 10,
+	MTLK_NoFrictionElastic = 11,
+	MTLK_Max = 12
+};
+enum ZONS : unsigned int
+{
+	ZONS_Nil = -1,
+	ZONS_None = 0,
+	ZONS_Fixed = 1,
+	ZONS_Dynamic = 2,
+	ZONS_Max = 3
+};
+enum VISS : unsigned int
+{
+	VISS_Nil = -1,
+	VISS_None = 0,
+	VISS_Glob = 1,
+	VISS_Object = 2,
+	VISS_Max = 3
+};
+enum MRDS : unsigned int
+{
+	MRDS_Nil = -1,
+	MRDS_None = 0,
+	MRDS_Glob = 1,
+	MRDS_Object = 2,
+	MRDS_Max = 3
+};
+enum DMS : unsigned int
+{
+	DMS_Normal = 0,
+	DMS_UseMat = 1
+};
+
 struct XF
 {
 	glm::mat3 mat;
@@ -41,25 +103,23 @@ struct RSMG
 	OID oidUntriggerGoal;
 };
 
-enum ACK
-{
-	ACK_Nil = -1,
-	ACK_None = 0,
-	ACK_Spring = 1,
-	ACK_Velocity = 2,
-	ACK_Smooth = 3,
-	ACK_Spline = 4,
-	ACK_Drive = 5,
-	ACK_SmoothForce = 6,
-	ACK_SmoothLock = 7,
-	ACK_SpringLock = 8,
-	ACK_SmoothNoLock = 9,
-	ACK_Max = 10
-};
-
 struct ALOX
 {
 	GRFALOX grfalox;
+};
+
+struct FICG 
+{
+	union
+	{
+		byte grficSweep;
+		byte agrfic[1];
+	};
+
+	byte grficRush;
+	byte grficSmash;
+	byte grficBomb;
+	byte grficShock;
 };
 
 class ALO : public LO
@@ -112,27 +172,31 @@ class ALO : public LO
 		float sRadiusRenderSelf;
 		float sRadiusRenderAll;
 		struct SFX* psfx;
-		char ficg[5];
+		FICG ficg;
 		int cposec;
 		std::vector <POSEC> aposec;
 		struct ACTREF* pactrefCombo;
 		struct DLR* pdlrFirst;
-		int mtlk : 8;
-		uint32_t zons : 2;
-		uint32_t viss : 2;
-		uint32_t mrds : 2;
-		uint32_t dms : 2;
-		uint32_t fHidden : 1;
-		uint32_t fFixedPhys : 1;
-		uint32_t fMtlkFromDls : 1;
-		uint32_t fWater : 1;
-		uint32_t fForceCameraFade : 1;
-		uint32_t fBusy : 1;
-		uint32_t fFrozen : 1;
-		uint32_t fRemerge : 1;
-		uint32_t fNoFreeze : 1;
-		uint32_t cpaloFindSwObjects : 4;
-		uint32_t fApplyAseg : 1;
+		// First Byte
+		MTLK mtlk : 8;
+		// Second Byte
+		ZONS zons : 2;
+		VISS viss : 2;
+		MRDS mrds : 2;
+		DMS dms : 2;
+		// Third Byte
+		unsigned int fHidden : 1;
+		unsigned int fFixedPhys : 1;
+		unsigned int fMtlkFromDls : 1;
+		unsigned int fWater : 1;
+		unsigned int fForceCameraFade : 1;
+		unsigned int fBusy : 1;
+		unsigned int fFrozen : 1;
+		unsigned int fRemerge : 1;
+		// Fourth Byte
+		unsigned int fNoFreeze : 1;
+		unsigned int cpaloFindSwObjects : 4;
+		unsigned int fApplyAseg : 1;
 		ACK ackRot;
 };
 
@@ -142,6 +206,7 @@ void*NewAlo();
 void InitAlo(ALO* palo); // NOT FINISHED
 // Adds ALO parent and all the alo childs into the world
 void AddAloHierarchy(ALO *palo);
+// Removes ALO object from ALO Hierarchy
 void RemoveAloHierarchy(ALO *palo);
 // Adds ALO to Hierarchy
 void OnAloAdd(ALO* palo); // NOT FINISHED
@@ -149,32 +214,38 @@ void OnAloAdd(ALO* palo); // NOT FINISHED
 void OnAloRemove(ALO* palo);
 // Makes a copy of ALO and all of its children
 void CloneAloHierarchy(ALO* palo, ALO* paloBase);
-// Makes a copy of ALO
+// Makes a copy of ALO object
 void CloneAlo(ALO* palo, ALO* paloBase);
 void ResolveAlo(ALO *palo);
 // Sets a Alo object to a parent
 void SetAloParent(ALO* palo, ALO* paloParent);
+// Apply transformation to proxy ALO
 void ApplyAloProxy(ALO* palo, PROXY* pproxyApply);
 // Updates the ALO objects transformations
 void UpdateAloXfWorld(ALO* palo);
 // Updates the ALO objects world transformation hierarchy
 void UpdateAloXfWorldHierarchy(ALO* palo);
+// Moves ALO object to a position, Similar to the glm::translate function
 void TranslateAloToPos(ALO* palo, glm::vec3& ppos);
 void ConvertAloPos(ALO* paloFrom, ALO* paloTo, glm::vec3 &pposFrom, glm::vec3 &pposTo);
 void RotateAloToMat(ALO* palo, glm::mat3& pmat);
+// Rotate or scale object to a new transformation, similar to the glm::rotate or glm::scale function
 void ConvertAloMat(ALO* paloFrom, ALO* paloTo, glm::mat3 &pmatFrom, glm::mat3 &pmatTo);
 // Loads ALO object from binary file
 void LoadAloFromBrx(ALO* palo, CBinaryInputStream* pbis);
 // Loads bone data from binary file
 void LoadAloAloxFromBrx(ALO* palo, CBinaryInputStream* pbis);
+// Updates ALO object
 void UpdateAlo(ALO *palo, float dt);
 void RenderAloAll(ALO* palo, CM* pcm, RO* proDup);
 void RenderAloSelf(ALO* palo, CM* pcm, RO* pro);
 void RenderAloGlobset(ALO* palo, CM* pcm, RO* pro);
 void RenderAloLine(ALO* palo, CM* pcm, glm::vec3* ppos0, glm::vec3* ppos1, float rWidth, float uAlpha);
 void RenderAloAsBone(ALO* palo, CM* pcm, RO* pro);
+// Draw ALO object
 void DrawAlo(ALO *palo, int index);
 // Deletes Model from VRAM
 void DeleteModel(ALO *palo);
 int  GetAloSize();
+// Delete ALO object from memory
 void DeleteAlo(LO *palo);

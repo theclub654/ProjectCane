@@ -132,6 +132,7 @@ void LoadExitFromBrx(EXIT* pexit, CBinaryInputStream* pbis)
 
 		LO* plo = PloNew(cid, pexit->psw, pexit->paloParent, oid, isplice);
 		plo->pvtlo->pfnLoadLoFromBrx(plo, pbis);
+		plo->pvtlo->pfnRemoveLo(plo);
 	}
 
 }

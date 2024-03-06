@@ -68,7 +68,6 @@ void AddLightToSw(LIGHT* plight)
 void SetLightKind(LIGHT* plight, LIGHTK lightk)
 {
 	plight->lightk = lightk;
-
 }
 
 void SetLightHighlightColor(LIGHT* plight, glm::vec3 &pvecHighlight)

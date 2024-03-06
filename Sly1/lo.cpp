@@ -137,7 +137,7 @@ int FIsLoInWorld(LO *plo)
 
 			DL *pdl = &palo->dlChild;
 
-			if (palo == (ALO*)0x0) 
+			if (palo == nullptr) 
 				pdl = &plo->psw->dlChild;
 
 			int isFound = FFindDlEntry(pdl, plo);
@@ -145,7 +145,7 @@ int FIsLoInWorld(LO *plo)
 			if (isFound == 0)
 				return 0;
 			
-			if (palo == (ALO*)0x0) break;
+			if (palo == nullptr) break;
 
 			loPaloParent = palo->paloParent;
 
