@@ -1,6 +1,6 @@
 #include "aseg.h"
 
-void* NewAseg()
+ASEG* NewAseg()
 {
     return new ASEG{};
 }
@@ -299,9 +299,9 @@ void ApplyAseg(ASEG* paseg, ALO* paloAsegRoot, float tLocal, float svtLocal, int
 
 }
 
-void DeleteAseg(LO* plo)
+void DeleteAseg(ASEG* paseg)
 {
-    delete(ASEG*)plo;
+    delete paseg;
 }
 
 void* NewAsegbl()

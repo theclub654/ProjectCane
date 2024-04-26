@@ -3,7 +3,7 @@ extern std::vector<ALO*> allSWAloObjs;
 
 DLI* s_pdliFirst = nullptr;
 
-void* NewAlo()
+ALO*NewAlo()
 {
 	return new ALO{};
 }
@@ -534,7 +534,7 @@ void RenderAloAsBone(ALO* palo, CM* pcm, RO* pro)
 
 }
 
-void DrawAlo(ALO* palo, int index)
+void DrawGlob(ALO* palo, int index)
 {
 	glm::mat4 model = palo->xf.matWorld;
 
@@ -543,27 +543,50 @@ void DrawAlo(ALO* palo, int index)
 	model[3][2] = palo->xf.posWorld[2];
 	model[3][3] = 1.0;
 
-	for (int i = 0; i < palo->globset.cglob; i++)
+	for (int i = 0; i < palo->globset.aglob.size(); i++)
 	{
 		for (int a = 0; a < palo->globset.aglob[i].csubglob; a++)
 		{
-			glBindTexture(GL_TEXTURE_2D, palo->globset.aglob[i].asubglob[a].pshd->glDiffuseTexture);
-			
 			glBindVertexArray(palo->globset.aglob[i].asubglob[a].VAO);
 
-			glUniformMatrix4fv(glGetUniformLocation(glShader.ID, "model"), 1, GL_FALSE, glm::value_ptr(model));
+			glUniformMatrix4fv(glGetUniformLocation(glGlobShader.ID, "model"), 1, GL_FALSE, glm::value_ptr(model));
+			
+			glUniform1i(glGetUniformLocation(glGlobShader.ID, "isAmbient"),   palo->globset.aglob[i].asubglob[a].pshd->glAmbientTexture);
+			glUniform1i(glGetUniformLocation(glGlobShader.ID, "isDiffuse"),   palo->globset.aglob[i].asubglob[a].pshd->glDiffuseTexture);
+			glUniform1i(glGetUniformLocation(glGlobShader.ID, "isGreyScale"), palo->globset.aglob[i].asubglob[a].pshd->glGreyScaleTexture);
+
+			glActiveTexture(GL_TEXTURE0);
+			glBindTexture(GL_TEXTURE_2D, palo->globset.aglob[i].asubglob[a].pshd->glAmbientTexture);
+
+			glActiveTexture(GL_TEXTURE1);
+			glBindTexture(GL_TEXTURE_2D, palo->globset.aglob[i].asubglob[a].pshd->glDiffuseTexture);
+
+			glActiveTexture(GL_TEXTURE2);
+			glBindTexture(GL_TEXTURE_2D, palo->globset.aglob[i].asubglob[a].pshd->glGreyScaleTexture);
+
+			/*if (palo->globset.aglob[i].rp == RP_Translucent)
+			{
+				glEnable(GL_BLEND);
+				glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+			}*/
+
 			glDrawElements(GL_TRIANGLES, palo->globset.aglob[i].asubglob[a].indices.size(), GL_UNSIGNED_SHORT, 0);
 			
 			// Draws instanced models, I WILL OPTIMIZE THIS LATER
 			for (int b = 0; b < palo->globset.aglob[i].pdmat.size(); b++)
 			{
-				glm::mat4 instanceModelMatrix = palo->globset.aglob[i].pdmat[b];
-
-				glUniformMatrix4fv(glGetUniformLocation(glShader.ID, "model"), 1, GL_FALSE, glm::value_ptr(instanceModelMatrix));
+				// Sends instance model matrix to GPU
+				glUniformMatrix4fv(glGetUniformLocation(glGlobShader.ID, "model"), 1, GL_FALSE, glm::value_ptr(palo->globset.aglob[i].pdmat[b]));
 				glDrawElements(GL_TRIANGLES, palo->globset.aglob[i].asubglob[a].indices.size(), GL_UNSIGNED_SHORT, 0);
 			}
+
+			/*glDisable(GL_BLEND);
+			glEnable(GL_DEPTH);*/
 		}
 	}
+
+	glBindVertexArray(0);
+	glActiveTexture(GL_TEXTURE0);
 }
 
 void DeleteModel(ALO *palo)
@@ -584,7 +607,7 @@ int GetAloSize()
 	return sizeof(ALO);
 }
 
-void DeleteAlo(LO* palo)
+void DeleteAlo(ALO* palo)
 {
-	delete (ALO*)palo;
+	delete palo;
 }

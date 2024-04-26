@@ -62,7 +62,7 @@ class ASEGBL : public ASEG
 
 static int LoadAsegaCount;
 
-void*NewAseg();
+ASEG*NewAseg();
 void InitAseg(ASEG* paseg);
 int  GetAsegSize();
 void LoadAsegFromBrx(ASEG* paseg, CBinaryInputStream* pbis);

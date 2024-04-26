@@ -3,8 +3,9 @@
 // Temporary flag
 bool loadEmitMesh = 0;
 GL g_gl;
-GLSHADER glShader;
-GLSHADER glShaderCollision;
+GLSHADER glScreenShader;
+GLSHADER glGlobShader;
+GLSHADER glCollisionShader;
 std::string file;
 CTransition g_transition;
 FREECAMERA g_freecamera(glm::vec3{0.0});
@@ -22,45 +23,61 @@ int main(int cphzArgs, char* aphzArgs[])
 		// If level pending flag is set to other than zero load up level
 		if (g_transition.m_fPending != 0)
 		{
-			glFlush();
 			// Loads level
 			g_transition.Execute(file);
 		}
+
+		double currentTime = glfwGetTime();
+		deltaTime = currentTime - lastFrame;
+		lastFrame = currentTime;
 		
+		// Using custom frame buffer
+		glBindFramebuffer(GL_FRAMEBUFFER, g_gl.fbo);
+		// Making custom frame buffer all black
 		glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+		// Clear framebuffer color buffer and depth buffer
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+		// Activate Depth testing
+		glEnable(GL_DEPTH_TEST);
 
-		ImGui_ImplOpenGL3_NewFrame();
-		ImGui_ImplGlfw_NewFrame();
-		ImGui::NewFrame();
-
+		// Draws everything into the framebuffer
 		RenderMenuGui(g_psw);
+
+		ProcessInput(g_gl.window, deltaTime);
 
 		if (g_psw != nullptr)
 		{
-			double currentTime = glfwGetTime();
-			deltaTime = currentTime - lastFrame;
-			lastFrame = currentTime;
-
-			ProcessInput(g_gl.window, deltaTime);
-
-			g_freecamera.UpdateViewProjMatrix(g_gl.height, g_gl.width, glShader);
-			g_freecamera.UpdateViewProjMatrix(g_gl.height, g_gl.width, glShaderCollision);
-
-			if (fRenderWireFrame != 0)
-				glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-			else
-				glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-
 			if (fRenderModels != 0)
+			{
+				g_freecamera.UpdateViewProjMatrix(g_gl.height, g_gl.width, glGlobShader);
 				DrawSwAll();
+			}
 
 			if (fRenderCollision != 0)
+			{
+				g_freecamera.UpdateViewProjMatrix(g_gl.height, g_gl.width, glCollisionShader);
 				DrawSwCollisionAll();
+			}
 		}
 
 		ImGui::Render();
 		ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+
+		// Switches back to default frame buffer
+		glBindFramebuffer(GL_FRAMEBUFFER, 0);
+		// Making the default frame buffer black
+		glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+		// Clearing the color buffer of the default frame buffer
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+		// Using screen shader
+		glScreenShader.Use();
+		glDisable(GL_DEPTH_TEST);
+		// Binding the screen canvas
+		glBindVertexArray(g_gl.sbo);
+		// Binding scene texture
+		glBindTexture(GL_TEXTURE_2D, g_gl.fbc);
+		// Drawing the scene texture on the screen
+		glDrawArrays(GL_TRIANGLES, 0, 6);
 
 		glfwSwapBuffers(g_gl.window);
 		glfwSwapInterval(1);
@@ -68,21 +85,21 @@ int main(int cphzArgs, char* aphzArgs[])
 	}
 
 	DeleteSw(g_psw);
-	glShader.Delete();
-	glShaderCollision.Delete();
-	g_gl.GLFWTerminate();
+	g_gl.TerminateGL();
 	return 0;
 }
 
 void Startup()
 {
+	g_gl.InitGL();
+	
+	glScreenShader.Init("screen.vert", NULL, "screen.frag");
+	glGlobShader.Init("glob.vert", NULL, "glob.frag");
+	glCollisionShader.Init("collision.vert", NULL, "collision.frag");
+
 	std::cout << "Sly Cooper 2002 Sony Computer Entertainment America & Sucker Punch Productions\n\n";
 	SetPhase(PHASE_Startup);
 	StartupBrx();
-	g_gl.InitGL();
-
-	glShader.Init("glob.vert", NULL, "glob.frag");
-	glShaderCollision.Init("collision.vert", NULL, "collision.frag");
 }
 
 void ProcessInput(GLFWwindow* window, double dt)

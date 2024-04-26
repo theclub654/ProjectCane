@@ -5,6 +5,7 @@
 extern std::vector <ALO*> allSWAloObjs;
 extern std::vector <LIGHT*> allSwLights;
 std::vector<SO*> allSWSoObjs;
+std::vector<glm::vec3> allSwLightPositions;
 
 // Loops through all objects in a level to see which object is in camera view and stores all objects
 // in camera view in a render list

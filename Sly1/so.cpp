@@ -190,14 +190,16 @@ void DrawSoCollision(SO* pso)
 	model[3][2] = pso->xf.posWorld[2];
 	model[3][3] = 1.0;
 
-	int modelUniformLocation = glGetUniformLocation(glShaderCollision.ID, "model");
-	glUniformMatrix4fv(modelUniformLocation, 1, GL_FALSE, glm::value_ptr(model));
+	glUniformMatrix4fv(glGetUniformLocation(glCollisionShader.ID, "model"), 1, GL_FALSE, glm::value_ptr(model));
 
 	glBindVertexArray(pso->geomLocal.VAO);
 	glDrawElements(GL_LINES, pso->geomLocal.indices.size(), GL_UNSIGNED_SHORT, 0);
 
 	glBindVertexArray(pso->geomCameraLocal.VAO);
 	glDrawElements(GL_LINES, pso->geomCameraLocal.indices.size(), GL_UNSIGNED_SHORT, 0);
+
+	glBindVertexArray(0);
+	glActiveTexture(GL_TEXTURE0);
 }
 
 void DeleteSo(LO* plo)
@@ -220,4 +222,15 @@ void DeleteSwCollision()
 
 	allSWSoObjs.clear();
 	allSWSoObjs.shrink_to_fit();
+}
+
+void DeleteSoGeom(SO* pso)
+{
+	glDeleteVertexArrays(1, &pso->geomLocal.VAO);
+	glDeleteVertexArrays(1, &pso->geomLocal.VBO);
+	glDeleteVertexArrays(1, &pso->geomLocal.EBO);
+
+	glDeleteVertexArrays(1, &pso->geomCameraLocal.VAO);
+	glDeleteVertexArrays(1, &pso->geomCameraLocal.VBO);
+	glDeleteVertexArrays(1, &pso->geomCameraLocal.EBO);
 }

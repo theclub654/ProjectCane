@@ -1,6 +1,6 @@
 #include "bone.h"
 
-void* NewBone()
+BONE* NewBone()
 {
 	return new BONE{};
 }
@@ -30,12 +30,12 @@ void RenderBoneSelf(BONE* pbone, CM* pcm, RO* pro)
 	RenderSoSelf(pbone, pcm, pro);
 }
 
-void DeleteBone(LO* plo)
+void DeleteBone(BONE* pbone)
 {
-	delete (BONE*)plo;
+	delete pbone;
 }
 
-void* NewLBone()
+LBONE*NewLBone()
 {
 	return new LBONE{};
 }
@@ -45,15 +45,15 @@ int GetLBoneSize()
 	return sizeof(LBONE);
 }
 
-void CloneLBone(LBONE* lpbone, LBONE* lpboneBase)
+void CloneLBone(LBONE* plbone, LBONE* plboneBase)
 {
-	LO lo = *lpbone;
-	*lpbone = *lpboneBase;
-	memcpy(lpbone, &lo, sizeof(LO));
+	LO lo = *plbone;
+	*plbone = *plboneBase;
+	memcpy(plbone, &lo, sizeof(LO));
 
-	CloneLo(lpbone, lpboneBase);
+	CloneLo(plbone, plboneBase);
 
-	ClearDl(&lpbone->dlChild);
+	ClearDl(&plbone->dlChild);
 }
 
 void RenderLboneSelf(LBONE* plbone, CM* pcm, RO* pro)
@@ -61,7 +61,7 @@ void RenderLboneSelf(LBONE* plbone, CM* pcm, RO* pro)
 	RenderAloSelf(plbone, pcm, pro);
 }
 
-void DeleteLBone(LO* plo)
+void DeleteLBone(LBONE* plbone)
 {
-	delete (LBONE*)plo;
+	delete plbone;
 }

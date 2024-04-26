@@ -1,6 +1,6 @@
 #include "bomb.h"
 
-void* NewBomb()
+BOMB*NewBomb()
 {
 	return new BOMB{};
 }
@@ -40,7 +40,7 @@ void LoadBombFromBrx(BOMB* pbomb, CBinaryInputStream* pbis)
 	LoadSoFromBrx(pbomb, pbis);
 }
 
-void DeleteBomb(LO* plo)
+void DeleteBomb(BOMB* pbomb)
 {
-	delete (BOMB*)plo;
+	delete pbomb;
 }

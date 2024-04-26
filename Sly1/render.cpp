@@ -2,7 +2,7 @@
 
 void RenderSw(SW *psw, CM *pcm)
 {
-	glShader.Use();
+	glGlobShader.Use();
 
 	DLI dlBusyDli;
 
@@ -40,15 +40,19 @@ void DrawSw(SW* psw, CM* pcm)
 
 void DrawSwAll()
 {
-	glShader.Use();
-	
+	glGlobShader.Use();
+
+	glUniform1i(glGetUniformLocation(glGlobShader.ID, "ambientTexture"),  0);
+	glUniform1i(glGetUniformLocation(glGlobShader.ID, "diffuseTexture"),  1);
+	glUniform1i(glGetUniformLocation(glGlobShader.ID, "greyscaleTexture"),2);
+
 	for (int i = 0; i < allSWAloObjs.size(); i++)
-		DrawAlo(allSWAloObjs[i], i);
+		DrawGlob(allSWAloObjs[i], i);
 }
 
 void DrawSwCollisionAll()
 {
-	glShaderCollision.Use();
+	glCollisionShader.Use();
 
 	for (int i = 0; i < allSWSoObjs.size(); i++)
 		DrawSoCollision(allSWSoObjs[i]);

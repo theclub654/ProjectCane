@@ -1928,10 +1928,13 @@ void BuildEopids()
 	g_aeopid[495].optdat.ibSet = 0;
 	g_aeopid[496].otyp = OTYP_Musid;
 	g_aeopid[496].grfeopid = 0x80;
+	g_aeopid[497].optdat.pfnsetUser = (PFNSET)0x398C;
 	g_aeopid[497].optdat.pfnset = (PFNSET)SetSwIllum;
 	g_aeopid[497].otyp = OTYP_Float;
 	g_aeopid[497].grfeopid = 0xa2;
+	g_aeopid[497].optdat.pfnget = (PFNGET)0x398C;
 	g_aeopid[498].grfeopid = 0xa2;
+	g_aeopid[498].optdat.pfnsetUser = (PFNSET)0x3988;
 	g_aeopid[498].otyp = OTYP_Float;
 	g_aeopid[498].optdat.pfnset = (PFNSET)SetSwIllumShadow;
 	g_aeopid[499].grfeopid = 0x80;

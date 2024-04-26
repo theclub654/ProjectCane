@@ -1,6 +1,6 @@
 #include "binoc.h"
 
-void* NewScan()
+SCAN*NewScan()
 {
 	return new SCAN{};
 }
@@ -19,7 +19,7 @@ void CloneScan(SCAN* pscan, SCAN* pscanBase)
 	CloneLo(pscan, pscanBase);
 }
 
-void DeleteScan(LO* plo)
+void DeleteScan(SCAN* pscan)
 {
-	delete(SCAN*)plo;
+	delete pscan;
 }

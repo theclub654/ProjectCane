@@ -201,7 +201,7 @@ class ALO : public LO
 };
 
 // Create ALO
-void*NewAlo();
+ALO*NewAlo();
 // Initialize ALO object
 void InitAlo(ALO* palo); // NOT FINISHED
 // Adds ALO parent and all the alo childs into the world
@@ -242,10 +242,10 @@ void RenderAloSelf(ALO* palo, CM* pcm, RO* pro);
 void RenderAloGlobset(ALO* palo, CM* pcm, RO* pro);
 void RenderAloLine(ALO* palo, CM* pcm, glm::vec3* ppos0, glm::vec3* ppos1, float rWidth, float uAlpha);
 void RenderAloAsBone(ALO* palo, CM* pcm, RO* pro);
-// Draw ALO object
-void DrawAlo(ALO *palo, int index);
+// Draw Glob object
+void DrawGlob(ALO *palo, int index);
 // Deletes Model from VRAM
 void DeleteModel(ALO *palo);
 int  GetAloSize();
 // Delete ALO object from memory
-void DeleteAlo(LO *palo);
+void DeleteAlo(ALO *palo);

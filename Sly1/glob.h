@@ -1,6 +1,9 @@
 #pragma once
 #include "bis.h"
 #include "gl.h"
+#include "util.h"
+
+typedef int GRFGLOB;
 
 class ALO;
 class LIGHT;
@@ -35,6 +38,30 @@ enum WEK
 	WEK_Z = 6,
 	WEK_Max = 7
 };
+// Render Property
+enum RP 
+{
+	RP_Nil = -1,
+	RP_DynamicTexture = 0,
+	RP_Background = 1,
+	RP_BlotContext = 2,
+	RP_Opaque = 3,
+	RP_Cutout = 4,
+	RP_CelBorder = 5,
+	RP_ProjVolume = 6,
+	RP_OpaqueAfterProjVolume = 7,
+	RP_CutoutAfterProjVolume = 8,
+	RP_CelBorderAfterProjVolume = 9,
+	RP_MurkClear = 10,
+	RP_MurkOpaque = 11,
+	RP_MurkFill = 12,
+	RP_Translucent = 13,
+	RP_TranslucentCelBorder = 14,
+	RP_Blip = 15,
+	RP_Foreground = 16,
+	RP_WorldMap = 17,
+	RP_Max = 18
+};
 
 struct LTFN 
 {
@@ -52,7 +79,7 @@ struct VERTICE
 {
 	glm::vec3 pos;
 	glm::vec3 normal;
-	RGBA color;
+	glm::vec4 color;
 	glm::vec2 uv;
 };
 
@@ -93,6 +120,12 @@ struct WRBG
 	struct WRBG* pwrbgNextWr;
 };
 
+struct GLEAM
+{
+	glm::vec3 normal;
+	CLQC clqc;
+};
+
 struct SUBGLOB // NOT DONE
 {
 	GLuint VAO;
@@ -120,14 +153,14 @@ struct GLOB // NOT DONE
 	// Moodel origin position
 	glm::vec3 posCenter;
 	float sRadius;
-	//RP rp;
+	RP rp;
 	int fThreeWay;
 	float sMRD;
 	float sCelBorderMRD;
 	float gZOrder;
 	int fDynamic;
-	int grfglob;
-	//GLEAM *pgleam
+	GRFGLOB grfglob;
+	std::vector <GLEAM> pgleam;
 	RTCK rtck;
 	struct SAA* psaa;
 	float uFog;
@@ -139,7 +172,7 @@ struct GLOB // NOT DONE
 	std::vector<SUBGLOB> asubglob;
 	int csubcel;
 	//SUBCEL *asubcel;
-	// Object world space coordinates
+	// Instanced object matrix container
 	std::vector <glm::mat4> pdmat;
 	//BLOT *pblot;
 	OID oid;
@@ -178,6 +211,6 @@ struct GLOBSET // NOT DONE
 // Loads 3D model data from binary file
 void LoadGlobsetFromBrx(GLOBSET* pglobset, CBinaryInputStream* pbis, ALO* palo); // NOT FINISHED
 // Converts strips to tri lists
-void BuildSubGlob(GLOBSET *pglobset, SHD* pshd, std::vector<VERTICE> &vertices , std::vector <glm::vec3> &vertexes, std::vector <glm::vec3> &normals, std::vector <RGBA> &vertexColors, std::vector <glm::vec2> &texcoords, std::vector <VTXFLG> &indexes, std::vector<uint16_t> &indices);
-// Storing 3D models in VRAM
+void BuildSubGlob(GLOBSET *pglobset, SHD* pshd, std::vector <VERTICE> &vertices , std::vector <glm::vec3> &vertexes, std::vector <glm::vec3> &normals, std::vector <RGBA> &vertexColors, std::vector <glm::vec2> &texcoords, std::vector <VTXFLG> &indexes, std::vector <uint16_t> &indices);
+// Store 3D models in VRAM
 void MakeGLBuffers(SUBGLOB* subglob);

@@ -93,31 +93,31 @@ class ZAPBREAK : public FRAGILE
         struct PO* ppoZap;
 };
 
-void*NewBrk();
+BRK* NewBrk();
 void InitBrk(BRK* pbrk);
 int  GetBrkSize();
 void LoadBrkFromBrx(BRK* pbrk, CBinaryInputStream* pbis);
 void CloneBrk(BRK* pbrk, BRK* pbrkBase);
-void DeleteBrk(LO* plo);
+void DeleteBrk(BRK* pbrk);
 
-void*NewBrkp();
+BRKP*NewBrkp();
 int  GetBrkpSize();
 void CloneBrkp(BRKP* prkp, BRKP* prkpBase);
-void DeleteBrkp(LO* plo);
+void DeleteBrkp(BRKP* pbrkp);
 
-void*NewBreak();
+BREAK*NewBreak();
 void InitBreak(BREAK* pbreak);
 int  GetBreakSize();
 void CloneBreak(BREAK* pbreak, BREAK* pbreakBase);
-void DeleteBreak(LO* plo);
+void DeleteBreak(BREAK* pbreak);
 
-void*NewFragile();
+FRAGILE*NewFragile();
 void InitFragile(FRAGILE* pfragile);
 int  GetFragileSize();
 void CloneFragile(FRAGILE* pfragile, FRAGILE* pfragileBase);
-void DeleteFragile(LO* plo);
+void DeleteFragile(FRAGILE* pfragile);
 
-void*NewZapbreak();
+ZAPBREAK*NewZapbreak();
 int  GetZapbreakSize();
 void CloneZapbreak(ZAPBREAK* pzapbreak, ZAPBREAK* pzapbreakBase);
-void DeleteZapbreak(LO* plo);
+void DeleteZapbreak(ZAPBREAK* pzapbreak);

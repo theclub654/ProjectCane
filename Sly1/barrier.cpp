@@ -1,6 +1,6 @@
 #include "barrier.h"
 
-void* NewBarrier()
+BARRIER* NewBarrier()
 {
 	return new BARRIER{};
 }
@@ -30,7 +30,7 @@ void CloneBarrier(BARRIER* pbarrier, BARRIER* pbarrierBase)
 	pbarrier->pstso = nullptr;
 }
 
-void DeleteBarrier(LO* plo)
+void DeleteBarrier(BARRIER* pbarrier)
 {
-	delete (BARRIER*)plo;
+	delete pbarrier;
 }

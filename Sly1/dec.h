@@ -42,7 +42,7 @@ int  GetLoSize();
 void DeleteLo(LO* plo);
 
 // A Local Object;
-void*NewAlo();
+ALO* NewAlo();
 void InitAlo(ALO* palo);
 void AddAloHierarchy(ALO* palo);
 void RemoveAloHierarchy(ALO* palo);
@@ -62,7 +62,7 @@ void RenderAloAll(ALO* palo, CM* pcm, RO* proDup);
 void RenderAloSelf(ALO* palo, CM* pcm, RO* pro);
 void RenderAloGlobset(ALO* palo, CM* pcm, RO* pro);
 int  GetAloSize();
-void DeleteAlo(LO* palo);
+void DeleteAlo(ALO* palo);
 
 // Static Object
 class SO;
@@ -316,25 +316,25 @@ void CloneWater(WATER* pwater, WATER* pwaterBase);
 void DeleteWater(LO* plo);
 
 class BRK;
-void*NewBrk();
+BRK* NewBrk();
 void InitBrk(BRK* pbrk);
 int  GetBrkSize();
 void LoadBrkFromBrx(BRK* pbrk, CBinaryInputStream* pbis);
 void CloneBrk(BRK* pbrk, BRK* pbrkBase);
-void DeleteBrk(LO* plo);
+void DeleteBrk(BRK* pbrk);
 
 class BREAK;
-void*NewBreak();
+BREAK* NewBreak();
 void InitBreak(BREAK* pbreak);
 int  GetBreakSize();
 void CloneBreak(BREAK* pbreak, BREAK* pbreakBase);
-void DeleteBreak(LO* plo);
+void DeleteBreak(BREAK* pbreak);
 
 class ALBRK;
-void*NewAlbrk();
+ALBRK*NewAlbrk();
 int  GetAlbrkSize();
 void CloneAlbrk(ALBRK* palbrk, ALBRK* palbrkBase);
-void DeleteAlbrk(LO* plo);
+void DeleteAlbrk(ALBRK* palbrk);
 
 class CAN;
 void*NewCan();
@@ -358,23 +358,23 @@ void CloneSwp(SWP* pswp, SWP* pswpBase);
 void DeleteSwp(LO* plo);
 
 class FRAGILE;
-void*NewFragile();
+FRAGILE* NewFragile();
 void InitFragile(FRAGILE* pfragile);
 int  GetFragileSize();
 void CloneFragile(FRAGILE* pfragile, FRAGILE* pfragileBase);
-void DeleteFragile(LO* plo);
+void DeleteFragile(FRAGILE* pfragile);
 
 class ZAPBREAK;
-void*NewZapbreak();
+ZAPBREAK*NewZapbreak();
 int  GetZapbreakSize();
 void CloneZapbreak(ZAPBREAK* pzapbreak, ZAPBREAK* pzapbreakBase);
-void DeleteZapbreak(LO* plo);
+void DeleteZapbreak(ZAPBREAK* pzapbreak);
 
 class BRKP;
-void*NewBrkp();
+BRKP*NewBrkp();
 int  GetBrkpSize();
 void CloneBrkp(BRKP* prkp, BRKP* prkpBase);
-void DeleteBrkp(LO* plo);
+void DeleteBrkp(BRKP* pbrkp);
 
 class BUTTON;
 void*NewButton();
@@ -407,10 +407,10 @@ void CloneSquish(SQUISH* psquish, SQUISH* psquishBase);
 void DeleteSquish(LO* plo);
 
 class BONE;
-void*NewBone();
+BONE* NewBone();
 int  GetBoneSize();
 void CloneBone(BONE* pbone, BONE* pboneBase);
-void DeleteBone(LO* plo);
+void DeleteBone(BONE* pbone);
 
 class SPRIZE;
 void*NewSprize();
@@ -444,11 +444,11 @@ void RenderClueAll(CLUE* pclue, CM* pcm, RO* pro);
 void DeleteClue(LO* plo);
 
 class ALARM;
-void*NewAlarm();
+ALARM* NewAlarm();
 void InitAlarm(ALARM* palarm);
 int  GetAlarmSize();
 void CloneAlarm(ALARM* palarm, ALARM* palarmBase);
-void DeleteAlarm(LO* plo);
+void DeleteAlarm(ALARM* palarm);
 
 class SENSOR;
 void*NewSensor();
@@ -481,11 +481,11 @@ void ClonePrsen(PRSEN* pprsen, PRSEN* pprsenBase);
 void DeletePrsen(LO* plo);
 
 class BARRIER;
-void*NewBarrier();
+BARRIER*NewBarrier();
 void InitBarrier(BARRIER* pbarrier);
 int  GetBarrierSize();
 void CloneBarrier(BARRIER* pbarrier, BARRIER* pbarrierBase);
-void DeleteBarrier(LO* plo);
+void DeleteBarrier(BARRIER* pbarrier);
 
 class IKH;
 void*NewIkh();
@@ -528,13 +528,13 @@ void LoadHbskFromBrx(HBSK* phbsk, CBinaryInputStream* pbis);
 void DeleteHbsk(LO* plo);
 
 class BOMB;
-void*NewBomb();
+BOMB*NewBomb();
 void InitBomb(BOMB* pbomb);
 void OnBombAdd(BOMB* pbomb);
 int  GetBombSize();
 void CloneBomb(BOMB* pbomb, BOMB* pbombBase);
 void LoadBombFromBrx(BOMB* pbomb, CBinaryInputStream* pbis);
-void DeleteBomb(LO* plo);
+void DeleteBomb(BOMB* pbomb);
 
 class MISSILE;
 void*NewMissile();
@@ -683,13 +683,13 @@ void CloneLgnb(LGNB* plgnb, LGNB* plgnbBase);
 void DeleteLgnb(LO* plo);
 
 class BLIPG;
-void*NewBlipg();
+BLIPG*NewBlipg();
 void InitBlipg(BLIPG* pblipg);
 int  GetBlipgSize();
 void CloneBlipg(BLIPG* pblipg, BLIPG* pblipgBase);
 void OnBlipgAdd(BLIPG* pblipg);
 void RenderBlipgSelf(BLIPG* pblipg, CM* pcm, RO* pro);
-void DeleteBlipg(LO* plo);
+void DeleteBlipg(BLIPG* pblipg);
 
 class CAMERA;
 void*NewCamera();
@@ -699,12 +699,12 @@ int  GetCameraSize();
 void DeleteCamera(LO* plo);
 
 class LBONE;
-void*NewLBone();
+LBONE*NewLBone();
 int  GetLBoneSize();
-void CloneLBone(LBONE* lpbone, LBONE* lpboneBase);
+void CloneLBone(LBONE* plbone, LBONE* plboneBase);
 void RenderBoneSelf(BONE* pbone, CM* pcm, RO* pro);
 void RenderLboneSelf(LBONE* plbone, CM* pcm, RO* pro);
-void DeleteLBone(LO* plo);
+void DeleteLBone(LBONE* plbone);
 
 class EMITTER;
 struct EMITB;
@@ -1149,19 +1149,19 @@ void CloneSpire(SPIRE* pspire, SPIRE* pspireBase);
 void DeleteSpire(LO* plo);
 
 class SCAN;
-void*NewScan();
+SCAN*NewScan();
 int  GetScanSize();
 void CloneScan(SCAN* pscan, SCAN* pscanBase);
-void DeleteScan(LO* plo);
+void DeleteScan(SCAN* pscan);
 
 // Animation Segment
 class ASEG;
-void*NewAseg();
+ASEG*NewAseg();
 void InitAseg(ASEG* paseg);
 int  GetAsegSize();
 void CloneAseg(ASEG* paseg, ASEG* pasegBase);
 void LoadAsegFromBrx(ASEG* paseg, CBinaryInputStream* pbis);
-void DeleteAseg(LO* plo);
+void DeleteAseg(ASEG* paseg);
 
 class ASEGBL;
 void*NewAsegbl();

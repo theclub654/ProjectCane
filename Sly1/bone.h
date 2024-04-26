@@ -11,14 +11,14 @@ class LBONE : public ALO
 	public:
 };
 
-void*NewBone();
+BONE*NewBone();
 int  GetBoneSize();
 void CloneBone(BONE* pbone, BONE* pboneBase);
 void RenderBoneSelf(BONE* pbone, CM* pcm, RO* pro);
-void DeleteBone(LO* plo);
+void DeleteBone(BONE* pbone);
 
-void*NewLBone();
+LBONE*NewLBone();
 int  GetLBoneSize();
-void CloneLBone(LBONE* lpbone, LBONE* lpboneBase);
+void CloneLBone(LBONE* plbone, LBONE* plboneBase);
 void RenderLboneSelf(LBONE* plbone, CM* pcm, RO* pro);
-void DeleteLBone(LO* plo);
+void DeleteLBone(LBONE* plbone);

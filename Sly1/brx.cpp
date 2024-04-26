@@ -80,11 +80,11 @@ void LoadOptionsFromBrx(void* pvObject, CBinaryInputStream* pbis)
 
 		if (eopid < 0) break;
 
-		LoadOptionFromBrx(pvObject, g_aeopid[eopid], pbis);
+		LoadOptionFromBrx(pvObject, g_aeopid[eopid], eopid ,pbis);
 	}
 }
 
-void LoadOptionFromBrx(void* pvObject, EOPID peopid, CBinaryInputStream* pbis)
+void LoadOptionFromBrx(void* pvObject, EOPID peopid, int eopid, CBinaryInputStream* pbis)
 {
 	void* objectDataPtr = nullptr;
 
@@ -147,7 +147,8 @@ void LoadOptionFromBrx(void* pvObject, EOPID peopid, CBinaryInputStream* pbis)
 	{
 		if ((peopid.grfeopid & 0x1000) == 0)
 		{
-
+			if (peopid.optdat.pfnsetUser != 0)
+				objectDataPtr = (void*)((uintptr_t)pvObject + (int)peopid.optdat.pfnsetUser);
 		}
 
 		else
@@ -156,6 +157,8 @@ void LoadOptionFromBrx(void* pvObject, EOPID peopid, CBinaryInputStream* pbis)
 				objectDataPtr = peopid.optdat.pfnensure(pvObject, 1);
 		}
 
+		float optionData = 0;
+
 		switch (peopid.otyp)
 		{
 			case OTYP_Bool:
@@ -163,7 +166,9 @@ void LoadOptionFromBrx(void* pvObject, EOPID peopid, CBinaryInputStream* pbis)
 			return;
 
 			case OTYP_Float:
-				pbis->F32Read();
+				optionData = pbis->F32Read();
+				if (eopid == 497 || eopid == 498)
+					memcpy(objectDataPtr, &optionData, sizeof(float));
 			return;
 
 			case OTYP_Matrix:

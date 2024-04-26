@@ -9,14 +9,17 @@
 #include "shdanim.h"
 #include "font.h"
 
+extern std::vector <GLuint*> textureReferences;
+
 // Color property's
 struct RGBA 
 {
-    byte bRed;
-    byte bGreen;
-    byte bBlue;
-    byte bAlpha;
+    uint16_t bRed;
+    uint16_t bGreen;
+    uint16_t bBlue;
+    uint16_t bAlpha;
 };
+
 // CLUT property
 struct CLUT
 {
@@ -58,10 +61,6 @@ struct TEXF
 
 struct SHDF
 {
-    GLuint glAmbientTexture;
-    GLuint glDiffuseTexture;
-    GLuint glGradiantTexture;
-
     byte shdk;
     byte grfshd;
     uint16_t oid;
@@ -88,6 +87,10 @@ struct SHD : public SHDF
     int cshdp;
     int cframe;
     SAA* psaa;
+
+    GLuint glAmbientTexture;
+    GLuint glDiffuseTexture;
+    GLuint glGreyScaleTexture;
 };
 
 // Delete shader data

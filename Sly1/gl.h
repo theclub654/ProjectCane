@@ -15,12 +15,22 @@
 class GL
 {
 	public:
+		// Window Object
 		GLFWwindow* window;
-		int width = 800;
+		// Frame Buffer Object
+		GLuint fbo;
+		// Frame Buffer Color
+		GLuint fbc;
+		// Render Buffer Object
+		GLuint rbo;
+		// Screen Object
+		GLuint sbo;
+
+		int width  = 800;
 		int height = 800;
 
 		void InitGL();
-		void GLFWTerminate();
+		void TerminateGL();
 };
 
 void FrameBufferSizeCallBack(GLFWwindow* window, int width, int height);

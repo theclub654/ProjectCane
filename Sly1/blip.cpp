@@ -1,6 +1,6 @@
 #include "blip.h"
 
-void* NewBlipg()
+BLIPG* NewBlipg()
 {
 	return new BLIPG{};
 }
@@ -47,7 +47,7 @@ void RenderBlipgSelf(BLIPG* pblipg, CM* pcm, RO* pro)
 
 }
 
-void DeleteBlipg(LO* plo)
+void DeleteBlipg(BLIPG* pblipg)
 {
-	delete(BLIPG*)plo;
+	delete pblipg;
 }

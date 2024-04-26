@@ -165,3 +165,5 @@ void DrawSoCollision(SO* pso);
 void DeleteSo(LO* plo);
 // Delete all collision data from VRAM
 void DeleteSwCollision();
+// Deletes a SO collision data from VRAM
+void DeleteSoGeom(SO* pso);

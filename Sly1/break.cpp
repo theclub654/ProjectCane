@@ -1,6 +1,6 @@
 #include "break.h"
 
-void* NewBrk()
+BRK* NewBrk()
 {
 	return new BRK{};
 }
@@ -35,12 +35,12 @@ void CloneBrk(BRK* pbrk, BRK* pbrkBase)
 	pbrk->pstso = nullptr;
 }
 
-void DeleteBrk(LO* plo)
+void DeleteBrk(BRK* pbrk)
 {
-	delete (BRK*)plo;
+	delete pbrk;
 }
 
-void* NewBrkp()
+BRKP* NewBrkp()
 {
 	return new BRKP{};
 }
@@ -65,12 +65,12 @@ void CloneBrkp(BRKP* prkp, BRKP* prkpBase)
 	prkp->pstso = nullptr;
 }
 
-void DeleteBrkp(LO* plo)
+void DeleteBrkp(BRKP* pbrkp)
 {
-	delete (BRKP*)plo;
+	delete pbrkp;
 }
 
-void* NewBreak()
+BREAK* NewBreak()
 {
 	return new BREAK{};
 }
@@ -101,12 +101,12 @@ void CloneBreak(BREAK* pbreak, BREAK* pbreakBase)
 	pbreak->pstso = nullptr;
 }
 
-void DeleteBreak(LO* plo)
+void DeleteBreak(BREAK* pbreak)
 {
-	delete (BREAK*)plo;
+	delete pbreak;
 }
 
-void* NewFragile()
+FRAGILE* NewFragile()
 {
 	return new FRAGILE{};
 }
@@ -136,12 +136,12 @@ void CloneFragile(FRAGILE* pfragile, FRAGILE* pfragileBase)
 	pfragile->pstso = nullptr;
 }
 
-void DeleteFragile(LO* plo)
+void DeleteFragile(FRAGILE* pfragile)
 {
-	delete (FRAGILE*)plo;
+	delete pfragile;
 }
 
-void* NewZapbreak()
+ZAPBREAK* NewZapbreak()
 {
 	return new ZAPBREAK{};
 }
@@ -166,7 +166,7 @@ void CloneZapbreak(ZAPBREAK* pzapbreak, ZAPBREAK* pzapbreakBase)
 	pzapbreak->pstso = nullptr;
 }
 
-void DeleteZapbreak(LO* plo)
+void DeleteZapbreak(ZAPBREAK* pzapbreak)
 {
-	delete (ZAPBREAK*)plo;
+	delete pzapbreak;
 }

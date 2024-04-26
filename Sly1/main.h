@@ -12,7 +12,7 @@ void DrawSwCollisionAll();
 void DeleteSw(SW* psw);
 
 // Game loop
-int main(int cphzArgs, char* aphzArgs[]);
+int  main(int cphzArgs, char* aphzArgs[]);
 // Initializing all the things needed for the game to run
 void Startup();
 // Processes user input

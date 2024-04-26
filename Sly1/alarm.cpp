@@ -1,6 +1,6 @@
 #include "alarm.h"
 
-void* NewAlarm()
+ALARM*NewAlarm()
 {
 	return new ALARM{};
 }
@@ -30,12 +30,12 @@ void CloneAlarm(ALARM* palarm, ALARM* palarmBase)
 	palarm->pstso = nullptr;
 }
 
-void DeleteAlarm(LO* plo)
+void DeleteAlarm(ALARM* palarm)
 {
-	delete(ALARM*)plo;
+	delete palarm;
 }
 
-void* NewAlbrk()
+ALBRK*NewAlbrk()
 {
 	return new ALBRK{};
 }
@@ -60,7 +60,7 @@ void CloneAlbrk(ALBRK* palbrk, ALBRK* palbrkBase)
 	palbrk->pstso = nullptr;
 }
 
-void DeleteAlbrk(LO* plo)
+void DeleteAlbrk(ALBRK* palbrk)
 {
-	delete (ALBRK*)plo;
+	delete palbrk;
 }

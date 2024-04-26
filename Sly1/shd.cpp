@@ -39,9 +39,9 @@ void LoadColorTablesFromBrx(CBinaryInputStream *pbis)
 	// Loading CLUT propertys from binary file
 	for (int i = 0; i < g_cclut; i++)
 	{
-		g_aclut[i].grfzon = pbis->U32Read();
-		g_aclut[i].numColors = pbis->U16Read();
-		g_aclut[i].colorSize = pbis->U16Read();
+		g_aclut[i].grfzon     = pbis->U32Read();
+		g_aclut[i].numColors  = pbis->U16Read();
+		g_aclut[i].colorSize  = pbis->U16Read();
 		g_aclut[i].baseOffset = pbis->U32Read();
 	}
 }
@@ -56,13 +56,13 @@ void LoadBitmapsFromBrx(CBinaryInputStream *pbis)
 	// Loading texture propertys from binary file
 	for (int i = 0; i < g_cbmp; i++)
 	{
-		g_abmp[i].bmpWidth = pbis->U16Read();
-		g_abmp[i].bmpHeight = pbis->U16Read();
-		g_abmp[i].grfzon = pbis->U32Read();
-		g_abmp[i].psm = pbis->S8Read();
-		g_abmp[i].cgsRow = pbis->S8Read();
-		g_abmp[i].cgsPixels = pbis->U16Read();
-		g_abmp[i].cbPixels = pbis->U32Read();
+		g_abmp[i].bmpWidth   = pbis->U16Read();
+		g_abmp[i].bmpHeight  = pbis->U16Read();
+		g_abmp[i].grfzon     = pbis->U32Read();
+		g_abmp[i].psm        = pbis->S8Read();
+		g_abmp[i].cgsRow     = pbis->S8Read();
+		g_abmp[i].cgsPixels  = pbis->U16Read();
+		g_abmp[i].cbPixels   = pbis->U32Read();
 		g_abmp[i].baseOffset = pbis->U32Read();
 	}
 }
@@ -80,11 +80,11 @@ void LoadFontsFromBrx(CBinaryInputStream* pbis)
 
 void LoadTexFromBrx(TEX *ptex, CBinaryInputStream* pbis)
 {
-	ptex->oid = pbis->U16Read();
+	ptex->oid    = pbis->U16Read();
 	ptex->grftex = pbis->S16Read();
-	ptex->cibmp = pbis->U8Read();
+	ptex->cibmp  = pbis->U8Read();
 	ptex->ciclut = pbis->U8Read();
-
+    
 	ptex->bmpIndex.resize(ptex->cibmp);
 	for (int i = 0; i < ptex->cibmp; i++)
 		ptex->bmpIndex[i] = pbis->U16Read();
@@ -121,15 +121,21 @@ void LoadShadersFromBrx(CBinaryInputStream *pbis)
         g_ashd[i].rgba.bBlue  = pbis->U8Read();
         g_ashd[i].rgba.bAlpha = pbis->U8Read();
 
-        g_ashd[i].rgbaVolume.bRed = pbis->U8Read();
+        if (g_ashd[i].rgba.bAlpha == 0x80)
+            g_ashd[i].rgba.bAlpha = 0xFF;
+
+        g_ashd[i].rgbaVolume.bRed   = pbis->U8Read();
         g_ashd[i].rgbaVolume.bGreen = pbis->U8Read();
-        g_ashd[i].rgbaVolume.bBlue = pbis->U8Read();
+        g_ashd[i].rgbaVolume.bBlue  = pbis->U8Read();
         g_ashd[i].rgbaVolume.bAlpha = pbis->U8Read();
 
-		g_ashd[i].grfzon = pbis->U32Read();
+        if (g_ashd[i].rgbaVolume.bAlpha == 0x80)
+            g_ashd[i].rgbaVolume.bAlpha = 0xFF;
+
+		g_ashd[i].grfzon    = pbis->U32Read();
 		g_ashd[i].oidAltSat = pbis->U16Read();
-		g_ashd[i].rp = pbis->U8Read();
-		g_ashd[i].ctex = pbis->U8Read();
+		g_ashd[i].rp        = pbis->U8Read();
+		g_ashd[i].ctex      = pbis->U8Read();
 
 		g_ashd[i].atex.resize(g_ashd[i].ctex);
 
@@ -161,9 +167,9 @@ void LoadTexturesFromBrx(CBinaryInputStream* pbis)
     {
         for (int a = 0; a < g_ashd[i].atex.size(); a++)
         {
-            bool is1Img1Pal = ((g_ashd[i].atex[a].bmpIndex.size() == 1) && (g_ashd[i].atex[a].clutIndex.size() == 1));
-            bool is1ImgManyPal = ((g_ashd[i].atex[a].bmpIndex.size() == 1) && (g_ashd[i].atex[a].clutIndex.size() > 1));
-            bool isManyImgManyPal = ((g_ashd[i].atex[a].bmpIndex.size() > 1) && (g_ashd[i].atex[a].clutIndex.size() > 1));
+            bool is1Img1Pal       = ((g_ashd[i].atex[a].bmpIndex.size() == 1) && (g_ashd[i].atex[a].clutIndex.size() == 1));
+            bool is1ImgManyPal    = ((g_ashd[i].atex[a].bmpIndex.size() == 1) && (g_ashd[i].atex[a].clutIndex.size() >  1));
+            bool isManyImgManyPal = ((g_ashd[i].atex[a].bmpIndex.size() >  1) && (g_ashd[i].atex[a].clutIndex.size() >  1));
 
             if (is1Img1Pal)
                 MakeTexture(g_ashd[i].glDiffuseTexture, g_ashd[i].atex[a].clutIndex[0], g_ashd[i].atex[a].bmpIndex[0], pbis);
@@ -172,9 +178,9 @@ void LoadTexturesFromBrx(CBinaryInputStream* pbis)
             {
                 if (g_ashd[i].atex[a].clutIndex.size() == 3)
                 {
-                    //MakeTexture(g_ashd[i].glAmbientTexture, g_ashd[i].atex[a].clutIndex[0], g_ashd[i].atex[a].bmpIndex[0], pbis);
-                    MakeTexture(g_ashd[i].glDiffuseTexture, g_ashd[i].atex[a].clutIndex[1], g_ashd[i].atex[a].bmpIndex[0], pbis);
-                    //MakeTexture(g_ashd[i].glGradiantTexture, g_ashd[i].atex[a].clutIndex[2], g_ashd[i].atex[a].bmpIndex[0], pbis);
+                    MakeTexture(g_ashd[i].glAmbientTexture,   g_ashd[i].atex[a].clutIndex[0], g_ashd[i].atex[a].bmpIndex[0], pbis);
+                    MakeTexture(g_ashd[i].glDiffuseTexture,   g_ashd[i].atex[a].clutIndex[1], g_ashd[i].atex[a].bmpIndex[0], pbis);
+                    MakeTexture(g_ashd[i].glGreyScaleTexture, g_ashd[i].atex[a].clutIndex[2], g_ashd[i].atex[a].bmpIndex[0], pbis);
                 }
 
                 else
@@ -192,7 +198,7 @@ std::vector <byte> MakeBmp(uint32_t bmpIndex, CBinaryInputStream* pbis)
     std::vector <byte> buffer;
 
     size_t bufferOff = textureDataStart + g_abmp[bmpIndex].baseOffset;
-    int width = g_abmp[bmpIndex].bmpWidth;
+    int width  = g_abmp[bmpIndex].bmpWidth;
     int height = g_abmp[bmpIndex].bmpHeight;
 
     buffer.resize(width * height);
@@ -250,6 +256,9 @@ void MakeTexture(GLuint &textureReference, int16_t clutIndex, int16_t bmpIndex, 
             texture[4 * i + 1] = pallete[index + 1];
             texture[4 * i + 2] = pallete[index + 2];
             texture[4 * i + 3] = pallete[index + 3];
+
+            if (texture[4 * i + 3] == 0x80)
+                texture[4 * i + 3] = 0xFF;
         }
     }
 
@@ -265,10 +274,16 @@ void MakeTexture(GLuint &textureReference, int16_t clutIndex, int16_t bmpIndex, 
             texture[8 * i + 2] = pallete[4 * index1 + 2];
             texture[8 * i + 3] = pallete[4 * index1 + 3];
 
+            if (texture[8 * i + 3] == 0x80)
+                texture[8 * i + 3] = 0xFF;
+
             texture[8 * i + 4] = pallete[4 * index2 + 0];
             texture[8 * i + 5] = pallete[4 * index2 + 1];
             texture[8 * i + 6] = pallete[4 * index2 + 2];
             texture[8 * i + 7] = pallete[4 * index2 + 3];
+
+            if (texture[8 * i + 7] == 0x80)
+                texture[8 * i + 7] = 0xFF;
         }
     }
 
@@ -283,4 +298,6 @@ void MakeTexture(GLuint &textureReference, int16_t clutIndex, int16_t bmpIndex, 
 
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, texture.data());
     glGenerateMipmap(GL_TEXTURE_2D);
+
+    textureReferences.push_back(&textureReference);
 }

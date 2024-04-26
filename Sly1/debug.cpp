@@ -2,6 +2,10 @@
 
 void RenderMenuGui(SW* psw)
 {
+    ImGui_ImplOpenGL3_NewFrame();
+    ImGui_ImplGlfw_NewFrame();
+    ImGui::NewFrame();
+
     if (ImGui::BeginMainMenuBar()) 
     {
         if (ImGui::BeginMenu("File")) 
@@ -25,11 +29,6 @@ void RenderMenuGui(SW* psw)
             if (ImGui::MenuItem("Collision", "", &fRenderCollision))
             {
                 
-            }
-
-            if (ImGui::MenuItem("Wireframe", "", &fRenderWireFrame))
-            {
-
             }
 
             ImGui::EndMenu();

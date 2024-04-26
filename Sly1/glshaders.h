@@ -24,5 +24,6 @@ class GLSHADER
 
 std::string get_file_contents(const char* filename);
 
-extern GLSHADER glShader;
-extern GLSHADER glShaderCollision;
+extern GLSHADER glScreenShader;
+extern GLSHADER glGlobShader;
+extern GLSHADER glCollisionShader;

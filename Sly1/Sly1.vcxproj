@@ -431,6 +431,8 @@
     <None Include="glob.frag" />
     <None Include="glob.geom" />
     <None Include="glob.vert" />
+    <None Include="screen.frag" />
+    <None Include="screen.vert" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Sly1.rc" />

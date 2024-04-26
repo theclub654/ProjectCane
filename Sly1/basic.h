@@ -235,7 +235,7 @@ struct VTALO
     CID cid = CID_ALO;
     GRFCID grfcid = 1;
 
-    void*(*pfnNewAlo) () = NewAlo;
+    ALO*(*pfnNewAlo) () = NewAlo;
     void (*pfnInitAlo) (ALO*) = InitAlo;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -266,7 +266,7 @@ struct VTALO
     void (*pfnGetAloParams) = nullptr;
     void (*pfnUpdateLoLiveEdit) = nullptr;
     int  (*pfnGetAlo) () = GetAloSize;
-    void (*pfnDeleteAlo) (LO* plo) = DeleteAlo;
+    void (*pfnDeleteAlo) (ALO* palo) = DeleteAlo;
     void (*pfnProjectAloTransform) = nullptr;
     void (*pfnPresetAloAccel) = nullptr;
     void (*pfnTranslateAloToPos)(ALO*, glm::vec3&) = TranslateAloToPos;
@@ -3431,7 +3431,7 @@ struct VTBRK
     CID cid = CID_BRK;
     GRFCID grfcid = 0x3;
 
-    void*(*pfnNewBrk) () = NewBrk;
+    BRK*(*pfnNewBrk) () = NewBrk;
     void (*pfnInitBrk)(BRK*) = InitBrk;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -3462,7 +3462,7 @@ struct VTBRK
     void (*pfnGetSoParams) = nullptr;
     void (*pfnUpdateLoLiveEdit) = nullptr;
     int  (*pfnGetBrkSize) () = GetBrkSize;
-    void (*pfnDeleteBrk) (LO* plo) = DeleteBrk;
+    void (*pfnDeleteBrk) (BRK* pbrk) = DeleteBrk;
     void (*pfnProjectSoTransform) = nullptr;
     void (*pfnPresetSoAccel) = nullptr;
     void (*pfnTranslateSoToPos)(SO*,  glm::vec3&) = TranslateSoToPos;
@@ -3518,7 +3518,7 @@ struct VTBREAK
     CID cid = CID_BREAK;
     GRFCID grfcid = 0x13;
 
-    void*(*pfnNewBreak) () = NewBreak;
+    BREAK*(*pfnNewBreak) () = NewBreak;
     void (*pfnInitBreak)(BREAK*) = InitBreak;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -3549,7 +3549,7 @@ struct VTBREAK
     void (*pfnGetSoParams) = nullptr;
     void (*pfnUpdateLoLiveEdit) = nullptr;
     int  (*pfnGetBreakSize) () = GetBreakSize;
-    void (*pfnDeleteBreak) (LO* plo) = DeleteBreak;
+    void (*pfnDeleteBreak) (BREAK* pbreak) = DeleteBreak;
     void (*pfnProjectSoTransform) = nullptr;
     void (*pfnPresetSoAccel) = nullptr;
     void (*pfnTranslateSoToPos)(SO*,  glm::vec3&) = TranslateSoToPos;
@@ -3605,7 +3605,7 @@ struct VTALBRK
     CID cid = CID_ALBRK;
     GRFCID grfcid = 0x13;
 
-    void*(*pfnNewAlbrk) () = NewAlbrk;
+    ALBRK*(*pfnNewAlbrk) () = NewAlbrk;
     void (*pfnInitBreak)(BREAK*) = InitBreak;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -3636,7 +3636,7 @@ struct VTALBRK
     void (*pfnGetSoParams) = nullptr;
     void (*pfnUpdateLoLiveEdit) = nullptr;
     int  (*pfnGetAlbrkSize) () = GetAlbrkSize;
-    void (*pfnDeleteAlbrk) (LO* plo) = DeleteAlbrk;
+    void (*pfnDeleteAlbrk) (ALBRK* palbrk) = DeleteAlbrk;
     void (*pfnProjectSoTransform) = nullptr;
     void (*pfnPresetSoAccel) = nullptr;
     void (*pfnTranslateSoToPos)(SO*,  glm::vec3&) = TranslateSoToPos;
@@ -3953,7 +3953,7 @@ struct VTFRAGILE
     CID cid = CID_FRAGILE;
     GRFCID grfcid = 0x3;
 
-    void*(*pfnNewFragile) () = NewFragile;
+    FRAGILE*(*pfnNewFragile) () = NewFragile;
     void (*pfnInitFragile)(FRAGILE*) = InitFragile;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -3984,7 +3984,7 @@ struct VTFRAGILE
     void (*pfnGetSoParams) = nullptr;
     void (*pfnUpdateLoLiveEdit) = nullptr;
     int  (*pfnGetFragileSize) () = GetFragileSize;
-    void (*pfnDeleteFragile) (LO* plo) = DeleteFragile;
+    void (*pfnDeleteFragile) (FRAGILE* pfragile) = DeleteFragile;
     void (*pfnProjectSoTransform) = nullptr;
     void (*pfnPresetSoAccel) = nullptr;
     void (*pfnTranslateSoToPos)(SO*,  glm::vec3&) = TranslateSoToPos;
@@ -4040,7 +4040,7 @@ struct VTZAPBREAK
     CID cid = CID_ZAPBREAK;
     GRFCID grfcid = 0x3;
 
-    void*(*pfnNewZapbreak) () = NewZapbreak;
+    ZAPBREAK*(*pfnNewZapbreak) () = NewZapbreak;
     void (*pfnInitFragile)(FRAGILE*) = InitFragile;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -4071,7 +4071,7 @@ struct VTZAPBREAK
     void (*pfnGetSoParams) = nullptr;
     void (*pfnUpdateLoLiveEdit) = nullptr;
     int  (*pfnGetZapbreakSize) () = GetZapbreakSize;
-    void (*pfnDeleteZapbreak) (LO* plo) = DeleteZapbreak;
+    void (*pfnDeleteZapbreak) (ZAPBREAK* pzapbreak) = DeleteZapbreak;
     void (*pfnProjectSoTransform) = nullptr;
     void (*pfnPresetSoAccel) = nullptr;
     void (*pfnTranslateSoToPos)(SO*,  glm::vec3&) = TranslateSoToPos;
@@ -4127,7 +4127,7 @@ struct VTBRKP
     CID cid = CID_BRKP;
     GRFCID grfcid = 0x3;
 
-    void*(*pfnNewBrkp) () = NewBrkp;
+    BRKP*(*pfnNewBrkp) () = NewBrkp;
     void (*pfnInitSo)(SO*) = InitSo;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -4158,7 +4158,7 @@ struct VTBRKP
     void (*pfnGetSoParams) = nullptr;
     void (*pfnUpdateLoLiveEdit) = nullptr;
     int  (*pfnGetBrkpSize) () = GetBrkpSize;
-    void (*pfnDeleteBrkp) (LO* plo) = DeleteBrkp;
+    void (*pfnDeleteBrkp) (BRKP* pbrkp) = DeleteBrkp;
     void (*pfnProjectSoTransform) = nullptr;
     void (*pfnPresetSoAccel) = nullptr;
     void (*pfnTranslateSoToPos)(SO*,  glm::vec3&) = TranslateSoToPos;
@@ -4557,7 +4557,7 @@ struct VTBONE
     CID cid = CID_BONE;
     GRFCID grfcid = 0x3;
 
-    void*(*pfnNewBone) () = NewBone;
+    BONE*(*pfnNewBone) () = NewBone;
     void (*pfnInitSo)(SO*) = InitSo;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -4588,7 +4588,7 @@ struct VTBONE
     void (*pfnGetSoParams) = nullptr;
     void (*pfnUpdateLoLiveEdit) = nullptr;
     int  (*pfnGetBoneSize) () = GetBoneSize;
-    void (*pfnDeleteBone) (LO* plo) = DeleteBone;
+    void (*pfnDeleteBone) (BONE* pbone) = DeleteBone;
     void (*pfnProjectSoTransform) = nullptr;
     void (*pfnPresetSoAccel) = nullptr;
     void (*pfnTranslateSoToPos)(SO*,  glm::vec3&) = TranslateSoToPos;
@@ -4999,7 +4999,7 @@ struct VTALARM
     CID cid = CID_ALARM;
     GRFCID grfcid = 0x3;
 
-    void*(*pfnNewAlarm) () = NewAlarm;
+    ALARM* (*pfnNewAlarm) () = NewAlarm;
     void (*pfnInitAlarm)(ALARM*) = InitAlarm;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -5030,7 +5030,7 @@ struct VTALARM
     void (*pfnGetAlarmParams) = nullptr;
     void (*pfnUpdateLoLiveEdit) = nullptr;
     int  (*pfnGetAlarmSize) () = GetAlarmSize;
-    void (*pfnDeleteAlarm) (LO* plo) = DeleteAlarm;
+    void (*pfnDeleteAlarm) (ALARM* palarm) = DeleteAlarm;
     void (*pfnProjectSoTransform) = nullptr;
     void (*pfnPresetSoAccel) = nullptr;
     void (*pfnTranslateSoToPos)(SO*,  glm::vec3&) = TranslateSoToPos;
@@ -5453,7 +5453,7 @@ struct VTBARRIER
     CID cid = CID_BARRIER;
     GRFCID grfcid = 0x3;
 
-    void*(*pfnNewBarrier) () = NewBarrier;
+    BARRIER*(*pfnNewBarrier) () = NewBarrier;
     void (*pfnInitBarrier)(BARRIER*) = InitBarrier;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -5484,7 +5484,7 @@ struct VTBARRIER
     void (*pfnGetSoParams) = nullptr;
     void (*pfnUpdateLoLiveEdit) = nullptr;
     int  (*pfnGetBarrierSize) () = GetBarrierSize;
-    void (*pfnDeleteBarrier) (LO* plo) = DeleteBarrier;
+    void (*pfnDeleteBarrier) (BARRIER* pbarrier) = DeleteBarrier;
     void (*pfnProjectSoTransform) = nullptr;
     void (*pfnPresetSoAccel) = nullptr;
     void (*pfnTranslateSoToPos)(SO*,  glm::vec3&) = TranslateSoToPos;
@@ -5969,7 +5969,7 @@ struct VTBOMB
     CID cid = CID_BOMB;
     GRFCID grfcid = 0x23;
 
-    void*(*pfnNewBomb) () = NewBomb;
+    BOMB*(*pfnNewBomb) () = NewBomb;
     void (*pfnInitBomb)(BOMB*) = InitBomb;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -6000,7 +6000,7 @@ struct VTBOMB
     void (*pfnGetBombParams) = nullptr;
     void (*pfnUpdateLoLiveEdit) = nullptr;
     int  (*pfnGetBombSize)() = GetBombSize;
-    void (*pfnDeleteBomb) (LO* plo) = DeleteBomb;
+    void (*pfnDeleteBomb) (BOMB* pbomb) = DeleteBomb;
     void (*pfnProjectSoTransform) = nullptr;
     void (*pfnPresetSoAccel) = nullptr;
     void (*pfnTranslateSoToPos)(SO*,  glm::vec3&) = TranslateSoToPos;
@@ -7694,7 +7694,7 @@ struct VTBLIPG
     CID cid = CID_BLIPG;
     GRFCID grfcid = 0x1;
 
-    void*(*pfnNewBlipg) () = NewBlipg;
+    BLIPG*(*pfnNewBlipg) () = NewBlipg;
     void (*pfnInitBlipg)(BLIPG*) = InitBlipg;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -7725,7 +7725,7 @@ struct VTBLIPG
     void (*pfnGetAloParams) = nullptr;
     void (*pfnUpdateLoLiveEdit) = nullptr;
     int  (*pfnGetBlipgSize) () = GetBlipgSize;
-    void (*pfnDeleteBlipg) (LO* plo) = DeleteBlipg;
+    void (*pfnDeleteBlipg) (BLIPG* pblipg) = DeleteBlipg;
     void (*pfnProjectBlipgTransform) = nullptr;
     void (*pfnPresetAloAccel) = nullptr;
     void (*pfnTranslateAloToPos)(ALO*, glm::vec3&) = TranslateAloToPos;
@@ -7816,7 +7816,7 @@ struct VTLBONE
     CID cid = CID_LBONE;
     GRFCID grfcid = 0x1;
 
-    void*(*pfnNewLBone) () = NewLBone;
+    LBONE*(*pfnNewLBone) () = NewLBone;
     void (*pfnInitAlo)(ALO*) = InitAlo;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -7847,7 +7847,7 @@ struct VTLBONE
     void (*pfnGetAloParams) = nullptr;
     void (*pfnUpdateLoLiveEdit) = nullptr;
     int  (*pfnGetLboneSize) () = GetLBoneSize;
-    void (*pfnDeleteLBone) (LO* plo) = DeleteLBone;
+    void (*pfnDeleteLBone) (LBONE* plbone) = DeleteLBone;
     void (*pfnProjectAloTransform) = nullptr;
     void (*pfnPresetAloAccel) = nullptr;
     void (*pfnTranslateAloToPos)(ALO*, glm::vec3&) = TranslateAloToPos;
@@ -7999,7 +7999,7 @@ struct VTSCH
     CID cid = CID_SCH;
     GRFCID grfcid = 0x1;
 
-    void*(*pfnNewSch) () = NewAlo;
+    ALO*(*pfnNewSch) () = NewAlo;
     void (*pfnInitAlo) (ALO*) = InitAlo;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -8030,7 +8030,7 @@ struct VTSCH
     void (*pfnGetAloParams) = nullptr;
     void (*pfnUpdateLoLiveEdit) = nullptr;
     int  (*pfnGetAloSize) () = GetAloSize;
-    void (*pfnDeleteSch) (LO* plo) = DeleteAlo;
+    void (*pfnDeleteSch) (ALO* psch) = DeleteAlo;
     void (*pfnProjectAloTransform) = nullptr;
     void (*pfnPresetAloAccel) = nullptr;
     void (*pfnTranslateAloToPos)(ALO*, glm::vec3&) = TranslateAloToPos;
@@ -10949,7 +10949,7 @@ struct VTSCAN
     CID cid = CID_SCAN;
     GRFCID grfcid = 0;
 
-    void*(*pfnNewScan) () = NewScan;
+    SCAN*(*pfnNewScan) () = NewScan;
     void (*pfnInitLo)(LO*) = InitLo;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -10980,7 +10980,7 @@ struct VTSCAN
     void (*pfnGetLoParams) = nullptr;
     void (*pfnUpdateLoLiveEdit) = nullptr;
     int  (*pfnGetScanSize) () = GetScanSize;
-    void (*pfnDeleteScan) (LO* plo) = DeleteScan;
+    void (*pfnDeleteScan) (SCAN* pscan) = DeleteScan;
 };
 
 static VTSCAN g_vtscan;
@@ -10991,7 +10991,7 @@ struct VTASEG
     CID cid = CID_ASEG;
     GRFCID grfcid = 0x40;
 
-    void*(*pfnNewAseg) () = NewAseg;
+    ASEG*(*pfnNewAseg) () = NewAseg;
     void (*pfnInitAseg)(ASEG*) = InitAseg;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -11022,7 +11022,7 @@ struct VTASEG
     void (*pfnGetLoParams) = nullptr;
     void (*pfnUpdateLoLiveEdit) = nullptr;
     int  (*pfnGetAsegSize) () = GetAsegSize;
-    void (*pfnDeleteAseg) (LO* plo) = DeleteAseg;
+    void (*pfnDeleteAseg) (ASEG* paseg) = DeleteAseg;
 };
 
 static VTASEG g_vtaseg;

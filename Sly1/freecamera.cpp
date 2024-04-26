@@ -90,11 +90,11 @@ void FREECAMERA::SendViewProjShader(glm::mat4 proj, glm::mat4 view, GLSHADER sha
 	shader.Use();
 
 	// Sends view matrix to GPU shader
-	int viewUniformLocation = glGetUniformLocation(glShader.ID, "view");
+	int viewUniformLocation = glGetUniformLocation(shader.ID, "view");
 	glUniformMatrix4fv(viewUniformLocation, 1, GL_FALSE, glm::value_ptr(view));
 
 	// Sends projection matrix to GPU shader
-	int projUniformLocation = glGetUniformLocation(glShader.ID, "proj");
+	int projUniformLocation = glGetUniformLocation(shader.ID, "proj");
 	glUniformMatrix4fv(projUniformLocation, 1, GL_FALSE, glm::value_ptr(proj));
 }
 

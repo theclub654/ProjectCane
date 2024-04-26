@@ -7,7 +7,7 @@ class SCAN : public PNT
 		TBID tbidCaption;
 };
 
-void*NewScan();
+SCAN*NewScan();
 int  GetScanSize();
 void CloneScan(SCAN* pscan, SCAN* pscanBase);
-void DeleteScan(LO* plo);
+void DeleteScan(SCAN* pscan);

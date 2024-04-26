@@ -1,9 +1,12 @@
 #include "sw.h"
 #include "debug.h"
 
+class LIGHT;
+
 std::vector<LO*> allWorldObjs;
 std::vector<ALO*> allSWAloObjs;
 std::vector<LIGHT*> allSwLights;
+std::vector <GLuint*> textureReferences;
 extern std::vector <SO*> allSWSoObjs;
 
 void* NewSw()
@@ -47,7 +50,14 @@ void InitSw(SW* psw)
 	InitSwCrfodDl(psw);
 	InitSwShapeDl(psw);
 	InitSwPathzoneDl(psw);
+
+	psw->rDarkenSmooth = 1.0;
 	psw->lsmDefault.uShadow = 50.0;
+	psw->musid = MUSID_Nil;
+	psw->ibnk = -1;
+	psw->cisi = 0;
+	psw->cpsl = 0;
+	psw->rDarken = 1.0;
 }
 
 int GetSwSize()
@@ -89,7 +99,7 @@ void LoadSwFromBrx(SW* psw, CBinaryInputStream* pbis)
 	std::cout << "Loading Textures...\n";
 	// Loads textures from binary file
 	LoadTexturesFromBrx(pbis);
-	psw->lsmDefault.uShadow = psw->lsmDefault.uShadow * 0.003921569;
+	psw->lsmDefault.uShadow  = psw->lsmDefault.uShadow  * 0.003921569;
 	psw->lsmDefault.uMidtone = psw->lsmDefault.uMidtone * 0.003921569;
 	std::cout << "World Loaded Successfully\n";
 }
@@ -164,109 +174,12 @@ void SetSwDarkenSmooth(SW* psw, float rDarkenSmooth)
 
 void MatchSwObject(LO* ploMatch, GRFFSO grffsoMask, int fIncludeRemoved, int fProxyMatch, LO* ploContext, int cploMax, int& pcploMatch, LO** aplo, int& pcpaloBest)
 {
-	ALO* palo = nullptr;
-
-	switch (grffsoMask)
-	{
-		case 1:
-			if (ploMatch->ppxr == nullptr)
-				palo = ploMatch->paloParent;
-
-			else
-			{
-				if (fProxyMatch == 0)
-					return;
-
-				palo = ploMatch->paloParent;
-			}
-
-			if (palo == nullptr)
-				return;
-
-
-	}
+	
 }
 
 int CploFindSwObjects(SW* psw, GRFFSO grffso, OID oid, LO* ploContext, int cploMax, LO** aplo)
 {
-	int cpaloBest = 0;
-	int cploMatch = 0;
-	int count = 0;
-	ALO* palo = nullptr;
-
-	if (oid == OID_Nil)
-		cploMatch = 0;
-
-	else
-	{
-		if ((grffso & 0xff) == 1)
-		{
-			palo = (ALO*)ploContext;
-
-			if (ploContext != nullptr && ((ploContext->pvtlo->grfcid ^ 1U) & 1) != 0)
-				palo = ploContext->paloParent;
-
-			count = 0;
-
-			if (palo != nullptr)
-			{
-				while (true)
-				{
-					count++;
-					palo = palo->paloParent;
-					if (palo == nullptr) break;
-				}
-			}
-
-			cpaloBest = 0x7fffffff;
-			if (ploContext == nullptr && (grffso & 0xff) == 3, (grffso & 0xff) == 5)
-			{
-				cploMatch = 0;
-				return cploMatch;
-			}
-		}
-
-		else if ((grffso & 0xff) == 0 || 4 < (grffso & 0xff))
-			palo = nullptr;
-
-		else
-		{
-			palo = nullptr;
-			///////////////////////////////////////////
-		}
-
-		cploMatch = 0;
-
-		LO* ploMatch = PdlFromSwOid(psw, oid)->ploFirst;
-
-		if (ploMatch != nullptr)
-		{
-			while (true)
-			{
-				if (ploMatch->oid == oid)
-				{
-					if ((ploMatch->pvtlo->grfcid & 0x100U) == 0)
-					{
-						if (ploMatch->ppxr == nullptr || ploMatch->ppxr->oidProxyRoot != ploMatch->oid)
-							MatchSwObject(ploMatch, grffso & 0xFF, grffso & 0x100, 0, ploContext, cploMax, cploMatch, aplo, cpaloBest);
-					}
-
-					else
-					{
-						///GOTTA COME BACK HERE
-					}
-
-				}
-
-				else
-					ploMatch = ploMatch->dleOid.ploNext;
-
-				if (ploMatch == nullptr) break;
-			}
-		}
-	}
-
-	return cploMatch;
+	return 0;
 }
 
 LO* PloFindSwObject(SW* psw, GRFFSO grffso, OID oid, LO* ploContext)
@@ -306,12 +219,8 @@ void DeleteWorld(SW* psw)
 	for (int i = 0; i < allWorldObjs.size(); i++)
 		allWorldObjs[i]->pvtlo->pfnDeleteLo(allWorldObjs[i]);
 
-	for (int i = 0; i < g_ashd.size(); i++)
-	{
-		glDeleteTextures(1, &g_ashd[i].glAmbientTexture);
-		glDeleteTextures(1, &g_ashd[i].glDiffuseTexture);
-		glDeleteTextures(1, &g_ashd[i].glGradiantTexture);
-	}
+	for (int i = 0; i < textureReferences.size(); i++)
+		glDeleteTextures(1, textureReferences[i]);
 
 	allSWAloObjs.clear();
 	allSWAloObjs.shrink_to_fit();
@@ -319,6 +228,8 @@ void DeleteWorld(SW* psw)
 	allWorldObjs.shrink_to_fit();
 	allSwLights.clear();
 	allSwLights.shrink_to_fit();
+	textureReferences.clear();
+	textureReferences.shrink_to_fit();
 
 	g_psw = nullptr;
 }
