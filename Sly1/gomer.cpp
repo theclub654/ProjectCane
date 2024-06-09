@@ -1,6 +1,6 @@
 #include "gomer.h"
 
-void* NewGomer()
+GOMER* NewGomer()
 {
 	return new GOMER{};
 }

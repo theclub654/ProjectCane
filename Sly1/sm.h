@@ -50,12 +50,12 @@ class SM : public LO
 		DL dlSma;
 };
 
-void*NewSm();
+SM*  NewSm();
 int  GetSmSize();
 void LoadSmFromBrx(SM *psm, CBinaryInputStream *pbis);
 void DeleteSm(LO* plo);
 
-void*NewSma();
+SMA* NewSma();
 void InitSwSmaDl(SW* psw);
 int  GetSmaSize();
 void DeleteSma(LO* plo);

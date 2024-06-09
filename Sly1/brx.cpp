@@ -84,13 +84,13 @@ void LoadOptionsFromBrx(void* pvObject, CBinaryInputStream* pbis)
 	}
 }
 
-void LoadOptionFromBrx(void* pvObject, EOPID peopid, int eopid, CBinaryInputStream* pbis)
+void LoadOptionFromBrx(void* pvObject, EOPID eopid, int eopidID, CBinaryInputStream* pbis)
 {
 	void* objectDataPtr = nullptr;
 
-	if ((peopid.grfeopid & 0x400) != 0)
+	if ((eopid.grfeopid & 0x400) != 0)
 	{
-		for (int i = 0; i < peopid.optdat.ibSet; i++)
+		for (int i = 0; i < eopid.optdat.ibSet; i++)
 		{
 			OTYP optionType = (OTYP)pbis->S16Read();
 
@@ -143,77 +143,97 @@ void LoadOptionFromBrx(void* pvObject, EOPID peopid, int eopid, CBinaryInputStre
 		return;
 	}
 
-	if ((peopid.grfeopid & 0x80) != 0)
+	if ((eopid.grfeopid & 0x80) != 0)
 	{
-		if ((peopid.grfeopid & 0x1000) == 0)
+		if ((eopid.grfeopid & 0x1000) == 0)
 		{
-			if (peopid.optdat.pfnsetUser != 0)
-				objectDataPtr = (void*)((uintptr_t)pvObject + (int)peopid.optdat.pfnsetUser);
+			if(eopid.optdat.pfnget != nullptr)
+				objectDataPtr = eopid.optdat.pfnget(pvObject);
 		}
 
 		else
 		{
-			if (peopid.optdat.pfnensure != nullptr)
-				objectDataPtr = peopid.optdat.pfnensure(pvObject, 1);
+			if (eopid.optdat.pfnensure != nullptr)
+				objectDataPtr = eopid.optdat.pfnensure(pvObject, 1);
 		}
 
-		float optionData = 0;
-
-		switch (peopid.otyp)
+		switch (eopid.otyp)
 		{
 			case OTYP_Bool:
-				pbis->U8Read();
-			return;
+			{
+				float optionTypeBool = pbis->U8Read();
+				if (eopid.optdat.pfnget != nullptr)
+					memcpy(objectDataPtr, &optionTypeBool, sizeof(byte));
+				return;
+			}
 
 			case OTYP_Float:
-				optionData = pbis->F32Read();
-				if (eopid == 497 || eopid == 498)
-					memcpy(objectDataPtr, &optionData, sizeof(float));
-			return;
+			{
+				float optionTypefloat = pbis->F32Read();
+				if (eopid.optdat.pfnget != nullptr)
+					memcpy(objectDataPtr, &optionTypefloat, sizeof(float));
+				return;
+			}
+			
 
 			case OTYP_Matrix:
+			{
 				pbis->F32Read();
 				pbis->F32Read();
 				pbis->F32Read();
-			return;
+
+				return;
+			}
 
 			case OTYP_Int:
+			{
 				pbis->S32Read();
-			return;
+				return;
+			}
 
 			case OTYP_Lm:
-				pbis->F32Read();
-				pbis->F32Read();
-			return;
+			{
+				glm::vec2 optionTypeLm = pbis->ReadVector2();
+				if (eopid.optdat.pfnget != nullptr)
+					memcpy(objectDataPtr, &optionTypeLm, sizeof(glm::vec2));
+				return;
+			}
 
 			case OTYP_Vector:
 			case OTYP_Clq:
 			case OTYP_Smp:
-				pbis->F32Read();
-				pbis->F32Read();
-				pbis->F32Read();
-			return;
+			{
+				glm::vec3 optionDataVec = pbis->ReadVector();
+
+				if (eopid.optdat.pfnget != nullptr)
+					memcpy(objectDataPtr, &optionDataVec, sizeof(glm::vec3));
+				return;
+			}
 
 			case OTYP_Vector4:
 			case OTYP_Smpa:
-				pbis->F32Read();
-				pbis->F32Read();
-				pbis->F32Read();
-				pbis->F32Read();
-			return;
+			{
+				glm::vec4 optionDataVec4 = pbis->ReadVector4();
+
+				if (eopid.optdat.pfnget != nullptr)
+					memcpy(objectDataPtr, &optionDataVec4, sizeof(glm::vec4));
+				return;
+			}
 
 			case OTYP_Rgba:
+			{
 				pbis->U32Read();
-			return;
+				return;
+			}
 
 			default:
-				if (pbis->S16Read() == 0x4 && peopid.otyp == OTYP_Emitok)
+				if (pbis->S16Read() == 0x4 && eopid.otyp == OTYP_Emitok)
 					loadEmitMesh = true;
 			return;
 		}
 	}
 
-	switch (peopid.otyp)
+	switch (eopid.otyp)
 	{
 		case OTYP_Bool:
 			pbis->U8Read();
@@ -222,8 +242,8 @@ void LoadOptionFromBrx(void* pvObject, EOPID peopid, int eopid, CBinaryInputStre
 		case OTYP_Float:
 		{
 			float optionData = pbis->F32Read();
-			if (peopid.optdat.pfnset != nullptr)
-				peopid.optdat.pfnset(pvObject, optionData);
+			if (eopid.optdat.pfnset != nullptr)
+				eopid.optdat.pfnset(pvObject, optionData);
 			return;
 		}
 
@@ -273,8 +293,8 @@ void LoadOptionFromBrx(void* pvObject, EOPID peopid, int eopid, CBinaryInputStre
 
 		default:
 			int16_t optionData = pbis->S16Read();
-			if (peopid.optdat.pfnset != nullptr)
-				peopid.optdat.pfnset(pvObject, optionData);
+			if (eopid.optdat.pfnset != nullptr)
+				eopid.optdat.pfnset(pvObject, optionData);
 		return;
 	}
 }

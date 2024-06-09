@@ -1,6 +1,6 @@
 #include "hg.h"
 
-void* NewHg()
+HG* NewHg()
 {
 	return new HG{};
 }

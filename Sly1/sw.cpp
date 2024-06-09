@@ -6,10 +6,9 @@ class LIGHT;
 std::vector<LO*> allWorldObjs;
 std::vector<ALO*> allSWAloObjs;
 std::vector<LIGHT*> allSwLights;
-std::vector <GLuint*> textureReferences;
 extern std::vector <SO*> allSWSoObjs;
 
-void* NewSw()
+SW* NewSw()
 {
 	return new SW{};
 }
@@ -99,8 +98,8 @@ void LoadSwFromBrx(SW* psw, CBinaryInputStream* pbis)
 	std::cout << "Loading Textures...\n";
 	// Loads textures from binary file
 	LoadTexturesFromBrx(pbis);
-	psw->lsmDefault.uShadow  = psw->lsmDefault.uShadow  * 0.003921569;
-	psw->lsmDefault.uMidtone = psw->lsmDefault.uMidtone * 0.003921569;
+	psw->lsmDefault.uShadow  *= 0.003921569;
+	psw->lsmDefault.uMidtone *= 0.003921569;
 	std::cout << "World Loaded Successfully\n";
 }
 
@@ -151,6 +150,16 @@ void GetSwParams(SW* psw, SOP** ppsop)
 
 }
 
+void* GetSwIllum(SW *psw)
+{
+	return &psw->lsmDefault.uMidtone;
+}
+
+void* GetSwIllumShadow(SW *psw)
+{
+	return &psw->lsmDefault.uShadow;
+}
+
 void SetSwIllum(SW* psw, float uMidtone)
 {
 	psw->lsmDefault.uMidtone = uMidtone;
@@ -161,10 +170,20 @@ void SetSwIllumShadow(SW* psw, float uShadow)
 	psw->lsmDefault.uShadow = uShadow;
 }
 
+void* GetSwDarken(SW* psw)
+{
+	return &psw->rDarken;
+}
+
 void SetSwDarken(SW* psw, float rDarken)
 {
 	psw->rDarken = rDarken;
 	psw->rDarkenSmooth = rDarken;
+}
+
+void* GetSwDarkenSmooth(SW* psw)
+{
+	return &psw->rDarkenSmooth;
 }
 
 void SetSwDarkenSmooth(SW* psw, float rDarkenSmooth)
@@ -219,8 +238,12 @@ void DeleteWorld(SW* psw)
 	for (int i = 0; i < allWorldObjs.size(); i++)
 		allWorldObjs[i]->pvtlo->pfnDeleteLo(allWorldObjs[i]);
 
-	for (int i = 0; i < textureReferences.size(); i++)
-		glDeleteTextures(1, textureReferences[i]);
+	for (int i = 0; i < g_ashd.size(); i++)
+	{
+		glDeleteTextures(1, &g_ashd[i].glAmbientTexture);
+		glDeleteTextures(1, &g_ashd[i].glDiffuseTexture);
+		glDeleteTextures(1, &g_ashd[i].glSaturateTexture);
+	}
 
 	allSWAloObjs.clear();
 	allSWAloObjs.shrink_to_fit();
@@ -228,8 +251,6 @@ void DeleteWorld(SW* psw)
 	allWorldObjs.shrink_to_fit();
 	allSwLights.clear();
 	allSwLights.shrink_to_fit();
-	textureReferences.clear();
-	textureReferences.shrink_to_fit();
 
 	g_psw = nullptr;
 }

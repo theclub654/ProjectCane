@@ -1,6 +1,6 @@
 #include "jack.h"
 
-void* NewJack()
+JACK* NewJack()
 {
 	return new JACK{};
 }
@@ -35,7 +35,7 @@ void DeleteJack(LO* plo)
 	delete (JACK*)plo;
 }
 
-void* NewJackb()
+JACKB* NewJackb()
 {
 	return new JACKB{};
 }
@@ -66,7 +66,7 @@ void DeleteJackb(LO* plo)
 	delete(JACKB*)plo;
 }
 
-void* NewJackn()
+JACKN* NewJackn()
 {
 	return new JACKN{};
 }
@@ -107,7 +107,7 @@ void DeleteJackn(LO* plo)
 	delete(JACKN*)plo;
 }
 
-void* NewJackf()
+JACKF* NewJackf()
 {
 	return new JACKF{};
 }

@@ -1,6 +1,6 @@
 #include "cm.h"
 
-void* NewCm()
+CM* NewCm()
 {
 	return new CM{};
 }

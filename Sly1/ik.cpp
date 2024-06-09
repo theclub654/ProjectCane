@@ -1,6 +1,6 @@
 #include "ik.h"
 
-void* NewIkh()
+IKH* NewIkh()
 {
 	return new IKH{};
 }
@@ -30,7 +30,7 @@ void DeleteIkh(LO* plo)
 	delete(IKH*)plo;
 }
 
-void* NewLikh()
+LIKH* NewLikh()
 {
 	return new LIKH{};
 }

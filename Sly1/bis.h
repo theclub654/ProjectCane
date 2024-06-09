@@ -32,6 +32,8 @@ class CBinaryInputStream
 		int32_t S32Read();
 		// Reads float bytes from file
 		float F32Read();
+		// Reads Vector 2 from file
+		glm::vec2 ReadVector2();
 		// Reads vector from file
 		glm::vec3 ReadVector();
 		// Reads vector 4 from file

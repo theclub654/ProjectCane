@@ -1,6 +1,6 @@
 #include "wm.h"
 
-void* NewWm()
+WM* NewWm()
 {
 	return new WM{};
 }

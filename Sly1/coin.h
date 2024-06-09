@@ -76,7 +76,7 @@ class GOLD : public DPRIZE
         int fStartTimedChallenge;
 };
 
-void*NewDprize();
+DPRIZE* NewDprize();
 void InitSwDprizeDl(SW* psw);
 void InitDprize(DPRIZE *pdprize);//NOT FINISHED
 int  GetDprizeSize();
@@ -85,25 +85,25 @@ void CloneDprize(DPRIZE* pdprize, DPRIZE* pdprizeBase);
 void RenderDprizeAll(DPRIZE* pdprize, CM* pcm, RO* pro);
 void DeleteDprize(LO* plo);
 
-void*NewCharm();
+CHARM* NewCharm();
 void InitCharm(CHARM* pcharm);
 int  GetCharmSize();
 void CloneCharm(CHARM* pcharm, CHARM* pcharmBase);
 void DeleteCharm(LO* plo);
 
-void*NewCoin();
+COIN*NewCoin();
 void InitCoin(COIN* pcoin);
 int  GetCoinSize();
 void CloneCoin(COIN* pcoin, COIN* pcoinBase);
 void DeleteCoin(LO* plo);
 
-void*NewKey();
+KEY* NewKey();
 void InitKey(KEY* pkey);
 int  GetKeySize();
 void CloneKey(KEY* pkey, KEY* pkeyBase);
 void DeleteKey(LO* plo);
 
-void*NewGold();
+GOLD*NewGold();
 void InitGold(GOLD* pgold);
 int  GetGoldSize();
 void CloneGold(GOLD* pgold, GOLD* pgoldBase);

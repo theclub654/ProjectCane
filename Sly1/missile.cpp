@@ -1,6 +1,6 @@
 #include "missile.h"
 
-void* NewMissile()
+MISSILE* NewMissile()
 {
 	return new MISSILE{};
 }
@@ -50,7 +50,7 @@ void DeleteMissile(LO* plo)
 	delete (MISSILE*)plo;
 }
 
-void* NewAccmiss()
+ACCMISS* NewAccmiss()
 {
 	return new ACCMISS{};
 }
@@ -85,7 +85,7 @@ void DeleteAccmiss(LO* plo)
 	delete (ACCMISS*)plo;
 }
 
-void* NewTarmiss()
+TARMISS* NewTarmiss()
 {
 	return new TARMISS{};
 }
@@ -120,7 +120,7 @@ void DeleteTarmiss(LO* plo)
 	delete (TARMISS*)plo;
 }
 
-void* NewSplmiss()
+SPLMISS* NewSplmiss()
 {
 	return new SPLMISS{};
 }
@@ -150,7 +150,7 @@ void DeleteSplmiss(LO* plo)
 	delete (SPLMISS*)plo;
 }
 
-void* NewGroundmiss()
+GROUNDMISS* NewGroundmiss()
 {
 	return new GROUNDMISS{};
 }

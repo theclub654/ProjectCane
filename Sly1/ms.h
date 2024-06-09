@@ -7,6 +7,6 @@ class MS : public SO
 	public:
 };
 
-void*NewMs();
+MS*  NewMs();
 int  GetMsSize();
 void DeleteMs(LO* plo);

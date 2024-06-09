@@ -1,6 +1,6 @@
 #include "ub.h"
 
-void* NewUbg()
+UBG* NewUbg()
 {
 	return new UBG{};
 }
@@ -40,7 +40,7 @@ void DeleteUbg(LO* plo)
 	delete (UBG*)plo;
 }
 
-void* NewUbp()
+UBP* NewUbp()
 {
 	return new UBP{};
 }
@@ -64,7 +64,7 @@ void DeleteUbp(LO* plo)
 	delete (UBP*)plo;
 }
 
-void* NewUbv()
+UBV* NewUbv()
 {
 	return new UBV{};
 }

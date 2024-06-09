@@ -184,23 +184,24 @@ enum BIFK {
 
 class CREF 
 {
-public:
-    TAGK m_tagk;
+    public:
+        TAGK m_tagk;
 
-    union {
-        s32 m_n;
-        f32 m_g;
-        int m_bool;
-        SYMID m_symid;
-        BIFK m_bifk;
-        struct CPair* m_ppair;
-        struct CProc* m_pproc;
-        struct VECTOR* m_pvector;
-        struct MATRIX4* m_pmatrix;
-        struct CLQ* m_pclq;
-        struct LM* m_plm;
-        struct SMP* m_psmp;
-        struct BASIC* m_pbasic;
-        struct CMethod* m_pmethod;
-    };
+        union 
+        {
+            s32 m_n;
+            f32 m_g;
+            int m_bool;
+            SYMID m_symid;
+            BIFK m_bifk;
+            struct CPair* m_ppair;
+            struct CProc* m_pproc;
+            struct VECTOR* m_pvector;
+            struct MATRIX4* m_pmatrix;
+            struct CLQ* m_pclq;
+            struct LM* m_plm;
+            struct SMP* m_psmp;
+            struct BASIC* m_pbasic;
+            struct CMethod* m_pmethod;
+        };
 };

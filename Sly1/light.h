@@ -13,13 +13,29 @@ enum LIGHTK
 	LIGHTK_Spot = 3,
 	LIGHTK_Max = 4
 };
+struct LTFN
+{
+	float ruShadow;
+	float ruMidtone;
+	float ruHighlight;
+	float ruUnused;
+	float duShadow;
+	float duMidtone;
+	float duHighlight;
+	float duUnused;
+};
 
 class LIGHT : public ALO
 {
 	public:
 		LIGHTK lightk;
 		TWPS twps;
+		// Light color (HSV)
 		glm::vec3 vecHighlight;
+		// Light color (RGBA)
+		glm::vec3 rgbaColor;
+		LTFN ltfn;
+		LM agFallOff;
 		// Diffuse
 		float gMidtone;
 		float gShadow;
@@ -45,7 +61,7 @@ class LIGHT : public ALO
 		DLE dleLight;
 };
 
-void*NewLight();
+LIGHT*NewLight();
 void InitSwLightDl(SW* psw);
 void InitLight(LIGHT* plight);
 int  GetLightSize();
@@ -54,18 +70,35 @@ void OnLightRemove(LIGHT* plight);
 void UpdateLightXfWorldHierarchy(LIGHT* plight);
 void CloneLight(LIGHT* plight, LIGHT* plightBase);
 void AddLightToSw(LIGHT* plight);
+void FitLinearFunction(float x0, float y0, float x1, float y1, float* pdu, float* pru);
+void FitRecipFunction(float x0, float y0, float x1, float y1, float* pdu, float* pru);
+void ConvertAngleStrength(float deg0, float g0, float deg1, float g1, float* pdu, float* pru);
+void RebuildLight(LIGHT* plight);
+void*GetLightKind(LIGHT* plight);
 void SetLightKind(LIGHT* plight, LIGHTK lightk);
+void*GetLightHighlightColor(LIGHT* plight);
 void SetLightHighlightColor(LIGHT* plight, glm::vec3 &pvecHighlight);
+void*GetLightMidtoneStrength(LIGHT* plight);
 void SetLightMidtoneStrength(LIGHT* plight, float gMidtone);
+void*GetLightShadowStrength(LIGHT* plight);
 void SetLightShadowStrength(LIGHT* plight, float gShadow);
+void*GetLightHighlightAngle(LIGHT* plight);
 void SetLightHighlightAngle(LIGHT* plight, float degHighlight);
+void*GetLightMidtoneAngle(LIGHT* plight);
 void SetLightMidtoneAngle(LIGHT* plight, float degMidtone);
+void*GetLightShadowAngle(LIGHT* plight);
 void SetLightShadowAngle(LIGHT* plight, float degShadow);
+void*GetLightDirection(LIGHT* plight);
 void SetLightDirection(LIGHT* plight, glm::vec3 &pvecDirection);
+void*GetLightDynamic(LIGHT* plight);
 void SetLightDynamic(LIGHT* plight, int fDynamic);
+void*GetLightFallOff(LIGHT* plight);
 void SetLightFallOff(LIGHT* plight, LM* plm);
+void*GetLightConeAngle(LIGHT* plight);
 void SetLightConeAngle(LIGHT* plight, float degCone);
+void*GetLightHotSpotAngle(LIGHT* plight);
 void SetLightHotSpotAngle(LIGHT* plight, float degHotSpot);
+void*GetLightFrustrumUp(LIGHT*plight);
 void SetLightFrustrumUp(LIGHT* plight, glm::vec3 &pvecUpLocal);
 void RemoveLightFromSw(LIGHT* plight);
 void DeleteLight(LO* plo);

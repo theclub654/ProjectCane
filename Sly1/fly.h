@@ -67,7 +67,7 @@ class FLY : public SO
         int ccoin;
 };
 
-void*NewFly();
+FLY* NewFly();
 void InitSwFlyDl(SW* psw);
 void InitFly(FLY* pfly);
 int  GetFlySize();

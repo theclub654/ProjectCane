@@ -1,6 +1,6 @@
 #include "tank.h"
 
-void* NewTank()
+TANK* NewTank()
 {
 	return new TANK{};
 }

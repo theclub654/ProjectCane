@@ -1,6 +1,6 @@
 #include "xform.h"
 
-void* NewXfm()
+XFM* NewXfm()
 {
 	return new XFM{};
 }
@@ -49,7 +49,7 @@ void DeleteXfm(LO* plo)
 	delete(XFM*)plo;
 }
 
-void* NewWarp()
+WARP* NewWarp()
 {
 	return new WARP{};
 }
@@ -101,7 +101,7 @@ void DeleteWarp(LO* plo)
 	delete(WARP*)plo;
 }
 
-void* NewExit()
+EXIT* NewExit()
 {
 	return new EXIT{};
 }
@@ -158,7 +158,7 @@ void DeleteExit(LO* plo)
 	delete(EXIT*)plo;
 }
 
-void* NewCamera()
+CAMERA* NewCamera()
 {
 	return new CAMERA{};
 }

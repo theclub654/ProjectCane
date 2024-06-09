@@ -207,7 +207,7 @@ class CM : public LO
     CPTN cptn;
 };
 
-void* NewCm();
+CM*  NewCm();
 // Initialize camera object
 void InitCm(CM* pcm); // NOT FINISHED
 int  GetCmSize();

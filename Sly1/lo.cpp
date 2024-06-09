@@ -1,6 +1,6 @@
 #include "lo.h"
 
-void* NewLo()
+LO* NewLo()
 {
 	return new LO{};
 }

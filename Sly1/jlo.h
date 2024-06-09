@@ -82,20 +82,20 @@ class JLOVOL : public VOLBTN
         DLE dleJlo;
 };
 
-void*NewJlovol();
+JLOVOL*NewJlovol();
 void InitJlovol(JLOVOL* pjlovol);
 int  GetJlovolSize();
 void CloneJlovol(JLOVOL* pjlovol, JLOVOL* pjlovolBase);
 void DeleteJlovol(LO* plo);
 
-void*NewJlo();
+JLO* NewJlo();
 void InitJlo(JLO* pjlo);
 int  GetJloSize();
 void LoadJloFromBrx(JLO* pjlo, CBinaryInputStream* pbis);
 void CloneJlo(JLO* pjlo, JLO* pjloBase);
 void DeleteJlo(LO* plo);
 
-void*NewJloc();
+JLOC*NewJloc();
 void InitJloc(JLOC* pjloc);
 int  GetJlocSize();
 void LoadJlocFromBrx(JLOC* pjloc, CBinaryInputStream* pbis);

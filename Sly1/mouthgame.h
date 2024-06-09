@@ -27,7 +27,7 @@ class MGC : public ALO
         struct MGV* pmgv;
 };
 
-void*NewMgc();
+MGC* NewMgc();
 void InitMgc(MGC* pmgc);
 int  GetMgcSize();
 void CloneMgc(MGC* pmgc, MGC* pmgcBase);

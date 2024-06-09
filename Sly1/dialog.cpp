@@ -1,6 +1,6 @@
 #include "dialog.h"
 
-void* NewDialog()
+DIALOG* NewDialog()
 {
 	return new DIALOG{};
 }

@@ -1,6 +1,6 @@
 #include "dsp.h"
 
-void* NewDsp()
+DSP* NewDsp()
 {
 	return new DSP{};
 }

@@ -13,7 +13,7 @@ class WATER : public SO
         ZPD zpd;
 };
 
-void*NewWater();
+WATER*NewWater();
 void InitWater(WATER* pwater);
 int  GetWaterSize();
 void CloneWater(WATER* pwater, WATER* pwaterBase);

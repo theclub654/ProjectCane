@@ -1,6 +1,6 @@
 #include "tail.h"
 
-void* NewTail()
+TAIL* NewTail()
 {
 	return new TAIL{};
 }

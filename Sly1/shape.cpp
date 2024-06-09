@@ -1,6 +1,6 @@
 #include "shape.h"
 
-void* NewShape()
+SHAPE* NewShape()
 {
     return new SHAPE{};
 }

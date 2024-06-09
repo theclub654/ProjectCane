@@ -1,6 +1,6 @@
 #include "pipe.h"
 
-void* NewPipe()
+PIPE* NewPipe()
 {
 	return new PIPE{};
 }

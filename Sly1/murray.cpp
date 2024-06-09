@@ -1,6 +1,6 @@
 #include "murray.h"
 
-void* NewMurray()
+MURRAY* NewMurray()
 {
 	return new MURRAY{};
 }

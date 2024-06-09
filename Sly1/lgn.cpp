@@ -1,6 +1,6 @@
 #include "lgn.h"
 
-void* NewLgn()
+LGN* NewLgn()
 {
 	return new LGN{};
 }
@@ -40,7 +40,7 @@ void DeleteLgn(LO* plo)
 	delete (LGN*)plo;
 }
 
-void* NewLgnb()
+LGNB* NewLgnb()
 {
 	return new LGNB{};
 }
@@ -75,7 +75,7 @@ void DeleteLgnb(LO* plo)
 	delete(LGNB*)plo;
 }
 
-void* NewSwp()
+SWP* NewSwp()
 {
 	return new SWP{};
 }

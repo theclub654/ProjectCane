@@ -1,6 +1,6 @@
 #include "coin.h"
 
-void* NewDprize()
+DPRIZE* NewDprize()
 {
 	return new DPRIZE{};
 }
@@ -52,7 +52,7 @@ void DeleteDprize(LO* plo)
 	delete(DPRIZE*)plo;
 }
 
-void* NewCharm()
+CHARM* NewCharm()
 {
 	return new CHARM{};
 }
@@ -83,7 +83,7 @@ void DeleteCharm(LO* plo)
 	delete(CHARM*)plo;
 }
 
-void* NewCoin()
+COIN* NewCoin()
 {
 	return new COIN{};
 }
@@ -114,7 +114,7 @@ void DeleteCoin(LO* plo)
 	delete(COIN*)plo;
 }
 
-void* NewKey()
+KEY* NewKey()
 {
 	return new KEY{};
 }
@@ -145,7 +145,7 @@ void DeleteKey(LO* plo)
 	delete(KEY*)plo;
 }
 
-void* NewGold()
+GOLD* NewGold()
 {
 	return new GOLD{};
 }

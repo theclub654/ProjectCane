@@ -10,7 +10,7 @@ ALO*NewAlo()
 
 void InitAlo(ALO* palo)
 {
-	InitDl(&palo->dlChild, offsetof(LO, dleChild));
+	InitDl(&palo->dlChild,  offsetof(LO, dleChild));
 	InitDl(&palo->dlFreeze, offsetof(ALO, dleFreeze));
 	
 	if (palo->paloParent == nullptr)
@@ -336,6 +336,23 @@ void ConvertAloPos(ALO* paloFrom, ALO* paloTo, glm::vec3 &pposFrom, glm::vec3 &p
 	pposTo = pposFrom;
 }
 
+void ConvertAloVec(ALO* paloFrom, ALO* paloTo, glm::vec3& pvecFrom, glm::vec3& pvecTo)
+{
+	if (paloFrom != paloTo)
+	{
+		if (paloFrom != nullptr)
+			pvecFrom = paloFrom->xf.matWorld * pvecFrom;
+
+		if (paloTo != nullptr)
+		{
+			pvecTo = paloTo->xf.matWorld * pvecFrom;
+			return;
+		}
+	}
+
+	pvecTo = pvecFrom;
+}
+
 void RotateAloToMat(ALO* palo, glm::mat3 &pmat)
 {
 	palo->xf.mat = pmat;
@@ -550,10 +567,12 @@ void DrawGlob(ALO* palo, int index)
 			glBindVertexArray(palo->globset.aglob[i].asubglob[a].VAO);
 
 			glUniformMatrix4fv(glGetUniformLocation(glGlobShader.ID, "model"), 1, GL_FALSE, glm::value_ptr(model));
+
+			glUniform1i(glGetUniformLocation(glGlobShader.ID, "isAmbient"),    palo->globset.aglob[i].asubglob[a].pshd->glAmbientTexture);
+			glUniform1i(glGetUniformLocation(glGlobShader.ID, "isDiffuse"),    palo->globset.aglob[i].asubglob[a].pshd->glDiffuseTexture);
+			glUniform1i(glGetUniformLocation(glGlobShader.ID, "isSaturate"),   palo->globset.aglob[i].asubglob[a].pshd->glSaturateTexture);
 			
-			glUniform1i(glGetUniformLocation(glGlobShader.ID, "isAmbient"),   palo->globset.aglob[i].asubglob[a].pshd->glAmbientTexture);
-			glUniform1i(glGetUniformLocation(glGlobShader.ID, "isDiffuse"),   palo->globset.aglob[i].asubglob[a].pshd->glDiffuseTexture);
-			glUniform1i(glGetUniformLocation(glGlobShader.ID, "isGreyScale"), palo->globset.aglob[i].asubglob[a].pshd->glGreyScaleTexture);
+			glUniform1i(glGetUniformLocation(glGlobShader.ID, "fThreeWay"),    palo->globset.aglob[i].asubglob[a].fThreeWay);
 
 			glActiveTexture(GL_TEXTURE0);
 			glBindTexture(GL_TEXTURE_2D, palo->globset.aglob[i].asubglob[a].pshd->glAmbientTexture);
@@ -562,14 +581,15 @@ void DrawGlob(ALO* palo, int index)
 			glBindTexture(GL_TEXTURE_2D, palo->globset.aglob[i].asubglob[a].pshd->glDiffuseTexture);
 
 			glActiveTexture(GL_TEXTURE2);
-			glBindTexture(GL_TEXTURE_2D, palo->globset.aglob[i].asubglob[a].pshd->glGreyScaleTexture);
+			glBindTexture(GL_TEXTURE_2D, palo->globset.aglob[i].asubglob[a].pshd->glSaturateTexture);
 
-			/*if (palo->globset.aglob[i].rp == RP_Translucent)
-			{
-				glEnable(GL_BLEND);
-				glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-			}*/
-
+			//if (palo->globset.aglob[i].rp == RP_Translucent)
+			//{
+			//	glEnable(GL_BLEND);
+			//	//glBlendFunc(GL_ONE_MINUS_DST_COLOR, GL_ONE_MINUS_SRC_ALPHA);
+			//	glBlendFuncSeparate(GL_ONE_MINUS_SRC_COLOR, GL_SRC_COLOR, GL_SRC_COLOR, GL_SRC_ALPHA);
+			//}
+			
 			glDrawElements(GL_TRIANGLES, palo->globset.aglob[i].asubglob[a].indices.size(), GL_UNSIGNED_SHORT, 0);
 			
 			// Draws instanced models, I WILL OPTIMIZE THIS LATER
@@ -579,10 +599,12 @@ void DrawGlob(ALO* palo, int index)
 				glUniformMatrix4fv(glGetUniformLocation(glGlobShader.ID, "model"), 1, GL_FALSE, glm::value_ptr(palo->globset.aglob[i].pdmat[b]));
 				glDrawElements(GL_TRIANGLES, palo->globset.aglob[i].asubglob[a].indices.size(), GL_UNSIGNED_SHORT, 0);
 			}
-
-			/*glDisable(GL_BLEND);
-			glEnable(GL_DEPTH);*/
 		}
+
+		/*if (palo->globset.aglob[i].rp == RP_Translucent)
+		{
+			glDisable(GL_BLEND);
+		}*/
 	}
 
 	glBindVertexArray(0);

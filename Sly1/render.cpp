@@ -42,9 +42,9 @@ void DrawSwAll()
 {
 	glGlobShader.Use();
 
-	glUniform1i(glGetUniformLocation(glGlobShader.ID, "ambientTexture"),  0);
-	glUniform1i(glGetUniformLocation(glGlobShader.ID, "diffuseTexture"),  1);
-	glUniform1i(glGetUniformLocation(glGlobShader.ID, "greyscaleTexture"),2);
+	glUniform1i(glGetUniformLocation(glGlobShader.ID, "ambientTexture"),    0);
+	glUniform1i(glGetUniformLocation(glGlobShader.ID, "diffuseTexture"),    1);
+	glUniform1i(glGetUniformLocation(glGlobShader.ID, "saturateTexture"),   2);
 
 	for (int i = 0; i < allSWAloObjs.size(); i++)
 		DrawGlob(allSWAloObjs[i], i);

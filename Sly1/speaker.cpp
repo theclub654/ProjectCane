@@ -1,6 +1,6 @@
 #include "speaker.h"
 
-void* NewSpeaker()
+SPEAKER* NewSpeaker()
 {
 	return new SPEAKER{};
 }

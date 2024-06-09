@@ -1,6 +1,6 @@
 #include "jp.h"
 
-void* NewJp()
+JP* NewJp()
 {
 	return new JP{};
 }

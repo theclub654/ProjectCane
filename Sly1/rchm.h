@@ -45,7 +45,7 @@ class RCHM : public LO
 		std::vector <TWR> atwr;
 };
 
-void*NewRchm();
+RCHM*NewRchm();
 void InitRchm(RCHM* prchm);
 int  GetRchmSize();
 void LoadRchmFromBrx(RCHM* prchm, CBinaryInputStream* pbis);

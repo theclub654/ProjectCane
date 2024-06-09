@@ -1,6 +1,6 @@
 #include "jsg.h"
 
-void* NewJsg()
+JSG* NewJsg()
 {
 	return new JSG{};
 }

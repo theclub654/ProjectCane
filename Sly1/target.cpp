@@ -1,6 +1,6 @@
 #include "target.h"
 
-void* NewTarget()
+TARGET* NewTarget()
 {
 	return new TARGET{};
 }

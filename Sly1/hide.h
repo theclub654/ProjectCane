@@ -59,7 +59,7 @@ class HPNT : public PNT
 		float dzIgnore;
 };
 
-void*NewHbsk();
+HBSK*NewHbsk();
 void InitHbsk(HBSK* phbsk);
 int  GetHbskSize();
 void OnHbskAdd(HBSK* phbsk);
@@ -68,7 +68,7 @@ void LoadHbskFromBrx(HBSK* phbsk, CBinaryInputStream* pbis);
 void CloneHbsk(HBSK* phbsk, HBSK* phbskBase);
 void DeleteHbsk(LO* plo);
 
-void*NewHshape();
+HSHAPE*NewHshape();
 void InitHshape(HSHAPE* phshape);
 int  GetHshapeSize();
 void OnHshapeAdd(HSHAPE* phshape);
@@ -76,7 +76,7 @@ void OnHshapeRemove(HSHAPE* phshape);
 void CloneHshape(HSHAPE* phshape, HSHAPE* phshapeBase);
 void DeleteHshape(LO* plo);
 
-void*NewHpnt();
+HPNT*NewHpnt();
 void InitHpnt(HPNT* phpnt);
 int  GetHpntSize();
 void OnHpntAdd(HPNT* phpnt);

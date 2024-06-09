@@ -134,7 +134,7 @@ public:
 };
 
 // Create SW object
-void* NewSw();
+SW*  NewSw();
 // Initializing SW object
 void InitSw(SW* psw); // GOTTA COME BACK TO THIS
 // Returns size of SW
@@ -152,9 +152,13 @@ void AddSwProxySource(SW* psw, LO* ploProxySource, int cploClone);
 // Returns SW proxy source LO based of proxy source index
 LO*  PloGetSwProxySource(SW* psw, int ipsl);
 void GetSwParams(SW* psw, SOP** ppsop);
+void*GetSwIllum(SW *psw);
+void*GetSwIllumShadow(SW *psw);
 void SetSwIllum(SW* psw, float uMidtone);
 void SetSwIllumShadow(SW* psw, float uShadow);
+void*GetSwDarken(SW* psw);
 void SetSwDarken(SW* psw, float rDarken);
+void*GetSwDarkenSmooth(SW* psw);
 void SetSwDarkenSmooth(SW* psw, float rDarkenSmooth);
 void MatchSwObject(LO* ploMatch, GRFFSO grffsoMask, int fIncludeRemoved, int fProxyMatch, LO* ploContext, int cploMax, int& pcploMatch, LO** aplo, int& pcpaloBest);
 int  CploFindSwObjects(SW* psw, GRFFSO grffso, OID oid, LO* ploContext, int cploMax, LO** aplo);

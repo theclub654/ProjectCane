@@ -1,6 +1,6 @@
 #include "puffer.h"
 
-void* NewPuffer()
+PUFFER* NewPuffer()
 {
 	return new PUFFER{};
 }
@@ -40,7 +40,7 @@ void DeletePuffer(LO* plo)
 	delete (PUFFER*)plo;
 }
 
-void* NewPuffb()
+PUFFB* NewPuffb()
 {
 	return new PUFFB{};
 }
@@ -66,7 +66,7 @@ void DeletePuffb(LO* plo)
 	delete(PUFFB*)plo;
 }
 
-void* NewPuffv()
+PUFFV* NewPuffv()
 {
 	return new PUFFV{};
 }
@@ -95,7 +95,7 @@ void DeletePuffv(LO* plo)
 	delete(PUFFV*)plo;
 }
 
-void* NewPuffc()
+PUFFC* NewPuffc()
 {
 	return new PUFFC{};
 }
@@ -125,7 +125,7 @@ void DeletePuffc(LO* plo)
 	delete (PUFFC*)plo;
 }
 
-void* NewPufft()
+PUFFT* NewPufft()
 {
 	return new PUFFT{};
 }

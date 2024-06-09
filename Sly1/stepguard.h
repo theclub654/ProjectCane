@@ -177,13 +177,13 @@ class SGG : public LO
         int fDetect;
 };
 
-void*NewSgg();
+SGG* NewSgg();
 void InitSgg(SGG* psgg);
 int  GetSggSize();
 void CloneSgg(SGG* psgg, SGG* psggBase);
 void DeleteSgg(LO* plo);
 
-void*NewStepguard();
+STEPGUARD*NewStepguard();
 void InitStepGuard(STEPGUARD* pstepguard);
 void OnStepguardAdd(STEPGUARD* pstepguard);
 void OnStepguardRemove(STEPGUARD* pstepguard);

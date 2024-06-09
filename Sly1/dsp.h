@@ -13,7 +13,7 @@ class DSP : public SO
         struct TARGET* ptargetCur;
 };
 
-void*NewDsp();
+DSP* NewDsp();
 int  GetDspSize();
 void CloneDsp(DSP* pdsp, DSP* pdspBase);
 void DeleteDsp(LO* plo);

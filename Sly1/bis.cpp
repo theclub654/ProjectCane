@@ -64,6 +64,13 @@ float CBinaryInputStream::F32Read()
     return temp;
 }
 
+glm::vec2 CBinaryInputStream::ReadVector2()
+{
+    glm::vec2 temp{};
+    file.read(reinterpret_cast<char*> (&temp), sizeof(glm::vec2));
+    return temp;
+}
+
 glm::vec3 CBinaryInputStream::ReadVector()
 {   
     glm::vec3 temp{};

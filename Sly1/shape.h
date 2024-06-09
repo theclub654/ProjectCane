@@ -11,7 +11,7 @@ class SHAPE : public LO
 		DLE dleShape;
 };
 
-void*NewShape();
+SHAPE*NewShape();
 void InitSwShapeDl(SW* psw);
 void InitShape(SHAPE* pshape);
 int  GetShapeSize();

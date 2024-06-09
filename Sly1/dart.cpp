@@ -1,6 +1,6 @@
 #include "dart.h"
 
-void* NewDart()
+DART* NewDart()
 {
 	return new DART{};
 }

@@ -1,6 +1,6 @@
 #include "mecha.h"
 
-void* NewMecha()
+MECHA* NewMecha()
 {
 	return new MECHA{};
 }

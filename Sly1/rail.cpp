@@ -1,6 +1,6 @@
 #include "rail.h"
 
-void* NewRail()
+RAIL* NewRail()
 {
 	return new RAIL{};
 }

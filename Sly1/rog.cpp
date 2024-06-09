@@ -1,6 +1,6 @@
 #include "rog.h"
 
-void* NewRov()
+ROV* NewRov()
 {
 	return new ROV{};
 }
@@ -40,7 +40,7 @@ void DeleteRov(LO* plo)
 	delete(ROV*)plo;
 }
 
-void* NewRoh()
+ROH* NewRoh()
 {
 	return new ROH{};
 }
@@ -80,7 +80,7 @@ void DeleteRoh(LO* plo)
 	delete (ROH*)plo;
 }
 
-void* NewRoc()
+ROC* NewRoc()
 {
 	return new ROC{};
 }
@@ -120,7 +120,7 @@ void DeleteRoc(LO* plo)
 	delete(ROC*)plo;
 }
 
-void* NewRost()
+ROST* NewRost()
 {
 	return new ROST{};
 }
@@ -160,7 +160,7 @@ void DeleteRost(LO* plo)
 	delete(ROST*)plo;
 }
 
-void* NewRop()
+ROP* NewRop()
 {
 	return new ROP{};
 }
@@ -200,7 +200,7 @@ void DeleteRop(LO* plo)
 	delete (ROP*)plo;
 }
 
-void* NewRob()
+ROB* NewRob()
 {
 	return new ROB{};
 }

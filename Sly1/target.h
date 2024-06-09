@@ -10,6 +10,7 @@ class TARGET : public XFM
 		int fHitTest;
 };
 
+TARGET* NewTarget();
 void InitTarget(TARGET* ptarget);
 int  GetTargetSize();
 void OnTargetAdd(TARGET* ptarget);

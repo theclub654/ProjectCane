@@ -1,6 +1,6 @@
 #include "path.h"
 
-void* NewPathzone()
+PATHZONE* NewPathzone()
 {
     return new PATHZONE{};
 }

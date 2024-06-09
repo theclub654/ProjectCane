@@ -1,6 +1,6 @@
 #include "spire.h"
 
-void* NewSpire()
+SPIRE* NewSpire()
 {
 	return new SPIRE{};
 }

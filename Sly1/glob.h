@@ -63,18 +63,6 @@ enum RP
 	RP_Max = 18
 };
 
-struct LTFN 
-{
-	float ruShadow;
-	float ruMidtone;
-	float ruHighlight;
-	float ruUnused;
-	float duShadow;
-	float duMidtone;
-	float duHighlight;
-	float duUnused;
-};
-
 struct VERTICE
 {
 	glm::vec3 pos;
@@ -144,6 +132,7 @@ struct SUBGLOB // NOT DONE
 	struct WRBSG *pwrbsg;
 	int cibnd;
 	int aibnd[4];
+	int fThreeWay;
 
 }; // NOT DONE
 
@@ -197,7 +186,6 @@ struct GLOBSET // NOT DONE
 	uint64_t cglob;
 	std::vector <GLOB> aglob;
 	std::vector <GLOBI> aglobi;
-	LTFN ltfn;
 	uint32_t grfglobset;
 	RGBA rgbaCel;
 	int cpose;

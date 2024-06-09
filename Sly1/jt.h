@@ -459,7 +459,7 @@ class JT : public STEP
         float uFsp;
 };
 
-void*NewJt();
+JT*  NewJt();
 void InitJt(JT *pjt); // NOT FINSHED
 void LoadJtFromBrx(JT *pjt, CBinaryInputStream *pbis); // NOT FINSHED
 void CloneJt(JT* pjt, JT* pjtBase);

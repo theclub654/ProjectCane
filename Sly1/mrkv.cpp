@@ -1,6 +1,6 @@
 #include "mrkv.h"
 
-void* NewMrkv()
+MRKV* NewMrkv()
 {
 	return new MRKV{};
 }

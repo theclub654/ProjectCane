@@ -1,6 +1,6 @@
 #include "stepguard.h"
 
-void* NewSgg()
+SGG* NewSgg()
 {
 	return new SGG{};
 }
@@ -29,7 +29,7 @@ void DeleteSgg(LO* plo)
 	delete(SGG*)plo;
 }
 
-void* NewStepguard()
+STEPGUARD* NewStepguard()
 {
 	return new STEPGUARD{};
 }

@@ -27,13 +27,13 @@ class CRFODK : public CRFOD
 	public:
 };
 
-void*NewCrfodb();
+CRFODB*NewCrfodb();
 void InitCrfodb(CRFODB *pcrfodb);
 int  GetCrfodbSize();
 void CloneCrfodb(CRFODB* pcrfodb, CRFODB* pcrfodbBase);
 void DeleteCrfodb(LO* plo);
 
-void*NewCrfod();
+CRFOD*NewCrfod();
 void InitSwCrfodDl(SW* psw);
 void OnCrfodAdd(CRFOD* pcrfod);
 void OnCrfodRemove(CRFOD* pcrfod);
@@ -41,12 +41,12 @@ void CloneCrfod(CRFOD* pcrfod, CRFOD* pcrfodBase);
 int  GetCrfodSize();
 void DeleteCrfod(LO* plo);
 
-void*NewCrfodk();
+CRFODK*NewCrfodk();
 int  GetCrfodkSize();
 void CloneCrfodk(CRFODK* pcrfodk, CRFODK* pcrfodkBase);
 void DeleteCrfodk(LO* plo);
 
-void*NewCrbrain();
+CRBRAIN*NewCrbrain();
 void InitCrbrain(CRBRAIN* pcrbrain);
 int  GetCrbrainSize();
 void CloneCrbrain(CRBRAIN* pcrbrain, CRBRAIN* pcrbrainBase);

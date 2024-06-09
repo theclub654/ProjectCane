@@ -1,6 +1,6 @@
 #include "can.h"
 
-void* NewCan()
+CAN* NewCan()
 {
 	return new CAN{};
 }

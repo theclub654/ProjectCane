@@ -1,6 +1,6 @@
 #include "mb.h"
 
-void* NewMbg()
+MBG* NewMbg()
 {
 	return new MBG{};
 }
@@ -40,7 +40,7 @@ void DeleteMbg(LO* plo)
 	delete (MBG*)plo;
 }
 
-void* NewBhg()
+BHG* NewBhg()
 {
 	return new BHG{};
 }
@@ -75,7 +75,7 @@ void DeleteBhg(LO* plo)
 	delete (BHG*)plo;
 }
 
-void* NewScentmap()
+SCENTMAP* NewScentmap()
 {
 	return new SCENTMAP{};
 }

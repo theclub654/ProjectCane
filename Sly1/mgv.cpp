@@ -1,6 +1,6 @@
 #include "mgv.h"
 
-void* NewMgv()
+MGV* NewMgv()
 {
 	return new MGV{};
 }

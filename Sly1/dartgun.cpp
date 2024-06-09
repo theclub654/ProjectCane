@@ -1,6 +1,6 @@
 #include "dartgun.h"
 
-void* NewDartgun()
+DARTGUN* NewDartgun()
 {
 	return new DARTGUN{};
 }

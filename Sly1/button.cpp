@@ -1,6 +1,6 @@
 #include "button.h"
 
-void* NewButton()
+BUTTON* NewButton()
 {
 	return new BUTTON{};
 }
@@ -40,7 +40,7 @@ void DeleteButton(LO* plo)
 	delete(BUTTON*)plo;
 }
 
-void* NewVolbtn()
+VOLBTN* NewVolbtn()
 {
 	return new VOLBTN{};
 }

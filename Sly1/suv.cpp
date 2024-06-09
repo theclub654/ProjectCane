@@ -1,6 +1,6 @@
 #include "suv.h"
 
-void* NewSuv()
+SUV* NewSuv()
 {
 	return new SUV{};
 }

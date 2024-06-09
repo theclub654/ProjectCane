@@ -1,6 +1,6 @@
 #include "proxy.h"
 
-void* NewProxy()
+PROXY* NewProxy()
 {
 	return new PROXY{};
 }
@@ -77,7 +77,7 @@ void LoadProxyFromBrx(PROXY* pproxy, CBinaryInputStream* pbis)
 		PXR proxyRoot{};
 
 		proxyRoot.plo = object;
-		proxyRoot.oidProxyRoot = pproxy->oid;
+		proxyRoot.oidProxyRoot  = pproxy->oid;
 		proxyRoot.pchzProxyRoot = pproxy->pchzName;
 		object->ppxr = &proxyRoot;
 		AppendDlEntry(&pproxy->dlProxyRoot, &proxyRoot);

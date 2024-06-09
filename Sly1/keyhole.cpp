@@ -1,6 +1,6 @@
 #include "keyhole.h"
 
-void* NewKeyhole()
+KEYHOLE* NewKeyhole()
 {
     return new KEYHOLE{};
 }

@@ -1,6 +1,6 @@
 #include "fly.h"
 
-void* NewFly()
+FLY* NewFly()
 {
 	return new FLY{};
 }

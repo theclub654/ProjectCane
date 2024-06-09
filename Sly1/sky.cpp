@@ -1,6 +1,6 @@
 #include "sky.h"
 
-void* NewSky()
+SKY* NewSky()
 {
 	return new SKY{};
 }

@@ -1,6 +1,6 @@
 #include "rip.h"
 
-void* NewRipg()
+RIPG* NewRipg()
 {
 	return new RIPG{};
 }

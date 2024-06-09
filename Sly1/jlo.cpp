@@ -1,6 +1,6 @@
 #include "jlo.h"
 
-void* NewJlovol()
+JLOVOL* NewJlovol()
 {
 	return new JLOVOL{};
 }
@@ -35,7 +35,7 @@ void DeleteJlovol(LO* plo)
 	delete(JLOVOL*)plo;
 }
 
-void* NewJlo()
+JLO* NewJlo()
 {
 	return new JLO{};
 }
@@ -76,7 +76,7 @@ void DeleteJlo(LO* plo)
 	delete (JLO*)plo;
 }
 
-void* NewJloc()
+JLOC* NewJloc()
 {
 	return new JLOC{};
 }

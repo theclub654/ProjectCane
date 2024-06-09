@@ -1,6 +1,6 @@
 #include "cycle.h"
 
-void* NewCycle()
+CYCLE* NewCycle()
 {
 	return new CYCLE{};
 }

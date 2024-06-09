@@ -147,16 +147,16 @@ void LoadGlobsetFromBrx(GLOBSET* pglobset ,CBinaryInputStream* pbis, ALO* palo)
                 std::vector <glm::vec3> vertexes;
                 vertexes.resize(vertexCount);
 
-                std::vector<glm::vec3>normals;
+                std::vector <glm::vec3>normals;
                 normals.resize(normalCount);
 
-                std::vector<RGBA> vertexColors;
+                std::vector <RGBA> vertexColors;
                 vertexColors.resize(vertexColorCount);
 
-                std::vector<glm::vec2> texcoords;
+                std::vector <glm::vec2> texcoords;
                 texcoords.resize(texcoordCount);
 
-                std::vector<VTXFLG> indexes;
+                std::vector <VTXFLG> indexes;
                 indexes.resize(indexCount);
 
                 pbis->Align(4);
@@ -200,7 +200,7 @@ void LoadGlobsetFromBrx(GLOBSET* pglobset ,CBinaryInputStream* pbis, ALO* palo)
                 // Loading texture property
                 pglobset->aglob[i].asubglob[a].pshd = &g_ashd[pbis->U16Read()];
 
-                pglobset->aglob[i].asubglob[a].unSelfIllum = pbis->U8Read();
+                pglobset->aglob[i].asubglob[a].unSelfIllum = (pbis->U8Read() * 0x7FA6) / 0xFF;
                 pglobset->aglob[i].asubglob[a].cibnd = pbis->U8Read();
 
                 pbis->file.seekg(pglobset->aglob[i].asubglob[a].cibnd, SEEK_CUR);
@@ -233,6 +233,9 @@ void LoadGlobsetFromBrx(GLOBSET* pglobset ,CBinaryInputStream* pbis, ALO* palo)
                         }
                     }
                 }
+
+                if (pglobset->aglob[i].asubglob[a].pshd->shdk == SHDK_ThreeWay)
+                    pglobset->aglob[i].asubglob[a].fThreeWay = 1;
 
                 BuildSubGlob(pglobset, pglobset->aglob[i].asubglob[a].pshd, pglobset->aglob[i].asubglob[a].vertices, vertexes, normals, vertexColors, texcoords, indexes, pglobset->aglob[i].asubglob[a].indices);
                 MakeGLBuffers(&pglobset->aglob[i].asubglob[a]);
@@ -286,6 +289,7 @@ void LoadGlobsetFromBrx(GLOBSET* pglobset ,CBinaryInputStream* pbis, ALO* palo)
 
 void BuildSubGlob(GLOBSET* pglobset, SHD* pshd, std::vector<VERTICE> &vertices, std::vector <glm::vec3> &vertexes, std::vector <glm::vec3> &normals, std::vector <RGBA> &vertexColors, std::vector <glm::vec2> &texcoords, std::vector <VTXFLG> &indexes, std::vector<uint16_t> &indices)
 {
+
     for (int i = 0; i < indexes.size(); i++)
     {
         VERTICE vertice;
@@ -295,18 +299,18 @@ void BuildSubGlob(GLOBSET* pglobset, SHD* pshd, std::vector<VERTICE> &vertices, 
 
         if ((indexes[i].bMisc & 0x7F) == 0x7F)
         {
-            vertice.color.x = (float)pshd->rgba.bRed   / 255.0;
-            vertice.color.y = (float)pshd->rgba.bGreen / 255.0;
-            vertice.color.z = (float)pshd->rgba.bBlue  / 255.0;
-            vertice.color.w = (float)pshd->rgba.bAlpha / 255.0;
+            vertice.color.r = (float)pshd->rgba.bRed   / 255.0;
+            vertice.color.g = (float)pshd->rgba.bGreen / 255.0;
+            vertice.color.b = (float)pshd->rgba.bBlue  / 255.0;
+            vertice.color.a = (float)pshd->rgba.bAlpha / 255.0;
         }
 
         else
         {
-            vertice.color.x = (float)((pshd->rgba.bRed   * vertexColors[indexes[i].bMisc & 0x7F].bRed   + 0x100) / 0x1FE) / 255.0f;
-            vertice.color.y = (float)((pshd->rgba.bGreen * vertexColors[indexes[i].bMisc & 0x7F].bGreen + 0x100) / 0x1FE) / 255.0f;
-            vertice.color.z = (float)((pshd->rgba.bBlue  * vertexColors[indexes[i].bMisc & 0x7F].bBlue  + 0x100) / 0x1FE) / 255.0f;
-            vertice.color.w = (float)((pshd->rgba.bAlpha * vertexColors[indexes[i].bMisc & 0x7F].bAlpha + 0x100) / 0x1FE) / 255.0f;
+            vertice.color.r = (float)((pshd->rgba.bRed   * vertexColors[indexes[i].bMisc & 0x7F].bRed   + 0x100) / 0x1FE) / 255.0f;
+            vertice.color.g = (float)((pshd->rgba.bGreen * vertexColors[indexes[i].bMisc & 0x7F].bGreen + 0x100) / 0x1FE) / 255.0f;
+            vertice.color.b = (float)((pshd->rgba.bBlue  * vertexColors[indexes[i].bMisc & 0x7F].bBlue  + 0x100) / 0x1FE) / 255.0f;
+            vertice.color.a = (float)((pshd->rgba.bAlpha * vertexColors[indexes[i].bMisc & 0x7F].bAlpha + 0x100) / 0x1FE) / 255.0f;
         }
 
         if (indexes[i].iuv == 0xFF)

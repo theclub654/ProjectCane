@@ -1,6 +1,6 @@
 #include "cnvo.h"
 
-void* NewCnvo()
+CNVO* NewCnvo()
 {
 	return new CNVO{};
 }

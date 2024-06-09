@@ -1,6 +1,6 @@
 #include "emitter.h"
 
-void* NewExplo()
+EXPLO* NewExplo()
 {
 	return new EXPLO{};
 }
@@ -69,7 +69,7 @@ void DeleteExplo(LO* plo)
 	delete explo;
 }
 
-void* NewEmitter()
+EMITTER* NewEmitter()
 {
 	return new EMITTER{};
 }
@@ -180,7 +180,7 @@ void DeleteEmitter(LO* plo)
 	delete emitter;
 }
 
-void* NewExpl()
+EXPL* NewExpl()
 {
 	return new EXPL{};
 }
@@ -204,7 +204,7 @@ void DeleteExpl(LO* plo)
 	delete(EXPL*)plo;
 }
 
-void* NewExpls()
+EXPLS* NewExpls()
 {
 	return new EXPLS{};
 }
@@ -234,7 +234,7 @@ void DeleteExpls(LO* plo)
 	delete(EXPLS*)plo;
 }
 
-void* NewExplg()
+EXPLG* NewExplg()
 {
 	return new EXPLG{};
 }

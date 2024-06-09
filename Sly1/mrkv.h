@@ -9,7 +9,7 @@ class MRKV : public SO
 		float sDepth;
 };
 
-void*NewMrkv();
+MRKV*NewMrkv();
 void InitMrkv(MRKV* pmrkv);
 int  GetMrkvSize();
 void CloneMrkv(MRKV* pmrkv, MRKV* pmrkvBase);

@@ -1,6 +1,6 @@
 #include "pnt.h"
 
-void* NewPnt()
+PNT* NewPnt()
 {
 	return new PNT{};
 }

@@ -269,14 +269,14 @@ public:
 static int LoadExploCount = 0;
 static int LoadEmitterCount = 0;
 
-void*NewExplo();
+EXPLO*NewExplo();
 void InitExplo(EXPLO* pexplo);
 int  GetExploSize();
 void LoadExploFromBrx(EXPLO* pexplo, CBinaryInputStream* pbis);
 void CloneExplo(EXPLO* pexplo, EXPLO* pexploBase);
 void DeleteExplo(LO* plo);
 
-void*NewEmitter();
+EMITTER*NewEmitter();
 void InitEmitter(EMITTER* pemitter);
 int  GetEmitterSize();
 void LoadEmitMeshFromBrx(CBinaryInputStream* pbis);
@@ -287,18 +287,18 @@ EMITB* PemitbEnsureEmitter(EMITTER* pemitter, ENSK ensk);
 void RenderEmitterSelf(EMITTER* pemitter, CM* pcm, RO* pro);
 void DeleteEmitter(LO* plo);
 
-void*NewExpl();
+EXPL*NewExpl();
 int  GetExplSize();
 void CloneExpl(EXPL* pexpl, EXPL* pexplBase);
 void DeleteExpl(LO* plo);
 
-void*NewExpls();
+EXPLS*NewExpls();
 void InitExpls(EXPLS* pexpls);
 int  GetExplsSize();
 void CloneExpls(EXPLS* pexpls, EXPLS* pexplsBase);
 void DeleteExpls(LO* plo);
 
-void*NewExplg();
+EXPLG*NewExplg();
 int  GetExplgSize();
 void LoadExplgFromBrx(EXPLG* pexplg, CBinaryInputStream* pbis);
 void CloneExplg(EXPLG* pexplg, EXPLG* pexplgBase);

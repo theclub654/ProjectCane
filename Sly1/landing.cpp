@@ -1,6 +1,6 @@
 #include "landing.h"
 
-void* NewLanding()
+LANDING* NewLanding()
 {
 	return new LANDING{};
 }

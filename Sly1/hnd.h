@@ -20,7 +20,7 @@ class HND : public TARGET
 		float sRadiusHook;
 };
 
-void*NewHnd();
+HND* NewHnd();
 void InitHnd(HND* phnd);
 int  GetHndSize();
 void CloneHnd(HND* phnd, HND* phndBase);

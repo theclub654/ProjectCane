@@ -1,6 +1,6 @@
 #include "jump.h"
 
-void* NewJmt()
+JMT* NewJmt()
 {
 	return new JMT{};
 }

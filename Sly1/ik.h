@@ -11,12 +11,12 @@ class LIKH : public ALO
 	public:
 };
 
-void*NewIkh();
+IKH* NewIkh();
 int  GetIkhSize();
 void CloneIkh(IKH* pikh, IKH* pikhBase);
 void DeleteIkh(LO* plo);
 
-void*NewLikh();
+LIKH*NewLikh();
 int  GetLikhSize();
 void CloneLikh(LIKH* plikh, LIKH* plikhBase);
 void DeleteLikh(LO* plo);

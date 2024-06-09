@@ -1,6 +1,6 @@
 #include "step.h"
 
-void* NewStep()
+STEP* NewStep()
 {
 	return new STEP{};
 }

@@ -9,7 +9,7 @@ class CNVO : public SO
 		float svvAvg;
 };
 
-void*NewCnvo();
+CNVO*NewCnvo();
 void InitCnvo(CNVO* pcnvo);
 int  GetCnvoSize();
 void LoadCnvoFromBrx(CNVO* pcnvo, CBinaryInputStream* pbis);

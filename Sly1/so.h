@@ -14,6 +14,24 @@ enum ZPK
 	ZPK_Max = 6
 };
 
+enum CMK 
+{
+	CMK_Nil = -1,
+	CMK_Translucent = 0,
+	CMK_Fade = 1,
+	CMK_Opaque = 2,
+	CMK_Max = 3
+};
+
+enum EGK 
+{
+	EGK_Nil = -1,
+	EGK_Inherit = 0,
+	EGK_Yes = 1,
+	EGK_No = 2,
+	EGK_Max = 3
+};
+
 struct ZPD
 {
 	struct SO* pso;
@@ -105,8 +123,8 @@ public:
 	GEOM geomCameraLocal;
 	GEOM geomCameraWorld;
 	BSPC bspcCamera;
-	unsigned int cmk : 4;
-	unsigned int egk : 4;
+	CMK cmk : 4;
+	EGK egk : 4;
 	unsigned int fSphere : 1;
 	unsigned int fClone : 1;
 	unsigned int fNoXpsAll : 1;
@@ -133,7 +151,7 @@ public:
 	struct STSO* pstso;
 };
 
-void*NewSo();
+SO*  NewSo();
 void InitSwBusySoDl(SW* psw);
 void InitSwRootDl(SW* psw);
 void InitSo(SO *pso); // NOT FINISHED

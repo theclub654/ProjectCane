@@ -1,6 +1,6 @@
 #include "rat.h"
 
-void* NewRat()
+RAT* NewRat()
 {
 	return new RAT{};
 }
@@ -62,7 +62,7 @@ void DeleteRat(LO* plo)
 	delete (RAT*)plo;
 }
 
-void* NewRathole()
+RATHOLE* NewRathole()
 {
 	return new RATHOLE{};
 }

@@ -69,7 +69,7 @@ class WM : public ALO
         int fManualWarp;
 };
 
-void*NewWm();
+WM*  NewWm();
 int  GetWmSize();
 void CloneWm(WM* pwm, WM* pwmBase);
 void RenderWmAll(WM* pwm, CM* pcm, RO* pro);

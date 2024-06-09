@@ -7,7 +7,7 @@ class DYSH : public ALO
 		struct SHADOW* pshadowGen;
 };
 
-void*NewDysh();
+DYSH*NewDysh();
 void InitDysh(DYSH* pdysh);
 int  GetDyshSize();
 void CloneDysh(DYSH* pdysh, DYSH* pdyshBase);

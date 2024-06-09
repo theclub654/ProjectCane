@@ -1,6 +1,6 @@
 #include "frzg.h"
 
-void* NewFrzg()
+FRZG* NewFrzg()
 {
 	return new FRZG{};
 }

@@ -7,7 +7,7 @@ class LANDING : public SHAPE
 		DLE dleLanding;
 };
 
-void*NewLanding();
+LANDING*NewLanding();
 void InitSwLandingDl(SW* psw);
 int  GetLandingSize();
 void OnLandingAdd(LANDING* planding);

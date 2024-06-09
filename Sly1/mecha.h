@@ -40,7 +40,7 @@ class MECHA : public STEP
         glm::vec3 vTargetCoast;
 };
 
-void*NewMecha();
+MECHA*NewMecha();
 void InitMecha(MECHA* pmecha);
 int  GetMechaSize();
 void CloneMecha(MECHA* pmecha, MECHA* pmechaBase);

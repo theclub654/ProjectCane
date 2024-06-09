@@ -18,7 +18,7 @@ class SPEAKER : public ALO
         struct SMA* psmaIdle;
 };
 
-void*NewSpeaker();
+SPEAKER*NewSpeaker();
 void InitSpeaker(SPEAKER* pspeaker);
 int  GetSpeakerSize();
 void CloneSpeaker(SPEAKER* pspeaker, SPEAKER* pspeakerBase);

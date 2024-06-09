@@ -80,7 +80,7 @@ void LoadFontsFromBrx(CBinaryInputStream* pbis)
 
 void LoadTexFromBrx(TEX *ptex, CBinaryInputStream* pbis)
 {
-	ptex->oid    = pbis->U16Read();
+	ptex->oid    = (OID)pbis->U16Read();
 	ptex->grftex = pbis->S16Read();
 	ptex->cibmp  = pbis->U8Read();
 	ptex->ciclut = pbis->U8Read();
@@ -92,6 +92,110 @@ void LoadTexFromBrx(TEX *ptex, CBinaryInputStream* pbis)
 	ptex->clutIndex.resize(ptex->ciclut);
 	for (int i = 0; i < ptex->ciclut; i++)
 		ptex->clutIndex[i] = pbis->U16Read();
+}
+
+void ConvertUserHsvToUserRgb(glm::vec3& pvecHSV, glm::vec3& pvecRGB)
+{
+    float h = pvecHSV.x;
+    float s = pvecHSV.y * 0.003921569;
+    float v = pvecHSV.z * 0.003921569;
+
+    float unk{};
+
+    if (0.0 <= h) {
+
+        unk = 0.0;
+        if ((0.0 <= h) && (unk = h, 360.0 < h))
+            unk = 360.0;
+    }
+
+    else {
+        unk = -1.0;
+    }
+
+    h = 0.0;
+    if ((0.0 <= s) && (h = s, 1.0 < s))
+        h = 1.0;
+
+
+    s = 0.0;
+    if ((0.0 <= v) && (s = v, 1.0 < v))
+        s = 1.0;
+
+    if (h == 0.0)
+    {
+        pvecRGB.r = s;
+        pvecRGB.g = s;
+        pvecRGB.b = s;
+    }
+
+    else
+    {
+        if (unk == 360.0)
+            unk = 0.0;
+        
+        unk = (unk * 0.01666667);
+        int i = floorf(unk);
+        float f = s * (1.0 - h);
+        unk -= i;
+        float q = s * (1.0 - h * unk);
+        h = s * (1.0 - h * (1.0 - unk));
+
+        switch (i)
+        {
+            case 0:
+            case 6:
+                pvecRGB.r = v;
+                pvecRGB.g = h;
+                pvecRGB.b = f;
+            break;
+
+            case 1:
+                pvecRGB.r = q;
+                pvecRGB.g = v;
+                pvecRGB.b = h;
+            break;
+
+            case 2:
+                pvecRGB.r = f;
+                pvecRGB.g = v;
+                pvecRGB.b = h;
+            break;
+
+            case 3:
+                pvecRGB.r = h;
+                pvecRGB.g = q;
+                pvecRGB.b = v;
+            break;
+
+            case 4:
+                pvecRGB.r = h;
+                pvecRGB.g = f;
+                pvecRGB.b = v;
+           break;
+
+            case 5:
+                printf("The fifth case in ConvertUserHsvToUserRgb function switch case hit\n");
+        }
+    }
+
+    pvecRGB.r *= 255.0;
+    pvecRGB.g *= 255.0;
+    pvecRGB.b *= 255.0;
+}
+
+SHD* PshdFindShader(OID oid)
+{
+    if (oid == -1)
+        return nullptr;
+
+    for (int i = 0; i < g_cshd; i++)
+    {
+        if (g_ashd[i].oid == oid)
+            return &g_ashd[i];
+    }
+
+    return nullptr;
 }
 
 void LoadShadersFromBrx(CBinaryInputStream *pbis)
@@ -112,9 +216,9 @@ void LoadShadersFromBrx(CBinaryInputStream *pbis)
 	for (int i = 0; i < g_cshd; i++)
 	{
 		// Loading shader property's from binary file
-		g_ashd[i].shdk   = pbis->U8Read();
+		g_ashd[i].shdk   = (SHDK)pbis->U8Read();
 		g_ashd[i].grfshd = pbis->U8Read();
-		g_ashd[i].oid    = pbis->S16Read();
+		g_ashd[i].oid    = (OID)pbis->S16Read();
 
         g_ashd[i].rgba.bRed   = pbis->U8Read();
         g_ashd[i].rgba.bGreen = pbis->U8Read();
@@ -133,7 +237,7 @@ void LoadShadersFromBrx(CBinaryInputStream *pbis)
             g_ashd[i].rgbaVolume.bAlpha = 0xFF;
 
 		g_ashd[i].grfzon    = pbis->U32Read();
-		g_ashd[i].oidAltSat = pbis->U16Read();
+		g_ashd[i].oidAltSat = (OID)pbis->U16Read();
 		g_ashd[i].rp        = pbis->U8Read();
 		g_ashd[i].ctex      = pbis->U8Read();
 
@@ -154,8 +258,8 @@ void LoadTexturesFromBrx(CBinaryInputStream* pbis)
 {
     for (uint16_t i = 0; i < 0x100; i += 0x20) {
         for (uint16_t j = i; j < i + 8; j++) {
-            csm1ClutIndices[j] = static_cast<uint8_t>(j);
-            csm1ClutIndices[j + 8] = static_cast<uint8_t>(j) + 0x10;
+            csm1ClutIndices[j + 0x0]  = static_cast<uint8_t>(j) + 0x0;
+            csm1ClutIndices[j + 0x8]  = static_cast<uint8_t>(j) + 0x10;
             csm1ClutIndices[j + 0x10] = static_cast<uint8_t>(j) + 0x8;
             csm1ClutIndices[j + 0x18] = static_cast<uint8_t>(j) + 0x18;
         }
@@ -165,30 +269,41 @@ void LoadTexturesFromBrx(CBinaryInputStream* pbis)
 
     for (int i = 0; i < g_ashd.size(); i++)
     {
-        for (int a = 0; a < g_ashd[i].atex.size(); a++)
+        switch (g_ashd[i].shdk)
         {
-            bool is1Img1Pal       = ((g_ashd[i].atex[a].bmpIndex.size() == 1) && (g_ashd[i].atex[a].clutIndex.size() == 1));
-            bool is1ImgManyPal    = ((g_ashd[i].atex[a].bmpIndex.size() == 1) && (g_ashd[i].atex[a].clutIndex.size() >  1));
-            bool isManyImgManyPal = ((g_ashd[i].atex[a].bmpIndex.size() >  1) && (g_ashd[i].atex[a].clutIndex.size() >  1));
-
-            if (is1Img1Pal)
-                MakeTexture(g_ashd[i].glDiffuseTexture, g_ashd[i].atex[a].clutIndex[0], g_ashd[i].atex[a].bmpIndex[0], pbis);
-            
-            else if (is1ImgManyPal)
+            case SHDK_ThreeWay:
             {
-                if (g_ashd[i].atex[a].clutIndex.size() == 3)
-                {
-                    MakeTexture(g_ashd[i].glAmbientTexture,   g_ashd[i].atex[a].clutIndex[0], g_ashd[i].atex[a].bmpIndex[0], pbis);
-                    MakeTexture(g_ashd[i].glDiffuseTexture,   g_ashd[i].atex[a].clutIndex[1], g_ashd[i].atex[a].bmpIndex[0], pbis);
-                    MakeTexture(g_ashd[i].glGreyScaleTexture, g_ashd[i].atex[a].clutIndex[2], g_ashd[i].atex[a].bmpIndex[0], pbis);
-                }
+                MakeTexture(g_ashd[i].glAmbientTexture, g_ashd[i].atex[0].clutIndex[0], g_ashd[i].atex[0].bmpIndex[0], pbis);
+                MakeTexture(g_ashd[i].glDiffuseTexture, g_ashd[i].atex[0].clutIndex[1], g_ashd[i].atex[0].bmpIndex[0], pbis);
 
+                SHD *pshd = PshdFindShader(g_ashd[i].oidAltSat);
+
+                if (pshd == nullptr)
+                    MakeTexture(g_ashd[i].glSaturateTexture, g_ashd[i].atex[0].clutIndex[2], g_ashd[i].atex[0].bmpIndex[0], pbis);
                 else
-                    MakeTexture(g_ashd[i].glDiffuseTexture, g_ashd[i].atex[a].clutIndex[1], g_ashd[i].atex[a].bmpIndex[0], pbis);
+                    MakeTexture(pshd->glSaturateTexture, pshd->atex[0].clutIndex[2], pshd->atex[0].bmpIndex[0], pbis);
+                break;
             }
-            
-            else if (isManyImgManyPal)
-                MakeTexture(g_ashd[i].glDiffuseTexture, g_ashd[i].atex[a].clutIndex[1], g_ashd[i].atex[a].bmpIndex[1], pbis);
+
+            case SHDK_Prelit:
+            case SHDK_Background:
+            case SHDK_MurkFill:
+            case SHDK_Max:
+                MakeTexture(g_ashd[i].glAmbientTexture, g_ashd[i].atex[0].clutIndex[0], g_ashd[i].atex[0].bmpIndex[0], pbis);
+            break;
+
+            case SHDK_Shadow:
+            case SHDK_SpotLight:
+                MakeTexture(g_ashd[i].glAmbientTexture, g_ashd[i].atex[0].clutIndex[0], g_ashd[i].atex[0].bmpIndex[0], pbis);
+            break;
+
+            case SHDK_ProjectedVolume:
+                MakeTexture(g_ashd[i].glAmbientTexture, g_ashd[i].atex[0].clutIndex[0], g_ashd[i].atex[0].bmpIndex[0], pbis);
+            break;
+
+            case SHDK_CreateTexture:
+                MakeTexture(g_ashd[i].glAmbientTexture, g_ashd[i].atex[0].clutIndex[0], g_ashd[i].atex[0].bmpIndex[0], pbis);
+            break;
         }
     }
 }
@@ -237,10 +352,10 @@ void MakeTexture(GLuint &textureReference, int16_t clutIndex, int16_t bmpIndex, 
     std::vector <byte> pallete;
     std::vector <byte> texture;
 
-    image = MakeBmp(bmpIndex, pbis);
+    image   = MakeBmp(bmpIndex, pbis);
     pallete = MakePallete(clutIndex, pbis);
 
-    short width = g_abmp[bmpIndex].bmpWidth;
+    short width  = g_abmp[bmpIndex].bmpWidth;
     short height = g_abmp[bmpIndex].bmpHeight;
 
     texture.resize(width * height * 4);
@@ -292,12 +407,10 @@ void MakeTexture(GLuint &textureReference, int16_t clutIndex, int16_t bmpIndex, 
 
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_REPEAT, GL_REPEAT);
+    
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, texture.data());
     glGenerateMipmap(GL_TEXTURE_2D);
-
-    textureReferences.push_back(&textureReference);
 }

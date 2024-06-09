@@ -45,7 +45,7 @@ class JP : public STEP
         struct XP* pxpZap;
 };
 
-void*NewJp();
+JP*  NewJp();
 void InitJp(JP* pjp);
 int  GetJpSize();
 void CloneJp(JP* pjp, JP* pjpBase);

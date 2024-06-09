@@ -33,7 +33,7 @@ class DART : public SO
         struct EXPL* pexpl;
 };
 
-void*NewDart();
+DART*NewDart();
 void InitSwDartFreeDl(SW* psw);
 void InitDart(DART* pdart);
 int  GetDartSize();

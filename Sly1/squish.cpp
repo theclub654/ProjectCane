@@ -1,6 +1,6 @@
 #include "squish.h"
 
-void* NewSquish()
+SQUISH* NewSquish()
 {
 	return new SQUISH{};
 }

@@ -1,6 +1,6 @@
 #include "crusher.h"
 
-void* NewCrfodb()
+CRFODB* NewCrfodb()
 {
 	return new CRFODB{};
 }
@@ -35,7 +35,7 @@ void DeleteCrfodb(LO* plo)
 	delete (CRFODB*)plo;
 }
 
-void* NewCrfod()
+CRFOD* NewCrfod()
 {
 	return new CRFOD{};
 }
@@ -82,7 +82,7 @@ void DeleteCrfod(LO* plo)
 	delete (CRFOD*)plo;
 }
 
-void* NewCrfodk()
+CRFODK* NewCrfodk()
 {
 	return new CRFODK{};
 }
@@ -112,7 +112,7 @@ void DeleteCrfodk(LO* plo)
 	delete (CRFODK*)plo;
 }
 
-void* NewCrbrain()
+CRBRAIN* NewCrbrain()
 {
 	return new CRBRAIN{};
 }

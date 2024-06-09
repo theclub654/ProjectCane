@@ -1,6 +1,6 @@
 #include "zap.h"
 
-void* NewTzp()
+TZP* NewTzp()
 {
 	return new TZP{};
 }
@@ -35,7 +35,7 @@ void DeleteTzp(LO* plo)
 	delete (TZP*)plo;
 }
 
-void* NewVolzp()
+VOLZP* NewVolzp()
 {
 	return new VOLZP{};
 }

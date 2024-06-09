@@ -1,6 +1,6 @@
 #include "hide.h"
 
-void* NewHbsk()
+HBSK* NewHbsk()
 {
 	return new HBSK{};
 }
@@ -51,7 +51,7 @@ void DeleteHbsk(LO* plo)
 	delete (HBSK*)plo;
 }
 
-void* NewHshape()
+HSHAPE* NewHshape()
 {
 	return new HSHAPE{};
 }
@@ -91,7 +91,7 @@ void DeleteHshape(LO* plo)
 	delete(HSHAPE*)plo;
 }
 
-void* NewHpnt()
+HPNT* NewHpnt()
 {
 	return new HPNT{};
 }

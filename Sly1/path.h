@@ -58,7 +58,7 @@ class PATHZONE : public LO
 		DLE dlePathzone;
 };
 
-void*NewPathzone();
+PATHZONE*NewPathzone();
 void InitSwPathzoneDl(SW* psw);
 int  GetPathzoneSize();
 void OnPathzoneAdd(PATHZONE* ppathzone);

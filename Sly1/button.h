@@ -88,14 +88,14 @@ class VOLBTN : public SO
         int fSendChangeEvents;
 };
 
-void*NewButton();
+BUTTON*NewButton();
 void InitButton(BUTTON* pbutton);
 int  GetButtonSize();
 void LoadButtonFromBrx(BUTTON* pbutton, CBinaryInputStream* pbis);
 void CloneButton(BUTTON* pbutton, BUTTON* pbuttonBase);
 void DeleteButton(LO* plo);
 
-void*NewVolbtn();
+VOLBTN*NewVolbtn();
 void InitVolbtn(VOLBTN* pvolbtn);
 int  GetVolbtnSize();
 void CloneVolbtn(VOLBTN* pvolbtn, VOLBTN* pvolbtnBase);

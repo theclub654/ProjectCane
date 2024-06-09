@@ -1,6 +1,6 @@
 #include "dysh.h"
 
-void* NewDysh()
+DYSH* NewDysh()
 {
 	return new DYSH{};
 }

@@ -42,7 +42,7 @@ class GROUNDMISS : public MISSILE
 		float sdvTrackMax;
 };
 
-void*NewMissile();
+MISSILE*NewMissile();
 void InitMissile(MISSILE* pmissile);
 int  GetMissileSize();
 void OnMissileRemove(MISSILE* pmissile);
@@ -51,24 +51,24 @@ void CloneMissile(MISSILE* pmissile, MISSILE* pmissileBase);
 void RenderMissileAll(MISSILE* pmissile, CM* pcm, RO* pro);
 void DeleteMissile(LO* plo);
 
-void*NewAccmiss();
+ACCMISS*NewAccmiss();
 void InitAccmiss(ACCMISS* paccmiss);
 int  GetAccmissSize();
 void CloneAccmiss(ACCMISS* paccmiss, ACCMISS* paccmissBase);
 void DeleteAccmiss(LO* plo);
 
-void*NewTarmiss();
+TARMISS*NewTarmiss();
 void InitTarmiss(TARMISS* ptarmiss);
 int  GetTarmissSize();
 void CloneTarmiss(TARMISS* ptarmiss, TARMISS* ptarmissBase);
 void DeleteTarmiss(LO* plo);
 
-void*NewSplmiss();
+SPLMISS*NewSplmiss();
 int  GetSplmissSize();
 void CloneSplmiss(SPLMISS* psplmiss, SPLMISS* psplmissBase);
 void DeleteSplmiss(LO* plo);
 
-void*NewGroundmiss();
+GROUNDMISS*NewGroundmiss();
 void InitGroundmiss(GROUNDMISS* pgroundmiss);
 int  GetGroundmissSize();
 void CloneGroundmiss(GROUNDMISS* pgroundmiss, GROUNDMISS* pgroundmissBase);

@@ -1,6 +1,6 @@
 #include "chkpnt.h"
 
-void* NewChkpnt()
+CHKPNT* NewChkpnt()
 {
 	return new CHKPNT{};
 }
@@ -36,7 +36,7 @@ void DeleteChkpnt(LO* plo)
 	delete(CHKPNT*)plo;
 }
 
-void* NewVol()
+VOL* NewVol()
 {
 	return new VOL;
 }

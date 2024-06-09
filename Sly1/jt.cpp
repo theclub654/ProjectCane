@@ -1,6 +1,6 @@
 #include "jt.h"
 
-void* NewJt()
+JT* NewJt()
 {
 	return new JT{};
 }

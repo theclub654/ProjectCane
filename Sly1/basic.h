@@ -193,7 +193,7 @@ struct VTLO
     CID cid = CID_LO;
     GRFCID grfcid = 0;
 
-    void*(*pfnNewLo) () = NewLo;
+    LO*(*pfnNewLo) () = NewLo;
     void (*pfnInitLo) (LO*) = InitLo;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -296,7 +296,7 @@ struct VTSO
     CID cid = CID_SO;
     GRFCID grfcid = 3;
 
-    void*(*pfnNewSo) () = NewSo;
+    SO*  (*pfnNewSo) () = NewSo;
     void (*pfnInitSo) (SO*) = InitSo;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -382,7 +382,7 @@ struct VTMS
     CID cid = CID_MS;
     GRFCID grfcid = 3;
 
-    void*(*pfnNewMs) () = NewMs;
+    MS*  (*pfnNewMs) () = NewMs;
     void (*pfnInitSo) (SO*) = InitSo;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -468,7 +468,7 @@ struct VTPO
     CID cid = CID_PO;
     GRFCID grfcid = 0xB;
 
-    void*(*pfnNewPo) () = NewPo;
+    PO*  (*pfnNewPo) () = NewPo;
     void (*pfnInitPo) (PO*) = InitPo;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -565,7 +565,7 @@ struct VTSTEP
     CID cid = CID_STEP;
     GRFCID grfcid = 0xB;
 
-    void*(*pfnNewStep) () = NewStep;
+    STEP*(*pfnNewStep) () = NewStep;
     void (*pfnInitStep)(STEP*) = InitStep;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -665,7 +665,7 @@ struct VTJT
     CID cid = CID_JT;
     GRFCID grfcid = 0xB;
 
-    void*(*pfnNewJt) () = NewJt;
+    JT*  (*pfnNewJt) () = NewJt;
     void (*pfnInitJt)(JT*) = InitJt;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -765,7 +765,7 @@ struct VTSTEPGUARD
     CID cid = CID_STEPGUARD;
     GRFCID grfcid = 0xB;
 
-    void*(*pfnNewStepguard) () = NewStepguard;
+    STEPGUARD*(*pfnNewStepguard) () = NewStepguard;
     void (*pfnInitStepguard)(STEPGUARD*) = InitStepGuard;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -876,7 +876,7 @@ struct VTSMARTGUARD
     CID cid = CID_SMARTGUARD;
     GRFCID grfcid = 0xB;
 
-    void*(*pfnNewSmartguard) () = NewSmartguard;
+    SMARTGUARD*(*pfnNewSmartguard) () = NewSmartguard;
     void (*pfnInitSmartguard)(SMARTGUARD*) = InitSmartGuard;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -987,7 +987,7 @@ struct VTGOMER
     CID cid = CID_GOMER;
     GRFCID grfcid = 0xB;
 
-    void*(*pfnNewGomer) () = NewGomer;
+    GOMER*(*pfnNewGomer) () = NewGomer;
     void (*pfnInitGomer) (GOMER*) = InitGomer;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -1098,7 +1098,7 @@ struct VTUBG
     CID cid = CID_UBG;
     GRFCID grfcid = 0xB;
 
-    void*(*pfnNewUbg) () = NewUbg;
+    UBG* (*pfnNewUbg) () = NewUbg;
     void (*pfnInitLo) (UBG*) = InitUbg;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -1209,7 +1209,7 @@ struct VTMBG
     CID cid = CID_MBG;
     GRFCID grfcid = 0xB;
 
-    void*(*pfnNewMbg) () = NewMbg;
+    MBG* (*pfnNewMbg) () = NewMbg;
     void (*pfnInitLo) (MBG*) = InitMbg;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -1320,7 +1320,7 @@ struct VTBHG
     CID cid = CID_BHG;
     GRFCID grfcid = 0xB;
 
-    void*(*pfnNewBhg) () = NewBhg;
+    BHG* (*pfnNewBhg) () = NewBhg;
     void (*pfnInitLo) (BHG*) = InitBhg;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -1431,7 +1431,7 @@ struct VTMURRAY
     CID cid = CID_MURRAY;
     GRFCID grfcid = 0xB;
 
-    void*(*pfnNewMurray) () = NewMurray;
+    MURRAY*(*pfnNewMurray) () = NewMurray;
     void (*pfnInitMurray) (MURRAY*) = InitMurray;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -1542,7 +1542,7 @@ struct VTPUFFC
     CID cid = CID_PUFFC;
     GRFCID grfcid = 0xB;
 
-    void*(*pfnNewPuffc) () = NewPuffc;
+    PUFFC*(*pfnNewPuffc) () = NewPuffc;
     void (*pfnInitStepguard) = nullptr;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -1653,7 +1653,7 @@ struct VTCRFOD
     CID cid = CID_CRFOD;
     GRFCID grfcid = 0xB;
 
-    void*(*pfnNewCrfod) () = NewCrfod;
+    CRFOD*(*pfnNewCrfod) () = NewCrfod;
     void (*pfnInitStepguard)(STEPGUARD*) = InitStepGuard;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -1764,7 +1764,7 @@ struct VTCRFODB
     CID cid = CID_CRFODB;
     GRFCID grfcid = 0xB;
 
-    void*(*pfnNewCrfodb) () = NewCrfodb;
+    CRFODB*(*pfnNewCrfodb) () = NewCrfodb;
     void (*pfnInitCrfodb)(CRFODB*) = InitCrfodb;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -1875,7 +1875,7 @@ struct VTCRFODK
     CID cid = CID_CRFODK;
     GRFCID grfcid = 0xB;
 
-    void*(*pfnNewCrfodk) () = NewCrfodk;
+    CRFODK*(*pfnNewCrfodk) () = NewCrfodk;
     void (*pfnInitStepguard)(STEPGUARD*) = InitStepGuard;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -1986,7 +1986,7 @@ struct VTTANK
     CID cid = CID_TANK;
     GRFCID grfcid = 0xB;
 
-    void*(*pfnNewTank) () = NewTank;
+    TANK*(*pfnNewTank) () = NewTank;
     void (*pfnInitTank)(TANK*) = InitTank;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -2086,7 +2086,7 @@ struct VTJP
     CID cid = CID_JP;
     GRFCID grfcid = 0xB;
 
-    void*(*pfnNewJp) () = NewJp;
+    JP*  (*pfnNewJp) () = NewJp;
     void (*pfnInitJp)(JP*) = InitJp;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -2186,7 +2186,7 @@ struct VTHG
     CID cid = CID_HG;
     GRFCID grfcid = 0xB;
 
-    void*(*pfnNewHg) () = NewHg;
+    HG*  (*pfnNewHg) () = NewHg;
     void (*pfnInitHg)(HG*) = InitHg;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -2286,7 +2286,7 @@ struct VTMECHA
     CID cid = CID_MECHA;
     GRFCID grfcid = 0xB;
 
-    void*(*pfnNewMecha) () = NewMecha;
+    MECHA*(*pfnNewMecha) () = NewMecha;
     void (*pfnInitMecha)(MECHA*) = InitMecha;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -2386,7 +2386,7 @@ struct VTROV
     CID cid = CID_ROV;
     GRFCID grfcid = 0xB;
 
-    void*(*pfnNewRov) () = NewRov;
+    ROV* (*pfnNewRov) () = NewRov;
     void (*pfnInitRov)(ROV*) = InitRov;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -2483,7 +2483,7 @@ struct VTTURRET
     CID cid = CID_TURRET;
     GRFCID grfcid = 0xB;
 
-    void*(*pfnNewTurret) () = NewTurret;
+    TURRET*(*pfnNewTurret) () = NewTurret;
     void (*pfnInitPo)(PO*) = InitPo;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -2580,7 +2580,7 @@ struct VTVAULT
     CID cid = CID_VAULT;
     GRFCID grfcid = 0xB;
 
-    void*(*pfnNewVault) () = NewVault;
+    VAULT*(*pfnNewVault) () = NewVault;
     void (*pfnInitVault)(VAULT*) = InitVault;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -2677,7 +2677,7 @@ struct VTPUFFER
     CID cid = CID_PUFFER;
     GRFCID grfcid = 0xB;
 
-    void*(*pfnNewPuffer) () = NewPuffer;
+    PUFFER*(*pfnNewPuffer) () = NewPuffer;
     void (*pfnInitPuffer)(PUFFER*) = InitPuffer;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -2774,7 +2774,7 @@ struct VTMGV
     CID cid = CID_MGV;
     GRFCID grfcid = 0xB;
 
-    void*(*pfnNewMgv) () = NewMgv;
+    MGV* (*pfnNewMgv) () = NewMgv;
     void (*pfnInitMgv)(MGV*) = InitMgv;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -2871,7 +2871,7 @@ struct VTSUV
     CID cid = CID_SUV;
     GRFCID grfcid = 0xB;
 
-    void*(*pfnNewSuv) () = NewSuv;
+    SUV* (*pfnNewSuv) () = NewSuv;
     void (*pfnInitSuv)(SUV*) = InitSuv;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -2968,7 +2968,7 @@ struct VTCYCLE
     CID cid = CID_CYCLE;
     GRFCID grfcid = 0xB;
 
-    void*(*pfnNewCycle) () = NewCycle;
+    CYCLE*(*pfnNewCycle) () = NewCycle;
     void (*pfnInitCycle)(CYCLE*) = InitCycle;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -3065,7 +3065,7 @@ struct VTLGN
     CID cid = CID_LGN;
     GRFCID grfcid = 0xB;
 
-    void*(*pfnNewLgn) () = NewLgn;
+    LGN* (*pfnNewLgn) () = NewLgn;
     void (*pfnInitLgn)(LGN*) = InitLgn;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -3162,7 +3162,7 @@ struct VTJACK
     CID cid = CID_JACK;
     GRFCID grfcid = 0xB;
 
-    void*(*pfnNewJack) () = NewJack;
+    JACK*(*pfnNewJack) () = NewJack;
     void (*pfnInitJack)(JACK*) = InitJack;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -3259,7 +3259,7 @@ struct VTRIPG
     CID cid = CID_RIPG;
     GRFCID grfcid = 3;
 
-    void*(*pfnNewRipg) () = NewRipg;
+    RIPG*(*pfnNewRipg) () = NewRipg;
     void (*pfnInitRipg)(RIPG*) = InitRipg;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -3345,7 +3345,7 @@ struct VTWATER
     CID cid = CID_WATER;
     GRFCID grfcid = 0x83;
 
-    void*(*pfnNewWater) () = NewWater;
+    WATER*(*pfnNewWater) () = NewWater;
     void (*pfnInitWater)(WATER*) = InitWater;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -3692,7 +3692,7 @@ struct VTCAN
     CID cid = CID_CAN;
     GRFCID grfcid = 0x13;
 
-    void*(*pfnNewCan) () = NewCan;
+    CAN* (*pfnNewCan) () = NewCan;
     void (*pfnInitCan)(CAN*) = InitCan;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -3779,7 +3779,7 @@ struct VTDARTGUN
     CID cid = CID_DARTGUN;
     GRFCID grfcid = 0x13;
 
-    void*(*pfnNewDartgun) () = NewDartgun;
+    DARTGUN*(*pfnNewDartgun) () = NewDartgun;
     void (*pfnInitDartgun)(DARTGUN*) = InitDartgun;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -3866,7 +3866,7 @@ struct VTSWP
     CID cid = CID_SWP;
     GRFCID grfcid = 0x13;
 
-    void*(*pfnNewSwp) () = NewSwp;
+    SWP* (*pfnNewSwp) () = NewSwp;
     void (*pfnInitSwp)(SWP*) = InitSwp;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -4213,7 +4213,7 @@ struct VTBUTTON
     CID cid = CID_BUTTON;
     GRFCID grfcid = 0x3;
 
-    void*(*pfnNewButton) () = NewButton;
+    BUTTON*(*pfnNewButton) () = NewButton;
     void (*pfnInitButton)(BUTTON*) = InitButton;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -4299,7 +4299,7 @@ struct VTVOLBTN
     CID cid = CID_VOLBTN;
     GRFCID grfcid = 0x3;
 
-    void*(*pfnNewVolbtn) () = NewVolbtn;
+    VOLBTN*(*pfnNewVolbtn) () = NewVolbtn;
     void (*pfnInitVolbtn)(VOLBTN*) = InitVolbtn;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -4385,7 +4385,7 @@ struct VTJLOVOL
     CID cid = CID_JLOVOL;
     GRFCID grfcid = 0x3;
 
-    void*(*pfnNewJlovol) () = NewJlovol;
+    JLOVOL*(*pfnNewJlovol) () = NewJlovol;
     void (*pfnInitJlovol)(JLOVOL*) = InitJlovol;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -4471,7 +4471,7 @@ struct VTSQUISH
     CID cid = CID_SQUISH;
     GRFCID grfcid = 0x3;
 
-    void*(*pfnNewSquish) () = NewSquish;
+    SQUISH*(*pfnNewSquish) () = NewSquish;
     void (*pfnInitSo)(SO*) = InitSo;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -4643,7 +4643,7 @@ struct VTSPRIZE
     CID cid = CID_SPRIZE;
     GRFCID grfcid = 0x3;
 
-    void*(*pfnNewSprize) () = NewSprize;
+    SPRIZE*(*pfnNewSprize) () = NewSprize;
     void (*pfnInitSprize)(SPRIZE*) = InitSprize;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -4732,7 +4732,7 @@ struct VTSCPRIZE
     CID cid = CID_SCPRIZE;
     GRFCID grfcid = 0x3;
 
-    void*(*pfnNewScprize) () = NewScprize;
+    SCPRIZE*(*pfnNewScprize) () = NewScprize;
     void (*pfnInitScprize)(SCPRIZE*) = InitScprize;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -4821,7 +4821,7 @@ struct VTLIFETKN
     CID cid = CID_LIFETKN;
     GRFCID grfcid = 0x3;
 
-    void*(*pfnNewLifetkn) () = NewLifetkn;
+    LIFETKN*(*pfnNewLifetkn) () = NewLifetkn;
     void (*pfnInitScprize)(SCPRIZE*) = InitScprize;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -4910,7 +4910,7 @@ struct VTCLUE
     CID cid = CID_CLUE;
     GRFCID grfcid = 0x3;
 
-    void*(*pfnNewClue) () = NewClue;
+    CLUE*(*pfnNewClue) () = NewClue;
     void (*pfnInitClue)(CLUE*) = InitClue;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -5085,7 +5085,7 @@ struct VTSENSOR
     CID cid = CID_SENSOR;
     GRFCID grfcid = 0x3;
 
-    void*(*pfnNewSensor) () = NewSensor;
+    SENSOR*(*pfnNewSensor) () = NewSensor;
     void (*pfnInitSensor)(SENSOR*) = InitSensor;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -5177,7 +5177,7 @@ struct VTLASEN
     CID cid = CID_LASEN;
     GRFCID grfcid = 0x3;
 
-    void*(*pfnNewLasen) () = NewLasen;
+    LASEN*(*pfnNewLasen) () = NewLasen;
     void (*pfnInitLasen)(LASEN*) = InitLasen;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -5269,7 +5269,7 @@ struct VTCAMSEN
     CID cid = CID_CAMSEN;
     GRFCID grfcid = 0x3;
 
-    void*(*pfnNewCamsen) () = NewCamsen;
+    CAMSEN*(*pfnNewCamsen) () = NewCamsen;
     void (*pfnInitCamsen)(CAMSEN*) = InitCamsen;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -5361,7 +5361,7 @@ struct VTPRSEN
     CID cid = CID_PRSEN;
     GRFCID grfcid = 0x3;
 
-    void*(*pfnNewPrsen) () = NewPrsen;
+    PRSEN*(*pfnNewPrsen) () = NewPrsen;
     void (*pfnInitPrsen)(PRSEN*) = InitPrsen;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -5539,7 +5539,7 @@ struct VTIKH
     CID cid = CID_IKH;
     GRFCID grfcid = 0x3;
 
-    void*(*pfnNewIkh) () = NewIkh;
+    IKH* (*pfnNewIkh) () = NewIkh;
     void (*pfnInitSo)(SO*) = InitSo;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -5625,7 +5625,7 @@ struct VTTZP
     CID cid = CID_TZP;
     GRFCID grfcid = 0x3;
 
-    void*(*pfnNewTzp) () = NewTzp;
+    TZP* (*pfnNewTzp) () = NewTzp;
     void (*pfnInitTzp)(TZP*) = InitTzp;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -5711,7 +5711,7 @@ struct VTVOLZP
     CID cid = CID_VOLZP;
     GRFCID grfcid = 0x3;
 
-    void*(*pfnNewVolzp) () = NewVolzp;
+    VOLZP*(*pfnNewVolzp) () = NewVolzp;
     void (*pfnInitVolzp)(VOLZP*) = InitVolzp;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -5797,7 +5797,7 @@ struct VTCNVO
     CID cid = CID_CNVO;
     GRFCID grfcid = 0x3;
 
-    void*(*pfnNewCnvo) () = NewCnvo;
+    CNVO*(*pfnNewCnvo) () = NewCnvo;
     void (*pfnInitCnvo)(CNVO*) = InitCnvo;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -5883,7 +5883,7 @@ struct VTHBSK
     CID cid = CID_HBSK;
     GRFCID grfcid = 0x3;
 
-    void*(*pfnNewHbsk) () = NewHbsk;
+    HBSK*(*pfnNewHbsk) () = NewHbsk;
     void (*pfnInitHbsk)(HBSK*) = InitHbsk;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -6055,7 +6055,7 @@ struct VTMISSILE
     CID cid = CID_MISSILE;
     GRFCID grfcid = 0x23;
 
-    void*(*pfnNewMissile) () = NewMissile;
+    MISSILE*(*pfnNewMissile) () = NewMissile;
     void (*pfnInitMissile)(MISSILE*) = InitMissile;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -6142,7 +6142,7 @@ struct VTACCMISS
     CID cid = CID_ACCMISS;
     GRFCID grfcid = 0x23;
 
-    void*(*pfnNewAccmiss) () = NewAccmiss;
+    ACCMISS*(*pfnNewAccmiss) () = NewAccmiss;
     void (*pfnInitAccmiss)(ACCMISS*) = InitAccmiss;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -6229,7 +6229,7 @@ struct VTTARMISS
     CID cid = CID_TARMISS;
     GRFCID grfcid = 0x23;
 
-    void*(*pfnNewTarmiss) () = NewTarmiss;
+    TARMISS*(*pfnNewTarmiss) () = NewTarmiss;
     void (*pfnInitTarmiss)(TARMISS*) = InitTarmiss;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -6316,7 +6316,7 @@ struct VTSPLMISS
     CID cid = CID_SPLMISS;
     GRFCID grfcid = 0x23;
 
-    void*(*pfnNewSplmiss) () = NewSplmiss;
+    SPLMISS*(*pfnNewSplmiss) () = NewSplmiss;
     void (*pfnInitMissile)(MISSILE*) = InitMissile;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -6403,7 +6403,7 @@ struct VTGROUNDMISS
     CID cid = CID_GROUNDMISS;
     GRFCID grfcid = 0x23;
 
-    void*(*pfnNewGroundmiss) () = NewGroundmiss;
+    GROUNDMISS*(*pfnNewGroundmiss) () = NewGroundmiss;
     void (*pfnInitGroundmiss)(GROUNDMISS*) = InitGroundmiss;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -6490,7 +6490,7 @@ struct VTFLY
     CID cid = CID_FLY;
     GRFCID grfcid = 0x3;
 
-    void*(*pfnNewFly) () = NewFly;
+    FLY* (*pfnNewFly) () = NewFly;
     void (*pfnInitFly)(FLY*) = InitFly;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -6576,7 +6576,7 @@ struct VTRAT
     CID cid = CID_RAT;
     GRFCID grfcid = 0x3;
 
-    void*(*pfnNewRat) () = NewRat;
+    RAT* (*pfnNewRat) () = NewRat;
     void (*pfnInitRat)(RAT*) = InitRat;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -6662,7 +6662,7 @@ struct VTROH
     CID cid = CID_ROH;
     GRFCID grfcid = 0x3;
 
-    void*(*pfnNewRoh) () = NewRoh;
+    ROH* (*pfnNewRoh) () = NewRoh;
     void (*pfnInitRoh)(ROH*) = InitRoh;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -6748,7 +6748,7 @@ struct VTROC
     CID cid = CID_ROC;
     GRFCID grfcid = 0x3;
 
-    void*(*pfnNewRoc) () = NewRoc;
+    ROC* (*pfnNewRoc) () = NewRoc;
     void (*pfnInitRoc)(ROC*) = InitRoc;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -6834,7 +6834,7 @@ struct VTROST
     CID cid = CID_ROST;
     GRFCID grfcid = 0x3;
 
-    void*(*pfnNewRost) () = NewRost;
+    ROST*(*pfnNewRost) () = NewRost;
     void (*pfnInitRost)(ROST*) = InitRost;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -6920,7 +6920,7 @@ struct VTROP
     CID cid = CID_ROP;
     GRFCID grfcid = 0x3;
 
-    void*(*pfnNewRop) () = NewRop;
+    ROP* (*pfnNewRop) () = NewRop;
     void (*pfnInitRop)(ROP*) = InitRop;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -7006,7 +7006,7 @@ struct VTDART
     CID cid = CID_DART;
     GRFCID grfcid = 0x3;
 
-    void*(*pfnNewDart) () = NewDart;
+    DART*(*pfnNewDart) () = NewDart;
     void (*pfnInitDart)(DART*) = InitDart;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -7092,7 +7092,7 @@ struct VTUBV
     CID cid = CID_UBV;
     GRFCID grfcid = 0x3;
 
-    void*(*pfnNewUbv) () = NewUbv;
+    UBV* (*pfnNewUbv) () = NewUbv;
     void (*pfnInitSo)(SO*) = InitSo;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -7178,7 +7178,7 @@ struct VTUBP
     CID cid = CID_UBP;
     GRFCID grfcid = 0x3;
 
-    void*(*pfnNewUbp) () = NewUbp;
+    UBP* (*pfnNewUbp) () = NewUbp;
     void (*pfnInitSo) (SO*) = InitSo;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -7264,7 +7264,7 @@ struct VTDSP
     CID cid = CID_DSP;
     GRFCID grfcid = 0x3;
 
-    void*(*pfnNewDsp) () = NewDsp;
+    DSP* (*pfnNewDsp) () = NewDsp;
     void (*pfnInitSo) (SO*) = InitSo;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -7350,7 +7350,7 @@ struct VTJLO
     CID cid = CID_JLO;
     GRFCID grfcid = 0x3;
 
-    void*(*pfnNewJlo) () = NewJlo;
+    JLO* (*pfnNewJlo) () = NewJlo;
     void (*pfnInitJlo)(JLO*) = InitJlo;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -7436,7 +7436,7 @@ struct VTPUFFT
     CID cid = CID_PUFFT;
     GRFCID grfcid = 0x3;
 
-    void*(*pfnNewPufft) () = NewPufft;
+    PUFFT*(*pfnNewPufft) () = NewPufft;
     void (*pfnInitSo) (SO*) = InitSo;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -7522,7 +7522,7 @@ struct VTMRKV
     CID cid = CID_MRKV;
     GRFCID grfcid = 0x3;
 
-    void*(*pfnNewMrkv) () = NewMrkv;
+    MRKV*(*pfnNewMrkv) () = NewMrkv;
     void (*pfnInitMrkv)(MRKV*) = InitMrkv;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -7608,7 +7608,7 @@ struct VTLGNB
     CID cid = CID_LGNB;
     GRFCID grfcid = 0x3;
 
-    void*(*pfnNewLgnb) () = NewLgnb;
+    LGNB*(*pfnNewLgnb) () = NewLgnb;
     void (*pfnInitLgnb)(LGNB*) = InitLgnb;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -7755,7 +7755,7 @@ struct VTCAMERA
     CID cid = CID_CAMERA;
     GRFCID grfcid = 0x1;
 
-    void*(*pfnNewCamera) () = NewCamera;
+    CAMERA*(*pfnNewCamera) () = NewCamera;
     void (*pfnInitCamera)(CAMERA*) = InitCamera;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -7877,7 +7877,7 @@ struct VTEMITTER
     CID cid = CID_EMITTER;
     GRFCID grfcid = 0x1;
 
-    void*(*pfnNewEmitter) () = NewEmitter;
+    EMITTER*(*pfnNewEmitter) () = NewEmitter;
     void (*pfnInitEmitter)(EMITTER*) = InitEmitter;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -7938,7 +7938,7 @@ struct VTLIGHT
     CID cid = CID_LIGHT;
     GRFCID grfcid = 0x1;
 
-    void*(*pfnNewLight) () = NewLight;
+    LIGHT*(*pfnNewLight) () = NewLight;
     void (*pfnInitLight)(LIGHT*) = InitLight;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -8060,7 +8060,7 @@ struct VTLIKH
     CID cid = CID_LIKH;
     GRFCID grfcid = 0x1;
 
-    void*(*pfnNewLikh) () = NewLikh;
+    LIKH*(*pfnNewLikh) () = NewLikh;
     void (*pfnInitAlo) (ALO*) = InitAlo;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -8121,7 +8121,7 @@ struct VTCHKPNT
     CID cid = CID_CHKPNT;
     GRFCID grfcid = 0x1;
 
-    void*(*pfnNewChkpnt) () = NewChkpnt;
+    CHKPNT*(*pfnNewChkpnt) () = NewChkpnt;
     void (*pfnInitChkpnt)(CHKPNT*) = InitChkpnt;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -8182,7 +8182,7 @@ struct VTPROXY
     CID cid = CID_PROXY;
     GRFCID grfcid = 0x101;
 
-    void*(*pfnNewProxy) () = NewProxy;
+    PROXY*(*pfnNewProxy) () = NewProxy;
     void (*pfnInitProxy)(PROXY*) = InitProxy;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -8243,7 +8243,7 @@ struct VTSKY
     CID cid = CID_SKY;
     GRFCID grfcid = 0x1;
 
-    void*(*pfnNewSky) () = NewSky;
+    SKY* (*pfnNewSky) () = NewSky;
     void (*pfnInitAlo) (ALO*) = InitAlo;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -8304,7 +8304,7 @@ struct VTDPRIZE
     CID cid = CID_DPRIZE;
     GRFCID grfcid = 0x1;
 
-    void*(*pfnNewDprize) () = NewDprize;
+    DPRIZE*(*pfnNewDprize) () = NewDprize;
     void (*pfnInitDprize)(DPRIZE*) = InitDprize;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -8366,7 +8366,7 @@ struct VTCHARM
     CID cid = CID_CHARM;
     GRFCID grfcid = 0x1;
 
-    void*(*pfnNewCharm) () = NewCharm;
+    CHARM*(*pfnNewCharm) () = NewCharm;
     void (*pfnInitCharm)(CHARM*) = InitCharm;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -8428,7 +8428,7 @@ struct VTCOIN
     CID cid = CID_COIN;
     GRFCID grfcid = 0x1;
 
-    void*(*pfnNewCoin) () = NewCoin;
+    COIN*(*pfnNewCoin) () = NewCoin;
     void (*pfnInitCoin)(COIN*) = InitCoin;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -8490,7 +8490,7 @@ struct VTKEY
     CID cid = CID_KEY;
     GRFCID grfcid = 0x1;
 
-    void*(*pfnNewKey) () = NewKey;
+    KEY* (*pfnNewKey) () = NewKey;
     void (*pfnInitKey)(KEY*) = InitKey;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -8552,7 +8552,7 @@ struct VTGOLD
     CID cid = CID_GOLD;
     GRFCID grfcid = 0x1;
 
-    void*(*pfnNewGold) () = NewGold;
+    GOLD*(*pfnNewGold) () = NewGold;
     void (*pfnInitGold)(GOLD*) = InitGold;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -8614,7 +8614,7 @@ struct VTLOCK
     CID cid = CID_LOCK;
     GRFCID grfcid = 0x1;
 
-    void*(*pfnNewLock) () = NewLock;
+    LOCK*(*pfnNewLock) () = NewLock;
     void (*pfnInitAlo) (ALO*) = InitAlo;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -8675,7 +8675,7 @@ struct VTLOCKG
     CID cid = CID_LOCKG;
     GRFCID grfcid = 0x1;
 
-    void*(*pfnNewLockg) () = NewLockg;
+    LOCKG*(*pfnNewLockg) () = NewLockg;
     void (*pfnInitAlo) (ALO*) = InitAlo;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -8736,7 +8736,7 @@ struct VTTAIL
     CID cid = CID_TAIL;
     GRFCID grfcid = 0x1;
 
-    void*(*pfnNewTail) () = NewTail;
+    TAIL*(*pfnNewTail) () = NewTail;
     void (*pfnInitTail)(TAIL*) = InitTail;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -8797,7 +8797,7 @@ struct VTROB
     CID cid = CID_ROB;
     GRFCID grfcid = 0x1;
 
-    void*(*pfnNewRob) () = NewRob;
+    ROB* (*pfnNewRob) () = NewRob;
     void (*pfnInitRob)(ROB*) = InitRob;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -8858,7 +8858,7 @@ struct VTFLASH
     CID cid = CID_FLASH;
     GRFCID grfcid = 0x1;
 
-    void*(*pfnNewFlash) () = NewFlash;
+    FLASH*(*pfnNewFlash) () = NewFlash;
     void (*pfnInitFlash)(FLASH*) = InitFlash;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -8919,7 +8919,7 @@ struct VTDYSH
     CID cid = CID_DYSH;
     GRFCID grfcid = 0x1;
 
-    void*(*pfnNewDysh) () = NewDysh;
+    DYSH*(*pfnNewDysh) () = NewDysh;
     void (*pfnInitDysh)(DYSH*) = InitDysh;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -8980,7 +8980,7 @@ struct VTSCENTMAP
     CID cid = CID_SCENTMAP;
     GRFCID grfcid = 0x1;
 
-    void*(*pfnNewScentmap) () = NewScentmap;
+    SCENTMAP*(*pfnNewScentmap) () = NewScentmap;
     void (*pfnInitScentmap)(SCENTMAP*) = InitScentmap;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -9041,7 +9041,7 @@ struct VTWAYPOINT
     CID cid = CID_WAYPOINT;
     GRFCID grfcid = 0x1;
 
-    void*(*pfnNewWaypoint) () = NewWaypoint;
+    WAYPOINT*(*pfnNewWaypoint) () = NewWaypoint;
     void (*pfnInitWaypoint)(WAYPOINT*) = InitWaypoint;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -9102,7 +9102,7 @@ struct VTTN
     CID cid = CID_TN;
     GRFCID grfcid = 0x1;
 
-    void*(*pfnNewTn) () = NewTn;
+    TN*  (*pfnNewTn) () = NewTn;
     void (*pfnInitTn)(TN*) = InitTn;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -9163,7 +9163,7 @@ struct VTJLOC
     CID cid = CID_JLOC;
     GRFCID grfcid = 0x1;
 
-    void*(*pfnNewJloc) () = NewJloc;
+    JLOC*(*pfnNewJloc) () = NewJloc;
     void (*pfnInitJloc)(JLOC*) = InitJloc;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -9224,7 +9224,7 @@ struct VTDIALOG
     CID cid = CID_DIALOG;
     GRFCID grfcid = 0x1;
 
-    void*(*pfnNewDialog) () = NewDialog;
+    DIALOG*(*pfnNewDialog) () = NewDialog;
     void (*pfnInitDialog)(DIALOG*) = InitDialog;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -9285,7 +9285,7 @@ struct VTSPEAKER
     CID cid = CID_SPEAKER;
     GRFCID grfcid = 0x1;
 
-    void*(*pfnNewSpeaker) () = NewSpeaker;
+    SPEAKER*(*pfnNewSpeaker) () = NewSpeaker;
     void (*pfnInitSpeaker)(SPEAKER*) = InitSpeaker;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -9346,7 +9346,7 @@ struct VTROPE
     CID cid = CID_ROPE;
     GRFCID grfcid = 0x1;
 
-    void*(*pfnNewRope) () = NewRope;
+    ROPE*(*pfnNewRope) () = NewRope;
     void (*pfnInitRope)(ROPE*) = InitRope;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -9407,7 +9407,7 @@ struct VTWM
     CID cid = CID_WM;
     GRFCID grfcid = 0x1;
 
-    void*(*pfnNewWm) () = NewWm;
+    WM*  (*pfnNewWm) () = NewWm;
     void (*pfnInitAlo)(ALO*) = InitAlo;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -9468,7 +9468,7 @@ struct VTPUFFB
     CID cid = CID_PUFFB;
     GRFCID grfcid = 0x1;
 
-    void*(*pfnNewPuffb) () = NewPuffb;
+    PUFFB*(*pfnNewPuffb) () = NewPuffb;
     void (*pfnInitAlo) (ALO*) = InitAlo;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -9529,7 +9529,7 @@ struct VTCRBRAIN
     CID cid = CID_CRBRAIN;
     GRFCID grfcid = 0x1;
 
-    void*(*pfnNewCrbrain) () = NewCrbrain;
+    CRBRAIN*(*pfnNewCrbrain) () = NewCrbrain;
     void (*pfnInitCrbrain)(CRBRAIN*) = InitCrbrain;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -9590,7 +9590,7 @@ struct VTMGC
     CID cid = CID_MGC;
     GRFCID grfcid = 0x1;
 
-    void*(*pfnNewMgc) () = NewMgc;
+    MGC* (*pfnNewMgc) () = NewMgc;
     void (*pfnInitMgc)(MGC*) = InitMgc;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -9651,7 +9651,7 @@ struct VTJACKB
     CID cid = CID_JACKB;
     GRFCID grfcid = 0x1;
 
-    void*(*pfnNewJackb) () = NewJackb;
+    JACKB*(*pfnNewJackb) () = NewJackb;
     void (*pfnInitJackb)(JACKB*) = InitJackb;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -9712,7 +9712,7 @@ struct VTJACKN
     CID cid = CID_JACKN;
     GRFCID grfcid = 0x1;
 
-    void*(*pfnNewJackn) () = NewJackn;
+    JACKN*(*pfnNewJackn) () = NewJackn;
     void (*pfnInitJackn)(JACKN*) = InitJackn;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -9773,7 +9773,7 @@ struct VTJACKF
     CID cid = CID_JACKF;
     GRFCID grfcid = 0x1;
 
-    void*(*pfnNewJackf) () = NewJackf;
+    JACKF*(*pfnNewJackf) () = NewJackf;
     void (*pfnInitJackf)(JACKF*) = InitJackf;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -9834,7 +9834,7 @@ struct VTSW
     CID cid = CID_SW;
     GRFCID grfcid = 0;
 
-    void*(*pfnNewSw) () = NewSw;
+    SW*  (*pfnNewSw) () = NewSw;
     void (*pfnInitSw)(SW*) = InitSw;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -9876,7 +9876,7 @@ struct VTCM
     CID cid = CID_CM;
     GRFCID grfcid = 0;
 
-    void*(*pfnNewCm) () = NewCm;
+    CM*  (*pfnNewCm) () = NewCm;
     void (*pfnInitCm)(CM*) = InitCm;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -9918,7 +9918,7 @@ struct VTSHAPE
     CID cid = CID_SHAPE;
     GRFCID grfcid = 0;
 
-    void*(*pfnNewShape) () = NewShape;
+    SHAPE*(*pfnNewShape) () = NewShape;
     void (*pfnInitShape)(SHAPE*) = InitShape;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -9960,7 +9960,7 @@ struct VTHSHAPE
     CID cid = CID_HSHAPE;
     GRFCID grfcid = 0;
 
-    void*(*pfnNewHshape) () = NewHshape;
+    HSHAPE*(*pfnNewHshape) () = NewHshape;
     void (*pfnInitHshape)(HSHAPE*) = InitHshape;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -10002,7 +10002,7 @@ struct VTPIPE
     CID cid = CID_PIPE;
     GRFCID grfcid = 0;
 
-    void*(*pfnNewPipe) () = NewPipe;
+    PIPE*(*pfnNewPipe) () = NewPipe;
     void (*pfnInitPipe)(PIPE*) = InitPipe;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -10044,7 +10044,7 @@ struct VTRAIL
     CID cid = CID_RAIL;
     GRFCID grfcid = 0;
 
-    void*(*pfnNewRail) () = NewRail;
+    RAIL*(*pfnNewRail) () = NewRail;
     void (*pfnInitShape)(SHAPE*) = InitShape;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -10086,7 +10086,7 @@ struct VTLANDING
     CID cid = CID_LANDING;
     GRFCID grfcid = 0;
 
-    void*(*pfnNewLanding) () = NewLanding;
+    LANDING*(*pfnNewLanding) () = NewLanding;
     void (*pfnInitShape)(SHAPE*) = InitShape;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -10128,7 +10128,7 @@ struct VTXFM
     CID cid = CID_XFM;
     GRFCID grfcid = 0;
 
-    void*(*pfnNewXfm) () = NewXfm;
+    XFM* (*pfnNewXfm) () = NewXfm;
     void (*pfnInitXfm)(XFM*) = InitXfm;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -10170,7 +10170,7 @@ struct VTWARP
     CID cid = CID_WARP;
     GRFCID grfcid = 0;
 
-    void*(*pfnNewWarp) () = NewWarp;
+    WARP*(*pfnNewWarp) () = NewWarp;
     void (*pfnInitXfm)(XFM*) = InitXfm;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -10212,7 +10212,7 @@ struct VTTARGET
     CID cid = CID_TARGET;
     GRFCID grfcid = 0;
 
-    void*(*pfnNewTarget) () = NewTarget;
+    TARGET*(*pfnNewTarget) () = NewTarget;
     void (*pfnInitTarget)(TARGET*) = InitTarget;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -10254,7 +10254,7 @@ struct VTHND
     CID cid = CID_HND;
     GRFCID grfcid = 0;
 
-    void*(*pfnNewHnd) () = NewHnd;
+    HND* (*pfnNewHnd) () = NewHnd;
     void (*pfnInitHnd)(HND*) = InitHnd;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -10296,7 +10296,7 @@ struct VTEXPL
     CID cid = CID_EXPL;
     GRFCID grfcid = 0;
 
-    void*(*pfnNewExpl) () = NewExpl;
+    EXPL*(*pfnNewExpl) () = NewExpl;
     void (*pfnInitXfm)(XFM*) = InitXfm;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -10339,7 +10339,7 @@ struct VTEXPLG
     CID cid = CID_EXPLG;
     GRFCID grfcid = 0;
 
-    void*(*pfnNewExplg) () = NewExplg;
+    EXPLG*(*pfnNewExplg) () = NewExplg;
     void (*pfnInitXfm)(XFM*) = InitXfm;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -10382,7 +10382,7 @@ struct VTEXPLO
     CID cid = CID_EXPLO;
     GRFCID grfcid = 0;
 
-    void*(*pfnNewExplo) () = NewExplo;
+    EXPLO*(*pfnNewExplo) () = NewExplo;
     void (*pfnInitExplo)(EXPLO*) = InitExplo;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -10425,7 +10425,7 @@ struct VTEXPLS
     CID cid = CID_EXPLS;
     GRFCID grfcid = 0;
 
-    void*(*pfnNewExpls) () = NewExpls;
+    EXPLS*(*pfnNewExpls) () = NewExpls;
     void (*pfnInitExpls)(EXPLS*) = InitExpls;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -10468,7 +10468,7 @@ struct VTVOL
     CID cid = CID_VOL;
     GRFCID grfcid = 0;
 
-    void*(*pfnNewVol) () = NewVol;
+    VOL* (*pfnNewVol) () = NewVol;
     void (*pfnInitXfm)(XFM*) = InitXfm;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -10510,7 +10510,7 @@ struct VTRATHOLE
     CID cid = CID_RATHOLE;
     GRFCID grfcid = 0;
 
-    void*(*pfnNewRathole) () = NewRathole;
+    RATHOLE*(*pfnNewRathole) () = NewRathole;
     void (*pfnInitXfm)(XFM*) = InitXfm;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -10552,7 +10552,7 @@ struct VTPUFFV
     CID cid = CID_PUFFV;
     GRFCID grfcid = 0;
 
-    void*(*pfnNewPuffv) () = NewPuffv;
+    PUFFV*(*pfnNewPuffv) () = NewPuffv;
     void (*pfnInitPuffv)(PUFFV*) = InitPuffv;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -10594,7 +10594,7 @@ struct VTEXIT
     CID cid = CID_EXIT;
     GRFCID grfcid = 0x1;
 
-    void*(*pfnNewExit) () = NewExit;
+    EXIT*(*pfnNewExit) () = NewExit;
     void (*pfnInitAlo) (ALO*) = InitAlo;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -10655,7 +10655,7 @@ struct VTPNT
     CID cid = CID_PNT;
     GRFCID grfcid = 0;
 
-    void*(*pfnNewPnt) () = NewPnt;
+    PNT* (*pfnNewPnt) () = NewPnt;
     void (*pfnInitLo)(LO*) = InitLo;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -10697,7 +10697,7 @@ struct VTPNTSV
     CID cid = CID_PNTSV;
     GRFCID grfcid = 0;
 
-    void*(*pfnNewPntsv) () = NewPnt;
+    PNT* (*pfnNewPntsv) () = NewPnt;
     void (*pfnInitLo)(LO*) = InitLo;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -10739,7 +10739,7 @@ struct VTPNTS
     CID cid = CID_PNTS;
     GRFCID grfcid = 0;
 
-    void*(*pfnNewPnts) () = NewPnt;
+    PNT* (*pfnNewPnts) () = NewPnt;
     void (*pfnInitLo)(LO*) = InitLo;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -10781,7 +10781,7 @@ struct VTPNTVEC
     CID cid = CID_PNTVEC;
     GRFCID grfcid = 0;
 
-    void*(*pfnNewPntvec) () = NewPnt;
+    PNT* (*pfnNewPntvec) () = NewPnt;
     void (*pfnInitLo)(LO*) = InitLo;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -10823,7 +10823,7 @@ struct VTHPNT
     CID cid = CID_HPNT;
     GRFCID grfcid = 0;
 
-    void*(*pfnNewHpnt) () = NewHpnt;
+    HPNT*(*pfnNewHpnt) () = NewHpnt;
     void (*pfnInitHpnt)(HPNT*) = InitHpnt;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -10865,7 +10865,7 @@ struct VTJMT
     CID cid = CID_JMT;
     GRFCID grfcid = 0;
 
-    void*(*pfnNewJmt) () = NewJmt;
+    JMT* (*pfnNewJmt) () = NewJmt;
     void (*pfnInitLo)(LO*) = InitLo;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -10907,7 +10907,7 @@ struct VTSPIRE
     CID cid = CID_SPIRE;
     GRFCID grfcid = 0;
 
-    void*(*pfnNewSpire) () = NewSpire;
+    SPIRE*(*pfnNewSpire) () = NewSpire;
     void (*pfnInitLo)(LO*) = InitLo;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -11033,7 +11033,7 @@ struct VTMAP
     CID cid = CID_MAP;
     GRFCID grfcid = 0;
 
-    void*(*pfnNewMap) () = NewMap;
+    MAP* (*pfnNewMap) () = NewMap;
     void (*pfnInitLo)(LO*) = InitLo;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -11075,7 +11075,7 @@ struct VT_VISZONE
     CID cid = CID__VISZONE;
     GRFCID grfcid = 0;
 
-    void*(*pfnNewVISZONE) () = NewLo;
+    LO*(*pfnNewVISZONE) () = NewLo;
     void (*pfnInitLo)(LO*) = InitLo;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -11117,7 +11117,7 @@ struct VTVISMAP
     CID cid = CID_VISMAP;
     GRFCID grfcid = 0;
 
-    void*(*pfnNewVismap) () = NewVismap;
+    VISMAP*(*pfnNewVismap) () = NewVismap;
     void (*pfnInitVismap)(VISMAP*) = InitVismap;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -11159,7 +11159,7 @@ struct VTFRZG
     CID cid = CID_FRZG;
     GRFCID grfcid = 0;
 
-    void*(*pfnNewFrzg) () = NewFrzg;
+    FRZG*(*pfnNewFrzg) () = NewFrzg;
     void (*pfnInitLo)(LO*) = InitLo;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -11201,7 +11201,7 @@ struct VTSM
     CID cid = CID_SM;
     GRFCID grfcid = 0;
 
-    void*(*pfnNewSm) () = NewSm;
+    SM*  (*pfnNewSm) () = NewSm;
     void (*pfnInitLo)(LO*) = InitLo;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -11243,7 +11243,7 @@ struct VTSGG
     CID cid = CID_SGG;
     GRFCID grfcid = 0;
 
-    void*(*pfnNewSgg) () = NewSgg;
+    SGG* (*pfnNewSgg) () = NewSgg;
     void (*pfnInitSgg)(SGG*) = InitSgg;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -11285,7 +11285,7 @@ struct VTPATHZONE
     CID cid = CID_PATHZONE;
     GRFCID grfcid = 0;
 
-    void*(*pfnNewPathzone) () = NewPathzone;
+    PATHZONE*(*pfnNewPathzone) () = NewPathzone;
     void (*pfnInitLo)(LO*) = InitLo;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -11327,7 +11327,7 @@ struct VTRCHM
     CID cid = CID_RCHM;
     GRFCID grfcid = 0;
 
-    void*(*pfnNewRchm) () = NewRchm;
+    RCHM*(*pfnNewRchm) () = NewRchm;
     void (*pfnInitRchm)(RCHM*) = InitRchm;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -11369,7 +11369,7 @@ struct VTRWM
     CID cid = CID_RWM;
     GRFCID grfcid = 0;
 
-    void*(*pfnNewRwm) () = NewRwm;
+    RWM* (*pfnNewRwm) () = NewRwm;
     void (*pfnInitRwm)(RWM*) = InitRwm;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -11411,7 +11411,7 @@ struct VTWR
     CID cid = CID_WR;
     GRFCID grfcid = 0;
 
-    void*(*pfnNewWr) () = NewWr;
+    WR*  (*pfnNewWr) () = NewWr;
     void (*pfnInitWr)(WR*) = InitWr;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -11453,7 +11453,7 @@ struct VTKEYHOLE
     CID cid = CID_KEYHOLE;
     GRFCID grfcid = 0;
 
-    void*(*pfnNewKeyhole) () = NewKeyhole;
+    KEYHOLE*(*pfnNewKeyhole) () = NewKeyhole;
     void (*pfnInitKeyhole)(KEYHOLE*) = InitKeyhole;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
@@ -11495,7 +11495,7 @@ struct VTJSG
     CID cid = CID_JSG;
     GRFCID grfcid = 0;
 
-    void*(*pfnNewJsg) () = NewJsg;
+    JSG* (*pfnNewJsg) () = NewJsg;
     void (*pfnInitJsg)(JSG*) = InitJsg;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;

@@ -1,6 +1,6 @@
 #include "waypoint.h"
 
-void* NewWaypoint()
+WAYPOINT* NewWaypoint()
 {
 	return new WAYPOINT{};
 }

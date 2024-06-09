@@ -1,6 +1,6 @@
 #include "water.h"
 
-void* NewWater()
+WATER* NewWater()
 {
 	return new WATER{};
 }

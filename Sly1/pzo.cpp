@@ -1,6 +1,6 @@
 #include "pzo.h"
 
-void* NewVault()
+VAULT* NewVault()
 {
 	return new VAULT{};
 }
@@ -35,7 +35,7 @@ void DeleteVault(LO* plo)
 	delete (VAULT*)plo;
 }
 
-void* NewSprize()
+SPRIZE* NewSprize()
 {
 	return new SPRIZE{};
 }
@@ -75,7 +75,7 @@ void DeleteSprize(LO* plo)
 	delete (SPRIZE*)plo;
 }
 
-void* NewScprize()
+SCPRIZE* NewScprize()
 {
 	return new SCPRIZE{};
 }
@@ -110,7 +110,7 @@ void DeleteScprize(LO* plo)
 	delete (SCPRIZE*)plo;
 }
 
-void* NewLifetkn()
+LIFETKN* NewLifetkn()
 {
 	return new LIFETKN{};
 }
@@ -140,7 +140,7 @@ void DeleteLifetkn(LO* plo)
 	delete (LIFETKN*)plo;
 }
 
-void* NewClue()
+CLUE* NewClue()
 {
 	return new CLUE{};
 }
@@ -187,7 +187,7 @@ void DeleteClue(LO* plo)
 	delete (CLUE*)plo;
 }
 
-void* NewLock()
+LOCK* NewLock()
 {
 	return new LOCK{};
 }
@@ -218,7 +218,7 @@ void DeleteLock(LO* plo)
 	delete(LOCK*)plo;
 }
 
-void* NewLockg()
+LOCKG* NewLockg()
 {
 	return new LOCKG{};
 }

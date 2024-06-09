@@ -141,7 +141,7 @@ class SUV : public PO
         float dfrqTop;
 };
 
-void*NewSuv();
+SUV* NewSuv();
 void InitSuv(SUV *psuv);
 int  GetSuvSize();
 void UpdateSuvXfWorld(SUV* psuv);

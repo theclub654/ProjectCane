@@ -6,7 +6,7 @@
 typedef int GRFEOPID;
 typedef int BOOL;
 
-typedef void* (*PFNGET)(void*, void*);
+typedef void* (*PFNGET)(void*);
 typedef void* (*PFNENSURE)(void*, int);
 typedef void* (*PFNSET)(void*, int);
 
@@ -2157,43 +2157,33 @@ enum TBID
 // Option Data
 struct OPTDAT
 {
+    // Option data type
     union {
-        BOOL fDef;
+        BOOL  fDef;
         float gDef;
-        int nDef;
-        OID oidDef;
-        CID cidDef;
-        WID widDef;
-        TBID tbidDef;
+        int   nDef;
+        OID   oidDef;
+        CID   cidDef;
+        WID   widDef;
+        TBID  tbidDef;
         SFXID sfxidDef;
     };
 
-    union {
-        int ibGet;
-        // Function that returns data to be written to
-        PFNGET pfnget;
+    // Function that returns data to be written to
+    PFNGET pfnget;
+    // Function that sets data to write to
+    PFNSET pfnset;
+    // Function that sets the data
+    PFNSET pfnsetUser;
+    PFNENSURE pfnensure;
 
-        struct {
-            void (*pvThunkFnUser)(void*, void*, void*);
-            void (*pvThunkFn)(void*, void*, void*);
-        };
-    };
+    int ibGet;
+    int ibSet;
+    int ibSetUser;
+    int crefReq;
 
-    union {
-        int ibSet;
-        PFNSET pfnset;
-        int crefReq;
-    };
-
-    union {
-        int ibSetUser;
-        // Function that sets the data
-        PFNSET pfnsetUser;
-    };
-
-    union {
-        PFNENSURE pfnensure;
-    };
+    void (*pvThunkFnUser)(void*, void*, void*);
+    void (*pvThunkFn)(void*, void*, void*);
 };
 
 // Each Option ID

@@ -9,7 +9,7 @@ class VISMAP : public LO
 	int *agrfzonOneHop;
 };
 
-void* NewVismap();
+VISMAP* NewVismap();
 // Initializing vismap object
 void InitVismap(VISMAP *pvismap);
 int  GetVismapSize();

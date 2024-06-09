@@ -1,6 +1,6 @@
 #include "ms.h"
 
-void* NewMs()
+MS* NewMs()
 {
     return new MS{};
 }

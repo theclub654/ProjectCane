@@ -1,6 +1,6 @@
 #include "sm.h"
 
-void* NewSm()
+SM* NewSm()
 {
 	return new SM{};
 }
@@ -55,7 +55,7 @@ void DeleteSm(LO* plo)
 	delete(SM*)plo;
 }
 
-void* NewSma()
+SMA* NewSma()
 {
 	return new SMA{};
 }

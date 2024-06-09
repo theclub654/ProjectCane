@@ -10,7 +10,7 @@ class RAIL : public SHAPE
 		float rdvGravity;
 };
 
-void*NewRail();
+RAIL*NewRail();
 void InitSwRailDl(SW* psw);
 int  GetRailSize();
 void OnRailAdd(RAIL* prail);

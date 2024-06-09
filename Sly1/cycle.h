@@ -50,7 +50,7 @@ class CYCLE : public PO
         float tCycles;
 };
 
-void*NewCycle();
+CYCLE*NewCycle();
 void InitCycle(CYCLE *pcycle);
 int  GetCycleSize();
 void UpdateCycleXfWorld(CYCLE* pcycle);

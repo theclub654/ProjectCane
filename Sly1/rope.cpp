@@ -1,6 +1,6 @@
 #include "rope.h"
 
-void* NewRope()
+ROPE* NewRope()
 {
 	return new ROPE{};
 }

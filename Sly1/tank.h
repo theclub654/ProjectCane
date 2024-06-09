@@ -34,7 +34,7 @@ class TANK : public STEP
         struct PNT* ppntAnchor;
 };
 
-void*NewTank();
+TANK*NewTank();
 void InitTank(TANK* ptank);
 int  GetTankSize();
 void CloneTank(TANK* ptank, TANK* ptankBase);

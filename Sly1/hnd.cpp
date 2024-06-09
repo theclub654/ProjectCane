@@ -1,6 +1,6 @@
 #include "hnd.h"
 
-void* NewHnd()
+HND* NewHnd()
 {
 	return new HND{};
 }

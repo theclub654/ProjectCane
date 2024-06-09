@@ -1,6 +1,6 @@
 #include "mouthgame.h"
 
-void* NewMgc()
+MGC* NewMgc()
 {
 	return new MGC{};
 }

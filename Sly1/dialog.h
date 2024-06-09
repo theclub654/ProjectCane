@@ -121,7 +121,7 @@ class DIALOG : public ALO
         int fCrucial;
 };
 
-void*NewDialog();
+DIALOG*NewDialog();
 void InitDialog(DIALOG* pdialog);
 int  GetDialogSize();
 void LoadDialogFromBrx(DIALOG* pdialog, CBinaryInputStream* pbis);

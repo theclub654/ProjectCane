@@ -1,6 +1,6 @@
 #include "po.h"
 
-void* NewPo()
+PO* NewPo()
 {
 	return new PO{};
 }

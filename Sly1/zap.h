@@ -22,13 +22,13 @@ class VOLZP : public TZP
 
 };
 
-void*NewTzp();
+TZP* NewTzp();
 void InitTzp(TZP* ptzp);
 int  GetTzpSize();
 void CloneTzp(TZP* ptzp, TZP* ptzpBase);
 void DeleteTzp(LO* plo);
 
-void*NewVolzp();
+VOLZP*NewVolzp();
 void InitVolzp(VOLZP* pvolzp);
 int  GetVolzpSize();
 void CloneVolzp(VOLZP* pvolzp, VOLZP* pvolzpBase);

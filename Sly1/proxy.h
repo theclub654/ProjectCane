@@ -13,7 +13,7 @@ class PROXY : public ALO
 
 static int ProxyCount = 0;
 
-void*NewProxy();
+PROXY*NewProxy();
 void InitSwProxyDl(SW* psw);
 void InitProxy(PROXY *pproxy);
 int  GetProxySize();

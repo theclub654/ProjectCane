@@ -9,7 +9,22 @@
 #include "shdanim.h"
 #include "font.h"
 
-extern std::vector <GLuint*> textureReferences;
+enum SHDK 
+{
+    SHDK_Nil = -1,
+    SHDK_ThreeWay = 0,
+    SHDK_Prelit = 1,
+    SHDK_Shadow = 2,
+    SHDK_SpotLight = 3,
+    SHDK_ProjectedVolume = 4,
+    SHDK_CreateTexture = 5,
+    SHDK_Background = 6,
+    SHDK_Foreground = 7,
+    SHDK_WorldMap = 8,
+    SHDK_MurkClear = 9,
+    SHDK_MurkFill = 10,
+    SHDK_Max = 11
+};
 
 // Color property's
 struct RGBA 
@@ -51,7 +66,7 @@ struct BMP
 
 struct TEXF
 {
-    uint16_t oid;
+    OID oid;
     short grftex;
     // Number of bmp's
     byte cibmp;
@@ -61,13 +76,13 @@ struct TEXF
 
 struct SHDF
 {
-    byte shdk;
+    SHDK shdk;
     byte grfshd;
-    uint16_t oid;
+    OID oid;
     RGBA rgba;
     RGBA rgbaVolume;
     uint32_t grfzon;
-    uint16_t oidAltSat;
+    OID oidAltSat;
     byte rp;
     byte ctex;
 };
@@ -75,8 +90,8 @@ struct SHDF
 struct TEX : public TEXF
 {
     struct SHD* pshd;
-    std::vector<uint16_t> bmpIndex;
-    std::vector<uint16_t> clutIndex;
+    std::vector <uint16_t> bmpIndex;
+    std::vector <uint16_t> clutIndex;
 };
 
 // Shader property's
@@ -90,7 +105,7 @@ struct SHD : public SHDF
 
     GLuint glAmbientTexture;
     GLuint glDiffuseTexture;
-    GLuint glGreyScaleTexture;
+    GLuint glSaturateTexture;
 };
 
 // Delete shader data
@@ -103,11 +118,17 @@ void LoadBitmapsFromBrx(CBinaryInputStream *pbis);
 void LoadFontsFromBrx(CBinaryInputStream *pbis); // GOTTA COME BACK TO THIS
 // Loads texture tables from binary file
 void LoadTexFromBrx(TEX* ptex, CBinaryInputStream* pbis);
+// Converts Custom Hue Saturation Value to RGBA Color
+void ConvertUserHsvToUserRgb(glm::vec3& pvecHSV, glm::vec3& pvecRGB);
+// Returns a shader property from global shader vector
+SHD* PshdFindShader(OID oid);
 // Loads texture and shader property's from binary file
 void LoadShadersFromBrx(CBinaryInputStream *pbis);
 // Loads texture data from binary file
 void LoadTexturesFromBrx(CBinaryInputStream* pbis);
+// Make Texture
 std::vector <byte> MakeBmp(uint32_t bmpIndex, CBinaryInputStream* pbis);
+// Make color pallete
 std::vector <byte> MakePallete(uint32_t clutIndex, CBinaryInputStream* pbis);
 void MakeTexture(GLuint &textureReference, int16_t clutIndex, int16_t bmpIndex, CBinaryInputStream* pbis);
 

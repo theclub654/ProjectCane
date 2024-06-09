@@ -1,6 +1,6 @@
 #include "smartguard.h"
 
-void* NewSmartguard()
+SMARTGUARD* NewSmartguard()
 {
 	return new SMARTGUARD{};
 }

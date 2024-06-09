@@ -1,6 +1,6 @@
 #include "sensor.h"
 
-void* NewSensor()
+SENSOR* NewSensor()
 {
 	return new SENSOR{};
 }
@@ -35,7 +35,7 @@ void DeleteSensor(LO* plo)
 	delete (SENSOR*)plo;
 }
 
-void* NewLasen()
+LASEN* NewLasen()
 {
 	return new LASEN{};
 }
@@ -80,7 +80,7 @@ void DeleteLasen(LO* plo)
 	delete(LASEN*)plo;
 }
 
-void* NewCamsen()
+CAMSEN* NewCamsen()
 {
 	return new CAMSEN{};
 }
@@ -115,7 +115,7 @@ void DeleteCamsen(LO* plo)
 	delete (CAMSEN*)plo;
 }
 
-void* NewPrsen()
+PRSEN* NewPrsen()
 {
 	return new PRSEN{};
 }

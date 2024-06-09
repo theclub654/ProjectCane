@@ -70,7 +70,7 @@ class STEP : public PO
 		SMP smpExpand;
 };
 
-void*NewStep();
+STEP*NewStep();
 void InitStep(STEP* pstep);
 int  GetStepSize();
 void UpdateStepXfWorld(STEP* pstep);

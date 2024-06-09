@@ -1,6 +1,6 @@
 #include "map2d.h"
 
-void* NewMap()
+MAP* NewMap()
 {
 	return new MAP{};
 }

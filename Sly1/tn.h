@@ -60,7 +60,7 @@ class TN : public ALO
 		int fNoSquish;
 };
 
-void*NewTn();
+TN*  NewTn();
 void InitTn(TN* ptn);
 int  GetTnSize();
 void OnTnRemove(TN* ptn);

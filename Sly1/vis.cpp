@@ -1,6 +1,6 @@
 #include "vis.h"
 
-void* NewVismap()
+VISMAP* NewVismap()
 {
 	return new VISMAP{};
 }

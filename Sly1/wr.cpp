@@ -1,6 +1,6 @@
 #include "wr.h"
 
-void* NewWr()
+WR* NewWr()
 {
 	return new WR{};
 }

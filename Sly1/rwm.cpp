@@ -1,6 +1,6 @@
 #include "rwm.h"
 
-void* NewRwm()
+RWM* NewRwm()
 {
 	return new RWM{};
 }

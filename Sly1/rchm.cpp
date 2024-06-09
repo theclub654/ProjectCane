@@ -1,6 +1,6 @@
 #include "rchm.h"
 
-void* NewRchm()
+RCHM* NewRchm()
 {
     return new RCHM{};
 }

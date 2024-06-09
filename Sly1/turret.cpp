@@ -1,6 +1,6 @@
 #include "turret.h"
 
-void* NewTurret()
+TURRET* NewTurret()
 {
 	return new TURRET{};
 }

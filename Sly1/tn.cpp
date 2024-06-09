@@ -1,6 +1,6 @@
 #include "tn.h"
 
-void* NewTn()
+TN* NewTn()
 {
     return new TN{};
 }

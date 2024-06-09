@@ -1,6 +1,6 @@
 #include "flash.h"
 
-void* NewFlash()
+FLASH* NewFlash()
 {
 	return new FLASH{};
 }

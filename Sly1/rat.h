@@ -51,7 +51,7 @@ class RATHOLE : public VOL
         DLE dleRathole;
 };
 
-void*NewRat();
+RAT* NewRat();
 void InitSwRatDl(SW* psw);
 void InitRat(RAT* prat);
 int  GetRatSize();
@@ -62,7 +62,7 @@ void LoadRatFromBrx(RAT* prat, CBinaryInputStream* pbis);
 void RenderRatAll(RAT* prat, CM* pcm, RO* pro);
 void DeleteRat(LO* plo);
 
-void*NewRathole();
+RATHOLE*NewRathole();
 void InitSwRatholeDl(SW* psw);
 int  GetRatholeSize();
 void OnRatholeRemove(RATHOLE* prathole);

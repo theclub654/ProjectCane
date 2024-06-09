@@ -1,6 +1,6 @@
 #include "so.h"
 
-void* NewSo()
+SO* NewSo()
 {
 	return new SO{};
 }
