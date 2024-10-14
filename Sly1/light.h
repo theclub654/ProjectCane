@@ -24,6 +24,13 @@ struct LTFN
 	float duHighlight;
 	float duUnused;
 };
+struct LIGHTBLK
+{
+	struct LIGHT** aplight;
+	int cplight;
+	int grffindlight;
+	LIGHTK lightk;
+};
 
 class LIGHT : public ALO
 {
@@ -35,7 +42,7 @@ class LIGHT : public ALO
 		// Light color (RGBA)
 		glm::vec3 rgbaColor;
 		LTFN ltfn;
-		LM agFallOff;
+		glm::vec3 agFallOff;
 		// Diffuse
 		float gMidtone;
 		float gShadow;
@@ -70,9 +77,9 @@ void OnLightRemove(LIGHT* plight);
 void UpdateLightXfWorldHierarchy(LIGHT* plight);
 void CloneLight(LIGHT* plight, LIGHT* plightBase);
 void AddLightToSw(LIGHT* plight);
-void FitLinearFunction(float x0, float y0, float x1, float y1, float* pdu, float* pru);
+void FitLinearFunction(float x0, float y0, float x1, float y1, float &pdu, float &pru);
 void FitRecipFunction(float x0, float y0, float x1, float y1, float* pdu, float* pru);
-void ConvertAngleStrength(float deg0, float g0, float deg1, float g1, float* pdu, float* pru);
+void ConvertAngleStrength(float deg0, float g0, float deg1, float g1, float &pdu, float &pru);
 void RebuildLight(LIGHT* plight);
 void*GetLightKind(LIGHT* plight);
 void SetLightKind(LIGHT* plight, LIGHTK lightk);
@@ -101,4 +108,7 @@ void SetLightHotSpotAngle(LIGHT* plight, float degHotSpot);
 void*GetLightFrustrumUp(LIGHT*plight);
 void SetLightFrustrumUp(LIGHT* plight, glm::vec3 &pvecUpLocal);
 void RemoveLightFromSw(LIGHT* plight);
+void PrepareSwLightsForDraw(SW* psw);
 void DeleteLight(LO* plo);
+
+static std::vector <LIGHT*> g_alight;

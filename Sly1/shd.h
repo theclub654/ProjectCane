@@ -29,10 +29,10 @@ enum SHDK
 // Color property's
 struct RGBA 
 {
-    uint16_t bRed;
-    uint16_t bGreen;
-    uint16_t bBlue;
-    uint16_t bAlpha;
+    byte bRed;
+    byte bGreen;
+    byte bBlue;
+    byte bAlpha;
 };
 
 // CLUT property
@@ -103,7 +103,7 @@ struct SHD : public SHDF
     int cframe;
     SAA* psaa;
 
-    GLuint glAmbientTexture;
+    GLuint glShadowTexture;
     GLuint glDiffuseTexture;
     GLuint glSaturateTexture;
 };

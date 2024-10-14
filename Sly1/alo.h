@@ -122,6 +122,30 @@ struct FICG
 	byte grficShock;
 };
 
+struct BITFIELD
+{
+	// First Byte
+	unsigned int mtlk : 8;
+	// Second Byte
+	unsigned int zons : 2;
+	unsigned int viss : 2;
+	unsigned int mrds : 2;
+	unsigned int dms : 2;
+	// Third Byte
+	unsigned int fHidden : 1;
+	unsigned int fFixedPhys : 1;
+	unsigned int fMtlkFromDls : 1;
+	unsigned int fWater : 1;
+	unsigned int fForceCameraFade : 1;
+	unsigned int fBusy : 1;
+	unsigned int fFrozen : 1;
+	unsigned int fRemerge : 1;
+	// Fourth Byte
+	unsigned int fNoFreeze : 1;
+	unsigned int cpaloFindSwObjects : 4;
+	unsigned int fApplyAseg : 1;
+};
+
 class ALO : public LO
 {
 	public:
@@ -177,26 +201,7 @@ class ALO : public LO
 		std::vector <POSEC> aposec;
 		struct ACTREF* pactrefCombo;
 		struct DLR* pdlrFirst;
-		// First Byte
-		MTLK mtlk : 8;
-		// Second Byte
-		ZONS zons : 2;
-		VISS viss : 2;
-		MRDS mrds : 2;
-		DMS dms : 2;
-		// Third Byte
-		unsigned int fHidden : 1;
-		unsigned int fFixedPhys : 1;
-		unsigned int fMtlkFromDls : 1;
-		unsigned int fWater : 1;
-		unsigned int fForceCameraFade : 1;
-		unsigned int fBusy : 1;
-		unsigned int fFrozen : 1;
-		unsigned int fRemerge : 1;
-		// Fourth Byte
-		unsigned int fNoFreeze : 1;
-		unsigned int cpaloFindSwObjects : 4;
-		unsigned int fApplyAseg : 1;
+		BITFIELD bitfield;
 		ACK ackRot;
 };
 
@@ -237,6 +242,8 @@ void LoadAloFromBrx(ALO* palo, CBinaryInputStream* pbis);
 // Loads bone data from binary file
 void LoadAloAloxFromBrx(ALO* palo, CBinaryInputStream* pbis);
 // Updates ALO object
+void DebugClearLightingToF32(ALO* palo);
+void DebugConvertLightingF32ToU8(ALO* palo);
 void UpdateAlo(ALO *palo, float dt);
 void RenderAloAll(ALO* palo, CM* pcm, RO* proDup);
 void RenderAloSelf(ALO* palo, CM* pcm, RO* pro);

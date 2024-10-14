@@ -72,7 +72,7 @@ void InitSwDlHash(SW* psw)
 
 void LoadSwFromBrx(SW* psw, CBinaryInputStream* pbis)
 {
-	std::cout << "Loading World...\n";
+	std::cout << "\nLoading World...\n";
 	// Setting difficulty for world
 	OnDifficultyWorldPreLoad(&g_difficulty);
 	// Loading unknown debug flag from file
@@ -198,6 +198,17 @@ void MatchSwObject(LO* ploMatch, GRFFSO grffsoMask, int fIncludeRemoved, int fPr
 
 int CploFindSwObjects(SW* psw, GRFFSO grffso, OID oid, LO* ploContext, int cploMax, LO** aplo)
 {
+	int cploMatch;
+	int grffsoMask = grffso & 0xFF;
+
+	if (oid == OID_Nil)
+		cploMatch = 0;
+
+	else
+	{
+		
+	}
+
 	return 0;
 }
 
@@ -240,7 +251,7 @@ void DeleteWorld(SW* psw)
 
 	for (int i = 0; i < g_ashd.size(); i++)
 	{
-		glDeleteTextures(1, &g_ashd[i].glAmbientTexture);
+		glDeleteTextures(1, &g_ashd[i].glShadowTexture);
 		glDeleteTextures(1, &g_ashd[i].glDiffuseTexture);
 		glDeleteTextures(1, &g_ashd[i].glSaturateTexture);
 	}

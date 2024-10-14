@@ -89,8 +89,11 @@ float GRandGaussian(float param_1, float param_2, float param_3)
 //returns true if two given floats they are within a certain epsilon of each other
 bool FFloatsNear(float g1, float g2, float gEpsilon)
 {
-	float g1Abs = fabs(g1);
-	return (bool)(fabs(g1 - g2) / (float)((unsigned int)(g1Abs < 1.0) * 0x3f800000 | (int)g1Abs * (unsigned int)(g1Abs >= 1.0)) < gEpsilon);
+	float fVar1;
+
+	fVar1 = fabs(g1);
+	
+	return (uint32_t)(fabs(g1 - g2) / (float)((uint32_t)(fVar1 < 1.0) * 1 | (int)fVar1 * (uint32_t)(fVar1 >= 1.0)) < gEpsilon);
 }
 
 //solve a quadratic equation of the form ax^2+bx+c

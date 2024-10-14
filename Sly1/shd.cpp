@@ -178,7 +178,7 @@ void ConvertUserHsvToUserRgb(glm::vec3& pvecHSV, glm::vec3& pvecRGB)
                 printf("The fifth case in ConvertUserHsvToUserRgb function switch case hit\n");
         }
     }
-
+    
     pvecRGB.r *= 255.0;
     pvecRGB.g *= 255.0;
     pvecRGB.b *= 255.0;
@@ -223,18 +223,12 @@ void LoadShadersFromBrx(CBinaryInputStream *pbis)
         g_ashd[i].rgba.bRed   = pbis->U8Read();
         g_ashd[i].rgba.bGreen = pbis->U8Read();
         g_ashd[i].rgba.bBlue  = pbis->U8Read();
-        g_ashd[i].rgba.bAlpha = pbis->U8Read();
-
-        if (g_ashd[i].rgba.bAlpha == 0x80)
-            g_ashd[i].rgba.bAlpha = 0xFF;
+        g_ashd[i].rgba.bAlpha = pbis->U8Read() * 2;
 
         g_ashd[i].rgbaVolume.bRed   = pbis->U8Read();
         g_ashd[i].rgbaVolume.bGreen = pbis->U8Read();
         g_ashd[i].rgbaVolume.bBlue  = pbis->U8Read();
-        g_ashd[i].rgbaVolume.bAlpha = pbis->U8Read();
-
-        if (g_ashd[i].rgbaVolume.bAlpha == 0x80)
-            g_ashd[i].rgbaVolume.bAlpha = 0xFF;
+        g_ashd[i].rgbaVolume.bAlpha = pbis->U8Read() * 2;
 
 		g_ashd[i].grfzon    = pbis->U32Read();
 		g_ashd[i].oidAltSat = (OID)pbis->U16Read();
@@ -273,7 +267,7 @@ void LoadTexturesFromBrx(CBinaryInputStream* pbis)
         {
             case SHDK_ThreeWay:
             {
-                MakeTexture(g_ashd[i].glAmbientTexture, g_ashd[i].atex[0].clutIndex[0], g_ashd[i].atex[0].bmpIndex[0], pbis);
+                MakeTexture(g_ashd[i].glShadowTexture,  g_ashd[i].atex[0].clutIndex[0], g_ashd[i].atex[0].bmpIndex[0], pbis);
                 MakeTexture(g_ashd[i].glDiffuseTexture, g_ashd[i].atex[0].clutIndex[1], g_ashd[i].atex[0].bmpIndex[0], pbis);
 
                 SHD *pshd = PshdFindShader(g_ashd[i].oidAltSat);
@@ -289,20 +283,20 @@ void LoadTexturesFromBrx(CBinaryInputStream* pbis)
             case SHDK_Background:
             case SHDK_MurkFill:
             case SHDK_Max:
-                MakeTexture(g_ashd[i].glAmbientTexture, g_ashd[i].atex[0].clutIndex[0], g_ashd[i].atex[0].bmpIndex[0], pbis);
+                MakeTexture(g_ashd[i].glDiffuseTexture, g_ashd[i].atex[0].clutIndex[0], g_ashd[i].atex[0].bmpIndex[0], pbis);
             break;
 
             case SHDK_Shadow:
             case SHDK_SpotLight:
-                MakeTexture(g_ashd[i].glAmbientTexture, g_ashd[i].atex[0].clutIndex[0], g_ashd[i].atex[0].bmpIndex[0], pbis);
+                MakeTexture(g_ashd[i].glDiffuseTexture, g_ashd[i].atex[0].clutIndex[0], g_ashd[i].atex[0].bmpIndex[0], pbis);
             break;
 
             case SHDK_ProjectedVolume:
-                MakeTexture(g_ashd[i].glAmbientTexture, g_ashd[i].atex[0].clutIndex[0], g_ashd[i].atex[0].bmpIndex[0], pbis);
+                MakeTexture(g_ashd[i].glDiffuseTexture, g_ashd[i].atex[0].clutIndex[0], g_ashd[i].atex[0].bmpIndex[0], pbis);
             break;
 
             case SHDK_CreateTexture:
-                MakeTexture(g_ashd[i].glAmbientTexture, g_ashd[i].atex[0].clutIndex[0], g_ashd[i].atex[0].bmpIndex[0], pbis);
+                MakeTexture(g_ashd[i].glDiffuseTexture, g_ashd[i].atex[0].clutIndex[0], g_ashd[i].atex[0].bmpIndex[0], pbis);
             break;
         }
     }
@@ -370,10 +364,7 @@ void MakeTexture(GLuint &textureReference, int16_t clutIndex, int16_t bmpIndex, 
             texture[4 * i + 0] = pallete[index + 0];
             texture[4 * i + 1] = pallete[index + 1];
             texture[4 * i + 2] = pallete[index + 2];
-            texture[4 * i + 3] = pallete[index + 3];
-
-            if (texture[4 * i + 3] == 0x80)
-                texture[4 * i + 3] = 0xFF;
+            texture[4 * i + 3] = pallete[index + 3] * 2;
         }
     }
 
@@ -387,18 +378,12 @@ void MakeTexture(GLuint &textureReference, int16_t clutIndex, int16_t bmpIndex, 
             texture[8 * i + 0] = pallete[4 * index1 + 0];
             texture[8 * i + 1] = pallete[4 * index1 + 1];
             texture[8 * i + 2] = pallete[4 * index1 + 2];
-            texture[8 * i + 3] = pallete[4 * index1 + 3];
-
-            if (texture[8 * i + 3] == 0x80)
-                texture[8 * i + 3] = 0xFF;
+            texture[8 * i + 3] = pallete[4 * index1 + 3] * 2;
 
             texture[8 * i + 4] = pallete[4 * index2 + 0];
             texture[8 * i + 5] = pallete[4 * index2 + 1];
             texture[8 * i + 6] = pallete[4 * index2 + 2];
-            texture[8 * i + 7] = pallete[4 * index2 + 3];
-
-            if (texture[8 * i + 7] == 0x80)
-                texture[8 * i + 7] = 0xFF;
+            texture[8 * i + 7] = pallete[4 * index2 + 3] * 2;
         }
     }
 
@@ -410,7 +395,7 @@ void MakeTexture(GLuint &textureReference, int16_t clutIndex, int16_t bmpIndex, 
     
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-
+    
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, texture.data());
     glGenerateMipmap(GL_TEXTURE_2D);
 }

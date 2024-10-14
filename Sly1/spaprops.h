@@ -2158,7 +2158,8 @@ enum TBID
 struct OPTDAT
 {
     // Option data type
-    union {
+    union 
+    {
         BOOL  fDef;
         float gDef;
         int   nDef;

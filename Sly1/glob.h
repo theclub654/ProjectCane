@@ -15,6 +15,15 @@ enum TWPS
 	TWPS_ShadowMidtone = 1,
 	TWPS_ShadowMidtoneSaturate = 2
 };
+enum TRLK {
+	TRLK_Nil = -1,
+	TRLK_Download = 0,
+	TRLK_DownloadRelight = 1,
+	TRLK_Relight = 2,
+	TRLK_RelightCache = 3,
+	TRLK_Quick = 4,
+	TRLK_Max = 5
+};
 enum RTCK
 {
 	RTCK_Nil = -1,
@@ -67,7 +76,7 @@ struct VERTICE
 {
 	glm::vec3 pos;
 	glm::vec3 normal;
-	glm::vec4 color;
+	RGBA color;
 	glm::vec2 uv;
 };
 
@@ -75,7 +84,7 @@ struct VERTICE
 struct VTXFLG
 {
 	// Vertex Index
-	byte ipos;
+	byte ipos;  
 	// Normal Index
 	byte inormal;
 	// UV Index
@@ -126,7 +135,8 @@ struct SUBGLOB // NOT DONE
 	std::vector <VERTICE> vertices;
 	std::vector <uint16_t> indices;
 
-	uint32_t unSelfIllum;
+	// Object ambient lighting
+	byte unSelfIllum;
 	struct SHD* pshd;
 	struct RSGLD *prsgld;
 	struct WRBSG *pwrbsg;
@@ -135,6 +145,13 @@ struct SUBGLOB // NOT DONE
 	int fThreeWay;
 
 }; // NOT DONE
+
+struct SUBGLOBI 
+{
+	float tShadowsValid;
+	int cpshadow;
+	struct SHADOW* apshadow[4];
+};
 
 // Model data
 struct GLOB // NOT DONE
@@ -171,7 +188,7 @@ struct GLOB // NOT DONE
 struct GLOBI // NOT DONE
 {
 	int grfzon;
-	//SUBGLOBI *asubglobi;
+	SUBGLOBI asubglobi;
 	int cframeStaticLights;
 	TWPS twps;
 	float uAlpha;

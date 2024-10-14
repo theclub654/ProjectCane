@@ -13,6 +13,13 @@ void InitSwLightDl(SW* psw)
 void InitLight(LIGHT* plight)
 {
 	plight->lightk = LIGHTK_Direction;
+	*(unsigned long*)&plight->bitfield = *(unsigned long*)&plight->bitfield | 0x10000000000;
+	plight->normalLocal.x = 0.0;
+	plight->normalLocal.y = 0.0;
+	plight->normalLocal.z = 1.0;
+	plight->vecUpLocal.x = 0.0;
+	plight->vecUpLocal.y = 0.0;
+	plight->vecUpLocal.z = 1.0;
 	plight->lmFallOffS.gMin = 200.0;
 	plight->lmFallOffS.gMax = 2000.0;
 	plight->degMidtone = 240.0;
@@ -66,21 +73,21 @@ void AddLightToSw(LIGHT* plight)
 	plight->pvtalo->pfnUpdateAloXfWorld(plight);
 }
 
-void FitLinearFunction(float x0, float y0, float x1, float y1, float* pdu, float* pru)
+void FitLinearFunction(float x0, float y0, float x1, float y1, float &pdu, float &pru)
 {
 	bool abs = FFloatsNear(x0, x1, 0.0001);
-
-	if (abs == 0) 
+	
+	if (abs == 0)
 	{
-		float  fVar2 = (y1 - y0) / (x1 - x0);
-		*pru = fVar2;
-		*pdu = y0 - fVar2 * x0;
+		float fVar2 = (y1 - y0) / (x1 - x0);
+		pru = fVar2;
+		pdu = y0 - fVar2 * x0;
 	}
 
 	else 
 	{
-		*pru = 0.0;
-		*pdu = y0;
+		pru = 0.0;
+		pdu = y0;
 	}
 }
 
@@ -103,17 +110,17 @@ void FitRecipFunction(float x0, float y0, float x1, float y1, float* pdu, float*
 			*pru = 0.0;
 		}
 
-		else 
+		else
 			*pru = 0.0;
 	}
 
-	else 
+	else
 		*pru = 0.0;
 
 	*pdu = y0;
 }
 
-void ConvertAngleStrength(float deg0, float g0, float deg1, float g1, float* pdu, float* pru)
+void ConvertAngleStrength(float deg0, float g0, float deg1, float g1, float &pdu, float &pru)
 {
 	float cos0 = cosf(deg0 * 0.008726647);
 	float cos1 = cosf(deg1 * 0.008726647);
@@ -123,8 +130,6 @@ void ConvertAngleStrength(float deg0, float g0, float deg1, float g1, float* pdu
 
 void RebuildLight(LIGHT* plight)
 {
-	float agFalloff;
-
 	if (0.0001 < plight->degHighlight)
 	{
 		if (plight->vecHighlight.z <= 0.0001)
@@ -159,40 +164,40 @@ void RebuildLight(LIGHT* plight)
 		else
 			plight->twps = TWPS_Shadow;
 	}
+	
+	glm::vec3 rgba{};
 
 	if (0.0001 < plight->vecHighlight.z)
 	{
-		ConvertUserHsvToUserRgb(plight->vecHighlight, plight->rgbaColor);
+		ConvertUserHsvToUserRgb(plight->vecHighlight, rgba);
 
-		agFalloff = 1.0 / plight->vecHighlight.z;
-		plight->rgbaColor = plight->rgbaColor * agFalloff;
+		plight->agFallOff.x = 1.0 / plight->vecHighlight.z;
+		rgba = rgba * plight->agFallOff.x;
+		plight->agFallOff.z = rgba.r;
 	}
 
 	else
-		plight->rgbaColor = glm::vec3(0.0f);
+		rgba = glm::vec3(0.0f);
 
-	ConvertAngleStrength(plight->degHighlight, 0.0, 0.0, plight->vecHighlight.z, &plight->ltfn.duHighlight, &plight->ltfn.ruHighlight);
-	ConvertAngleStrength(plight->degMidtone, 0.0, 0.0, plight->gMidtone, &plight->ltfn.duMidtone, &plight->ltfn.ruMidtone);
-	ConvertAngleStrength(360.0 - plight->degShadow, 0.0, 360.0, plight->gShadow, &plight->ltfn.duShadow, &plight->ltfn.ruShadow);
+	plight->rgbaColor = rgba;
+
+	LTFN ltfn{};
+
+	ConvertAngleStrength(plight->degHighlight, 0.0, 0.0, plight->vecHighlight.z, ltfn.duHighlight, ltfn.ruHighlight);
+	ConvertAngleStrength(plight->degMidtone, 0.0, 0.0, plight->gMidtone, ltfn.duMidtone, ltfn.ruMidtone);
+	ConvertAngleStrength(360.0 - plight->degShadow, 0.0, 360.0, plight->gShadow, ltfn.duShadow, ltfn.ruShadow);
+
+	plight->ltfn = ltfn;
 
 	if (plight->lightk == LIGHTK_Position)
-		FitRecipFunction(plight->lmFallOffS.gMin, 1.0, plight->lmFallOffS.gMax, 0.0, &plight->agFallOff.gMin, &plight->agFallOff.gMax);
+		FitRecipFunction(plight->lmFallOffS.gMin, 1.0, plight->lmFallOffS.gMax, 0.0, &plight->agFallOff.x, &plight->agFallOff.y);
 
 	if (plight->lightk == LIGHTK_Direction)
-	{
-		glm::vec3 falloff;
-		falloff.x = plight->agFallOff.gMin;
-		falloff.y = plight->agFallOff.gMax;
-
-		ConvertAloVec(plight, nullptr, plight->normalLocal, falloff);
-
-		plight->agFallOff.gMin = falloff.x;
-		plight->agFallOff.gMax = falloff.y;
-	}
+		ConvertAloVec(plight, nullptr, plight->normalLocal, plight->agFallOff);
 
 	else
 	{
-		//GOTTA COME BACK TO THIS
+		// GOTTA COME BACK TO THIS
 	}
 }
 
@@ -204,6 +209,8 @@ void* GetLightKind(LIGHT* plight)
 void SetLightKind(LIGHT* plight, LIGHTK lightk)
 {
 	plight->lightk = lightk;
+	*(unsigned long*)&plight->bitfield = *(unsigned long*)&plight->bitfield & 0xfffffeffffffffff | (unsigned long)(lightk == LIGHTK_Direction) << 0x28;
+	RebuildLight(plight);
 }
 
 void* GetLightHighlightColor(LIGHT* plight)
@@ -214,6 +221,7 @@ void* GetLightHighlightColor(LIGHT* plight)
 void SetLightHighlightColor(LIGHT* plight, glm::vec3 &pvecHighlight)
 {
 	plight->vecHighlight = pvecHighlight;
+	RebuildLight(plight);
 }
 
 void* GetLightMidtoneStrength(LIGHT* plight)
@@ -224,6 +232,7 @@ void* GetLightMidtoneStrength(LIGHT* plight)
 void SetLightMidtoneStrength(LIGHT* plight, float gMidtone)
 {
 	plight->gMidtone = gMidtone;
+	RebuildLight(plight);
 }
 
 void* GetLightShadowStrength(LIGHT* plight)
@@ -234,6 +243,7 @@ void* GetLightShadowStrength(LIGHT* plight)
 void SetLightShadowStrength(LIGHT* plight, float gShadow)
 {
 	plight->gShadow = gShadow;
+	RebuildLight(plight);
 }
 
 void* GetLightHighlightAngle(LIGHT* plight)
@@ -244,6 +254,7 @@ void* GetLightHighlightAngle(LIGHT* plight)
 void SetLightHighlightAngle(LIGHT* plight, float degHighlight)
 {
 	plight->degHighlight = degHighlight;
+	RebuildLight(plight);
 }
 
 void* GetLightMidtoneAngle(LIGHT* plight)
@@ -254,6 +265,7 @@ void* GetLightMidtoneAngle(LIGHT* plight)
 void SetLightMidtoneAngle(LIGHT* plight, float degMidtone)
 {
 	plight->degMidtone = degMidtone;
+	RebuildLight(plight);
 }
 
 void* GetLightShadowAngle(LIGHT* plight)
@@ -264,6 +276,7 @@ void* GetLightShadowAngle(LIGHT* plight)
 void SetLightShadowAngle(LIGHT* plight, float degShadow)
 {
 	plight->degShadow = degShadow;
+	RebuildLight(plight);
 }
 
 void* GetLightDirection(LIGHT* plight)
@@ -274,6 +287,7 @@ void* GetLightDirection(LIGHT* plight)
 void SetLightDirection(LIGHT* plight, glm::vec3& pvecDirection)
 {
 	plight->vecDirectionOrig = pvecDirection;
+	RebuildLight(plight);
 }
 
 void* GetLightDynamic(LIGHT* plight)
@@ -284,7 +298,10 @@ void* GetLightDynamic(LIGHT* plight)
 void SetLightDynamic(LIGHT* plight, int fDynamic)
 {
 	if (fDynamic != plight->fDynamic)
+	{
 		plight->fDynamic = fDynamic;
+		RebuildLight(plight);
+	}
 }
 
 void* GetLightFallOff(LIGHT* plight)
@@ -295,6 +312,7 @@ void* GetLightFallOff(LIGHT* plight)
 void SetLightFallOff(LIGHT* plight, LM* plm)
 {
 	plight->lmFallOffS = *plm;
+	RebuildLight(plight);
 }
 
 void* GetLightConeAngle(LIGHT* plight)
@@ -305,6 +323,7 @@ void* GetLightConeAngle(LIGHT* plight)
 void SetLightConeAngle(LIGHT* plight, float degCone)
 {
 	plight->degCone = degCone;
+	RebuildLight(plight);
 }
 
 void* GetLightHotSpotAngle(LIGHT* plight)
@@ -315,6 +334,7 @@ void* GetLightHotSpotAngle(LIGHT* plight)
 void SetLightHotSpotAngle(LIGHT* plight, float degHotSpot)
 {
 	plight->degHotSpot = degHotSpot;
+	RebuildLight(plight);
 }
 
 void* GetLightFrustrumUp(LIGHT* plight)
@@ -325,11 +345,17 @@ void* GetLightFrustrumUp(LIGHT* plight)
 void SetLightFrustrumUp(LIGHT* plight, glm::vec3& pvecUpLocal)
 {
 	plight->vecUpLocal = pvecUpLocal;
+	RebuildLight(plight);
 }
 
 void RemoveLightFromSw(LIGHT* plight)
 {
 	RemoveDlEntry(&plight->psw->dlLight, plight);
+}
+
+void PrepareSwLightsForDraw(SW* psw)
+{
+	
 }
 
 void DeleteLight(LO* plo)

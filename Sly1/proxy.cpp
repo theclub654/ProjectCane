@@ -83,16 +83,16 @@ void LoadProxyFromBrx(PROXY* pproxy, CBinaryInputStream* pbis)
 		AppendDlEntry(&pproxy->dlProxyRoot, &proxyRoot);
 	}
 
-	byte unk0 = pbis->U8Read();
+	byte numObjs = pbis->U8Read();
 
-	for (int i = 0; i < unk0; i++)
+	for (int i = 0; i < numObjs; i++)
 	{
 		// Loading oid needed to find
 		OID oidFind = (OID)pbis->S16Read();
 	
 		LO* pvObject = nullptr;
 
-		/*for (int a = 0; a < proxyObjs.size(); a++)
+		for (int a = 0; a < proxyObjs.size(); a++)
 		{
 			if (proxyObjs[a]->oid != oidFind && (proxyObjs[a]->pvtlo->grfcid & 1U) != 0)
 				pvObject = PloFindSwObject(pproxy->psw, 0x101, oidFind, pvObject);
@@ -101,7 +101,7 @@ void LoadProxyFromBrx(PROXY* pproxy, CBinaryInputStream* pbis)
 
 			else
 				pvObject = proxyObjs[a];
-		}*/
+		}
 
 		// Loads splice index
 		short isplice = pbis->S16Read();
@@ -124,9 +124,8 @@ void LoadProxyFromBrx(PROXY* pproxy, CBinaryInputStream* pbis)
 	if (numProxyObjs == 1)
 	{
 		LoadSwObjectsFromBrx(pproxy->psw, pproxy, pbis);
-		byte isEmpty = FIsDlEmpty(&pproxy->dlChild);
 
-		if (isEmpty == false)
+		if (FIsDlEmpty(&pproxy->dlChild) == false)
 		{
 			DLI proxyDLI{};
 

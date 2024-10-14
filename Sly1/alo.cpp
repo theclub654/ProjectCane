@@ -3,7 +3,7 @@ extern std::vector<ALO*> allSWAloObjs;
 
 DLI* s_pdliFirst = nullptr;
 
-ALO*NewAlo()
+ALO* NewAlo()
 {
 	return new ALO{};
 }
@@ -12,26 +12,19 @@ void InitAlo(ALO* palo)
 {
 	InitDl(&palo->dlChild,  offsetof(LO, dleChild));
 	InitDl(&palo->dlFreeze, offsetof(ALO, dleFreeze));
-	
+
 	if (palo->paloParent == nullptr)
-		palo->cpaloFindSwObjects = 5;
+		*(unsigned long*)&palo->bitfield = *(unsigned long*)&palo->bitfield & 0xfffffffff0ffffff | 0xa000000;
 	else
-		palo->fNoFreeze = true;
+		*(unsigned long*)&palo->bitfield = *(unsigned long*)&palo->bitfield & 0xfffffffff0ffffff | 0x1000000;
 
 	InitLo(palo);
 
-	palo->zons = ZONS_Max;
-	palo->viss = VISS_Max;
-	palo->mrds = MRDS_Max;
-	palo->dms = DMS_UseMat;
-	palo->fHidden = true;
-	palo->fFixedPhys = true;
-	palo->fMtlkFromDls = true;
-	palo->fWater = true;
-	palo->fForceCameraFade = true;
-	palo->fBusy = true;
-	palo->fFrozen = true;
-	palo->fRemerge = true;
+	byte value = 0xFF;
+	byte value1 = 0x0;
+	memcpy((char*)&palo->bitfield + 1, &value,  sizeof(byte));
+	memcpy((char*)&palo->bitfield + 2, &value,  sizeof(byte));
+	memcpy((char*)&palo->bitfield + 0, &value1, sizeof(byte));
 
 	palo->sCelBorderMRD = 2139095039;
 	palo->sMRD = 2139095039;
@@ -42,7 +35,7 @@ void InitAlo(ALO* palo)
 	
 	InitDl(&palo->dlAct, offsetof(ACT, dleAlo));
 
-	if(palo->pvtlo->cid != CID_LIGHT)
+	if (palo->pvtlo->cid != CID_LIGHT)
 		allSWAloObjs.push_back(palo);
 
 }
@@ -85,6 +78,7 @@ void OnAloAdd(ALO* palo)
 		if (palo->fRealClock == 0)
 		{
 			AppendDlEntry(&palo->psw->dlMRD, palo);
+			*(unsigned long*)&palo->bitfield = *(unsigned long*)&palo->bitfield | 0x2000000000;
 			AppendDlEntry(&palo->psw->dlBusy, palo);
 
 			if ((palo->pvtlo->grfcid & 2U) != 0)
@@ -94,6 +88,7 @@ void OnAloAdd(ALO* palo)
 			palo->dlFreeze.paloLast = palo;
 			palo->dlFreeze.paloFirst = palo;
 		}
+
 		else
 			AppendDlEntry(&palo->psw->dlMRDRealClock, palo);
 	}
@@ -341,7 +336,7 @@ void ConvertAloVec(ALO* paloFrom, ALO* paloTo, glm::vec3& pvecFrom, glm::vec3& p
 	if (paloFrom != paloTo)
 	{
 		if (paloFrom != nullptr)
-			pvecFrom = paloFrom->xf.matWorld * pvecFrom;
+			pvecFrom = paloFrom->xf.matWorld[2] + pvecFrom;
 
 		if (paloTo != nullptr)
 		{
@@ -415,11 +410,21 @@ void LoadAloFromBrx(ALO* palo, CBinaryInputStream* pbis)
 	palo->xf.mat = pbis->ReadMatrix();
 	palo->xf.pos = pbis->ReadVector();
 	//
-	
-	pbis->U8Read();
-	pbis->U8Read();
-	pbis->U8Read();
 
+	/*int bitfield;
+	memcpy(&bitfield, &palo->bitfield, 4);
+	std::cout << std::bitset<32>(bitfield) << "\n";*/
+
+	byte temp0 = pbis->U8Read();
+	temp0 = ((long)(char)temp0 & 3U) << 0x18;
+	*(unsigned long*)&palo->bitfield = *(unsigned long*)&palo->bitfield & 0xfffffffffcffffff | temp0;
+
+	//memcpy(&bitfield, &palo->bitfield, 4);
+	//std::cout << std::bitset<32>(bitfield) << "\n";
+
+	*(unsigned long*)&palo->bitfield = *(unsigned long*)&palo->bitfield & 0xfffffffff3ffffff | ((long)(char)pbis->U8Read() & 3U) << 0x1a;
+	*(unsigned long*)&palo->bitfield = *(unsigned long*)&palo->bitfield & 0xffffffffcfffffff | ((long)(char)pbis->U8Read() & 3U) << 0x1c;
+	
 	palo->grfzon = pbis->U32Read();
 	palo->sMRD = pbis->F32Read();
 	palo->sCelBorderMRD = pbis->F32Read();
@@ -521,6 +526,39 @@ void LoadAloAloxFromBrx(ALO* palo, CBinaryInputStream* pbis)
 	}
 }
 
+void DebugClearLightingToF32(ALO* palo)
+{
+
+}
+
+void DebugConvertLightingF32ToU8(ALO* palo)
+{
+	glm::vec3 lighting{};
+
+	float ambientSaturation = palo->psw->lsmDefault.uShadow;
+	float diffuseSaturation = (palo->psw->lsmDefault.uMidtone + palo->globset.aglob[0].asubglob[0].unSelfIllum) * 0.31;
+	
+	if (lighting.g < lighting.r) {
+		lighting.g = glm::max(lighting.b, lighting.r);
+	}
+	
+	else
+	{
+		lighting.g = glm::max(lighting.g, lighting.b);
+	}
+
+	lighting.g = 1.0 - lighting.g;
+	lighting.b = lighting.g - diffuseSaturation;
+
+	diffuseSaturation = glm::min(diffuseSaturation, lighting.g);
+	diffuseSaturation = glm::max(diffuseSaturation, diffuseSaturation * 0);
+	lighting.g = glm::min(lighting.b, ambientSaturation);
+
+	lighting.g = glm::max(lighting.g, lighting.g * 0);
+
+	//float color = (aVertexColor.r + aVertexColor.g + aVertexColor.b) * 0.3333333;
+}
+
 void UpdateAlo(ALO* palo, float dt)
 {
 
@@ -568,28 +606,26 @@ void DrawGlob(ALO* palo, int index)
 
 			glUniformMatrix4fv(glGetUniformLocation(glGlobShader.ID, "model"), 1, GL_FALSE, glm::value_ptr(model));
 
-			glUniform1i(glGetUniformLocation(glGlobShader.ID, "isAmbient"),    palo->globset.aglob[i].asubglob[a].pshd->glAmbientTexture);
-			glUniform1i(glGetUniformLocation(glGlobShader.ID, "isDiffuse"),    palo->globset.aglob[i].asubglob[a].pshd->glDiffuseTexture);
-			glUniform1i(glGetUniformLocation(glGlobShader.ID, "isSaturate"),   palo->globset.aglob[i].asubglob[a].pshd->glSaturateTexture);
+			glUniform1i(glGetUniformLocation(glGlobShader.ID, "fThreeWay"),   palo->globset.aglob[i].asubglob[a].fThreeWay);
+			glUniform1f(glGetUniformLocation(glGlobShader.ID, "usSelfIllum"), palo->globset.aglob[i].asubglob[a].unSelfIllum);
 			
-			glUniform1i(glGetUniformLocation(glGlobShader.ID, "fThreeWay"),    palo->globset.aglob[i].asubglob[a].fThreeWay);
-
 			glActiveTexture(GL_TEXTURE0);
-			glBindTexture(GL_TEXTURE_2D, palo->globset.aglob[i].asubglob[a].pshd->glAmbientTexture);
-
+			glBindTexture(GL_TEXTURE_2D, palo->globset.aglob[i].asubglob[a].pshd->glShadowTexture);
+			
 			glActiveTexture(GL_TEXTURE1);
 			glBindTexture(GL_TEXTURE_2D, palo->globset.aglob[i].asubglob[a].pshd->glDiffuseTexture);
 
 			glActiveTexture(GL_TEXTURE2);
 			glBindTexture(GL_TEXTURE_2D, palo->globset.aglob[i].asubglob[a].pshd->glSaturateTexture);
-
-			//if (palo->globset.aglob[i].rp == RP_Translucent)
-			//{
-			//	glEnable(GL_BLEND);
-			//	//glBlendFunc(GL_ONE_MINUS_DST_COLOR, GL_ONE_MINUS_SRC_ALPHA);
-			//	glBlendFuncSeparate(GL_ONE_MINUS_SRC_COLOR, GL_SRC_COLOR, GL_SRC_COLOR, GL_SRC_ALPHA);
-			//}
 			
+			if (palo->globset.aglob[i].rp == RP_Translucent || palo->globset.aglob[i].rp == RP_Cutout)
+			{
+				glEnable(GL_BLEND);
+				glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_LINES, GL_NONE);
+				glBlendColor(0.0, 0.0, 0.0, 0.0);
+				glBlendEquationSeparate(GL_FUNC_ADD, GL_FUNC_ADD);
+			}
+
 			glDrawElements(GL_TRIANGLES, palo->globset.aglob[i].asubglob[a].indices.size(), GL_UNSIGNED_SHORT, 0);
 			
 			// Draws instanced models, I WILL OPTIMIZE THIS LATER
@@ -601,10 +637,8 @@ void DrawGlob(ALO* palo, int index)
 			}
 		}
 
-		/*if (palo->globset.aglob[i].rp == RP_Translucent)
-		{
+		if (palo->globset.aglob[i].rp == RP_Translucent || palo->globset.aglob[i].rp == RP_Cutout)
 			glDisable(GL_BLEND);
-		}*/
 	}
 
 	glBindVertexArray(0);

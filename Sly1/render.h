@@ -1,6 +1,8 @@
 #pragma once
+#include "gl.h"
 #include "so.h"
 #include "light.h"
+#include "debug.h"
 
 extern std::vector <ALO*> allSWAloObjs;
 extern std::vector <LIGHT*> allSwLights;
@@ -13,6 +15,6 @@ void RenderSw(SW* psw, CM* pcm);
 // Loops through that render list of objects to be rendered on the screen
 void DrawSw(SW* psw, CM* pcm);
 // Draws all 3D objects in SW
-void DrawSwAll();
+void DrawSwAll(SW *psw, GLFWwindow* window);
 // Draws all collision models in SW
 void DrawSwCollisionAll();

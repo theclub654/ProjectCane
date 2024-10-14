@@ -97,8 +97,7 @@ void UpdateSoXfWorld(SO* pso)
 
 void LoadSoFromBrx(SO* pso, CBinaryInputStream* pbis)
 {
-	pbis->U8Read();
-
+	*(unsigned long*)&pso->bitfield = *(unsigned long*)&pso->bitfield & 0xfffffffdffffffff | ((long)(char)pbis->U8Read() & 1U) << 0x21;
 	pbis->ReadGeom(&pso->geomLocal);
 	pbis->ReadBspc();
 

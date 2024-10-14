@@ -11,8 +11,8 @@ struct DL
 		void* pvFirst;
 		class LO* ploFirst;
 		class ALO* paloFirst;
-		/*class SO* psoFirst;
-		class ASEGA* pasegaFirst;
+		class SO* psoFirst;
+		/*class ASEGA* pasegaFirst;
 		class ACTSEG* pactsegFirst;
 		class AMB* pambFirst;
 		class EXC* pexcFirst;
@@ -23,9 +23,9 @@ struct DL
 		class TARGET* ptargetFirst;
 		class HND* phndFirst;
 		class ACT* pactFirst;
-		class IKH* pikhFirst;
+		class IKH* pikhFirst;*/
 		class LIGHT* plightFirst;
-		class SHADOW* pshadowFirst;
+		/*class SHADOW* pshadowFirst;
 		class SHAPE* pshapeFirst;
 		class SMA* psmaFirst;
 		class PXR* ppxrFirst;

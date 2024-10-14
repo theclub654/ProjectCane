@@ -8,7 +8,7 @@ GLSHADER glGlobShader;
 GLSHADER glCollisionShader;
 std::string file;
 CTransition g_transition;
-FREECAMERA g_freecamera(glm::vec3{0.0});
+FREECAMERA  g_freecamera(glm::vec3{0.0});
 bool firstClick = true;
 float deltaTime = 0.0f;
 float lastFrame = 0.0f;
@@ -26,7 +26,7 @@ int main(int cphzArgs, char* aphzArgs[])
 			// Loads level
 			g_transition.Execute(file);
 		}
-
+		
 		double currentTime = glfwGetTime();
 		deltaTime = currentTime - lastFrame;
 		lastFrame = currentTime;
@@ -50,7 +50,7 @@ int main(int cphzArgs, char* aphzArgs[])
 			if (fRenderModels != 0)
 			{
 				g_freecamera.UpdateViewProjMatrix(g_gl.height, g_gl.width, glGlobShader);
-				DrawSwAll();
+				DrawSwAll(g_psw, g_gl.window);
 			}
 
 			if (fRenderCollision != 0)
@@ -96,8 +96,8 @@ void Startup()
 	glScreenShader.Init("screen.vert", NULL, "screen.frag");
 	glGlobShader.Init("glob.vert", NULL, "glob.frag");
 	glCollisionShader.Init("collision.vert", NULL, "collision.frag");
-
-	std::cout << "Sly Cooper 2002 Sony Computer Entertainment America & Sucker Punch Productions\n\n";
+	
+	std::cout << "Sly Cooper 2002 Sony Computer Entertainment America & Sucker Punch Productions\n";
 	SetPhase(PHASE_Startup);
 	StartupBrx();
 }

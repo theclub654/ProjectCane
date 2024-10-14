@@ -41,6 +41,7 @@ void RenderMenuGui(SW* psw)
                 file = ImGuiFileDialog::Instance()->GetFilePathName();
                 std::string filePath = ImGuiFileDialog::Instance()->GetCurrentPath();
                 g_transition.m_fPending = 1;
+                lightIndex = 0;
             }
 
             instance_a.Instance()->Close();
