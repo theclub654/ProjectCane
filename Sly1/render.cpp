@@ -47,10 +47,9 @@ void DrawSwAll(SW* psw, GLFWwindow* window)
 	glUniform1i(glGetUniformLocation(glGlobShader.ID, "shadowTexture"),   0);
 	glUniform1i(glGetUniformLocation(glGlobShader.ID, "diffuseTexture"),  1);
 	glUniform1i(glGetUniformLocation(glGlobShader.ID, "saturateTexture"), 2);
-
-	/*glUniform3fv(glGetUniformLocation(glGlobShader.ID, "lightDir"),     1, glm::value_ptr(allSwLights[68]->xf.mat[2]));
-	glUniform3fv(glGetUniformLocation(glGlobShader.ID, "lightColor"),   1, glm::value_ptr(allSwLights[68]->rgbaColor));
-	glUniform3fv(glGetUniformLocation(glGlobShader.ID, "lightFalloff"), 1, glm::value_ptr(allSwLights[68]->agFallOff));
+	
+	/*glUniform3fv(glGetUniformLocation(glGlobShader.ID, "lightColor"), 1, glm::value_ptr(allSwLights[68]->rgbaColor));
+	glUniform3fv(glGetUniformLocation(glGlobShader.ID, "lightDir"),   1, glm::value_ptr(allSwLights[68]->agFallOff));
 
 	glUniform1f(glGetUniformLocation(glGlobShader.ID, "ruShadow"),    allSwLights[68]->ltfn.ruShadow);
 	glUniform1f(glGetUniformLocation(glGlobShader.ID, "ruMidtone"),   allSwLights[68]->ltfn.ruMidtone);

@@ -94,7 +94,7 @@ void LoadTexFromBrx(TEX *ptex, CBinaryInputStream* pbis)
 		ptex->clutIndex[i] = pbis->U16Read();
 }
 
-void ConvertUserHsvToUserRgb(glm::vec3& pvecHSV, glm::vec3& pvecRGB)
+void ConvertUserHsvToUserRgb(glm::vec3& pvecHSV, glm::vec3& pvecRGB, glm::vec3& pvecFalloff)
 {
     float h = pvecHSV.x;
     float s = pvecHSV.y * 0.003921569;
@@ -148,34 +148,55 @@ void ConvertUserHsvToUserRgb(glm::vec3& pvecHSV, glm::vec3& pvecRGB)
                 pvecRGB.r = v;
                 pvecRGB.g = h;
                 pvecRGB.b = f;
+
+                pvecFalloff.r = v;
+                pvecFalloff.g = h;
+                pvecFalloff.b = f;
             break;
 
             case 1:
                 pvecRGB.r = q;
                 pvecRGB.g = v;
                 pvecRGB.b = h;
+
+                pvecFalloff.r = q;
+                pvecFalloff.g = v;
+                pvecFalloff.b = h;
             break;
 
             case 2:
                 pvecRGB.r = f;
                 pvecRGB.g = v;
                 pvecRGB.b = h;
+
+                pvecFalloff.r = f;
+                pvecFalloff.g = v;
+                pvecFalloff.b = h;
             break;
 
             case 3:
-                pvecRGB.r = h;
+                pvecRGB.r = f;
                 pvecRGB.g = q;
-                pvecRGB.b = v;
+                pvecRGB.b = s;
+
+                pvecFalloff.r = f;
+                pvecFalloff.g = q;
+                pvecFalloff.b = s;
             break;
 
             case 4:
                 pvecRGB.r = h;
                 pvecRGB.g = f;
                 pvecRGB.b = v;
+
+                pvecFalloff.r = h;
+                pvecFalloff.g = f;
+                pvecFalloff.b = v;
            break;
 
             case 5:
                 printf("The fifth case in ConvertUserHsvToUserRgb function switch case hit\n");
+            break;
         }
     }
     
@@ -396,6 +417,6 @@ void MakeTexture(GLuint &textureReference, int16_t clutIndex, int16_t bmpIndex, 
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, texture.data());
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, texture.data());
     glGenerateMipmap(GL_TEXTURE_2D);
 }

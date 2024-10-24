@@ -37,7 +37,6 @@ void InitAlo(ALO* palo)
 
 	if (palo->pvtlo->cid != CID_LIGHT)
 		allSWAloObjs.push_back(palo);
-
 }
 
 void RemoveAloHierarchy(ALO *palo)
@@ -331,21 +330,24 @@ void ConvertAloPos(ALO* paloFrom, ALO* paloTo, glm::vec3 &pposFrom, glm::vec3 &p
 	pposTo = pposFrom;
 }
 
-void ConvertAloVec(ALO* paloFrom, ALO* paloTo, glm::vec3& pvecFrom, glm::vec3& pvecTo)
+void ConvertAloVec(ALO* paloFrom, ALO* paloTo, glm::vec3 *pvecFrom, glm::vec3 *pvecTo)
 {
 	if (paloFrom != paloTo)
 	{
 		if (paloFrom != nullptr)
-			pvecFrom = paloFrom->xf.matWorld[2] + pvecFrom;
+		{
+			glm::vec3 vecWorld = paloFrom->xf.matWorld * *pvecFrom;
+			pvecFrom = &vecWorld;
+		}
 
 		if (paloTo != nullptr)
 		{
-			pvecTo = paloTo->xf.matWorld * pvecFrom;
+			*pvecTo = paloTo->xf.matWorld * *pvecFrom;
 			return;
 		}
 	}
 
-	pvecTo = pvecFrom;
+	*pvecTo = *pvecFrom;
 }
 
 void RotateAloToMat(ALO* palo, glm::mat3 &pmat)

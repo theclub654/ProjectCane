@@ -233,7 +233,7 @@ void UpdateAloXfWorldHierarchy(ALO* palo);
 // Moves ALO object to a position, Similar to the glm::translate function
 void TranslateAloToPos(ALO* palo, glm::vec3& ppos);
 void ConvertAloPos(ALO* paloFrom, ALO* paloTo, glm::vec3 &pposFrom, glm::vec3 &pposTo);
-void ConvertAloVec(ALO* paloFrom, ALO* paloTo, glm::vec3 &pvecFrom, glm::vec3 &pvecTo);
+void ConvertAloVec(ALO* paloFrom, ALO* paloTo, glm::vec3 *pvecFrom, glm::vec3 *pvecTo);
 void RotateAloToMat(ALO* palo, glm::mat3& pmat);
 // Rotate or scale object to a new transformation, similar to the glm::rotate or glm::scale function
 void ConvertAloMat(ALO* paloFrom, ALO* paloTo, glm::mat3 &pmatFrom, glm::mat3 &pmatTo);

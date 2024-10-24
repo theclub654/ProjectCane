@@ -26,7 +26,7 @@ void InitLight(LIGHT* plight)
 	plight->degShadow = 180.0;
 	plight->degCone = 60.0;
 	plight->degHighlight = 180.0;
-
+	//std::cout << std::hex << &plight->normalLocal<<"\n";
 	InitAlo(plight);
 
 	allSwLights.push_back(plight);
@@ -130,7 +130,7 @@ void ConvertAngleStrength(float deg0, float g0, float deg1, float g1, float &pdu
 
 void RebuildLight(LIGHT* plight)
 {
-	if (0.0001 < plight->degHighlight)
+	if (plight->degHighlight > 0.0001)
 	{
 		if (plight->vecHighlight.z <= 0.0001)
 		{
@@ -152,7 +152,7 @@ void RebuildLight(LIGHT* plight)
 
 	else
 	{
-		if (0.0001 < plight->degMidtone)
+		if (plight->degMidtone > 0.0001)
 		{
 			if (0.0001 < plight->gMidtone)
 				plight->twps = TWPS_ShadowMidtone;
@@ -167,13 +167,14 @@ void RebuildLight(LIGHT* plight)
 	
 	glm::vec3 rgba{};
 
-	if (0.0001 < plight->vecHighlight.z)
+	if (plight->vecHighlight.z > 0.0001)
 	{
-		ConvertUserHsvToUserRgb(plight->vecHighlight, rgba);
-
+		ConvertUserHsvToUserRgb(plight->vecHighlight, rgba, plight->agFallOff);
+		
 		plight->agFallOff.x = 1.0 / plight->vecHighlight.z;
+		plight->agFallOff.y = 0.0;
+
 		rgba = rgba * plight->agFallOff.x;
-		plight->agFallOff.z = rgba.r;
 	}
 
 	else
@@ -193,7 +194,7 @@ void RebuildLight(LIGHT* plight)
 		FitRecipFunction(plight->lmFallOffS.gMin, 1.0, plight->lmFallOffS.gMax, 0.0, &plight->agFallOff.x, &plight->agFallOff.y);
 
 	if (plight->lightk == LIGHTK_Direction)
-		ConvertAloVec(plight, nullptr, plight->normalLocal, plight->agFallOff);
+		ConvertAloVec(plight, nullptr, &plight->normalLocal, &plight->agFallOff);
 
 	else
 	{

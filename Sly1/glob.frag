@@ -47,7 +47,6 @@ void main()
             pixel.r += diffuseTexel.r * ambient.r;
             pixel.g += diffuseTexel.g * ambient.g;
             pixel.b += diffuseTexel.b * ambient.b;
-            pixel.a *= diffuseTexel.a * ambient.a;
             break;
             
             case TWPS_ShadowMidtoneSaturate:
