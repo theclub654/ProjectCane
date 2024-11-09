@@ -196,7 +196,7 @@ void LoadGlobsetFromBrx(GLOBSET* pglobset ,CBinaryInputStream* pbis, ALO* palo)
 
                 // Loading texture property
                 pglobset->aglob[i].asubglob[a].pshd = &g_ashd[pbis->U16Read()];
-                pglobset->aglob[i].asubglob[a].unSelfIllum = ((pbis->U8Read() * 0x7FA6) / 0xFF);
+                pglobset->aglob[i].asubglob[a].unSelfIllum = (pbis->U8Read() * 0x7FA6) / 0xFF;
                 pglobset->aglob[i].asubglob[a].cibnd = pbis->U8Read();
 
                 pbis->file.seekg(pglobset->aglob[i].asubglob[a].cibnd, SEEK_CUR);

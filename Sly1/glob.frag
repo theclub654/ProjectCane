@@ -14,8 +14,8 @@ in vec2 texcoord;
 uniform int fThreeWay;
 
 in vec4 ambient;
-in vec4 saturate;
-in vec4 lit;
+in vec4 illumination;
+in vec4 light;
 
 void main()
 {
@@ -25,55 +25,42 @@ void main()
     if (fThreeWay == 1)
     {
         // Draw Threeway
-        vec4 shadowTexel   = texture(shadowTexture,   texcoord);
-        vec4 diffuseTexel  = texture(diffuseTexture,  texcoord);
-        vec4 saturateTexel = texture(saturateTexture, texcoord);
-        
+        vec4 shadow   = texture2D(shadowTexture,   texcoord);
+        vec4 diffuse  = texture2D(diffuseTexture,  texcoord);
+        vec4 saturate = texture2D(saturateTexture, texcoord);
+
         switch (twps)
         {
             case TWPS_Shadow:
-            pixel.r = shadowTexel.r * vertexColor.r;
-            pixel.g = shadowTexel.g * vertexColor.g;
-            pixel.b = shadowTexel.b * vertexColor.b;
+            pixel += shadow * ambient;
+
             pixel.a = vertexColor.a;
             break;
-
+            
             case TWPS_ShadowMidtone:
-            pixel.r = shadowTexel.r * vertexColor.r;
-            pixel.g = shadowTexel.g * vertexColor.g;
-            pixel.b = shadowTexel.b * vertexColor.b;
-            pixel.a = vertexColor.a;
+            pixel += shadow  * ambient;
+            pixel += diffuse * illumination;
 
-            pixel.r += diffuseTexel.r * ambient.r;
-            pixel.g += diffuseTexel.g * ambient.g;
-            pixel.b += diffuseTexel.b * ambient.b;
+            pixel.a = vertexColor.a;
             break;
             
             case TWPS_ShadowMidtoneSaturate:
-            pixel.r = shadowTexel.r * vertexColor.r;
-            pixel.g = shadowTexel.g * vertexColor.g;
-            pixel.b = shadowTexel.b * vertexColor.b;
+            pixel += shadow   * ambient;
+            pixel += diffuse  * illumination;
+            pixel += saturate * light;
+            
             pixel.a = vertexColor.a;
-
-            pixel.r += diffuseTexel.r * ambient.r;
-            pixel.g += diffuseTexel.g * ambient.g;
-            pixel.b += diffuseTexel.b * ambient.b;
-
-            pixel.r += saturateTexel.r * saturate.r;
-            pixel.g += saturateTexel.g * saturate.g;
-            pixel.b += saturateTexel.b * saturate.b;
             break;
         }
     }
 
     else
     {
-        vec4 diffuseTexel  = texture(diffuseTexture,   texcoord);
-        pixel.r = diffuseTexel.r * vertexColor.r;
-        pixel.g = diffuseTexel.g * vertexColor.g;
-        pixel.b = diffuseTexel.b * vertexColor.b;
+        // Draws Prelit
+        vec4 diffuseTexel  = texture(diffuseTexture, texcoord);
+        pixel   = diffuseTexel * vertexColor;
         pixel.a = diffuseTexel.a;
     }
 
-    gl_FragColor = pixel;
+     gl_FragColor = pixel;
 }

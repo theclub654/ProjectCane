@@ -59,9 +59,9 @@ void DrawSwAll(SW* psw, GLFWwindow* window)
 	glUniform1f(glGetUniformLocation(glGlobShader.ID, "duMidtone"),   allSwLights[68]->ltfn.duMidtone);
 	glUniform1f(glGetUniformLocation(glGlobShader.ID, "duHighlight"), allSwLights[68]->ltfn.duHighlight);*/
 
-	glUniform1f(glGetUniformLocation(glGlobShader.ID, "uShadow"),  g_psw->lsmDefault.uShadow);
-	glUniform1f(glGetUniformLocation(glGlobShader.ID, "uMidtone"), g_psw->lsmDefault.uMidtone);
-	
+	glUniform1f(glGetUniformLocation(glGlobShader.ID, "ltfn.uShadow"),  g_psw->lsmDefault.uShadow);
+	glUniform1f(glGetUniformLocation(glGlobShader.ID, "ltfn.uMidtone"), g_psw->lsmDefault.uMidtone);
+
 	for (int i = 0; i < allSWAloObjs.size(); i++)
 		DrawGlob(allSWAloObjs[i], i);
 }

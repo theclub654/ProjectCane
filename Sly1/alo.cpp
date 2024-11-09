@@ -610,7 +610,7 @@ void DrawGlob(ALO* palo, int index)
 
 			glUniform1i(glGetUniformLocation(glGlobShader.ID, "fThreeWay"),   palo->globset.aglob[i].asubglob[a].fThreeWay);
 			glUniform1f(glGetUniformLocation(glGlobShader.ID, "usSelfIllum"), palo->globset.aglob[i].asubglob[a].unSelfIllum);
-			
+
 			glActiveTexture(GL_TEXTURE0);
 			glBindTexture(GL_TEXTURE_2D, palo->globset.aglob[i].asubglob[a].pshd->glShadowTexture);
 			
@@ -620,17 +620,22 @@ void DrawGlob(ALO* palo, int index)
 			glActiveTexture(GL_TEXTURE2);
 			glBindTexture(GL_TEXTURE_2D, palo->globset.aglob[i].asubglob[a].pshd->glSaturateTexture);
 			
-			if (palo->globset.aglob[i].rp == RP_Translucent || palo->globset.aglob[i].rp == RP_Cutout)
+			switch (palo->globset.aglob[i].rp)
 			{
+				case RP_Translucent:
 				glEnable(GL_BLEND);
 				glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_LINES, GL_NONE);
-				glBlendColor(0.0, 0.0, 0.0, 0.0);
-				glBlendEquationSeparate(GL_FUNC_ADD, GL_FUNC_ADD);
+				break;
+
+				case RP_ProjVolume:
+				glEnable(GL_BLEND);
+				glBlendFuncSeparate(GL_SRC_ALPHA, GL_LINES, GL_LINES, GL_NONE);
+				break;
 			}
 
 			glDrawElements(GL_TRIANGLES, palo->globset.aglob[i].asubglob[a].indices.size(), GL_UNSIGNED_SHORT, 0);
 			
-			// Draws instanced models, I WILL OPTIMIZE THIS LATER
+			//Draws instanced models, I WILL OPTIMIZE THIS LATER
 			for (int b = 0; b < palo->globset.aglob[i].pdmat.size(); b++)
 			{
 				// Sends instance model matrix to GPU
@@ -639,7 +644,7 @@ void DrawGlob(ALO* palo, int index)
 			}
 		}
 
-		if (palo->globset.aglob[i].rp == RP_Translucent || palo->globset.aglob[i].rp == RP_Cutout)
+		if (palo->globset.aglob[i].rp == RP_Translucent || palo->globset.aglob[i].rp == RP_Cutout || palo->globset.aglob[i].rp == RP_ProjVolume)
 			glDisable(GL_BLEND);
 	}
 

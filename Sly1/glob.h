@@ -136,7 +136,7 @@ struct SUBGLOB // NOT DONE
 	std::vector <uint16_t> indices;
 
 	// Object ambient lighting
-	byte unSelfIllum;
+	float unSelfIllum;
 	struct SHD* pshd;
 	struct RSGLD *prsgld;
 	struct WRBSG *pwrbsg;
@@ -180,7 +180,7 @@ struct GLOB // NOT DONE
 	//SUBCEL *asubcel;
 	// Instanced object matrix container
 	std::vector <glm::mat4> pdmat;
-	//BLOT *pblot;
+	struct BLOT *pblot;
 	OID oid;
 	char* pchzName;
 }; // NOT DONE
