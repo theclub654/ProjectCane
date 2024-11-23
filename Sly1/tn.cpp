@@ -40,15 +40,8 @@ void LoadTnFromBrx(TN* ptn, CBinaryInputStream* pbis)
 
     else
     {
-        switch (crvk)
-        {
-        case 0x0:
-            LoadCrvlFromBrx(pbis);
-            break;
-        case 0x1:
-            LoadCrvcFromBrx(pbis);
-            break;
-        }
+        ptn->pcrv = PcrvNew((CRVK)crvk);
+        ptn->pcrv->pvtcrvl->pfnLoadCrvlFromBrx((CRVL*)ptn->pcrv, pbis);
     }
 
     LoadOptionsFromBrx(ptn, pbis);
@@ -87,5 +80,10 @@ void LoadTbspFromBrx(CBinaryInputStream* pbis)
 
 void DeleteTn(LO* plo)
 {
-    delete(TN*)plo;
+    TN* ptn = (TN*)plo;
+
+    if (ptn->pcrv != nullptr)
+        DeletePcrv(ptn->pcrv->crvk, ptn->pcrv);
+
+    delete ptn;
 }

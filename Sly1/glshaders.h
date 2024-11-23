@@ -1,10 +1,10 @@
 #pragma once
-#include<iostream>
-#include<glad/glad.h>
-#include<string>
-#include<fstream>
-#include<sstream>
-#include<cerrno>
+#include <iostream>
+#include <glad/glad.h>
+#include <string>
+#include <fstream>
+#include <sstream>
+#include <cerrno>
 #include "shd.h"
 
 class GLSHADER

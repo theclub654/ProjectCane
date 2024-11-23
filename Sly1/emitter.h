@@ -1,6 +1,7 @@
 #pragma once
 #include "xform.h"
 #include "rip.h"
+#include "crv.h"
 
 enum EMITCNK
 {
@@ -66,6 +67,7 @@ enum ENSK
     ENSK_Get = 0,
     ENSK_Set = 1
 };
+
 struct EMITDV
 {
     float rvDamping;
@@ -148,6 +150,22 @@ struct EMITV {
     LM lmDtSkip;
     LM lmDtBirth;
     CLQ clqAlpha;
+};
+enum BLIPMK
+{
+    BLIPMK_Nil = -1,
+    BLIPMK_Accel = 0,
+    BLIPMK_Constant = 1,
+    BLIPMK_Spline = 2,
+    BLIPMK_Max = 3
+};
+enum BLIPOK
+{
+    BLIPOK_Nil = -1,
+    BLIPOK_Fixed = 0,
+    BLIPOK_Flying = 1,
+    BLIPOK_Rolling = 2,
+    BLIPOK_Max = 3
 };
 struct EMITBLIP 
 {

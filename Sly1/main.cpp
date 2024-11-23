@@ -44,12 +44,14 @@ int main(int cphzArgs, char* aphzArgs[])
 		RenderMenuGui(g_psw);
 
 		ProcessInput(g_gl.window, deltaTime);
-
+		
 		if (g_psw != nullptr)
 		{
 			if (fRenderModels != 0)
 			{
+				//UpdateCpman(g_gl.window, &g_pcm->cpman, nullptr, deltaTime);
 				g_freecamera.UpdateViewProjMatrix(g_gl.height, g_gl.width, glGlobShader);
+				RenderSwAll(g_psw, g_pcm);
 				DrawSwAll(g_psw, g_gl.window);
 			}
 
@@ -104,23 +106,25 @@ void Startup()
 
 void ProcessInput(GLFWwindow* window, double dt)
 {
+	float velocity = (float)dt * 10000.0;
+
 	if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
-		g_freecamera.UpdateCameraPos(CAMERADIRECTION::FORWARD, dt);
+		g_freecamera.cameraPos += g_freecamera.cameraDirection * velocity;
 
 	if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
-		g_freecamera.UpdateCameraPos(CAMERADIRECTION::BACKWARD, dt);
+		g_freecamera.cameraPos -= g_freecamera.cameraDirection * velocity;
 
 	if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
-		g_freecamera.UpdateCameraPos(CAMERADIRECTION::RIGHT, dt);
+		g_freecamera.cameraPos += g_freecamera.cameraRight * velocity;
 
 	if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
-		g_freecamera.UpdateCameraPos(CAMERADIRECTION::LEFT, dt);
+		g_freecamera.cameraPos -= g_freecamera.cameraRight * velocity;
 
 	if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS)
-		g_freecamera.UpdateCameraPos(CAMERADIRECTION::UP, dt);
+		g_freecamera.cameraPos += g_freecamera.cameraUp * velocity;
 
 	if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS)
-		g_freecamera.UpdateCameraPos(CAMERADIRECTION::DOWN, dt);
+		g_freecamera.cameraPos -= g_freecamera.cameraUp * velocity;
 
 	if (glfwGetKey(window, GLFW_KEY_R) == GLFW_PRESS)
 		g_freecamera.cameraPos = glm::vec3{ 0.0 };

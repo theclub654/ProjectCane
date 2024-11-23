@@ -608,17 +608,26 @@ void DrawGlob(ALO* palo, int index)
 
 			glUniformMatrix4fv(glGetUniformLocation(glGlobShader.ID, "model"), 1, GL_FALSE, glm::value_ptr(model));
 
-			glUniform1i(glGetUniformLocation(glGlobShader.ID, "fThreeWay"),   palo->globset.aglob[i].asubglob[a].fThreeWay);
+			glUniform1i(glGetUniformLocation(glGlobShader.ID, "shdk"), palo->globset.aglob[i].asubglob[a].pshd->shdk);
 			glUniform1f(glGetUniformLocation(glGlobShader.ID, "usSelfIllum"), palo->globset.aglob[i].asubglob[a].unSelfIllum);
 
-			glActiveTexture(GL_TEXTURE0);
-			glBindTexture(GL_TEXTURE_2D, palo->globset.aglob[i].asubglob[a].pshd->glShadowTexture);
-			
-			glActiveTexture(GL_TEXTURE1);
-			glBindTexture(GL_TEXTURE_2D, palo->globset.aglob[i].asubglob[a].pshd->glDiffuseTexture);
+			if (palo->globset.aglob[i].asubglob[a].pshd->shdk == SHDK_ThreeWay)
+			{
+				glActiveTexture(GL_TEXTURE0);
+				glBindTexture(GL_TEXTURE_2D, palo->globset.aglob[i].asubglob[a].pshd->glShadowTexture);
 
-			glActiveTexture(GL_TEXTURE2);
-			glBindTexture(GL_TEXTURE_2D, palo->globset.aglob[i].asubglob[a].pshd->glSaturateTexture);
+				glActiveTexture(GL_TEXTURE1);
+				glBindTexture(GL_TEXTURE_2D, palo->globset.aglob[i].asubglob[a].pshd->glDiffuseTexture);
+
+				glActiveTexture(GL_TEXTURE2);
+				glBindTexture(GL_TEXTURE_2D, palo->globset.aglob[i].asubglob[a].pshd->glSaturateTexture);
+			}
+
+			else
+			{
+				glActiveTexture(GL_TEXTURE1);
+				glBindTexture(GL_TEXTURE_2D, palo->globset.aglob[i].asubglob[a].pshd->glDiffuseTexture);
+			}
 			
 			switch (palo->globset.aglob[i].rp)
 			{

@@ -26,8 +26,8 @@ class GL
 		// Screen Object
 		GLuint sbo;
 
-		int width  = 800;
 		int height = 800;
+		int width  = 800;
 
 		void InitGL();
 		void TerminateGL();

@@ -1,8 +1,5 @@
 #pragma once
-#include "lo.h"
-
-void LoadCrvlFromBrx(CBinaryInputStream* pbis);
-void LoadCrvcFromBrx(CBinaryInputStream* pbis);
+#include "crv.h"
 
 class SHAPE : public LO
 {

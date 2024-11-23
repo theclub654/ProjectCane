@@ -17,27 +17,17 @@ int GetExploSize()
 
 void LoadExploFromBrx(EXPLO* pexplo, CBinaryInputStream* pbis)
 {
-	/*LoadExploCount++;
-
-	std::cout << "LoadExploFromBrx Count: " << LoadExploCount << "\n";*/
-
 	EMITB emitb{};
 
 	pexplo->pemitb = new EMITB{};
 	LoadXfmFromBrx(pexplo, pbis);
-	int8_t crvType = pbis->S8Read();
-	if (crvType != -1)
-	{
-		switch (crvType)
-		{
-		case 0x0:
-			LoadCrvlFromBrx(pbis);
-			break;
+	int8_t crvk = pbis->S8Read();
 
-		case 0x1:
-			LoadCrvcFromBrx(pbis);
-			break;
-		}
+	if (crvk != -1)
+	{
+		CRV* pcrv = PcrvNew((CRVK)crvk);
+		pcrv->pvtcrvl->pfnLoadCrvlFromBrx((CRVL*)pcrv, pbis);
+		DeletePcrv(pcrv->crvk, pcrv);
 	}
 
 	if (loadEmitMesh == true)
@@ -115,27 +105,16 @@ void LoadEmitblipColorsFromBrx(int crgba, CBinaryInputStream* pbis)
 
 void LoadEmitterFromBrx(EMITTER* pemitter, CBinaryInputStream* pbis)
 {
-	/*LoadEmitterCount++;
-
-	std::cout << "LoadEmitterFromBrx Count: " << LoadEmitterCount << "\n";*/
-
 	pemitter->pemitb = new EMITB{};
 	LoadAloFromBrx(pemitter, pbis);
 
-	int8_t crvType = pbis->S8Read();
+	int8_t crvk = pbis->S8Read();
 
-	if (crvType != -1)
+	if (crvk != -1)
 	{
-		switch (crvType)
-		{
-		case 0x0:
-			LoadCrvlFromBrx(pbis);
-			break;
-
-		case 0x1:
-			LoadCrvcFromBrx(pbis);
-			break;
-		}
+		CRV* pcrv = PcrvNew((CRVK)crvk);
+		pcrv->pvtcrvl->pfnLoadCrvlFromBrx((CRVL*)pcrv, pbis);
+		DeletePcrv(pcrv->crvk, pcrv);
 	}
 
 	if (loadEmitMesh == true)

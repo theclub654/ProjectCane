@@ -30,6 +30,9 @@ class FREECAMERA
 		glm::vec3 cameraRight;
 		glm::vec3 worldUp;
 
+		glm::mat4 proj;
+		glm::mat4 view;
+
 		float yaw;
 		float pitch;
 		float speed;

@@ -73,9 +73,6 @@ void FREECAMERA::UpdateCameraFov(double dy)
 
 void FREECAMERA::UpdateViewProjMatrix(int height, int width, GLSHADER shader)
 {
-	glm::mat4 proj{ 1.0 };
-	glm::mat4 view{ 1.0 };
-
 	// Creates a large frustum
 	proj = glm::perspective(fov, (float)height / (float)width, 100.0f, 1000000.0f);
 

@@ -7,8 +7,11 @@ typedef int GRFEOPID;
 typedef int BOOL;
 
 typedef void* (*PFNGET)(void*);
-typedef void* (*PFNENSURE)(void*, int);
 typedef void* (*PFNSET)(void*, int);
+typedef void* (*PFNSETVEC2)(void*, glm::vec2);
+typedef void* (*PFNSETVEC3)(void*, glm::vec3);
+typedef void* (*PFNSETVEC4)(void*, glm::vec4);
+typedef void* (*PFNENSURE)(void*, int);
 
 struct BASIC;
 // Class ID
@@ -2173,7 +2176,14 @@ struct OPTDAT
     // Function that returns data to be written to
     PFNGET pfnget;
     // Function that sets data to write to
-    PFNSET pfnset;
+    union
+    {
+        PFNSET pfnset;
+        PFNSETVEC2 pfnsetvec2;
+        PFNSETVEC3 pfnsetvec3;
+        PFNSETVEC4 pfnsetvec4;
+    };
+
     // Function that sets the data
     PFNSET pfnsetUser;
     PFNENSURE pfnensure;

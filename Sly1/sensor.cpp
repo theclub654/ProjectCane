@@ -8,6 +8,8 @@ SENSOR* NewSensor()
 void InitSensor(SENSOR* psensor)
 {
 	InitSo(psensor);
+	psensor->sensm = SENSM_SenseOnly;
+	psensor->sensors = SENSORS_Nil;
 }
 
 int GetSensorSize()
@@ -48,6 +50,7 @@ void InitSwLasenDl(SW* psw)
 void InitLasen(LASEN* plasen)
 {
 	InitSensor(plasen);
+	plasen->uDrawMax = 1.0;
 }
 
 int GetLasenSize()

@@ -1,12 +1,13 @@
 #pragma once
 #include <iostream>
-#include "gl.h"
+#include "input.h"
 #include "transition.h"
 #include "debug.h"
 #include "freecamera.h"
 #include "mouse.h"
 
 void RenderSw(SW* psw, CM* pcm);
+void RenderSwAll(SW* psw, CM* pcm);
 void DrawSwAll(SW* psw, GLFWwindow* window); 
 void DrawSwCollisionAll();
 void DeleteSw(SW* psw);

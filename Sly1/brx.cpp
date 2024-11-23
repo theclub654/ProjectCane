@@ -147,7 +147,7 @@ void LoadOptionFromBrx(void* pvObject, EOPID eopid, int eopidID, CBinaryInputStr
 	{
 		if ((eopid.grfeopid & 0x1000) == 0)
 		{
-			if(eopid.optdat.pfnget != nullptr)
+			if (eopid.optdat.pfnget != nullptr)
 				objectDataPtr = eopid.optdat.pfnget(pvObject);
 		}
 
@@ -162,6 +162,7 @@ void LoadOptionFromBrx(void* pvObject, EOPID eopid, int eopidID, CBinaryInputStr
 			case OTYP_Bool:
 			{
 				float optionTypeBool = pbis->U8Read();
+
 				if (eopid.optdat.pfnget != nullptr)
 					memcpy(objectDataPtr, &optionTypeBool, sizeof(byte));
 				return;
@@ -170,6 +171,7 @@ void LoadOptionFromBrx(void* pvObject, EOPID eopid, int eopidID, CBinaryInputStr
 			case OTYP_Float:
 			{
 				float optionTypefloat = pbis->F32Read();
+
 				if (eopid.optdat.pfnget != nullptr)
 					memcpy(objectDataPtr, &optionTypefloat, sizeof(float));
 				return;
@@ -178,16 +180,19 @@ void LoadOptionFromBrx(void* pvObject, EOPID eopid, int eopidID, CBinaryInputStr
 
 			case OTYP_Matrix:
 			{
-				pbis->F32Read();
-				pbis->F32Read();
-				pbis->F32Read();
+				glm::vec3 optionDataMat3 = pbis->ReadVector();
 
+				if (eopid.optdat.pfnget != nullptr)
+					memcpy(objectDataPtr, &optionDataMat3, sizeof(glm::vec3));
 				return;
 			}
 
 			case OTYP_Int:
 			{
-				pbis->S32Read();
+				int optionDataInt = pbis->S32Read();
+
+				if (eopid.optdat.pfnget != nullptr)
+					memcpy(objectDataPtr, &optionDataInt, sizeof(int));
 				return;
 			}
 
@@ -222,7 +227,10 @@ void LoadOptionFromBrx(void* pvObject, EOPID eopid, int eopidID, CBinaryInputStr
 
 			case OTYP_Rgba:
 			{
-				pbis->U32Read();
+				int optionDataUint = pbis->U32Read();
+
+				if (eopid.optdat.pfnget != nullptr)
+					memcpy(objectDataPtr, &optionDataUint, sizeof(int));
 				return;
 			}
 
@@ -236,60 +244,88 @@ void LoadOptionFromBrx(void* pvObject, EOPID eopid, int eopidID, CBinaryInputStr
 	switch (eopid.otyp)
 	{
 		case OTYP_Bool:
-			pbis->U8Read();
-		return;
+		{
+			byte optionDataBool = pbis->U8Read();
+			if (eopid.optdat.pfnset != nullptr)
+				eopid.optdat.pfnset(pvObject, optionDataBool);
+			return;
+		}
 
 		case OTYP_Float:
 		{
-			float optionData = pbis->F32Read();
+			float optionDataFloat = pbis->F32Read();
 			if (eopid.optdat.pfnset != nullptr)
-				eopid.optdat.pfnset(pvObject, optionData);
+				eopid.optdat.pfnset(pvObject, optionDataFloat);
 			return;
 		}
 
 		case OTYP_Matrix:
-			pbis->F32Read();
-			pbis->F32Read();
-			pbis->F32Read();
-		return;
+		{
+			glm::vec3 optionDataMat = pbis->ReadVector();
+
+			if (eopid.optdat.pfnsetvec3 != nullptr)
+				eopid.optdat.pfnsetvec3(pvObject, optionDataMat);
+			return;
+		}
 
 		case OTYP_Int:
-			pbis->S32Read();
-		return;
-
+		{
+			int optionDataInt = pbis->S32Read();
+			if (eopid.optdat.pfnset != nullptr)
+				eopid.optdat.pfnset(pvObject, optionDataInt);
+			return;
+		}
 		case OTYP_Lm:
-			pbis->F32Read();
-			pbis->F32Read();
-		break;
+		{
+			glm::vec2 optionDataLM = pbis->ReadVector2();
+
+			if (eopid.optdat.pfnsetvec2 != nullptr)
+				eopid.optdat.pfnsetvec2(pvObject, optionDataLM);
+			break;
+		}
 
 		case OTYP_Vector:
 		case OTYP_Clq:
 		case OTYP_Smp:
-			pbis->F32Read();
-			pbis->F32Read();
-			pbis->F32Read();
-		break;
+		{
+			glm::vec3 optionDataVec3 = pbis->ReadVector();
+
+			if (eopid.optdat.pfnsetvec3 != nullptr)
+				eopid.optdat.pfnsetvec3(pvObject, optionDataVec3);
+			break;
+		}
 
 		case OTYP_Vector4:
 		case OTYP_Smpa:
-			pbis->F32Read();
-			pbis->F32Read();
-			pbis->F32Read();
-			pbis->F32Read();
-		break;
+		{
+			glm::vec4 optionDataVec4 = pbis->ReadVector4();
+
+			if (eopid.optdat.pfnsetvec4 != nullptr)
+				eopid.optdat.pfnsetvec4(pvObject, optionDataVec4);
+			break;
+		}
 
 		case OTYP_Rgba:
-			pbis->U32Read();
-		break;
+		{
+			int optionDataRGBA = pbis->U32Read();
 
+			if (eopid.optdat.pfnset != nullptr)
+				eopid.optdat.pfnset(pvObject, optionDataRGBA);
+			break;
+		}
 		case OTYP_Oid:
 		case OTYP_Cid:
 		case OTYP_Sfxid:
 		case OTYP_Wid:
 		case OTYP_Tbid:
 		case OTYP_Msgid:
-			pbis->S16Read();
-		break;
+		{
+			short optionDataShort = pbis->S16Read();
+
+			if (eopid.optdat.pfnset != nullptr)
+				eopid.optdat.pfnset(pvObject, optionDataShort);
+			break;
+		}
 
 		default:
 			int16_t optionData = pbis->S16Read();

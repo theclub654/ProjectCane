@@ -444,6 +444,12 @@
     <ClInclude Include="actseg.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="cplcy.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Input.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="phasemem.cpp">
@@ -855,6 +861,12 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="actseg.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="cplcy.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Input.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

@@ -37,22 +37,21 @@ void SetShapeParent(SHAPE* pshape, ALO* paloParent)
 
 void LoadShapeFromBrx(SHAPE* pshape, CBinaryInputStream* pbis)
 {
-    byte unk_0 = pbis->U8Read();
+    byte crvk = pbis->U8Read();
 
-    switch (unk_0)
-    {
-        case 0x0:
-        LoadCrvlFromBrx(pbis);
-        break;
-        case 0x1:
-        LoadCrvcFromBrx(pbis);
-        break;
-    }
+    pshape->pcrv = PcrvNew((CRVK)crvk);
+
+    pshape->pcrv->pvtcrvl->pfnLoadCrvlFromBrx((CRVL*)pshape->pcrv, pbis);
 
     LoadOptionsFromBrx(pshape, pbis);
 }
 
 void DeleteShape(LO* plo)
 {
-    delete(SHAPE*)plo;
+    SHAPE* pshape = (SHAPE*)plo;
+
+    if (pshape->pcrv != nullptr)
+        DeletePcrv(pshape->pcrv->crvk, pshape->pcrv);
+
+    delete pshape;
 }

@@ -1,8 +1,5 @@
 #pragma once
-#include "alo.h"
-
-void LoadCrvlFromBrx(CBinaryInputStream* pbis);
-void LoadCrvcFromBrx(CBinaryInputStream* pbis);
+#include "crv.h"
 
 struct TSURF
 {
