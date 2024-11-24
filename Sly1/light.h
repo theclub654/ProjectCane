@@ -109,6 +109,7 @@ void*GetLightFrustrumUp(LIGHT*plight);
 void SetLightFrustrumUp(LIGHT* plight, glm::vec3 &pvecUpLocal);
 void RemoveLightFromSw(LIGHT* plight);
 void PrepareSwLightsForDraw(SW* psw);
+TWPS TwpsFindSwLightsNoVu0(SW* psw, glm::vec3 &ppos, float sRadius, int grffindlight, int cplightMax, int* pcplightStatic, int* pcplightAll, LIGHT** aplight, char* pchzTarget);
 void DeleteLight(LO* plo);
 
 static std::vector <LIGHT*> g_alight;

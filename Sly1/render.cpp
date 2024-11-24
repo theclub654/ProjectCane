@@ -53,11 +53,7 @@ void DrawSwAll(SW* psw, GLFWwindow* window)
 {
 	glGlobShader.Use();
 
-	glUniform1i(glGetUniformLocation(glGlobShader.ID, "shadowTexture"),   0);
-	glUniform1i(glGetUniformLocation(glGlobShader.ID, "diffuseTexture"),  1);
-	glUniform1i(glGetUniformLocation(glGlobShader.ID, "saturateTexture"), 2);
-	
-	//DrawCm(g_pcm, glGlobShader);
+	PrepareSwLightsForDraw(g_psw);
 
 	int numDirLights = 0;
 	int numPointLights = 0;

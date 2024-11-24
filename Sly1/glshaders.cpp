@@ -80,6 +80,7 @@ void GLSHADER::Init(const char* vertexFile, const char* geometryFile, const char
 
 	if (fragmentFile != NULL)
 		glDeleteShader(fragmentShader);
+
 }
 
 void GLSHADER::Use()

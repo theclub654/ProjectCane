@@ -69,13 +69,13 @@ float objectShadow;
 float objectIllum;
 
 // Multiplys a mat4 with vec3
-vec4 MultiplyMatrixVector(mat4 matrix4 ,vec3 vecIn, float gImplied);
+vec3 Multiply4Matrix3Vector(mat4 matrix4 ,vec3 vecIn);
 // Resets the model lighting
 void ClearGlobLighting();
 void ProcessGlobLighting();
-// NOT DONE, STILL GOTTA DO THE SHADOWS
+// NOT DONE
 vec4 AddDirectionLight(DIRLIGHT dirlight);
-// NOT DONE, STILL GOTTA DO THE SHADOWS
+// NOT DONE
 vec4 AddPositionLight(POINTLIGHT pointlight);
 // NOT DONE
 void AddFrustrumLight(vec3 color, mat4 matFrustum, vec3 direction, vec3 falloff);
@@ -102,9 +102,13 @@ void main()
     //gl_Position = matWorldToClip * model * vec4(vertex, 1.0);
 }
 
-vec4 MultiplyMatrixVector(mat4 matrix4 ,vec3 vecIn, float gImplied)
+vec3 Multiply4Matrix3Vector(mat4 matrix4 ,vec3 vecIn)
 {
-    return matrix4 * vec4(vecIn, gImplied);
+    vec4 sum;
+
+    sum = matrix4 * vec4(vecIn, 0.0);
+    
+    return vec3(sum.x, sum.y, sum.z);
 }
 
 void ClearGlobLighting()
@@ -150,22 +154,17 @@ void ProcessGlobLighting()
 
 vec4 AddDirectionLight(DIRLIGHT dirlight)
 {
-    vec4 orientation = MultiplyMatrixVector(model, dirlight.dir, 0.0);
-
-    orientation.x = length(orientation);
+    vec3 direction = Multiply4Matrix3Vector(model, dirlight.dir);
     
-    if (orientation.x < 0.0001)
-        orientation = vec4(0.0);
+    direction.x = length(direction);
+
+    if (direction.x < 0.0001)
+        direction = vec3(0.0);
     else
-        orientation = 1.0 / orientation.x * vec4(dirlight.dir, 0.0);
+        direction = 1.0 / direction.x * dirlight.dir;
 
-    vec4 aNormal = vec4(normal, 1.0) * orientation;
-    dirlight.dir.x = 1.0;
+    float diffuse = dot(normal, direction);
 
-    float temp = (aNormal.y + aNormal.x);
-    aNormal.x  =  (aNormal.z * dirlight.dir.z) + temp;
-
-    float diffuse = aNormal.x;
     diffuse = diffuse + diffuse * diffuse * diffuse;
    
     float lightShadow  = diffuse * dirlight.ruShadow  + dirlight.duShadow;
@@ -178,36 +177,11 @@ vec4 AddDirectionLight(DIRLIGHT dirlight)
     objectShadow += max(lightShadow,  0.0);
     objectIllum  += max(lightMidtone, 0.0);
 
-    return vec4(dirlight.color, 1.0) * diffuse;
+    return vec4(dirlight.color, 0.0) * diffuse;
 }
 
 vec4 AddPositionLight(POINTLIGHT pointlight)
 {
-    vec4 posWorld = MultiplyMatrixVector(model, vertex, 1.0);
-    vec4 normalWorld = MultiplyMatrixVector(model, normal, 0.0);
-
-    vec4 aNormal = normalWorld;
-    aNormal *= aNormal;
-    vec4 pos;
-    pos.x = 1.0;
-    aNormal.x = aNormal.x + aNormal.y;
-    aNormal.x = (aNormal.z * pos.x) + aNormal.x;
-    aNormal.x = sqrt(aNormal.x);
-
-    if (aNormal.x >= 0.0001)
-        aNormal = 1.0 / aNormal.x * vec4(normal, 0.0);
-
-    normalWorld = aNormal;
-    pos = posWorld;
-
-    vec4 aVertex = vec4(vertex, 0.0);
-    aVertex = aVertex - pos;
-    pos = aVertex * aVertex;
-
-    vec4 aNormal1;
-    aNormal1.x = 1.0;
-
-    //float temp = 
 
     return vec4(0.0);
 }

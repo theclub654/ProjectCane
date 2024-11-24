@@ -359,6 +359,11 @@ void PrepareSwLightsForDraw(SW* psw)
 	
 }
 
+TWPS TwpsFindSwLightsNoVu0(SW* psw, glm::vec3& ppos, float sRadius, int grffindlight, int cplightMax, int* pcplightStatic, int* pcplightAll, LIGHT** aplight, char* pchzTarget)
+{
+	return TWPS();
+}
+
 void DeleteLight(LO* plo)
 {
 	delete(LIGHT*)plo;
