@@ -8,10 +8,8 @@ extern std::vector <ALO*> allSWAloObjs;
 extern std::vector <LIGHT*> allSwLights;
 std::vector<SO*> allSWSoObjs;
 
-// Retrieves the uniform location with string
-GLint GetUniformLocation(GLuint program​, const std::string& name);
-// Loops through all objects in a level to see which object is in camera view and stores all objects
-// in camera view in a render list
+// Loops through all objects in a level to see which object is in camera view and other conditions and stores all objects
+// in a render list
 void RenderSw(SW* psw, CM* pcm);
 void RenderSwAll(SW* psw, CM* pcm);
 // Loops through that render list of objects to be rendered on the screen

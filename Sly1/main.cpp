@@ -97,15 +97,14 @@ void Startup()
 	
 	glScreenShader.Init("screen.vert", NULL, "screen.frag");
 	glGlobShader.Init("glob.vert", NULL, "glob.frag");
-	glGlobShader.Use();
+	glCollisionShader.Init("collision.vert", NULL, "collision.frag");
 
-	// Initialize texture samplers
+	// Initialize texture samplers for glob shader
+	glGlobShader.Use();
 	glUniform1i(glGetUniformLocation(glGlobShader.ID, "shadowTexture"),   0);
 	glUniform1i(glGetUniformLocation(glGlobShader.ID, "diffuseTexture"),  1);
 	glUniform1i(glGetUniformLocation(glGlobShader.ID, "saturateTexture"), 2);
 
-	glCollisionShader.Init("collision.vert", NULL, "collision.frag");
-	
 	std::cout << "Sly Cooper 2002 Sony Computer Entertainment America & Sucker Punch Productions\n";
 	SetPhase(PHASE_Startup);
 	StartupBrx();

@@ -245,7 +245,7 @@ void* GetCmMrdRatio(CM* pcm)
 void SetCmMrdRatio(CM* pcm, float rMRD)
 {
 	pcm->rMRD = rMRD;
-	RecalcCmFrustrum(pcm);
+	RecalcCmFrustrum(g_pcm);
 }
 
 void CombineEyeLookAtProj(glm::vec3 pposEye, glm::mat3 pmatLookAt, glm::mat4 pmatProj, glm::mat4 &pmat)
@@ -272,9 +272,9 @@ void DrawCm(CM* pcm, GLSHADER shader)
 	int matWorldToClipLocation = glGetUniformLocation(shader.ID, "matWorldToClip");
 	glUniformMatrix4fv(matWorldToClipLocation, 1, GL_FALSE, glm::value_ptr(pcm->matWorldToClip));
 
-	// Sends projection matrix to GPU shader
-	/*int matClipToWorldLoation = glGetUniformLocation(shader.ID, "matClipToWorld");
-	glUniformMatrix4fv(matClipToWorldLoation, 1, GL_FALSE, glm::value_ptr(pcm->matClipToWorld));*/
+	//// Sends projection matrix to GPU shader
+	int matClipToWorldLoation = glGetUniformLocation(shader.ID, "matClipToWorld");
+	glUniformMatrix4fv(matClipToWorldLoation, 1, GL_FALSE, glm::value_ptr(pcm->matClipToWorld));
 }
 
 void DeleteCm(LO* plo)

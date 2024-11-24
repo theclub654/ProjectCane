@@ -1,4 +1,4 @@
-#include "gl.h"
+﻿#include "gl.h"
 
 void GL::InitGL()
 {
@@ -110,6 +110,11 @@ void GL::TerminateGL()
 	ImGui::DestroyContext();
 	glfwDestroyWindow(window);
 	glfwTerminate();
+}
+
+GLint GetUniformLocation(GLuint program​, const std::string& name)
+{
+	return glGetUniformLocation(program​, name.c_str());
 }
 
 void FrameBufferSizeCallBack(GLFWwindow* window, int width, int height)

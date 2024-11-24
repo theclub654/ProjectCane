@@ -648,7 +648,7 @@ void DrawGlob(ALO* palo, int index)
 			for (int b = 0; b < palo->globset.aglob[i].pdmat.size(); b++)
 			{
 				// Sends instance model matrix to GPU
-				glUniformMatrix4fv(glGetUniformLocation(glGlobShader.ID, "model"), 1, GL_FALSE, glm::value_ptr(palo->globset.aglob[i].pdmat[b]));
+				glUniformMatrix4fv(glGetUniformLocation(glGlobShader.ID, "model"), 1, GL_FALSE, glm::value_ptr(model * palo->globset.aglob[i].pdmat[b]));
 				glDrawElements(GL_TRIANGLES, palo->globset.aglob[i].asubglob[a].indices.size(), GL_UNSIGNED_SHORT, 0);
 			}
 		}

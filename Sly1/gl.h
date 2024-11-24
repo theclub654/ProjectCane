@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #include "glshaders.h"
 #include <GLFW/glfw3.h>
 #include <glm/gtc/matrix_transform.hpp>
@@ -33,6 +33,8 @@ class GL
 		void TerminateGL();
 };
 
-void FrameBufferSizeCallBack(GLFWwindow* window, int width, int height);
+// Retrieves the uniform location with string
+GLint GetUniformLocation(GLuint program​, const std::string& name);
+void  FrameBufferSizeCallBack(GLFWwindow* window, int width, int height);
 
 extern GL g_gl;
