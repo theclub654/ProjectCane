@@ -28,7 +28,7 @@ void CloneRope(ROPE* prope, ROPE* propeBase)
 
 void RenderRopeAll(ROPE* prope, CM* pcm, RO* pro)
 {
-
+	RenderRopeAll(prope, pcm, pro);
 }
 
 void DeleteRope(LO* plo)

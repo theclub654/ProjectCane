@@ -44,4 +44,5 @@ MECHA*NewMecha();
 void InitMecha(MECHA* pmecha);
 int  GetMechaSize();
 void CloneMecha(MECHA* pmecha, MECHA* pmechaBase);
+void RenderMechaSelf(MECHA* pmecha, CM* pcm, RO* pro);
 void DeleteMecha(LO* plo);

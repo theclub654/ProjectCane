@@ -6,11 +6,6 @@
 #include "splicemap.h"
 #include "util.h"
 #include <bitset>
-#include <GLFW/glfw3.h>
-#include <glm/gtc/matrix_transform.hpp>
-#include <glm/gtc/type_ptr.hpp>
-#include <glm/gtx/rotate_vector.hpp>
-#include <glm/gtx/vector_angle.hpp>
 
 typedef unsigned int SYMID;
 
@@ -89,14 +84,6 @@ struct MRG
     int cpalo;
     // The ALO object thats gonna be merged
     struct ALO** apalo;
-};
-
-struct FGFN
-{
-    float duFogBias;
-    float ruFog;
-    float sNearFog;
-    float duFogPlusClipBias;
 };
 
 // Local Object

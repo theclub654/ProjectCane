@@ -71,7 +71,7 @@ void LoadStepGuardFromBrx(STEPGUARD* pstepguard, CBinaryInputStream* pbis)
 
 void RenderStepguardSelf(STEPGUARD* pstepguard, CM* pcm, RO* pro)
 {
-
+	RenderStepSelf(pstepguard, pcm, pro);
 }
 
 int GetStepguardSize()

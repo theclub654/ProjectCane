@@ -64,3 +64,4 @@ void OnTnRemove(TN* ptn);
 void LoadTnFromBrx(TN* ptn, CBinaryInputStream* pbis);
 void CloneTn(TN* ptn, TN* ptnBase);
 void LoadTbspFromBrx(CBinaryInputStream* pbis);
+void RenderTnSelf(TN* ptn, CM* pcm, RO* pro);

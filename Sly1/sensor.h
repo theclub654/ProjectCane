@@ -143,12 +143,14 @@ void InitLasen(LASEN* plasen);
 int  GetLasenSize();
 void LoadLasenFromBrx(LASEN* plasen, CBinaryInputStream* pbis);
 void CloneLasen(LASEN* plasen, LASEN* plasenBase);
+void RenderLasenSelf(LASEN* plasen, CM* pcm, RO* pro);
 void DeleteLasen(LO* plo);
 
 CAMSEN*NewCamsen();
 void InitCamsen(CAMSEN* pcamsen);
 int  GetCamsenSize();
 void CloneCamsen(CAMSEN* pcamsen, CAMSEN* pcamsenBase);
+void RenderCamsenSelf(CAMSEN* pcamsen, CM* pcm, RO* pro);
 void DeleteCamsen(LO* plo);
 
 PRSEN*NewPrsen();

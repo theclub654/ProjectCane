@@ -20,6 +20,11 @@ void UpdateStepXfWorld(STEP* pstep)
 	UpdateSoXfWorld(pstep);
 }
 
+void RenderStepSelf(STEP* pstep, CM* pcm, RO* pro)
+{
+	RenderSoSelf(pstep, pcm, pro);
+}
+
 void CloneStep(STEP* pstep, STEP* pstepBase)
 {
 	LO lo = *pstep;

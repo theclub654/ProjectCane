@@ -246,16 +246,16 @@ void LoadOptionFromBrx(void* pvObject, EOPID eopid, int eopidID, CBinaryInputStr
 		case OTYP_Bool:
 		{
 			byte optionDataBool = pbis->U8Read();
-			if (eopid.optdat.pfnset != nullptr)
-				eopid.optdat.pfnset(pvObject, optionDataBool);
+			if (eopid.optdat.pfnsetbyte != nullptr)
+				eopid.optdat.pfnsetbyte(pvObject, optionDataBool);
 			return;
 		}
 
 		case OTYP_Float:
 		{
 			float optionDataFloat = pbis->F32Read();
-			if (eopid.optdat.pfnset != nullptr)
-				eopid.optdat.pfnset(pvObject, optionDataFloat);
+			if (eopid.optdat.pfnsetfloat != nullptr)
+				eopid.optdat.pfnsetfloat(pvObject, optionDataFloat);
 			return;
 		}
 
@@ -271,6 +271,7 @@ void LoadOptionFromBrx(void* pvObject, EOPID eopid, int eopidID, CBinaryInputStr
 		case OTYP_Int:
 		{
 			int optionDataInt = pbis->S32Read();
+
 			if (eopid.optdat.pfnset != nullptr)
 				eopid.optdat.pfnset(pvObject, optionDataInt);
 			return;
@@ -322,8 +323,8 @@ void LoadOptionFromBrx(void* pvObject, EOPID eopid, int eopidID, CBinaryInputStr
 		{
 			short optionDataShort = pbis->S16Read();
 
-			if (eopid.optdat.pfnset != nullptr)
-				eopid.optdat.pfnset(pvObject, optionDataShort);
+			if (eopid.optdat.pfnsetshort != nullptr)
+				eopid.optdat.pfnsetshort(pvObject, optionDataShort);
 			break;
 		}
 

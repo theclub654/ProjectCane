@@ -44,7 +44,7 @@ void LoadGlobsetFromBrx(GLOBSET* pglobset ,CBinaryInputStream* pbis, ALO* palo)
 
         else
         {
-            pglobset->aglob[i].sMRD = 10000000000.00;
+            pglobset->aglob[i].sMRD = 10000000000.000000;
             pglobset->aglob[i].sCelBorderMRD = 2000.0;
             pglobset->aglob[i].gZOrder = 0xFFFF7F7F;
             pglobset->aglob[i].uFog = 1.0;
@@ -66,8 +66,13 @@ void LoadGlobsetFromBrx(GLOBSET* pglobset ,CBinaryInputStream* pbis, ALO* palo)
             pglobset->aglob[i].uFog = pbis->F32Read();
 
         if ((unk_5 & 0x10) != 0)
-            pbis->F32Read();
+        {
+            pglobset->aglob[i].sMRD = pbis->F32Read();
 
+            if (pglobset->aglob[i].sMRD == 3.402823e+38)
+                pglobset->aglob[i].sMRD = 10000000000.000000;
+        }
+        
         if ((unk_5 & 0x20) != 0)
             pbis->F32Read();
 
@@ -118,8 +123,9 @@ void LoadGlobsetFromBrx(GLOBSET* pglobset ,CBinaryInputStream* pbis, ALO* palo)
         pglobset->aglob[i].rtck      = (RTCK)pbis->U8Read();
         pglobset->aglob[i].rp        = (RP)pbis->U8Read();
         pglobset->aglob[i].grfglob   = pbis->U8Read();
-
         
+        BuildCmFgfn(g_pcm, pglobset->aglob[i].uFog, &pglobset->aglob[i].fgfn);
+
         if ((unk_5 & 1) == 0)
         {
             // Number of submodels
@@ -289,8 +295,12 @@ void BuildSubGlob(GLOBSET* pglobset, SHD* pshd, std::vector <VERTICE> &vertices,
     {
         VERTICE vertice;
 
-        vertice.pos    = vertexes[indexes[i].ipos];
-        vertice.normal = normals[indexes[i].inormal];
+        vertice.pos = vertexes[indexes[i].ipos];
+
+        if (indexes[i].inormal == 0xFF)
+            vertice.normal = glm::vec3(0.0);
+        else
+            vertice.normal = normals[indexes[i].inormal];
 
         if ((indexes[i].bMisc & 0x7F) == 0x7F)
         {

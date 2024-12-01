@@ -20,4 +20,5 @@ void InitFlash(FLASH* pflash);
 int  GetFlashSize();
 void LoadFlashFromBrx(FLASH* pflash, CBinaryInputStream* pbis);
 void CloneFlash(FLASH* pflash, FLASH* pflashBase);
+void RenderFlashSelf(FLASH* pflash, CM* pcm, RO* pro);
 void DeleteFlash(LO* plo);

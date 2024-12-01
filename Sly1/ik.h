@@ -14,9 +14,11 @@ class LIKH : public ALO
 IKH* NewIkh();
 int  GetIkhSize();
 void CloneIkh(IKH* pikh, IKH* pikhBase);
+void RenderIkhSelf(IKH* pikh, CM* pcm, RO* pro);
 void DeleteIkh(LO* plo);
 
 LIKH*NewLikh();
 int  GetLikhSize();
 void CloneLikh(LIKH* plikh, LIKH* plikhBase);
+void RenderLikhSelf(LIKH* plikh, CM* pcm, RO* pro);
 void DeleteLikh(LO* plo);

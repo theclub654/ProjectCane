@@ -78,6 +78,11 @@ void LoadTbspFromBrx(CBinaryInputStream* pbis)
     }
 }
 
+void RenderTnSelf(TN* ptn, CM* pcm, RO* pro)
+{
+    RenderAloSelf(ptn, pcm, pro);
+}
+
 void DeleteTn(LO* plo)
 {
     TN* ptn = (TN*)plo;

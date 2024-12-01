@@ -32,7 +32,7 @@ void CloneTank(TANK* ptank, TANK* ptankBase)
 
 void RenderTankAll(TANK* ptank, CM* pcm, RO* pro)
 {
-
+	RenderAloAll(ptank, pcm, pro);
 }
 
 void DeleteTank(LO* plo)

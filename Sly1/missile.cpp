@@ -42,7 +42,7 @@ void CloneMissile(MISSILE* pmissile, MISSILE* pmissileBase)
 
 void RenderMissileAll(MISSILE* pmissile, CM* pcm, RO* pro)
 {
-
+	RenderAloAll(pmissile, pcm, pro);
 }
 
 void DeleteMissile(LO* plo)

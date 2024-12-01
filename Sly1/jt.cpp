@@ -39,7 +39,7 @@ void CloneJt(JT* pjt, JT* pjtBase)
 
 void RenderJtAll(JT* pjt, CM* pcm, RO* pro)
 {
-	
+	RenderAloAll(pjt, pcm, pro);
 }
 
 void RenderJtSelf(JT* pjt, CM* pcm, RO* pro)

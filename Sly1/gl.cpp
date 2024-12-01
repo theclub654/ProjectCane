@@ -7,6 +7,7 @@ void GL::InitGL()
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+	glfwWindowHint(GLFW_RESIZABLE, GL_TRUE);
 
 	window = glfwCreateWindow(width, height, "Sly 1", NULL, NULL);
 	
@@ -119,5 +120,16 @@ GLint GetUniformLocation(GLuint program​, const std::string& name)
 
 void FrameBufferSizeCallBack(GLFWwindow* window, int width, int height)
 {
+	glBindFramebuffer(GL_FRAMEBUFFER, g_gl.fbo);
+
+	glBindTexture(GL_TEXTURE_2D, g_gl.fbc);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
+
+	glBindRenderbuffer(GL_RENDERBUFFER, g_gl.rbo);
+	glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, width, height);
+
 	glViewport(0, 0, width, height);
+
+	g_gl.width  = width;
+	g_gl.height = height;
 }

@@ -1,5 +1,6 @@
 #pragma once
 #include "step.h"
+#include "sqtr.h"
 
 struct XMG
 {

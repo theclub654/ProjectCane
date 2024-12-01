@@ -32,7 +32,12 @@ void CloneJp(JP* pjp, JP* pjpBase)
 
 void RenderJpAll(JP* pjp, CM* pcm, RO* pro)
 {
+	RenderAloAll(pjp, pcm, pro);
+}
 
+void RenderJpSelf(JP* pjp, CM* pcm, RO* pro)
+{
+	RenderJpAll(pjp, pcm, pro);
 }
 
 void DeleteJp(LO* plo)

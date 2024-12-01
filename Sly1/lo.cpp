@@ -169,14 +169,17 @@ void SetLoParent(LO *plo, ALO *paloParent)
 
 void SubscribeLoObject(LO* plo, LO* ploTarget)
 {
+
 }
 
 void UnsubscribeLoObject(LO* plo, LO* ploTarget)
 {
+
 }
 
 void SubscribeLoStruct(LO* plo, void* pfnmq, void* pvContext)
 {
+
 }
 
 void UnsubscribeLoStruct(LO* plo, void* pfnmq, void* pvContext)

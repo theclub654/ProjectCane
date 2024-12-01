@@ -179,7 +179,7 @@ void LoadClueFromBrx(CLUE* pclue, CBinaryInputStream* pbis)
 
 void RenderClueAll(CLUE* pclue, CM* pcm, RO* pro)
 {
-
+	pclue->pvtclue->pfnRenderClueAll(pclue, pcm, pro);
 }
 
 void DeleteClue(LO* plo)

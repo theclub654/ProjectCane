@@ -20,6 +20,11 @@ void UpdateSuvXfWorld(SUV* psuv)
 	UpdateSoXfWorld(psuv);
 }
 
+void RenderSuvSelf(SUV* psuv, CM* pcm, RO* pro)
+{
+	RenderSoSelf(psuv, pcm, pro);
+}
+
 void CloneSuv(SUV* psuv, SUV* psuvBase)
 {
 	LO lo = *psuv;

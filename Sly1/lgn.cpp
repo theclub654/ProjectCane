@@ -32,7 +32,7 @@ void CloneLgn(LGN* plgn, LGN* plgnBase)
 
 void RenderLgnAll(LGN* plgn, CM* pcm, RO* pro)
 {
-
+	RenderAloAll(plgn, pcm, pro);
 }
 
 void DeleteLgn(LO* plo)

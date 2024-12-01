@@ -1,6 +1,5 @@
 ﻿#pragma once
 #include "glshaders.h"
-#include <GLFW/glfw3.h>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/gtx/rotate_vector.hpp>
@@ -26,8 +25,8 @@ class GL
 		// Screen Object
 		GLuint sbo;
 
-		int height = 800;
 		int width  = 800;
+		int height = 800;
 
 		void InitGL();
 		void TerminateGL();

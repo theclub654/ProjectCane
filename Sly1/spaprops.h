@@ -7,7 +7,10 @@ typedef int GRFEOPID;
 typedef int BOOL;
 
 typedef void* (*PFNGET)(void*);
+typedef void* (*PFNSETBYTE)(void*, unsigned char);
+typedef void* (*PFNSETSHORT)(void*, short);
 typedef void* (*PFNSET)(void*, int);
+typedef void* (*PFNSETFLOAT)(void*, float);
 typedef void* (*PFNSETVEC2)(void*, glm::vec2);
 typedef void* (*PFNSETVEC3)(void*, glm::vec3);
 typedef void* (*PFNSETVEC4)(void*, glm::vec4);
@@ -2178,14 +2181,17 @@ struct OPTDAT
     // Function that sets data to write to
     union
     {
+        PFNSETBYTE pfnsetbyte;
+        PFNSETSHORT pfnsetshort;
         PFNSET pfnset;
+        PFNSETFLOAT pfnsetfloat;
         PFNSETVEC2 pfnsetvec2;
         PFNSETVEC3 pfnsetvec3;
         PFNSETVEC4 pfnsetvec4;
     };
 
     // Function that sets the data
-    PFNSET pfnsetUser;
+    //PFNSET pfnsetUser;
     PFNENSURE pfnensure;
 
     int ibGet;

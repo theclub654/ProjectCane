@@ -30,6 +30,11 @@ void CloneSquish(SQUISH* psquish, SQUISH* psquishBase)
 	psquish->pstso = nullptr;
 }
 
+void RenderSquishSelf(SQUISH* psquish, CM* pcm, RO* pro)
+{
+	RenderSoSelf(psquish, pcm, pro);
+}
+
 void DeleteSquish(LO* plo)
 {
 	delete (SQUISH*)plo;

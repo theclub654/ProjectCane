@@ -1,12 +1,9 @@
 #pragma once
 #include "lo.h"
-#include "act.h"
-#include "freeze.h"
 #include "glob.h"
-#include "sqtr.h"
+#include "act.h"
 
-typedef uint32_t GRFZON;
-typedef uint32_t GRFALOX;
+extern std::vector <RO> renderBuffer;
 
 enum ACK
 {
@@ -82,13 +79,6 @@ struct XF
 	glm::vec3 dw;
 };
 
-struct RO
-{
-	glm::mat4 mat;
-	float uAlpha;
-	float uAlphaCelBorder;
-};
-
 struct POSEC
 {
 	OID oid;
@@ -120,6 +110,17 @@ struct FICG
 	byte grficSmash;
 	byte grficBomb;
 	byte grficShock;
+};
+
+struct RO
+{
+	GLuint VAO;
+	GLuint VBO;
+	GLuint EBO;
+
+	glm::mat4 modelMatrix;
+	float uAlpha;
+	float uAlphaCelBorder;
 };
 
 struct BITFIELD
@@ -242,8 +243,6 @@ void LoadAloFromBrx(ALO* palo, CBinaryInputStream* pbis);
 // Loads bone data from binary file
 void LoadAloAloxFromBrx(ALO* palo, CBinaryInputStream* pbis);
 // Updates ALO object
-void DebugClearLightingToF32(ALO* palo);
-void DebugConvertLightingF32ToU8(ALO* palo);
 void UpdateAlo(ALO *palo, float dt);
 void RenderAloAll(ALO* palo, CM* pcm, RO* proDup);
 void RenderAloSelf(ALO* palo, CM* pcm, RO* pro);

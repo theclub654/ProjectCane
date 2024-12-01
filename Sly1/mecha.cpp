@@ -30,6 +30,11 @@ void CloneMecha(MECHA* pmecha, MECHA* pmechaBase)
 	pmecha->pstso = nullptr;
 }
 
+void RenderMechaSelf(MECHA* pmecha, CM* pcm, RO* pro)
+{
+
+}
+
 void DeleteMecha(LO* plo)
 {
 	delete (MECHA*)plo;

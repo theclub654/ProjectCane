@@ -25,6 +25,11 @@ void CloneIkh(IKH* pikh, IKH* pikhBase)
 	pikh->pstso = nullptr;
 }
 
+void RenderIkhSelf(IKH* pikh, CM* pcm, RO* pro)
+{
+	RenderSoSelf(pikh, pcm, pro);
+}
+
 void DeleteIkh(LO* plo)
 {
 	delete(IKH*)plo;
@@ -49,6 +54,11 @@ void CloneLikh(LIKH* plikh, LIKH* plikhBase)
 	CloneLo(plikh, plikhBase);
 
 	ClearDl(&plikh->dlChild);
+}
+
+void RenderLikhSelf(LIKH* plikh, CM* pcm, RO* pro)
+{
+	RenderAloSelf(plikh, pcm, pro);
 }
 
 void DeleteLikh(LO* plo)

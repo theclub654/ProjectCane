@@ -23,7 +23,7 @@ void CloneSky(SKY* psky, SKY* pskyBase)
 
 void UpdateSky(SKY* psky, float dt)
 {
-	psky->pvtalo->pfnTranslateAloToPos(psky, g_freecamera.cameraPos);
+	psky->pvtalo->pfnTranslateAloToPos(psky, g_pcm->pos);
 }
 
 void DeleteSky(LO* plo)

@@ -21,4 +21,5 @@ GOMER*NewGomer();
 void InitGomer(GOMER* pgomer);
 int  GetGomerSize();
 void CloneGomer(GOMER* pgomer, GOMER* pgomerBase);
+void RenderGomerSelf(GOMER* pgomer, CM* pcm, RO* pro);
 void DeleteGomer(LO* plo);

@@ -224,7 +224,7 @@ void UpdateSw(SW* psw, float dt)
 	for (int i = 0; i < allSWAloObjs.size(); i++)
 	{
 		if (allSWAloObjs[i]->pvtalo->pfnUpdateAlo != nullptr)
-			allSWAloObjs[i]->pvtalo->pfnUpdateAlo(allSWAloObjs[i], 0);
+			allSWAloObjs[i]->pvtalo->pfnUpdateAlo(allSWAloObjs[i], dt);
 	}
 }
 
@@ -251,9 +251,9 @@ void DeleteWorld(SW* psw)
 
 	for (int i = 0; i < g_ashd.size(); i++)
 	{
-		glDeleteTextures(1, &g_ashd[i].glShadowTexture);
-		glDeleteTextures(1, &g_ashd[i].glDiffuseTexture);
-		glDeleteTextures(1, &g_ashd[i].glSaturateTexture);
+		glDeleteTextures(1, &g_ashd[i].glShadowMap);
+		glDeleteTextures(1, &g_ashd[i].glDiffuseMap);
+		glDeleteTextures(1, &g_ashd[i].glSaturateMap);
 	}
 
 	allSWAloObjs.clear();

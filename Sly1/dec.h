@@ -5,9 +5,14 @@
 
 typedef int GRFFSO;
 typedef int GRFCID;
+typedef int GRFGLOB;
+typedef uint32_t GRFZON;
+typedef uint32_t GRFALOX;
 class CBinaryInputStream;
 class PROXY;
 class ALO;
+class SO;
+class MS;
 class CM;
 struct RO;
 enum LIGHTK;
@@ -15,6 +20,8 @@ struct LM;
 enum CID;
 enum OID;
 struct RGBA;
+struct FGFN;
+struct SOP;
 extern bool loadEmitMesh;
 
 // Local Obeject
@@ -66,8 +73,6 @@ int  GetAloSize();
 void DeleteAlo(ALO* palo);
 
 // Static Object
-class SO;
-struct SOP;
 SO*  NewSo();
 void InitSo(SO* pso);
 void OnSoAdd(SO* pso);
@@ -86,9 +91,9 @@ int  GetSoSize();
 void DeleteSo(LO* plo);
 
 // Merged Statics
-class MS;
 MS*  NewMs();
 int  GetMsSize();
+void RenderMsGlobset(MS* pms, CM* pcm, RO* pro);
 void DeleteMs(LO* plo);
 
 // Player Object
@@ -106,6 +111,7 @@ STEP*NewStep();
 void InitStep(STEP* pstep);
 int  GetStepSize();
 void UpdateStepXfWorld(STEP* pstep);
+void RenderStepSelf(STEP* pstep, CM* pcm, RO* pro);
 void CloneStep(STEP* pstep, STEP* pstepBase);
 void RotateStepToMat(STEP* pstep, glm::mat3& pmat);
 void DeleteStep(LO* plo);
@@ -146,6 +152,7 @@ GOMER*NewGomer();
 void InitGomer(GOMER* pgomer);
 int  GetGomerSize();
 void CloneGomer(GOMER* pgomer, GOMER* pgomerBase);
+void RenderGomerSelf(GOMER* pgomer, CM* pcm, RO* pro);
 void DeleteGomer(LO* plo);
 
 class UBG;
@@ -217,6 +224,7 @@ void InitJp(JP* pjp);
 int  GetJpSize();
 void CloneJp(JP* pjp, JP* pjpBase);
 void RenderJpAll(JP* pjp, CM* pcm, RO* pro);
+void RenderJpSelf(JP* pjp, CM* pcm, RO* pro);
 void DeleteJp(LO* plo);
 
 class HG;
@@ -224,6 +232,7 @@ HG*  NewHg();
 void InitHg(HG* phg);
 int  GetHgSize();
 void CloneHg(HG* phg, HG* phgBase);
+void RenderHgSelf(HG* phg, CM* pcm, RO* pro);
 void DeleteHg(LO* plo);
 
 class MECHA;
@@ -231,6 +240,7 @@ MECHA*NewMecha();
 void InitMecha(MECHA* pmecha);
 int  GetMechaSize();
 void CloneMecha(MECHA* pmecha, MECHA* pmechaBase);
+void RenderMechaSelf(MECHA* pmecha, CM* pcm, RO* pro);
 void DeleteMecha(LO* plo);
 
 class ROV;
@@ -276,6 +286,7 @@ void InitSuv(SUV* psuv);
 int  GetSuvSize();
 void UpdateSuvXfWorld(SUV* psuv);
 void CloneSuv(SUV* psuv, SUV* psuvBase);
+void RenderSuvSelf(SUV* psuv, CM* pcm, RO* pro);
 void DeleteSuv(LO* plo);
 
 class CYCLE;
@@ -307,6 +318,7 @@ RIPG*NewRipg();
 void InitRipg(RIPG* pripg);
 int  GetRipgSize();
 void CloneRipg(RIPG* pripg, RIPG* pripgBase);
+void RenderRipgSelf(RIPG* pripg, CM* pcm, RO* pro);
 void DeleteRipg(LO* plo);
 
 class WATER;
@@ -405,6 +417,7 @@ SQUISH*NewSquish();
 int  GetSquishSize();
 void LoadSquishFromBrx(SQUISH* psquish, CBinaryInputStream* pbis);
 void CloneSquish(SQUISH* psquish, SQUISH* psquishBase);
+void RenderSquishSelf(SQUISH* psquish, CM* pcm, RO* pro);
 void DeleteSquish(LO* plo);
 
 class BONE;
@@ -465,6 +478,7 @@ void InitLasen(LASEN* plasen);
 int  GetLasenSize();
 void LoadLasenFromBrx(LASEN* plasen, CBinaryInputStream* pbis);
 void CloneLasen(LASEN* plasen, LASEN* plasenBase);
+void RenderLasenSelf(LASEN* plasen, CM* pcm, RO* pro);
 void DeleteLasen(LO* plo);
 
 class CAMSEN;
@@ -472,6 +486,7 @@ CAMSEN*NewCamsen();
 void InitCamsen(CAMSEN* pcamsen);
 int  GetCamsenSize();
 void CloneCamsen(CAMSEN* pcamsen, CAMSEN* pcamsenBase);
+void RenderCamsenSelf(CAMSEN* pcamsen, CM* pcm, RO* pro);
 void DeleteCamsen(LO* plo);
 
 class PRSEN;
@@ -492,10 +507,11 @@ class IKH;
 IKH* NewIkh();
 int  GetIkhSize();
 void CloneIkh(IKH* pikh, IKH* pikhBase);
+void RenderIkhSelf(IKH* pikh, CM* pcm, RO* pro);
 void DeleteIkh(LO* plo);
 
 class TZP;
-TZP*NewTzp();
+TZP* NewTzp();
 void InitTzp(TZP* ptzp);
 int  GetTzpSize();
 void CloneTzp(TZP* ptzp, TZP* ptzpBase);
@@ -580,6 +596,7 @@ void InitFly(FLY* pfly);
 int  GetFlySize();
 void CloneFly(FLY* pfly, FLY* pflyBase);
 void LoadFlyFromBrx(FLY* pfly, CBinaryInputStream* pbis);
+void RenderFlySelf(FLY* pfly, CM* pcm, RO* pro);
 void DeleteFly(LO* plo);
 
 class RAT;
@@ -760,6 +777,7 @@ class LIKH;
 LIKH*NewLikh();
 int  GetLikhSize();
 void CloneLikh(LIKH* plikh, LIKH* plikhBase);
+void RenderLikhSelf(LIKH* plikh, CM* pcm, RO* pro);
 void DeleteLikh(LO* plo);
 
 // Check Point
@@ -856,6 +874,7 @@ void InitFlash(FLASH* pflash);
 int  GetFlashSize();
 void LoadFlashFromBrx(FLASH* pflash, CBinaryInputStream* pbis);
 void CloneFlash(FLASH* pflash, FLASH* pflashBase);
+void RenderFlashSelf(FLASH* pflash, CM* pcm, RO* pro);
 void DeleteFlash(LO* plo);
 
 class DYSH;
@@ -888,6 +907,7 @@ void OnTnRemove(TN* ptn);
 void LoadTnFromBrx(TN* ptn, CBinaryInputStream* pbis);
 void CloneTn(TN* ptn, TN* ptnBase);
 void LoadTbspFromBrx(CBinaryInputStream* pbis);
+void RenderTnSelf(TN* ptn, CM* pcm, RO* pro);
 void DeleteTn(LO* plo);
 
 class JLOC;
@@ -963,6 +983,7 @@ int  GetJacknSize();
 void LoadJacknFromBrx(JACKN* pjackn, CBinaryInputStream* pbis);
 void CloneJackn(JACKN* pjackn, JACKN* pjacknBase);
 void UpdateJackn(JACKN* pjackn, float dt);
+void RenderJacknSelf(JACKN* pjackn, CM* pcm, RO* pro);
 void DeleteJackn(LO* plo);
 
 class JACKF;
@@ -970,6 +991,7 @@ JACKF*NewJackf();
 void InitJackf(JACKF* pjackf);
 int  GetJackfSize();
 void CloneJackf(JACKF* pjackf, JACKF* pjackfBase);
+void RenderJackfSelf(JACKF* pjackf, CM* pcm, RO* pro);
 void DeleteJackf(LO* plo);
 
 // Static World
@@ -997,6 +1019,7 @@ CM*  NewCm();
 void InitCm(CM* pcm);
 int  GetCmSize();
 void CloneCm(CM* pcm, CM* pcmBase);
+void BuildCmFgfn(CM* pcm, float uFog, FGFN* pfgfn);
 void SetSwCameraFov(SW* psw, float radFOV);
 void SetSwCameraNearClip(SW* psw, float sNearClip);
 void SetSwCameraFarClip(SW* psw, float sFarClip);
@@ -1026,6 +1049,9 @@ void SetCmRgbaFog(CM* pcm, RGBA prgbaFog);
 void*GetCmMrdRatio(CM* pcm);
 void SetCmMrdRatio(CM* pcm, float rMRD);
 void DeleteCm(LO* plo);
+
+// Global pointer to SW camera object
+extern inline CM* g_pcm = nullptr;
 
 class SHAPE;
 SHAPE*NewShape();

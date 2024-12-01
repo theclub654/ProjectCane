@@ -528,39 +528,6 @@ void LoadAloAloxFromBrx(ALO* palo, CBinaryInputStream* pbis)
 	}
 }
 
-void DebugClearLightingToF32(ALO* palo)
-{
-
-}
-
-void DebugConvertLightingF32ToU8(ALO* palo)
-{
-	glm::vec3 lighting{};
-
-	float ambientSaturation = palo->psw->lsmDefault.uShadow;
-	float diffuseSaturation = (palo->psw->lsmDefault.uMidtone + palo->globset.aglob[0].asubglob[0].unSelfIllum) * 0.31;
-	
-	if (lighting.g < lighting.r) {
-		lighting.g = glm::max(lighting.b, lighting.r);
-	}
-	
-	else
-	{
-		lighting.g = glm::max(lighting.g, lighting.b);
-	}
-
-	lighting.g = 1.0 - lighting.g;
-	lighting.b = lighting.g - diffuseSaturation;
-
-	diffuseSaturation = glm::min(diffuseSaturation, lighting.g);
-	diffuseSaturation = glm::max(diffuseSaturation, diffuseSaturation * 0);
-	lighting.g = glm::min(lighting.b, ambientSaturation);
-
-	lighting.g = glm::max(lighting.g, lighting.g * 0);
-
-	//float color = (aVertexColor.r + aVertexColor.g + aVertexColor.b) * 0.3333333;
-}
-
 void UpdateAlo(ALO* palo, float dt)
 {
 
@@ -568,12 +535,12 @@ void UpdateAlo(ALO* palo, float dt)
 
 void RenderAloAll(ALO* palo, CM* pcm, RO* proDup)
 {
-
+	palo->pvtalo->pfnRenderAloSelf(palo, pcm, proDup);
 }
 
 void RenderAloSelf(ALO* palo, CM* pcm, RO* pro)
 {
-
+	palo->pvtalo->pfnRenderAloGlobset(palo, pcm, pro);
 }
 
 void RenderAloGlobset(ALO* palo, CM* pcm, RO* pro)
@@ -614,19 +581,19 @@ void DrawGlob(ALO* palo, int index)
 			if (palo->globset.aglob[i].asubglob[a].pshd->shdk == SHDK_ThreeWay)
 			{
 				glActiveTexture(GL_TEXTURE0);
-				glBindTexture(GL_TEXTURE_2D, palo->globset.aglob[i].asubglob[a].pshd->glShadowTexture);
+				glBindTexture(GL_TEXTURE_2D, palo->globset.aglob[i].asubglob[a].pshd->glShadowMap);
 
 				glActiveTexture(GL_TEXTURE1);
-				glBindTexture(GL_TEXTURE_2D, palo->globset.aglob[i].asubglob[a].pshd->glDiffuseTexture);
+				glBindTexture(GL_TEXTURE_2D, palo->globset.aglob[i].asubglob[a].pshd->glDiffuseMap);
 
 				glActiveTexture(GL_TEXTURE2);
-				glBindTexture(GL_TEXTURE_2D, palo->globset.aglob[i].asubglob[a].pshd->glSaturateTexture);
+				glBindTexture(GL_TEXTURE_2D, palo->globset.aglob[i].asubglob[a].pshd->glSaturateMap);
 			}
 
 			else
 			{
 				glActiveTexture(GL_TEXTURE1);
-				glBindTexture(GL_TEXTURE_2D, palo->globset.aglob[i].asubglob[a].pshd->glDiffuseTexture);
+				glBindTexture(GL_TEXTURE_2D, palo->globset.aglob[i].asubglob[a].pshd->glDiffuseMap);
 			}
 			
 			switch (palo->globset.aglob[i].rp)

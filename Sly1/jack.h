@@ -138,10 +138,12 @@ int  GetJacknSize();
 void LoadJacknFromBrx(JACKN* pjackn, CBinaryInputStream* pbis);
 void CloneJackn(JACKN* pjackn, JACKN* pjacknBase);
 void UpdateJackn(JACKN* pjackn, float dt);
+void RenderJacknSelf(JACKN* pjackn, CM* pcm, RO* pro);
 void DeleteJackn(LO* plo);
 
 JACKF*NewJackf();
 void InitJackf(JACKF* pjackf);
 int  GetJackfSize();
 void CloneJackf(JACKF* pjackf, JACKF* pjackfBase);
+void RenderJackfSelf(JACKF* pjackf, CM* pcm, RO* pro);
 void DeleteJackf(LO* plo);

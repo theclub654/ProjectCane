@@ -44,7 +44,7 @@ void CloneDprize(DPRIZE* pdprize, DPRIZE* pdprizeBase)
 
 void RenderDprizeAll(DPRIZE* pdprize, CM* pcm, RO* pro)
 {
-
+	RenderAloAll(pdprize, pcm, pro);
 }
 
 void DeleteDprize(LO* plo)

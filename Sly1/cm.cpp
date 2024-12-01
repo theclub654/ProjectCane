@@ -17,9 +17,13 @@ void InitCm(CM* pcm)
 	pcm->sFarFog = 20000.0;
 	pcm->uFogMax = 0.5;
 	pcm->rMRD = 1.0;
+	pcm->worldUp = glm::vec3(0.0f, 0.0f, 1.0f);
+	pcm->direction = glm::vec3(0.0);
+	pcm->right = glm::vec3(0.0);
 	pcm->mat = glm::identity <glm::mat4>();
 	RecalcCmFrustrum(pcm);
 	pcm->cpman.pvtcpman = &g_vtcpman;
+	pcm->cpman.yaw = -90;
 	InitCplcy(&pcm->cpman, pcm);
 	(pcm->cplook).pvtcplook = &g_vtcplook;
 	InitCplook(&pcm->cplook, pcm);
@@ -45,36 +49,36 @@ void CloneCm(CM* pcm, CM* pcmBase)
 	CloneLo(pcm, pcmBase);
 }
 
-void BuildCmFgfn(CM* pcm, float uFog, FGFN* pfgfn)
-{
-	FitRecipFunction(1.0, 4080.0, pcm->sFarFog / pcm->sNearFog, (1.0 - pcm->uFogMax * uFog) * 4080.0, &pfgfn->duFogBias, &pfgfn->ruFog);
-
-	pfgfn->duFogBias = pfgfn->duFogBias + 8388608.0;
-	pfgfn->duFogPlusClipBias = (pfgfn->duFogBias + 8388608.0) + 36864.0;
-	pfgfn->sNearFog = pcm->sNearFog;
-}
-
 void RecalcCmFrustrum(CM* pcm)
 {
-	pcm->yScreenRange = tanf(pcm->radFOV * 0.5);
+	pcm->yScreenRange = pcm->radFOV * 0.5;
 	pcm->xScreenRange = pcm->yScreenRange * pcm->rAspect;
-	pcm->rMRDAdjust = pcm->rMRD * (1.0 / pcm->radFOV);
+	pcm->rMRDAdjust   = pcm->rMRD * (1.0 / pcm->radFOV);
 	pcm->sRadiusNearClip = pcm->yScreenRange * sqrt(pcm->rAspect * pcm->rAspect + 1.0) * pcm->sNearClip + 1.0;
 
-	BuildSimpleProjectionMatrix(640.0 / (pcm->yScreenRange * pcm->rAspect * 4096.0), 224.0 / (pcm->yScreenRange * 4096.0), 0.0, 0.0, pcm->sNearClip, pcm->sFarClip, pcm->matProj);
+	//BuildSimpleProjectionMatrix(640.0 / (pcm->yScreenRange * pcm->rAspect * 4096.0), 224.0 / (pcm->yScreenRange * 4096.0), 0.0, 0.0, pcm->sNearClip, pcm->sFarClip, pcm->matProj);
+	
+	BuildProjectionMatrix(pcm->radFOV, g_gl.width, g_gl.height, pcm->sNearClip, pcm->sFarClip, pcm->matProj);
 	BuildCmFgfn(pcm, 1.0, &pcm->fgfn);
 	UpdateCmMat4(pcm);
 }
 
 void BuildSimpleProjectionMatrix(float rx, float ry, float dxOffset, float dyOffset, float sNear, float sFar, glm::mat4 &pmat)
 {
+
 	pmat[0][0] = rx;
 	pmat[1][1] = ry;
 	pmat[2][0] = dxOffset;
 	pmat[2][1] = dyOffset;
 	pmat[2][2] = (sNear + sFar) / (sNear - sFar);
 	pmat[2][3] = 1.0;
-	pmat[3][2] = sNear * (1.0 - pmat[2][2]);
+	pmat[3][2] = sNear * (1.0 - (sNear + sFar) / (sNear - sFar));
+}
+
+void BuildProjectionMatrix(float fov, float width, float height, float near, float far, glm::mat4& pmat)
+{
+	pmat = glm::identity <glm::mat4>();
+	pmat = glm::perspective(fov, width / height, near , far);
 }
 
 void SetSwCameraFov(SW* psw, float radFOV)
@@ -248,14 +252,17 @@ void SetCmMrdRatio(CM* pcm, float rMRD)
 	RecalcCmFrustrum(g_pcm);
 }
 
-void CombineEyeLookAtProj(glm::vec3 pposEye, glm::mat3 pmatLookAt, glm::mat4 pmatProj, glm::mat4 &pmat)
+void CombineEyeLookAtProj(glm::vec3 posEye, glm::vec3 directionEye, glm::vec3 upEye ,glm::mat4 pmatLookAt, glm::mat4 pmatProj, glm::mat4 &pmat)
 {
-	
+	pmatLookAt = glm::identity <glm::mat4>();
+	pmatLookAt = glm::lookAt(posEye, posEye + directionEye, upEye);
+	pmat = pmatProj * pmatLookAt;
 }
 
 void UpdateCmMat4(CM* pcm)
 {
-	CombineEyeLookAtProj(pcm->pos, pcm->mat, pcm->matProj, pcm->matWorldToClip);
+	BuildProjectionMatrix(pcm->radFOV, g_gl.width, g_gl.height, pcm->sNearClip, pcm->sFarClip, pcm->matProj);
+	CombineEyeLookAtProj(pcm->pos, pcm->direction, pcm->up ,pcm->mat, pcm->matProj, pcm->matWorldToClip);
 }
 
 int FInsideCmMrd(CM* pcm, float sRadius, float sMRD, float* puAlpha)

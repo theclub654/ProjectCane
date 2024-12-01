@@ -37,6 +37,11 @@ void OnRipgRemove(RIPG* pripg)
 
 }
 
+void RenderRipgSelf(RIPG* pripg, CM* pcm, RO* pro)
+{
+
+}
+
 void DeleteRipg(LO* plo)
 {
 	delete (RIPG*)plo;

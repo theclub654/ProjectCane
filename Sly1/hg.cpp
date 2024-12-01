@@ -30,6 +30,11 @@ void CloneHg(HG* phg, HG* phgBase)
 	phg->pstso = nullptr;
 }
 
+void RenderHgSelf(HG* phg, CM* pcm, RO* pro)
+{
+	RenderStepSelf(phg, pcm, pro);
+}
+
 void DeleteHg(LO* plo)
 {
 	delete (HG*)plo;

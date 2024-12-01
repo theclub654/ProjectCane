@@ -25,4 +25,5 @@ SQUISH*NewSquish();
 int  GetSquishSize();
 void LoadSquishFromBrx(SQUISH *psquish, CBinaryInputStream *pbis);
 void CloneSquish(SQUISH* psquish, SQUISH* psquishBase);
+void RenderSquishSelf(SQUISH* psquish, CM* pcm, RO* pro);
 void DeleteSquish(LO* plo);

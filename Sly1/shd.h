@@ -103,9 +103,9 @@ struct SHD : public SHDF
     int cframe;
     SAA* psaa;
 
-    GLuint glShadowTexture;
-    GLuint glDiffuseTexture;
-    GLuint glSaturateTexture;
+    GLuint glShadowMap;
+    GLuint glDiffuseMap;
+    GLuint glSaturateMap;
 };
 
 // Delete shader data

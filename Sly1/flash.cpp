@@ -32,6 +32,11 @@ void CloneFlash(FLASH* pflash, FLASH* pflashBase)
 	ClearDl(&pflash->dlChild);
 }
 
+void RenderFlashSelf(FLASH* pflash, CM* pcm, RO* pro)
+{
+	RenderAloSelf(pflash, pcm, pro);
+}
+
 void DeleteFlash(LO* plo)
 {
 	delete(FLASH*)plo;

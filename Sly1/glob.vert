@@ -7,11 +7,11 @@ layout (location = 1) in vec3 normal;
 layout (location = 2) in vec4 color;
 layout (location = 3) in vec2 uv;
 
-uniform mat4 proj;
-uniform mat4 view;
+uniform mat4 matWorldToClip;
 uniform mat4 model;
 
-uniform mat4 matWorldToClip;
+out vec4 vertexColor;
+out vec2 texcoord;
 
 struct LSM
 {
@@ -48,16 +48,13 @@ struct POINTLIGHT
     float duMidtone;
     float duHighlight;
 
-}; uniform POINTLIGHT pointlights[100]; 
-
-uniform int numDirLights;
-uniform int numPointLights;
+}; uniform POINTLIGHT pointlights[100];
 
 uniform int shdk;
 uniform float usSelfIllum;
 
-out vec4 vertexColor;
-out vec2 texcoord;
+uniform int numDirLights;
+uniform int numPointLights;
 
 out vec4 ambient;
 out vec4 illumination;
@@ -68,8 +65,6 @@ vec4 lit;
 float objectShadow;
 float objectIllum;
 
-// Multiplys a mat4 with vec3
-vec3 Multiply4Matrix3Vector(mat4 matrix4 ,vec3 vecIn);
 // Resets the model lighting
 void ClearGlobLighting();
 void ProcessGlobLighting();
@@ -92,23 +87,13 @@ void main()
         for (int i = 0; i < numDirLights; i++)
             lit += AddDirectionLight(dirlights[i]);
 
-//        for (int i = 0; i < numPointLights; i++)
-//            lit += AddPositionLight(pointlights[i]);
+//        for (int i = 0; i < 1; i++)
+//            lit += AddPositionLight(pointlights[0]);
 
         ProcessGlobLighting();
     }
 
-    gl_Position = proj * view * model * vec4(vertex, 1.0);
-    //gl_Position = matWorldToClip * model * vec4(vertex, 1.0);
-}
-
-vec3 Multiply4Matrix3Vector(mat4 matrix4 ,vec3 vecIn)
-{
-    vec4 sum;
-
-    sum = matrix4 * vec4(vecIn, 0.0);
-    
-    return vec3(sum.x, sum.y, sum.z);
+     gl_Position = matWorldToClip * model * vec4(vertex, 1.0);
 }
 
 void ClearGlobLighting()
@@ -154,16 +139,9 @@ void ProcessGlobLighting()
 
 vec4 AddDirectionLight(DIRLIGHT dirlight)
 {
-    vec3 direction = Multiply4Matrix3Vector(model, dirlight.dir);
-    
-    direction.x = length(direction);
+    vec3 Normal = normal * mat3(transpose(model));
 
-    if (direction.x < 0.0001)
-        direction = vec3(0.0);
-    else
-        direction = 1.0 / direction.x * dirlight.dir;
-
-    float diffuse = dot(normal, direction);
+    float diffuse = dot(dirlight.dir, Normal);
 
     diffuse = diffuse + diffuse * diffuse * diffuse;
    
@@ -182,8 +160,69 @@ vec4 AddDirectionLight(DIRLIGHT dirlight)
 
 vec4 AddPositionLight(POINTLIGHT pointlight)
 {
+//    vec3 posWorld     = mat3(transpose(inverse(model))) * pointlight.pos;
+//    vec3 normalWorld  = mat3(transpose(inverse(model))) * normal;
+//
+//    normalWorld.x = length(normalWorld);
+//
+//    if (posWorld.x >= 0.0001)
+//        normalWorld = 1.0 / normalWorld.x * normal;
+//
+//    vec3  direction = posWorld - vertex;
+//    float distance  = length(posWorld - vertex);
+//
+//    float diffuse = dot(direction, normal);
+//
+//    float attenuation = 1.0 / distance;
+//    diffuse *= attenuation;
+//    attenuation = attenuation * (pointlight.falloff.x + pointlight.falloff.y + pointlight.falloff.z); 
+//    diffuse = diffuse + diffuse * diffuse * diffuse;
+//    
+//    if (attenuation < 0.0)
+//        attenuation = 0.0;
+//
+//    else
+//    {
+//        if (1.0 < attenuation)
+//            attenuation = 1.0;
+//    }
+//
+//    float lightShadow  = diffuse * pointlight.ruShadow  + pointlight.duShadow;
+//    float lightMidtone = diffuse * pointlight.ruMidtone + pointlight.duMidtone;
+//
+//    diffuse = diffuse * pointlight.ruHighlight + pointlight.duHighlight;
+//
+//    diffuse = max(diffuse, 0.0) * attenuation;
+//
+//    objectShadow += max(lightShadow,  0.0) * attenuation;
+//    objectIllum  += max(lightMidtone, 0.0) * attenuation;
+//
+//    return vec4(pointlight.color, 0.0) * diffuse;
+    
+    vec3 vertexWorld  = vec3(model * vec4(vertex, 1.0));
+    vec3 aNormal   = mat3(transpose(inverse(model))) * normal;
 
-    return vec4(0.0);
+    vec3 direction = normalize(pointlight.pos - vertexWorld);
+
+    float diffuse  = dot(direction, aNormal);
+
+    float distance = length(pointlight.pos - vertexWorld);
+    
+    float attenuation = 1.0 / distance * (pointlight.falloff.x + pointlight.falloff.y + pointlight.falloff.z);
+    diffuse *= 1.0 / distance;
+    diffuse = diffuse + diffuse * diffuse * diffuse;
+
+    float lightShadow  = diffuse * pointlight.ruShadow  + pointlight.duShadow;
+    float lightMidtone = diffuse * pointlight.ruMidtone + pointlight.duMidtone;
+
+    diffuse = diffuse * pointlight.ruHighlight + pointlight.duHighlight;
+
+    diffuse = max(diffuse, 0.0) * attenuation;
+
+    objectShadow += max(lightShadow,  0.0) * attenuation;
+    objectIllum  += max(lightMidtone, 0.0) * attenuation;
+
+    return vec4(pointlight.color, 0.0) * diffuse;
 }
 
 void AddFrustrumLight(vec3 color, mat4 matFrustum, vec3 direction, vec3 falloff)

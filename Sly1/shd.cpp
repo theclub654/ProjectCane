@@ -288,15 +288,15 @@ void LoadTexturesFromBrx(CBinaryInputStream* pbis)
         {
             case SHDK_ThreeWay:
             {
-                MakeTexture(g_ashd[i].glShadowTexture,  g_ashd[i].atex[0].clutIndex[0], g_ashd[i].atex[0].bmpIndex[0], pbis);
-                MakeTexture(g_ashd[i].glDiffuseTexture, g_ashd[i].atex[0].clutIndex[1], g_ashd[i].atex[0].bmpIndex[0], pbis);
+                MakeTexture(g_ashd[i].glShadowMap,  g_ashd[i].atex[0].clutIndex[0], g_ashd[i].atex[0].bmpIndex[0], pbis);
+                MakeTexture(g_ashd[i].glDiffuseMap, g_ashd[i].atex[0].clutIndex[1], g_ashd[i].atex[0].bmpIndex[0], pbis);
 
                 SHD *pshd = PshdFindShader(g_ashd[i].oidAltSat);
 
                 if (pshd == nullptr)
-                    MakeTexture(g_ashd[i].glSaturateTexture, g_ashd[i].atex[0].clutIndex[2], g_ashd[i].atex[0].bmpIndex[0], pbis);
+                    MakeTexture(g_ashd[i].glSaturateMap, g_ashd[i].atex[0].clutIndex[2], g_ashd[i].atex[0].bmpIndex[0], pbis);
                 else
-                    MakeTexture(pshd->glSaturateTexture, pshd->atex[0].clutIndex[2], pshd->atex[0].bmpIndex[0], pbis);
+                    MakeTexture(pshd->glSaturateMap, pshd->atex[0].clutIndex[2], pshd->atex[0].bmpIndex[0], pbis);
                 break;
             }
 
@@ -304,20 +304,20 @@ void LoadTexturesFromBrx(CBinaryInputStream* pbis)
             case SHDK_Background:
             case SHDK_MurkFill:
             case SHDK_Max:
-                MakeTexture(g_ashd[i].glDiffuseTexture, g_ashd[i].atex[0].clutIndex[0], g_ashd[i].atex[0].bmpIndex[0], pbis);
+                MakeTexture(g_ashd[i].glDiffuseMap, g_ashd[i].atex[0].clutIndex[0], g_ashd[i].atex[0].bmpIndex[0], pbis);
             break;
 
             case SHDK_Shadow:
             case SHDK_SpotLight:
-                MakeTexture(g_ashd[i].glDiffuseTexture, g_ashd[i].atex[0].clutIndex[0], g_ashd[i].atex[0].bmpIndex[0], pbis);
+                MakeTexture(g_ashd[i].glDiffuseMap, g_ashd[i].atex[0].clutIndex[0], g_ashd[i].atex[0].bmpIndex[0], pbis);
             break;
 
             case SHDK_ProjectedVolume:
-                MakeTexture(g_ashd[i].glDiffuseTexture, g_ashd[i].atex[0].clutIndex[0], g_ashd[i].atex[0].bmpIndex[0], pbis);
+                MakeTexture(g_ashd[i].glDiffuseMap, g_ashd[i].atex[0].clutIndex[0], g_ashd[i].atex[0].bmpIndex[0], pbis);
             break;
 
             case SHDK_CreateTexture:
-                MakeTexture(g_ashd[i].glDiffuseTexture, g_ashd[i].atex[0].clutIndex[0], g_ashd[i].atex[0].bmpIndex[0], pbis);
+                MakeTexture(g_ashd[i].glDiffuseMap, g_ashd[i].atex[0].clutIndex[0], g_ashd[i].atex[0].bmpIndex[0], pbis);
             break;
         }
     }

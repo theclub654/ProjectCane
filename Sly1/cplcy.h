@@ -1,5 +1,6 @@
 #pragma once
 #include "lo.h"
+#include "glob.h"
 
 enum CPMT
 {
@@ -89,6 +90,8 @@ struct CPMAN : public CPLCY
     CPMT cpmt;
     struct ALO* paloOrbit;
     int cframeStatus;
+    float yaw;
+    float pitch;
 };
 struct CPLOOK : public CPLCY
 {
@@ -187,13 +190,17 @@ struct VTCPTN
 // Camera Object
 class CM : public LO
 {
-public:
+    public:
 
     // Camera psoition
     glm::vec3 pos;
+    glm::vec3 direction;
+    glm::vec3 up;
+    glm::vec3 right;
+    glm::vec3 worldUp;
     glm::vec4 anormalFrustrumTranspose[3];
     // Camera lookAt
-    glm::mat3 mat;
+    glm::mat4 mat;
     float rMRDAdjust;
     // Camera projection 
     glm::mat4 matProj;
@@ -262,6 +269,7 @@ public:
 void InitCplcy(CPLCY* pcplcy, CM* pcm);
 void InitCplook(CPLOOK* pcplook, CM* pcm);
 void InitCpalign(CPALIGN* pcpalign, CM* pcm);
+void BuildCmFgfn(CM* pcm, float uFog, FGFN* pfgfn);
 // Update manual camera
 void UpdateCpman(GLFWwindow* window, CPMAN* pcpman, CPDEFI* pcpdefi, float dt);
 

@@ -73,4 +73,5 @@ void InitFly(FLY* pfly);
 int  GetFlySize();
 void CloneFly(FLY* pfly, FLY* pflyBase);
 void LoadFlyFromBrx(FLY* pfly, CBinaryInputStream* pbis);
+void RenderFlySelf(FLY* pfly, CM* pcm, RO* pro);
 void DeleteFly(LO* plo);

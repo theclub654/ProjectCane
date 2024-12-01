@@ -33,4 +33,5 @@ HG*  NewHg();
 void InitHg(HG* phg);
 int  GetHgSize();
 void CloneHg(HG* phg, HG* phgBase);
+void RenderHgSelf(HG* phg, CM* pcm, RO* pro);
 void DeleteHg(LO* plo);

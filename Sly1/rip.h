@@ -57,4 +57,5 @@ void InitRipg(RIPG *pripg); // NOT FINISHED
 int  GetRipgSize();
 void CloneRipg(RIPG* pripg, RIPG* pripgBase);
 void OnRipgRemove(RIPG *pripg); // NOT FINISHED
+void RenderRipgSelf(RIPG* pripg, CM* pcm, RO* pro);
 void DeleteRipg(LO* plo);

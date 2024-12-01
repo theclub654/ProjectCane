@@ -32,7 +32,7 @@ void CloneUbg(UBG* pubg, UBG* pubgBase)
 
 void RenderUbpAll(UBP* pubp, CM* pcm, RO* pro)
 {
-
+	RenderUbpAll(pubp, pcm, pro);
 }
 
 void DeleteUbg(LO* plo)

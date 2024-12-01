@@ -2,12 +2,9 @@
 #include "bis.h"
 #include "gl.h"
 #include "util.h"
-
-typedef int GRFGLOB;
-
-class ALO;
-class LIGHT;
 // Glob is just another word for model.
+
+extern class CM* g_pcm;
 
 enum TWPS 
 {
@@ -123,6 +120,14 @@ struct GLEAM
 	CLQC clqc;
 };
 
+struct FGFN
+{
+	float duFogBias;
+	float ruFog;
+	float sNearFog;
+	float duFogPlusClipBias;
+};
+
 struct SUBGLOB // NOT DONE
 {
 	GLuint VAO;
@@ -132,7 +137,7 @@ struct SUBGLOB // NOT DONE
 	glm::vec3 posCenter; // Submodel orgin
 	float sRadius;
 
-	std::vector <VERTICE> vertices;
+	std::vector <VERTICE>  vertices;
 	std::vector <uint16_t> indices;
 
 	// Object ambient lighting
@@ -170,9 +175,9 @@ struct GLOB // NOT DONE
 	RTCK rtck;
 	struct SAA* psaa;
 	float uFog;
-	//FGFN fgfn;
+	FGFN fgfn;
 	float rSubglobRadius;
-	struct WRBG *pwrbg;
+	struct WRBG* pwrbg;
 	// Number of submodels for model
 	int csubglob;
 	std::vector<SUBGLOB> asubglob;
@@ -180,7 +185,7 @@ struct GLOB // NOT DONE
 	//SUBCEL *asubcel;
 	// Instanced object matrix container
 	std::vector <glm::mat4> pdmat;
-	struct BLOT *pblot;
+	struct BLOT* pblot;
 	OID oid;
 	char* pchzName;
 }; // NOT DONE
@@ -198,7 +203,7 @@ struct GLOBI // NOT DONE
 struct GLOBSET // NOT DONE
 {
 	int cbnd;
-	struct BND *abnd;
+	struct BND* abnd;
 	std::vector <OID> mpibndoid;
 	uint64_t cglob;
 	std::vector <GLOB> aglob;
@@ -208,7 +213,7 @@ struct GLOBSET // NOT DONE
 	int cpose;
 	std::vector <float> agPoses;
 	std::vector <float> agPosesOrig;
-	struct WRBG *pwrbgFirst;
+	struct WRBG* pwrbgFirst;
 	int cpsaa;
 	struct SAA** apsaa;
 };

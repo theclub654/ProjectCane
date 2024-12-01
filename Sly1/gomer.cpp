@@ -30,6 +30,11 @@ void CloneGomer(GOMER* pgomer, GOMER* pgomerBase)
 	pgomer->pstso = nullptr;
 }
 
+void RenderGomerSelf(GOMER* pgomer, CM* pcm, RO* pro)
+{
+	RenderStepSelf(pgomer, pcm, pro);
+}
+
 void DeleteGomer(LO* plo)
 {
 	delete (GOMER*)plo;

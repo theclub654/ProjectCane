@@ -67,7 +67,7 @@ void CloneVolzp(VOLZP* pvolzp, VOLZP* pvolzpBase)
 
 void RenderTzpAll(TZP* ptzp, CM* pcm, RO* pro)
 {
-
+	RenderAloAll(ptzp, pcm, pro);
 }
 
 void DeleteVolzp(LO* plo)

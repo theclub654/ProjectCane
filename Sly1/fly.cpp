@@ -41,6 +41,11 @@ void LoadFlyFromBrx(FLY* pfly, CBinaryInputStream* pbis)
 	LoadSoFromBrx(pfly, pbis);
 }
 
+void RenderFlySelf(FLY* pfly, CM* pcm, RO* pro)
+{
+
+}
+
 void DeleteFly(LO* plo)
 {
 	delete (FLY*)plo;

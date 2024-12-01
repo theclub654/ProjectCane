@@ -192,7 +192,6 @@
     <ClInclude Include="flash.h" />
     <ClInclude Include="fly.h" />
     <ClInclude Include="font.h" />
-    <ClInclude Include="freecamera.h" />
     <ClInclude Include="freeze.h" />
     <ClInclude Include="frzg.h" />
     <ClInclude Include="geom.h" />
@@ -333,7 +332,6 @@
     <ClCompile Include="flash.cpp" />
     <ClCompile Include="fly.cpp" />
     <ClCompile Include="font.cpp" />
-    <ClCompile Include="freecamera.cpp" />
     <ClCompile Include="freeze.cpp" />
     <ClCompile Include="frzg.cpp" />
     <ClCompile Include="geom.cpp" />

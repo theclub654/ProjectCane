@@ -78,6 +78,11 @@ void CloneLasen(LASEN* plasen, LASEN* plasenBase)
 	plasen->pstso = nullptr;
 }
 
+void RenderLasenSelf(LASEN* plasen, CM* pcm, RO* pro)
+{
+	RenderSoSelf(plasen, pcm, pro);
+}
+
 void DeleteLasen(LO* plo)
 {
 	delete(LASEN*)plo;
@@ -91,6 +96,7 @@ CAMSEN* NewCamsen()
 void InitCamsen(CAMSEN* pcamsen)
 {
 	InitSensor(pcamsen);
+	pcamsen->csdts = CSDTS_Nil;
 }
 
 int GetCamsenSize()
@@ -111,6 +117,11 @@ void CloneCamsen(CAMSEN* pcamsen, CAMSEN* pcamsenBase)
 	pcamsen->pxa = nullptr;
 	pcamsen->grfpvaXpValid = 0;
 	pcamsen->pstso = nullptr;
+}
+
+void RenderCamsenSelf(CAMSEN* pcamsen, CM* pcm, RO* pro)
+{
+	pcamsen->pvtalo->pfnRenderAloGlobset(pcamsen, pcm, pro);
 }
 
 void DeleteCamsen(LO* plo)

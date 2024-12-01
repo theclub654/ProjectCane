@@ -420,9 +420,6 @@
     <ClInclude Include="asega.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="freecamera.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="glshaders.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -837,9 +834,6 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="asega.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="freecamera.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="glshaders.cpp">

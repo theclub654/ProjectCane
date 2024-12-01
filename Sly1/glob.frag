@@ -1,5 +1,9 @@
 #version 330 core
 
+#define TWPS_Shadow 0
+#define TWPS_ShadowMidtone 1
+#define TWPS_ShadowMidtoneSaturate 2
+
 #define SHDK_ThreeWay 0
 #define SHDK_Prelit 1
 #define SHDK_Shadow 2
@@ -13,13 +17,9 @@
 #define SHDK_MurkFill 10
 #define SHDK_Max 11
 
-#define TWPS_Shadow 0
-#define TWPS_ShadowMidtone 1
-#define TWPS_ShadowMidtoneSaturate 2
-
-uniform sampler2D shadowTexture;
-uniform sampler2D diffuseTexture;
-uniform sampler2D saturateTexture;
+uniform sampler2D shadowMap;
+uniform sampler2D diffuseMap;
+uniform sampler2D saturateMap;
 
 in vec4 vertexColor;
 in vec2 texcoord;
@@ -65,9 +65,9 @@ void DrawThreeWay()
     vec4 pixel = vec4(0.0);
     int twps = 2;
 
-    vec4 shadow   = texture2D(shadowTexture,   texcoord);
-    vec4 diffuse  = texture2D(diffuseTexture,  texcoord);
-    vec4 saturate = texture2D(saturateTexture, texcoord);
+    vec4 shadow   = texture2D(shadowMap,   texcoord);
+    vec4 diffuse  = texture2D(diffuseMap,  texcoord);
+    vec4 saturate = texture2D(saturateMap, texcoord);
 
     switch (twps)
     {
@@ -100,7 +100,7 @@ void DrawPrelit()
 {
     vec4 pixel = vec4(0.0);
 
-    vec4 diffuseTexel  = texture(diffuseTexture, texcoord);
+    vec4 diffuseTexel  = texture(diffuseMap, texcoord);
     pixel   = diffuseTexel * vertexColor;
     pixel.a = diffuseTexel.a;
 
@@ -111,7 +111,7 @@ void DrawVolume()
 {
     vec4 pixel = vec4(0.0);
 
-    vec4 diffuseTexel = texture(diffuseTexture, texcoord);
+    vec4 diffuseTexel = texture(diffuseMap, texcoord);
     pixel = diffuseTexel;
 
     gl_FragColor = pixel;

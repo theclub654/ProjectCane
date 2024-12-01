@@ -1,7 +1,6 @@
 #ifndef MOUSE_H
 #define MOUSE_H
-
-#include "freecamera.h"
+#include <GLFW/glfw3.h>
 
 /*
     mouse class to handle mouse callbacks

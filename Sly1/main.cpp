@@ -8,10 +8,10 @@ GLSHADER glGlobShader;
 GLSHADER glCollisionShader;
 std::string file;
 CTransition g_transition;
-FREECAMERA  g_freecamera(glm::vec3{0.0});
 bool firstClick = true;
 float deltaTime = 0.0f;
 float lastFrame = 0.0f;
+std::vector <RO> renderBuffer;
 
 int main(int cphzArgs, char* aphzArgs[])
 {
@@ -42,24 +42,18 @@ int main(int cphzArgs, char* aphzArgs[])
 
 		// Draws everything into the framebuffer
 		RenderMenuGui(g_psw);
-
-		ProcessInput(g_gl.window, deltaTime);
 		
 		if (g_psw != nullptr)
 		{
+			UpdateCpman(g_gl.window, &g_pcm->cpman, nullptr, deltaTime);
+			//UpdateSw(g_psw, deltaTime);
+			//RenderSwAll(g_psw, g_pcm);
+			
 			if (fRenderModels != 0)
-			{
-				//UpdateCpman(g_gl.window, &g_pcm->cpman, nullptr, deltaTime);
-				g_freecamera.UpdateViewProjMatrix(g_gl.height, g_gl.width, glGlobShader);
-				RenderSwAll(g_psw, g_pcm);
 				DrawSwAll(g_psw, g_gl.window);
-			}
 
 			if (fRenderCollision != 0)
-			{
-				g_freecamera.UpdateViewProjMatrix(g_gl.height, g_gl.width, glCollisionShader);
 				DrawSwCollisionAll();
-			}
 		}
 
 		ImGui::Render();
@@ -101,49 +95,11 @@ void Startup()
 
 	// Initialize texture samplers for glob shader
 	glGlobShader.Use();
-	glUniform1i(glGetUniformLocation(glGlobShader.ID, "shadowTexture"),   0);
-	glUniform1i(glGetUniformLocation(glGlobShader.ID, "diffuseTexture"),  1);
-	glUniform1i(glGetUniformLocation(glGlobShader.ID, "saturateTexture"), 2);
+	glUniform1i(glGetUniformLocation(glGlobShader.ID, "shadowMap"),   0);
+	glUniform1i(glGetUniformLocation(glGlobShader.ID, "diffuseMap"),  1);
+	glUniform1i(glGetUniformLocation(glGlobShader.ID, "saturateMap"), 2);
 
 	std::cout << "Sly Cooper 2002 Sony Computer Entertainment America & Sucker Punch Productions\n";
 	SetPhase(PHASE_Startup);
 	StartupBrx();
-}
-
-void ProcessInput(GLFWwindow* window, double dt)
-{
-	float velocity = (float)dt * 10000.0;
-
-	if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
-		g_freecamera.cameraPos += g_freecamera.cameraDirection * velocity;
-
-	if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
-		g_freecamera.cameraPos -= g_freecamera.cameraDirection * velocity;
-
-	if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
-		g_freecamera.cameraPos += g_freecamera.cameraRight * velocity;
-
-	if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
-		g_freecamera.cameraPos -= g_freecamera.cameraRight * velocity;
-
-	if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS)
-		g_freecamera.cameraPos += g_freecamera.cameraUp * velocity;
-
-	if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS)
-		g_freecamera.cameraPos -= g_freecamera.cameraUp * velocity;
-
-	if (glfwGetKey(window, GLFW_KEY_R) == GLFW_PRESS)
-		g_freecamera.cameraPos = glm::vec3{ 0.0 };
-
-
-	if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS)
-	{
-		glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_HIDDEN);
-		g_freecamera.UpdateCameraDirection(MOUSE::GetDX(), MOUSE::GetDY());
-	}
-
-	double scrollDy = MOUSE::GetScrollDY();
-
-	if (scrollDy != 0)
-		g_freecamera.UpdateCameraFov(scrollDy);
 }

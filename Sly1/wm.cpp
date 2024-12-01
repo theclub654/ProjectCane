@@ -23,7 +23,7 @@ void CloneWm(WM* pwm, WM* pwmBase)
 
 void RenderWmAll(WM* pwm, CM* pcm, RO* pro)
 {
-
+	RenderAloAll(pwm, pcm, pro);
 }
 
 void DeleteWm(LO* plo)

@@ -102,6 +102,11 @@ void UpdateJackn(JACKN* pjackn, float dt)
 	pjackn->pvtalo->pfnTranslateAloToPos(pjackn, pjackn->xf.pos);
 }
 
+void RenderJacknSelf(JACKN* pjackn, CM* pcm, RO* pro)
+{
+
+}
+
 void DeleteJackn(LO* plo)
 {
 	delete(JACKN*)plo;
@@ -131,6 +136,11 @@ void CloneJackf(JACKF* pjackf, JACKF* pjackfBase)
 	CloneLo(pjackf, pjackfBase);
 
 	ClearDl(&pjackf->dlChild);
+}
+
+void RenderJackfSelf(JACKF* pjackf, CM* pcm, RO* pro)
+{
+	RenderAloSelf(pjackf, pcm, pro);
 }
 
 void DeleteJackf(LO* plo)
