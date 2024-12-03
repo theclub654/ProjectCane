@@ -32,9 +32,9 @@ void DeleteSwCollision();
 
 struct LSM
 {
-	// Ambient saturation
+	// Ambient strength
 	float uShadow;
-	// Diffuse saturation
+	// Diffuse strength
 	float uMidtone;
 };
 struct ISI

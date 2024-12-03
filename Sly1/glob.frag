@@ -88,7 +88,7 @@ void DrawThreeWay()
         pixel += shadow   * ambient;
         pixel += diffuse  * illumination;
         pixel += saturate * light;
-    
+
         pixel.a = vertexColor.a;
         break;
     }
@@ -101,6 +101,7 @@ void DrawPrelit()
     vec4 pixel = vec4(0.0);
 
     vec4 diffuseTexel  = texture(diffuseMap, texcoord);
+    
     pixel   = diffuseTexel * vertexColor;
     pixel.a = diffuseTexel.a;
 

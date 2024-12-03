@@ -241,15 +241,15 @@ void LoadShadersFromBrx(CBinaryInputStream *pbis)
 		g_ashd[i].grfshd = pbis->U8Read();
 		g_ashd[i].oid    = (OID)pbis->S16Read();
 
-        g_ashd[i].rgba.bRed   = pbis->U8Read();
-        g_ashd[i].rgba.bGreen = pbis->U8Read();
-        g_ashd[i].rgba.bBlue  = pbis->U8Read();
-        g_ashd[i].rgba.bAlpha = pbis->U8Read() * 2;
+        g_ashd[i].rgba.r = (pbis->U8Read() * 2.0f) / 510;
+        g_ashd[i].rgba.g = (pbis->U8Read() * 2.0f) / 510;
+        g_ashd[i].rgba.b = (pbis->U8Read() * 2.0f) / 510;
+        g_ashd[i].rgba.a = (pbis->U8Read() * 2.0f) / 510;
 
-        g_ashd[i].rgbaVolume.bRed   = pbis->U8Read();
-        g_ashd[i].rgbaVolume.bGreen = pbis->U8Read();
-        g_ashd[i].rgbaVolume.bBlue  = pbis->U8Read();
-        g_ashd[i].rgbaVolume.bAlpha = pbis->U8Read() * 2;
+        g_ashd[i].rgbaVolume.r = pbis->U8Read();
+        g_ashd[i].rgbaVolume.g = pbis->U8Read();
+        g_ashd[i].rgbaVolume.b = pbis->U8Read();
+        g_ashd[i].rgbaVolume.a = pbis->U8Read() * 2;
 
 		g_ashd[i].grfzon    = pbis->U32Read();
 		g_ashd[i].oidAltSat = (OID)pbis->U16Read();
@@ -273,10 +273,10 @@ void LoadTexturesFromBrx(CBinaryInputStream* pbis)
 {
     for (uint16_t i = 0; i < 0x100; i += 0x20) {
         for (uint16_t j = i; j < i + 8; j++) {
-            csm1ClutIndices[j + 0x0]  = static_cast<uint8_t>(j) + 0x0;
-            csm1ClutIndices[j + 0x8]  = static_cast<uint8_t>(j) + 0x10;
-            csm1ClutIndices[j + 0x10] = static_cast<uint8_t>(j) + 0x8;
-            csm1ClutIndices[j + 0x18] = static_cast<uint8_t>(j) + 0x18;
+            csm1ClutIndices[j + 0x0]  = static_cast <uint8_t>(j) + 0x0;
+            csm1ClutIndices[j + 0x8]  = static_cast <uint8_t>(j) + 0x10;
+            csm1ClutIndices[j + 0x10] = static_cast <uint8_t>(j) + 0x8;
+            csm1ClutIndices[j + 0x18] = static_cast <uint8_t>(j) + 0x18;
         }
     }
 
@@ -414,7 +414,6 @@ void MakeTexture(GLuint &textureReference, int16_t clutIndex, int16_t bmpIndex, 
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
     
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, texture.data());

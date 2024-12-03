@@ -39,7 +39,7 @@ int main(int cphzArgs, char* aphzArgs[])
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		// Activate Depth testing
 		glEnable(GL_DEPTH_TEST);
-
+		
 		// Draws everything into the framebuffer
 		RenderMenuGui(g_psw);
 		

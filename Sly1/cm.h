@@ -38,8 +38,8 @@ void*GetCmRgbaFog(CM* pcm);
 void SetCmRgbaFog(CM* pcm, RGBA prgbaFog);
 void*GetCmMrdRatio(CM* pcm);
 void SetCmMrdRatio(CM* pcm, float rMRD);
-// Combines the projection matrix and lookat matrix
-void CombineEyeLookAtProj(glm::vec3 posEye, glm::vec3 directionEye, glm::vec3 upEye, glm::mat4 pmatLookAt, glm::mat4 pmatProj, glm::mat4& pmat);
+// Builds lookat matrix
+void BuildLookAt(glm::vec3 posEye, glm::vec3 directionEye, glm::vec3 upEye, glm::mat4& pmatLookAt);
 // Updates a camera matrix
 void UpdateCmMat4(CM* pcm);
 // Returns whether a object is in the camera view or not 

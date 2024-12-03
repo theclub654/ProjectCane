@@ -200,7 +200,7 @@ class CM : public LO
     glm::vec3 worldUp;
     glm::vec4 anormalFrustrumTranspose[3];
     // Camera lookAt
-    glm::mat4 mat;
+    glm::mat4 lookAt;
     float rMRDAdjust;
     // Camera projection 
     glm::mat4 matProj;

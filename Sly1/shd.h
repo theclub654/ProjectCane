@@ -79,8 +79,8 @@ struct SHDF
     SHDK shdk;
     byte grfshd;
     OID oid;
-    RGBA rgba;
-    RGBA rgbaVolume;
+    glm::vec4 rgba;
+    glm::vec4 rgbaVolume;
     uint32_t grfzon;
     OID oidAltSat;
     byte rp;

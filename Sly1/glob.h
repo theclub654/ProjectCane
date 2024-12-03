@@ -73,7 +73,7 @@ struct VERTICE
 {
 	glm::vec3 pos;
 	glm::vec3 normal;
-	RGBA color;
+	glm::vec4 color;
 	glm::vec2 uv;
 };
 
@@ -220,7 +220,5 @@ struct GLOBSET // NOT DONE
 
 // Loads 3D model data from binary file
 void LoadGlobsetFromBrx(GLOBSET* pglobset, CBinaryInputStream* pbis, ALO* palo); // NOT FINISHED
-// Converts strips to tri lists
-void BuildSubGlob(GLOBSET *pglobset, SHD* pshd, std::vector <VERTICE> &vertices , std::vector <glm::vec3> &vertexes, std::vector <glm::vec3> &normals, std::vector <RGBA> &vertexColors, std::vector <glm::vec2> &texcoords, std::vector <VTXFLG> &indexes, std::vector <uint16_t> &indices);
-// Store 3D models in VRAM
-void MakeGLBuffers(SUBGLOB* subglob);
+// Converts strips to tri lists and stores 3D sub model in VRAM
+void BuildSubGlob(SUBGLOB* subglob, SHD* pshd, std::vector <glm::vec3> positions, std::vector <glm::vec3> normals, std::vector <glm::vec4> colors, std::vector <glm::vec2> texcoords, std::vector <VTXFLG> indexes);

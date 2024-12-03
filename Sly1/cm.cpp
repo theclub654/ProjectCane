@@ -20,7 +20,7 @@ void InitCm(CM* pcm)
 	pcm->worldUp = glm::vec3(0.0f, 0.0f, 1.0f);
 	pcm->direction = glm::vec3(0.0);
 	pcm->right = glm::vec3(0.0);
-	pcm->mat = glm::identity <glm::mat4>();
+	pcm->lookAt = glm::identity <glm::mat4>();
 	RecalcCmFrustrum(pcm);
 	pcm->cpman.pvtcpman = &g_vtcpman;
 	pcm->cpman.yaw = -90;
@@ -78,7 +78,7 @@ void BuildSimpleProjectionMatrix(float rx, float ry, float dxOffset, float dyOff
 void BuildProjectionMatrix(float fov, float width, float height, float near, float far, glm::mat4& pmat)
 {
 	pmat = glm::identity <glm::mat4>();
-	pmat = glm::perspective(fov, width / height, near , far);
+	pmat = glm::perspective(fov, width / height, near , 100000000.f);
 }
 
 void SetSwCameraFov(SW* psw, float radFOV)
@@ -137,7 +137,7 @@ void SetCmPosMat(CM* pcm, glm::vec3* ppos, glm::mat3* pmat)
 		pcm->pos = *ppos;
 
 	if (pmat != nullptr)
-		pcm->mat = *pmat;
+		pcm->lookAt = *pmat;
 
 	UpdateCmMat4(pcm);
 
@@ -156,7 +156,7 @@ void SetCmPosMat(CM* pcm, glm::vec3* ppos, glm::mat3* pmat)
 
 void* GetCmMat(CM* pcm)
 {
-	return &pcm->mat;
+	return &pcm->lookAt;
 }
 
 void SetCmMat(CM* pcm, glm::mat3* pmat)
@@ -252,17 +252,16 @@ void SetCmMrdRatio(CM* pcm, float rMRD)
 	RecalcCmFrustrum(g_pcm);
 }
 
-void CombineEyeLookAtProj(glm::vec3 posEye, glm::vec3 directionEye, glm::vec3 upEye ,glm::mat4 pmatLookAt, glm::mat4 pmatProj, glm::mat4 &pmat)
+void BuildLookAt(glm::vec3 posEye, glm::vec3 directionEye, glm::vec3 upEye ,glm::mat4 &pmatLookAt)
 {
 	pmatLookAt = glm::identity <glm::mat4>();
 	pmatLookAt = glm::lookAt(posEye, posEye + directionEye, upEye);
-	pmat = pmatProj * pmatLookAt;
 }
 
 void UpdateCmMat4(CM* pcm)
 {
 	BuildProjectionMatrix(pcm->radFOV, g_gl.width, g_gl.height, pcm->sNearClip, pcm->sFarClip, pcm->matProj);
-	CombineEyeLookAtProj(pcm->pos, pcm->direction, pcm->up ,pcm->mat, pcm->matProj, pcm->matWorldToClip);
+	BuildLookAt(pcm->pos, pcm->direction, pcm->up ,pcm->lookAt);
 }
 
 int FInsideCmMrd(CM* pcm, float sRadius, float sMRD, float* puAlpha)
@@ -275,13 +274,13 @@ void DrawCm(CM* pcm, GLSHADER shader)
 {
 	shader.Use();
 
-	// Sends view matrix to GPU shader
-	int matWorldToClipLocation = glGetUniformLocation(shader.ID, "matWorldToClip");
-	glUniformMatrix4fv(matWorldToClipLocation, 1, GL_FALSE, glm::value_ptr(pcm->matWorldToClip));
+	// Sends proj matrix to GPU shader
+	int projLocation = glGetUniformLocation(shader.ID, "proj");
+	glUniformMatrix4fv(projLocation, 1, GL_FALSE, glm::value_ptr(pcm->matProj));
 
-	//// Sends projection matrix to GPU shader
-	int matClipToWorldLoation = glGetUniformLocation(shader.ID, "matClipToWorld");
-	glUniformMatrix4fv(matClipToWorldLoation, 1, GL_FALSE, glm::value_ptr(pcm->matClipToWorld));
+	// Sends view matrix to GPU shader
+	int viewLocation = glGetUniformLocation(shader.ID, "view");
+	glUniformMatrix4fv(viewLocation, 1, GL_FALSE, glm::value_ptr(pcm->lookAt));
 }
 
 void DeleteCm(LO* plo)
