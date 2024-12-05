@@ -178,10 +178,10 @@ void LoadGlobsetFromBrx(GLOBSET* pglobset ,CBinaryInputStream* pbis, ALO* palo)
                 //std::cout << "Vertex Colors: " << std::hex << pbis->file.tellg() << "\n";
                 for (int d = 0; d < vertexColorCount; d++)
                 {
-                    vertexColors[d].r = (pbis->U8Read() * 2.0f) / 510;
-                    vertexColors[d].g = (pbis->U8Read() * 2.0f) / 510;
-                    vertexColors[d].b = (pbis->U8Read() * 2.0f) / 510;
-                    vertexColors[d].a = (pbis->U8Read() * 2.0f) / 510;
+                    vertexColors[d].r = (pbis->U8Read() * 2.0f) / 0x1FE;
+                    vertexColors[d].g = (pbis->U8Read() * 2.0f) / 0x1FE;
+                    vertexColors[d].b = (pbis->U8Read() * 2.0f) / 0x1FE;
+                    vertexColors[d].a = (pbis->U8Read() * 2.0f) / 0x1FE;
                 }
 
                 //std::cout << "Texcoords: " << std::hex << pbis->file.tellg() << "\n";
@@ -201,7 +201,7 @@ void LoadGlobsetFromBrx(GLOBSET* pglobset ,CBinaryInputStream* pbis, ALO* palo)
                 pglobset->aglob[i].asubglob[a].pshd = &g_ashd[pbis->U16Read()];
                 pglobset->aglob[i].asubglob[a].unSelfIllum = (pbis->U8Read() * 0x7FA6) / 0xFF;
                 pglobset->aglob[i].asubglob[a].cibnd = pbis->U8Read();
-
+                
                 pbis->file.seekg(pglobset->aglob[i].asubglob[a].cibnd, SEEK_CUR);
                 pbis->file.seekg(vertexCount * pglobset->aglob[i].asubglob[a].cibnd * 4, SEEK_CUR);
                 
@@ -299,20 +299,9 @@ void BuildSubGlob(SUBGLOB* subglob, SHD *pshd, std::vector <glm::vec3> positions
             vertice.normal = normals[indexes[i].inormal];
 
         if ((indexes[i].bMisc & 0x7F) == 0x7F)
-        {
-            vertice.color.r = pshd->rgba.r;
-            vertice.color.g = pshd->rgba.g;
-            vertice.color.b = pshd->rgba.b;
-            vertice.color.a = pshd->rgba.a;
-        }
-
+            vertice.color = pshd->rgba;
         else
-        {
-            vertice.color.r = ((pshd->rgba.r * colors[indexes[i].bMisc & 0x7F].r));
-            vertice.color.g = ((pshd->rgba.g * colors[indexes[i].bMisc & 0x7F].g));
-            vertice.color.b = ((pshd->rgba.b * colors[indexes[i].bMisc & 0x7F].b));
-            vertice.color.a = ((pshd->rgba.b * colors[indexes[i].bMisc & 0x7F].a));
-        }
+            vertice.color = pshd->rgba * colors[indexes[i].bMisc & 0x7F];
 
         if (indexes[i].iuv == 0xFF)
             vertice.uv = glm::vec2{0.0};
@@ -321,7 +310,6 @@ void BuildSubGlob(SUBGLOB* subglob, SHD *pshd, std::vector <glm::vec3> positions
 
         subglob->vertices.push_back(vertice);
     }
-
     
     uint32_t idx = 0;
     for (int i = 2; i < indexes.size(); i++)

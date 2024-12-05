@@ -73,8 +73,6 @@ void ProcessGlobLighting();
 vec4 AddDirectionLight(DIRLIGHT dirlight);
 // NOT DONE
 vec4 AddPositionLight(POINTLIGHT pointlight);
-// NOT DONE
-void AddFrustrumLight(vec3 color, mat4 matFrustum, vec3 direction, vec3 falloff);
 
 void main()
 {
@@ -88,8 +86,8 @@ void main()
         for (int i = 0; i < numDirLights; i++)
             lit += AddDirectionLight(dirlights[i]);
 
-//        for (int i = 0; i < 1; i++)
-//            lit += AddPositionLight(pointlights[0]);
+        for (int i = 0; i < numPointLights; i++)
+            lit += AddPositionLight(pointlights[i]);
 
         ProcessGlobLighting();
     }
@@ -137,7 +135,6 @@ void ProcessGlobLighting()
     light.r = min(lit.r, 1.0) * intensity;
     light.g = min(lit.g, 1.0) * intensity;
     light.b = min(lit.b, 1.0) * intensity;
-    light.a = litG * 255.0;
 }
 
 vec4 AddDirectionLight(DIRLIGHT dirlight)
@@ -163,10 +160,36 @@ vec4 AddDirectionLight(DIRLIGHT dirlight)
 
 vec4 AddPositionLight(POINTLIGHT pointlight)
 {
-    return vec4(0.0);
-}
+    vec3 posWorld = mat3(transpose(model)) * vertex;
+    vec3 normalWorld = mat3(transpose(model)) * normal;
 
-void AddFrustrumLight(vec3 color, mat4 matFrustum, vec3 direction, vec3 falloff)
-{
-    
+    vec3 direction = normalize(pointlight.pos - posWorld);
+
+    float distance = length(pointlight.pos - posWorld);
+    float attenuation = 1.0 / distance * pointlight.falloff.y + pointlight.falloff.x;
+
+    if (attenuation < 0.0)
+        attenuation = 0.0;
+
+    else
+    {
+        if (1.0 < attenuation)
+            attenuation = 1.0;
+    }
+
+    float diffuse = dot(direction, normalize(normalWorld));
+
+    diffuse = diffuse + diffuse * diffuse * diffuse;
+
+    float lightShadow  = diffuse * pointlight.ruShadow  + pointlight.duShadow;
+    float lightMidtone = diffuse * pointlight.ruMidtone + pointlight.duMidtone;
+
+    diffuse = diffuse * pointlight.ruHighlight + pointlight.duHighlight;
+
+    diffuse = max(diffuse, 0.0) * attenuation;
+
+    objectShadow += max(lightShadow,  0.0) * attenuation;
+    objectIllum  += max(lightMidtone, 0.0) * attenuation;
+
+    return vec4(pointlight.color, 0.0) * diffuse;
 }

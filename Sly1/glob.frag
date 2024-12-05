@@ -100,10 +100,9 @@ void DrawPrelit()
 {
     vec4 pixel = vec4(0.0);
 
-    vec4 diffuseTexel  = texture(diffuseMap, texcoord);
+    vec4 diffuseTexel = texture(diffuseMap, texcoord);
     
-    pixel   = diffuseTexel * vertexColor;
-    pixel.a = diffuseTexel.a;
+    pixel = diffuseTexel * vertexColor;
 
     gl_FragColor = pixel;
 }

@@ -55,24 +55,6 @@ void DrawSwAll(SW* psw, GLFWwindow* window)
 	DrawCm(g_pcm, glGlobShader);
 
 	PrepareSwLightsForDraw(g_psw);
-	
-	/*glUniform3fv(glGetUniformLocation(glGlobShader.ID, "pointlights[0].pos"),     1, glm::value_ptr(allSwLights[19]->xf.posWorld));
-	glUniform3fv(glGetUniformLocation(glGlobShader.ID, "pointlights[0].color"),   1, glm::value_ptr(allSwLights[19]->rgbaColor));
-	glUniform3fv(glGetUniformLocation(glGlobShader.ID, "pointlights[0].falloff"), 1, glm::value_ptr(allSwLights[19]->agFallOff));
-
-	glUniform1f(glGetUniformLocation(glGlobShader.ID, "pointlights[0].ruShadow"),	   allSwLights[19]->ltfn.ruShadow);
-	glUniform1f(glGetUniformLocation(glGlobShader.ID, "pointlights[0].ruMidtone"),   allSwLights[19]->ltfn.ruMidtone);
-	glUniform1f(glGetUniformLocation(glGlobShader.ID, "pointlights[0].ruHighlight"), allSwLights[19]->ltfn.ruHighlight);
-
-	glUniform1f(glGetUniformLocation(glGlobShader.ID, "pointlights[0].duShadow"),	   allSwLights[19]->ltfn.duShadow);
-	glUniform1f(glGetUniformLocation(glGlobShader.ID, "pointlights[0].duMidtone"),   allSwLights[19]->ltfn.duMidtone);
-	glUniform1f(glGetUniformLocation(glGlobShader.ID, "pointlights[0].duHighlight"), allSwLights[19]->ltfn.duHighlight);
-
-	if (glfwGetKey(window, GLFW_KEY_T) == GLFW_PRESS)
-	{
-		lightIndex++;
-		g_pcm->pos = allSwLights[19]->xf.posWorld;
-	}*/
 
 	glUniform1f(glGetUniformLocation(glGlobShader.ID, "lsm.uShadow"),  g_psw->lsmDefault.uShadow);
 	glUniform1f(glGetUniformLocation(glGlobShader.ID, "lsm.uMidtone"), g_psw->lsmDefault.uMidtone);

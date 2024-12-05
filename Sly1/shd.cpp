@@ -241,15 +241,15 @@ void LoadShadersFromBrx(CBinaryInputStream *pbis)
 		g_ashd[i].grfshd = pbis->U8Read();
 		g_ashd[i].oid    = (OID)pbis->S16Read();
 
-        g_ashd[i].rgba.r = (pbis->U8Read() * 2.0f) / 510;
-        g_ashd[i].rgba.g = (pbis->U8Read() * 2.0f) / 510;
-        g_ashd[i].rgba.b = (pbis->U8Read() * 2.0f) / 510;
-        g_ashd[i].rgba.a = (pbis->U8Read() * 2.0f) / 510;
+        g_ashd[i].rgba.r = (pbis->U8Read() * 2.0f) / 0x1FE;
+        g_ashd[i].rgba.g = (pbis->U8Read() * 2.0f) / 0x1FE;
+        g_ashd[i].rgba.b = (pbis->U8Read() * 2.0f) / 0x1FE;
+        g_ashd[i].rgba.a = (pbis->U8Read() * 2.0f) / 0x1FE;
 
-        g_ashd[i].rgbaVolume.r = pbis->U8Read();
-        g_ashd[i].rgbaVolume.g = pbis->U8Read();
-        g_ashd[i].rgbaVolume.b = pbis->U8Read();
-        g_ashd[i].rgbaVolume.a = pbis->U8Read() * 2;
+        g_ashd[i].rgbaVolume.r = (pbis->U8Read() * 2.0f) / 0x1FE;
+        g_ashd[i].rgbaVolume.g = (pbis->U8Read() * 2.0f) / 0x1FE;
+        g_ashd[i].rgbaVolume.b = (pbis->U8Read() * 2.0f) / 0x1FE;
+        g_ashd[i].rgbaVolume.a = (pbis->U8Read() * 2.0f) / 0x1FE;
 
 		g_ashd[i].grfzon    = pbis->U32Read();
 		g_ashd[i].oidAltSat = (OID)pbis->U16Read();

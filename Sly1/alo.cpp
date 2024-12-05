@@ -598,14 +598,15 @@ void DrawGlob(ALO* palo, int index)
 			
 			switch (palo->globset.aglob[i].rp)
 			{
-				case RP_Translucent:
-				glEnable(GL_BLEND);
-				glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_LINES, GL_NONE);
-				break;
-
 				case RP_ProjVolume:
 				glEnable(GL_BLEND);
 				glBlendFuncSeparate(GL_SRC_ALPHA, GL_LINES, GL_LINES, GL_NONE);
+				break;
+
+				
+				case RP_Translucent:
+				glEnable(GL_BLEND);
+				glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_LINES, GL_NONE);
 				break;
 			}
 
@@ -620,7 +621,7 @@ void DrawGlob(ALO* palo, int index)
 			}
 		}
 
-		if (palo->globset.aglob[i].rp == RP_Translucent || palo->globset.aglob[i].rp == RP_Cutout || palo->globset.aglob[i].rp == RP_ProjVolume)
+		if (palo->globset.aglob[i].rp == RP_Translucent || palo->globset.aglob[i].rp == RP_Background || palo->globset.aglob[i].rp == RP_ProjVolume)
 			glDisable(GL_BLEND);
 	}
 
