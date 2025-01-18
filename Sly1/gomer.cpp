@@ -35,7 +35,7 @@ void RenderGomerSelf(GOMER* pgomer, CM* pcm, RO* pro)
 	RenderStepSelf(pgomer, pcm, pro);
 }
 
-void DeleteGomer(LO* plo)
+void DeleteGomer(GOMER* pgomer)
 {
-	delete (GOMER*)plo;
+	delete pgomer;
 }

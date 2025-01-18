@@ -467,6 +467,6 @@ void CloneJt(JT* pjt, JT* pjtBase);
 void RenderJtAll(JT* pjt, CM* pcm, RO* pro);
 void RenderJtSelf(JT* pjt, CM* pcm, RO* pro);
 int  GetJtSize();
-void DeleteJt(LO* plo);
+void DeleteJt(JT* pjt);
 
 extern inline JT *g_pjt = nullptr;

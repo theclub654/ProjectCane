@@ -9,5 +9,5 @@ class MS : public SO
 
 MS*  NewMs();
 int  GetMsSize();
-void RenderMsGlobset(MS* pms, CM* pcm, RO* pro);
-void DeleteMs(LO* plo);
+void RenderMsGlobset(MS *pms, CM *pcm, RO *pro);
+void DeleteMs(MS *pms);

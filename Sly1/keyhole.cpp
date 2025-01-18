@@ -16,7 +16,7 @@ int GetKeyholeSize()
     return sizeof(KEYHOLE);
 }
 
-void LoadKeyholeFromBrx(KEYHOLE* pkeyhole, CBinaryInputStream* pbis)
+void LoadKeyholeFromBrx(KEYHOLE *pkeyhole, CBinaryInputStream *pbis)
 {
 	LoadOptionsFromBrx(pkeyhole, pbis);
 
@@ -25,24 +25,36 @@ void LoadKeyholeFromBrx(KEYHOLE* pkeyhole, CBinaryInputStream* pbis)
 
     for (int i = 0; i < pkeyhole->cpos; i++)
     {
-        pbis->F32Read();
-        pbis->F32Read();
+        pkeyhole->apos[i].x =  pbis->F32Read();
+        pkeyhole->apos[i].y = -pbis->F32Read();
+        pkeyhole->apos[i].w = 1.0;
     }
 
-    pbis->F32Read();
-    pbis->F32Read();
-    pbis->F32Read();
-    pbis->F32Read();
+    pkeyhole->posMin.x = pbis->F32Read();
+    pkeyhole->posMin.y = pbis->F32Read();
+    pkeyhole->posMin.w = 1.0;
+
+    pkeyhole->posMax.x = pbis->F32Read();
+    pkeyhole->posMax.y = pbis->F32Read();
+    pkeyhole->posMax.w = 1.0;
+    pkeyhole->dx = pkeyhole->posMax.x - pkeyhole->posMin.x;
 
     for (int i = 0; i < 5; i++)
     {
-        uint16_t unk_5 = pbis->U16Read();
+        int oid = i + OID_shd_keyhole_background;
+        SHD *pshd = PshdFindShader((OID)oid);
 
-        for (int i = 0; i < unk_5; i++)
+        if (pshd != nullptr)
+            pkeyhole->mpkpks[i].rgba = pshd->rgba;
+
+        pkeyhole->mpkpks[i].ctri = pbis->U16Read();
+        pkeyhole->mpkpks[i].atri.resize(pkeyhole->mpkpks[i].ctri);
+
+        for (int a = 0; a < pkeyhole->mpkpks[i].ctri; a++)
         {
-            pbis->U16Read();
-            pbis->U16Read();
-            pbis->U16Read();
+            pkeyhole->mpkpks[i].atri[a].aipos[0] = pbis->U16Read();
+            pkeyhole->mpkpks[i].atri[a].aipos[1] = pbis->U16Read();
+            pkeyhole->mpkpks[i].atri[a].aipos[2] = pbis->U16Read();
         }
     }
 }

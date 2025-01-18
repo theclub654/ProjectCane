@@ -122,35 +122,35 @@ ACG* PacgNew(ACGK acgk)
 {
     ACG* acg{};
 
-    switch (acgk) 
+    switch (acgk)
     {
-        case ACGK_Bezier:
-            acg = new ACGB{};
-            acg->pvtacgb = &g_vtacgb;
+    case ACGK_Bezier:
+        acg = new ACGB{};
+        acg->pvtacgb = &g_vtacgb;
         break;
 
-        case ACGK_BezierWeighted:
-            acg = new ACGBW{};
-            acg->pvtacgbw = &g_vtacgbw;
+    case ACGK_BezierWeighted:
+        acg = new ACGBW{};
+        acg->pvtacgbw = &g_vtacgbw;
         break;
 
-        case ACGK_Linear:
-            acg = new ACGL{};
-            acg->pvtacgl = &g_vtacgl;
+    case ACGK_Linear:
+        acg = new ACGL{};
+        acg->pvtacgl = &g_vtacgl;
         break;
 
-        case ACGK_BlendTwist:
-            //acg = new ACGBLT;
-            //acg->pvtacgblt = &g_vtacgblt;
+    case ACGK_BlendTwist:
+        //acg = new ACGBLT;
+        //acg->pvtacgblt = &g_vtacgblt;
         break;
 
-        case ACGK_BlendPose:
-            //
-            //
+    case ACGK_BlendPose:
+        //
+        //
         break;
 
-        default:
-            acg = nullptr;
+    default:
+        acg = nullptr;
         break;
     }
 
@@ -162,9 +162,9 @@ ACG* PacgNew(ACGK acgk)
 
 void LoadAcgbFromBrx(ACGB* pacgb, CBinaryInputStream* pbis)
 {
-    pacgb->ckgb = pbis->U16Read();
+    int ckgb = pbis->U16Read();
 
-    for (int i = 0; i < pacgb->ckgb; i++)
+    for (int i = 0; i < ckgb; i++)
     {
         pbis->S16Read();
         pbis->F32Read();
@@ -182,14 +182,14 @@ void LoadAcgbwFromBrx(ACGBW* pacgbw, CBinaryInputStream* pbis)
 
     for (int i = 0; i < pacgbw->ckgbw; i++)
     {
-        pacgbw->akgbw[i].t = pbis->S16Read() * 0.01666667;
-        pacgbw->akgbw[i].g = pbis->F32Read();
-        pacgbw->akgbw[i].kgbwtIn.kgbtk = (KGBTK)pbis->S8Read();
-        pacgbw->akgbw[i].kgbwtOut.kgbtk = (KGBTK)pbis->S8Read();
-        pacgbw->akgbw[i].kgbwtIn.dt = pbis->F32Read();
-        pacgbw->akgbw[i].kgbwtIn.g = pbis->F32Read();
-        pacgbw->akgbw[i].kgbwtOut.dt = pbis->F32Read();
-        pacgbw->akgbw[i].kgbwtOut.g = pbis->F32Read();
+        pbis->S16Read() * 0.01666667;
+        pbis->F32Read();
+        pbis->S8Read();
+        pbis->S8Read();
+        pbis->F32Read();
+        pbis->F32Read();
+        pbis->F32Read();
+        pbis->F32Read();
     }
 }
 
@@ -205,7 +205,7 @@ void LoadAcglFromBrx(ACGL* pacgl, CBinaryInputStream* pbis)
     }
 }
 
-void LoadAkvbFromBrx(int* pckvb, std::vector <KVB> &pakvb, CBinaryInputStream* pbis)
+void LoadAkvbFromBrx(int* pckvb, std::vector <KVB>& pakvb, CBinaryInputStream* pbis)
 {
     uint16_t unk_0 = pbis->U16Read();
 
@@ -218,7 +218,7 @@ void LoadAkvbFromBrx(int* pckvb, std::vector <KVB> &pakvb, CBinaryInputStream* p
     }
 }
 
-void LoadApacgFromBrx(std::vector <ACG> &apacg, glm::vec3& pvecDefault, CBinaryInputStream* pbis)
+void LoadApacgFromBrx(std::vector <ACG>& apacg, glm::vec3& pvecDefault, CBinaryInputStream* pbis)
 {
     uint32_t temp0;
     byte unk_0 = pbis->U8Read();

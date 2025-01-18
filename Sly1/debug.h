@@ -11,6 +11,7 @@ void DeleteWorld(SW* psw);
 static ImGuiFileDialog instance_a;
 extern inline bool fRenderModels = true;
 extern inline bool fRenderCollision = false;
+extern inline bool fBSP = false;
 static int lightIndex = 0;
 
 void RenderMenuGui(SW* psw);

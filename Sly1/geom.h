@@ -1,6 +1,8 @@
 #pragma once
-#include "vec.h"
+#include "math.h"
+#include "bis.h"
 #include <glad/glad.h>
+#include <vector>
 
 // Collision related
 
@@ -16,8 +18,8 @@ struct SURF
 {
     glm::vec3 normal;
     float gDot;
-    EDGE* pedge;
-    EDGE* pedgeOther;
+    EDGE *pedge;
+    EDGE *pedgeOther;
     short grfsurf;
     short ipos;
 };
@@ -36,10 +38,11 @@ struct GEOM
     std::vector <SURF> asurf;
     int cedge;
     std::vector <EDGE> aedge;
-    int* mpiposiiedgeMac;
-    int* aiedge;
+    int *mpiposiiedgeMac;
+    int *aiedge;
     std::vector <glm::vec3> mpisurfposCenter;
     std::vector <float> mpisurfsRadius;
 };
 
 void InitGeom(GEOM *pgeom);
+void ReadGeom(GEOM *pgeom, CBinaryInputStream *pbis);

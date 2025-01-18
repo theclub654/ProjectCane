@@ -35,9 +35,9 @@ void RenderUbpAll(UBP* pubp, CM* pcm, RO* pro)
 	RenderUbpAll(pubp, pcm, pro);
 }
 
-void DeleteUbg(LO* plo)
+void DeleteUbg(UBG* pubg)
 {
-	delete (UBG*)plo;
+	delete pubg;
 }
 
 UBP* NewUbp()

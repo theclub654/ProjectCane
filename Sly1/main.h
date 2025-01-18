@@ -1,16 +1,16 @@
 #pragma once
 #include <iostream>
+#include <windows.h>
 #include "input.h"
 #include "transition.h"
 #include "debug.h"
 #include "mouse.h"
 
-void RenderSw(SW* psw, CM* pcm);
-void RenderSwAll(SW* psw, CM* pcm);
-void RenderSwGlobsetAll(SW* psw, CM* pcm);
-void DrawSwAll(SW* psw, GLFWwindow* window); 
+void RenderSw(SW *psw, CM *pcm);
+void RenderSwGlobsetAll(SW *psw, CM *pcm);
+void DrawSw(SW *psw, CM *pcm);
 void DrawSwCollisionAll();
-void DeleteSw(SW* psw);
+void DeleteSw(SW *psw);
 
 // Game loop
 int  main(int cphzArgs, char* aphzArgs[]);

@@ -23,14 +23,14 @@ class VOLZP : public TZP
 };
 
 TZP* NewTzp();
-void InitTzp(TZP* ptzp);
+void InitTzp(TZP *ptzp);
 int  GetTzpSize();
-void CloneTzp(TZP* ptzp, TZP* ptzpBase);
-void DeleteTzp(LO* plo);
+void CloneTzp(TZP *ptzp, TZP *ptzpBase);
+void DeleteTzp(TZP *ptzp);
 
 VOLZP*NewVolzp();
-void InitVolzp(VOLZP* pvolzp);
+void InitVolzp(VOLZP *pvolzp);
 int  GetVolzpSize();
-void CloneVolzp(VOLZP* pvolzp, VOLZP* pvolzpBase);
-void RenderTzpAll(TZP* ptzp, CM* pcm, RO* pro);
-void DeleteVolzp(LO* plo);
+void CloneVolzp(VOLZP *pvolzp, VOLZP *pvolzpBase);
+void RenderTzpAll(TZP *ptzp, CM *pcm, RO *pro);
+void DeleteVolzp(VOLZP *pvolzp);

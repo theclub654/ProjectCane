@@ -44,7 +44,7 @@ enum WEK
 	WEK_Z = 6,
 	WEK_Max = 7
 };
-// Render Property
+// Render Priority
 enum RP 
 {
 	RP_Nil = -1,
@@ -102,16 +102,16 @@ struct WEKI
 
 struct WRBG
 {
-	struct ALO* palo;
-	struct GLOB* pglob;
+	struct ALO *palo;
+	struct GLOB *pglob;
 	OID oid;
-	struct WR* pwr;
+	struct WR *pwr;
 	int cmat;
 	int fDpos;
 	int fDuv;
 	WEKI weki;
-	struct WRBG* pwrbgNextGlobset;
-	struct WRBG* pwrbgNextWr;
+	struct WRBG *pwrbgNextGlobset;
+	struct WRBG *pwrbgNextWr;
 };
 
 struct GLEAM
@@ -140,7 +140,7 @@ struct SUBGLOB // NOT DONE
 	std::vector <VERTICE>  vertices;
 	std::vector <uint16_t> indices;
 
-	// Object ambient lighting
+	// Object brightness
 	float unSelfIllum;
 	struct SHD* pshd;
 	struct RSGLD *prsgld;
@@ -171,26 +171,29 @@ struct GLOB // NOT DONE
 	float gZOrder;
 	int fDynamic;
 	GRFGLOB grfglob;
-	std::vector <GLEAM> pgleam;
+	std::vector <GLEAM> gleam;
 	RTCK rtck;
 	struct SAA* psaa;
+	// Object fog intensity
 	float uFog;
 	FGFN fgfn;
 	float rSubglobRadius;
-	struct WRBG* pwrbg;
+	std::vector <WRBG> wrbg;
 	// Number of submodels for model
 	int csubglob;
-	std::vector<SUBGLOB> asubglob;
+	std::vector <SUBGLOB> asubglob;
 	int csubcel;
 	//SUBCEL *asubcel;
 	// Instanced object matrix container
-	std::vector <glm::mat4> pdmat;
+	std::vector <glm::mat4> dmat;
+	std::vector <glm::mat4> newDmat;
+	short instanceIndex;
 	struct BLOT* pblot;
 	OID oid;
 	char* pchzName;
 }; // NOT DONE
 
-struct GLOBI // NOT DONE
+struct GLOBI
 {
 	int grfzon;
 	SUBGLOBI asubglobi;
@@ -198,7 +201,7 @@ struct GLOBI // NOT DONE
 	TWPS twps;
 	float uAlpha;
 	float tUnfade;
-}; // NOT DONE
+}; 
 
 struct GLOBSET // NOT DONE
 {
@@ -219,6 +222,6 @@ struct GLOBSET // NOT DONE
 };
 
 // Loads 3D model data from binary file
-void LoadGlobsetFromBrx(GLOBSET* pglobset, CBinaryInputStream* pbis, ALO* palo); // NOT FINISHED
+void LoadGlobsetFromBrx(GLOBSET *pglobset, ALO *palo, CBinaryInputStream *pbis);
 // Converts strips to tri lists and stores 3D sub model in VRAM
-void BuildSubGlob(SUBGLOB* subglob, SHD* pshd, std::vector <glm::vec3> positions, std::vector <glm::vec3> normals, std::vector <glm::vec4> colors, std::vector <glm::vec2> texcoords, std::vector <VTXFLG> indexes);
+void BuildSubGlob(SUBGLOB *psubglob, SHD *pshd, std::vector <glm::vec3> &positions, std::vector <glm::vec3> &normals, std::vector <glm::vec4> &colors, std::vector <glm::vec2> &texcoords, std::vector <VTXFLG> &indexes);

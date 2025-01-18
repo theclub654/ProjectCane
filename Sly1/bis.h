@@ -1,11 +1,8 @@
 #pragma once
 #include <fstream>
 #include <glm/glm.hpp>
-#include "geom.h"
 
 typedef unsigned char byte;
-
-void MakeCollisionGLBuffers(GEOM *pgeom);
 
 class CBinaryInputStream
 {
@@ -42,10 +39,6 @@ class CBinaryInputStream
 		glm::mat3 ReadMatrix();
 		// Reads matrix 4 from file
 		glm::mat4 ReadMatrix4();
-		// Reads Collision data from file
-		void ReadGeom(GEOM *pgeom);
-		void ReadBspc();
-		void ReadVbsp(); // GOTTA COME BACK TO THIS
 		// Reads a string from file
 		void ReadStringSw();
 		// Close and destroy binary stream

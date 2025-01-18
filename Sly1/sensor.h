@@ -135,7 +135,7 @@ SENSOR*NewSensor();
 void InitSensor(SENSOR* psensor);
 int  GetSensorSize();
 void CloneSensor(SENSOR* psensor, SENSOR* psensorBase);
-void DeleteSensor(LO* plo);
+void DeleteSensor(SENSOR* psensor);
 
 LASEN*NewLasen();
 void InitSwLasenDl(SW* psw);
@@ -144,17 +144,17 @@ int  GetLasenSize();
 void LoadLasenFromBrx(LASEN* plasen, CBinaryInputStream* pbis);
 void CloneLasen(LASEN* plasen, LASEN* plasenBase);
 void RenderLasenSelf(LASEN* plasen, CM* pcm, RO* pro);
-void DeleteLasen(LO* plo);
+void DeleteLasen(LASEN *plasen);
 
 CAMSEN*NewCamsen();
 void InitCamsen(CAMSEN* pcamsen);
 int  GetCamsenSize();
 void CloneCamsen(CAMSEN* pcamsen, CAMSEN* pcamsenBase);
 void RenderCamsenSelf(CAMSEN* pcamsen, CM* pcm, RO* pro);
-void DeleteCamsen(LO* plo);
+void DeleteCamsen(CAMSEN *pcamsen);
 
 PRSEN*NewPrsen();
 void InitPrsen(PRSEN* pprsen);
 int  GetPrsenSize();
 void ClonePrsen(PRSEN* pprsen, PRSEN* pprsenBase);
-void DeletePrsen(LO* plo);
+void DeletePrsen(PRSEN* ppprsen);

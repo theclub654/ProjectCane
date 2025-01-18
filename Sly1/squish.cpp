@@ -35,7 +35,7 @@ void RenderSquishSelf(SQUISH* psquish, CM* pcm, RO* pro)
 	RenderSoSelf(psquish, pcm, pro);
 }
 
-void DeleteSquish(LO* plo)
+void DeleteSquish(SQUISH *psquish)
 {
-	delete (SQUISH*)plo;
+	delete psquish;
 }

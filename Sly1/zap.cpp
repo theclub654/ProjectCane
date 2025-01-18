@@ -30,9 +30,9 @@ void CloneTzp(TZP* ptzp, TZP* ptzpBase)
 	ptzp->pstso = nullptr;
 }
 
-void DeleteTzp(LO* plo)
+void DeleteTzp(TZP *ptzp)
 {
-	delete (TZP*)plo;
+	delete ptzp;
 }
 
 VOLZP* NewVolzp()
@@ -70,7 +70,7 @@ void RenderTzpAll(TZP* ptzp, CM* pcm, RO* pro)
 	RenderAloAll(ptzp, pcm, pro);
 }
 
-void DeleteVolzp(LO* plo)
+void DeleteVolzp(VOLZP *pvolzp)
 {
-	delete (VOLZP*)plo;
+	delete pvolzp;
 }

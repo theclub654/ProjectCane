@@ -30,9 +30,9 @@ void CloneJlovol(JLOVOL* pjlovol, JLOVOL* pjlovolBase)
 	pjlovol->pstso = nullptr;
 }
 
-void DeleteJlovol(LO* plo)
+void DeleteJlovol(JLOVOL* pjlovol)
 {
-	delete(JLOVOL*)plo;
+	delete pjlovol;
 }
 
 JLO* NewJlo()

@@ -31,6 +31,43 @@ void BuildCmFgfn(CM* pcm, float uFog, FGFN* pfgfn)
 	pfgfn->sNearFog = pcm->sNearFog;
 }
 
+void BuildFrustrum(glm::mat4 &projViewMatrix, FRUSTUM &frustum)
+{
+	frustum.planes[0] = glm::vec4(projViewMatrix[0][3] + projViewMatrix[0][0],
+	projViewMatrix[1][3] + projViewMatrix[1][0],
+	projViewMatrix[2][3] + projViewMatrix[2][0],
+	projViewMatrix[3][3] + projViewMatrix[3][0]);
+
+	frustum.planes[1] = glm::vec4(projViewMatrix[0][3] - projViewMatrix[0][0],
+	projViewMatrix[1][3] - projViewMatrix[1][0],
+	projViewMatrix[2][3] - projViewMatrix[2][0],
+	projViewMatrix[3][3] - projViewMatrix[3][0]);
+
+	frustum.planes[2] = glm::vec4(projViewMatrix[0][3] + projViewMatrix[0][1],
+	projViewMatrix[1][3] + projViewMatrix[1][1],
+	projViewMatrix[2][3] + projViewMatrix[2][1],
+	projViewMatrix[3][3] + projViewMatrix[3][1]);
+
+	frustum.planes[3] = glm::vec4(projViewMatrix[0][3] - projViewMatrix[0][1],
+	projViewMatrix[1][3] - projViewMatrix[1][1],
+	projViewMatrix[2][3] - projViewMatrix[2][1],
+	projViewMatrix[3][3] - projViewMatrix[3][1]);
+
+	frustum.planes[4] = glm::vec4(projViewMatrix[0][3] + projViewMatrix[0][2],
+	projViewMatrix[1][3] + projViewMatrix[1][2],
+	projViewMatrix[2][3] + projViewMatrix[2][2],
+	projViewMatrix[3][3] + projViewMatrix[3][2]);
+
+	frustum.planes[5] = glm::vec4(projViewMatrix[0][3] - projViewMatrix[0][2],
+	projViewMatrix[1][3] - projViewMatrix[1][2],
+	projViewMatrix[2][3] - projViewMatrix[2][2],
+	projViewMatrix[3][3] - projViewMatrix[3][2]);
+
+	// Normalize the planes
+	for (int i = 0; i < 6; ++i)
+		frustum.planes[i] /= glm::length(glm::vec3(frustum.planes[i]));
+}
+
 void UpdateCpman(GLFWwindow* window, CPMAN* pcpman, CPDEFI* pcpdefi, float dt)
 {
 	float speed = 10000.0;
@@ -57,31 +94,22 @@ void UpdateCpman(GLFWwindow* window, CPMAN* pcpman, CPDEFI* pcpdefi, float dt)
 	if (glfwGetKey(window, GLFW_KEY_R) == GLFW_PRESS)
 		pcpman->pcm->pos = glm::vec3{ 0.0 };
 
-	pcpman->pcm->direction.x = cos(glm::radians(-pcpman->yaw)) * cos(glm::radians(pcpman->pitch));
-	pcpman->pcm->direction.y = sin(glm::radians(-pcpman->yaw)) * cos(glm::radians(pcpman->pitch));
-	pcpman->pcm->direction.z = sin(glm::radians(pcpman->pitch));
-
-	pcpman->pcm->direction = glm::normalize(pcpman->pcm->direction);
-
-	pcpman->pcm->right = glm::normalize(glm::cross(pcpman->pcm->direction, pcpman->pcm->worldUp));
-	pcpman->pcm->up    = glm::normalize(glm::cross(pcpman->pcm->right, pcpman->pcm->direction));
-
 	if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS)
 	{
 		glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_HIDDEN);
 
-		pcpman->yaw   += MOUSE::GetDX();
-		pcpman->pitch += MOUSE::GetDY();
+		pcpman->pcm->yaw   += MOUSE::GetDX();
+		pcpman->pcm->pitch += MOUSE::GetDY();
 
-		if (pcpman->pitch > 89.0f)
-			pcpman->pitch = 89.0f;
+		if (pcpman->pcm->pitch > 89.0f)
+			pcpman->pcm->pitch = 89.0f;
 
-		else if (pcpman->pitch < -89.0f)
-			pcpman->pitch = -89.0f;
+		else if (pcpman->pcm->pitch < -89.0f)
+			pcpman->pcm->pitch = -89.0f;
 
-		pcpman->pcm->direction.x = cos(glm::radians(-pcpman->yaw)) * cos(glm::radians(pcpman->pitch));
-		pcpman->pcm->direction.y = sin(glm::radians(-pcpman->yaw)) * cos(glm::radians(pcpman->pitch));
-		pcpman->pcm->direction.z = sin(glm::radians(pcpman->pitch));
+		pcpman->pcm->direction.x = cos(glm::radians(-pcpman->pcm->yaw)) * cos(glm::radians(pcpman->pcm->pitch));
+		pcpman->pcm->direction.y = sin(glm::radians(-pcpman->pcm->yaw)) * cos(glm::radians(pcpman->pcm->pitch));
+		pcpman->pcm->direction.z = sin(glm::radians(pcpman->pcm->pitch));
 
 		pcpman->pcm->direction = glm::normalize(pcpman->pcm->direction);
 

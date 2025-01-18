@@ -35,9 +35,9 @@ void CloneMbg(MBG* pmbg, MBG* pmbgBase)
 	pmbg->pstso = nullptr;
 }
 
-void DeleteMbg(LO* plo)
+void DeleteMbg(MBG* pmbg)
 {
-	delete (MBG*)plo;
+	delete pmbg;
 }
 
 BHG* NewBhg()
@@ -70,9 +70,9 @@ void CloneBhg(BHG* pbhg, BHG* pbhgBase)
 	pbhg->pstso = nullptr;
 }
 
-void DeleteBhg(LO* plo)
+void DeleteBhg(BHG* phg)
 {
-	delete (BHG*)plo;
+	delete phg;
 }
 
 SCENTMAP* NewScentmap()

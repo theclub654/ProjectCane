@@ -72,16 +72,16 @@ void DrawThreeWay()
     switch (twps)
     {
         case TWPS_Shadow:
-        pixel += shadow * ambient;
+        pixel.rgb = shadow.rgb * ambient.rgb;
 
-        pixel.a = vertexColor.a;
+        pixel.a = shadow.a * diffuse.a * saturate.a * vertexColor.a;
         break;
     
         case TWPS_ShadowMidtone:
-        pixel += shadow  * ambient;
-        pixel += diffuse * illumination;
+        pixel.rgb += shadow.rgb   * ambient.rgb;
+        pixel.rgb += diffuse.rgb  * illumination.rgb;
 
-        pixel.a = vertexColor.a;
+        pixel.a = shadow.a * diffuse.a * saturate.a * vertexColor.a;
         break;
     
         case TWPS_ShadowMidtoneSaturate:
@@ -89,7 +89,7 @@ void DrawThreeWay()
         pixel += diffuse  * illumination;
         pixel += saturate * light;
 
-        pixel.a = vertexColor.a;
+        pixel.a = shadow.a * diffuse.a * saturate.a * vertexColor.a;
         break;
     }
 
@@ -100,9 +100,8 @@ void DrawPrelit()
 {
     vec4 pixel = vec4(0.0);
 
-    vec4 diffuseTexel = texture(diffuseMap, texcoord);
-    
-    pixel = diffuseTexel * vertexColor;
+    vec4 diffuse = texture(diffuseMap, texcoord);
+    pixel = diffuse * vertexColor;
 
     gl_FragColor = pixel;
 }
@@ -111,8 +110,8 @@ void DrawVolume()
 {
     vec4 pixel = vec4(0.0);
 
-    vec4 diffuseTexel = texture(diffuseMap, texcoord);
-    pixel = diffuseTexel;
+    vec4 diffuse = texture(diffuseMap, texcoord);
+    pixel = diffuse * vertexColor;
 
     gl_FragColor = pixel;
 }

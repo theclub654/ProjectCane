@@ -69,25 +69,25 @@ VAULT*NewVault();
 void InitVault(VAULT* pvault);
 int  GetVaultSize();
 void CloneVault(VAULT* pvault, VAULT* pvaultBase);
-void DeleteVault(LO* plo);
+void DeleteVault(VAULT *pvault);
 
 SPRIZE*NewSprize();
 void InitSprize(SPRIZE* psprize);
 int  GetSprizeSize();
 void LoadSprizeFromBrx(SPRIZE* psprize, CBinaryInputStream* pbis);
 void CloneSprize(SPRIZE* psprize, SPRIZE* psprizeBase);
-void DeleteSprize(LO* plo);
+void DeleteSprize(SPRIZE* psprize);
 
 SCPRIZE*NewScprize();
 void InitScprize(SCPRIZE* pscprize);
 int  GetScprizeSize();
 void CloneScprize(SCPRIZE* pscprize, SCPRIZE* pscprizeBase);
-void DeleteScprize(LO* plo);
+void DeleteScprize(SCPRIZE* pscprize);
 
 LIFETKN*NewLifetkn();
 int  GetLifetknSize();
-void CloneLifetkn(LIFETKN* plifetkn, LIFETKN* plifetknBase);
-void DeleteLifetkn(LO* plo);
+void CloneLifetkn(LIFETKN *plifetkn, LIFETKN *plifetknBase);
+void DeleteLifetkn(LIFETKN *plifetkn);
 
 CLUE*NewClue();
 void InitClue(CLUE* pclue);
@@ -95,7 +95,7 @@ int  GetClueSize();
 void CloneClue(CLUE* pclue, CLUE* pclueBase);
 void LoadClueFromBrx(CLUE *pclue, CBinaryInputStream *pbis);
 void RenderClueAll(CLUE* pclue, CM* pcm, RO* pro);
-void DeleteClue(LO* plo);
+void DeleteClue(CLUE *pclue);
 
 LOCK*NewLock();
 int  GetLockSize();

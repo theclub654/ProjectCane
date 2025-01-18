@@ -40,7 +40,7 @@ void CloneSuv(SUV* psuv, SUV* psuvBase)
 	psuv->pstso = nullptr;
 }
 
-void DeleteSuv(LO* plo)
+void DeleteSuv(SUV* psuv)
 {
-	delete (SUV*)plo;
+	delete psuv;
 }

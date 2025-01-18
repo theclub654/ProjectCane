@@ -42,7 +42,7 @@ void RenderRipgSelf(RIPG* pripg, CM* pcm, RO* pro)
 
 }
 
-void DeleteRipg(LO* plo)
+void DeleteRipg(RIPG* pripg)
 {
-	delete (RIPG*)plo;
+	delete pripg;
 }

@@ -74,13 +74,13 @@ void LoadProxyFromBrx(PROXY* pproxy, CBinaryInputStream* pbis)
 			AddSwProxySource(pproxy->psw, object, cploClone);
 		}
 
-		PXR proxyRoot{};
+		/*PXR *proxyRoot = new PXR;
+		proxyRoot->plo = object;
+		proxyRoot->oidProxyRoot = pproxy->oid;
+		proxyRoot->pchzProxyRoot = pproxy->pchzName;
+		object->ppxr = proxyRoot;
 
-		proxyRoot.plo = object;
-		proxyRoot.oidProxyRoot  = pproxy->oid;
-		proxyRoot.pchzProxyRoot = pproxy->pchzName;
-		object->ppxr = &proxyRoot;
-		AppendDlEntry(&pproxy->dlProxyRoot, &proxyRoot);
+		AppendDlEntry(&pproxy->dlProxyRoot, proxyRoot);*/
 	}
 
 	byte numObjs = pbis->U8Read();
@@ -163,7 +163,10 @@ void CloneProxy(PROXY* pproxy, PROXY* pproxyBase)
 	ClearDl(&pproxy->dlProxyRoot);
 }
 
-void DeleteProxy(LO* plo)
+void DeleteProxy(PROXY *pproxy)
 {
-	delete(PROXY*)plo;
+	if (pproxy->ppxr != nullptr)
+		delete pproxy->ppxr;
+
+	delete pproxy;
 }

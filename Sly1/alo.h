@@ -3,8 +3,6 @@
 #include "glob.h"
 #include "act.h"
 
-extern std::vector <RO> renderBuffer;
-
 enum ACK
 {
 	ACK_Nil = -1,
@@ -111,16 +109,32 @@ struct FICG
 	byte grficBomb;
 	byte grficShock;
 };
-
 struct RO
 {
-	GLuint VAO;
-	GLuint VBO;
-	GLuint EBO;
+	GLuint *VAO;
+	GLuint *VBO;
+	GLuint *EBO;
+
+	GRFGLOB *grfglob;
+
+	int cvtx;
+
+	SHD *pshd;
+
+	float *unSelfIllum;
 
 	glm::mat4 modelMatrix;
 	float uAlpha;
 	float uAlphaCelBorder;
+};
+// Render Property List
+struct RPL
+{
+	void (*PFNDRAW)(RPL);
+	RP rp;
+	RO ro;
+	float z;
+	glm::vec3 posCenter;
 };
 
 struct BITFIELD
@@ -207,7 +221,7 @@ class ALO : public LO
 };
 
 // Create ALO
-ALO*NewAlo();
+ALO* NewAlo();
 // Initialize ALO object
 void InitAlo(ALO* palo); // NOT FINISHED
 // Adds ALO parent and all the alo childs into the world
@@ -218,6 +232,8 @@ void RemoveAloHierarchy(ALO *palo);
 void OnAloAdd(ALO* palo); // NOT FINISHED
 // Removes ALO from Hierarchy
 void OnAloRemove(ALO* palo);
+// Makes ALO object follow camera rotation
+void AdjustAloRtckMat(ALO* palo, CM* pcm, RTCK rtck, glm::vec3* pposCenter, glm::mat4* pmat);
 // Makes a copy of ALO and all of its children
 void CloneAloHierarchy(ALO* palo, ALO* paloBase);
 // Makes a copy of ALO object
@@ -246,11 +262,12 @@ void LoadAloAloxFromBrx(ALO* palo, CBinaryInputStream* pbis);
 void UpdateAlo(ALO *palo, float dt);
 void RenderAloAll(ALO* palo, CM* pcm, RO* proDup);
 void RenderAloSelf(ALO* palo, CM* pcm, RO* pro);
+void DupAloRo(ALO *palo, RO *proOrig, RO *proDup);
 void RenderAloGlobset(ALO* palo, CM* pcm, RO* pro);
 void RenderAloLine(ALO* palo, CM* pcm, glm::vec3* ppos0, glm::vec3* ppos1, float rWidth, float uAlpha);
 void RenderAloAsBone(ALO* palo, CM* pcm, RO* pro);
-// Draw Glob object
-void DrawGlob(ALO *palo, int index);
+// Draw a 3D model submesh
+void DrawGlob(RPL rpl);
 // Deletes Model from VRAM
 void DeleteModel(ALO *palo);
 int  GetAloSize();

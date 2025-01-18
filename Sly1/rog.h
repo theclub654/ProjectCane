@@ -257,7 +257,7 @@ void InitRov(ROV* prov);
 int  GetRovSize();
 void LoadRovFromBrx(ROV* prov, CBinaryInputStream* pbis);
 void CloneRov(ROV* prov, ROV* provBase);
-void DeleteRov(LO* plo);
+void DeleteRov(ROV *prov);
 
 ROH* NewRoh();
 void InitRoh(ROH* proh);

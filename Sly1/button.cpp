@@ -35,9 +35,9 @@ void CloneButton(BUTTON* pbutton, BUTTON* pbuttonBase)
 	pbutton->pstso = nullptr;
 }
 
-void DeleteButton(LO* plo)
+void DeleteButton(BUTTON *pbutton)
 {
-	delete(BUTTON*)plo;
+	delete pbutton;
 }
 
 VOLBTN* NewVolbtn()
@@ -75,7 +75,7 @@ void LoadVolbtnFromBrx(VOLBTN* pvolbtn, CBinaryInputStream* pbis)
 	LoadSoFromBrx(pvolbtn, pbis);
 }
 
-void DeleteVolbtn(LO* plo)
+void DeleteVolbtn(VOLBTN* pvolbtn)
 {
-	delete (VOLBTN*)plo;
+	delete pvolbtn;
 }

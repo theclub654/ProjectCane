@@ -1,5 +1,6 @@
 #pragma once
 #include "alo.h"
+#include "bsp.h"
 extern std::vector<SO*> allSWSoObjs;
 
 enum ZPK
@@ -68,13 +69,6 @@ struct CONSTR
 {
 	glm::vec3 normal;
 	CT ct;
-};
-
-struct BSPC 
-{
-	int cbsp;
-	int cbspFull;
-	struct BSP* absp;
 };
 
 // Static Object
@@ -173,14 +167,12 @@ void UpdateSoXfWorld(SO* pso);
 void LoadSoFromBrx(SO* pso, CBinaryInputStream* pbis); // NOT FINISHED
 void TranslateSoToPos(SO* pso, glm::vec3& ppos);
 void RotateSoToMat(SO* pso, glm::mat3& pmat);
-// Stores collsion model in VRAM
-void MakeCollisionGLBuffers(GEOM *pgeom);
 void UpdateSo(SO *pso, float dt); // NOT FINISHED
 void RenderSoSelf(SO* pso, CM* pcm, RO* pro);
 // Draws static object collision
-void DrawSoCollision(SO* pso);
+void DrawCollision(SO *pso);
 // Delete SO from memory
-void DeleteSo(LO* plo);
+void DeleteSo(SO *pso);
 // Delete all collision data from VRAM
 void DeleteSwCollision();
 // Deletes a SO collision data from VRAM

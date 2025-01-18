@@ -98,8 +98,8 @@ void UpdateSoXfWorld(SO* pso)
 void LoadSoFromBrx(SO* pso, CBinaryInputStream* pbis)
 {
 	*(unsigned long*)&pso->bitfield = *(unsigned long*)&pso->bitfield & 0xfffffffdffffffff | ((long)(char)pbis->U8Read() & 1U) << 0x21;
-	pbis->ReadGeom(&pso->geomLocal);
-	pbis->ReadBspc();
+	ReadGeom(&pso->geomLocal, pbis);
+	ReadBspc(&pso->geomWorld, &pso->bspc, pbis);
 
 	pso->m = pbis->F32Read();
 
@@ -129,8 +129,8 @@ void LoadSoFromBrx(SO* pso, CBinaryInputStream* pbis)
 		pso->ahsg[i].ipsubglob = pbis->S16Read();
 	}
 
-	pbis->ReadGeom(&pso->geomCameraLocal);
-	pbis->ReadBspc();
+	ReadGeom(&pso->geomCameraLocal, pbis);
+	ReadBspc(&pso->geomCameraWorld, &pso->bspcCamera, pbis);
 
 	LoadAloFromBrx(pso, pbis);
 }
@@ -151,28 +151,9 @@ void RotateSoToMat(SO* pso, glm::mat3& pmat)
 		pso->pvtalo->pfnUpdateAloXfWorld(pso);
 }
 
-void MakeCollisionGLBuffers(GEOM *pgeom)
-{
-	glGenVertexArrays(1, &pgeom->VAO);
-	glBindVertexArray(pgeom->VAO);
-
-	glGenBuffers(1, &pgeom->VBO);
-	glBindBuffer(GL_ARRAY_BUFFER, pgeom->VBO);
-	glBufferData(GL_ARRAY_BUFFER, pgeom->apos.size() * sizeof(glm::vec3), pgeom->apos.data(), GL_STATIC_DRAW);
-
-	glGenBuffers(1, &pgeom->EBO);
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, pgeom->EBO);
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, pgeom->indices.size() * sizeof(uint16_t), pgeom->indices.data(), GL_STATIC_DRAW);
-
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), (void*)0);
-	glEnableVertexAttribArray(0);
-
-	glBindVertexArray(0);
-}
-
 void UpdateSo(SO* pso, float dt)
 {
-
+	UpdateAlo(pso, dt);
 }
 
 void RenderSoSelf(SO* pso, CM* pcm, RO* pro)
@@ -180,7 +161,7 @@ void RenderSoSelf(SO* pso, CM* pcm, RO* pro)
 	RenderAloSelf(pso, pcm, pro);
 }
 
-void DrawSoCollision(SO* pso)
+void DrawCollision(SO *pso)
 {
 	glm::mat4 model = pso->xf.matWorld;
 	
@@ -201,9 +182,9 @@ void DrawSoCollision(SO* pso)
 	glActiveTexture(GL_TEXTURE0);
 }
 
-void DeleteSo(LO* plo)
+void DeleteSo(SO *pso)
 {
-	delete(SO*)plo;
+	delete pso;
 }
 
 void DeleteSwCollision()

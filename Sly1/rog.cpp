@@ -35,9 +35,9 @@ void CloneRov(ROV* prov, ROV* provBase)
 	prov->pstso = nullptr;
 }
 
-void DeleteRov(LO* plo)
+void DeleteRov(ROV *prov)
 {
-	delete(ROV*)plo;
+	delete prov;
 }
 
 ROH* NewRoh()

@@ -35,7 +35,7 @@ void RenderTankAll(TANK* ptank, CM* pcm, RO* pro)
 	RenderAloAll(ptank, pcm, pro);
 }
 
-void DeleteTank(LO* plo)
+void DeleteTank(TANK* ptank)
 {
-	delete(TANK*)plo;
+	delete ptank;
 }

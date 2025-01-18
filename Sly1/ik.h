@@ -15,7 +15,7 @@ IKH* NewIkh();
 int  GetIkhSize();
 void CloneIkh(IKH* pikh, IKH* pikhBase);
 void RenderIkhSelf(IKH* pikh, CM* pcm, RO* pro);
-void DeleteIkh(LO* plo);
+void DeleteIkh(IKH *pikh);
 
 LIKH*NewLikh();
 int  GetLikhSize();

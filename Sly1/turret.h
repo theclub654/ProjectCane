@@ -16,4 +16,4 @@ class TURRET : public PO
 TURRET*NewTurret();
 int  GetTurretSize();
 void CloneTurret(TURRET* pturret, TURRET* pturretBase);
-void DeleteTurret(LO* plo);
+void DeleteTurret(TURRET *pturret);

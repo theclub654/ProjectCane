@@ -35,7 +35,7 @@ void RenderHgSelf(HG* phg, CM* pcm, RO* pro)
 	RenderStepSelf(phg, pcm, pro);
 }
 
-void DeleteHg(LO* plo)
+void DeleteHg(HG *phg)
 {
-	delete (HG*)plo;
+	delete phg;
 }

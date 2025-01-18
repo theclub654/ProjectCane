@@ -1875,7 +1875,7 @@ void BuildEopids()
 	g_aeopid[475].grfeopid = 0xa2;
 	g_aeopid[475].optdat.ibGet = 0x340;
 	g_aeopid[475].optdat.pfnget = (PFNGET)GetLightFallOff;
-	g_aeopid[475].optdat.pfnsetvec3 = (PFNSETVEC3)SetLightFallOff;
+	g_aeopid[475].optdat.pfnsetvec2 = (PFNSETVEC2)SetLightFallOff;
 	g_aeopid[475].optdat.ibSetUser = 0x340;
 	g_aeopid[476].otyp = OTYP_Float;
 	g_aeopid[476].grfeopid = 0xa2;

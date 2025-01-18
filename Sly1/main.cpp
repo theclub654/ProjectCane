@@ -11,13 +11,12 @@ CTransition g_transition;
 bool firstClick = true;
 float deltaTime = 0.0f;
 float lastFrame = 0.0f;
-std::vector <RO> renderBuffer;
 
 int main(int cphzArgs, char* aphzArgs[])
 {
 	// Initializing all things needed for game to be started
 	Startup();
-
+	
 	while (!glfwWindowShouldClose(g_gl.window))
 	{
 		// If level pending flag is set to other than zero load up level
@@ -26,10 +25,6 @@ int main(int cphzArgs, char* aphzArgs[])
 			// Loads level
 			g_transition.Execute(file);
 		}
-		
-		double currentTime = glfwGetTime();
-		deltaTime = currentTime - lastFrame;
-		lastFrame = currentTime;
 		
 		// Using custom frame buffer
 		glBindFramebuffer(GL_FRAMEBUFFER, g_gl.fbo);
@@ -45,12 +40,19 @@ int main(int cphzArgs, char* aphzArgs[])
 		
 		if (g_psw != nullptr)
 		{
+			//SetupCm(g_pcm);
+			double currentTime = glfwGetTime();
+			deltaTime = currentTime - lastFrame;
+			lastFrame = currentTime;
+
 			UpdateCpman(g_gl.window, &g_pcm->cpman, nullptr, deltaTime);
-			//UpdateSw(g_psw, deltaTime);
-			//RenderSwAll(g_psw, g_pcm);
 			
 			if (fRenderModels != 0)
-				DrawSwAll(g_psw, g_gl.window);
+			{
+				//UpdateSw(g_psw, deltaTime);
+				RenderSwGlobsetAll(g_psw, g_pcm);
+				DrawSw(g_psw, g_pcm);
+			}
 
 			if (fRenderCollision != 0)
 				DrawSwCollisionAll();
@@ -61,6 +63,7 @@ int main(int cphzArgs, char* aphzArgs[])
 
 		// Switches back to default frame buffer
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
+		
 		// Making the default frame buffer black
 		glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
 		// Clearing the color buffer of the default frame buffer

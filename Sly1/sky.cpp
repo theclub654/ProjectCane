@@ -23,6 +23,7 @@ void CloneSky(SKY* psky, SKY* pskyBase)
 
 void UpdateSky(SKY* psky, float dt)
 {
+	UpdateAlo(psky, dt);
 	psky->pvtalo->pfnTranslateAloToPos(psky, g_pcm->pos);
 }
 

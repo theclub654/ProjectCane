@@ -51,3 +51,4 @@ int  GetJpSize();
 void CloneJp(JP* pjp, JP* pjpBase);
 void RenderJpAll(JP* pjp, CM* pcm, RO* pro);
 void RenderJpSelf(JP* pjp, CM* pcm, RO* pro);
+void DeleteJp(JP *pjp);

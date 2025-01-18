@@ -30,7 +30,7 @@ void CloneSmartguard(SMARTGUARD* psmartguard, SMARTGUARD* psmartguardBase)
 	psmartguard->pstso = nullptr;
 }
 
-void DeleteSmartGuard(LO* plo)
+void DeleteSmartGuard(SMARTGUARD* psmartguard)
 {
-	delete (SMARTGUARD*)plo;
+	delete psmartguard;
 }

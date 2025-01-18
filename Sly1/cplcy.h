@@ -90,8 +90,6 @@ struct CPMAN : public CPLCY
     CPMT cpmt;
     struct ALO* paloOrbit;
     int cframeStatus;
-    float yaw;
-    float pitch;
 };
 struct CPLOOK : public CPLCY
 {
@@ -187,27 +185,35 @@ struct VTCPTN
     void (*pfnUpdateCptn)() = nullptr;
 };
 
+struct FRUSTUM
+{
+    glm::vec4 planes[6];
+};
+
 // Camera Object
 class CM : public LO
 {
     public:
-
     // Camera psoition
     glm::vec3 pos;
     glm::vec3 direction;
     glm::vec3 up;
     glm::vec3 right;
     glm::vec3 worldUp;
+    float yaw;
+    float pitch;
+    bool firstClick;
     glm::vec4 anormalFrustrumTranspose[3];
     // Camera lookAt
     glm::mat4 lookAt;
     float rMRDAdjust;
     // Camera projection 
     glm::mat4 matProj;
-    // This is the projection and eye matrix combined
+    // Projection and lookAt matrix combined
     glm::mat4 matWorldToClip;
     glm::mat4 matClipToWorld;
     glm::vec3 anormalFrustrum[4];
+    FRUSTUM frustum;
     float rMRD;
     // Camera field of view
     float radFOV;
@@ -224,7 +230,7 @@ class CM : public LO
     RGBA rgbaFog;
     FGFN fgfn;
     float tJolt;
-    int grfzon;
+    GRFZON grfzon;
     int fCutNext;
     int fCut;
     int fRadCut;
@@ -249,7 +255,7 @@ class CM : public LO
     glm::vec3 posCenterPrev;
     glm::vec3 posClear;
     glm::mat3 matClear;
-    struct SO* psoFocusPrev;
+    SO *psoFocusPrev;
     CPDEFI cpdefiPrev;
     int cpaloFade;
     struct ALO* apaloFade[8];
@@ -270,8 +276,10 @@ void InitCplcy(CPLCY* pcplcy, CM* pcm);
 void InitCplook(CPLOOK* pcplook, CM* pcm);
 void InitCpalign(CPALIGN* pcpalign, CM* pcm);
 void BuildCmFgfn(CM* pcm, float uFog, FGFN* pfgfn);
+// Makes frustum from proj and lookAt matrix combined
+void BuildFrustrum(glm::mat4 &projViewMatrix, FRUSTUM &frustum);
 // Update manual camera
-void UpdateCpman(GLFWwindow* window, CPMAN* pcpman, CPDEFI* pcpdefi, float dt);
+void UpdateCpman(GLFWwindow* window, CPMAN *pcpman, CPDEFI *pcpdefi, float dt);
 
 inline VTCPMAN   g_vtcpman;
 inline VTCPLOOK  g_vtcplook;

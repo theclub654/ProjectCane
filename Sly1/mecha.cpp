@@ -35,7 +35,7 @@ void RenderMechaSelf(MECHA* pmecha, CM* pcm, RO* pro)
 
 }
 
-void DeleteMecha(LO* plo)
+void DeleteMecha(MECHA *pmecha)
 {
-	delete (MECHA*)plo;
+	delete pmecha;
 }

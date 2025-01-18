@@ -147,4 +147,4 @@ int  GetSuvSize();
 void UpdateSuvXfWorld(SUV* psuv);
 void RenderSuvSelf(SUV* psuv, CM* pcm, RO* pro);
 void CloneSuv(SUV* psuv, SUV* psuvBase);
-void DeleteSuv(LO* plo);
+void DeleteSuv(SUV* psuv);

@@ -100,6 +100,7 @@ void LoadSwFromBrx(SW* psw, CBinaryInputStream* pbis)
 	LoadTexturesFromBrx(pbis);
 	psw->lsmDefault.uShadow  *= 0.003921569;
 	psw->lsmDefault.uMidtone *= 0.003921569;
+	//SetupCm(g_pcm);
 	std::cout << "World Loaded Successfully\n";
 }
 
@@ -140,7 +141,7 @@ void AddSwProxySource(SW* psw, LO* ploProxySource, int cploClone)
 LO* PloGetSwProxySource(SW* psw, int ipsl)
 {
 	// Loads the psl
-	PSL* psl = psw->apsl + ipsl;
+	PSL *psl = psw->apsl + ipsl;
 	// Returns proxy source LO from that psl
 	return psl->aploClone[psl->cploCloneFree -= 1];
 }
@@ -160,12 +161,12 @@ void* GetSwIllumShadow(SW *psw)
 	return &psw->lsmDefault.uShadow;
 }
 
-void SetSwIllum(SW* psw, float uMidtone)
+void SetSwIllum(SW *psw, float uMidtone)
 {
 	psw->lsmDefault.uMidtone = uMidtone;
 }
 
-void SetSwIllumShadow(SW* psw, float uShadow)
+void SetSwIllumShadow(SW *psw, float uShadow)
 {
 	psw->lsmDefault.uShadow = uShadow;
 }
@@ -175,13 +176,13 @@ void* GetSwDarken(SW* psw)
 	return &psw->rDarken;
 }
 
-void SetSwDarken(SW* psw, float rDarken)
+void SetSwDarken(SW *psw, float rDarken)
 {
 	psw->rDarken = rDarken;
 	psw->rDarkenSmooth = rDarken;
 }
 
-void* GetSwDarkenSmooth(SW* psw)
+void* GetSwDarkenSmooth(SW *psw)
 {
 	return &psw->rDarkenSmooth;
 }
@@ -239,7 +240,7 @@ void DeleteSw(SW* psw)
 	}
 }
 
-void DeleteWorld(SW* psw)
+void DeleteWorld(SW *psw)
 {
 	for (int i = 0; i < allSWAloObjs.size(); i++)
 		DeleteModel(allSWAloObjs[i]);

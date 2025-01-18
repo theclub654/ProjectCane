@@ -26,7 +26,7 @@ void InitLight(LIGHT* plight)
 	plight->degShadow = 180.0;
 	plight->degCone = 60.0;
 	plight->degHighlight = 180.0;
-	//std::cout << std::hex << &plight->normalLocal<<"\n";
+
 	InitAlo(plight);
 
 	allSwLights.push_back(plight);
@@ -120,6 +120,11 @@ void FitRecipFunction(float x0, float y0, float x1, float y1, float* pdu, float*
 	*pdu = y0;
 }
 
+void ConvertFallOff(LM* plm, float* pdu, float* pru)
+{
+	FitLinearFunction(plm->gMin, 1.0, plm->gMax, 0.0, *pdu, *pru);
+}
+
 void ConvertAngleStrength(float deg0, float g0, float deg1, float g1, float &pdu, float &pru)
 {
 	float cos0 = cosf(deg0 * 0.008726647);
@@ -182,13 +187,9 @@ void RebuildLight(LIGHT* plight)
 
 	plight->rgbaColor = rgba;
 
-	LTFN ltfn{};
-
-	ConvertAngleStrength(plight->degHighlight, 0.0, 0.0, plight->vecHighlight.z, ltfn.duHighlight, ltfn.ruHighlight);
-	ConvertAngleStrength(plight->degMidtone, 0.0, 0.0, plight->gMidtone, ltfn.duMidtone, ltfn.ruMidtone);
-	ConvertAngleStrength(360.0 - plight->degShadow, 0.0, 360.0, plight->gShadow, ltfn.duShadow, ltfn.ruShadow);
-
-	plight->ltfn = ltfn;
+	ConvertAngleStrength(plight->degHighlight, 0.0, 0.0, plight->vecHighlight.z, plight->ltfn.duHighlight, plight->ltfn.ruHighlight);
+	ConvertAngleStrength(plight->degMidtone, 0.0, 0.0, plight->gMidtone, plight->ltfn.duMidtone, plight->ltfn.ruMidtone);
+	ConvertAngleStrength(360.0 - plight->degShadow, 0.0, 360.0, plight->gShadow, plight->ltfn.duShadow, plight->ltfn.ruShadow);
 
 	if (plight->lightk == LIGHTK_Position)
 		FitRecipFunction(plight->lmFallOffS.gMin, 1.0, plight->lmFallOffS.gMax, 0.0, &plight->agFallOff.x, &plight->agFallOff.y);
@@ -384,19 +385,19 @@ void PrepareSwLightsForDraw(SW* psw)
 			glUniform3fv(GetUniformLocation(glGlobShader.ID, "dirlights[" + std::to_string(numDirLights) + "].dir"),   1, glm::value_ptr(allSwLights[i]->agFallOff));
 			glUniform3fv(GetUniformLocation(glGlobShader.ID, "dirlights[" + std::to_string(numDirLights) + "].color"), 1, glm::value_ptr(allSwLights[i]->rgbaColor));
 
-			glUniform1f(GetUniformLocation(glGlobShader.ID, "dirlights[" + std::to_string(numDirLights) + "].ruShadow"), allSwLights[i]->ltfn.ruShadow);
-			glUniform1f(GetUniformLocation(glGlobShader.ID, "dirlights[" + std::to_string(numDirLights) + "].ruMidtone"), allSwLights[i]->ltfn.ruMidtone);
+			glUniform1f(GetUniformLocation(glGlobShader.ID, "dirlights[" + std::to_string(numDirLights) + "].ruShadow"),    allSwLights[i]->ltfn.ruShadow);
+			glUniform1f(GetUniformLocation(glGlobShader.ID, "dirlights[" + std::to_string(numDirLights) + "].ruMidtone"),   allSwLights[i]->ltfn.ruMidtone);
 			glUniform1f(GetUniformLocation(glGlobShader.ID, "dirlights[" + std::to_string(numDirLights) + "].ruHighlight"), allSwLights[i]->ltfn.ruHighlight);
 
-			glUniform1f(GetUniformLocation(glGlobShader.ID, "dirlights[" + std::to_string(numDirLights) + "].duShadow"), allSwLights[i]->ltfn.duShadow);
-			glUniform1f(GetUniformLocation(glGlobShader.ID, "dirlights[" + std::to_string(numDirLights) + "].duMidtone"), allSwLights[i]->ltfn.duMidtone);
+			glUniform1f(GetUniformLocation(glGlobShader.ID, "dirlights[" + std::to_string(numDirLights) + "].duShadow"),    allSwLights[i]->ltfn.duShadow);
+			glUniform1f(GetUniformLocation(glGlobShader.ID, "dirlights[" + std::to_string(numDirLights) + "].duMidtone"),   allSwLights[i]->ltfn.duMidtone);
 			glUniform1f(GetUniformLocation(glGlobShader.ID, "dirlights[" + std::to_string(numDirLights) + "].duHighlight"), allSwLights[i]->ltfn.duHighlight);
 
 			numDirLights++;
 		}
 	}
 
-	glUniform1i(glGetUniformLocation(glGlobShader.ID, "numDirLights"), numDirLights);
+	glUniform1i(glGetUniformLocation(glGlobShader.ID, "numDirLights"),   numDirLights);
 	glUniform1i(glGetUniformLocation(glGlobShader.ID, "numPointLights"), numPointLights);
 }
 

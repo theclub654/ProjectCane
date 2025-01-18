@@ -1,7 +1,7 @@
 #pragma once
 #include "lo.h"
 
-enum ACVK 
+enum ACVK
 {
     ACVK_Nil = -1,
     ACVK_Component = 0,
@@ -9,7 +9,7 @@ enum ACVK
     ACVK_Blend = 2,
     ACVK_Max = 3
 };
-enum ACGK 
+enum ACGK
 {
     ACGK_Nil = -1,
     ACGK_Bezier = 0,
@@ -20,7 +20,7 @@ enum ACGK
     ACGK_Max = 5
 };
 
-struct KVB 
+struct KVB
 {
     float t;
     glm::vec3 vec;
@@ -71,27 +71,27 @@ void LoadAcpcFromBrx(ACPC* pacpc, CBinaryInputStream* pbis);
 void LoadAcpbFromBrx(ACPB* pacpb, CBinaryInputStream* pbis);
 
 struct VTACP {
-    void (*pfnEvaluateAcp) = nullptr;
+    void(*pfnEvaluateAcp) = nullptr;
     void (*pfnLoadAcpFromBrx)() = nullptr;
-    void (*pfnGetAcpTimes) = nullptr;
+    void(*pfnGetAcpTimes) = nullptr;
 };
 
 struct VTACPC {
-    void (*pfnEvaluateAcpc) = nullptr;
+    void(*pfnEvaluateAcpc) = nullptr;
     void (*pfnLoadAcpcFromBrx)(ACPC*, CBinaryInputStream*) = LoadAcpcFromBrx;
-    void (*pfnGetAcpcTimes) = nullptr;
+    void(*pfnGetAcpcTimes) = nullptr;
 };
 
 struct VTACPB {
-    void (*pfnEvaluateAcpb) = nullptr;
+    void(*pfnEvaluateAcpb) = nullptr;
     void (*pfnLoadAcpbFromBrx)(ACPB*, CBinaryInputStream*) = LoadAcpbFromBrx;
-    void (*pfnGetAcpbTimes) = nullptr;
+    void(*pfnGetAcpbTimes) = nullptr;
 };
 
 struct VTACPBL {
-    void (*pfnEvaluateAcpbl) = nullptr;
-    void (*pfnLoadAcpFromBrx) = nullptr;
-    void (*pfnGetAcpTimes) = nullptr;
+    void(*pfnEvaluateAcpbl) = nullptr;
+    void(*pfnLoadAcpFromBrx) = nullptr;
+    void(*pfnGetAcpTimes) = nullptr;
 };
 
 extern VTACPB g_vtacpb;
@@ -127,17 +127,17 @@ void LoadAcrcFromBrx(ACRC* pacrc, CBinaryInputStream* pbis);
 void LoadAcrbFromBrx(ACRB* pacrb, CBinaryInputStream* pbis);
 
 struct VTACR {
-    void (*pfnEvaluateAcr) = nullptr;
-    void (*pfnEvaluateAcrEul) = nullptr;
-    void (*pfnLoadAcrFromBrx) = nullptr;
-    void (*pfnGetAcrTimes) = nullptr;
+    void(*pfnEvaluateAcr) = nullptr;
+    void(*pfnEvaluateAcrEul) = nullptr;
+    void(*pfnLoadAcrFromBrx) = nullptr;
+    void(*pfnGetAcrTimes) = nullptr;
 };
 
 struct VTACRC {
-    void (*pfnEvaluateAcrc) = nullptr;
-    void (*pfnEvaluateAcrcEul) = nullptr;
+    void(*pfnEvaluateAcrc) = nullptr;
+    void(*pfnEvaluateAcrcEul) = nullptr;
     void (*pfnLoadAcrcFromBrx)(ACRC*, CBinaryInputStream*) = LoadAcrcFromBrx;
-    void (*pfnGetAcrcTimes) = nullptr;
+    void(*pfnGetAcrcTimes) = nullptr;
 };
 
 struct VTACRBL {
@@ -185,21 +185,21 @@ void LoadAcscFromBrx(ACSC* pacsc, CBinaryInputStream* pbis);
 void LoadAcsbFromBrx(ACSB* pacsb, CBinaryInputStream* pbis);
 
 struct VTACS {
-    void (*pfnEvaluateAcs) = nullptr;
-    void (*pfnLoadAcsFromBrx) = nullptr;
-    void (*pfnGetAcsTimes) = nullptr;
+    void(*pfnEvaluateAcs) = nullptr;
+    void(*pfnLoadAcsFromBrx) = nullptr;
+    void(*pfnGetAcsTimes) = nullptr;
 };
 
 struct VTACSB {
-    void (*pfnEvaluateAcsb) = nullptr;
+    void(*pfnEvaluateAcsb) = nullptr;
     void (*pfnLoadAcsbFromBrx)(ACSB*, CBinaryInputStream*) = LoadAcsbFromBrx;
-    void (*pfnGetAcsbTimes) = nullptr;
+    void(*pfnGetAcsbTimes) = nullptr;
 };
 
 struct VTACSC {
-    void (*pfnEvaluateAcsc) = nullptr;
+    void(*pfnEvaluateAcsc) = nullptr;
     void (*pfnLoadAcscFromBrx)(ACSC*, CBinaryInputStream*) = LoadAcscFromBrx;
-    void (*pfnGetAcscTimes) = nullptr;
+    void(*pfnGetAcscTimes) = nullptr;
 };
 
 extern VTACSC g_vtacsc;
@@ -220,13 +220,13 @@ enum KGBTK
     KGBTK_Max = 9
 };
 
-struct KGBT 
+struct KGBT
 {
     KGBTK kgbtk;
     float gSlope;
 };
 
-struct KGB 
+struct KGB
 {
     float t;
     float g;
@@ -234,14 +234,14 @@ struct KGB
     struct KGBT kgbtOut;
 };
 
-struct KGBWT 
+struct KGBWT
 {
     KGBTK kgbtk;
     float dt;
     float g;
 };
 
-struct KGBW 
+struct KGBW
 {
     float t;
     float g;
@@ -249,7 +249,7 @@ struct KGBW
     KGBWT kgbwtOut;
 };
 
-struct KGL 
+struct KGL
 {
     float t;
     float g;
@@ -279,39 +279,39 @@ void LoadAcgbwFromBrx(ACGBW* pacgbw, CBinaryInputStream* pbis);
 void LoadAcglFromBrx(ACGL* pacgl, CBinaryInputStream* pbis);
 
 struct VTACGBLP {
-    void (*pfnEvaluateAcgblp) = nullptr;
-    void (*pfnLoadAcgFromBrx) = nullptr;
-    void (*pfnGetAcgTimes) = nullptr;
+    void(*pfnEvaluateAcgblp) = nullptr;
+    void(*pfnLoadAcgFromBrx) = nullptr;
+    void(*pfnGetAcgTimes) = nullptr;
 };
 
 struct VTACG {
-    void (*pfnEvaluateAcg) = nullptr;
-    void (*pfnLoadAcgFromBrx) = nullptr;
-    void (*pfnGetAcgTimes) = nullptr;
+    void(*pfnEvaluateAcg) = nullptr;
+    void(*pfnLoadAcgFromBrx) = nullptr;
+    void(*pfnGetAcgTimes) = nullptr;
 };
 
 struct VTACGB {
-    void (*pfnEvaluateAcgb) = nullptr;
+    void(*pfnEvaluateAcgb) = nullptr;
     void (*pfnLoadAcgbFromBrx)(ACGB*, CBinaryInputStream*) = LoadAcgbFromBrx;
-    void (*pfnGetAcgbTimes) = nullptr;
+    void(*pfnGetAcgbTimes) = nullptr;
 };
 
 struct VTACGL {
-    void (*pfnEvaluateAcgl) = nullptr;
+    void(*pfnEvaluateAcgl) = nullptr;
     void (*pfnLoadAcglFromBrx)(ACGL*, CBinaryInputStream*) = LoadAcglFromBrx;
-    void (*pfnGetAcglTimes) = nullptr;
+    void(*pfnGetAcglTimes) = nullptr;
 };
 
 struct VTACGBW {
-    void (*pfnEvaluateAcgbw) = nullptr;
+    void(*pfnEvaluateAcgbw) = nullptr;
     void (*pfnLoadAcgbwFromBrx)(ACGBW*, CBinaryInputStream*) = LoadAcgbwFromBrx;
-    void (*pfnGetAcgbwTimes) = nullptr;
+    void(*pfnGetAcgbwTimes) = nullptr;
 };
 
 struct VTACGBLT {
-    void (*pfnEvaluateAcgblt) = nullptr;
-    void (*pfnLoadAcgFromBrx) = nullptr;
-    void (*pfnGetAcgTimes) = nullptr;
+    void(*pfnEvaluateAcgblt) = nullptr;
+    void(*pfnLoadAcgFromBrx) = nullptr;
+    void(*pfnGetAcgTimes) = nullptr;
 };
 
 extern VTACGB g_vtacgb;
@@ -321,4 +321,4 @@ extern VTACGBLT g_vtacgblt;
 extern VTACGBLP g_vtacgblp;
 
 void LoadAkvbFromBrx(int* pckvb, std::vector <KVB>& pakvb, CBinaryInputStream* pbis);
-void LoadApacgFromBrx(std::vector <ACG> &apacg, glm::vec3& pvecDefault, CBinaryInputStream* pbis);
+void LoadApacgFromBrx(std::vector <ACG>& apacg, glm::vec3& pvecDefault, CBinaryInputStream* pbis);

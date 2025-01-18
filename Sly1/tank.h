@@ -39,4 +39,4 @@ void InitTank(TANK* ptank);
 int  GetTankSize();
 void CloneTank(TANK* ptank, TANK* ptankBase);
 void RenderTankAll(TANK* ptank, CM* pcm, RO* pro);
-void DeleteTank(LO* plo);
+void DeleteTank(TANK* ptank);

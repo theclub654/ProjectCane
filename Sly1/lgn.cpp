@@ -35,9 +35,9 @@ void RenderLgnAll(LGN* plgn, CM* pcm, RO* pro)
 	RenderAloAll(plgn, pcm, pro);
 }
 
-void DeleteLgn(LO* plo)
+void DeleteLgn(LGN *plgn)
 {
-	delete (LGN*)plo;
+	delete plgn;
 }
 
 LGNB* NewLgnb()
@@ -105,7 +105,7 @@ void CloneSwp(SWP* pswp, SWP* pswpBase)
 	pswp->pstso = nullptr;
 }
 
-void DeleteSwp(LO* plo)
+void DeleteSwp(SWP *pswp)
 {
-	delete (SWP*)plo;
+	delete pswp;
 }

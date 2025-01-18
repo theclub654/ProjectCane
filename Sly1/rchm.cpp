@@ -8,6 +8,8 @@ RCHM* NewRchm()
 void InitRchm(RCHM* prchm)
 {
     InitLo(prchm);
+    prchm->oidHost = OID_Nil;
+    prchm->oidTouch = OID_Nil;
 }
 
 int GetRchmSize()
@@ -15,14 +17,16 @@ int GetRchmSize()
     return sizeof(RCHM);
 }
 
-void LoadRchmFromBrx(RCHM* prchm, CBinaryInputStream* pbis)
+void LoadRchmFromBrx(RCHM *prchm, CBinaryInputStream *pbis)
 {
+    prchm->ablrch.resize(24);
+
     for (int i = 0; i <= 0x17; i++)
-        pbis->S16Read();
+        prchm->ablrch[i].oidAseg = (OID)pbis->S16Read();
 
     prchm->cposGrid = pbis->S16Read();
 
-    pbis->ReadGeom(&prchm->geomLocal);
+    ReadGeom(&prchm->geomLocal, pbis);
 
     for (int i = 0; i < prchm->geomLocal.cpos; i++)
         pbis->S8Read();

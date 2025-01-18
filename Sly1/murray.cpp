@@ -30,7 +30,7 @@ void CloneMurray(MURRAY* pmurray, MURRAY* pmurrayBase)
 	pmurray->pstso = nullptr;
 }
 
-void DeleteMurray(LO* plo)
+void DeleteMurray(MURRAY* pmurray)
 {
-	delete (MURRAY*)plo;
+	delete pmurray;
 }

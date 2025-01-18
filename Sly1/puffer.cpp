@@ -35,9 +35,9 @@ int GetPufferSize()
 	return sizeof(PUFFER);
 }
 
-void DeletePuffer(LO* plo)
+void DeletePuffer(PUFFER *ppuffer)
 {
-	delete (PUFFER*)plo;
+	delete ppuffer;
 }
 
 PUFFB* NewPuffb()
@@ -120,9 +120,9 @@ void ClonePuffc(PUFFC* ppuffc, PUFFC* ppuffcBase)
 	ppuffc->pstso = nullptr;
 }
 
-void DeletePuffc(LO* plo)
+void DeletePuffc(PUFFC* ppuffc)
 {
-	delete (PUFFC*)plo;
+	delete ppuffc;
 }
 
 PUFFT* NewPufft()

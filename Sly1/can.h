@@ -41,4 +41,4 @@ CAN* NewCan();
 void InitCan(CAN *pcan);
 int  GetCanSize();
 void CloneCan(CAN* pcan, CAN* pcanBase);
-void DeleteCan(LO* plo);
+void DeleteCan(CAN* pcan);

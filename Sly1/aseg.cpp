@@ -40,7 +40,7 @@ void LoadAsegFromBrx(ASEG* paseg, CBinaryInputStream* pbis)
         {
             ACVK acvk = (ACVK)pbis->S8Read();
 
-            ACP *acp = PacpNew(acvk);
+            ACP* acp = PacpNew(acvk);
             acp->pvtacpc->pfnLoadAcpcFromBrx((ACPC*)acp, pbis);
         }
 
@@ -299,7 +299,7 @@ void ApplyAseg(ASEG* paseg, ALO* paloAsegRoot, float tLocal, float svtLocal, int
 
 }
 
-void DeleteAseg(ASEG* paseg)
+void DeleteAseg(ASEG *paseg)
 {
     delete paseg;
 }

@@ -40,7 +40,7 @@ void RenderJpSelf(JP* pjp, CM* pcm, RO* pro)
 	RenderJpAll(pjp, pcm, pro);
 }
 
-void DeleteJp(LO* plo)
+void DeleteJp(JP *pjp)
 {
-	delete (JP*)plo;
+	delete pjp;
 }

@@ -35,7 +35,7 @@ void CloneBrk(BRK* pbrk, BRK* pbrkBase)
 	pbrk->pstso = nullptr;
 }
 
-void DeleteBrk(BRK* pbrk)
+void DeleteBrk(BRK *pbrk)
 {
 	delete pbrk;
 }

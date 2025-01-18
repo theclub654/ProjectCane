@@ -60,7 +60,7 @@ void InitMbg(MBG* pmbg);
 int  GetMbgSize();
 void LoadMbgFromBrx(MBG* pmbg, CBinaryInputStream* pbis);
 void CloneMbg(MBG* pmbg, MBG* pmbgBase);
-void DeleteMbg(LO* plo);
+void DeleteMbg(MBG* pmbg);
 
 BHG* NewBhg();
 void InitBhg(BHG* pbhg);

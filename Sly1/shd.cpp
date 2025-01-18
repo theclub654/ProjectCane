@@ -385,7 +385,7 @@ void MakeTexture(GLuint &textureReference, int16_t clutIndex, int16_t bmpIndex, 
             texture[4 * i + 0] = pallete[index + 0];
             texture[4 * i + 1] = pallete[index + 1];
             texture[4 * i + 2] = pallete[index + 2];
-            texture[4 * i + 3] = pallete[index + 3] * 2;
+            texture[4 * i + 3] = pallete[index + 3] * 255 / 128;
         }
     }
 
@@ -399,12 +399,12 @@ void MakeTexture(GLuint &textureReference, int16_t clutIndex, int16_t bmpIndex, 
             texture[8 * i + 0] = pallete[4 * index1 + 0];
             texture[8 * i + 1] = pallete[4 * index1 + 1];
             texture[8 * i + 2] = pallete[4 * index1 + 2];
-            texture[8 * i + 3] = pallete[4 * index1 + 3] * 2;
+            texture[8 * i + 3] = pallete[4 * index1 + 3] * 255 / 128;
 
             texture[8 * i + 4] = pallete[4 * index2 + 0];
             texture[8 * i + 5] = pallete[4 * index2 + 1];
             texture[8 * i + 6] = pallete[4 * index2 + 2];
-            texture[8 * i + 7] = pallete[4 * index2 + 3] * 2;
+            texture[8 * i + 7] = pallete[4 * index2 + 3] * 255 / 128;
         }
     }
 
@@ -416,6 +416,6 @@ void MakeTexture(GLuint &textureReference, int16_t clutIndex, int16_t bmpIndex, 
     
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, texture.data());
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, texture.data());
     glGenerateMipmap(GL_TEXTURE_2D);
 }

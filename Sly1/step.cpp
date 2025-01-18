@@ -45,7 +45,7 @@ void RotateStepToMat(STEP* pstep, glm::mat3& pmat)
 	RotateSoToMat(pstep, pmat);
 }
 
-void DeleteStep(LO* plo)
+void DeleteStep(STEP* pstep)
 {
-	delete (STEP*)plo;
+	delete pstep;
 }

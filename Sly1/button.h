@@ -93,11 +93,11 @@ void InitButton(BUTTON* pbutton);
 int  GetButtonSize();
 void LoadButtonFromBrx(BUTTON* pbutton, CBinaryInputStream* pbis);
 void CloneButton(BUTTON* pbutton, BUTTON* pbuttonBase);
-void DeleteButton(LO* plo);
+void DeleteButton(BUTTON *pbutton);
 
 VOLBTN*NewVolbtn();
 void InitVolbtn(VOLBTN* pvolbtn);
 int  GetVolbtnSize();
 void CloneVolbtn(VOLBTN* pvolbtn, VOLBTN* pvolbtnBase);
 void LoadVolbtnFromBrx(VOLBTN *pvolbtn, CBinaryInputStream *pbis);
-void DeleteVolbtn(LO* plo);
+void DeleteVolbtn(VOLBTN* pvolbtn);

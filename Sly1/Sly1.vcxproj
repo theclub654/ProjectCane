@@ -168,6 +168,7 @@
     <ClInclude Include="bone.h" />
     <ClInclude Include="break.h" />
     <ClInclude Include="brx.h" />
+    <ClInclude Include="bsp.h" />
     <ClInclude Include="button.h" />
     <ClInclude Include="can.h" />
     <ClInclude Include="chkpnt.h" />
@@ -217,6 +218,7 @@
     <ClInclude Include="lo.h" />
     <ClInclude Include="main.h" />
     <ClInclude Include="map2d.h" />
+    <ClInclude Include="math.h" />
     <ClInclude Include="mb.h" />
     <ClInclude Include="mecha.h" />
     <ClInclude Include="mgv.h" />
@@ -274,7 +276,6 @@
     <ClInclude Include="turret.h" />
     <ClInclude Include="ub.h" />
     <ClInclude Include="util.h" />
-    <ClInclude Include="vec.h" />
     <ClInclude Include="vis.h" />
     <ClInclude Include="water.h" />
     <ClInclude Include="waypoint.h" />
@@ -309,6 +310,7 @@
     <ClCompile Include="bone.cpp" />
     <ClCompile Include="break.cpp" />
     <ClCompile Include="brx.cpp" />
+    <ClCompile Include="bsp.cpp" />
     <ClCompile Include="button.cpp" />
     <ClCompile Include="can.cpp" />
     <ClCompile Include="chkpnt.cpp" />
@@ -358,6 +360,7 @@
     <ClCompile Include="lo.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="map2d.cpp" />
+    <ClCompile Include="math.cpp" />
     <ClCompile Include="mb.cpp" />
     <ClCompile Include="mecha.cpp" />
     <ClCompile Include="mgv.cpp" />
@@ -414,7 +417,6 @@
     <ClCompile Include="turret.cpp" />
     <ClCompile Include="ub.cpp" />
     <ClCompile Include="util.cpp" />
-    <ClCompile Include="vec.cpp" />
     <ClCompile Include="vis.cpp" />
     <ClCompile Include="water.cpp" />
     <ClCompile Include="waypoint.cpp" />

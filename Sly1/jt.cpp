@@ -52,7 +52,7 @@ int GetJtSize()
 	return sizeof(JT);
 }
 
-void DeleteJt(LO* plo)
+void DeleteJt(JT* pjt)
 {
-	delete (JT*)plo;
+	delete pjt;
 }

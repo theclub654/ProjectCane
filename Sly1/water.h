@@ -17,4 +17,4 @@ WATER*NewWater();
 void InitWater(WATER* pwater);
 int  GetWaterSize();
 void CloneWater(WATER* pwater, WATER* pwaterBase);
-void DeleteWater(LO* plo);
+void DeleteWater(WATER* pwater);

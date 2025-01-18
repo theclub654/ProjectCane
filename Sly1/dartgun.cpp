@@ -30,7 +30,7 @@ void CloneDartgun(DARTGUN* pdartgun, DARTGUN* pdartgunBase)
 	pdartgun->pstso = nullptr;
 }
 
-void DeleteDartgun(LO* plo)
+void DeleteDartgun(DARTGUN* pdartgun)
 {
-	delete (DARTGUN*)plo;
+	delete pdartgun;
 }

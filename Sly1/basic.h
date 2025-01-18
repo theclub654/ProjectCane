@@ -224,7 +224,7 @@ struct VTLO
     void (*pfnGetLoParams) = nullptr;
     void (*pfnUpdateLoLiveEdit) = nullptr;
     int  (*pfnGetLoSize) () = GetLoSize;
-    void (*pfnDeleteLo) (LO* plo) = DeleteLo;
+    void (*pfnDeleteLo) (LO*) = DeleteLo;
 };
 
 static VTLO g_vtlo;
@@ -266,7 +266,7 @@ struct VTALO
     void (*pfnGetAloParams) = nullptr;
     void (*pfnUpdateLoLiveEdit) = nullptr;
     int  (*pfnGetAlo) () = GetAloSize;
-    void (*pfnDeleteAlo) (ALO* palo) = DeleteAlo;
+    void (*pfnDeleteAlo) (ALO*) = DeleteAlo;
     void (*pfnProjectAloTransform) = nullptr;
     void (*pfnPresetAloAccel) = nullptr;
     void (*pfnTranslateAloToPos)(ALO*, glm::vec3&) = TranslateAloToPos;
@@ -327,7 +327,7 @@ struct VTSO
     void (*pfnGetSoParams) = nullptr;
     void (*pfnUpdateLoLiveEdit) = nullptr;
     int  (*pfnGetSoSize) () = GetSoSize;
-    void (*pfnDeleteSo) (LO* plo) = DeleteSo;
+    void (*pfnDeleteSo) (SO*) = DeleteSo;
     void (*pfnProjectSoTransform) = nullptr;
     void (*pfnPresetSoAccel) = nullptr;
     void (*pfnTranslateSoToPos)(SO*,  glm::vec3&) = TranslateSoToPos;
@@ -413,7 +413,7 @@ struct VTMS
     void (*pfnGetSoParams) = nullptr;
     void (*pfnUpdateLoLiveEdit) = nullptr;
     int  (*pfnGetMsSize) () = GetMsSize;
-    void (*pfnDeleteSo) (LO* plo) = DeleteMs;
+    void (*pfnDeleteSo) (MS*) = DeleteMs;
     void (*pfnProjectSoTransform) = nullptr;
     void (*pfnPresetSoAccel) = nullptr;
     void (*pfnTranslateSoToPos)(SO*,  glm::vec3&) = TranslateSoToPos;
@@ -499,7 +499,7 @@ struct VTPO
     void (*pfnGetSoParams) = nullptr;
     void (*pfnUpdateLoLiveEdit) = nullptr;
     int  (*pfnGetPoSize) () = GetPoSize;
-    void (*pfnDeletePo) (LO* plo) = DeletePo;
+    void (*pfnDeletePo) (PO*) = DeletePo;
     void (*pfnProjectSoTransform) = nullptr;
     void (*pfnPresetSoAccel) = nullptr;
     void (*pfnTranslateSoToPos) (SO*, glm::vec3&) = TranslateSoToPos;
@@ -596,7 +596,7 @@ struct VTSTEP
     void (*pfnGetStepParams) = nullptr;
     void (*pfnUpdateLoLiveEdit) = nullptr;
     int  (*pfnGetStepSize)() = GetStepSize;
-    void (*pfnDeleteStep) (LO* plo) = DeleteStep;
+    void (*pfnDeleteStep) (STEP*) = DeleteStep;
     void (*pfnProjectSoTransform) = nullptr;
     void (*pfnPresetStepAccel) = nullptr;
     void (*pfnTranslateSoToPos)(SO*,  glm::vec3&) = TranslateSoToPos;
@@ -696,7 +696,7 @@ struct VTJT
     void (*pfnGetStepParams) = nullptr;
     void (*pfnUpdateLoLiveEdit) = nullptr;
     int  (*pfnGetJtSize) () = GetJtSize;
-    void (*pfnDeleteJt) (LO* plo) = DeleteJt;
+    void (*pfnDeleteJt) (JT*) = DeleteJt;
     void (*pfnProjectJtTransform) = nullptr;
     void (*pfnPresetJtAccel) = nullptr;
     void (*pfnTranslateSoToPos)(SO*,  glm::vec3&) = TranslateSoToPos;
@@ -796,7 +796,7 @@ struct VTSTEPGUARD
     void (*pfnGetStepParams) = nullptr;
     void (*pfnUpdateLoLiveEdit) = nullptr;
     int  (*pfnGetStepguardSize) () = GetStepguardSize;
-    void (*pfnDeleteStepguard) (LO* plo) = DeleteStepguard;
+    void (*pfnDeleteStepguard) (STEPGUARD*) = DeleteStepguard;
     void (*pfnProjectSoTransform) = nullptr;
     void (*pfnPresetStepguardAccel) = nullptr;
     void (*pfnTranslateSoToPos)(SO*,  glm::vec3&) = TranslateSoToPos;
@@ -907,7 +907,7 @@ struct VTSMARTGUARD
     void (*pfnGetStepParams) = nullptr;
     void (*pfnUpdateLoLiveEdit) = nullptr;
     int  (*pfnGetSmartguardSize) () = GetSmartguardSize;
-    void (*pfnDeleteSmartguard) (LO* plo) = DeleteSmartGuard;
+    void (*pfnDeleteSmartguard) (SMARTGUARD*) = DeleteSmartGuard;
     void (*pfnProjectSoTransform) = nullptr;
     void (*pfnPresetStepguardAccel) = nullptr;
     void (*pfnTranslateSoToPos)(SO*,  glm::vec3&) = TranslateSoToPos;
@@ -918,7 +918,7 @@ struct VTSMARTGUARD
     void (*pfnPredictStepPosition) = nullptr;
     void (*pfnPredictStepRotation) = nullptr;
     void (*pfnRenderAloAll)(ALO*, CM*, RO*) = RenderAloAll;
-    void (*pfnRenderStepguardSelf)(STEPGUARD* pstepguard, CM* pcm, RO* pro) = RenderStepguardSelf;
+    void (*pfnRenderStepguardSelf)(STEPGUARD*, CM*, RO*) = RenderStepguardSelf;
     void (*pfnRenderAloGlobset)(ALO*, CM*, RO*) = RenderAloGlobset;
     void (*pfnUpdateAloInfluences) = nullptr;
     void (*pfnAdjustAloPosition) = nullptr;
@@ -1018,7 +1018,7 @@ struct VTGOMER
     void (*pfnGetGomerParams) = nullptr;
     void (*pfnUpdateLoLiveEdit) = nullptr;
     int  (*pfnGetGomerSize) () = GetGomerSize;
-    void (*pfnDeleteGomer) (LO* plo) = DeleteGomer;
+    void (*pfnDeleteGomer) (GOMER*) = DeleteGomer;
     void (*pfnProjectSoTransform) = nullptr;
     void (*pfnPresetStepguardAccel) = nullptr;
     void (*pfnTranslateSoToPos) (SO*, glm::vec3&) = TranslateSoToPos;
@@ -1129,7 +1129,7 @@ struct VTUBG
     void (*pfnGetGomerParams) = nullptr;
     void (*pfnUpdateLoLiveEdit) = nullptr;
     int  (*pfnGetUbgSize) () = GetUbgSize;
-    void (*pfnDeleteUBG) (LO* plo) = DeleteUbg;
+    void (*pfnDeleteUBG) (UBG*) = DeleteUbg;
     void (*pfnProjectSoTransform) = nullptr;
     void (*pfnPresetStepguardAccel) = nullptr;
     void (*pfnTranslateSoToPos)(SO*,  glm::vec3&) = TranslateSoToPos;
@@ -1240,7 +1240,7 @@ struct VTMBG
     void (*pfnGetStepParams) = nullptr;
     void (*pfnUpdateLoLiveEdit) = nullptr;
     int  (*pfnGetMbgSize) () = GetMbgSize;
-    void (*pfnDeleteMbg) (LO* plo) = DeleteMbg;
+    void (*pfnDeleteMbg) (MBG*) = DeleteMbg;
     void (*pfnProjectSoTransform) = nullptr;
     void (*pfnPresetStepguardAccel) = nullptr;
     void (*pfnTranslateSoToPos)(SO*,  glm::vec3&) = TranslateSoToPos;
@@ -1351,7 +1351,7 @@ struct VTBHG
     void (*pfnGetStepParams) = nullptr;
     void (*pfnUpdateLoLiveEdit) = nullptr;
     int  (*pfnGetBhgSize) () = GetBhgSize;
-    void (*pfnDeleteBhg) (LO* plo) = DeleteBhg;
+    void (*pfnDeleteBhg) (BHG*) = DeleteBhg;
     void (*pfnProjectSoTransform) = nullptr;
     void (*pfnPresetStepguardAccel) = nullptr;
     void (*pfnTranslateSoToPos)(SO*,  glm::vec3&) = TranslateSoToPos;
@@ -1462,7 +1462,7 @@ struct VTMURRAY
     void (*pfnGetStepParams) = nullptr;
     void (*pfnUpdateLoLiveEdit) = nullptr;
     int  (*pfnGetMurraySize) () = GetMurraySize;
-    void (*pfnDeleteMurray) (LO* plo) = DeleteMurray;
+    void (*pfnDeleteMurray) (MURRAY*) = DeleteMurray;
     void (*pfnProjectSoTransform) = nullptr;
     void (*pfnPresetStepguardAccel) = nullptr;
     void (*pfnTranslateSoToPos)(SO*,  glm::vec3&) = TranslateSoToPos;
@@ -1573,7 +1573,7 @@ struct VTPUFFC
     void (*pfnGetStepParams) = nullptr;
     void (*pfnUpdateLoLiveEdit) = nullptr;
     int  (*pfnGetPuffcSize) () = GetPuffcSize;
-    void (*pfnDeletePuffc) (LO* plo) = DeletePuffc;
+    void (*pfnDeletePuffc) (PUFFC*) = DeletePuffc;
     void (*pfnProjectSoTransform) = nullptr;
     void (*pfnPresetPuffcAccel) = nullptr;
     void (*pfnTranslateSoToPos)(SO*,  glm::vec3&) = TranslateSoToPos;
@@ -1684,7 +1684,7 @@ struct VTCRFOD
     void (*pfnGetStepParams) = nullptr;
     void (*pfnUpdateLoLiveEdit) = nullptr;
     int  (*pfnGetCrfodSize) () = GetCrfodSize;
-    void (*pfnDeleteCrfod) (LO* plo) = DeleteCrfod;
+    void (*pfnDeleteCrfod) (CRFOD*) = DeleteCrfod;
     void (*pfnProjectSoTransform) = nullptr;
     void (*pfnPresetStepguardAccel) = nullptr;
     void (*pfnTranslateSoToPos)(SO*,  glm::vec3&) = TranslateSoToPos;
@@ -1795,7 +1795,7 @@ struct VTCRFODB
     void (*pfnGetStepParams) = nullptr;
     void (*pfnUpdateLoLiveEdit) = nullptr;
     int  (*pfnGetCrfodbSize) () = GetCrfodbSize;
-    void (*pfnDeleteCrfodb) (LO* plo) = DeleteCrfodb;
+    void (*pfnDeleteCrfodb) (CRFODB*) = DeleteCrfodb;
     void (*pfnProjectSoTransform) = nullptr;
     void (*pfnPresetStepguardAccel) = nullptr;
     void (*pfnTranslateSoToPos)(SO*,  glm::vec3&) = TranslateSoToPos;
@@ -1906,7 +1906,7 @@ struct VTCRFODK
     void (*pfnGetStepParams) = nullptr;
     void (*pfnUpdateLoLiveEdit) = nullptr;
     int  (*pfnGetCrfodkSize) () = GetCrfodkSize;
-    void (*pfnDeleteCrfodk) (LO* plo) = DeleteCrfodk;
+    void (*pfnDeleteCrfodk) (CRFODK*) = DeleteCrfodk;
     void (*pfnProjectSoTransform) = nullptr;
     void (*pfnPresetStepguardAccel) = nullptr;
     void (*pfnTranslateSoToPos)(SO*,  glm::vec3&) = TranslateSoToPos;
@@ -2017,7 +2017,7 @@ struct VTTANK
     void (*pfnGetStepParams) = nullptr;
     void (*pfnUpdateLoLiveEdit) = nullptr;
     int  (*pfnGetTankSize) () = GetTankSize;
-    void (*pfnDeleteTank) (LO* plo) = DeleteTank;
+    void (*pfnDeleteTank) (TANK*) = DeleteTank;
     void (*pfnProjectSoTransform) = nullptr;
     void (*pfnPresetStepAccel) = nullptr;
     void (*pfnTranslateSoToPos)(SO*,  glm::vec3&) = TranslateSoToPos;
@@ -2117,7 +2117,7 @@ struct VTJP
     void (*pfnGetStepParams) = nullptr;
     void (*pfnUpdateLoLiveEdit) = nullptr;
     int  (*pfnGetJpSize) () = GetJpSize;
-    void (*pfnDeleteJp) (LO* plo) = DeleteJp;
+    void (*pfnDeleteJp) (JP*) = DeleteJp;
     void (*pfnProjectSoTransform) = nullptr;
     void (*pfnPresetJpAccel) = nullptr;
     void (*pfnTranslateSoToPos)(SO*,  glm::vec3&) = TranslateSoToPos;
@@ -2217,7 +2217,7 @@ struct VTHG
     void (*pfnGetStepParams) = nullptr;
     void (*pfnUpdateLoLiveEdit) = nullptr;
     int  (*pfnGetHgSize) () = GetHgSize;
-    void (*pfnDeleteHg) (LO* plo) = DeleteHg;
+    void (*pfnDeleteHg) (HG*) = DeleteHg;
     void (*pfnProjectSoTransform) = nullptr;
     void (*pfnPresetHgAccel) = nullptr;
     void (*pfnTranslateSoToPos)(SO*,  glm::vec3&) = TranslateSoToPos;
@@ -2317,7 +2317,7 @@ struct VTMECHA
     void (*pfnGetStepParams) = nullptr;
     void (*pfnUpdateLoLiveEdit) = nullptr;
     int  (*pfnGetMechaSize) () = GetMechaSize;
-    void (*pfnDeleteMecha) (LO* plo) = DeleteMecha;
+    void (*pfnDeleteMecha) (MECHA*) = DeleteMecha;
     void (*pfnProjectSoTransform) = nullptr;
     void (*pfnPresetMechaAccel) = nullptr;
     void (*pfnTranslateSoToPos)(SO*,  glm::vec3&) = TranslateSoToPos;
@@ -2328,7 +2328,7 @@ struct VTMECHA
     void (*pfnPredictStepPosition) = nullptr;
     void (*pfnPredictStepRotation) = nullptr;
     void (*pfnRenderAloAll)(ALO*, CM*, RO*) = RenderAloAll;
-    void (*pfnRenderMechaSelf)(MECHA* pmecha, CM* pcm, RO* pro) = RenderMechaSelf;
+    void (*pfnRenderMechaSelf)(MECHA*, CM*, RO*) = RenderMechaSelf;
     void (*pfnRenderAloGlobset)(ALO*, CM*, RO*) = RenderAloGlobset;
     void (*pfnUpdateAloInfluences) = nullptr;
     void (*pfnAdjustAloPosition) = nullptr;
@@ -2417,7 +2417,7 @@ struct VTROV
     void (*pfnGetRovParams) = nullptr;
     void (*pfnUpdateLoLiveEdit) = nullptr;
     int  (*pfnGetRovSize) () = GetRovSize;
-    void (*pfnDeleteRov) (LO* plo) = DeleteRov;
+    void (*pfnDeleteRov) (ROV*) = DeleteRov;
     void (*pfnProjectSoTransform) = nullptr;
     void (*pfnPresetRovAccel) = nullptr;
     void (*pfnTranslateSoToPos)(SO*,  glm::vec3&) = TranslateSoToPos;
@@ -2514,7 +2514,7 @@ struct VTTURRET
     void (*pfnGetSoParams) = nullptr;
     void (*pfnUpdateLoLiveEdit) = nullptr;
     int  (*pfnGetTurretSize) () = GetTurretSize;
-    void (*pfnDeleteTurret) (LO* plo) = DeleteTurret;
+    void (*pfnDeleteTurret) (TURRET*) = DeleteTurret;
     void (*pfnProjectSoTransform) = nullptr;
     void (*pfnPresetSoAccel) = nullptr;
     void (*pfnTranslateSoToPos)(SO*,  glm::vec3&) = TranslateSoToPos;
@@ -2611,7 +2611,7 @@ struct VTVAULT
     void (*pfnGetSoParams) = nullptr;
     void (*pfnUpdateLoLiveEdit) = nullptr;
     int  (*pfnGetVaultSize) () = GetVaultSize;
-    void (*pfnDeleteVault) (LO* plo) = DeleteVault;
+    void (*pfnDeleteVault) (VAULT*) = DeleteVault;
     void (*pfnProjectSoTransform) = nullptr;
     void (*pfnPresetSoAccel) = nullptr;
     void (*pfnTranslateSoToPos)(SO*,  glm::vec3&) = TranslateSoToPos;
@@ -2708,7 +2708,7 @@ struct VTPUFFER
     void (*pfnGetSoParams) = nullptr;
     void (*pfnUpdateLoLiveEdit) = nullptr;
     int  (*pfnGetPufferSize) () = GetPufferSize;
-    void (*pfnDeletePuffer) (LO* plo) = DeletePuffer;
+    void (*pfnDeletePuffer) (PUFFER*) = DeletePuffer;
     void (*pfnProjectSoTransform) = nullptr;
     void (*pfnPresetPufferAccel) = nullptr;
     void (*pfnTranslateSoToPos)(SO*,  glm::vec3&) = TranslateSoToPos;
@@ -2805,7 +2805,7 @@ struct VTMGV
     void (*pfnGetSoParams) = nullptr;
     void (*pfnUpdateLoLiveEdit) = nullptr;
     int  (*pfnGetMgvSize) () = GetMgvSize;
-    void (*pfnDeleteMgv) (LO* plo) = DeleteMgv;
+    void (*pfnDeleteMgv) (MGV*) = DeleteMgv;
     void (*pfnProjectSoTransform) = nullptr;
     void (*pfnPresetSoAccel) = nullptr;
     void (*pfnTranslateSoToPos)(SO*,  glm::vec3&) = TranslateSoToPos;
@@ -2902,7 +2902,7 @@ struct VTSUV
     void (*pfnGetSoParams) = nullptr;
     void (*pfnUpdateLoLiveEdit) = nullptr;
     int  (*pfnGetSuvSize) () = GetSuvSize;
-    void (*pfnDeleteSuv) (LO* plo) = DeleteSuv;
+    void (*pfnDeleteSuv) (SUV*) = DeleteSuv;
     void (*pfnProjectSoTransform) = nullptr;
     void (*pfnPresetSuvAccel) = nullptr;
     void (*pfnTranslateSoToPos)(SO*,  glm::vec3&) = TranslateSoToPos;
@@ -2999,7 +2999,7 @@ struct VTCYCLE
     void (*pfnGetSoParams) = nullptr;
     void (*pfnUpdateLoLiveEdit) = nullptr;
     int  (*pfnGetCycleSize) () = GetCycleSize;
-    void (*pfnDeleteCycle) (LO* plo) = DeleteCycle;
+    void (*pfnDeleteCycle) (CYCLE*) = DeleteCycle;
     void (*pfnProjectSoTransform) = nullptr;
     void (*pfnPresetCycleAccel) = nullptr;
     void (*pfnTranslateSoToPos)(SO*,  glm::vec3&) = TranslateSoToPos;
@@ -3096,7 +3096,7 @@ struct VTLGN
     void (*pfnGetSoParams) = nullptr;
     void (*pfnUpdateLoLiveEdit) = nullptr;
     int  (*pfnGetLgnSize) () = GetLgnSize;
-    void (*pfnDeleteLgn) (LO* plo) = DeleteLgn;
+    void (*pfnDeleteLgn) (LGN*) = DeleteLgn;
     void (*pfnProjectSoTransform) = nullptr;
     void (*pfnPresetSoAccel) = nullptr;
     void (*pfnTranslateSoToPos)(SO*,  glm::vec3&) = TranslateSoToPos;
@@ -3193,7 +3193,7 @@ struct VTJACK
     void (*pfnGetSoParams) = nullptr;
     void (*pfnUpdateLoLiveEdit) = nullptr;
     int  (*pfnGetJackSize) () = GetJackSize;
-    void (*pfnDeleteJack) (LO* plo) = DeleteJack;
+    void (*pfnDeleteJack) (JACK*) = DeleteJack;
     void (*pfnProjectSoTransform) = nullptr;
     void (*pfnPresetSoAccel) = nullptr;
     void (*pfnTranslateSoToPos)(SO*,  glm::vec3&) = TranslateSoToPos;
@@ -3290,7 +3290,7 @@ struct VTRIPG
     void (*pfnGetSoParams) = nullptr;
     void (*pfnUpdateLoLiveEdit) = nullptr;
     int  (*pfnGetRipgSize) () = GetRipgSize;
-    void (*pfnDeleteRipg) (LO* plo) = DeleteRipg;
+    void (*pfnDeleteRipg) (RIPG*) = DeleteRipg;
     void (*pfnProjectRipgTransform) = nullptr;
     void (*pfnPresetSoAccel) = nullptr;
     void (*pfnTranslateSoToPos)(SO*,  glm::vec3&) = TranslateSoToPos;
@@ -3376,7 +3376,7 @@ struct VTWATER
     void (*pfnGetSoParams) = nullptr;
     void (*pfnUpdateLoLiveEdit) = nullptr;
     int  (*pfnGetWaterSize) () = GetWaterSize;
-    void (*pfnDeleteWater) (LO* plo) = DeleteWater;
+    void (*pfnDeleteWater) (WATER*) = DeleteWater;
     void (*pfnProjectSoTransform) = nullptr;
     void (*pfnPresetSoAccel) = nullptr;
     void (*pfnTranslateSoToPos)(SO*,  glm::vec3&) = TranslateSoToPos;
@@ -3462,7 +3462,7 @@ struct VTBRK
     void (*pfnGetSoParams) = nullptr;
     void (*pfnUpdateLoLiveEdit) = nullptr;
     int  (*pfnGetBrkSize) () = GetBrkSize;
-    void (*pfnDeleteBrk) (BRK* pbrk) = DeleteBrk;
+    void (*pfnDeleteBrk) (BRK*) = DeleteBrk;
     void (*pfnProjectSoTransform) = nullptr;
     void (*pfnPresetSoAccel) = nullptr;
     void (*pfnTranslateSoToPos)(SO*,  glm::vec3&) = TranslateSoToPos;
@@ -3549,7 +3549,7 @@ struct VTBREAK
     void (*pfnGetSoParams) = nullptr;
     void (*pfnUpdateLoLiveEdit) = nullptr;
     int  (*pfnGetBreakSize) () = GetBreakSize;
-    void (*pfnDeleteBreak) (BREAK* pbreak) = DeleteBreak;
+    void (*pfnDeleteBreak) (BREAK*) = DeleteBreak;
     void (*pfnProjectSoTransform) = nullptr;
     void (*pfnPresetSoAccel) = nullptr;
     void (*pfnTranslateSoToPos)(SO*,  glm::vec3&) = TranslateSoToPos;
@@ -3723,7 +3723,7 @@ struct VTCAN
     void (*pfnGetCanParams) = nullptr;
     void (*pfnUpdateLoLiveEdit) = nullptr;
     int  (*pfnGetCanSize) () = GetCanSize;
-    void (*pfnDeleteCan) (LO* plo) = DeleteCan;
+    void (*pfnDeleteCan) (CAN*) = DeleteCan;
     void (*pfnProjectSoTransform) = nullptr;
     void (*pfnPresetSoAccel) = nullptr;
     void (*pfnTranslateSoToPos)(SO*,  glm::vec3&) = TranslateSoToPos;
@@ -3810,7 +3810,7 @@ struct VTDARTGUN
     void (*pfnGetDartgunParams) = nullptr;
     void (*pfnUpdateLoLiveEdit) = nullptr;
     int  (*pfnGetDartgunSize) () = GetDartgunSize;
-    void (*pfnDeleteDartgun) (LO* plo) = DeleteDartgun;
+    void (*pfnDeleteDartgun) (DARTGUN*) = DeleteDartgun;
     void (*pfnProjectSoTransform) = nullptr;
     void (*pfnPresetSoAccel) = nullptr;
     void (*pfnTranslateSoToPos)(SO*,  glm::vec3&) = TranslateSoToPos;
@@ -3897,7 +3897,7 @@ struct VTSWP
     void (*pfnGetSoParams) = nullptr;
     void (*pfnUpdateLoLiveEdit) = nullptr;
     int  (*pfnGetSwpSize) () = GetSwpSize;
-    void (*pfnDeleteSwp) (LO* plo) = DeleteSwp;
+    void (*pfnDeleteSwp) (SWP*) = DeleteSwp;
     void (*pfnProjectSwpTransform) = nullptr;
     void (*pfnPresetSoAccel) = nullptr;
     void (*pfnTranslateSoToPos)(SO*,  glm::vec3&) = TranslateSoToPos;
@@ -3984,7 +3984,7 @@ struct VTFRAGILE
     void (*pfnGetSoParams) = nullptr;
     void (*pfnUpdateLoLiveEdit) = nullptr;
     int  (*pfnGetFragileSize) () = GetFragileSize;
-    void (*pfnDeleteFragile) (FRAGILE* pfragile) = DeleteFragile;
+    void (*pfnDeleteFragile) (FRAGILE*) = DeleteFragile;
     void (*pfnProjectSoTransform) = nullptr;
     void (*pfnPresetSoAccel) = nullptr;
     void (*pfnTranslateSoToPos)(SO*,  glm::vec3&) = TranslateSoToPos;
@@ -4071,7 +4071,7 @@ struct VTZAPBREAK
     void (*pfnGetSoParams) = nullptr;
     void (*pfnUpdateLoLiveEdit) = nullptr;
     int  (*pfnGetZapbreakSize) () = GetZapbreakSize;
-    void (*pfnDeleteZapbreak) (ZAPBREAK* pzapbreak) = DeleteZapbreak;
+    void (*pfnDeleteZapbreak) (ZAPBREAK*) = DeleteZapbreak;
     void (*pfnProjectSoTransform) = nullptr;
     void (*pfnPresetSoAccel) = nullptr;
     void (*pfnTranslateSoToPos)(SO*,  glm::vec3&) = TranslateSoToPos;
@@ -4158,7 +4158,7 @@ struct VTBRKP
     void (*pfnGetSoParams) = nullptr;
     void (*pfnUpdateLoLiveEdit) = nullptr;
     int  (*pfnGetBrkpSize) () = GetBrkpSize;
-    void (*pfnDeleteBrkp) (BRKP* pbrkp) = DeleteBrkp;
+    void (*pfnDeleteBrkp) (BRKP*) = DeleteBrkp;
     void (*pfnProjectSoTransform) = nullptr;
     void (*pfnPresetSoAccel) = nullptr;
     void (*pfnTranslateSoToPos)(SO*,  glm::vec3&) = TranslateSoToPos;
@@ -4244,7 +4244,7 @@ struct VTBUTTON
     void (*pfnGetButtonParams) = nullptr;
     void (*pfnUpdateLoLiveEdit) = nullptr;
     int  (*pfnGetButonSize) () = GetButtonSize;
-    void (*pfnDeleteButton) (LO* plo) = DeleteButton;
+    void (*pfnDeleteButton) (BUTTON*) = DeleteButton;
     void (*pfnProjectSoTransform) = nullptr;
     void (*pfnPresetButtonAccel) = nullptr;
     void (*pfnTranslateSoToPos)(SO*,  glm::vec3&) = TranslateSoToPos;
@@ -4330,7 +4330,7 @@ struct VTVOLBTN
     void (*pfnGetSoParams) = nullptr;
     void (*pfnUpdateLoLiveEdit) = nullptr;
     int  (*pfnGetVolbtnSize) () = GetVolbtnSize;
-    void (*pfnDeleteVolbtn) (LO* plo) = DeleteVolbtn;
+    void (*pfnDeleteVolbtn) (VOLBTN*) = DeleteVolbtn;
     void (*pfnProjectSoTransform) = nullptr;
     void (*pfnPresetSoAccel) = nullptr;
     void (*pfnTranslateSoToPos)(SO*,  glm::vec3&) = TranslateSoToPos;
@@ -4416,7 +4416,7 @@ struct VTJLOVOL
     void (*pfnGetSoParams) = nullptr;
     void (*pfnUpdateLoLiveEdit) = nullptr;
     int  (*pfnGetJlovolSize) () = GetJlovolSize;
-    void (*pfnDeletejlovol) (LO* plo) = DeleteJlovol;
+    void (*pfnDeletejlovol) (JLOVOL*) = DeleteJlovol;
     void (*pfnProjectSoTransform) = nullptr;
     void (*pfnPresetSoAccel) = nullptr;
     void (*pfnTranslateSoToPos)(SO*,  glm::vec3&) = TranslateSoToPos;
@@ -4502,7 +4502,7 @@ struct VTSQUISH
     void (*pfnGetSoParams) = nullptr;
     void (*pfnUpdateLoLiveEdit) = nullptr;
     int  (*pfnGetSquishSize) () = GetSquishSize;
-    void (*pfnDeleteSquish) (LO* plo) = DeleteSquish;
+    void (*pfnDeleteSquish) (SQUISH*) = DeleteSquish;
     void (*pfnProjectSoTransform) = nullptr;
     void (*pfnPresetSoAccel) = nullptr;
     void (*pfnTranslateSoToPos)(SO*,  glm::vec3&) = TranslateSoToPos;
@@ -4588,7 +4588,7 @@ struct VTBONE
     void (*pfnGetSoParams) = nullptr;
     void (*pfnUpdateLoLiveEdit) = nullptr;
     int  (*pfnGetBoneSize) () = GetBoneSize;
-    void (*pfnDeleteBone) (BONE* pbone) = DeleteBone;
+    void (*pfnDeleteBone) (BONE*) = DeleteBone;
     void (*pfnProjectSoTransform) = nullptr;
     void (*pfnPresetSoAccel) = nullptr;
     void (*pfnTranslateSoToPos)(SO*,  glm::vec3&) = TranslateSoToPos;
@@ -4674,7 +4674,7 @@ struct VTSPRIZE
     void (*pfnGetSoParams) = nullptr;
     void (*pfnUpdateLoLiveEdit) = nullptr;
     int  (*pfnGetSprizeSize) () = GetSprizeSize;
-    void (*pfnDeleteSprize) (LO* plo) = DeleteSprize;
+    void (*pfnDeleteSprize) (SPRIZE*) = DeleteSprize;
     void (*pfnProjectSoTransform) = nullptr;
     void (*pfnPresetSoAccel) = nullptr;
     void (*pfnTranslateSoToPos)(SO*,  glm::vec3&) = TranslateSoToPos;
@@ -4763,7 +4763,7 @@ struct VTSCPRIZE
     void (*pfnGetSoParams) = nullptr;
     void (*pfnUpdateLoLiveEdit) = nullptr;
     int  (*pfnGetScprizeSize) () = GetScprizeSize;
-    void (*pfnDeleteScprize) (LO* plo) = DeleteScprize;
+    void (*pfnDeleteScprize) (SCPRIZE*) = DeleteScprize;
     void (*pfnProjectSoTransform) = nullptr;
     void (*pfnPresetSoAccel) = nullptr;
     void (*pfnTranslateSoToPos)(SO*,  glm::vec3&) = TranslateSoToPos;
@@ -4852,7 +4852,7 @@ struct VTLIFETKN
     void (*pfnGetSoParams) = nullptr;
     void (*pfnUpdateLoLiveEdit) = nullptr;
     int  (*pfnGetLifetknSize) () = GetLifetknSize;
-    void (*pfnDeleteLifetkn) (LO* plo) = DeleteLifetkn;
+    void (*pfnDeleteLifetkn) (LIFETKN*) = DeleteLifetkn;
     void (*pfnProjectSoTransform) = nullptr;
     void (*pfnPresetSoAccel) = nullptr;
     void (*pfnTranslateSoToPos)(SO*,  glm::vec3&) = TranslateSoToPos;
@@ -4941,7 +4941,7 @@ struct VTCLUE
     void (*pfnGetSoParams) = nullptr;
     void (*pfnUpdateLoLiveEdit) = nullptr;
     int  (*pfnGetClueSize) () = GetClueSize;
-    void (*pfnDeleteClue) (LO* plo) = DeleteClue;
+    void (*pfnDeleteClue) (CLUE*) = DeleteClue;
     void (*pfnProjectSoTransform) = nullptr;
     void (*pfnPresetSoAccel) = nullptr;
     void (*pfnTranslateSoToPos)(SO*,  glm::vec3&) = TranslateSoToPos;
@@ -5030,7 +5030,7 @@ struct VTALARM
     void (*pfnGetAlarmParams) = nullptr;
     void (*pfnUpdateLoLiveEdit) = nullptr;
     int  (*pfnGetAlarmSize) () = GetAlarmSize;
-    void (*pfnDeleteAlarm) (ALARM* palarm) = DeleteAlarm;
+    void (*pfnDeleteAlarm) (ALARM*) = DeleteAlarm;
     void (*pfnProjectSoTransform) = nullptr;
     void (*pfnPresetSoAccel) = nullptr;
     void (*pfnTranslateSoToPos)(SO*,  glm::vec3&) = TranslateSoToPos;
@@ -5116,7 +5116,7 @@ struct VTSENSOR
     void (*pfnGetSensorParams) = nullptr;
     void (*pfnUpdateLoLiveEdit) = nullptr;
     int  (*pfnGetSensorSize) () = GetSensorSize;
-    void (*pfnDeleteSensor) (LO* plo) = DeleteSensor;
+    void (*pfnDeleteSensor) (SENSOR*) = DeleteSensor;
     void (*pfnProjectSoTransform) = nullptr;
     void (*pfnPresetSoAccel) = nullptr;
     void (*pfnTranslateSoToPos)(SO*,  glm::vec3&) = TranslateSoToPos;
@@ -5208,7 +5208,7 @@ struct VTLASEN
     void (*pfnGetLasenParams) = nullptr;
     void (*pfnUpdateLoLiveEdit) = nullptr;
     int  (*pfnGetLasenSize) () = GetLasenSize;
-    void (*pfnDeleteLasen) (LO* plo) = DeleteLasen;
+    void (*pfnDeleteLasen) (LASEN*) = DeleteLasen;
     void (*pfnProjectSoTransform) = nullptr;
     void (*pfnPresetSoAccel) = nullptr;
     void (*pfnTranslateSoToPos)(SO*,  glm::vec3&) = TranslateSoToPos;
@@ -5300,7 +5300,7 @@ struct VTCAMSEN
     void (*pfnGetCamsenParams) = nullptr;
     void (*pfnUpdateLoLiveEdit) = nullptr;
     int  (*pfnGetCamsenSize) () = GetCamsenSize;
-    void (*pfnDeleteCamsen) (LO* plo) = DeleteCamsen;
+    void (*pfnDeleteCamsen) (CAMSEN*) = DeleteCamsen;
     void (*pfnProjectSoTransform) = nullptr;
     void (*pfnPresetSoAccel) = nullptr;
     void (*pfnTranslateSoToPos)(SO*,  glm::vec3&) = TranslateSoToPos;
@@ -5392,7 +5392,7 @@ struct VTPRSEN
     void (*pfnGetPrsenParams) = nullptr;
     void (*pfnUpdateLoLiveEdit) = nullptr;
     int  (*pfnGetPrsenSize) () = GetPrsenSize;
-    void (*pfnDeletePrsen) (LO* plo) = DeletePrsen;
+    void (*pfnDeletePrsen) (PRSEN*) = DeletePrsen;
     void (*pfnProjectSoTransform) = nullptr;
     void (*pfnPresetSoAccel) = nullptr;
     void (*pfnTranslateSoToPos)(SO*,  glm::vec3&) = TranslateSoToPos;
@@ -5484,7 +5484,7 @@ struct VTBARRIER
     void (*pfnGetSoParams) = nullptr;
     void (*pfnUpdateLoLiveEdit) = nullptr;
     int  (*pfnGetBarrierSize) () = GetBarrierSize;
-    void (*pfnDeleteBarrier) (BARRIER* pbarrier) = DeleteBarrier;
+    void (*pfnDeleteBarrier) (BARRIER*) = DeleteBarrier;
     void (*pfnProjectSoTransform) = nullptr;
     void (*pfnPresetSoAccel) = nullptr;
     void (*pfnTranslateSoToPos)(SO*,  glm::vec3&) = TranslateSoToPos;
@@ -5570,7 +5570,7 @@ struct VTIKH
     void (*pfnGetSoParams) = nullptr;
     void (*pfnUpdateLoLiveEdit) = nullptr;
     int  (*pfnGetIkhSize) () = GetIkhSize;
-    void (*pfnDeleteIkh) (LO* plo) = DeleteIkh;
+    void (*pfnDeleteIkh) (IKH*) = DeleteIkh;
     void (*pfnProjectSoTransform) = nullptr;
     void (*pfnPresetSoAccel) = nullptr;
     void (*pfnTranslateSoToPos)(SO*,  glm::vec3&) = TranslateSoToPos;
@@ -5656,7 +5656,7 @@ struct VTTZP
     void (*pfnGetSoParams) = nullptr;
     void (*pfnUpdateLoLiveEdit) = nullptr;
     int  (*pfnGetTzpSize) () = GetTzpSize;
-    void (*pfnDeleteTzp) (LO* plo) = DeleteTzp;
+    void (*pfnDeleteTzp) (TZP*) = DeleteTzp;
     void (*pfnProjectSoTransform) = nullptr;
     void (*pfnPresetSoAccel) = nullptr;
     void (*pfnTranslateSoToPos)(SO*,  glm::vec3&) = TranslateSoToPos;
@@ -5742,7 +5742,7 @@ struct VTVOLZP
     void (*pfnGetSoParams) = nullptr;
     void (*pfnUpdateLoLiveEdit) = nullptr;
     int  (*pfnGetVolzpSize) () = GetVolzpSize;
-    void (*pfnDeleteVolzp) (LO* plo) = DeleteVolzp;
+    void (*pfnDeleteVolzp) (VOLZP*) = DeleteVolzp;
     void (*pfnProjectSoTransform) = nullptr;
     void (*pfnPresetSoAccel) = nullptr;
     void (*pfnTranslateSoToPos)(SO*,  glm::vec3&) = TranslateSoToPos;
@@ -8213,7 +8213,7 @@ struct VTPROXY
     void (*pfnGetAloParams) = nullptr;
     void (*pfnUpdateLoLiveEdit) = nullptr;
     int  (*pfnGetProxySize) () = GetProxySize;
-    void (*pfnDeleteProxy) (LO* plo) = DeleteProxy;
+    void (*pfnDeleteProxy) (PROXY *pproxy) = DeleteProxy;
     void (*pfnProjectAloTransform) = nullptr;
     void (*pfnPresetAloAccel) = nullptr;
     void (*pfnTranslateAloToPos)(ALO*, glm::vec3&) = TranslateAloToPos;
@@ -9907,7 +9907,7 @@ struct VTCM
     void (*pfnGetCmParams) = nullptr;
     void (*pfnUpdateLoLiveEdit) = nullptr;
     int  (*pfnGetCmSize) () = GetCmSize;
-    void (*pfnDeleteCm) (LO* plo) = DeleteCm;
+    void (*pfnDeleteCm) (CM*) = DeleteCm;
 };
 
 static VTCM g_vtcm;
@@ -11148,7 +11148,7 @@ struct VTVISMAP
     void (*pfnGetLoParams) = nullptr;
     void (*pfnUpdateLoLiveEdit) = nullptr;
     int  (*pfnGetVismapSize) () = GetVismapSize;
-    void (*pfnDeleteVismap) (LO* plo) = DeleteVismap;
+    void (*pfnDeleteVismap) (VISMAP*) = DeleteVismap;
 };
 
 static VTVISMAP g_vismap;

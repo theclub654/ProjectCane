@@ -32,4 +32,4 @@ SMARTGUARD*NewSmartguard();
 void InitSmartGuard(SMARTGUARD* psmartguard);
 int  GetSmartguardSize();
 void CloneSmartguard(SMARTGUARD* psmartguard, SMARTGUARD* psmartguardBase);
-void DeleteSmartGuard(LO* plo);
+void DeleteSmartGuard(SMARTGUARD* psmartguard);

@@ -7,8 +7,7 @@ void InitCm(CM* pcm); // NOT FINISHED
 int  GetCmSize();
 void CloneCm(CM* pcm, CM* pcmBase);
 void RecalcCmFrustrum(CM* pcm);
-void BuildSimpleProjectionMatrix(float rx, float ry, float dxOffset, float dyOffset, float sNear, float sFar, glm::mat4 &pmat);
-void BuildProjectionMatrix(float fov, float width, float height, float near, float far, glm::mat4 &pmat);
+void BuildProjectionMatrix(float *fov, float *width, float *height, float *near, float *far, glm::mat4 &pmat);
 void SetSwCameraFov(SW* psw, float radFOV);
 void SetSwCameraNearClip(SW* psw, float sNearClip);
 void SetSwCameraFarClip(SW* psw, float sFarClip);
@@ -39,11 +38,12 @@ void SetCmRgbaFog(CM* pcm, RGBA prgbaFog);
 void*GetCmMrdRatio(CM* pcm);
 void SetCmMrdRatio(CM* pcm, float rMRD);
 // Builds lookat matrix
-void BuildLookAt(glm::vec3 posEye, glm::vec3 directionEye, glm::vec3 upEye, glm::mat4& pmatLookAt);
+void BuildLookAt(glm::vec3 &posEye, glm::vec3 &directionEye, glm::vec3 &upEye, glm::mat4 &pmatLookAt);
+void SetupCm(CM *pcm);
+// Combines a LookAt Matrix and Projection Matrix
+void CombineEyeLookAtProj(glm::mat4 *pmatLookAt, glm::mat4 *pmatProj, glm::mat4 &pmat);
 // Updates a camera matrix
 void UpdateCmMat4(CM* pcm);
 // Returns whether a object is in the camera view or not 
-int  FInsideCmMrd(CM* pcm, float sRadius, float sMRD, float* puAlpha);
-// Sends camera matrix to shader
-void DrawCm(CM *pcm, GLSHADER shader);
-void DeleteCm(LO* plo);
+bool FInsideCmMrd(CM* pcm, float sRadius, float sMRD, float *puAlpha);
+void DeleteCm(CM *pcm);

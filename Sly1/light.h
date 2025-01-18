@@ -79,6 +79,7 @@ void CloneLight(LIGHT* plight, LIGHT* plightBase);
 void AddLightToSw(LIGHT* plight);
 void FitLinearFunction(float x0, float y0, float x1, float y1, float &pdu, float &pru);
 void FitRecipFunction(float x0, float y0, float x1, float y1, float* pdu, float* pru);
+void ConvertFallOff(LM* plm, float* pdu, float* pru);
 void ConvertAngleStrength(float deg0, float g0, float deg1, float g1, float &pdu, float &pru);
 void RebuildLight(LIGHT* plight);
 void*GetLightKind(LIGHT* plight);

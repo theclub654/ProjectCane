@@ -30,9 +30,9 @@ void RenderIkhSelf(IKH* pikh, CM* pcm, RO* pro)
 	RenderSoSelf(pikh, pcm, pro);
 }
 
-void DeleteIkh(LO* plo)
+void DeleteIkh(IKH *pikh)
 {
-	delete(IKH*)plo;
+	delete pikh;
 }
 
 LIKH* NewLikh()

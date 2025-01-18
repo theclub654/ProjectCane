@@ -191,4 +191,4 @@ void CloneStepguard(STEPGUARD* pstepguard, STEPGUARD* pstepguardBase);
 void LoadStepGuardFromBrx(STEPGUARD *pstepguard, CBinaryInputStream *pbis);
 void RenderStepguardSelf(STEPGUARD* pstepguard, CM* pcm, RO* pro);
 int  GetStepguardSize();
-void DeleteStepguard(LO* plo);
+void DeleteStepguard(STEPGUARD* pstepguard);

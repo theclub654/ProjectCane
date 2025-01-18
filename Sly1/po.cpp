@@ -40,7 +40,7 @@ int GetPoSize()
 	return sizeof(PO);
 }
 
-void DeletePo(LO* plo)
+void DeletePo(PO* ppo)
 {
-	delete(PO*)plo;
+	delete ppo;
 }

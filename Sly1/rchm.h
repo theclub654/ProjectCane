@@ -1,6 +1,7 @@
 #pragma once
 #include "lo.h"
-// GOTTA COME BACK AND PUT THE REST OF RCHM AND UPDATE THE CB
+#include "bsp.h"
+
 enum RCHMK
 {
 	RCHMK_Nil = -1,
@@ -16,6 +17,32 @@ struct RCH
 struct TWR
 {
 	int aipos[4];
+};
+
+struct TWD 
+{
+	struct TWR *ptwrNeg;
+	struct TWR *ptwrPos;
+};
+
+
+struct MRSG 
+{
+	float t;
+	float dt;
+};
+
+struct BL 
+{
+	float u;
+	struct ASEG *paseg;
+	struct CHN  *pchn;
+};
+
+struct BLRCH : BL
+{
+	OID  oidAseg;
+	MRSG mprchsmrsg[2];
 };
 
 class RCHM : public LO
@@ -43,10 +70,18 @@ class RCHM : public LO
 		std::vector <RCH> mpiposrch;
 		int ctwr;
 		std::vector <TWR> atwr;
+		BSPC bspcCat;
+		std::vector <TWD> mpibsptwdCat;
+		float gRadiusSquared;
+		std::vector <BLRCH> ablrch;
+		//BLRCH ablrch[24];
+		struct ASEGBL* pasegbl;
+		float dtPause;
+
 };
 
 RCHM*NewRchm();
 void InitRchm(RCHM* prchm);
 int  GetRchmSize();
-void LoadRchmFromBrx(RCHM* prchm, CBinaryInputStream* pbis);
+void LoadRchmFromBrx(RCHM *prchm, CBinaryInputStream *pbis);
 void DeleteRchm(LO* plo);

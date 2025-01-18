@@ -37,7 +37,7 @@ void CloneMgv(MGV* pmgv, MGV* pmgvBase)
 	pmgv->pstso = nullptr;
 }
 
-void DeleteMgv(LO* plo)
+void DeleteMgv(MGV *pmgv)
 {
-	delete (MGV*)plo;
+	delete pmgv;
 }

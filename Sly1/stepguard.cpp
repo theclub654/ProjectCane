@@ -79,7 +79,7 @@ int GetStepguardSize()
 	return sizeof(STEPGUARD);
 }
 
-void DeleteStepguard(LO* plo)
+void DeleteStepguard(STEPGUARD* pstepguard)
 {
-	delete (STEPGUARD*)plo;
+	delete pstepguard;
 }

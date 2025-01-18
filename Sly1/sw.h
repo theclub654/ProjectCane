@@ -101,7 +101,7 @@ public:
 	MUSID musid;
 	int cisi;
 	ISI aisi[16];
-	class VISMAP *pvismap;
+	VISMAP *pvismap;
 	struct MQ* pmqCallbackFirst;
 	struct MQ* pmqCallbackLast;
 	int cpaloRemerge;

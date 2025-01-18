@@ -8,6 +8,9 @@ WATER* NewWater()
 void InitWater(WATER* pwater)
 {
 	InitSo(pwater);
+	pwater->gBuoyancy = 1.0;
+	pwater->gViscosity = 1.0;
+	pwater->zpd.zpk = ZPK_Water;
 }
 
 int GetWaterSize()
@@ -30,7 +33,7 @@ void CloneWater(WATER* pwater, WATER* pwaterBase)
 	pwater->pstso = nullptr;
 }
 
-void DeleteWater(LO* plo)
+void DeleteWater(WATER *pwater)
 {
-	delete (WATER*)plo;
+	delete pwater;
 }

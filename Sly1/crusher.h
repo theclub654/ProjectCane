@@ -31,7 +31,7 @@ CRFODB*NewCrfodb();
 void InitCrfodb(CRFODB *pcrfodb);
 int  GetCrfodbSize();
 void CloneCrfodb(CRFODB* pcrfodb, CRFODB* pcrfodbBase);
-void DeleteCrfodb(LO* plo);
+void DeleteCrfodb(CRFODB* pcrfodb);
 
 CRFOD*NewCrfod();
 void InitSwCrfodDl(SW* psw);
@@ -39,12 +39,12 @@ void OnCrfodAdd(CRFOD* pcrfod);
 void OnCrfodRemove(CRFOD* pcrfod);
 void CloneCrfod(CRFOD* pcrfod, CRFOD* pcrfodBase);
 int  GetCrfodSize();
-void DeleteCrfod(LO* plo);
+void DeleteCrfodb(CRFODB* pcrfodb);
 
 CRFODK*NewCrfodk();
 int  GetCrfodkSize();
 void CloneCrfodk(CRFODK* pcrfodk, CRFODK* pcrfodkBase);
-void DeleteCrfodk(LO* plo);
+void DeleteCrfodk(CRFODK* pcrfodk);
 
 CRBRAIN*NewCrbrain();
 void InitCrbrain(CRBRAIN* pcrbrain);

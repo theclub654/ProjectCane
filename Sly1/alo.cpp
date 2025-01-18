@@ -132,6 +132,11 @@ void OnAloRemove(ALO* palo)
 	palo->paloRoot = nullptr;
 }
 
+void AdjustAloRtckMat(ALO* palo, CM* pcm, RTCK rtck, glm::vec3* pposCenter, glm::mat4* pmat)
+{
+	
+}
+
 void CloneAloHierarchy(ALO* palo, ALO* paloBase)
 {
 	DLI parentPalo{};
@@ -434,7 +439,7 @@ void LoadAloFromBrx(ALO* palo, CBinaryInputStream* pbis)
 	palo->sRadiusRenderAll = pbis->F32Read();
 
 	LoadOptionsFromBrx(palo, pbis);
-	LoadGlobsetFromBrx(&palo->globset ,pbis, palo);
+	LoadGlobsetFromBrx(&palo->globset, palo, pbis);
 	LoadAloAloxFromBrx(palo, pbis);
 
 	palo->pvtalo->pfnUpdateAloXfWorld(palo);
@@ -543,9 +548,92 @@ void RenderAloSelf(ALO* palo, CM* pcm, RO* pro)
 	palo->pvtalo->pfnRenderAloGlobset(palo, pcm, pro);
 }
 
-void RenderAloGlobset(ALO* palo, CM* pcm, RO* pro)
+void DupAloRo(ALO *palo, RO *proOrig, RO *proDup)
 {
+	if (proOrig == nullptr)
+	{
+		LoadMatrixFromPosRotScale(palo->xf.posWorld, palo->xf.matWorld, glm::vec3(1.0), proDup->modelMatrix);
+		proDup->uAlpha = 1.0;
+		proDup->uAlphaCelBorder = 1.0;
+	}
+	else
+	{
+		if (proOrig != proDup)
+			proDup->modelMatrix = proOrig->modelMatrix;
+	}
+}
 
+void RenderAloGlobset(ALO *palo, CM *pcm, RO *pro)
+{
+	RPL rpl{};
+
+	rpl.PFNDRAW = DrawGlob;
+
+	for (int i = 0; i < palo->globset.aglob.size(); i++)
+	{
+		if ((palo->globset.aglobi[i].grfzon & pcm->grfzon) == pcm->grfzon) // Check if submodel is in camera BSP zone
+		{
+			if (palo->globset.aglob[i].newDmat.size() == 0)
+			{
+				for (int a = 0; a < palo->globset.aglob[i].asubglob.size(); a++)
+				{
+					DupAloRo(palo, pro, &rpl.ro);
+					
+					rpl.ro.VAO = &palo->globset.aglob[i].asubglob[a].VAO;
+					rpl.ro.VBO = &palo->globset.aglob[i].asubglob[a].VBO;
+					rpl.ro.EBO = &palo->globset.aglob[i].asubglob[a].EBO;
+
+					rpl.ro.grfglob = &palo->globset.aglob[i].grfglob;
+					rpl.ro.pshd = palo->globset.aglob[i].asubglob[a].pshd;
+
+					rpl.ro.unSelfIllum = &palo->globset.aglob[i].asubglob[a].unSelfIllum;
+					rpl.ro.cvtx = palo->globset.aglob[i].asubglob[a].indices.size();
+
+					rpl.z = palo->globset.aglob[i].gZOrder;
+
+					if (rpl.z == 3.402823e+38)
+						rpl.z = glm::dot(rpl.z, rpl.z);
+
+					rpl.rp = palo->globset.aglob[i].rp;
+
+					SubmitRpl(&rpl);
+				}
+			}
+
+			else
+			{
+				// Renders Instance Model
+				for (int a = 0; a < palo->globset.aglob[palo->globset.aglob[i].instanceIndex].asubglob.size(); a++)
+				{
+					DupAloRo(palo, pro, &rpl.ro);
+
+					rpl.ro.VAO = &palo->globset.aglob[palo->globset.aglob[i].instanceIndex].asubglob[a].VAO;
+					rpl.ro.VBO = &palo->globset.aglob[palo->globset.aglob[i].instanceIndex].asubglob[a].VBO;
+					rpl.ro.EBO = &palo->globset.aglob[palo->globset.aglob[i].instanceIndex].asubglob[a].EBO;
+
+					rpl.ro.modelMatrix = rpl.ro.modelMatrix * palo->globset.aglob[i].newDmat[0];
+
+					rpl.ro.grfglob = &palo->globset.aglob[i].grfglob;
+					rpl.posCenter = glm::mat3(glm::transpose(rpl.ro.modelMatrix)) * palo->globset.aglob[i].posCenter;
+
+					rpl.ro.pshd = palo->globset.aglob[palo->globset.aglob[i].instanceIndex].asubglob[a].pshd;
+
+					rpl.ro.unSelfIllum = &palo->globset.aglob[palo->globset.aglob[i].instanceIndex].asubglob[a].unSelfIllum;
+					rpl.ro.cvtx = palo->globset.aglob[palo->globset.aglob[i].instanceIndex].asubglob[a].indices.size();
+
+					rpl.z = palo->globset.aglob[i].gZOrder;
+
+					if (rpl.z == 3.402823e+38)
+						rpl.z = glm::dot(rpl.z, rpl.z);
+
+					rpl.rp = palo->globset.aglob[palo->globset.aglob[i].instanceIndex].rp;
+
+					SubmitRpl(&rpl);
+				}
+			}
+		}
+
+	}
 }
 
 void RenderAloLine(ALO* palo, CM* pcm, glm::vec3* ppos0, glm::vec3* ppos1, float rWidth, float uAlpha)
@@ -558,81 +646,80 @@ void RenderAloAsBone(ALO* palo, CM* pcm, RO* pro)
 
 }
 
-void DrawGlob(ALO* palo, int index)
+void DrawGlob(RPL rpl)
 {
-	glm::mat4 model = palo->xf.matWorld;
+	glBindVertexArray(*rpl.ro.VAO);
 
-	model[3][0] = palo->xf.posWorld[0];
-	model[3][1] = palo->xf.posWorld[1];
-	model[3][2] = palo->xf.posWorld[2];
-	model[3][3] = 1.0;
+	glUniformMatrix4fv(glGetUniformLocation(glGlobShader.ID, "model"), 1, GL_FALSE, glm::value_ptr(rpl.ro.modelMatrix));
 
-	for (int i = 0; i < palo->globset.aglob.size(); i++)
+	glUniform1i(glGetUniformLocation(glGlobShader.ID, "shdk"), rpl.ro.pshd->shdk);
+	glUniform1f(glGetUniformLocation(glGlobShader.ID, "usSelfIllum"), *rpl.ro.unSelfIllum);
+	
+	if (rpl.ro.pshd->shdk == SHDK_ThreeWay)
 	{
-		for (int a = 0; a < palo->globset.aglob[i].csubglob; a++)
-		{
-			glBindVertexArray(palo->globset.aglob[i].asubglob[a].VAO);
+		glActiveTexture(GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_2D, rpl.ro.pshd->glShadowMap);
 
-			glUniformMatrix4fv(glGetUniformLocation(glGlobShader.ID, "model"), 1, GL_FALSE, glm::value_ptr(model));
+		glActiveTexture(GL_TEXTURE1);
+		glBindTexture(GL_TEXTURE_2D, rpl.ro.pshd->glDiffuseMap);
 
-			glUniform1i(glGetUniformLocation(glGlobShader.ID, "shdk"), palo->globset.aglob[i].asubglob[a].pshd->shdk);
-			glUniform1f(glGetUniformLocation(glGlobShader.ID, "usSelfIllum"), palo->globset.aglob[i].asubglob[a].unSelfIllum);
-
-			if (palo->globset.aglob[i].asubglob[a].pshd->shdk == SHDK_ThreeWay)
-			{
-				glActiveTexture(GL_TEXTURE0);
-				glBindTexture(GL_TEXTURE_2D, palo->globset.aglob[i].asubglob[a].pshd->glShadowMap);
-
-				glActiveTexture(GL_TEXTURE1);
-				glBindTexture(GL_TEXTURE_2D, palo->globset.aglob[i].asubglob[a].pshd->glDiffuseMap);
-
-				glActiveTexture(GL_TEXTURE2);
-				glBindTexture(GL_TEXTURE_2D, palo->globset.aglob[i].asubglob[a].pshd->glSaturateMap);
-			}
-
-			else
-			{
-				glActiveTexture(GL_TEXTURE1);
-				glBindTexture(GL_TEXTURE_2D, palo->globset.aglob[i].asubglob[a].pshd->glDiffuseMap);
-			}
-			
-			switch (palo->globset.aglob[i].rp)
-			{
-				case RP_ProjVolume:
-				glEnable(GL_BLEND);
-				glBlendFuncSeparate(GL_SRC_ALPHA, GL_LINES, GL_LINES, GL_NONE);
-				break;
-
-				
-				case RP_Translucent:
-				glEnable(GL_BLEND);
-				glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_LINES, GL_NONE);
-				break;
-			}
-
-			glDrawElements(GL_TRIANGLES, palo->globset.aglob[i].asubglob[a].indices.size(), GL_UNSIGNED_SHORT, 0);
-			
-			//Draws instanced models, I WILL OPTIMIZE THIS LATER
-			for (int b = 0; b < palo->globset.aglob[i].pdmat.size(); b++)
-			{
-				// Sends instance model matrix to GPU
-				glUniformMatrix4fv(glGetUniformLocation(glGlobShader.ID, "model"), 1, GL_FALSE, glm::value_ptr(model * palo->globset.aglob[i].pdmat[b]));
-				glDrawElements(GL_TRIANGLES, palo->globset.aglob[i].asubglob[a].indices.size(), GL_UNSIGNED_SHORT, 0);
-			}
-		}
-
-		if (palo->globset.aglob[i].rp == RP_Translucent || palo->globset.aglob[i].rp == RP_Background || palo->globset.aglob[i].rp == RP_ProjVolume)
-			glDisable(GL_BLEND);
+		glActiveTexture(GL_TEXTURE2);
+		glBindTexture(GL_TEXTURE_2D, rpl.ro.pshd->glSaturateMap);
 	}
 
-	glBindVertexArray(0);
+	else
+	{
+		glActiveTexture(GL_TEXTURE1);
+		glBindTexture(GL_TEXTURE_2D, rpl.ro.pshd->glDiffuseMap);
+	}
+
+	switch (rpl.rp)
+	{
+		case RP_Background:
+		//glDepthMask(false);
+		break;
+
+		case RP_ProjVolume:
+		glEnable(GL_BLEND);
+		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+		glDepthMask(false);
+		break;
+
+		case RP_Opaque:
+		case RP_Cutout:
+		case RP_OpaqueAfterProjVolume:
+		case RP_CutoutAfterProjVolume:
+		case RP_Translucent:
+		glEnable(GL_BLEND);
+		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+		break;
+	}
+
+	glDrawElements(GL_TRIANGLES, rpl.ro.cvtx, GL_UNSIGNED_SHORT, 0);
+
+	switch (rpl.rp)
+	{
+		case RP_Background:
+		case RP_ProjVolume:
+		case RP_Opaque:
+		case RP_Cutout:
+		case RP_OpaqueAfterProjVolume:
+		case RP_CutoutAfterProjVolume:
+		case RP_Translucent:
+		glEnable(GL_DEPTH_TEST);
+		glDepthMask(true);
+		glDepthFunc(GL_LESS);
+		glDisable(GL_BLEND);
+		break;
+	}
+
 	glActiveTexture(GL_TEXTURE0);
 }
 
 void DeleteModel(ALO *palo)
 {
 	for (int i = 0; i < palo->globset.aglob.size(); i++)
-	{
+	{	
 		for (int a = 0; a < palo->globset.aglob[i].asubglob.size(); a++)
 		{
 			glDeleteVertexArrays(1, &palo->globset.aglob[i].asubglob[a].VAO);
@@ -647,7 +734,7 @@ int GetAloSize()
 	return sizeof(ALO);
 }
 
-void DeleteAlo(ALO* palo)
+void DeleteAlo(ALO *palo)
 {
 	delete palo;
 }

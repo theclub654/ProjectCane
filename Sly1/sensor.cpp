@@ -32,9 +32,9 @@ void CloneSensor(SENSOR* psensor, SENSOR* psensorBase)
 	psensor->pstso = nullptr;
 }
 
-void DeleteSensor(LO* plo)
+void DeleteSensor(SENSOR *psensor)
 {
-	delete (SENSOR*)plo;
+	delete psensor;
 }
 
 LASEN* NewLasen()
@@ -83,9 +83,9 @@ void RenderLasenSelf(LASEN* plasen, CM* pcm, RO* pro)
 	RenderSoSelf(plasen, pcm, pro);
 }
 
-void DeleteLasen(LO* plo)
+void DeleteLasen(LASEN *plasen)
 {
-	delete(LASEN*)plo;
+	delete plasen;
 }
 
 CAMSEN* NewCamsen()
@@ -124,9 +124,9 @@ void RenderCamsenSelf(CAMSEN* pcamsen, CM* pcm, RO* pro)
 	pcamsen->pvtalo->pfnRenderAloGlobset(pcamsen, pcm, pro);
 }
 
-void DeleteCamsen(LO* plo)
+void DeleteCamsen(CAMSEN* pcamsen)
 {
-	delete (CAMSEN*)plo;
+	delete pcamsen;
 }
 
 PRSEN* NewPrsen()
@@ -159,7 +159,7 @@ void ClonePrsen(PRSEN* pprsen, PRSEN* pprsenBase)
 	pprsen->pstso = nullptr;
 }
 
-void DeletePrsen(LO* plo)
+void DeletePrsen(PRSEN *ppprsen)
 {
-	delete (PRSEN*)plo;
+	delete ppprsen;
 }

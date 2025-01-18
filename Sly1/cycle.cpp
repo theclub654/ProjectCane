@@ -40,7 +40,7 @@ void RenderCycleSelf(CYCLE* pcycle, CM* pcm, RO* pro)
 	RenderSoSelf(pcycle, pcm, pro);
 }
 
-void DeleteCycle(LO* plo)
+void DeleteCycle(CYCLE *pcycle)
 {
-	delete (CYCLE*)plo;
+	delete pcycle;
 }

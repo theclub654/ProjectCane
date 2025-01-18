@@ -1,6 +1,6 @@
 #pragma once
 #include "util.h"
-#include "vec.h"
+#include "math.h"
 
 struct SQTR 
 {

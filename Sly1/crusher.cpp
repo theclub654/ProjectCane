@@ -30,9 +30,9 @@ void CloneCrfodb(CRFODB* pcrfodb, CRFODB* pcrfodbBase)
 	pcrfodb->pstso = nullptr;
 }
 
-void DeleteCrfodb(LO* plo)
+void DeleteCrfodb(CRFODB* pcrfodb)
 {
-	delete (CRFODB*)plo;
+	delete pcrfodb;
 }
 
 CRFOD* NewCrfod()
@@ -77,9 +77,9 @@ int GetCrfodSize()
 	return sizeof(CRFOD);
 }
 
-void DeleteCrfod(LO* plo)
+void DeleteCrfod(CRFOD* pcrfod)
 {
-	delete (CRFOD*)plo;
+	delete pcrfod;
 }
 
 CRFODK* NewCrfodk()
@@ -107,9 +107,9 @@ void CloneCrfodk(CRFODK* pcrfodk, CRFODK* pcrfodkBase)
 	pcrfodk->pstso = nullptr;
 }
 
-void DeleteCrfodk(LO* plo)
+void DeleteCrfodk(CRFODK* pcrfodk)
 {
-	delete (CRFODK*)plo;
+	delete pcrfodk;
 }
 
 CRBRAIN* NewCrbrain()

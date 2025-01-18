@@ -30,7 +30,7 @@ void CloneCan(CAN* pcan, CAN* pcanBase)
 	pcan->pstso = nullptr;
 }
 
-void DeleteCan(LO* plo)
+void DeleteCan(CAN *pcan)
 {
-	delete (CAN*)plo;
+	delete pcan;
 }

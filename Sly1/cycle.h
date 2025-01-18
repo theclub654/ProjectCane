@@ -56,4 +56,4 @@ int  GetCycleSize();
 void UpdateCycleXfWorld(CYCLE* pcycle);
 void CloneCycle(CYCLE* pcycle, CYCLE* pcycleBase);
 void RenderCycleSelf(CYCLE* pcycle, CM* pcm, RO* pro);
-void DeleteCycle(LO* plo);
+void DeleteCycle(CYCLE *pcycle);

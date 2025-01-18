@@ -68,7 +68,7 @@ void InitLgn(LGN* plgn);
 int  GetLgnSize();
 void CloneLgn(LGN* plgn, LGN* plgnBase);
 void RenderLgnAll(LGN* plgn, CM* pcm, RO* pro);
-void DeleteLgn(LO* plo);
+void DeleteLgn(LGN* plgn);
 
 LGNB*NewLgnb();
 void InitLgnb(LGNB* plgnb);
@@ -80,4 +80,4 @@ SWP* NewSwp();
 void InitSwp(SWP* pswp);
 int  GetSwpSize();
 void CloneSwp(SWP* pswp, SWP* pswpBase);
-void DeleteSwp(LO* plo);
+void DeleteSwp(SWP* pswp);

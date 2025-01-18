@@ -30,9 +30,9 @@ void CloneJack(JACK* pjack, JACK* pjackBase)
 	pjack->pstso = nullptr;
 }
 
-void DeleteJack(LO* plo)
+void DeleteJack(JACK* pjack)
 {
-	delete (JACK*)plo;
+	delete pjack;
 }
 
 JACKB* NewJackb()

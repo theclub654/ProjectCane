@@ -25,7 +25,7 @@ void CloneTurret(TURRET* pturret, TURRET* pturretBase)
 	pturret->pstso = nullptr;
 }
 
-void DeleteTurret(LO* plo)
+void DeleteTurret(TURRET *pturret)
 {
-	delete(TURRET*)plo;
+	delete pturret;
 }

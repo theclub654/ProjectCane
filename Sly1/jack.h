@@ -124,7 +124,7 @@ JACK*NewJack();
 void InitJack(JACK *pjack);
 int  GetJackSize();
 void CloneJack(JACK* pjack, JACK* pjackBase);
-void DeleteJack(LO* plo);
+void DeleteJack(JACK* pjack);
 
 JACKB*NewJackb();
 void InitJackb(JACKB* pjackb);
