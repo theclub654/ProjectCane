@@ -76,14 +76,14 @@ void InitUbg(UBG* pubg);
 int  GetUbgSize();
 void CloneUbg(UBG* pubg, UBG* pubgBase);
 void RenderUbpAll(UBP* pubp, CM* pcm, RO* pro);
-void DeleteUbg(UBG* pubg);
+void DeleteUbg(UBG *pubg);
 
 UBP* NewUbp();
 int  GetUbpSize();
 void CloneUbp(UBP* pubp, UBP* pubpBase);
-void DeleteUbp(LO* plo);
+void DeleteUbp(UBP *pubp);
 
 UBV* NewUbv();
 int  GetUbvSize();
 void CloneUbv(UBV* pubv, UBV* pubvBase);
-void DeleteUbv(LO* plo);
+void DeleteUbv(UBV *pubv);

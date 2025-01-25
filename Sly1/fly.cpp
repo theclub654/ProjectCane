@@ -46,7 +46,7 @@ void RenderFlySelf(FLY* pfly, CM* pcm, RO* pro)
 
 }
 
-void DeleteFly(LO* plo)
+void DeleteFly(FLY *pfly)
 {
-	delete (FLY*)plo;
+	delete pfly;
 }

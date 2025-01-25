@@ -1,14 +1,21 @@
 ﻿#include "gl.h"
 
+#ifdef _WIN32
+extern "C" {
+	__declspec(dllexport) unsigned long NvOptimusEnablement = 0x00000001;
+	__declspec(dllexport) int AmdPowerXpressRequestHighPerformance = 1;
+}
+#endif
+
 void GL::InitGL()
 {
+
 	glfwInit();
 
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
 	
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-	glfwWindowHint(GLFW_RESIZABLE, GL_TRUE);
 
 	window = glfwCreateWindow(width, height, "Sly 1", NULL, NULL);
 	
@@ -73,18 +80,18 @@ void GL::InitGL()
 		-1.0f,  1.0f,  0.0f, 1.0f
 	};
 
-	glGenVertexArrays(1, &sbo);
-	glGenBuffers(1, &sbo);
-	glBindVertexArray(sbo);
+	glGenVertexArrays(1, &sao);
+	glBindVertexArray(sao);
 
+	glGenBuffers(1, &sbo);
 	glBindBuffer(GL_ARRAY_BUFFER, sbo);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(screen), &screen, GL_STATIC_DRAW);
 
-	glEnableVertexAttribArray(0);
 	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)0);
+	glEnableVertexAttribArray(0);
 
-	glEnableVertexAttribArray(1);
 	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)(2 * sizeof(float)));
+	glEnableVertexAttribArray(1);
 
 	glViewport(0, 0, width, height);
 
@@ -103,7 +110,7 @@ void GL::TerminateGL()
 	glDeleteFramebuffers(1, &fbo);
 	glDeleteTextures(1, &fbc);
 	glDeleteRenderbuffers(1, &rbo);
-	glDeleteVertexArrays(1, &sbo);
+	glDeleteVertexArrays(1, &sao);
 	glDeleteBuffers(1, &sbo);
 
 	glScreenShader.Delete();

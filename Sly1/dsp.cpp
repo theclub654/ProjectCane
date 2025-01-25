@@ -25,7 +25,7 @@ void CloneDsp(DSP* pdsp, DSP* pdspBase)
 	pdsp->pstso = nullptr;
 }
 
-void DeleteDsp(LO* plo)
+void DeleteDsp(DSP *pdsp)
 {
-	delete (DSP*)plo;
+	delete pdsp;
 }

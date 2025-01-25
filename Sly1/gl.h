@@ -22,7 +22,10 @@ class GL
 		GLuint fbc;
 		// Render Buffer Object
 		GLuint rbo;
-		// Screen Object
+
+		// Screen Array Object
+		GLuint sao;
+		// Screen Buffer Object
 		GLuint sbo;
 
 		float width  = 800;

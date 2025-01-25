@@ -75,9 +75,9 @@ void CloneRoh(ROH* proh, ROH* prohBase)
 	proh->pstso = nullptr;
 }
 
-void DeleteRoh(LO* plo)
+void DeleteRoh(ROH *proh)
 {
-	delete (ROH*)plo;
+	delete proh;
 }
 
 ROC* NewRoc()
@@ -115,9 +115,9 @@ void CloneRoc(ROC* proc, ROC* procBase)
 	proc->pstso = nullptr;
 }
 
-void DeleteRoc(LO* plo)
+void DeleteRoc(ROC *proc)
 {
-	delete(ROC*)plo;
+	delete proc;
 }
 
 ROST* NewRost()
@@ -155,9 +155,9 @@ void CloneRost(ROST* prost, ROST* prostBase)
 	prost->pstso = nullptr;
 }
 
-void DeleteRost(LO* plo)
+void DeleteRost(ROST *prost)
 {
-	delete(ROST*)plo;
+	delete prost;
 }
 
 ROP* NewRop()
@@ -195,9 +195,9 @@ void CloneRop(ROP* prop, ROP* probBase)
 	prop->pstso = nullptr;
 }
 
-void DeleteRop(LO* plo)
+void DeleteRop(ROP *prop)
 {
-	delete (ROP*)plo;
+	delete prop;
 }
 
 ROB* NewRob()

@@ -37,7 +37,7 @@ void CloneCnvo(CNVO* pcnvo, CNVO* pcnvoBase)
 	pcnvo->pstso = nullptr;
 }
 
-void DeleteCnvo(LO* plo)
+void DeleteCnvo(CNVO *pcnvo)
 {
-	delete (CNVO*)plo;
+	delete pcnvo;
 }

@@ -46,9 +46,9 @@ void CloneHbsk(HBSK* phbsk, HBSK* phbskBase)
 	phbsk->pstso = nullptr;
 }
 
-void DeleteHbsk(LO* plo)
+void DeleteHbsk(HBSK *phbsk)
 {
-	delete (HBSK*)plo;
+	delete phbsk;
 }
 
 HSHAPE* NewHshape()

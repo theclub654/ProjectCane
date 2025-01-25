@@ -186,7 +186,6 @@ struct GLOB // NOT DONE
 	//SUBCEL *asubcel;
 	// Instanced object matrix container
 	std::vector <glm::mat4> dmat;
-	std::vector <glm::mat4> newDmat;
 	short instanceIndex;
 	struct BLOT* pblot;
 	OID oid;
@@ -225,3 +224,4 @@ struct GLOBSET // NOT DONE
 void LoadGlobsetFromBrx(GLOBSET *pglobset, ALO *palo, CBinaryInputStream *pbis);
 // Converts strips to tri lists and stores 3D sub model in VRAM
 void BuildSubGlob(SUBGLOB *psubglob, SHD *pshd, std::vector <glm::vec3> &positions, std::vector <glm::vec3> &normals, std::vector <glm::vec4> &colors, std::vector <glm::vec2> &texcoords, std::vector <VTXFLG> &indexes);
+void CloneGlob(GLOBSET *pglobset, GLOB *pglob, GLOBI *pglobi);

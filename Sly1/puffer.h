@@ -99,4 +99,4 @@ void DeletePuffc(PUFFC* ppuffc);
 PUFFT*NewPufft();
 int  GetPufftSize();
 void ClonePufft(PUFFT* ppufft, PUFFT* ppufftBase);
-void DeletePufft(LO* plo);
+void DeletePufft(PUFFT *ppufft);

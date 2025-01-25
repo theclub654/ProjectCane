@@ -71,9 +71,9 @@ void CloneJlo(JLO* pjlo, JLO* pjloBase)
 	pjlo->pstso = nullptr;
 }
 
-void DeleteJlo(LO* plo)
+void DeleteJlo(JLO *pjlo)
 {
-	delete (JLO*)plo;
+	delete pjlo;
 }
 
 JLOC* NewJloc()

@@ -359,6 +359,7 @@ void PrepareSwLightsForDraw(SW* psw)
 {
 	int numDirLights = 0;
 	int numPointLights = 0;
+	int noLights = 0;
 
 	for (int i = 0; i < allSwLights.size(); i++)
 	{
@@ -382,7 +383,7 @@ void PrepareSwLightsForDraw(SW* psw)
 		else if (allSwLights[i]->lightk == LIGHTK_Direction)
 		{
 			glUniform3fv(GetUniformLocation(glGlobShader.ID, "dirlights[" + std::to_string(numDirLights) + "].pos"),   1, glm::value_ptr(allSwLights[i]->xf.posWorld));
-			glUniform3fv(GetUniformLocation(glGlobShader.ID, "dirlights[" + std::to_string(numDirLights) + "].dir"),   1, glm::value_ptr(allSwLights[i]->agFallOff));
+			glUniform3fv(GetUniformLocation(glGlobShader.ID, "dirlights[" + std::to_string(numDirLights) + "].dir"),   1, glm::value_ptr(allSwLights[i]->xf.matWorld[2]));
 			glUniform3fv(GetUniformLocation(glGlobShader.ID, "dirlights[" + std::to_string(numDirLights) + "].color"), 1, glm::value_ptr(allSwLights[i]->rgbaColor));
 
 			glUniform1f(GetUniformLocation(glGlobShader.ID, "dirlights[" + std::to_string(numDirLights) + "].ruShadow"),    allSwLights[i]->ltfn.ruShadow);
@@ -401,12 +402,25 @@ void PrepareSwLightsForDraw(SW* psw)
 	glUniform1i(glGetUniformLocation(glGlobShader.ID, "numPointLights"), numPointLights);
 }
 
-TWPS TwpsFindSwLightsNoVu0(SW* psw, glm::vec3& ppos, float sRadius, int grffindlight, int cplightMax, int* pcplightStatic, int* pcplightAll, LIGHT** aplight, char* pchzTarget)
+TWPS TwpsFindSwLights(SW *psw, glm::vec3 &ppos, float sRadius, int grffindlight, int cplightMax, int *pcplightStatic, int *pcplightAll, LIGHT **aplight, char *pchzTarget)
 {
+	for (int i = 0; i < allSwLights.size(); i++)
+	{
+		if (allSwLights[i]->lightk == LIGHTK_Position)
+		{
+			float distance = glm::length(ppos - allSwLights[i]->xf.posWorld);
+
+			if (distance <= sRadius + allSwLights[i]->lmFallOffS.gMax)
+			{
+
+			}
+		}
+	}
+
 	return TWPS();
 }
 
-void DeleteLight(LO* plo)
+void DeleteLight(LIGHT *plight)
 {
-	delete(LIGHT*)plo;
+	delete plight;
 }

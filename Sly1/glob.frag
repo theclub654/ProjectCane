@@ -30,12 +30,18 @@ in vec4 ambient;
 in vec4 illumination;
 in vec4 light;
 
+uniform int twps;
+
+out vec4 FragColor;
+
 void DrawThreeWay();
 void DrawPrelit();
 void DrawVolume();
 
 void main()
 {
+    FragColor = vec4(0.0);
+
     switch (shdk)
     {
         case SHDK_ThreeWay:
@@ -62,56 +68,45 @@ void main()
 
 void DrawThreeWay()
 {
-    vec4 pixel = vec4(0.0);
-    int twps = 2;
+    int tempTwps = 2;
 
-    vec4 shadow   = texture2D(shadowMap,   texcoord);
-    vec4 diffuse  = texture2D(diffuseMap,  texcoord);
-    vec4 saturate = texture2D(saturateMap, texcoord);
+    vec4 shadow   = texture(shadowMap,   texcoord);
+    vec4 diffuse  = texture(diffuseMap,  texcoord);
+    vec4 saturate = texture(saturateMap, texcoord);
 
-    switch (twps)
+    switch (tempTwps)
     {
         case TWPS_Shadow:
-        pixel.rgb = shadow.rgb * ambient.rgb;
+        FragColor += shadow * ambient;
 
-        pixel.a = shadow.a * diffuse.a * saturate.a * vertexColor.a;
+        FragColor.a = shadow.a * vertexColor.a;
         break;
     
         case TWPS_ShadowMidtone:
-        pixel.rgb += shadow.rgb   * ambient.rgb;
-        pixel.rgb += diffuse.rgb  * illumination.rgb;
+        FragColor += shadow  * ambient;
+        FragColor += diffuse * illumination;
 
-        pixel.a = shadow.a * diffuse.a * saturate.a * vertexColor.a;
+        FragColor.a = shadow.a * diffuse.a * vertexColor.a;
         break;
     
         case TWPS_ShadowMidtoneSaturate:
-        pixel += shadow   * ambient;
-        pixel += diffuse  * illumination;
-        pixel += saturate * light;
+        FragColor += shadow   * ambient;
+        FragColor += diffuse  * illumination;
+        FragColor += saturate * light;
 
-        pixel.a = shadow.a * diffuse.a * saturate.a * vertexColor.a;
+        FragColor.a = shadow.a * diffuse.a * saturate.a * vertexColor.a;
         break;
     }
-
-    gl_FragColor = pixel;
 }
 
 void DrawPrelit()
 {
-    vec4 pixel = vec4(0.0);
-
     vec4 diffuse = texture(diffuseMap, texcoord);
-    pixel = diffuse * vertexColor;
-
-    gl_FragColor = pixel;
+    FragColor = diffuse * vertexColor;
 }
 
 void DrawVolume()
 {
-    vec4 pixel = vec4(0.0);
-
     vec4 diffuse = texture(diffuseMap, texcoord);
-    pixel = diffuse * vertexColor;
-
-    gl_FragColor = pixel;
+    FragColor = diffuse * vertexColor;
 }

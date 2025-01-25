@@ -534,7 +534,7 @@ void InitCnvo(CNVO* pcnvo);
 int  GetCnvoSize();
 void LoadCnvoFromBrx(CNVO *pcnvo, CBinaryInputStream *pbis);
 void CloneCnvo(CNVO* pcnvo, CNVO* pcnvoBase);
-void DeleteCnvo(LO* plo);
+void DeleteCnvo(CNVO *pcnvo);
 
 class HBSK;
 HBSK*NewHbsk();
@@ -544,7 +544,7 @@ void OnHbskRemove(HBSK* phbsk);
 int  GetHbskSize();
 void CloneHbsk(HBSK* phbsk, HBSK* phbskBase);
 void LoadHbskFromBrx(HBSK* phbsk, CBinaryInputStream* pbis);
-void DeleteHbsk(LO* plo);
+void DeleteHbsk(HBSK *phbsk);
 
 class BOMB;
 BOMB*NewBomb();
@@ -553,7 +553,7 @@ void OnBombAdd(BOMB* pbomb);
 int  GetBombSize();
 void CloneBomb(BOMB* pbomb, BOMB* pbombBase);
 void LoadBombFromBrx(BOMB* pbomb, CBinaryInputStream* pbis);
-void DeleteBomb(BOMB* pbomb);
+void DeleteBomb(BOMB *pbomb);
 
 class MISSILE;
 MISSILE*NewMissile();
@@ -563,34 +563,34 @@ void OnMissileRemove(MISSILE* pmissile);
 void LoadMissileFromBrx(MISSILE* pmissile, CBinaryInputStream* pbis);
 void CloneMissile(MISSILE* pmissile, MISSILE* pmissileBase);
 void RenderMissileAll(MISSILE* pmissile, CM* pcm, RO* pro);
-void DeleteMissile(LO* plo);
+void DeleteMissile(MISSILE *pmissile);
 
 class ACCMISS;
 ACCMISS*NewAccmiss();
 void InitAccmiss(ACCMISS* paccmiss);
 int  GetAccmissSize();
 void CloneAccmiss(ACCMISS* paccmiss, ACCMISS* paccmissBase);
-void DeleteAccmiss(LO* plo);
+void DeleteAccmiss(ACCMISS * paccmiss);
 
 class TARMISS;
 TARMISS*NewTarmiss();
 void InitTarmiss(TARMISS* ptarmiss);
 int  GetTarmissSize();
 void CloneTarmiss(TARMISS* ptarmiss, TARMISS* ptarmissBase);
-void DeleteTarmiss(LO* plo);
+void DeleteTarmiss(TARMISS *ptarmiss);
 
 class SPLMISS;
 SPLMISS*NewSplmiss();
 int  GetSplmissSize();
 void CloneSplmiss(SPLMISS* psplmiss, SPLMISS* psplmissBase);
-void DeleteSplmiss(LO* plo);
+void DeleteSplmiss(SPLMISS * psplmiss);
 
 class GROUNDMISS;
 GROUNDMISS*NewGroundmiss();
 void InitGroundmiss(GROUNDMISS* pgroundmiss);
 int  GetGroundmissSize();
-void CloneGroundmiss(GROUNDMISS* pgroundmiss, GROUNDMISS* pgroundmissBase);
-void DeleteGroundmiss(LO* plo);
+void CloneGroundmiss(GROUNDMISS *pgroundmiss, GROUNDMISS *pgroundmissBase);
+void DeleteGroundmiss(GROUNDMISS *pgroundmiss);
 
 class FLY;
 FLY* NewFly();
@@ -599,7 +599,7 @@ int  GetFlySize();
 void CloneFly(FLY* pfly, FLY* pflyBase);
 void LoadFlyFromBrx(FLY* pfly, CBinaryInputStream* pbis);
 void RenderFlySelf(FLY* pfly, CM* pcm, RO* pro);
-void DeleteFly(LO* plo);
+void DeleteFly(FLY *pfly);
 
 class RAT;
 RAT* NewRat();
@@ -610,7 +610,7 @@ void OnRatRemove(RAT* prat);
 void CloneRat(RAT* prat, RAT* pratBase);
 void LoadRatFromBrx(RAT* prat, CBinaryInputStream* pbis);
 void RenderRatAll(RAT* prat, CM* pcm, RO* pro);
-void DeleteRat(LO* plo);
+void DeleteRat(RAT *prat);
 
 class ROH;
 ROH* NewRoh();
@@ -618,7 +618,7 @@ void InitRoh(ROH* proh);
 int  GetRohSize();
 void LoadRohFromBrx(ROH* proh, CBinaryInputStream* pbis);
 void CloneRoh(ROH* proh, ROH* prohBase);
-void DeleteRoh(LO* plo);
+void DeleteRoh(ROH *proh);
 
 class ROC;
 ROC* NewRoc();
@@ -626,7 +626,7 @@ void InitRoc(ROC* proc);
 int  GetRocSize();
 void LoadRocFromBrx(ROC* proc, CBinaryInputStream* pbis);
 void CloneRoc(ROC* proc, ROC* procBase);
-void DeleteRoc(LO* plo);
+void DeleteRoc(ROC *proc);
 
 class ROST;
 ROST*NewRost();
@@ -634,7 +634,7 @@ void InitRost(ROST* prost);
 int  GetRostSize();
 void LoadRostFromBrx(ROST* prost, CBinaryInputStream* pbis);
 void CloneRost(ROST* prost, ROST* prostBase);
-void DeleteRost(LO* plo);
+void DeleteRost(ROST *prost);
 
 class ROP;
 ROP* NewRop();
@@ -642,7 +642,7 @@ void InitRop(ROP* prop);
 int  GetRopSize();
 void LoadRopFromBrx(ROP* prop, CBinaryInputStream* pbis);
 void CloneRop(ROP* prop, ROP* probBase);
-void DeleteRop(LO* plo);
+void DeleteRop(ROP *prop);
 
 class DART;
 DART*NewDart();
@@ -652,27 +652,27 @@ void OnDartAdd(DART* pdart);
 void RemoveDart(DART* pdart);
 void CloneDart(DART* pdart, DART* pdartBase);
 void LoadDartFromBrx(DART* pdart, CBinaryInputStream* pbis);
-void DeleteDart(LO* plo);
+void DeleteDart(DART *pdart);
 
 class UBV;
 UBV* NewUbv();
 int  GetUbvSize();
 void CloneUbv(UBV* pubv, UBV* pubvBase);
-void DeleteUbv(LO* plo);
+void DeleteUbv(UBV *pubv);
 
 class UBP;
 UBP* NewUbp();
 void InitUbg(UBG* pubg);
 int  GetUbpSize();
 void CloneUbp(UBP* pubp, UBP* pubpBase);
-void RenderUbpAll(UBP* pubp, CM* pcm, RO* pro);
-void DeleteUbp(LO* plo);
+void RenderUbpAll(UBP *pubp, CM *pcm, RO *pro);
+void DeleteUbp(UBP *pubp);
 
 class DSP;
 DSP* NewDsp();
 int  GetDspSize();
 void CloneDsp(DSP* pdsp, DSP* pdspBase);
-void DeleteDsp(LO* plo);
+void DeleteDsp(DSP *pdsp);
 
 class JLO;
 JLO* NewJlo();
@@ -680,13 +680,13 @@ void InitJlo(JLO* pjlo);
 int  GetJloSize();
 void LoadJloFromBrx(JLO* pjlo, CBinaryInputStream* pbis);
 void CloneJlo(JLO* pjlo, JLO* pjloBase);
-void DeleteJlo(LO* plo);
+void DeleteJlo(JLO *pjlo);
 
 class PUFFT;
 PUFFT*NewPufft();
 int  GetPufftSize();
 void ClonePufft(PUFFT* ppufft, PUFFT* ppufftBase);
-void DeletePufft(LO* plo);
+void DeletePufft(PUFFT *ppufft);
 
 class MRKV;
 MRKV*NewMrkv();
@@ -773,7 +773,7 @@ void*GetLightHotSpotAngle(LIGHT* plight);
 void SetLightHotSpotAngle(LIGHT* plight, float degHotSpot);
 void*GetLightFrustrumUp(LIGHT* plight);
 void SetLightFrustrumUp(LIGHT* plight, glm::vec3& pvecUpLocal);
-void DeleteLight(LO* plo);
+void DeleteLight(LIGHT *plight);
 
 class LIKH;
 LIKH*NewLikh();

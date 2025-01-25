@@ -28,15 +28,31 @@ void LoadGlobsetFromBrx(GLOBSET *pglobset, ALO *palo, CBinaryInputStream *pbis)
     pglobset->aglob.resize(pglobset->cglob);
     pglobset->aglobi.resize(pglobset->cglob);
 
+    int fCloneGlob = 0;
+
     // Loading each submodel for a model
     for (int i = 0; i < pglobset->cglob; i++)
     {
         uint16_t unk_5 = pbis->U16Read();
         
-        if ((unk_5 & 1) != 0)
+        if ((unk_5 & 1) == 0)
         {
-            int instanceIndex = pbis->S16Read();
+            fCloneGlob = 0;
 
+            pglobset->aglob[i].sMRD = 10000000000.000000;
+            pglobset->aglob[i].sCelBorderMRD = 2000.0;
+            pglobset->aglob[i].gZOrder = 0xFFFF7F7F;
+            pglobset->aglob[i].uFog = 1.0;
+            pglobset->aglob[i].rSubglobRadius = 1.0;
+            pglobset->aglob[i].fDynamic = fRelight;
+            pglobset->aglobi[i].uAlpha = 1.0;
+        }
+
+        else
+        {
+            fCloneGlob = unk_5 & 1;
+
+            int instanceIndex = pbis->S16Read();
             pglobset->aglob[i].instanceIndex = instanceIndex;
             pglobset->aglob[i].posCenter = pglobset->aglob[instanceIndex].posCenter;
             pglobset->aglob[i].sRadius = pglobset->aglob[instanceIndex].sRadius;
@@ -45,23 +61,7 @@ void LoadGlobsetFromBrx(GLOBSET *pglobset, ALO *palo, CBinaryInputStream *pbis)
             pglobset->aglob[i].sMRD = pglobset->aglob[instanceIndex].sMRD;
             pglobset->aglobi[i] = pglobset->aglobi[instanceIndex];
 
-            glm::mat4 mat = pbis->ReadMatrix4();
-
-            pglobset->aglob[i].newDmat.push_back(mat);
-            
-            // THIS IS TEMPORARY
-            pglobset->aglob[instanceIndex].dmat.push_back(mat);
-        }
-
-        else
-        {
-            pglobset->aglob[i].sMRD = 10000000000.000000;
-            pglobset->aglob[i].sCelBorderMRD = 2000.0;
-            pglobset->aglob[i].gZOrder = 0xFFFF7F7F;
-            pglobset->aglob[i].uFog = 1.0;
-            pglobset->aglob[i].rSubglobRadius = 1.0;
-            pglobset->aglob[i].fDynamic = fRelight;
-            pglobset->aglobi[i].uAlpha = 1.0;
+            pglobset->aglob[i].dmat.push_back(pbis->ReadMatrix4());
         }
 
         if ((unk_5 & 2) != 0)
@@ -80,7 +80,7 @@ void LoadGlobsetFromBrx(GLOBSET *pglobset, ALO *palo, CBinaryInputStream *pbis)
                 pglobset->aglob[i].gZOrder = gZOrder * abs(gZOrder);
         }
         
-        if ((unk_5 & 8) != 0) // Skybox related
+        if ((unk_5 & 8) != 0)
             pglobset->aglob[i].uFog = pbis->F32Read();
 
         if ((unk_5 & 0x10) != 0)
@@ -153,9 +153,8 @@ void LoadGlobsetFromBrx(GLOBSET *pglobset, ALO *palo, CBinaryInputStream *pbis)
         
         BuildCmFgfn(g_pcm, pglobset->aglob[i].uFog, &pglobset->aglob[i].fgfn);
 
-        if ((unk_5 & 1) == 0)
+        if (fCloneGlob == 0)
         {
-
             // Number of submodels
             // std::cout << "Model Start: " << std::hex << file.tellg()<<"\n";
             pglobset->aglob[i].csubglob = pbis->U16Read();
@@ -307,6 +306,11 @@ void LoadGlobsetFromBrx(GLOBSET *pglobset, ALO *palo, CBinaryInputStream *pbis)
                 }
             }
         }
+        else
+        {
+            pglobset->aglob[i].csubglob = pglobset->aglob[pglobset->aglob[i].instanceIndex].csubglob;
+            pglobset->aglob[i].asubglob = pglobset->aglob[pglobset->aglob[i].instanceIndex].asubglob;
+        }
     }
 }
 
@@ -326,7 +330,7 @@ void BuildSubGlob(SUBGLOB *psubglob, SHD *pshd, std::vector <glm::vec3> &positio
         if ((indexes[i].bMisc & 0x7F) == 0x7F)
             psubglob->vertices[i].color = pshd->rgba;
         else
-            psubglob->vertices[i].color = pshd->rgba * colors[indexes[i].bMisc & 0x7F];
+            psubglob->vertices[i].color = colors[indexes[i].bMisc & 0x7F] * pshd->rgba;
 
         if (indexes[i].iuv == 0xFF)
             psubglob->vertices[i].uv = glm::vec2{0.0};
@@ -343,7 +347,6 @@ void BuildSubGlob(SUBGLOB *psubglob, SHD *pshd, std::vector <glm::vec3> &positio
             psubglob->indices.push_back(idx + 1);
             psubglob->indices.push_back(idx + 2);
         }
-        
         idx++;
     }
     
@@ -373,4 +376,9 @@ void BuildSubGlob(SUBGLOB *psubglob, SHD *pshd, std::vector <glm::vec3> &positio
     // Uv's
     glVertexAttribPointer(3, 2, GL_FLOAT, GL_FALSE, sizeof(VERTICE), (void*)offsetof(VERTICE, uv));
     glEnableVertexAttribArray(3);
+}
+
+void CloneGlob(GLOBSET *pglobset, GLOB *pglob, GLOBI *pglobi)
+{
+
 }

@@ -33,7 +33,7 @@ struct DIRLIGHT
     float duMidtone;
     float duHighlight;
 
-}; uniform DIRLIGHT dirlights[100];
+}; uniform DIRLIGHT dirlights[1];
 
 uniform int numDirLights;
 
@@ -57,6 +57,8 @@ uniform int numPointLights;
 
 uniform int shdk;
 uniform float usSelfIllum;
+uniform int trlk;
+
 uniform float rDarken;
 
 out vec4 ambient;
@@ -68,8 +70,10 @@ vec4 lit;
 float objectShadow;
 float objectIllum;
 
+out vec4 testPixel;
+
 // Resets the model lighting
-void ClearGlobLighting();
+void InitGlobLighting();
 void ProcessGlobLighting();
 vec4 AddDirectionLight(DIRLIGHT dirlight);
 // NOT DONE
@@ -82,7 +86,7 @@ void main()
 
     if (shdk == SHDK_ThreeWay)
     {
-        ClearGlobLighting();
+        InitGlobLighting();
 
         for (int i = 0; i < numDirLights; i++)
             lit += AddDirectionLight(dirlights[i]);
@@ -96,10 +100,11 @@ void main()
      gl_Position = matWorldToClip * model * vec4(vertex, 1.0);
 }
 
-void ClearGlobLighting()
+void InitGlobLighting()
 {
     objectShadow = lsm.uShadow;
-    objectIllum  = lsm.uMidtone + usSelfIllum * 0.000031;
+    objectIllum  = lsm.uMidtone + usSelfIllum * 3.060163e-05;
+    lit = vec4(0.0);
 }
 
 void ProcessGlobLighting()
@@ -165,10 +170,9 @@ vec4 AddPositionLight(POINTLIGHT pointlight)
     vec3 normalWorld = mat3(transpose(model)) * normalize(normal);
 
     vec3 direction = normalize(pointlight.pos - posWorld);
-    
     float distance = length(pointlight.pos - posWorld);
 
-    float diffuse = dot(direction, normalWorld);
+    float diffuse = dot(direction, normalize(normalWorld));
 
     float attenuation = 1.0 / distance * pointlight.falloff.y + pointlight.falloff.x;
 

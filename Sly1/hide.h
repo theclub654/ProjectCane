@@ -66,7 +66,7 @@ void OnHbskAdd(HBSK* phbsk);
 void OnHbskRemove(HBSK* phbsk);
 void LoadHbskFromBrx(HBSK* phbsk, CBinaryInputStream* pbis);
 void CloneHbsk(HBSK* phbsk, HBSK* phbskBase);
-void DeleteHbsk(LO* plo);
+void DeleteHbsk(HBSK *phbsk);
 
 HSHAPE*NewHshape();
 void InitHshape(HSHAPE* phshape);

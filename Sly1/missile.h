@@ -49,27 +49,27 @@ void OnMissileRemove(MISSILE* pmissile);
 void LoadMissileFromBrx(MISSILE* pmissile, CBinaryInputStream* pbis);
 void CloneMissile(MISSILE* pmissile, MISSILE* pmissileBase);
 void RenderMissileAll(MISSILE* pmissile, CM* pcm, RO* pro);
-void DeleteMissile(LO* plo);
+void DeleteMissile(MISSILE* pmissile);
 
 ACCMISS*NewAccmiss();
 void InitAccmiss(ACCMISS* paccmiss);
 int  GetAccmissSize();
 void CloneAccmiss(ACCMISS* paccmiss, ACCMISS* paccmissBase);
-void DeleteAccmiss(LO* plo);
+void DeleteAccmiss(ACCMISS* paccmiss);
 
 TARMISS*NewTarmiss();
 void InitTarmiss(TARMISS* ptarmiss);
 int  GetTarmissSize();
 void CloneTarmiss(TARMISS* ptarmiss, TARMISS* ptarmissBase);
-void DeleteTarmiss(LO* plo);
+void DeleteTarmiss(TARMISS* ptarmiss);
 
 SPLMISS*NewSplmiss();
 int  GetSplmissSize();
 void CloneSplmiss(SPLMISS* psplmiss, SPLMISS* psplmissBase);
-void DeleteSplmiss(LO* plo);
+void DeleteSplmiss(SPLMISS *psplmiss);
 
 GROUNDMISS*NewGroundmiss();
 void InitGroundmiss(GROUNDMISS* pgroundmiss);
 int  GetGroundmissSize();
 void CloneGroundmiss(GROUNDMISS* pgroundmiss, GROUNDMISS* pgroundmissBase);
-void DeleteGroundmiss(LO* plo);
+void DeleteGroundmiss(GROUNDMISS *pgroundmiss);

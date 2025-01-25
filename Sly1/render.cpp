@@ -32,7 +32,7 @@ void RenderSw(SW *psw, CM *pcm)
 	}
 }
 
-void RenderSwGlobsetAll(SW *psw, CM *pcm)
+void RenderSwGlobset(SW *psw, CM *pcm)
 {
 	for (int i = 0; i < allSWAloObjs.size(); i++)
 		allSWAloObjs[i]->pvtalo->pfnRenderAloGlobset(allSWAloObjs[i], pcm, nullptr);
@@ -206,7 +206,7 @@ void DrawSw(SW *psw, CM *pcm)
 	glUniform1f(glGetUniformLocation(glGlobShader.ID, "lsm.uMidtone"), g_psw->lsmDefault.uMidtone);
 
 	for (int i = 0; i < renderBuffer.size(); i++)
-		renderBuffer[i].PFNDRAW(renderBuffer[i]);
+		renderBuffer[i].PFNDRAW(&renderBuffer[i]);
 
 	renderBuffer.clear();
 }

@@ -150,7 +150,7 @@ void ClonePufft(PUFFT* ppufft, PUFFT* ppufftBase)
 	ppufft->pstso = nullptr;
 }
 
-void DeletePufft(LO* plo)
+void DeletePufft(PUFFT *ppufft)
 {
-	delete (PUFFT*)plo;
+	delete ppufft;
 }

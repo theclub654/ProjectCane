@@ -59,9 +59,9 @@ void CloneUbp(UBP* pubp, UBP* pubpBase)
 	CloneLo(pubp, pubpBase);
 }
 
-void DeleteUbp(LO* plo)
+void DeleteUbp(UBP *pubp)
 {
-	delete (UBP*)plo;
+	delete pubp;
 }
 
 UBV* NewUbv()
@@ -83,7 +83,7 @@ void CloneUbv(UBV* pubv, UBV* pubvBase)
 	CloneLo(pubv, pubvBase);
 }
 
-void DeleteUbv(LO* plo)
+void DeleteUbv(UBV *pubv)
 {
-	delete (UBV*)plo;
+	delete pubv;
 }

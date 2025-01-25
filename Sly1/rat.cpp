@@ -57,9 +57,9 @@ void RenderRatAll(RAT* prat, CM* pcm, RO* pro)
 	prat->pvtalo->pfnRenderAloAll(prat, pcm, pro);
 }
 
-void DeleteRat(LO* plo)
+void DeleteRat(RAT *prat)
 {
-	delete (RAT*)plo;
+	delete prat;
 }
 
 RATHOLE* NewRathole()

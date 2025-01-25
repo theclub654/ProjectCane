@@ -40,7 +40,7 @@ void LoadBombFromBrx(BOMB* pbomb, CBinaryInputStream* pbis)
 	LoadSoFromBrx(pbomb, pbis);
 }
 
-void DeleteBomb(BOMB* pbomb)
+void DeleteBomb(BOMB *pbomb)
 {
 	delete pbomb;
 }

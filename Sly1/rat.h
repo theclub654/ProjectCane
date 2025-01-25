@@ -60,7 +60,7 @@ void OnRatRemove(RAT* prat);
 void CloneRat(RAT* prat, RAT* pratBase);
 void LoadRatFromBrx(RAT* prat, CBinaryInputStream* pbis);
 void RenderRatAll(RAT* prat, CM* pcm, RO* pro);
-void DeleteRat(LO* plo);
+void DeleteRat(RAT *prat);
 
 RATHOLE*NewRathole();
 void InitSwRatholeDl(SW* psw);

@@ -45,9 +45,9 @@ void RenderMissileAll(MISSILE* pmissile, CM* pcm, RO* pro)
 	RenderAloAll(pmissile, pcm, pro);
 }
 
-void DeleteMissile(LO* plo)
+void DeleteMissile(MISSILE *pmissile)
 {
-	delete (MISSILE*)plo;
+	delete pmissile;
 }
 
 ACCMISS* NewAccmiss()
@@ -80,9 +80,9 @@ void CloneAccmiss(ACCMISS* paccmiss, ACCMISS* paccmissBase)
 	paccmiss->pstso = nullptr;
 }
 
-void DeleteAccmiss(LO* plo)
+void DeleteAccmiss(ACCMISS* paccmiss)
 {
-	delete (ACCMISS*)plo;
+	delete paccmiss;
 }
 
 TARMISS* NewTarmiss()
@@ -115,9 +115,9 @@ void CloneTarmiss(TARMISS* ptarmiss, TARMISS* ptarmissBase)
 	ptarmiss->pstso = nullptr;
 }
 
-void DeleteTarmiss(LO* plo)
+void DeleteTarmiss(TARMISS *ptarmiss)
 {
-	delete (TARMISS*)plo;
+	delete ptarmiss;
 }
 
 SPLMISS* NewSplmiss()
@@ -145,9 +145,9 @@ void CloneSplmiss(SPLMISS* psplmiss, SPLMISS* psplmissBase)
 	psplmiss->pstso = nullptr;
 }
 
-void DeleteSplmiss(LO* plo)
+void DeleteSplmiss(SPLMISS *psplmiss)
 {
-	delete (SPLMISS*)plo;
+	delete psplmiss;
 }
 
 GROUNDMISS* NewGroundmiss()
@@ -158,6 +158,8 @@ GROUNDMISS* NewGroundmiss()
 void InitGroundmiss(GROUNDMISS* pgroundmiss)
 {
 	InitMissile(pgroundmiss);
+	pgroundmiss->fFollowTrajectory = 0;
+	pgroundmiss->sdvTrackMax = 2000.0;
 }
 
 int GetGroundmissSize()
@@ -180,7 +182,7 @@ void CloneGroundmiss(GROUNDMISS* pgroundmiss, GROUNDMISS* pgroundmissBase)
 	pgroundmiss->pstso = nullptr;
 }
 
-void DeleteGroundmiss(LO* plo)
+void DeleteGroundmiss(GROUNDMISS *pgroundmiss)
 {
-	delete (GROUNDMISS*)plo;
+	delete pgroundmiss;
 }

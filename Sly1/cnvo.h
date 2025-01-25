@@ -14,4 +14,4 @@ void InitCnvo(CNVO* pcnvo);
 int  GetCnvoSize();
 void LoadCnvoFromBrx(CNVO* pcnvo, CBinaryInputStream* pbis);
 void CloneCnvo(CNVO* pcnvo, CNVO* pcnvoBase);
-void DeleteCnvo(LO* plo);
+void DeleteCnvo(CNVO *pcnvo);

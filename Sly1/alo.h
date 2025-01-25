@@ -109,6 +109,7 @@ struct FICG
 	byte grficBomb;
 	byte grficShock;
 };
+
 struct RO
 {
 	GLuint *VAO;
@@ -126,11 +127,14 @@ struct RO
 	glm::mat4 modelMatrix;
 	float uAlpha;
 	float uAlphaCelBorder;
+	TRLK trlk;
+	TWPS twps;
 };
-// Render Property List
+
+// Render Priority List
 struct RPL
 {
-	void (*PFNDRAW)(RPL);
+	void (*PFNDRAW)(RPL*);
 	RP rp;
 	RO ro;
 	float z;
@@ -267,7 +271,7 @@ void RenderAloGlobset(ALO* palo, CM* pcm, RO* pro);
 void RenderAloLine(ALO* palo, CM* pcm, glm::vec3* ppos0, glm::vec3* ppos1, float rWidth, float uAlpha);
 void RenderAloAsBone(ALO* palo, CM* pcm, RO* pro);
 // Draw a 3D model submesh
-void DrawGlob(RPL rpl);
+void DrawGlob(RPL *rpl);
 // Deletes Model from VRAM
 void DeleteModel(ALO *palo);
 int  GetAloSize();

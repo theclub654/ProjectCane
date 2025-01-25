@@ -569,67 +569,32 @@ void RenderAloGlobset(ALO *palo, CM *pcm, RO *pro)
 
 	rpl.PFNDRAW = DrawGlob;
 
+	DupAloRo(palo, pro, &rpl.ro);
+
 	for (int i = 0; i < palo->globset.aglob.size(); i++)
 	{
 		if ((palo->globset.aglobi[i].grfzon & pcm->grfzon) == pcm->grfzon) // Check if submodel is in camera BSP zone
 		{
-			if (palo->globset.aglob[i].newDmat.size() == 0)
+			for (int a = 0; a < palo->globset.aglob[i].asubglob.size(); a++)
 			{
-				for (int a = 0; a < palo->globset.aglob[i].asubglob.size(); a++)
-				{
-					DupAloRo(palo, pro, &rpl.ro);
-					
-					rpl.ro.VAO = &palo->globset.aglob[i].asubglob[a].VAO;
-					rpl.ro.VBO = &palo->globset.aglob[i].asubglob[a].VBO;
-					rpl.ro.EBO = &palo->globset.aglob[i].asubglob[a].EBO;
+				rpl.ro.VAO = &palo->globset.aglob[i].asubglob[a].VAO;
+				rpl.ro.VBO = &palo->globset.aglob[i].asubglob[a].VBO;
+				rpl.ro.EBO = &palo->globset.aglob[i].asubglob[a].EBO;
 
-					rpl.ro.grfglob = &palo->globset.aglob[i].grfglob;
-					rpl.ro.pshd = palo->globset.aglob[i].asubglob[a].pshd;
+				rpl.ro.grfglob = &palo->globset.aglob[i].grfglob;
+				rpl.ro.pshd = palo->globset.aglob[i].asubglob[a].pshd;
 
-					rpl.ro.unSelfIllum = &palo->globset.aglob[i].asubglob[a].unSelfIllum;
-					rpl.ro.cvtx = palo->globset.aglob[i].asubglob[a].indices.size();
+				rpl.ro.unSelfIllum = &palo->globset.aglob[i].asubglob[a].unSelfIllum;
+				rpl.ro.cvtx = palo->globset.aglob[i].asubglob[a].indices.size();
 
-					rpl.z = palo->globset.aglob[i].gZOrder;
+				rpl.z = palo->globset.aglob[i].gZOrder;
 
-					if (rpl.z == 3.402823e+38)
-						rpl.z = glm::dot(rpl.z, rpl.z);
+				if (rpl.z == 3.402823e+38)
+					rpl.z = glm::dot(rpl.z, rpl.z);
 
-					rpl.rp = palo->globset.aglob[i].rp;
+				rpl.rp = palo->globset.aglob[i].rp;
 
-					SubmitRpl(&rpl);
-				}
-			}
-
-			else
-			{
-				// Renders Instance Model
-				for (int a = 0; a < palo->globset.aglob[palo->globset.aglob[i].instanceIndex].asubglob.size(); a++)
-				{
-					DupAloRo(palo, pro, &rpl.ro);
-
-					rpl.ro.VAO = &palo->globset.aglob[palo->globset.aglob[i].instanceIndex].asubglob[a].VAO;
-					rpl.ro.VBO = &palo->globset.aglob[palo->globset.aglob[i].instanceIndex].asubglob[a].VBO;
-					rpl.ro.EBO = &palo->globset.aglob[palo->globset.aglob[i].instanceIndex].asubglob[a].EBO;
-
-					rpl.ro.modelMatrix = rpl.ro.modelMatrix * palo->globset.aglob[i].newDmat[0];
-
-					rpl.ro.grfglob = &palo->globset.aglob[i].grfglob;
-					rpl.posCenter = glm::mat3(glm::transpose(rpl.ro.modelMatrix)) * palo->globset.aglob[i].posCenter;
-
-					rpl.ro.pshd = palo->globset.aglob[palo->globset.aglob[i].instanceIndex].asubglob[a].pshd;
-
-					rpl.ro.unSelfIllum = &palo->globset.aglob[palo->globset.aglob[i].instanceIndex].asubglob[a].unSelfIllum;
-					rpl.ro.cvtx = palo->globset.aglob[palo->globset.aglob[i].instanceIndex].asubglob[a].indices.size();
-
-					rpl.z = palo->globset.aglob[i].gZOrder;
-
-					if (rpl.z == 3.402823e+38)
-						rpl.z = glm::dot(rpl.z, rpl.z);
-
-					rpl.rp = palo->globset.aglob[palo->globset.aglob[i].instanceIndex].rp;
-
-					SubmitRpl(&rpl);
-				}
+				SubmitRpl(&rpl);
 			}
 		}
 
@@ -646,37 +611,39 @@ void RenderAloAsBone(ALO* palo, CM* pcm, RO* pro)
 
 }
 
-void DrawGlob(RPL rpl)
+void DrawGlob(RPL *rpl)
 {
-	glBindVertexArray(*rpl.ro.VAO);
+	glBindVertexArray(*rpl->ro.VAO);
 
-	glUniformMatrix4fv(glGetUniformLocation(glGlobShader.ID, "model"), 1, GL_FALSE, glm::value_ptr(rpl.ro.modelMatrix));
+	glUniformMatrix4fv(glGetUniformLocation(glGlobShader.ID, "model"), 1, GL_FALSE, glm::value_ptr(rpl->ro.modelMatrix));
 
-	glUniform1i(glGetUniformLocation(glGlobShader.ID, "shdk"), rpl.ro.pshd->shdk);
-	glUniform1f(glGetUniformLocation(glGlobShader.ID, "usSelfIllum"), *rpl.ro.unSelfIllum);
-	
-	if (rpl.ro.pshd->shdk == SHDK_ThreeWay)
+	glUniform1i(glGetUniformLocation(glGlobShader.ID, "shdk"), rpl->ro.pshd->shdk);
+	glUniform1f(glGetUniformLocation(glGlobShader.ID, "usSelfIllum"), *rpl->ro.unSelfIllum);
+
+	if (rpl->ro.pshd->shdk == SHDK_ThreeWay)
 	{
 		glActiveTexture(GL_TEXTURE0);
-		glBindTexture(GL_TEXTURE_2D, rpl.ro.pshd->glShadowMap);
+		glBindTexture(GL_TEXTURE_2D, rpl->ro.pshd->glShadowMap);
 
 		glActiveTexture(GL_TEXTURE1);
-		glBindTexture(GL_TEXTURE_2D, rpl.ro.pshd->glDiffuseMap);
+		glBindTexture(GL_TEXTURE_2D, rpl->ro.pshd->glDiffuseMap);
 
 		glActiveTexture(GL_TEXTURE2);
-		glBindTexture(GL_TEXTURE_2D, rpl.ro.pshd->glSaturateMap);
+		glBindTexture(GL_TEXTURE_2D, rpl->ro.pshd->glSaturateMap);
 	}
 
 	else
 	{
 		glActiveTexture(GL_TEXTURE1);
-		glBindTexture(GL_TEXTURE_2D, rpl.ro.pshd->glDiffuseMap);
+		glBindTexture(GL_TEXTURE_2D, rpl->ro.pshd->glDiffuseMap);
 	}
 
-	switch (rpl.rp)
+	switch (rpl->rp)
 	{
 		case RP_Background:
-		//glDepthMask(false);
+		glEnable(GL_BLEND);
+		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+		glDepthMask(false);
 		break;
 
 		case RP_ProjVolume:
@@ -685,28 +652,24 @@ void DrawGlob(RPL rpl)
 		glDepthMask(false);
 		break;
 
-		case RP_Opaque:
 		case RP_Cutout:
-		case RP_OpaqueAfterProjVolume:
 		case RP_CutoutAfterProjVolume:
 		case RP_Translucent:
 		glEnable(GL_BLEND);
 		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+		//glDepthFunc(GL_LEQUAL);
 		break;
 	}
 
-	glDrawElements(GL_TRIANGLES, rpl.ro.cvtx, GL_UNSIGNED_SHORT, 0);
+	glDrawElements(GL_TRIANGLES, rpl->ro.cvtx, GL_UNSIGNED_SHORT, 0);
 
-	switch (rpl.rp)
+	switch (rpl->rp)
 	{
 		case RP_Background:
 		case RP_ProjVolume:
-		case RP_Opaque:
 		case RP_Cutout:
-		case RP_OpaqueAfterProjVolume:
 		case RP_CutoutAfterProjVolume:
 		case RP_Translucent:
-		glEnable(GL_DEPTH_TEST);
 		glDepthMask(true);
 		glDepthFunc(GL_LESS);
 		glDisable(GL_BLEND);

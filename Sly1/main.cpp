@@ -25,7 +25,7 @@ int main(int cphzArgs, char* aphzArgs[])
 			// Loads level
 			g_transition.Execute(file);
 		}
-		
+
 		// Using custom frame buffer
 		glBindFramebuffer(GL_FRAMEBUFFER, g_gl.fbo);
 		// Making custom frame buffer all black
@@ -50,7 +50,7 @@ int main(int cphzArgs, char* aphzArgs[])
 			if (fRenderModels != 0)
 			{
 				//UpdateSw(g_psw, deltaTime);
-				RenderSwGlobsetAll(g_psw, g_pcm);
+				RenderSwGlobset(g_psw, g_pcm);
 				DrawSw(g_psw, g_pcm);
 			}
 
@@ -63,16 +63,15 @@ int main(int cphzArgs, char* aphzArgs[])
 
 		// Switches back to default frame buffer
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
-		
 		// Making the default frame buffer black
 		glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
-		// Clearing the color buffer of the default frame buffer
+		////// Clearing the color buffer of the default frame buffer
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		// Using screen shader
 		glScreenShader.Use();
-		glDisable(GL_DEPTH_TEST);
 		// Binding the screen canvas
-		glBindVertexArray(g_gl.sbo);
+		glBindVertexArray(g_gl.sao);
+		glDisable(GL_DEPTH_TEST);
 		// Binding scene texture
 		glBindTexture(GL_TEXTURE_2D, g_gl.fbc);
 		// Drawing the scene texture on the screen

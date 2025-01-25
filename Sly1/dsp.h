@@ -16,4 +16,4 @@ class DSP : public SO
 DSP* NewDsp();
 int  GetDspSize();
 void CloneDsp(DSP* pdsp, DSP* pdspBase);
-void DeleteDsp(LO* plo);
+void DeleteDsp(DSP *pdsp);
