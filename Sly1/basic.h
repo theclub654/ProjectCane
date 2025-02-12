@@ -7553,7 +7553,7 @@ struct VTMRKV
     void (*pfnGetSoParams) = nullptr;
     void (*pfnUpdateLoLiveEdit) = nullptr;
     int  (*pfnGetMrkvSize) () = GetMrkvSize;
-    void (*pfnDeleteMrkv) (LO*) = DeleteMrkv;
+    void (*pfnDeleteMrkv) (MRKV*) = DeleteMrkv;
     void (*pfnProjectSoTransform) = nullptr;
     void (*pfnPresetSoAccel) = nullptr;
     void (*pfnTranslateSoToPos)(SO*,  glm::vec3&) = TranslateSoToPos;
@@ -7639,7 +7639,7 @@ struct VTLGNB
     void (*pfnGetSoParams) = nullptr;
     void (*pfnUpdateLoLiveEdit) = nullptr;
     int  (*pfnGetLgnbSize) () = GetLgnbSize;
-    void (*pfnDeleteLgnb) (LO*) = DeleteLgnb;
+    void (*pfnDeleteLgnb) (LGNB*) = DeleteLgnb;
     void (*pfnProjectSoTransform) = nullptr;
     void (*pfnPresetLgnbAccel) = nullptr;
     void (*pfnTranslateSoToPos)(SO*,  glm::vec3&) = TranslateSoToPos;
@@ -7725,7 +7725,7 @@ struct VTBLIPG
     void (*pfnGetAloParams) = nullptr;
     void (*pfnUpdateLoLiveEdit) = nullptr;
     int  (*pfnGetBlipgSize) () = GetBlipgSize;
-    void (*pfnDeleteBlipg) (BLIPG* pblipg) = DeleteBlipg;
+    void (*pfnDeleteBlipg) (BLIPG*) = DeleteBlipg;
     void (*pfnProjectBlipgTransform) = nullptr;
     void (*pfnPresetAloAccel) = nullptr;
     void (*pfnTranslateAloToPos)(ALO*, glm::vec3&) = TranslateAloToPos;
@@ -7786,7 +7786,7 @@ struct VTCAMERA
     void (*pfnGetAloParams) = nullptr;
     void (*pfnUpdateLoLiveEdit) = nullptr;
     int  (*pfnGetCameraSize) () = GetCameraSize;
-    void (*pfnDeleteCamera) (LO*) = DeleteCamera;
+    void (*pfnDeleteCamera) (CAMERA*) = DeleteCamera;
     void (*pfnProjectAloTransform) = nullptr;
     void (*pfnPresetAloAccel) = nullptr;
     void (*pfnTranslateAloToPos)(ALO*, glm::vec3&) = TranslateAloToPos;
@@ -7847,7 +7847,7 @@ struct VTLBONE
     void (*pfnGetAloParams) = nullptr;
     void (*pfnUpdateLoLiveEdit) = nullptr;
     int  (*pfnGetLboneSize) () = GetLBoneSize;
-    void (*pfnDeleteLBone) (LBONE* plbone) = DeleteLBone;
+    void (*pfnDeleteLBone) (LBONE*) = DeleteLBone;
     void (*pfnProjectAloTransform) = nullptr;
     void (*pfnPresetAloAccel) = nullptr;
     void (*pfnTranslateAloToPos)(ALO*, glm::vec3&) = TranslateAloToPos;
@@ -7908,7 +7908,7 @@ struct VTEMITTER
     void (*pfnGetEmitterParams) = nullptr;
     void (*pfnUpdateLoLiveEdit) = nullptr;
     int  (*pfnGetEmitterSize) () = GetEmitterSize;
-    void (*pfnDeleteEmitter) (LO*) = DeleteEmitter;
+    void (*pfnDeleteEmitter) (EMITTER*) = DeleteEmitter;
     void (*pfnProjectAloTransform) = nullptr;
     void (*pfnPresetAloAccel) = nullptr;
     void (*pfnTranslateAloToPos)(ALO*, glm::vec3&) = TranslateAloToPos;
@@ -8030,7 +8030,7 @@ struct VTSCH
     void (*pfnGetAloParams) = nullptr;
     void (*pfnUpdateLoLiveEdit) = nullptr;
     int  (*pfnGetAloSize) () = GetAloSize;
-    void (*pfnDeleteSch) (ALO* psch) = DeleteAlo;
+    void (*pfnDeleteSch) (ALO*) = DeleteAlo;
     void (*pfnProjectAloTransform) = nullptr;
     void (*pfnPresetAloAccel) = nullptr;
     void (*pfnTranslateAloToPos)(ALO*, glm::vec3&) = TranslateAloToPos;
@@ -8091,7 +8091,7 @@ struct VTLIKH
     void (*pfnGetAloParams) = nullptr;
     void (*pfnUpdateLoLiveEdit) = nullptr;
     int  (*pfnGetLikhSize) () = GetLikhSize;
-    void (*pfnDeleteLikh) (LO*) = DeleteLikh;
+    void (*pfnDeleteLikh) (LIKH*) = DeleteLikh;
     void (*pfnProjectAloTransform) = nullptr;
     void (*pfnPresetAloAccel) = nullptr;
     void (*pfnTranslateAloToPos)(ALO*, glm::vec3&) = TranslateAloToPos;
@@ -8152,7 +8152,7 @@ struct VTCHKPNT
     void (*pfnGetAloParams) = nullptr;
     void (*pfnUpdateLoLiveEdit) = nullptr;
     int  (*pfnGetChkpntSize) () = GetChkpntSize;
-    void (*pfnDeleteChkpnt) (LO*) = DeleteChkpnt;
+    void (*pfnDeleteChkpnt) (CHKPNT*) = DeleteChkpnt;
     void (*pfnProjectAloTransform) = nullptr;
     void (*pfnPresetAloAccel) = nullptr;
     void (*pfnTranslateAloToPos)(ALO*, glm::vec3&) = TranslateAloToPos;
@@ -8213,7 +8213,7 @@ struct VTPROXY
     void (*pfnGetAloParams) = nullptr;
     void (*pfnUpdateLoLiveEdit) = nullptr;
     int  (*pfnGetProxySize) () = GetProxySize;
-    void (*pfnDeleteProxy) (PROXY *pproxy) = DeleteProxy;
+    void (*pfnDeleteProxy) (PROXY*) = DeleteProxy;
     void (*pfnProjectAloTransform) = nullptr;
     void (*pfnPresetAloAccel) = nullptr;
     void (*pfnTranslateAloToPos)(ALO*, glm::vec3&) = TranslateAloToPos;
@@ -8274,7 +8274,7 @@ struct VTSKY
     void (*pfnGetAloParams) = nullptr;
     void (*pfnUpdateLoLiveEdit) = nullptr;
     int  (*pfnGetSkySize) () = GetSkySize;
-    void (*pfnDeleteSky) (LO*) = DeleteSky;
+    void (*pfnDeleteSky) (SKY*) = DeleteSky;
     void (*pfnProjectAloTransform) = nullptr;
     void (*pfnPresetAloAccel) = nullptr;
     void (*pfnTranslateAloToPos)(ALO*, glm::vec3&) = TranslateAloToPos;
@@ -8335,7 +8335,7 @@ struct VTDPRIZE
     void (*pfnGetAloParams) = nullptr;
     void (*pfnUpdateLoLiveEdit) = nullptr;
     int  (*pfnGetDprizeSize) () = GetDprizeSize;
-    void (*pfnDeleteDprize) (LO*) = DeleteDprize;
+    void (*pfnDeleteDprize) (DPRIZE*) = DeleteDprize;
     void (*pfnProjectDprizeTransform) = nullptr;
     void (*pfnPresetAloAccel) = nullptr;
     void (*pfnTranslateAloToPos)(ALO*, glm::vec3&) = TranslateAloToPos;
@@ -8397,7 +8397,7 @@ struct VTCHARM
     void (*pfnGetAloParams) = nullptr;
     void (*pfnUpdateLoLiveEdit) = nullptr;
     int  (*pfnGetCharmSize) () = GetCharmSize;
-    void (*pfnDeleteCharm) (LO*) = DeleteCharm;
+    void (*pfnDeleteCharm) (CHARM*) = DeleteCharm;
     void (*pfnProjectDprizeTransform) = nullptr;
     void (*pfnPresetAloAccel) = nullptr;
     void (*pfnTranslateAloToPos)(ALO*, glm::vec3&) = TranslateAloToPos;
@@ -8459,7 +8459,7 @@ struct VTCOIN
     void (*pfnGetAloParams) = nullptr;
     void (*pfnUpdateLoLiveEdit) = nullptr;
     int  (*pfnGetCoinSize) () = GetCoinSize;
-    void (*pfnDeleteCoin) (LO*) = DeleteCoin;
+    void (*pfnDeleteCoin) (COIN*) = DeleteCoin;
     void (*pfnProjectDprizeTransform) = nullptr;
     void (*pfnPresetAloAccel) = nullptr;
     void (*pfnTranslateAloToPos)(ALO*, glm::vec3&) = TranslateAloToPos;
@@ -8521,7 +8521,7 @@ struct VTKEY
     void (*pfnGetAloParams) = nullptr;
     void (*pfnUpdateLoLiveEdit) = nullptr;
     int  (*pfnGetKeySize) () = GetKeySize;
-    void (*pfnDeleteKey) (LO*) = DeleteKey;
+    void (*pfnDeleteKey) (KEY*) = DeleteKey;
     void (*pfnProjectDprizeTransform) = nullptr;
     void (*pfnPresetAloAccel) = nullptr;
     void (*pfnTranslateAloToPos)(ALO*, glm::vec3&) = TranslateAloToPos;
@@ -8583,7 +8583,7 @@ struct VTGOLD
     void (*pfnGetAloParams) = nullptr;
     void (*pfnUpdateLoLiveEdit) = nullptr;
     int  (*pfnGetGoldSize) () = GetGoldSize;
-    void (*pfnDeleteGold) (LO*) = DeleteGold;
+    void (*pfnDeleteGold) (GOLD*) = DeleteGold;
     void (*pfnProjectDprizeTransform) = nullptr;
     void (*pfnPresetAloAccel) = nullptr;
     void (*pfnTranslateAloToPos)(ALO*, glm::vec3&) = TranslateAloToPos;
@@ -8645,7 +8645,7 @@ struct VTLOCK
     void (*pfnGetAloParams) = nullptr;
     void (*pfnUpdateLoLiveEdit) = nullptr;
     int  (*pfnGetLockSize) () = GetLockSize;
-    void (*pfnDeleteLock) (LO*) = DeleteLock;
+    void (*pfnDeleteLock) (LOCK*) = DeleteLock;
     void (*pfnProjectAloTransform) = nullptr;
     void (*pfnPresetAloAccel) = nullptr;
     void (*pfnTranslateAloToPos)(ALO*, glm::vec3&) = TranslateAloToPos;
@@ -8706,7 +8706,7 @@ struct VTLOCKG
     void (*pfnGetAloParams) = nullptr;
     void (*pfnUpdateLoLiveEdit) = nullptr;
     int  (*pfnGetLockgSize) () = GetLockgSize;
-    void (*pfnDeleteLockg) (LO*) = DeleteLockg;
+    void (*pfnDeleteLockg) (LOCKG*) = DeleteLockg;
     void (*pfnProjectAloTransform) = nullptr;
     void (*pfnPresetAloAccel) = nullptr;
     void (*pfnTranslateAloToPos)(ALO*, glm::vec3&) = TranslateAloToPos;
@@ -8767,7 +8767,7 @@ struct VTTAIL
     void (*pfnGetAloParams) = nullptr;
     void (*pfnUpdateLoLiveEdit) = nullptr;
     int  (*pfnGetTailSize) () = GetTailSize;
-    void (*pfnDeleteTail) (LO*) = DeleteTail;
+    void (*pfnDeleteTail) (TAIL*) = DeleteTail;
     void (*pfnProjectAloTransform) = nullptr;
     void (*pfnPresetAloAccel) = nullptr;
     void (*pfnTranslateAloToPos)(ALO*, glm::vec3&) = TranslateAloToPos;

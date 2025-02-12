@@ -213,9 +213,9 @@ void CloneLock(LOCK* plock, LOCK* plockBase)
 	ClearDl(&plock->dlChild);
 }
 
-void DeleteLock(LO* plo)
+void DeleteLock(LOCK* plock)
 {
-	delete(LOCK*)plo;
+	delete plock;
 }
 
 LOCKG* NewLockg()
@@ -244,7 +244,7 @@ void CloneLockg(LOCKG* plockg, LOCKG* plockgBase)
 	ClearDl(&plockg->dlChild);
 }
 
-void DeleteLockg(LO* plo)
+void DeleteLockg(LOCKG* plockg)
 {
-	delete(LOCKG*)plo;
+	delete plockg;
 }

@@ -77,6 +77,13 @@ struct VERTICE
 	glm::vec2 uv;
 };
 
+struct INDICE
+{
+	uint16_t v1;
+	uint16_t v2;
+	uint16_t v3;
+};
+
 // Vertex Flag
 struct VTXFLG
 {
@@ -137,8 +144,8 @@ struct SUBGLOB // NOT DONE
 	glm::vec3 posCenter; // Submodel orgin
 	float sRadius;
 
-	std::vector <VERTICE>  vertices;
-	std::vector <uint16_t> indices;
+	std::vector <VERTICE> vertices;
+	std::vector <INDICE> indices;
 
 	// Object brightness
 	float unSelfIllum;
@@ -147,9 +154,7 @@ struct SUBGLOB // NOT DONE
 	struct WRBSG *pwrbsg;
 	int cibnd;
 	int aibnd[4];
-	int fThreeWay;
-
-}; // NOT DONE
+};
 
 struct SUBGLOBI 
 {

@@ -21,4 +21,4 @@ LIKH*NewLikh();
 int  GetLikhSize();
 void CloneLikh(LIKH* plikh, LIKH* plikhBase);
 void RenderLikhSelf(LIKH* plikh, CM* pcm, RO* pro);
-void DeleteLikh(LO* plo);
+void DeleteLikh(LIKH *plikh);

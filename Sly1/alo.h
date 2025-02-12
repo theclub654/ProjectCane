@@ -3,6 +3,8 @@
 #include "glob.h"
 #include "act.h"
 
+extern std::vector<LIGHT*> allSwLights;
+
 enum ACK
 {
 	ACK_Nil = -1,
@@ -124,10 +126,11 @@ struct RO
 
 	float *unSelfIllum;
 
-	glm::mat4 modelMatrix;
+	glm::mat4 modelmatrix;
 	float uAlpha;
 	float uAlphaCelBorder;
 	TRLK trlk;
+	int fDynamic;
 	TWPS twps;
 };
 
@@ -271,7 +274,7 @@ void RenderAloGlobset(ALO* palo, CM* pcm, RO* pro);
 void RenderAloLine(ALO* palo, CM* pcm, glm::vec3* ppos0, glm::vec3* ppos1, float rWidth, float uAlpha);
 void RenderAloAsBone(ALO* palo, CM* pcm, RO* pro);
 // Draw a 3D model submesh
-void DrawGlob(RPL *rpl);
+void DrawGlob(RPL *prpl);
 // Deletes Model from VRAM
 void DeleteModel(ALO *palo);
 int  GetAloSize();

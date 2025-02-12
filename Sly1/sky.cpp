@@ -27,7 +27,7 @@ void UpdateSky(SKY* psky, float dt)
 	psky->pvtalo->pfnTranslateAloToPos(psky, g_pcm->pos);
 }
 
-void DeleteSky(LO* plo)
+void DeleteSky(SKY* psky)
 {
-	delete(SKY*)plo;
+	delete psky;
 }

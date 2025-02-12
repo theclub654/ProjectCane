@@ -693,14 +693,14 @@ MRKV*NewMrkv();
 void InitMrkv(MRKV* pmrkv);
 int  GetMrkvSize();
 void CloneMrkv(MRKV* pmrkv, MRKV* pmrkvBase);
-void DeleteMrkv(LO* plo);
+void DeleteMrkv(MRKV *pmrkv);
 
 class LGNB;
 LGNB*NewLgnb();
 void InitLgnb(LGNB* plgnb);
 int  GetLgnbSize();
 void CloneLgnb(LGNB* plgnb, LGNB* plgnbBase);
-void DeleteLgnb(LO* plo);
+void DeleteLgnb(LGNB* plgnb);
 
 class BLIPG;
 BLIPG*NewBlipg();
@@ -713,10 +713,10 @@ void DeleteBlipg(BLIPG* pblipg);
 
 class CAMERA;
 CAMERA*NewCamera();
-void InitCamera(CAMERA* pcamera);
-void CloneCamera(CAMERA* pcamera, CAMERA* pcameraBase);
+void InitCamera(CAMERA *pcamera);
+void CloneCamera(CAMERA *pcamera, CAMERA *pcameraBase);
 int  GetCameraSize();
-void DeleteCamera(LO* plo);
+void DeleteCamera(CAMERA *pcamera);
 
 class LBONE;
 LBONE*NewLBone();
@@ -724,7 +724,7 @@ int  GetLBoneSize();
 void CloneLBone(LBONE* plbone, LBONE* plboneBase);
 void RenderBoneSelf(BONE* pbone, CM* pcm, RO* pro);
 void RenderLboneSelf(LBONE* plbone, CM* pcm, RO* pro);
-void DeleteLBone(LBONE* plbone);
+void DeleteLBone(LBONE *plbone);
 
 class EMITTER;
 struct EMITB;
@@ -736,7 +736,7 @@ void CloneEmitter(EMITTER* pemitter, EMITTER* pemitterBase);
 void LoadEmitterFromBrx(EMITTER* pemitter, CBinaryInputStream* pbis);
 EMITB* PemitbEnsureEmitter(EMITTER* pemitter, ENSK ensk);
 void RenderEmitterSelf(EMITTER* pemitter, CM* pcm, RO* pro);
-void DeleteEmitter(LO* plo);
+void DeleteEmitter(EMITTER *pemitter);
 
 class LIGHT;
 LIGHT*NewLight();
@@ -780,7 +780,7 @@ LIKH*NewLikh();
 int  GetLikhSize();
 void CloneLikh(LIKH* plikh, LIKH* plikhBase);
 void RenderLikhSelf(LIKH* plikh, CM* pcm, RO* pro);
-void DeleteLikh(LO* plo);
+void DeleteLikh(LIKH *plikh);
 
 // Check Point
 class CHKPNT;
@@ -789,7 +789,7 @@ void InitChkpnt(CHKPNT* pchkpnt);
 int  GetChkpntSize();
 void LoadChkpntFromBrx(CHKPNT* pchkpnt, CBinaryInputStream* pbis);
 void CloneChkpnt(CHKPNT* pchkpnt, CHKPNT* pchkpntBase);
-void DeleteChkpnt(LO* plo);
+void DeleteChkpnt(CHKPNT* pchkpnt);
 
 PROXY*NewProxy();
 void InitProxy(PROXY* pproxy);
@@ -803,7 +803,7 @@ SKY* NewSky();
 int  GetSkySize();
 void CloneSky(SKY* psky, SKY* pskyBase);
 void UpdateSky(SKY* psky, float dt);
-void DeleteSky(LO* plo);
+void DeleteSky(SKY* psky);
 
 class DPRIZE;
 DPRIZE*NewDprize();
@@ -811,7 +811,7 @@ void InitDprize(DPRIZE* pdprize);
 int  GetDprizeSize();
 void LoadDprizeFromBrx(DPRIZE* pdprize, CBinaryInputStream* pbis);
 void CloneDprize(DPRIZE* pdprize, DPRIZE* pdprizeBase);
-void DeleteDprize(LO* plo);
+void DeleteDprize(DPRIZE *pdprize);
 
 class CHARM;
 CHARM*NewCharm();
@@ -819,49 +819,49 @@ void InitCharm(CHARM* pcharm);
 int  GetCharmSize();
 void CloneCharm(CHARM* pcharm, CHARM* pcharmBase);
 void RenderDprizeAll(DPRIZE* pdprize, CM* pcm, RO* pro);
-void DeleteCharm(LO* plo);
+void DeleteCharm(CHARM* pcharm);
 
 class COIN;
 COIN*NewCoin();
 void InitCoin(COIN* pcoin);
 int  GetCoinSize();
 void CloneCoin(COIN* pcoin, COIN* pcoinBase);
-void DeleteCoin(LO* plo);
+void DeleteCoin(COIN *pcoin);
 
 class KEY;
 KEY* NewKey();
 void InitKey(KEY* pkey);
 int  GetKeySize();
 void CloneKey(KEY* pkey, KEY* pkeyBase);
-void DeleteKey(LO* plo);
+void DeleteKey(KEY* pkey);
 
 class GOLD;
 GOLD*NewGold();
 void InitGold(GOLD* pgold);
 int  GetGoldSize();
 void CloneGold(GOLD* pgold, GOLD* pgoldBase);
-void DeleteGold(LO* plo);
+void DeleteGold(GOLD* pgold);
 
 class LOCK;
 LOCK*NewLock();
 int  GetLockSize();
 void LoadLockFromBrx(LOCK* plock, CBinaryInputStream* pbis);
 void CloneLock(LOCK* plock, LOCK* plockBase);
-void DeleteLock(LO* plo);
+void DeleteLock(LOCK* plock);
 
 class LOCKG;
 LOCKG*NewLockg();
 int  GetLockgSize();
 void LoadLockgFromBrx(LOCKG* plockg, CBinaryInputStream* pbis);
 void CloneLockg(LOCKG* plockg, LOCKG* plockgBase);
-void DeleteLockg(LO* plo);
+void DeleteLockg(LOCKG* plockg);
 
 class TAIL;
 TAIL*NewTail();
 void InitTail(TAIL* ptail);
 int  GetTailSize();
 void CloneTail(TAIL* ptail, TAIL* ptailBase);
-void DeleteTail(LO* plo);
+void DeleteTail(TAIL* ptail);
 
 class ROB;
 ROB* NewRob();

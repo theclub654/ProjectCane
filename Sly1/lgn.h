@@ -71,10 +71,10 @@ void RenderLgnAll(LGN* plgn, CM* pcm, RO* pro);
 void DeleteLgn(LGN* plgn);
 
 LGNB*NewLgnb();
-void InitLgnb(LGNB* plgnb);
+void InitLgnb(LGNB *plgnb);
 int  GetLgnbSize();
-void CloneLgnb(LGNB* plgnb, LGNB* plgnbBase);
-void DeleteLgnb(LO* plo);
+void CloneLgnb(LGNB *plgnb, LGNB* plgnbBase);
+void DeleteLgnb(LGNB *plgnb);
 
 SWP* NewSwp();
 void InitSwp(SWP* pswp);

@@ -26,7 +26,7 @@ void CloneTail(TAIL* ptail, TAIL* ptailBase)
 	ClearDl(&ptail->dlChild);
 }
 
-void DeleteTail(LO* plo)
+void DeleteTail(TAIL* ptail)
 {
-	delete(TAIL*)plo;
+	delete ptail;
 }

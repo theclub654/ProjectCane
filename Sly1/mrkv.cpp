@@ -30,7 +30,7 @@ void CloneMrkv(MRKV* pmrkv, MRKV* pmrkvBase)
 	pmrkv->pstso = nullptr;
 }
 
-void DeleteMrkv(LO* plo)
+void DeleteMrkv(MRKV *pmrkv)
 {
-	delete(MRKV*)plo;
+	delete pmrkv;
 }

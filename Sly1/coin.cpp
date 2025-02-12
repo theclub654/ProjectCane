@@ -47,9 +47,9 @@ void RenderDprizeAll(DPRIZE* pdprize, CM* pcm, RO* pro)
 	RenderAloAll(pdprize, pcm, pro);
 }
 
-void DeleteDprize(LO* plo)
+void DeleteDprize(DPRIZE* pdprize)
 {
-	delete(DPRIZE*)plo;
+	delete pdprize;
 }
 
 CHARM* NewCharm()
@@ -78,9 +78,9 @@ void CloneCharm(CHARM* pcharm, CHARM* pcharmBase)
 	ClearDl(&pcharm->dlChild);
 }
 
-void DeleteCharm(LO* plo)
+void DeleteCharm(CHARM* pcharm)
 {
-	delete(CHARM*)plo;
+	delete pcharm;
 }
 
 COIN* NewCoin()
@@ -109,9 +109,9 @@ void CloneCoin(COIN* pcoin, COIN* pcoinBase)
 	ClearDl(&pcoin->dlChild);
 }
 
-void DeleteCoin(LO* plo)
+void DeleteCoin(COIN* pcoin)
 {
-	delete(COIN*)plo;
+	delete pcoin;
 }
 
 KEY* NewKey()
@@ -140,9 +140,9 @@ void CloneKey(KEY* pkey, KEY* pkeyBase)
 	ClearDl(&pkey->dlChild);
 }
 
-void DeleteKey(LO* plo)
+void DeleteKey(KEY* pkey)
 {
-	delete(KEY*)plo;
+	delete pkey;
 }
 
 GOLD* NewGold()
@@ -172,7 +172,7 @@ void CloneGold(GOLD* pgold, GOLD* pgoldBase)
 	ClearDl(&pgold->dlChild);
 }
 
-void DeleteGold(LO* plo)
+void DeleteGold(GOLD* pgold)
 {
-	delete(GOLD*)plo;
+	delete pgold;
 }

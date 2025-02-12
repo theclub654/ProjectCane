@@ -70,9 +70,9 @@ void CloneLgnb(LGNB* plgnb, LGNB* plgnbBase)
 	plgnb->pstso = nullptr;
 }
 
-void DeleteLgnb(LO* plo)
+void DeleteLgnb(LGNB *plgnb)
 {
-	delete(LGNB*)plo;
+	delete plgnb;
 }
 
 SWP* NewSwp()

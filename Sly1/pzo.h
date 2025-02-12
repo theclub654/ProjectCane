@@ -101,10 +101,10 @@ LOCK*NewLock();
 int  GetLockSize();
 void LoadLockFromBrx(LOCK* plock, CBinaryInputStream* pbis);
 void CloneLock(LOCK* plock, LOCK* plockBase);
-void DeleteLock(LO* plo);
+void DeleteLock(LOCK* plock);
 
 LOCKG*NewLockg();
 int  GetLockgSize();
 void LoadLockgFromBrx(LOCKG* plockg, CBinaryInputStream* pbis);
 void CloneLockg(LOCKG* plockg, LOCKG* plockgBase);
-void DeleteLockg(LO* plo);
+void DeleteLockg(LOCKG* plockg);

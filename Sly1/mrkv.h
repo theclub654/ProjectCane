@@ -13,4 +13,4 @@ MRKV*NewMrkv();
 void InitMrkv(MRKV* pmrkv);
 int  GetMrkvSize();
 void CloneMrkv(MRKV* pmrkv, MRKV* pmrkvBase);
-void DeleteMrkv(LO* plo);
+void DeleteMrkv(MRKV *pmrkv);

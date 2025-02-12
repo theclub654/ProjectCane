@@ -355,26 +355,25 @@ void RemoveLightFromSw(LIGHT* plight)
 	RemoveDlEntry(&plight->psw->dlLight, plight);
 }
 
-void PrepareSwLightsForDraw(SW* psw)
+void PrepareSwLightsForDraw(SW *psw)
 {
 	int numDirLights = 0;
 	int numPointLights = 0;
-	int noLights = 0;
 
 	for (int i = 0; i < allSwLights.size(); i++)
 	{
 		if (allSwLights[i]->lightk == LIGHTK_Position)
 		{
-			glUniform3fv(GetUniformLocation(glGlobShader.ID, "pointlights[" + std::to_string(numPointLights) + "].pos"),     1, glm::value_ptr(allSwLights[i]->xf.posWorld));
-			glUniform3fv(GetUniformLocation(glGlobShader.ID, "pointlights[" + std::to_string(numPointLights) + "].color"),   1, glm::value_ptr(allSwLights[i]->rgbaColor));
+			glUniform3fv(GetUniformLocation(glGlobShader.ID, "pointlights[" + std::to_string(numPointLights) + "].pos"), 1, glm::value_ptr(allSwLights[i]->xf.posWorld));
+			glUniform3fv(GetUniformLocation(glGlobShader.ID, "pointlights[" + std::to_string(numPointLights) + "].color"), 1, glm::value_ptr(allSwLights[i]->rgbaColor));
 			glUniform3fv(GetUniformLocation(glGlobShader.ID, "pointlights[" + std::to_string(numPointLights) + "].falloff"), 1, glm::value_ptr(allSwLights[i]->agFallOff));
 
-			glUniform1f(GetUniformLocation(glGlobShader.ID, "pointlights[" + std::to_string(numPointLights) + "].ruShadow"),    allSwLights[i]->ltfn.ruShadow);
-			glUniform1f(GetUniformLocation(glGlobShader.ID, "pointlights[" + std::to_string(numPointLights) + "].ruMidtone"),   allSwLights[i]->ltfn.ruMidtone);
+			glUniform1f(GetUniformLocation(glGlobShader.ID, "pointlights[" + std::to_string(numPointLights) + "].ruShadow"), allSwLights[i]->ltfn.ruShadow);
+			glUniform1f(GetUniformLocation(glGlobShader.ID, "pointlights[" + std::to_string(numPointLights) + "].ruMidtone"), allSwLights[i]->ltfn.ruMidtone);
 			glUniform1f(GetUniformLocation(glGlobShader.ID, "pointlights[" + std::to_string(numPointLights) + "].ruHighlight"), allSwLights[i]->ltfn.ruHighlight);
 
-			glUniform1f(GetUniformLocation(glGlobShader.ID, "pointlights[" + std::to_string(numPointLights) + "].duShadow"),    allSwLights[i]->ltfn.duShadow);
-			glUniform1f(GetUniformLocation(glGlobShader.ID, "pointlights[" + std::to_string(numPointLights) + "].duMidtone"),   allSwLights[i]->ltfn.duMidtone);
+			glUniform1f(GetUniformLocation(glGlobShader.ID, "pointlights[" + std::to_string(numPointLights) + "].duShadow"), allSwLights[i]->ltfn.duShadow);
+			glUniform1f(GetUniformLocation(glGlobShader.ID, "pointlights[" + std::to_string(numPointLights) + "].duMidtone"), allSwLights[i]->ltfn.duMidtone);
 			glUniform1f(GetUniformLocation(glGlobShader.ID, "pointlights[" + std::to_string(numPointLights) + "].duHighlight"), allSwLights[i]->ltfn.duHighlight);
 
 			numPointLights++;
@@ -408,12 +407,12 @@ TWPS TwpsFindSwLights(SW *psw, glm::vec3 &ppos, float sRadius, int grffindlight,
 	{
 		if (allSwLights[i]->lightk == LIGHTK_Position)
 		{
-			float distance = glm::length(ppos - allSwLights[i]->xf.posWorld);
+			//float distance = glm::length(ppos - allSwLights[i]->xf.posWorld);
 
-			if (distance <= sRadius + allSwLights[i]->lmFallOffS.gMax)
+			/*if (distance <= sRadius + allSwLights[i]->lmFallOffS.gMax)
 			{
 
-			}
+			}*/
 		}
 	}
 

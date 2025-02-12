@@ -185,7 +185,7 @@ void InitCamera(CAMERA* pcamera)
 	pcamera->oidTarget = OID_Nil;
 }
 
-void DeleteCamera(LO* plo)
+void DeleteCamera(CAMERA *pcamera)
 {
-	delete(CAMERA*)plo;
+	delete pcamera;
 }

@@ -89,7 +89,7 @@ struct SHDF
 
 struct TEX : public TEXF
 {
-    struct SHD* pshd;
+    struct SHD *pshd;
     std::vector <uint16_t> bmpIndex;
     std::vector <uint16_t> clutIndex;
 };
@@ -97,11 +97,10 @@ struct TEX : public TEXF
 // Shader property's
 struct SHD : public SHDF
 {
-    SHDF SHD;
     std::vector <TEX> atex;
     int cshdp;
     int cframe;
-    SAA* psaa;
+    SAA *psaa;
 
     GLuint glShadowMap;
     GLuint glDiffuseMap;
@@ -130,6 +129,7 @@ void LoadTexturesFromBrx(CBinaryInputStream* pbis);
 std::vector <byte> MakeBmp(uint32_t bmpIndex, CBinaryInputStream* pbis);
 // Make color pallete
 std::vector <byte> MakePallete(uint32_t clutIndex, CBinaryInputStream* pbis);
+// Make texture
 void MakeTexture(GLuint &textureReference, int16_t clutIndex, int16_t bmpIndex, CBinaryInputStream* pbis);
 
 // Global variable which holds the number of CLUT's in a binary file

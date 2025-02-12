@@ -31,9 +31,9 @@ void CloneChkpnt(CHKPNT* pchkpnt, CHKPNT* pchkpntBase)
 	ClearDl(&pchkpnt->dlChild);
 }
 
-void DeleteChkpnt(LO* plo)
+void DeleteChkpnt(CHKPNT *pchkpnt)
 {
-	delete(CHKPNT*)plo;
+	delete pchkpnt;
 }
 
 VOL* NewVol()

@@ -303,7 +303,7 @@ void LoadEmitterFromBrx(EMITTER* pemitter, CBinaryInputStream* pbis);
 void CloneEmitter(EMITTER* pemitter, EMITTER* pemitterBase);
 EMITB* PemitbEnsureEmitter(EMITTER* pemitter, ENSK ensk);
 void RenderEmitterSelf(EMITTER* pemitter, CM* pcm, RO* pro);
-void DeleteEmitter(LO* plo);
+void DeleteEmitter(EMITTER *pemitter);
 
 EXPL*NewExpl();
 int  GetExplSize();

@@ -111,4 +111,4 @@ CAMERA*NewCamera();
 void InitCamera(CAMERA* pcamera);
 int  GetCameraSize();
 void CloneCamera(CAMERA* pcamera, CAMERA* pcameraBase);
-void DeleteCamera(LO* plo);
+void DeleteCamera(CAMERA *pcamera);

@@ -7,6 +7,7 @@ GLSHADER glScreenShader;
 GLSHADER glGlobShader;
 GLSHADER glCollisionShader;
 std::string file;
+std::string levelName;
 CTransition g_transition;
 bool firstClick = true;
 float deltaTime = 0.0f;

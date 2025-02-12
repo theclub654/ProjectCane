@@ -152,11 +152,9 @@ void RenderEmitterSelf(EMITTER* pemitter, CM* pcm, RO* pro)
 
 }
 
-void DeleteEmitter(LO* plo)
+void DeleteEmitter(EMITTER *pemitter)
 {
-	EMITTER *emitter = (EMITTER*)plo;
-
-	delete emitter;
+	delete pemitter;
 }
 
 EXPL* NewExpl()

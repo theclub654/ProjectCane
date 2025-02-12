@@ -83,28 +83,28 @@ int  GetDprizeSize();
 void LoadDprizeFromBrx(DPRIZE* pdprize, CBinaryInputStream* pbis);
 void CloneDprize(DPRIZE* pdprize, DPRIZE* pdprizeBase);
 void RenderDprizeAll(DPRIZE* pdprize, CM* pcm, RO* pro);
-void DeleteDprize(LO* plo);
+void DeleteDprize(DPRIZE* pdprize);
 
 CHARM* NewCharm();
 void InitCharm(CHARM* pcharm);
 int  GetCharmSize();
 void CloneCharm(CHARM* pcharm, CHARM* pcharmBase);
-void DeleteCharm(LO* plo);
+void DeleteCharm(CHARM* pcharm);
 
 COIN*NewCoin();
 void InitCoin(COIN* pcoin);
 int  GetCoinSize();
 void CloneCoin(COIN* pcoin, COIN* pcoinBase);
-void DeleteCoin(LO* plo);
+void DeleteCoin(COIN *pcoin);
 
 KEY* NewKey();
 void InitKey(KEY* pkey);
 int  GetKeySize();
 void CloneKey(KEY* pkey, KEY* pkeyBase);
-void DeleteKey(LO* plo);
+void DeleteKey(KEY* pkey);
 
 GOLD*NewGold();
 void InitGold(GOLD* pgold);
 int  GetGoldSize();
 void CloneGold(GOLD* pgold, GOLD* pgoldBase);
-void DeleteGold(LO* plo);
+void DeleteGold(GOLD* pgold);

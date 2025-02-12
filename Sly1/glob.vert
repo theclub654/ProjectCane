@@ -33,7 +33,7 @@ struct DIRLIGHT
     float duMidtone;
     float duHighlight;
 
-}; uniform DIRLIGHT dirlights[1];
+}; uniform DIRLIGHT dirlights[5];
 
 uniform int numDirLights;
 
@@ -57,27 +57,19 @@ uniform int numPointLights;
 
 uniform int shdk;
 uniform float usSelfIllum;
-uniform int trlk;
-
-uniform float rDarken;
+uniform vec3 posCenter;
 
 out vec4 ambient;
-out vec4 illumination;
+out vec4 midtone;
 out vec4 light;
 
-vec4 lit;
-
 float objectShadow;
-float objectIllum;
+float objectMidtone;
 
-out vec4 testPixel;
-
-// Resets the model lighting
 void InitGlobLighting();
-void ProcessGlobLighting();
 vec4 AddDirectionLight(DIRLIGHT dirlight);
-// NOT DONE
 vec4 AddPositionLight(POINTLIGHT pointlight);
+void ProcessGlobLighting();
 
 void main()
 {
@@ -89,63 +81,27 @@ void main()
         InitGlobLighting();
 
         for (int i = 0; i < numDirLights; i++)
-            lit += AddDirectionLight(dirlights[i]);
+            light += AddDirectionLight(dirlights[i]);
 
         for (int i = 0; i < numPointLights; i++)
-            lit += AddPositionLight(pointlights[i]);
+            light += AddPositionLight(pointlights[i]);
 
         ProcessGlobLighting();
     }
-    
-     gl_Position = matWorldToClip * model * vec4(vertex, 1.0);
+
+    gl_Position = matWorldToClip * model * vec4(vertex, 1.0);
 }
 
 void InitGlobLighting()
 {
-    objectShadow = lsm.uShadow;
-    objectIllum  = lsm.uMidtone + usSelfIllum * 3.060163e-05;
-    lit = vec4(0.0);
-}
-
-void ProcessGlobLighting()
-{
-    float litR = lit.r;
-    float litG = lit.g;
-    float litB = lit.b;
-
-	if (litG < litR)
-		litG = max(litB, litR);
-	else
-	    litG = max(litB, litG);
-
-	litG = 1.0 - litG;
-
-	litB = litG - objectIllum;
-
-	objectIllum = min(objectIllum, litG);
-	objectIllum = max(objectIllum, 0.0);
-	litG = min(litB, objectShadow);
-
-	litG = max(litG, 0.0);
-
-    float intensity = (vertexColor.r + vertexColor.g + vertexColor.b) * 0.3333333;
-    
-    ambient.r = litG * intensity;
-    ambient.g = litG * intensity;
-    ambient.b = litG * intensity;
-
-    illumination.r = objectIllum * vertexColor.r;
-    illumination.g = objectIllum * vertexColor.g;
-    illumination.b = objectIllum * vertexColor.b;
-
-    light.r = min(lit.r, 1.0) * intensity;
-    light.g = min(lit.g, 1.0) * intensity;
-    light.b = min(lit.b, 1.0) * intensity;
+    objectShadow  = lsm.uShadow;
+    objectMidtone = lsm.uMidtone + usSelfIllum * 0.000031;
+    light = vec4(0.0);
 }
 
 vec4 AddDirectionLight(DIRLIGHT dirlight)
 {
-    vec3 direction = mat3(transpose(model)) * dirlight.dir;
+    vec3 direction = mat3(inverse(model)) * dirlight.dir;
 
     float diffuse = dot(normalize(direction), normal);
 
@@ -158,25 +114,27 @@ vec4 AddDirectionLight(DIRLIGHT dirlight)
 
     diffuse = max(diffuse, 0.0);
 
-    objectShadow += max(lightShadow,  0.0);
-    objectIllum  += max(lightMidtone, 0.0);
+    objectShadow  += max(lightShadow,  0.0);
+    objectMidtone += max(lightMidtone, 0.0);
 
-    return vec4(dirlight.color, 1.0) * diffuse;
+    return vec4(dirlight.color, 0.0) * diffuse;
 }
 
 vec4 AddPositionLight(POINTLIGHT pointlight)
 {
-    vec3 posWorld = mat3(transpose(model)) * vertex;
-    vec3 normalWorld = mat3(transpose(model)) * normalize(normal);
+    vec4 posWorld = model * vec4(vertex, 1.0);
+    vec3 test = vec3(posWorld) / posWorld.w;
 
-    vec3 direction = normalize(pointlight.pos - posWorld);
-    float distance = length(pointlight.pos - posWorld);
+    vec3 normalWorld = mat3(model) * normal;
+
+    vec3 direction = normalize(pointlight.pos - test);
+    float distance = length(pointlight.pos - test);
 
     float diffuse = dot(direction, normalize(normalWorld));
 
     float attenuation = 1.0 / distance * pointlight.falloff.y + pointlight.falloff.x;
 
-    diffuse += diffuse * diffuse * diffuse;
+    diffuse = diffuse + diffuse * diffuse * diffuse;
 
     float ruShadow = 0.0;
 
@@ -201,8 +159,44 @@ vec4 AddPositionLight(POINTLIGHT pointlight)
 
     diffuse = max(diffuse, 0.0) * attenuation;
 
-    objectShadow += max(lightShadow,  0.0) * attenuation;
-    objectIllum  += max(lightMidtone, 0.0) * attenuation;
+    objectShadow  += max(lightShadow,  0.0) * attenuation;
+    objectMidtone += max(lightMidtone, 0.0) * attenuation;
 
     return vec4(pointlight.color, 0.0) * diffuse;
+}
+
+void ProcessGlobLighting()
+{
+    float litR = light.r;
+    float litG = light.g;
+    float litB = light.b;
+
+	if (litG < litR)
+		litG = max(litB, litR);
+	else
+	    litG = max(litB, litG);
+
+	litG = 1.0 - litG;
+
+	litB = litG - objectMidtone;
+
+	objectMidtone = min(objectMidtone, litG);
+	objectMidtone = max(objectMidtone, 0.0);
+	litG = min(litB, objectShadow);
+
+	litG = max(litG, 0.0);
+
+    float intensity = (vertexColor.r + vertexColor.g + vertexColor.b) * 0.3333333;
+    
+    ambient.r = litG * intensity;
+    ambient.g = litG * intensity;
+    ambient.b = litG * intensity;
+
+    midtone.r = objectMidtone * vertexColor.r;
+    midtone.g = objectMidtone * vertexColor.g;
+    midtone.b = objectMidtone * vertexColor.b;
+
+    light.r = min(light.r, 1.0) * intensity;
+    light.g = min(light.g, 1.0) * intensity;
+    light.b = min(light.b, 1.0) * intensity;
 }

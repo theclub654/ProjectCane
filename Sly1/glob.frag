@@ -25,23 +25,22 @@ in vec4 vertexColor;
 in vec2 texcoord;
 
 uniform int shdk;
-
-in vec4 ambient;
-in vec4 illumination;
-in vec4 light;
-
 uniform int twps;
 
-out vec4 FragColor;
+in vec4 ambient;
+in vec4 midtone;
+in vec4 light;
 
 void DrawThreeWay();
 void DrawPrelit();
 void DrawVolume();
 
+out vec4 FragColor;
+
 void main()
 {
     FragColor = vec4(0.0);
-
+    
     switch (shdk)
     {
         case SHDK_ThreeWay:
@@ -69,7 +68,7 @@ void main()
 void DrawThreeWay()
 {
     int tempTwps = 2;
-
+    
     vec4 shadow   = texture(shadowMap,   texcoord);
     vec4 diffuse  = texture(diffuseMap,  texcoord);
     vec4 saturate = texture(saturateMap, texcoord);
@@ -84,17 +83,18 @@ void DrawThreeWay()
     
         case TWPS_ShadowMidtone:
         FragColor += shadow  * ambient;
-        FragColor += diffuse * illumination;
+        FragColor += diffuse * midtone;
 
         FragColor.a = shadow.a * diffuse.a * vertexColor.a;
         break;
     
         case TWPS_ShadowMidtoneSaturate:
         FragColor += shadow   * ambient;
-        FragColor += diffuse  * illumination;
+        FragColor += diffuse  * midtone;
         FragColor += saturate * light;
 
-        FragColor.a = shadow.a * diffuse.a * saturate.a * vertexColor.a;
+        FragColor.a = vertexColor.a * shadow.a * diffuse.a * saturate.a;
+
         break;
     }
 }
@@ -102,11 +102,13 @@ void DrawThreeWay()
 void DrawPrelit()
 {
     vec4 diffuse = texture(diffuseMap, texcoord);
+
     FragColor = diffuse * vertexColor;
 }
 
 void DrawVolume()
 {
     vec4 diffuse = texture(diffuseMap, texcoord);
+
     FragColor = diffuse * vertexColor;
 }

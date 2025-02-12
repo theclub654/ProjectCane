@@ -199,15 +199,14 @@ void DrawSw(SW *psw, CM *pcm)
 
 	SortRenderRpl();
 
-	int matWorldToClipLocation = glGetUniformLocation(glGlobShader.ID, "matWorldToClip");
-	glUniformMatrix4fv(matWorldToClipLocation, 1, GL_FALSE, glm::value_ptr(pcm->matWorldToClip));
+	glUniformMatrix4fv(glGetUniformLocation(glGlobShader.ID, "matWorldToClip"), 1, GL_FALSE, glm::value_ptr(pcm->matWorldToClip));
 
 	glUniform1f(glGetUniformLocation(glGlobShader.ID, "lsm.uShadow"),  g_psw->lsmDefault.uShadow);
 	glUniform1f(glGetUniformLocation(glGlobShader.ID, "lsm.uMidtone"), g_psw->lsmDefault.uMidtone);
 
 	for (int i = 0; i < renderBuffer.size(); i++)
 		renderBuffer[i].PFNDRAW(&renderBuffer[i]);
-
+	
 	renderBuffer.clear();
 }
 

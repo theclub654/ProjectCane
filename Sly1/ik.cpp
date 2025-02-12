@@ -61,7 +61,7 @@ void RenderLikhSelf(LIKH* plikh, CM* pcm, RO* pro)
 	RenderAloSelf(plikh, pcm, pro);
 }
 
-void DeleteLikh(LO* plo)
+void DeleteLikh(LIKH *plikh)
 {
-	delete(LIKH*)plo;
+	delete plikh;
 }

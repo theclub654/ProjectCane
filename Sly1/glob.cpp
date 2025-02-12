@@ -28,7 +28,7 @@ void LoadGlobsetFromBrx(GLOBSET *pglobset, ALO *palo, CBinaryInputStream *pbis)
     pglobset->aglob.resize(pglobset->cglob);
     pglobset->aglobi.resize(pglobset->cglob);
 
-    int fCloneGlob = 0;
+    int fCloneSubGlob = 0;
 
     // Loading each submodel for a model
     for (int i = 0; i < pglobset->cglob; i++)
@@ -37,7 +37,7 @@ void LoadGlobsetFromBrx(GLOBSET *pglobset, ALO *palo, CBinaryInputStream *pbis)
         
         if ((unk_5 & 1) == 0)
         {
-            fCloneGlob = 0;
+            fCloneSubGlob = 0;
 
             pglobset->aglob[i].sMRD = 10000000000.000000;
             pglobset->aglob[i].sCelBorderMRD = 2000.0;
@@ -50,7 +50,7 @@ void LoadGlobsetFromBrx(GLOBSET *pglobset, ALO *palo, CBinaryInputStream *pbis)
 
         else
         {
-            fCloneGlob = unk_5 & 1;
+            fCloneSubGlob = unk_5 & 1;
 
             int instanceIndex = pbis->S16Read();
             pglobset->aglob[i].instanceIndex = instanceIndex;
@@ -153,7 +153,7 @@ void LoadGlobsetFromBrx(GLOBSET *pglobset, ALO *palo, CBinaryInputStream *pbis)
         
         BuildCmFgfn(g_pcm, pglobset->aglob[i].uFog, &pglobset->aglob[i].fgfn);
 
-        if (fCloneGlob == 0)
+        if (fCloneSubGlob == 0)
         {
             // Number of submodels
             // std::cout << "Model Start: " << std::hex << file.tellg()<<"\n";
@@ -343,10 +343,15 @@ void BuildSubGlob(SUBGLOB *psubglob, SHD *pshd, std::vector <glm::vec3> &positio
     {
         if (!(indexes[idx + 2].bMisc & 0x80))
         {
-            psubglob->indices.push_back(idx + 0);
-            psubglob->indices.push_back(idx + 1);
-            psubglob->indices.push_back(idx + 2);
+            INDICE indice;
+
+            indice.v1 = idx + 0;
+            indice.v2 = idx + 1;
+            indice.v3 = idx + 2;
+
+            psubglob->indices.push_back(indice);
         }
+
         idx++;
     }
     
@@ -359,7 +364,7 @@ void BuildSubGlob(SUBGLOB *psubglob, SHD *pshd, std::vector <glm::vec3> &positio
 
     glGenBuffers(1, &psubglob->EBO);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, psubglob->EBO);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, psubglob->indices.size() * sizeof(uint16_t), psubglob->indices.data(), GL_STATIC_DRAW);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, psubglob->indices.size() * sizeof(INDICE), psubglob->indices.data(), GL_STATIC_DRAW);
     
     // Vertex Position's 
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(VERTICE), (void*)offsetof(VERTICE, pos));
