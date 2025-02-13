@@ -27,4 +27,4 @@ WAYPOINT*NewWaypoint();
 void InitWaypoint(WAYPOINT* pwaypoint);
 int  GetWaypointSize();
 void CloneWaypoint(WAYPOINT* pwaypoint, WAYPOINT* pwaypointBase);
-void DeleteWaypoint(LO* plo);
+void DeleteWaypoint(WAYPOINT* pwaypoint);

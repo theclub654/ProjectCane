@@ -10,7 +10,7 @@ void RenderSw(SW *psw, CM *pcm);
 void RenderSwGlobset(SW *psw, CM *pcm);
 void DrawSw(SW *psw, CM *pcm);
 void DrawSwCollisionAll();
-void DeleteSw(SW *psw);
+void DeleteWorld(SW *psw);
 
 // Game loop
 int  main(int cphzArgs, char* aphzArgs[]);

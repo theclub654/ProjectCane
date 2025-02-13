@@ -127,4 +127,4 @@ int  GetDialogSize();
 void LoadDialogFromBrx(DIALOG* pdialog, CBinaryInputStream* pbis);
 void CloneDialog(DIALOG* pdialog, DIALOG* pdialogBase);
 void LoadDialogEventsFromBrx(DIALOG* pdialog, CBinaryInputStream *pbis, int* pcde, DE** pade);
-void DeleteDialog(LO* plo);
+void DeleteDialog(DIALOG* pdialog);

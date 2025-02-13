@@ -26,7 +26,7 @@ void CloneSpeaker(SPEAKER* pspeaker, SPEAKER* pspeakerBase)
 	ClearDl(&pspeaker->dlChild);
 }
 
-void DeleteSpeaker(LO* plo)
+void DeleteSpeaker(SPEAKER* pspeaker)
 {
-	delete(SPEAKER*)plo;
+	delete pspeaker;
 }

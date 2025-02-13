@@ -66,10 +66,10 @@ BHG* NewBhg();
 void InitBhg(BHG* pbhg);
 int  GetBhgSize();
 void CloneBhg(BHG* pbhg, BHG* pbhgBase);
-void DeleteBhg(LO* plo);
+void DeleteBhg(BHG* pbhg);
 
 SCENTMAP*NewScentmap();
 void InitScentmap(SCENTMAP* pscentmap);
 int  GetScentmapSize();
 void CloneScentmap(SCENTMAP* pscentmap, SCENTMAP* pscentmapBase);
-void DeleteScentmap(LO* plo);
+void DeleteScentmap(SCENTMAP* pscentmap);

@@ -130,7 +130,7 @@ JACKB*NewJackb();
 void InitJackb(JACKB* pjackb);
 int  GetJackbSize();
 void CloneJackb(JACKB* pjackb, JACKB* pjackbBase);
-void DeleteJackb(LO* plo);
+void DeleteJackb(JACKB* pjackb);
 
 JACKN*NewJackn();
 void InitJackn(JACKN* pjackn);
@@ -139,11 +139,11 @@ void LoadJacknFromBrx(JACKN* pjackn, CBinaryInputStream* pbis);
 void CloneJackn(JACKN* pjackn, JACKN* pjacknBase);
 void UpdateJackn(JACKN* pjackn, float dt);
 void RenderJacknSelf(JACKN* pjackn, CM* pcm, RO* pro);
-void DeleteJackn(LO* plo);
+void DeleteJackn(JACKN* pjackn);
 
 JACKF*NewJackf();
 void InitJackf(JACKF* pjackf);
 int  GetJackfSize();
 void CloneJackf(JACKF* pjackf, JACKF* pjackfBase);
 void RenderJackfSelf(JACKF* pjackf, CM* pcm, RO* pro);
-void DeleteJackf(LO* plo);
+void DeleteJackf(JACKF* pjackf);

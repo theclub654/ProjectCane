@@ -15,7 +15,7 @@ void RenderMenuGui(SW* psw)
             
             if (ImGui::MenuItem("Close World"))
             {
-                DeleteSw(psw);
+                DeleteWorld(psw);
                 file = "";
                 filePath = "";
                 levelName = "";
@@ -39,7 +39,7 @@ void RenderMenuGui(SW* psw)
             {
                 if (ImGui::MenuItem("Export Map"))
                 {
-                    ExportSwObj();
+                    ExportSw();
                 }
             }
 
@@ -55,6 +55,9 @@ void RenderMenuGui(SW* psw)
         {
             if (instance_a.Instance()->IsOk() == true)
             {
+                if (psw != nullptr)
+                    DeleteWorld(psw);
+             
                 file = ImGuiFileDialog::Instance()->GetFilePathName();
                 filePath = ImGuiFileDialog::Instance()->GetCurrentPath();
                 std::string tempLevelName = ImGuiFileDialog::Instance()->GetCurrentFileName();
@@ -79,7 +82,7 @@ void RenderMenuGui(SW* psw)
     }
 }
 
-void ExportSwObj()
+void ExportSw()
 {
     std::filesystem::create_directory(levelName);
     

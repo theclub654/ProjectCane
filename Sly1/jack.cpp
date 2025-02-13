@@ -61,9 +61,9 @@ void CloneJackb(JACKB* pjackb, JACKB* pjackbBase)
 	ClearDl(&pjackb->dlChild);
 }
 
-void DeleteJackb(LO* plo)
+void DeleteJackb(JACKB* pjackb)
 {
-	delete(JACKB*)plo;
+	delete pjackb;
 }
 
 JACKN* NewJackn()
@@ -107,9 +107,9 @@ void RenderJacknSelf(JACKN* pjackn, CM* pcm, RO* pro)
 
 }
 
-void DeleteJackn(LO* plo)
+void DeleteJackn(JACKN* pjackn)
 {
-	delete(JACKN*)plo;
+	delete pjackn;
 }
 
 JACKF* NewJackf()
@@ -143,7 +143,7 @@ void RenderJackfSelf(JACKF* pjackf, CM* pcm, RO* pro)
 	RenderAloSelf(pjackf, pcm, pro);
 }
 
-void DeleteJackf(LO* plo)
+void DeleteJackf(JACKF* pjackf)
 {
-	delete(JACKF*)plo;
+	delete pjackf;
 }

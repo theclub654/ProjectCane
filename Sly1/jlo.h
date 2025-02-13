@@ -100,4 +100,4 @@ void InitJloc(JLOC* pjloc);
 int  GetJlocSize();
 void LoadJlocFromBrx(JLOC* pjloc, CBinaryInputStream* pbis);
 void CloneJloc(JLOC* pjloc, JLOC* pjlocBase);
-void DeleteJloc(LO* plo);
+void DeleteJloc(JLOC* pjloc);

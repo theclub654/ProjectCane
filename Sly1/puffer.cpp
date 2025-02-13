@@ -61,9 +61,9 @@ void ClonePuffb(PUFFB* ppuffb, PUFFB* ppuffbBase)
 	ClearDl(&ppuffb->dlChild);
 }
 
-void DeletePuffb(LO* plo)
+void DeletePuffb(PUFFB* ppuffb)
 {
-	delete(PUFFB*)plo;
+	delete ppuffb;
 }
 
 PUFFV* NewPuffv()

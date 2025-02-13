@@ -199,9 +199,6 @@ void DeleteSwCollision()
 		glDeleteVertexArrays(1, &allSWSoObjs[i]->geomCameraLocal.VBO);
 		glDeleteVertexArrays(1, &allSWSoObjs[i]->geomCameraLocal.EBO);
 	}
-
-	allSWSoObjs.clear();
-	allSWSoObjs.shrink_to_fit();
 }
 
 void DeleteSoGeom(SO* pso)

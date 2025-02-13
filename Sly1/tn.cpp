@@ -83,10 +83,8 @@ void RenderTnSelf(TN* ptn, CM* pcm, RO* pro)
     RenderAloSelf(ptn, pcm, pro);
 }
 
-void DeleteTn(LO* plo)
+void DeleteTn(TN *ptn)
 {
-    TN* ptn = (TN*)plo;
-
     if (ptn->pcrv != nullptr)
         DeletePcrv(ptn->pcrv->crvk, ptn->pcrv);
 

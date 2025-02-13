@@ -17,4 +17,4 @@ extern inline bool fRenderModels = true;
 extern inline bool fRenderCollision = false;
 
 void RenderMenuGui(SW* psw);
-void ExportSwObj();
+void ExportSw();

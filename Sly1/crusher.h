@@ -50,4 +50,4 @@ CRBRAIN*NewCrbrain();
 void InitCrbrain(CRBRAIN* pcrbrain);
 int  GetCrbrainSize();
 void CloneCrbrain(CRBRAIN* pcrbrain, CRBRAIN* pcrbrainBase);
-void DeleteCrbrain(LO* plo);
+void DeleteCrbrain(CRBRAIN* pcrbrain);

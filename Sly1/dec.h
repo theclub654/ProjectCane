@@ -868,7 +868,7 @@ ROB* NewRob();
 void InitRob(ROB* prob);
 int  GetRobSize();
 void CloneRob(ROB* prob, ROB* probBase);
-void DeleteRob(LO* plo);
+void DeleteRob(ROB *prob);
 
 class FLASH;
 FLASH*NewFlash();
@@ -877,7 +877,7 @@ int  GetFlashSize();
 void LoadFlashFromBrx(FLASH* pflash, CBinaryInputStream* pbis);
 void CloneFlash(FLASH* pflash, FLASH* pflashBase);
 void RenderFlashSelf(FLASH* pflash, CM* pcm, RO* pro);
-void DeleteFlash(LO* plo);
+void DeleteFlash(FLASH *pflash);
 
 class DYSH;
 DYSH*NewDysh();
@@ -885,21 +885,21 @@ void InitDysh(DYSH* pdysh);
 int  GetDyshSize();
 void CloneDysh(DYSH* pdysh, DYSH* pdyshBase);
 void RenderDyshSelf(DYSH* pdysh, CM* pcm, RO* pro);
-void DeleteDysh(LO* plo);
+void DeleteDysh(DYSH* pdysh);
 
 class SCENTMAP;
 SCENTMAP*NewScentmap();
 void InitScentmap(SCENTMAP* pscentmap);
 int  GetScentmapSize();
 void CloneScentmap(SCENTMAP* pscentmap, SCENTMAP* pscentmapBase);
-void DeleteScentmap(LO* plo);
+void DeleteScentmap(SCENTMAP* pscentmap);
 
 class WAYPOINT;
 WAYPOINT*NewWaypoint();
 void InitWaypoint(WAYPOINT* pwaypoint);
 int  GetWaypointSize();
 void CloneWaypoint(WAYPOINT* pwaypoint, WAYPOINT* pwaypointBase);
-void DeleteWaypoint(LO* plo);
+void DeleteWaypoint(WAYPOINT* pwaypoint);
 
 class TN;
 TN*  NewTn();
@@ -910,7 +910,7 @@ void LoadTnFromBrx(TN* ptn, CBinaryInputStream* pbis);
 void CloneTn(TN* ptn, TN* ptnBase);
 void LoadTbspFromBrx(CBinaryInputStream* pbis);
 void RenderTnSelf(TN* ptn, CM* pcm, RO* pro);
-void DeleteTn(LO* plo);
+void DeleteTn(TN* ptn);
 
 class JLOC;
 JLOC*NewJloc();
@@ -918,7 +918,7 @@ void InitJloc(JLOC* pjloc);
 int  GetJlocSize();
 void LoadJlocFromBrx(JLOC* pjloc, CBinaryInputStream* pbis);
 void CloneJloc(JLOC* pjloc, JLOC* pjlocBase);
-void DeleteJloc(LO* plo);
+void DeleteJloc(JLOC* pjloc);
 
 class DIALOG;
 DIALOG*NewDialog();
@@ -926,14 +926,14 @@ void InitDialog(DIALOG* pdialog);
 int  GetDialogSize();
 void LoadDialogFromBrx(DIALOG* pdialog, CBinaryInputStream* pbis);
 void CloneDialog(DIALOG* pdialog, DIALOG* pdialogBase);
-void DeleteDialog(LO* plo);
+void DeleteDialog(DIALOG* pdialog);
 
 class SPEAKER;
 SPEAKER*NewSpeaker();
 void InitSpeaker(SPEAKER* pspeaker);
 int  GetSpeakerSize();
 void CloneSpeaker(SPEAKER* pspeaker, SPEAKER* pspeakerBase);
-void DeleteSpeaker(LO* plo);
+void DeleteSpeaker(SPEAKER* pspeaker);
 
 class ROPE;
 ROPE*NewRope();
@@ -941,27 +941,27 @@ void InitRope(ROPE* prope);
 int  GetRopeSize();
 void CloneRope(ROPE* prope, ROPE* propeBase);
 void RenderRopeAll(ROPE* prope, CM* pcm, RO* pro);
-void DeleteRope(LO* plo);
+void DeleteRope(ROPE* prope);
 
 class WM;
 WM*  NewWm();
 int  GetWmSize();
 void CloneWm(WM* pwm, WM* pwmBase);
 void RenderWmAll(WM* pwm, CM* pcm, RO* pro);
-void DeleteWm(LO* plo);
+void DeleteWm(WM* pwm);
 
 class PUFFB;
 PUFFB*NewPuffb();
 int  GetPuffbSize();
 void ClonePuffb(PUFFB* ppuffb, PUFFB* ppuffbBase);
-void DeletePuffb(LO* plo);
+void DeletePuffb(PUFFB* ppuffb);
 
 class CRBRAIN;
 CRBRAIN*NewCrbrain();
 void InitCrbrain(CRBRAIN* pcrbrain);
 int  GetCrbrainSize();
 void CloneCrbrain(CRBRAIN* pcrbrain, CRBRAIN* pcrbrainBase);
-void DeleteCrbrain(LO* plo);
+void DeleteCrbrain(CRBRAIN* pcrbrain);
 
 class MGC;
 MGC* NewMgc();
@@ -969,14 +969,14 @@ void InitMgc(MGC* pmgc);
 int  GetMgcSize();
 void CloneMgc(MGC* pmgc, MGC* pmgcBase);
 void LoadMgcFromBrx(MGC* pmgc, CBinaryInputStream* pbis);
-void DeleteMgc(LO* plo);
+void DeleteMgc(MGC* pmgc);
 
 class JACKB;
 JACKB*NewJackb();
 void InitJackb(JACKB* pjackb);
 int  GetJackbSize();
 void CloneJackb(JACKB* pjackb, JACKB* pjackbBase);
-void DeleteJackb(LO* plo);
+void DeleteJackb(JACKB* pjackb);
 
 class JACKN;
 JACKN*NewJackn();
@@ -986,7 +986,7 @@ void LoadJacknFromBrx(JACKN* pjackn, CBinaryInputStream* pbis);
 void CloneJackn(JACKN* pjackn, JACKN* pjacknBase);
 void UpdateJackn(JACKN* pjackn, float dt);
 void RenderJacknSelf(JACKN* pjackn, CM* pcm, RO* pro);
-void DeleteJackn(LO* plo);
+void DeleteJackn(JACKN* pjackn);
 
 class JACKF;
 JACKF*NewJackf();
@@ -994,7 +994,7 @@ void InitJackf(JACKF* pjackf);
 int  GetJackfSize();
 void CloneJackf(JACKF* pjackf, JACKF* pjackfBase);
 void RenderJackfSelf(JACKF* pjackf, CM* pcm, RO* pro);
-void DeleteJackf(LO* plo);
+void DeleteJackf(JACKF* pjackf);
 
 // Static World
 class SW;
@@ -1014,7 +1014,7 @@ void SetSwDarkenSmooth(SW* psw, float rDarkenSmooth);
 LO*  PloFindSwObject(SW* psw, GRFFSO grffso, OID oid, LO* ploContext);
 int  CploFindSwObjects(SW* psw, GRFFSO grffso, OID oid, LO* ploContext, int cploMax, LO** aplo);
 void UpdateSw(SW* psw, float dt);
-void DeleteSwObj(LO* plo);
+void DeleteSw(SW* psw);
 
 // Camera
 CM*  NewCm();
@@ -1062,7 +1062,7 @@ int  GetShapeSize();
 void CloneShape(SHAPE* pshape, SHAPE* pshapeBase);
 void SetShapeParent(SHAPE* pshape, ALO* paloParent);
 void LoadShapeFromBrx(SHAPE* pshape, CBinaryInputStream* pbis);
-void DeleteShape(LO* plo);
+void DeleteShape(SHAPE* pshape);
 
 class HSHAPE;
 HSHAPE*NewHshape();

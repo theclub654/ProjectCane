@@ -46,10 +46,8 @@ void LoadShapeFromBrx(SHAPE* pshape, CBinaryInputStream* pbis)
     LoadOptionsFromBrx(pshape, pbis);
 }
 
-void DeleteShape(LO* plo)
+void DeleteShape(SHAPE* pshape)
 {
-    SHAPE* pshape = (SHAPE*)plo;
-
     if (pshape->pcrv != nullptr)
         DeletePcrv(pshape->pcrv->crvk, pshape->pcrv);
 

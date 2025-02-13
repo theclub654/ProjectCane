@@ -32,4 +32,4 @@ void InitMgc(MGC* pmgc);
 int  GetMgcSize();
 void CloneMgc(MGC* pmgc, MGC* pmgcBase);
 void LoadMgcFromBrx(MGC* pmgc, CBinaryInputStream* pbis);
-void DeleteMgc(LO* plo);
+void DeleteMgc(MGC* pmgc);

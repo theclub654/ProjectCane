@@ -83,7 +83,7 @@ int main(int cphzArgs, char* aphzArgs[])
 		glfwPollEvents();
 	}
 
-	DeleteSw(g_psw);
+	DeleteWorld(g_psw);
 	g_gl.TerminateGL();
 	return 0;
 }

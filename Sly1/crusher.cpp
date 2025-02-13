@@ -136,7 +136,7 @@ void CloneCrbrain(CRBRAIN* pcrbrain, CRBRAIN* pcrbrainBase)
 	CloneLo(pcrbrain, pcrbrainBase);
 }
 
-void DeleteCrbrain(LO* plo)
+void DeleteCrbrain(CRBRAIN* pcrbrain)
 {
-	delete(CRBRAIN*)plo;
+	delete pcrbrain;
 }

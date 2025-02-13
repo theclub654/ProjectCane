@@ -26,7 +26,7 @@ void RenderWmAll(WM* pwm, CM* pcm, RO* pro)
 	RenderAloAll(pwm, pcm, pro);
 }
 
-void DeleteWm(LO* plo)
+void DeleteWm(WM* pwm)
 {
-	delete(WM*)plo;
+	delete pwm;
 }

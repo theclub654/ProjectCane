@@ -168,12 +168,10 @@ int  CploFindSwObjects(SW* psw, GRFFSO grffso, OID oid, LO* ploContext, int cplo
 LO*  PloFindSwObject(SW* psw, GRFFSO grffso, OID oid, LO* ploContext);
 // Update all objects in SW
 void UpdateSw(SW* psw, float dt); // Gotta come back to this
-// Resets SW object
+// Delete SW object
 void DeleteSw(SW* psw);
 // Deletes all world data from memory
 void DeleteWorld(SW* psw);
-// Deletes the SW obj
-void DeleteSwObj(LO* plo);
 
 // Global pointer to parent static world object
 extern inline SW *g_psw = nullptr;

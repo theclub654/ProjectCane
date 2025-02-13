@@ -83,7 +83,7 @@ void DeletePuffer(PUFFER* ppuffer);
 PUFFB*NewPuffb();
 int  GetPuffbSize();
 void ClonePuffb(PUFFB* ppuffb, PUFFB* ppuffbBase);
-void DeletePuffb(LO* plo);
+void DeletePuffb(PUFFB* ppuffb);
 
 PUFFV*NewPuffv();
 void InitPuffv(PUFFV* ppuffv);

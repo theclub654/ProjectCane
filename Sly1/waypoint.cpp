@@ -26,7 +26,7 @@ void CloneWaypoint(WAYPOINT* pwaypoint, WAYPOINT* pwaypointBase)
 	ClearDl(&pwaypoint->dlChild);
 }
 
-void DeleteWaypoint(LO* plo)
+void DeleteWaypoint(WAYPOINT* pwaypoint)
 {
-	delete(WAYPOINT*)plo;
+	delete pwaypoint;
 }

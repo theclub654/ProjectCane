@@ -31,7 +31,7 @@ void RenderRopeAll(ROPE* prope, CM* pcm, RO* pro)
 	RenderRopeAll(prope, pcm, pro);
 }
 
-void DeleteRope(LO* plo)
+void DeleteRope(ROPE* prope)
 {
-	delete(ROPE*)plo;
+	delete prope;
 }

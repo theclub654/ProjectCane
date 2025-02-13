@@ -107,7 +107,7 @@ void CloneJloc(JLOC* pjloc, JLOC* pjlocBase)
 	ClearDl(&pjloc->dlChild);
 }
 
-void DeleteJloc(LO* plo)
+void DeleteJloc(JLOC* pjloc)
 {
-	delete(JLOC*)plo;
+	delete pjloc;
 }

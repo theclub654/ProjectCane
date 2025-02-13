@@ -81,7 +81,7 @@ void LoadDialogEventsFromBrx(DIALOG* pdialog, CBinaryInputStream* pbis, int* pcd
 	}
 }
 
-void DeleteDialog(LO* plo)
+void DeleteDialog(DIALOG* pdialog)
 {
-	delete(DIALOG*)plo;
+	delete pdialog;
 }

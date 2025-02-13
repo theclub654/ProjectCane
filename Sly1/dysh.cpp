@@ -31,7 +31,7 @@ void RenderDyshSelf(DYSH* pdysh, CM* pcm, RO* pro)
 
 }
 
-void DeleteDysh(LO* plo)
+void DeleteDysh(DYSH *pdysh)
 {
-	delete(DYSH*)plo;
+	delete pdysh;
 }

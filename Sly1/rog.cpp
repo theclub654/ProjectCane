@@ -233,7 +233,7 @@ void CloneRob(ROB* prob, ROB* probBase)
 	ClearDl(&prob->dlChild);
 }
 
-void DeleteRob(LO* plo)
+void DeleteRob(ROB *prob)
 {
-	delete(ROB*)plo;
+	delete prob;
 }

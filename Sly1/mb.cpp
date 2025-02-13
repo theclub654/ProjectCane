@@ -101,7 +101,7 @@ void CloneScentmap(SCENTMAP* pscentmap, SCENTMAP* pscentmapBase)
 	ClearDl(&pscentmap->dlChild);
 }
 
-void DeleteScentmap(LO* plo)
+void DeleteScentmap(SCENTMAP* pscentmap)
 {
-	delete(SCENTMAP*)plo;
+	delete pscentmap;
 }

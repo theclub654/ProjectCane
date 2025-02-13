@@ -229,17 +229,6 @@ void UpdateSw(SW* psw, float dt)
 	}
 }
 
-void DeleteSw(SW* psw)
-{
-	if (psw != nullptr)
-	{
-		DeleteWorld(psw);
-		UnloadShaders();
-		g_pcm = nullptr;
-		std::cout << "World Deleted\n";
-	}
-}
-
 void DeleteWorld(SW *psw)
 {
 	for (int i = 0; i < allSWAloObjs.size(); i++)
@@ -263,11 +252,17 @@ void DeleteWorld(SW *psw)
 	allWorldObjs.shrink_to_fit();
 	allSwLights.clear();
 	allSwLights.shrink_to_fit();
+	allSWSoObjs.clear();
+	allSWSoObjs.shrink_to_fit();
+
+	UnloadShaders();
 
 	g_psw = nullptr;
+	g_pcm = nullptr;
+	std::cout << "World Deleted\n";
 }
 
-void DeleteSwObj(LO* plo)
+void DeleteSw(SW* psw)
 {
-	delete (SW*)plo;
+	delete psw;
 }
