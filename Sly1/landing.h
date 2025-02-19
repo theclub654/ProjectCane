@@ -13,4 +13,4 @@ int  GetLandingSize();
 void OnLandingAdd(LANDING* planding);
 void OnLandingRemove(LANDING* planding);
 void CloneLanding(LANDING* planding, LANDING* plandingBase);
-void DeleteLanding(LO* plo);
+void DeleteLanding(LANDING* planding);

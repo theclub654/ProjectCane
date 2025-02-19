@@ -36,7 +36,7 @@ void CloneSpire(SPIRE* pspire, SPIRE* pspireBase)
 	CloneLo(pspire, pspireBase);
 }
 
-void DeleteSpire(LO* plo)
+void DeleteSpire(SPIRE* pspire)
 {
-	delete(SPIRE*)plo;
+	delete pspire;
 }

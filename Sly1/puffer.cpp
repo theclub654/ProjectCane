@@ -90,9 +90,9 @@ void ClonePuffv(PUFFV* ppuffv, PUFFV* ppuffvBase)
 	CloneLo(ppuffv, ppuffvBase);
 }
 
-void DeletePuffv(LO* plo)
+void DeletePuffv(PUFFV* ppuffv)
 {
-	delete(PUFFV*)plo;
+	delete ppuffv;
 }
 
 PUFFC* NewPuffc()

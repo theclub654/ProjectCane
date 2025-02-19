@@ -39,4 +39,4 @@ VOL* NewVol();
 int  GetVolSize();
 void LoadVolFromBrx(VOL* pvol, CBinaryInputStream* pbis);
 void CloneVol(VOL* pvol, VOL* pvolBase);
-void DeleteVol(LO* plo);
+void DeleteVol(VOL* pvol);

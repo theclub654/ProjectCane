@@ -117,6 +117,7 @@ void SetLoDefaults(LO* parentLo);
 void AddLo(LO* plo); // GOTTA COME BACK
 void AddLoHierarchy(LO* plo);
 void RemoveLoHierarchy(LO* plo);
+void SnipLo(LO* plo);
 void CloneLoHierarchy(LO* plo, LO* ploBase);
 void CloneLo(LO* plo, LO* ploBase);
 LO*  PloCloneLo(LO* plo, SW* psw, ALO* paloParent);

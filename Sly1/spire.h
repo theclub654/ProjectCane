@@ -13,4 +13,4 @@ int  GetSpireSize();
 void OnSpireAdd(SPIRE* pspire);
 void OnSpireRemove(SPIRE* pspire);
 void CloneSpire(SPIRE* pspire, SPIRE* pspireBase);
-void DeleteSpire(LO* plo);
+void DeleteSpire(SPIRE* pspire);

@@ -150,7 +150,6 @@ struct SUBGLOB // NOT DONE
 	// Object brightness
 	float unSelfIllum;
 	struct SHD* pshd;
-	struct RSGLD *prsgld;
 	struct WRBSG *pwrbsg;
 	int cibnd;
 	int aibnd[4];
@@ -229,4 +228,3 @@ struct GLOBSET // NOT DONE
 void LoadGlobsetFromBrx(GLOBSET *pglobset, ALO *palo, CBinaryInputStream *pbis);
 // Converts strips to tri lists and stores 3D sub model in VRAM
 void BuildSubGlob(SUBGLOB *psubglob, SHD *pshd, std::vector <glm::vec3> &positions, std::vector <glm::vec3> &normals, std::vector <glm::vec4> &colors, std::vector <glm::vec2> &texcoords, std::vector <VTXFLG> &indexes);
-void CloneGlob(GLOBSET *pglobset, GLOB *pglob, GLOBI *pglobi);

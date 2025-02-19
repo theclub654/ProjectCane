@@ -50,9 +50,9 @@ void LoadSmFromBrx(SM* psm, CBinaryInputStream* pbis)
 	}
 }
 
-void DeleteSm(LO* plo)
+void DeleteSm(SM* psm)
 {
-	delete(SM*)plo;
+	delete psm;
 }
 
 SMA* NewSma()

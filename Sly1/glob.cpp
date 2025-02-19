@@ -382,8 +382,3 @@ void BuildSubGlob(SUBGLOB *psubglob, SHD *pshd, std::vector <glm::vec3> &positio
     glVertexAttribPointer(3, 2, GL_FLOAT, GL_FALSE, sizeof(VERTICE), (void*)offsetof(VERTICE, uv));
     glEnableVertexAttribArray(3);
 }
-
-void CloneGlob(GLOBSET *pglobset, GLOB *pglob, GLOBI *pglobi)
-{
-
-}

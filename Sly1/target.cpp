@@ -37,7 +37,7 @@ void CloneTarget(TARGET* ptarget, TARGET* ptargetBase)
 	CloneLo(ptarget, ptargetBase);
 }
 
-void DeleteTarget(LO* plo)
+void DeleteTarget(TARGET* ptarget)
 {
-	delete(TARGET*)plo;
+	delete ptarget;
 }

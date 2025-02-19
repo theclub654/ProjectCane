@@ -29,6 +29,6 @@ void InitKeyhole(KEYHOLE *pkeyhole);
 int  GetKeyholeSize();
 void LoadKeyholeFromBrx(KEYHOLE *pkeyhole, CBinaryInputStream *pbis);
 void CloneKeyhole(KEYHOLE *pkeyhole, KEYHOLE *pkeyholeBase);
-void DeleteKeyhole(LO* plo);
+void DeleteKeyhole(KEYHOLE* pkeyhole);
 
 static KEYHOLE *g_pkeyhole;

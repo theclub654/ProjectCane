@@ -52,7 +52,7 @@ void LoadRchmFromBrx(RCHM *prchm, CBinaryInputStream *pbis)
     LoadOptionsFromBrx(prchm, pbis);
 }
 
-void DeleteRchm(LO* plo)
+void DeleteRchm(RCHM* prchm)
 {
-    delete (RCHM*)plo;
+    delete prchm;
 }

@@ -98,7 +98,7 @@ void OnRatholeAdd(RATHOLE* prathole)
 	AppendDlEntry(&prathole->psw->dlRathole, prathole);
 }
 
-void DeleteRathole(LO* plo)
+void DeleteRathole(RATHOLE* prathole)
 {
-	delete(RATHOLE*)plo;
+	delete prathole;
 }

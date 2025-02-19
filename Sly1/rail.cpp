@@ -36,7 +36,7 @@ void CloneRail(RAIL* prail, RAIL* prailBase)
 	CloneLo(prail, prailBase);
 }
 
-void DeleteRail(LO* plo)
+void DeleteRail(RAIL* prail)
 {
-	delete(RAIL*)plo;
+	delete prail;
 }

@@ -63,7 +63,7 @@ void CloneVol(VOL* pvol, VOL* pvolBase)
 	CloneLo(pvol, pvolBase);
 }
 
-void DeleteVol(LO* plo)
+void DeleteVol(VOL* pvol)
 {
-	delete(VOL*)plo;
+	delete pvol;
 }

@@ -37,4 +37,4 @@ class WR : public LO
 WR*  NewWr();
 void InitWr(WR* pwr);
 int  GetWrSize();
-void DeleteWr(LO* plo);
+void DeleteWr(WR* pwr);

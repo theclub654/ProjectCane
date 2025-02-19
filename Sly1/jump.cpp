@@ -30,7 +30,7 @@ void CloneJmt(JMT* pjmt, JMT* pjmtBase)
 	CloneLo(pjmt, pjmtBase);
 }
 
-void DeleteJmt(LO* plo)
+void DeleteJmt(JMT* pjmt)
 {
-	delete(JMT*)plo;
+	delete pjmt;
 }

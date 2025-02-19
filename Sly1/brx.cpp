@@ -46,6 +46,16 @@ LO* PloNew(CID cid, SW* psw, ALO* paloParent, OID oid, int isplice)
 	return (LO*)localObject;
 }
 
+int IploFromStockOid(int oid)
+{
+	int stockOid = oid - 0xC;
+
+	if (stockOid > 0x1C)
+		return -1;
+	else
+		return stockOid;
+}
+
 void LoadSwObjectsFromBrx(SW *psw, ALO *paloParent, CBinaryInputStream *pbis)
 {
 	// Number of SW objects
@@ -63,6 +73,14 @@ void LoadSwObjectsFromBrx(SW *psw, ALO *paloParent, CBinaryInputStream *pbis)
 		LO *plo = PloNew(cid, psw, paloParent, oid, isplice);
 		// Loading object from binary file
 		plo->pvtlo->pfnLoadLoFromBrx(plo, pbis);
+		
+		int stockOidIndex = IploFromStockOid(oid);
+
+		if (stockOidIndex > -1)
+		{
+			psw->aploStock[stockOidIndex] = plo;
+			SnipLo(plo);
+		}
 	}
 }
 

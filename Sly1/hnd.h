@@ -25,4 +25,4 @@ void InitHnd(HND* phnd);
 int  GetHndSize();
 void CloneHnd(HND* phnd, HND* phndBase);
 void LoadHndFromBrx(HND* phnd, CBinaryInputStream* pbis);
-void DeleteHnd(LO* plo);
+void DeleteHnd(HND* phnd);

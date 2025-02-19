@@ -52,11 +52,9 @@ void CloneExplo(EXPLO* pexplo, EXPLO* pexploBase)
 	pexplo->pemitb->cref++;
 }
 
-void DeleteExplo(LO* plo)
+void DeleteExplo(EXPLO* pexplo)
 {
-	EXPLO* explo = (EXPLO*)plo;
-
-	delete explo;
+	delete pexplo;
 }
 
 EMITTER* NewEmitter()
@@ -176,9 +174,9 @@ void CloneExpl(EXPL* pexpl, EXPL* pexplBase)
 	CloneLo(pexpl, pexplBase);
 }
 
-void DeleteExpl(LO* plo)
+void DeleteExpl(EXPL* pexpl)
 {
-	delete(EXPL*)plo;
+	delete pexpl;
 }
 
 EXPLS* NewExpls()
@@ -206,9 +204,9 @@ void CloneExpls(EXPLS* pexpls, EXPLS* pexplsBase)
 
 }
 
-void DeleteExpls(LO* plo)
+void DeleteExpls(EXPLS* pexpls)
 {
-	delete(EXPLS*)plo;
+	delete pexpls;
 }
 
 EXPLG* NewExplg()
@@ -243,7 +241,7 @@ void CloneExplg(EXPLG* pexplg, EXPLG* pexplgBase)
 	CloneLo(pexplg, pexplgBase);
 }
 
-void DeleteExplg(LO* plo)
+void DeleteExplg(EXPLG* pexplg)
 {
-	delete(EXPLG*)plo;
+	delete pexplg;
 }

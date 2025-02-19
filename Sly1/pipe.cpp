@@ -35,7 +35,7 @@ void ClonePipe(PIPE* ppipe, PIPE* ppipeBase)
 	CloneLo(ppipe, ppipeBase);
 }
 
-void DeletePipe(LO* plo)
+void DeletePipe(PIPE* ppipe)
 {
-	delete(PIPE*)plo;
+	delete ppipe;
 }

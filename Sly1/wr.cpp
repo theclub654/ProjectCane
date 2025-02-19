@@ -15,7 +15,7 @@ int  GetWrSize()
 	return sizeof(WR);
 }
 
-void DeleteWr(LO* plo)
+void DeleteWr(WR* pwr)
 {
-	delete(WR*)plo;
+	delete pwr;
 }

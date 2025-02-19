@@ -68,4 +68,4 @@ int  GetRatholeSize();
 void OnRatholeRemove(RATHOLE* prathole);
 void CloneRathole(RATHOLE* prathole, RATHOLE* pratholeBase);
 void OnRatholeAdd(RATHOLE* prathole);
-void DeleteRathole(LO* plo);
+void DeleteRathole(RATHOLE* prathole);

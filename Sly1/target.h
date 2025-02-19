@@ -16,4 +16,4 @@ int  GetTargetSize();
 void OnTargetAdd(TARGET* ptarget);
 void OnTargetRemove(TARGET* ptarget);
 void CloneTarget(TARGET* ptarget, TARGET* ptargetBase);
-void DeleteTarget(LO* plo);
+void DeleteTarget(TARGET* ptarget);

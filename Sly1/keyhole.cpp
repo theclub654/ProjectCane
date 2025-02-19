@@ -68,7 +68,7 @@ void CloneKeyhole(KEYHOLE* pkeyhole, KEYHOLE* pkeyholeBase)
     CloneLo(pkeyhole, pkeyholeBase);
 }
 
-void DeleteKeyhole(LO* plo)
+void DeleteKeyhole(KEYHOLE* pkeyhole)
 {
-    delete(KEYHOLE*)plo;
+    delete pkeyhole;
 }

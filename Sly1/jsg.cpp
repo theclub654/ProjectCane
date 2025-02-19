@@ -24,7 +24,7 @@ void CloneJsg(JSG* pjsg, JSG* pjsgBase)
 	CloneLo(pjsg, pjsgBase);
 }
 
-void DeleteJsg(LO* plo)
+void DeleteJsg(JSG* pjsg)
 {
-	delete(JSG*)plo;
+	delete pjsg;
 }

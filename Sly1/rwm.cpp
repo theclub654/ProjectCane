@@ -15,7 +15,7 @@ int GetRwmSize()
 	return sizeof(RWM);
 }
 
-void DeleteRwm(LO* plo)
+void DeleteRwm(RWM* prwm)
 {
-	delete(RWM*)plo;
+	delete prwm;
 }

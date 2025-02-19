@@ -21,4 +21,4 @@ JSG* NewJsg();
 void InitJsg(JSG* pjsg);
 int  GetJsgSize();
 void CloneJsg(JSG* pjsg, JSG* pjsgBase);
-void DeleteJsg(LO* plo);
+void DeleteJsg(JSG* pjsg);

@@ -19,4 +19,4 @@ int  GetPipeSize();
 void OnPipeAdd(PIPE* ppipe);
 void OnPipeRemove(PIPE* ppipe);
 void ClonePipe(PIPE* ppipe, PIPE* ppipeBase);
-void DeletePipe(LO* plo);
+void DeletePipe(PIPE* ppipe);

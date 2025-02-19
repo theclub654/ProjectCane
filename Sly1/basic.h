@@ -9991,7 +9991,7 @@ struct VTHSHAPE
     void (*pfnGetLoParams) = nullptr;
     void (*pfnUpdateLoLiveEdit) = nullptr;
     int  (*pfnGetHshapeSize) () = GetHshapeSize;
-    void (*pfnDeleteHshape) (LO*) = DeleteHshape;
+    void (*pfnDeleteHshape) (HSHAPE*) = DeleteHshape;
 };
 
 static VTHSHAPE g_vthshape;
@@ -10033,7 +10033,7 @@ struct VTPIPE
     void (*pfnGetLoParams) = nullptr;
     void (*pfnUpdateLoLiveEdit) = nullptr;
     int  (*pfnGetPipeSize) () = GetPipeSize;
-    void (*pfnDeletePipe) (LO*) = DeletePipe;
+    void (*pfnDeletePipe) (PIPE*) = DeletePipe;
 };
 
 static VTPIPE g_vtpipe;
@@ -10075,7 +10075,7 @@ struct VTRAIL
     void (*pfnGetLoParams) = nullptr;
     void (*pfnUpdateLoLiveEdit) = nullptr;
     int  (*pfnGetRailSize) () = GetRailSize;
-    void (*pfnDeleteRail) (LO*) = DeleteRail;
+    void (*pfnDeleteRail) (RAIL*) = DeleteRail;
 };
 
 static VTRAIL g_vtrail;
@@ -10117,7 +10117,7 @@ struct VTLANDING
     void (*pfnGetLoParams) = nullptr;
     void (*pfnUpdateLoLiveEdit) = nullptr;
     int  (*pfnGetLandingSize) () = GetLandingSize;
-    void (*pfnDeleteLanding) (LO*) = DeleteLanding;
+    void (*pfnDeleteLanding) (LANDING*) = DeleteLanding;
 };
 
 static VTLANDING g_vtlanding;
@@ -10159,7 +10159,7 @@ struct VTXFM
     void (*pfnGetXfmParams) = nullptr;
     void (*pfnUpdateLoLiveEdit) = nullptr;
     int  (*pfnGetXfmSize) () = GetXfmSize;
-    void (*pfnDeleteXfm) (LO*) = DeleteXfm;
+    void (*pfnDeleteXfm) (XFM*) = DeleteXfm;
 };
 
 static VTXFM g_vtxfm;
@@ -10201,7 +10201,7 @@ struct VTWARP
     void (*pfnGetWarpParams) = nullptr;
     void (*pfnUpdateLoLiveEdit) = nullptr;
     int  (*pfnGetWarpSize) () = GetWarpSize;
-    void (*pfnDeleteWarp) (LO*) = DeleteWarp;
+    void (*pfnDeleteWarp) (WARP*) = DeleteWarp;
 };
 
 static VTWARP g_vtwarp;
@@ -10243,7 +10243,7 @@ struct VTTARGET
     void (*pfnGetXfmParams) = nullptr;
     void (*pfnUpdateLoLiveEdit) = nullptr;
     int  (*pfnGetTargetSize) () = GetTargetSize;
-    void (*pfnDeleteTarget) (LO*) = DeleteTarget;
+    void (*pfnDeleteTarget) (TARGET*) = DeleteTarget;
 };
 
 static VTTARGET g_vttarget;
@@ -10285,7 +10285,7 @@ struct VTHND
     void (*pfnGetXfmParams) = nullptr;
     void (*pfnUpdateLoLiveEdit) = nullptr;
     int  (*pfnGetHndSize) () = GetHndSize;
-    void (*pfnDeleteHnd) (LO*) = DeleteHnd;
+    void (*pfnDeleteHnd) (HND*) = DeleteHnd;
 };
 
 static VTHND g_vthnd;
@@ -10327,7 +10327,7 @@ struct VTEXPL
     void (*pfnGetXfmParams) = nullptr;
     void (*pfnUpdateLoLiveEdit) = nullptr;
     int  (*pfnGetExplSize) () = GetExplSize;
-    void (*pfnDeleteExpl) (LO*) = DeleteExpl;
+    void (*pfnDeleteExpl) (EXPL*) = DeleteExpl;
     void (*pfnExplodeExplExplso) = nullptr;
 };
 
@@ -10370,7 +10370,7 @@ struct VTEXPLG
     void (*pfnGetXfmParams) = nullptr;
     void (*pfnUpdateLoLiveEdit) = nullptr;
     int  (*pfnGetExplgSize) () = GetExplgSize;
-    void (*pfnDeleteExplg) (LO*) = DeleteExplg;
+    void (*pfnDeleteExplg) (EXPLG*) = DeleteExplg;
     void (*pfnExplodeExplgExplso) = nullptr;
 };
 
@@ -10413,7 +10413,7 @@ struct VTEXPLO
     void (*pfnGetExploParams) = nullptr;
     void (*pfnUpdateLoLiveEdit) = nullptr;
     int  (*pfnGetExploSize) () = GetExploSize;
-    void (*pfnDeleteExplo) (LO*) = DeleteExplo;
+    void (*pfnDeleteExplo) (EXPLO*) = DeleteExplo;
     void (*pfnExplodeExploExplso) = nullptr;
 };
 
@@ -10456,7 +10456,7 @@ struct VTEXPLS
     void (*pfnGetExplsParams) = nullptr;
     void (*pfnUpdateExplsLiveEdit) = nullptr;
     int  (*pfnGetExplsSize) () = GetExplsSize;
-    void (*pfnDeleteExpls) (LO*) = DeleteExpls;
+    void (*pfnDeleteExpls) (EXPLS*) = DeleteExpls;
     void (*pfnExplodeExplsExplso) = nullptr;
 };
 
@@ -10499,7 +10499,7 @@ struct VTVOL
     void (*pfnGetXfmParams) = nullptr;
     void (*pfnUpdateLoLiveEdit) = nullptr;
     int  (*pfnGetVolSize) () = GetVolSize;
-    void (*pfnDeleteVol) (LO*) = DeleteVol;
+    void (*pfnDeleteVol) (VOL*) = DeleteVol;
 };
 
 static VTVOL g_vtvol;
@@ -10541,7 +10541,7 @@ struct VTRATHOLE
     void (*pfnGetXfmParams) = nullptr;
     void (*pfnUpdateLoLiveEdit) = nullptr;
     int  (*pfnGetRatholeSize) () = GetRatholeSize;
-    void (*pfnDeleteRathole) (LO*) = DeleteRathole;
+    void (*pfnDeleteRathole) (RATHOLE*) = DeleteRathole;
 };
 
 static VTRATHOLE g_vtrathole;
@@ -10583,7 +10583,7 @@ struct VTPUFFV
     void (*pfnGetXfmParams) = nullptr;
     void (*pfnUpdateLoLiveEdit) = nullptr;
     int  (*pfnGetPuffvSize) () = GetPuffvSize;
-    void (*pfnDeletePuffv) (LO*) = DeletePuffv;
+    void (*pfnDeletePuffv) (PUFFV*) = DeletePuffv;
 };
 
 static VTPUFFV g_vtpuffv;
@@ -10625,7 +10625,7 @@ struct VTEXIT
     void (*pfnGetExitParams) = nullptr;
     void (*pfnUpdateLoLiveEdit) = nullptr;
     int  (*pfnGetExitSize) () = GetExitSize;
-    void (*pfnDeleteExit) (LO*) = DeleteExit;
+    void (*pfnDeleteExit) (EXIT*) = DeleteExit;
     void (*pfnProjectAloTransform) = nullptr;
     void (*pfnPresetAloAccel) = nullptr;
     void (*pfnTranslateAloToPos)(ALO*, glm::vec3&) = TranslateAloToPos;
@@ -10686,7 +10686,7 @@ struct VTPNT
     void (*pfnGetLoParams) = nullptr;
     void (*pfnUpdateLoLiveEdit) = nullptr;
     int  (*pfnGetPntSize) () = GetPntSize;
-    void (*pfnDeletePnt) (LO*) = DeletePnt;
+    void (*pfnDeletePnt) (PNT*) = DeletePnt;
 };
 
 static VTPNT g_vtpnt;
@@ -10728,7 +10728,7 @@ struct VTPNTSV
     void (*pfnGetLoParams) = nullptr;
     void (*pfnUpdateLoLiveEdit) = nullptr;
     int  (*pfnGetPntsvSize) () = GetPntSize;
-    void (*pfnDeletePntsv) (LO*) = DeletePnt;
+    void (*pfnDeletePntsv) (PNT*) = DeletePnt;
 };
 
 static VTPNTSV g_vtpntsv;
@@ -10770,7 +10770,7 @@ struct VTPNTS
     void (*pfnGetLoParams) = nullptr;
     void (*pfnUpdateLoLiveEdit) = nullptr;
     int  (*pfnGetPntsSize) () = GetPntSize;
-    void (*pfnDeletePnts) (LO*) = DeletePnt;
+    void (*pfnDeletePnts) (PNT*) = DeletePnt;
 };
 
 static VTPNTS g_vtpnts;
@@ -10812,7 +10812,7 @@ struct VTPNTVEC
     void (*pfnGetLoParams) = nullptr;
     void (*pfnUpdateLoLiveEdit) = nullptr;
     int  (*pfnGetPntvecSize) () = GetPntSize;
-    void (*pfnDeletePntvec) (LO*) = DeletePnt;
+    void (*pfnDeletePntvec) (PNT*) = DeletePnt;
 };
 
 static VTPNTVEC g_vtpntvec;
@@ -10854,7 +10854,7 @@ struct VTHPNT
     void (*pfnGetLoParams) = nullptr;
     void (*pfnUpdateLoLiveEdit) = nullptr;
     int  (*pfnGetHpntSize) () = GetHpntSize;
-    void (*pfnDeleteHpnt) (LO*) = DeleteHpnt;
+    void (*pfnDeleteHpnt) (HPNT*) = DeleteHpnt;
 };
 
 static VTHPNT g_vthpnt;
@@ -10896,7 +10896,7 @@ struct VTJMT
     void (*pfnGetLoParams) = nullptr;
     void (*pfnUpdateLoLiveEdit) = nullptr;
     int  (*pfnGetJmtSize) () = GetJmtSize;
-    void (*pfnDeleteJmt) (LO*) = DeleteJmt;
+    void (*pfnDeleteJmt) (JMT*) = DeleteJmt;
 };
 
 static VTJMT g_vtjmt;
@@ -10938,7 +10938,7 @@ struct VTSPIRE
     void (*pfnGetLoParams) = nullptr;
     void (*pfnUpdateLoLiveEdit) = nullptr;
     int  (*pfnGetSpireSize) () = GetSpireSize;
-    void (*pfnDeleteSpire) (LO*) = DeleteSpire;
+    void (*pfnDeleteSpire) (SPIRE*) = DeleteSpire;
 };
 
 static VTSPIRE g_vtspire;
@@ -10980,7 +10980,7 @@ struct VTSCAN
     void (*pfnGetLoParams) = nullptr;
     void (*pfnUpdateLoLiveEdit) = nullptr;
     int  (*pfnGetScanSize) () = GetScanSize;
-    void (*pfnDeleteScan) (SCAN* pscan) = DeleteScan;
+    void (*pfnDeleteScan) (SCAN*) = DeleteScan;
 };
 
 static VTSCAN g_vtscan;
@@ -11022,7 +11022,7 @@ struct VTASEG
     void (*pfnGetLoParams) = nullptr;
     void (*pfnUpdateLoLiveEdit) = nullptr;
     int  (*pfnGetAsegSize) () = GetAsegSize;
-    void (*pfnDeleteAseg) (ASEG* paseg) = DeleteAseg;
+    void (*pfnDeleteAseg) (ASEG*) = DeleteAseg;
 };
 
 static VTASEG g_vtaseg;
@@ -11064,7 +11064,7 @@ struct VTMAP
     void (*pfnGetLoParams) = nullptr;
     void (*pfnUpdateLoLiveEdit) = nullptr;
     int  (*pfnGetMapSize) () = GetMapSize;
-    void (*pfnDeleteMap) (LO*) = DeleteMap;
+    void (*pfnDeleteMap) (MAP*) = DeleteMap;
 };
 
 static VTMAP g_vtmap;
@@ -11106,7 +11106,7 @@ struct VT_VISZONE
     void (*pfnGetLoParams) = nullptr;
     void (*pfnUpdateLoLiveEdit) = nullptr;
     int  (*pfnGetViszoneSize) () = GetLoSize;
-    void (*pfnDeleteVISZONE) (LO*) = DeleteLo;
+    void (*pfnDeleteViszone) (LO*) = DeleteLo;
 };
 
 static VT_VISZONE g_vt_viszone;
@@ -11190,7 +11190,7 @@ struct VTFRZG
     void (*pfnGetLoParams) = nullptr;
     void (*pfnUpdateLoLiveEdit) = nullptr;
     int  (*pfnGetFrzgSize) () = GetFrzgSize;
-    void (*pfnDeleteFrzg) (LO*) = DeleteFrzg;
+    void (*pfnDeleteFrzg) (FRZG*) = DeleteFrzg;
 };
 
 static VTFRZG g_vtfrzg;
@@ -11232,7 +11232,7 @@ struct VTSM
     void (*pfnGetLoParams) = nullptr;
     void (*pfnUpdateLoLiveEdit) = nullptr;
     int  (*pfnGetSmSize) () = GetSmSize;
-    void (*pfnDeleteSm) (LO*) = DeleteSm;
+    void (*pfnDeleteSm) (SM*) = DeleteSm;
 };
 
 static VTSM g_vtsm;
@@ -11274,7 +11274,7 @@ struct VTSGG
     void (*pfnGetLoParams) = nullptr;
     void (*pfnUpdateLoLiveEdit) = nullptr;
     int  (*pfnGetSggSize) () = GetSggSize;
-    void (*pfnDeleteSgg) (LO*) = DeleteSgg;
+    void (*pfnDeleteSgg) (SGG*) = DeleteSgg;
 };
 
 static VTSGG g_vtsgg;
@@ -11316,7 +11316,7 @@ struct VTPATHZONE
     void (*pfnGetLoParams) = nullptr;
     void (*pfnUpdateLoLiveEdit) = nullptr;
     int  (*pfnGetPathzoneSize) () = GetPathzoneSize;
-    void (*pfnDeletePathzone) (LO*) = DeletePathzone;
+    void (*pfnDeletePathzone) (PATHZONE*) = DeletePathzone;
 };
 
 static VTPATHZONE g_vtpathzone;
@@ -11358,7 +11358,7 @@ struct VTRCHM
     void (*pfnGetLoParams) = nullptr;
     void (*pfnUpdateLoLiveEdit) = nullptr;
     int  (*pfnGetRchmSize) () = GetRchmSize;
-    void (*pfnDeleteRchm) (LO*) = DeleteRchm;
+    void (*pfnDeleteRchm) (RCHM*) = DeleteRchm;
 };
 
 static VTRCHM g_vtrchm;
@@ -11400,7 +11400,7 @@ struct VTRWM
     void (*pfnGetLoParams) = nullptr;
     void (*pfnUpdateLoLiveEdit) = nullptr;
     int  (*pfnGetRwmSize) () = GetRwmSize;
-    void (*pfnDeleteRwm) (LO*) = DeleteRwm;
+    void (*pfnDeleteRwm) (RWM*) = DeleteRwm;
 };
 
 static VTRWM g_vtrwm;
@@ -11442,7 +11442,7 @@ struct VTWR
     void (*pfnGetWrParams) = nullptr;
     void (*pfnUpdateLoLiveEdit) = nullptr;
     int  (*pfnGetWrSize) () = GetWrSize;
-    void (*pfnDeleteWr) (LO*) = DeleteWr;
+    void (*pfnDeleteWr) (WR*) = DeleteWr;
 };
 
 static VTWR g_vtwr;
@@ -11484,7 +11484,7 @@ struct VTKEYHOLE
     void (*pfnGetLoParams) = nullptr;
     void (*pfnUpdateLoLiveEdit) = nullptr;
     int  (*pfnGetKeyholeSize) () = GetKeyholeSize;
-    void (*pfnDeleteKeyhole) (LO*) = DeleteKeyhole;
+    void (*pfnDeleteKeyhole) (KEYHOLE*) = DeleteKeyhole;
 };
 
 static VTKEYHOLE g_vtkeyhole;
@@ -11526,12 +11526,12 @@ struct VTJSG
     void (*pfnGetLoParams) = nullptr;
     void (*pfnUpdateLoLiveEdit) = nullptr;
     int  (*pfnGetJsgSize) () = GetJsgSize;
-    void (*pfnDeleteJsg) (LO*) = DeleteJsg;
+    void (*pfnDeleteJsg) (JSG*) = DeleteJsg;
 };
 
 static VTJSG g_vtjsg;
 
-// This is used to store the information about all the Local Objects
+// This is used to store the global vtables for Local Objects
 static std::unordered_map <CID, void*> g_mpcidpvt =
 {
     { CID_BASIC, &g_vtbasic },

@@ -74,7 +74,7 @@ int  GetHshapeSize();
 void OnHshapeAdd(HSHAPE* phshape);
 void OnHshapeRemove(HSHAPE* phshape);
 void CloneHshape(HSHAPE* phshape, HSHAPE* phshapeBase);
-void DeleteHshape(LO* plo);
+void DeleteHshape(HSHAPE* phshape);
 
 HPNT*NewHpnt();
 void InitHpnt(HPNT* phpnt);
@@ -82,4 +82,4 @@ int  GetHpntSize();
 void OnHpntAdd(HPNT* phpnt);
 void OnHpntRemove(HPNT* phpnt);
 void CloneHpnt(HPNT* phpnt, HPNT* phpntBase);
-void DeleteHpnt(LO* plo);
+void DeleteHpnt(HPNT* phpnt);

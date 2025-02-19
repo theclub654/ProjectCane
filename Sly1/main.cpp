@@ -26,7 +26,7 @@ int main(int cphzArgs, char* aphzArgs[])
 			// Loads level
 			g_transition.Execute(file);
 		}
-
+		
 		// Using custom frame buffer
 		glBindFramebuffer(GL_FRAMEBUFFER, g_gl.fbo);
 		// Making custom frame buffer all black
@@ -47,7 +47,7 @@ int main(int cphzArgs, char* aphzArgs[])
 			lastFrame = currentTime;
 
 			UpdateCpman(g_gl.window, &g_pcm->cpman, nullptr, deltaTime);
-			
+
 			if (fRenderModels != 0)
 			{
 				//UpdateSw(g_psw, deltaTime);
@@ -83,7 +83,9 @@ int main(int cphzArgs, char* aphzArgs[])
 		glfwPollEvents();
 	}
 
-	DeleteWorld(g_psw);
+	if (g_psw != nullptr)
+		DeleteWorld(g_psw);
+
 	g_gl.TerminateGL();
 	return 0;
 }

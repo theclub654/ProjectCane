@@ -36,7 +36,7 @@ void CloneLanding(LANDING* planding, LANDING* plandingBase)
 	CloneLo(planding, plandingBase);
 }
 
-void DeleteLanding(LO* plo)
+void DeleteLanding(LANDING* planding)
 {
-	delete(LANDING*)plo;
+	delete planding;
 }

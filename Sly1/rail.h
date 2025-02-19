@@ -16,4 +16,4 @@ int  GetRailSize();
 void OnRailAdd(RAIL* prail);
 void OnRailRemove(RAIL* prail);
 void CloneRail(RAIL* prail, RAIL* prailBase);
-void DeleteRail(LO* plo);
+void DeleteRail(RAIL* prail);

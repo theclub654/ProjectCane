@@ -81,7 +81,7 @@ void ClonePathzone(PATHZONE* ppathzone, PATHZONE* ppathzoneBase)
     CloneLo(ppathzone, ppathzoneBase);
 }
 
-void DeletePathzone(LO* plo)
+void DeletePathzone(PATHZONE* ppathzone)
 {
-    delete(PATHZONE*)plo;
+    delete ppathzone;
 }

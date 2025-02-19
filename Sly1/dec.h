@@ -1071,7 +1071,7 @@ int  GetHshapeSize();
 void OnHshapeAdd(HSHAPE* phshape);
 void OnHshapeRemove(HSHAPE* phshape);
 void CloneHshape(HSHAPE* phshape, HSHAPE* phshapeBase);
-void DeleteHshape(LO* plo);
+void DeleteHshape(HSHAPE* phshape);
 
 class PIPE;
 PIPE*NewPipe();
@@ -1080,7 +1080,7 @@ int  GetPipeSize();
 void OnPipeAdd(PIPE* ppipe);
 void OnPipeRemove(PIPE* ppipe);
 void ClonePipe(PIPE* ppipe, PIPE* ppipeBase);
-void DeletePipe(LO* plo);
+void DeletePipe(PIPE* ppipe);
 
 class RAIL;
 RAIL*NewRail();
@@ -1088,7 +1088,7 @@ int  GetRailSize();
 void OnRailAdd(RAIL* prail);
 void OnRailRemove(RAIL* prail);
 void CloneRail(RAIL* prail, RAIL* prailBase);
-void DeleteRail(LO* plo);
+void DeleteRail(RAIL* prail);
 
 class LANDING;
 LANDING*NewLanding();
@@ -1096,7 +1096,7 @@ int  GetLandingSize();
 void OnLandingAdd(LANDING* planding);
 void OnLandingRemove(LANDING* planding);
 void CloneLanding(LANDING* planding, LANDING* plandingBase);
-void DeleteLanding(LO* plo);
+void DeleteLanding(LANDING* planding);
 
 class XFM;
 XFM* NewXfm();
@@ -1106,14 +1106,14 @@ void CloneXfm(XFM* pxfm, XFM* pxfmBase);
 void LoadXfmFromBrx(XFM* pxfm, CBinaryInputStream* pbis);
 void SetXfmParent(XFM* pxfm, ALO* paloParent);
 void ApplyXfmProxy(XFM* pxfm, PROXY* pproxyApply);
-void DeleteXfm(LO* plo);
+void DeleteXfm(XFM* pxfm);
 
 class WARP;
 WARP*NewWarp();
 int  GetWarpSize();
 void LoadWarpFromBrx(WARP* pwarp, CBinaryInputStream* pbis);
 void CloneWarp(WARP* pwarp, WARP* pwarpBase);
-void DeleteWarp(LO* plo);
+void DeleteWarp(WARP* pwarp);
 
 class TARGET;
 TARGET*NewTarget();
@@ -1122,7 +1122,7 @@ int  GetTargetSize();
 void OnTargetAdd(TARGET* ptarget);
 void OnTargetRemove(TARGET* ptarget);
 void CloneTarget(TARGET* ptarget, TARGET* ptargetBase);
-void DeleteTarget(LO* plo);
+void DeleteTarget(TARGET* ptarget);
 
 class HND;
 HND* NewHnd();
@@ -1130,20 +1130,20 @@ void InitHnd(HND* phnd);
 int  GetHndSize();
 void CloneHnd(HND* phnd, HND* phndBase);
 void LoadHndFromBrx(HND* phnd, CBinaryInputStream* pbis);
-void DeleteHnd(LO* plo);
+void DeleteHnd(HND* phnd);
 
 class EXPL;
 EXPL*NewExpl();
 int  GetExplSize();
 void CloneExpl(EXPL* pexpl, EXPL* pexplBase);
-void DeleteExpl(LO* plo);
+void DeleteExpl(EXPL* pexpl);
 
 class EXPLG;
 EXPLG*NewExplg();
 int  GetExplgSize();
 void CloneExplg(EXPLG* pexplg, EXPLG* pexplgBase);
 void LoadExplgFromBrx(EXPLG* pexplg, CBinaryInputStream* pbis);
-void DeleteExplg(LO* plo);
+void DeleteExplg(EXPLG* pexplg);
 
 class EXPLO;
 EXPLO*NewExplo();
@@ -1151,21 +1151,21 @@ int  GetExploSize();
 void InitExplo(EXPLO* pexplo);
 void CloneExplo(EXPLO* pexplo, EXPLO* pexploBase);
 void LoadExploFromBrx(EXPLO* pexplo, CBinaryInputStream* pbis);
-void DeleteExplo(LO* plo);
+void DeleteExplo(EXPLO* pexplo);
 
 class EXPLS;
 EXPLS*NewExpls();
 int  GetExplsSize();
 void InitExpls(EXPLS* pexpls);
 void CloneExpls(EXPLS* pexpls, EXPLS* pexplsBase);
-void DeleteExpls(LO* plo);
+void DeleteExpls(EXPLS* pexpls);
 
 class VOL;
 VOL* NewVol();
 int  GetVolSize();
 void LoadVolFromBrx(VOL* pvol, CBinaryInputStream* pbis);
 void CloneVol(VOL* pvol, VOL* pvolBase);
-void DeleteVol(LO* plo);
+void DeleteVol(VOL* pvol);
 
 class RATHOLE;
 RATHOLE*NewRathole();
@@ -1173,21 +1173,21 @@ int  GetRatholeSize();
 void OnRatholeAdd(RATHOLE* prathole);
 void OnRatholeRemove(RATHOLE* prathole);
 void CloneRathole(RATHOLE* prathole, RATHOLE* pratholeBase);
-void DeleteRathole(LO* plo);
+void DeleteRathole(RATHOLE* prathole);
 
 class PUFFV;
 PUFFV*NewPuffv();
 int  GetPuffvSize();
 void InitPuffv(PUFFV* ppuffv);
 void ClonePuffv(PUFFV* ppuffv, PUFFV* ppuffvBase);
-void DeletePuffv(LO* plo);
+void DeletePuffv(PUFFV* ppuffv);
 
 class EXIT;
 EXIT*NewExit();
 int  GetExitSize();
 void LoadExitFromBrx(EXIT* pexit, CBinaryInputStream* pbis);
 void CloneExit(EXIT* pexit, EXIT* pexitBase);
-void DeleteExit(LO* plo);
+void DeleteExit(EXIT* pexit);
 
 class PNT;
 PNT* NewPnt();
@@ -1196,7 +1196,7 @@ void LoadPntFromBrx(PNT* pnt, CBinaryInputStream* pbis);
 void ClonePnt(PNT* pnt, PNT* pntBase);
 void SetPntParent(PNT* ppnt, ALO* paloParent);
 void ApplyPntProxy(PNT* ppnt, PROXY* pproxyApply);
-void DeletePnt(LO* plo);
+void DeletePnt(PNT* ppnt);
 
 class HPNT;
 HPNT*NewHpnt();
@@ -1205,7 +1205,7 @@ int  GetHpntSize();
 void OnHpntAdd(HPNT* phpnt);
 void OnHpntRemove(HPNT* phpnt);
 void CloneHpnt(HPNT* phpnt, HPNT* phpntBase);
-void DeleteHpnt(LO* plo);
+void DeleteHpnt(HPNT* phpnt);
 
 class JMT;
 JMT* NewJmt();
@@ -1213,7 +1213,7 @@ int  GetJmtSize();
 void OnJmtAdd(JMT* pjmt);
 void OnJmtRemove(JMT* pjmt);
 void CloneJmt(JMT* pjmt, JMT* pjmtBase);
-void DeleteJmt(LO* plo);
+void DeleteJmt(JMT* pjmt);
 
 class SPIRE;
 SPIRE*NewSpire();
@@ -1221,7 +1221,7 @@ int  GetSpireSize();
 void OnSpireAdd(SPIRE* pspire);
 void OnSpireRemove(SPIRE* pspire);
 void CloneSpire(SPIRE* pspire, SPIRE* pspireBase);
-void DeleteSpire(LO* plo);
+void DeleteSpire(SPIRE* pspire);
 
 class SCAN;
 SCAN*NewScan();
@@ -1244,9 +1244,9 @@ void DeleteAsegbl(LO* plo);
 
 class MAP;
 MAP* NewMap();
-int  GetMapSize();
 void CloneMap(MAP* pmap, MAP* pmapBase);
-void DeleteMap(LO* plo);
+int  GetMapSize();
+void DeleteMap(MAP* pmap);
 
 // Visibility Map
 class VISMAP;
@@ -1261,20 +1261,20 @@ class FRZG;
 FRZG*NewFrzg();
 int  GetFrzgSize();
 void CloneFrzg(FRZG* pfrzg, FRZG* pfrzgBase);
-void DeleteFrzg(LO* plo);
+void DeleteFrzg(FRZG* pfrzg);
 
 class SM;
 SM*  NewSm();
 int  GetSmSize();
 void LoadSmFromBrx(SM* psm, CBinaryInputStream* pbis);
-void DeleteSm(LO* plo);
+void DeleteSm(SM* psm);
 
 class SGG;
 SGG* NewSgg();
 void InitSgg(SGG* psgg);
 int  GetSggSize();
 void CloneSgg(SGG* psgg, SGG* psggBase);
-void DeleteSgg(LO* plo);
+void DeleteSgg(SGG* psgg);
 
 // AI Path's
 class PATHZONE;
@@ -1284,7 +1284,7 @@ void OnPathzoneAdd(PATHZONE* ppathzone);
 void OnPathzoneRemove(PATHZONE* ppathzone);
 void ClonePathzone(PATHZONE* ppathzone, PATHZONE* ppathzoneBase);
 void LoadPathZoneFromBrx(PATHZONE* ppathzone, CBinaryInputStream* pbis);
-void DeletePathzone(LO* plo);
+void DeletePathzone(PATHZONE* ppathzone);
 
 // Reach Map
 class RCHM;
@@ -1292,19 +1292,19 @@ RCHM*NewRchm();
 void InitRchm(RCHM* prchm);
 int  GetRchmSize();
 void LoadRchmFromBrx(RCHM* prchm, CBinaryInputStream* pbis);
-void DeleteRchm(LO* plo);
+void DeleteRchm(RCHM* prchm);
 
 class RWM;
 RWM* NewRwm();
 void InitRwm(RWM* prwm);
 int  GetRwmSize();
-void DeleteRwm(LO* plo);
+void DeleteRwm(RWM* prwm);
 
 class WR;
 WR*  NewWr();
 void InitWr(WR* pwr);
 int  GetWrSize();
-void DeleteWr(LO* plo);
+void DeleteWr(WR* pwr);
 
 class KEYHOLE;
 KEYHOLE*NewKeyhole();
@@ -1312,14 +1312,14 @@ void InitKeyhole(KEYHOLE* pkeyhole);
 int  GetKeyholeSize();
 void LoadKeyholeFromBrx(KEYHOLE* pkeyhole, CBinaryInputStream* pbis);
 void CloneKeyhole(KEYHOLE* pkeyhole, KEYHOLE* pkeyholeBase);
-void DeleteKeyhole(LO* plo);
+void DeleteKeyhole(KEYHOLE* pkeyhole);
 
 class JSG;
 JSG* NewJsg();
 void InitJsg(JSG* pjsg);
 int  GetJsgSize();
 void CloneJsg(JSG* pjsg, JSG* pjsgBase);
-void DeleteJsg(LO* plo);
+void DeleteJsg(JSG* pjsg);
 
 class ASEGA;
 int  GetAsegaSize();

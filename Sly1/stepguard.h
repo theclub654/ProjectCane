@@ -181,7 +181,7 @@ SGG* NewSgg();
 void InitSgg(SGG* psgg);
 int  GetSggSize();
 void CloneSgg(SGG* psgg, SGG* psggBase);
-void DeleteSgg(LO* plo);
+void DeleteSgg(SGG* psgg);
 
 STEPGUARD*NewStepguard();
 void InitStepGuard(STEPGUARD* pstepguard);

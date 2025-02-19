@@ -19,7 +19,7 @@ void CloneFrzg(FRZG* pfrzg, FRZG* pfrzgBase)
 	CloneLo(pfrzg, pfrzgBase);
 }
 
-void DeleteFrzg(LO* plo)
+void DeleteFrzg(FRZG* pfrzg)
 {
-	delete(FRZG*)plo;
+	delete pfrzg;
 }

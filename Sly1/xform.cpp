@@ -44,9 +44,9 @@ void ApplyXfmProxy(XFM* pxfm, PROXY* pproxyApply)
 	ConvertAloMat((ALO*)pproxyApply, nullptr, pxfm->matLocal, pxfm->matLocal);
 }
 
-void DeleteXfm(LO* plo)
+void DeleteXfm(XFM* pxfm)
 {
-	delete(XFM*)plo;
+	delete pxfm;
 }
 
 WARP* NewWarp()
@@ -96,9 +96,9 @@ void CloneWarp(WARP* pwarp, WARP* pwarpBase)
 	CloneLo(pwarp, pwarpBase);
 }
 
-void DeleteWarp(LO* plo)
+void DeleteWarp(WARP* pwarp)
 {
-	delete(WARP*)plo;
+	delete pwarp;
 }
 
 EXIT* NewExit()
@@ -153,9 +153,9 @@ void UpdateExit(EXIT* pexit, float dt)
 	
 }
 
-void DeleteExit(LO* plo)
+void DeleteExit(EXIT* pexit)
 {
-	delete(EXIT*)plo;
+	delete pexit;
 }
 
 CAMERA* NewCamera()

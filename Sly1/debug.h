@@ -8,13 +8,13 @@
 
 extern std::string file;
 extern std::string levelName;
-extern std::vector<ALO*> allSWAloObjs;
+extern std::vector <ALO*> allSWAloObjs;
 static std::string filePath;
-void DeleteWorld(SW* psw);
-
 static ImGuiFileDialog instance_a;
 extern inline bool fRenderModels = true;
 extern inline bool fRenderCollision = false;
+extern inline bool fMouseHoverGui = false;
+void DeleteWorld(SW* psw);
 
 void RenderMenuGui(SW* psw);
 void ExportSw();

@@ -5,11 +5,6 @@ MAP* NewMap()
 	return new MAP{};
 }
 
-int GetMapSize()
-{
-	return sizeof(MAP);
-}
-
 void CloneMap(MAP* pmap, MAP* pmapBase)
 {
 	LO lo = *pmap;
@@ -19,7 +14,12 @@ void CloneMap(MAP* pmap, MAP* pmapBase)
 	CloneLo(pmap, pmapBase);
 }
 
-void DeleteMap(LO* plo)
+int GetMapSize()
 {
-	delete(MAP*)plo;
+	return sizeof(MAP);
+}
+
+void DeleteMap(MAP* pmap)
+{
+	delete pmap;
 }

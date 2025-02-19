@@ -36,7 +36,7 @@ void ApplyPntProxy(PNT* ppnt, PROXY* pproxyApply)
 
 }
 
-void DeletePnt(LO* plo)
+void DeletePnt(PNT* ppnt)
 {
-	delete(PNT*)plo;
+	delete ppnt;
 }

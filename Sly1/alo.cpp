@@ -582,7 +582,9 @@ void RenderAloGlobset(ALO *palo, CM *pcm, RO *pro)
 			{
 				rpl.ro.VAO = &palo->globset.aglob[i].asubglob[a].VAO;
 
-				rpl.posCenter = glm::mat3(rpl.ro.modelmatrix) * palo->globset.aglob[i].posCenter;
+				rpl.posCenter = palo->globset.aglob[i].posCenter;
+
+				rpl.ro.fDynamic = palo->globset.aglob[i].fDynamic;
 
 				rpl.ro.grfglob = &palo->globset.aglob[i].grfglob;
 				rpl.ro.pshd = palo->globset.aglob[i].asubglob[a].pshd;
@@ -630,6 +632,7 @@ void DrawGlob(RPL *prpl)
 	glUniform1i(glGetUniformLocation(glGlobShader.ID, "shdk"), prpl->ro.pshd->shdk);
 	glUniform1f(glGetUniformLocation(glGlobShader.ID, "usSelfIllum"), *prpl->ro.unSelfIllum);
 
+	glUniform1i(glGetUniformLocation(glGlobShader.ID, "fDynamic"), prpl->ro.fDynamic);
 	glUniform3fv(glGetUniformLocation(glGlobShader.ID, "posCenter"), 1, glm::value_ptr(prpl->posCenter));
 
 	if (prpl->ro.pshd->shdk == SHDK_ThreeWay)
@@ -656,14 +659,12 @@ void DrawGlob(RPL *prpl)
 		glEnable(GL_BLEND);
 		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 		glDepthMask(false);
-		glDrawElements(GL_TRIANGLES, prpl->ro.cvtx, GL_UNSIGNED_SHORT, 0);
 		break;
 
 		case RP_ProjVolume:
 		glEnable(GL_BLEND);
 		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 		glDepthMask(false);
-		glDrawElements(GL_TRIANGLES, prpl->ro.cvtx, GL_UNSIGNED_SHORT, 0);
 		break;
 		
 		case RP_Cutout:
@@ -671,20 +672,11 @@ void DrawGlob(RPL *prpl)
 		case RP_Translucent:
 		glEnable(GL_BLEND);
 		glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ZERO);
-
-		glDepthFunc(true);
-		glDrawElements(GL_TRIANGLES, prpl->ro.cvtx, GL_UNSIGNED_SHORT, 0);
-
-		glDepthFunc(false);
-		glDrawElements(GL_TRIANGLES, prpl->ro.cvtx, GL_UNSIGNED_SHORT, 0);
-		break;
-
-		default:
-		glDrawElements(GL_TRIANGLES, prpl->ro.cvtx, GL_UNSIGNED_SHORT, 0);
+		//glDepthFunc(GL_LEQUAL);
 		break;
 	}
 
-	//glDrawElements(GL_TRIANGLES, prpl->ro.cvtx, GL_UNSIGNED_SHORT, 0);
+	glDrawElements(GL_TRIANGLES, prpl->ro.cvtx, GL_UNSIGNED_SHORT, 0);
 
 	switch (prpl->rp)
 	{

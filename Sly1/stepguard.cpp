@@ -24,9 +24,9 @@ void CloneSgg(SGG* psgg, SGG* psggBase)
 	CloneLo(psgg, psggBase);
 }
 
-void DeleteSgg(LO* plo)
+void DeleteSgg(SGG* psgg)
 {
-	delete(SGG*)plo;
+	delete psgg;
 }
 
 STEPGUARD* NewStepguard()

@@ -15,10 +15,13 @@ void RenderMenuGui(SW* psw)
             
             if (ImGui::MenuItem("Close World"))
             {
-                DeleteWorld(psw);
-                file = "";
-                filePath = "";
-                levelName = "";
+                if (psw != nullptr)
+                {
+                    DeleteWorld(psw);
+                    file = "";
+                    filePath = "";
+                    levelName = "";
+                }
             }
 
             ImGui::EndMenu();
@@ -39,13 +42,10 @@ void RenderMenuGui(SW* psw)
             {
                 if (ImGui::MenuItem("Export Map"))
                 {
+                    std::cout << "Exporting Map..." << "\n";
                     ExportSw();
+                    std::cout << "Export Complete" << "\n";
                 }
-            }
-
-            else
-            {
-                
             }
 
             ImGui::EndMenu();
@@ -72,9 +72,10 @@ void RenderMenuGui(SW* psw)
                     else
                         levelName[i] = temp;
                 }
+
                 g_transition.m_fPending = 1;
             }
-
+            
             instance_a.Instance()->Close();
         }
 

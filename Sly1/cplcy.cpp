@@ -72,7 +72,7 @@ void UpdateCpman(GLFWwindow* window, CPMAN* pcpman, CPDEFI* pcpdefi, float dt)
 {
 	float speed = 10000.0;
 	float velocity = (float)dt * speed;
-
+	
 	if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
 		pcpman->pcm->pos += pcpman->pcm->direction * velocity;
 
@@ -93,7 +93,7 @@ void UpdateCpman(GLFWwindow* window, CPMAN* pcpman, CPDEFI* pcpdefi, float dt)
 
 	if (glfwGetKey(window, GLFW_KEY_R) == GLFW_PRESS)
 		pcpman->pcm->pos = glm::vec3{ 0.0 };
-
+	
 	if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS)
 	{
 		glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_HIDDEN);

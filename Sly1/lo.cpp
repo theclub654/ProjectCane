@@ -52,6 +52,11 @@ void RemoveLoHierarchy(LO* plo)
 	SendLoMessage(plo, MSGID_removed, plo);
 }
 
+void SnipLo(LO* plo)
+{
+
+}
+
 void CloneLoHierarchy(LO* plo, LO* ploBase)
 {
 	plo->pvtlo->pfnCloneLo(plo, ploBase);

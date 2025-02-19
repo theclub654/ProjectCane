@@ -89,7 +89,7 @@ PUFFV*NewPuffv();
 void InitPuffv(PUFFV* ppuffv);
 int  GetPuffvSize();
 void ClonePuffv(PUFFV* ppuffv, PUFFV* ppuffvBase);
-void DeletePuffv(LO* plo);
+void DeletePuffv(PUFFV* ppuffv);
 
 PUFFC*NewPuffc();
 int  GetPuffcSize();

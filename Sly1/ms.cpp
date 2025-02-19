@@ -40,6 +40,8 @@ void RenderMsGlobset(MS *pms, CM *pcm, RO *pro)
                 if (rpl.z == 3.402823e+38)
                     rpl.z = glm::dot(rpl.z, rpl.z);
 
+                rpl.ro.fDynamic = pms->globset.aglob[i].fDynamic;
+
                 rpl.posCenter = pms->globset.aglob[i].posCenter;
 
                 rpl.rp = pms->globset.aglob[i].rp;

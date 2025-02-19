@@ -86,9 +86,9 @@ void CloneHshape(HSHAPE* phshape, HSHAPE* phshapeBase)
 	CloneLo(phshape, phshapeBase);
 }
 
-void DeleteHshape(LO* plo)
+void DeleteHshape(HSHAPE* phshape)
 {
-	delete(HSHAPE*)plo;
+	delete phshape;
 }
 
 HPNT* NewHpnt()
@@ -126,7 +126,7 @@ void CloneHpnt(HPNT* phpnt, HPNT* phpntBase)
 	CloneLo(phpnt, phpntBase);
 }
 
-void DeleteHpnt(LO* plo)
+void DeleteHpnt(HPNT* phpnt)
 {
-	delete(HPNT*)plo;
+	delete phpnt;
 }

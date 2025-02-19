@@ -29,7 +29,7 @@ void LoadHndFromBrx(HND* phnd, CBinaryInputStream* pbis)
 	LoadXfmFromBrx(phnd, pbis);
 }
 
-void DeleteHnd(LO* plo)
+void DeleteHnd(HND* phnd)
 {
-	delete(HND*)plo;
+	delete phnd;
 }

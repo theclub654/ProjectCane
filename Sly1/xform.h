@@ -92,20 +92,20 @@ void LoadXfmFromBrx(XFM* pxfm, CBinaryInputStream* pbis);
 void CloneXfm(XFM* pxfm, XFM* pxfmBase);
 void SetXfmParent(XFM* pxfm, ALO* paloParent);
 void ApplyXfmProxy(XFM* pxfm, PROXY* pproxyApply);
-void DeleteXfm(LO* plo);
+void DeleteXfm(XFM* pxfm);
 
 WARP*NewWarp();
 int  GetWarpSize();
 void LoadWarpFromBrx(WARP* pwarp, CBinaryInputStream* pbis);
 void CloneWarp(WARP* pwarp, WARP* pwarpBase);
-void DeleteWarp(LO* plo);
+void DeleteWarp(WARP* pwarp);
 
 EXIT*NewExit();
 int  GetExitSize();
 void LoadExitFromBrx(EXIT *pexit, CBinaryInputStream* pbis);
 void CloneExit(EXIT* pexit, EXIT* pexitBase);
 void UpdateExit(EXIT* pexit, float dt);
-void DeleteExit(LO* plo);
+void DeleteExit(EXIT* pexit);
 
 CAMERA*NewCamera();
 void InitCamera(CAMERA* pcamera);
