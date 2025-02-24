@@ -89,12 +89,12 @@ void DrawThreeWay()
         break;
     
         case TWPS_ShadowMidtoneSaturate:
+        
         FragColor += shadow   * ambient;
         FragColor += diffuse  * midtone;
         FragColor += saturate * light;
 
         FragColor.a = vertexColor.a * shadow.a * diffuse.a * saturate.a;
-
         break;
     }
 }

@@ -32,7 +32,6 @@ struct LTFN
 
 struct DIRLIGHT
 {
-    vec3 pos;
     vec3 dir;
     vec3 color;
 
@@ -54,6 +53,13 @@ struct POINTLIGHT
 
 uniform int numPointLights;
 
+struct FRUSTUMLIGHT
+{
+   LTFN ltfn; 
+}; uniform FRUSTUMLIGHT frustumlights[5];
+
+uniform int numFrustumLights;
+
 uniform int shdk;
 uniform float usSelfIllum;
 
@@ -70,12 +76,12 @@ float objectMidtone;
 int fLit;
 
 void InitGlobLighting();
-vec3 ConvertLocalToWorld(mat4 matrix4, vec3 vecIn, float gImplied);
 vec4 AddDirectionLight(DIRLIGHT dirlight);
 vec4 AddDynamicLight(vec3 dir, vec3 color, LTFN ltfn);
 vec4 AddPositionLight(POINTLIGHT pointlight);
 vec4 AddPositionLightDynamic(POINTLIGHT pointlight);
-
+vec4 AddFrustrumLight(FRUSTUMLIGHT frustumlight);
+vec4 AddFrustrumLightDynamic(FRUSTUMLIGHT frustumlight);
 void ProcessGlobLighting();
 
 void main()
@@ -89,12 +95,14 @@ void main()
         {
             fLit = 1;
             InitGlobLighting();
-
             for (int i = 0; i < numDirLights; i++)
                 light += AddDirectionLight(dirlights[i]);
 
             for (int i = 0; i < numPointLights; i++)
                 light += AddPositionLight(pointlights[i]);
+
+            for (int i = 0; i < numFrustumLights; i++)
+                light += AddFrustrumLight(frustumlights[i]);
         }
         else
         {
@@ -104,6 +112,9 @@ void main()
 
             for (int i = 0; i < numPointLights; i++)
                 light += AddPositionLightDynamic(pointlights[i]);
+
+            for (int i = 0; i < numFrustumLights; i++)
+                light += AddFrustrumLightDynamic(frustumlights[i]);
         }
 
         ProcessGlobLighting();
@@ -119,16 +130,10 @@ void InitGlobLighting()
     light = vec4(0.0);
 }
 
-vec3 ConvertLocalToWorld(mat4 matrix4, vec3 vecIn, float gImplied)
-{
-    vec4 world = matrix4 * vec4(vecIn, gImplied);
-    return vec3(world) / world.w;
-}
-
 vec4 AddDirectionLight(DIRLIGHT dirlight)
 {
     vec3 direction = mat3(inverse(model)) * dirlight.dir;
-
+    
     float diffuse = dot(normalize(direction), normal);
 
     diffuse = diffuse + diffuse * diffuse * diffuse;
@@ -173,7 +178,8 @@ vec4 AddDynamicLight(vec3 dir, vec3 color, LTFN ltfn)
 
 vec4 AddPositionLight(POINTLIGHT pointlight)
 {
-    vec3 posWorld = ConvertLocalToWorld(model, vertex, 1.0);
+    vec4 pos = model * vec4(vertex, 1.0);
+    vec3 posWorld = vec3(pos) / pos.w;
     vec3 normalWorld = mat3(model) * normal;
     
     vec3 direction = normalize(pointlight.pos - posWorld);
@@ -215,7 +221,8 @@ vec4 AddPositionLight(POINTLIGHT pointlight)
 
 vec4 AddPositionLightDynamic(POINTLIGHT pointlight)
 {
-    vec3 posCenterWorld = ConvertLocalToWorld(model, posCenter, 1.0);
+    vec4 poscenter = model * vec4(posCenter, 1.0);
+    vec3 posCenterWorld = vec3(poscenter) / poscenter.w;
 
     vec3 direction = normalize(pointlight.pos - posCenterWorld);
     float distance = length(pointlight.pos - posCenterWorld);
@@ -238,6 +245,18 @@ vec4 AddPositionLightDynamic(POINTLIGHT pointlight)
     ltfn.duHighlight = pointlight.ltfn.duHighlight * falloff;
 
     return AddDynamicLight(direction, pointlight.color, ltfn);
+}
+
+vec4 AddFrustrumLight(FRUSTUMLIGHT frustumlight)
+{
+    
+    return vec4(0.0);
+}
+
+vec4 AddFrustrumLightDynamic(FRUSTUMLIGHT frustumlight)
+{
+    
+    return vec4(0.0);
 }
 
 void ProcessGlobLighting()

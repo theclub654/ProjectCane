@@ -3,7 +3,8 @@
 //defines a limit
 struct LM
 {
-	float gMin, gMax;
+	float gMin;
+	float gMax;
 
 	constexpr LM(float min = 0, float max = 1):
 		gMin(min), gMax(max)

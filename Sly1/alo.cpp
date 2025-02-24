@@ -659,24 +659,28 @@ void DrawGlob(RPL *prpl)
 		glEnable(GL_BLEND);
 		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 		glDepthMask(false);
+		glDrawElements(GL_TRIANGLES, prpl->ro.cvtx, GL_UNSIGNED_SHORT, 0);
 		break;
 
 		case RP_ProjVolume:
 		glEnable(GL_BLEND);
 		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-		glDepthMask(false);
+		glDrawElements(GL_TRIANGLES, prpl->ro.cvtx, GL_UNSIGNED_SHORT, 0);
 		break;
 		
 		case RP_Cutout:
 		case RP_CutoutAfterProjVolume:
 		case RP_Translucent:
 		glEnable(GL_BLEND);
-		glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ZERO);
-		//glDepthFunc(GL_LEQUAL);
+		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+		glDrawElements(GL_TRIANGLES, prpl->ro.cvtx, GL_UNSIGNED_SHORT, 0);
+		break;
+		
+		default:
+		glDrawElements(GL_TRIANGLES, prpl->ro.cvtx, GL_UNSIGNED_SHORT, 0);
 		break;
 	}
-
-	glDrawElements(GL_TRIANGLES, prpl->ro.cvtx, GL_UNSIGNED_SHORT, 0);
 
 	switch (prpl->rp)
 	{
@@ -685,7 +689,7 @@ void DrawGlob(RPL *prpl)
 		case RP_Cutout:
 		case RP_CutoutAfterProjVolume:
 		case RP_Translucent:
-		glDisable(GL_CULL_FACE);
+	    glDisable(GL_CULL_FACE);
 		glDepthMask(true);
 		glDepthFunc(GL_LESS);
 		glDisable(GL_BLEND);

@@ -1022,7 +1022,8 @@ struct IGFD_Thumbnail_Info {
 #define IGFD_API
 #endif  // IGFD_API
 
-#include <imgui.h>
+//#include <imgui.h>
+#include "imgui/imgui.h"
 
 #include <cfloat>
 #include <utility>

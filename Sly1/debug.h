@@ -1,8 +1,9 @@
 #pragma once
-#include "imgui.h"
-#include "imgui_impl_glfw.h"
-#include "imgui_impl_opengl3.h"
-#include "ImGuiFileDialog.h"
+#include "imgui/imgui.h"
+#include "imgui/imgui_impl_glfw.h"
+#include "imgui/imgui_impl_opengl3.h"
+#include "imgui/ImGuiFileDialog.h"
+
 #include "transition.h"
 #include <filesystem>
 

@@ -1,7 +1,6 @@
 #pragma once
 #include <fstream>
-#include <glm/glm.hpp>
-
+#include "glm/glm.hpp"
 typedef unsigned char byte;
 
 class CBinaryInputStream
