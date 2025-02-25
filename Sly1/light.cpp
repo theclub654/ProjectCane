@@ -219,6 +219,8 @@ void RebuildLight(LIGHT* plight)
 
 	else if (plight->lightk == LIGHTK_Frustrum || plight->lightk == LIGHTK_Spot)
 	{
+		ConvertAloVec(plight, nullptr, &plight->normalLocal, &plight->agFallOff);
+
 		
 	}
 }
@@ -416,6 +418,14 @@ void PrepareSwLightsForDraw(SW *psw)
 			glUniform1f(GetUniformLocation(glGlobShader.ID, "dirlights[" + std::to_string(numDirLights) + "].ltfn.duHighlight"), allSwLights[i]->ltfn.duHighlight);
 
 			numDirLights++;
+
+			case LIGHTK_Frustrum:
+			case LIGHTK_Spot:
+			glUniform3fv(GetUniformLocation(glGlobShader.ID, "frustumlights[" + std::to_string(numFrustumLights) + "].dir"),     1, glm::value_ptr(allSwLights[i]->xf.matWorld[2]));
+			glUniform3fv(GetUniformLocation(glGlobShader.ID, "frustumlights[" + std::to_string(numFrustumLights) + "].color"),   1, glm::value_ptr(allSwLights[i]->rgbaColor));
+			glUniform3fv(GetUniformLocation(glGlobShader.ID, "frustumlights[" + std::to_string(numFrustumLights) + "].falloff"), 1, glm::value_ptr(allSwLights[i]->agFallOff));
+
+			numFrustumLights++;
 			break;
 		}
 	}

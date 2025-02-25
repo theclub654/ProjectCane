@@ -64,7 +64,7 @@ class LIGHT : public ALO
 		LM lmFallOffAbsY;
 		glm::vec4 avecFrustrum[6];
 		int grfzonBeam;
-		glm::mat3 matLookAt;
+		glm::mat4 matLookAt;
 		DLE dleLight;
 };
 

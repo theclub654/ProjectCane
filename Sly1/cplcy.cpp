@@ -37,7 +37,7 @@ void BuildFrustrum(glm::mat4 &projViewMatrix, FRUSTUM &frustum)
 	projViewMatrix[1][3] + projViewMatrix[1][0],
 	projViewMatrix[2][3] + projViewMatrix[2][0],
 	projViewMatrix[3][3] + projViewMatrix[3][0]);
-
+	
 	frustum.planes[1] = glm::vec4(projViewMatrix[0][3] - projViewMatrix[0][0],
 	projViewMatrix[1][3] - projViewMatrix[1][0],
 	projViewMatrix[2][3] - projViewMatrix[2][0],

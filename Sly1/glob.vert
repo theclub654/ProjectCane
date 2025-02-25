@@ -55,6 +55,10 @@ uniform int numPointLights;
 
 struct FRUSTUMLIGHT
 {
+   vec3 dir;
+   vec3 color;
+   vec3 falloff;
+
    LTFN ltfn; 
 }; uniform FRUSTUMLIGHT frustumlights[5];
 

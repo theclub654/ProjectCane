@@ -65,7 +65,7 @@ void RecalcCmFrustrum(CM* pcm)
 	pcm->xScreenRange = pcm->yScreenRange * pcm->rAspect;
 	pcm->rMRDAdjust   = pcm->rMRD * (1.0 / pcm->radFOV);
 	pcm->sRadiusNearClip = pcm->yScreenRange * sqrt(pcm->rAspect * pcm->rAspect + 1.0) * pcm->sNearClip + 1.0;
-	
+
 	BuildProjectionMatrix(&pcm->radFOV, &g_gl.width, &g_gl.height, &pcm->sNearClip, &pcm->sFarClip, pcm->matProj);
 	BuildCmFgfn(pcm, 1.0, &pcm->fgfn);
 }
@@ -73,7 +73,7 @@ void RecalcCmFrustrum(CM* pcm)
 void BuildProjectionMatrix(float *fov, float *width, float *height, float *near, float *far, glm::mat4 &pmat)
 {
 	pmat = glm::identity <glm::mat4>();
-	pmat = glm::perspective(*fov, *width / *height, *near , 1000000000.0f);
+	pmat = glm::perspective(*fov, *width / *height, *near , 10000000000.0f);
 }
 
 void SetSwCameraFov(SW* psw, float radFOV)
@@ -274,7 +274,7 @@ void UpdateCmMat4(CM* pcm)
 {
 	BuildProjectionMatrix(&pcm->radFOV, &g_gl.width, &g_gl.height, &pcm->sNearClip, &pcm->sFarClip, pcm->matProj);
 	BuildLookAt(pcm->pos, pcm->direction, pcm->up ,pcm->lookAt);
-
+	
 	CombineEyeLookAtProj(&pcm->lookAt, &pcm->matProj, pcm->matWorldToClip);
 
 	BuildFrustrum(pcm->matWorldToClip, pcm->frustum);
