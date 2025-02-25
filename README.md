@@ -1,4 +1,4 @@
-![test](https://github.com/theclub654/ProjectCane/assets/61169936/4fbeb46a-7deb-4cae-92dc-727e4d36005b)
+![Screenshot 2025-02-24 222008](https://github.com/user-attachments/assets/3ea29295-df90-4970-b184-b98c8c054ff8)
 # Description:
 The goal for this project is to decompile all three games and understand the workings of the games as in the future when we get a pc port up and running it would make modding the games alot easier since we know how the games works, and also rewrite parts of the games that needs to be rewritten to turn into a workable PC port.
 WINDOWS is only supported at the moment other platforms will be supported when i make reasonable progress.
