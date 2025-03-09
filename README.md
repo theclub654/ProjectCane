@@ -6,10 +6,13 @@ WINDOWS is only supported at the moment other platforms will be supported when i
 # Current Goal:
 The current goal is to decompile and rewrite the Sly 1 May 19, 2002 Prototype build of the game and make that version a PC port, than after make the PS2 release version asset files compatible with the PC port thus turning the May 19, 2002 port into the release build.
 
+#Compile:
+If you want to compile the May 19, 2002 version you need to right click the Sly1-Proto in the solutons viewer and click set startup program and build and run
+If you want to compile the release version you need to right click the Sly1-Release in the solutons viewer and click set startup program and build and run
+
 # IMPORTANT
 Please keep all game assets from all branches.
 
 Please dont just copy and paste code from ghidra make it look nice.
 
 It would be very appreciated if you actually try to understand functions and things thats going on instead of just copying stuff over.
-
