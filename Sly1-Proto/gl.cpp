@@ -17,7 +17,7 @@ void GL::InitGL()
 	
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
-	window = glfwCreateWindow(width, height, "Sly 1", NULL, NULL);
+	window = glfwCreateWindow(width, height, "Sly 1 Proto", NULL, NULL);
 	
 	if (window == NULL)
 	{
