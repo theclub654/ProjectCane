@@ -50,7 +50,7 @@ int main(int cphzArgs, char* aphzArgs[])
 
 			if (fRenderModels != 0)
 			{
-				//UpdateSw(g_psw, deltaTime);
+				UpdateSw(g_psw, deltaTime);
 				RenderSwGlobset(g_psw, g_pcm);
 				DrawSw(g_psw, g_pcm);
 			}

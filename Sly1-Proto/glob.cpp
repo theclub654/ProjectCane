@@ -317,7 +317,7 @@ void LoadGlobsetFromBrx(GLOBSET *pglobset, ALO *palo, CBinaryInputStream *pbis)
 void BuildSubGlob(SUBGLOB *psubglob, SHD *pshd, std::vector <glm::vec3> &positions, std::vector <glm::vec3> &normals, std::vector <glm::vec4> &colors, std::vector <glm::vec2> &texcoords, std::vector <VTXFLG> &indexes)
 {
     psubglob->vertices.resize(indexes.size());
-
+    
     for (int i = 0; i < indexes.size(); i++)
     {
         psubglob->vertices[i].pos = positions[indexes[i].ipos];
