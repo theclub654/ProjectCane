@@ -32,6 +32,19 @@ void CloneShape(SHAPE* pshape, SHAPE* pshapeBase)
 
 void SetShapeParent(SHAPE* pshape, ALO* paloParent)
 {
+    glm::mat4 matSrc{};
+    glm::mat4 matDst{};
+
+    if (pshape->paloParent == nullptr)
+        matSrc = glm::identity <glm::mat4>();
+    else
+        LoadMatrixFromPosRot(pshape->paloParent->xf.posWorld, pshape->paloParent->xf.matWorld, matSrc);
+
+    if (paloParent == nullptr)
+        matDst = glm::identity <glm::mat4>();
+    else
+        LoadMatrixFromPosRot(paloParent->xf.posWorld, paloParent->xf.matWorld, matDst);
+
     SetLoParent(pshape, paloParent);
 }
 

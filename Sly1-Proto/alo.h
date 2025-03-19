@@ -240,7 +240,7 @@ void OnAloAdd(ALO* palo); // NOT FINISHED
 // Removes ALO from Hierarchy
 void OnAloRemove(ALO* palo);
 // Makes ALO object follow camera rotation
-void AdjustAloRtckMat(ALO* palo, CM* pcm, RTCK rtck, glm::vec3* pposCenter, glm::mat4* pmat);
+void AdjustAloRtckMat(ALO* palo, CM* pcm, RTCK rtck, glm::vec3* pposCenter, glm::mat4 &pmat);
 // Makes a copy of ALO and all of its children
 void CloneAloHierarchy(ALO* palo, ALO* paloBase);
 // Makes a copy of ALO object

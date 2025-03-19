@@ -38,7 +38,6 @@ struct DIRLIGHT
     LTFN ltfn;
 
 }; uniform DIRLIGHT dirlights[5];
-
 uniform int numDirLights;
 
 struct POINTLIGHT
@@ -50,7 +49,6 @@ struct POINTLIGHT
     LTFN ltfn;
 
 }; uniform POINTLIGHT pointlights[100];
-
 uniform int numPointLights;
 
 struct FRUSTUMLIGHT
@@ -61,7 +59,6 @@ struct FRUSTUMLIGHT
 
    LTFN ltfn; 
 }; uniform FRUSTUMLIGHT frustumlights[5];
-
 uniform int numFrustumLights;
 
 uniform int shdk;
@@ -70,14 +67,10 @@ uniform float usSelfIllum;
 uniform int fDynamic;
 uniform vec3 posCenter;
 
-out vec4 ambient;
-out vec4 midtone;
-out vec4 light;
+int fLit;
 
 float objectShadow;
 float objectMidtone;
-
-int fLit;
 
 void InitGlobLighting();
 vec4 AddDirectionLight(DIRLIGHT dirlight);
@@ -86,7 +79,11 @@ vec4 AddPositionLight(POINTLIGHT pointlight);
 vec4 AddPositionLightDynamic(POINTLIGHT pointlight);
 vec4 AddFrustrumLight(FRUSTUMLIGHT frustumlight);
 vec4 AddFrustrumLightDynamic(FRUSTUMLIGHT frustumlight);
-void ProcessGlobLighting();
+void ProcessThreeWayGlobLighting();
+
+out vec4 ambient;
+out vec4 midtone;
+out vec4 light;
 
 void main()
 {
@@ -121,7 +118,7 @@ void main()
                 light += AddFrustrumLightDynamic(frustumlights[i]);
         }
 
-        ProcessGlobLighting();
+        ProcessThreeWayGlobLighting();
     }
 
     gl_Position = matWorldToClip * model * vec4(vertex, 1.0);
@@ -130,7 +127,7 @@ void main()
 void InitGlobLighting()
 {
     objectShadow  = lsm.uShadow;
-    objectMidtone = lsm.uMidtone + usSelfIllum * 3.060163e-05;
+    objectMidtone = lsm.uMidtone + usSelfIllum * 0.000031;
     light = vec4(0.0);
 }
 
@@ -163,6 +160,7 @@ vec4 AddDynamicLight(vec3 dir, vec3 color, LTFN ltfn)
         InitGlobLighting();
 
     float diffuse = dot(normalize(direction), normal);
+
     diffuse = diffuse + diffuse * diffuse * diffuse;
 
     float lightShadow = ltfn.duShadow + diffuse * ltfn.ruShadow;
@@ -263,7 +261,7 @@ vec4 AddFrustrumLightDynamic(FRUSTUMLIGHT frustumlight)
     return vec4(0.0);
 }
 
-void ProcessGlobLighting()
+void ProcessThreeWayGlobLighting()
 {
     if (fLit == 0)
     {

@@ -28,7 +28,7 @@ void InitAlo(ALO* palo)
 
 	palo->sCelBorderMRD = 2139095039;
 	palo->sMRD = 2139095039;
-	palo->grfzon = -1;
+	palo->grfzon = 0xfffffff;
 	palo->xf.mat = glm::identity<glm::mat3>();
 	palo->xf.matWorld = glm::identity<glm::mat3>();
 	palo->matOrig = glm::identity<glm::mat3>();
@@ -132,9 +132,21 @@ void OnAloRemove(ALO* palo)
 	palo->paloRoot = nullptr;
 }
 
-void AdjustAloRtckMat(ALO* palo, CM* pcm, RTCK rtck, glm::vec3* pposCenter, glm::mat4* pmat)
+void AdjustAloRtckMat(ALO* palo, CM* pcm, RTCK rtck, glm::vec3* pposCenter, glm::mat4 &pmat)
 {
+	glm::vec3 pos;
+	pos.x = pcm->lookAt[0][0] * 2.0;
+	pos.y = pcm->lookAt[0][1] * 2.0;
+	pos.z = pcm->lookAt[0][2] * 2.0;
 	
+	glm::vec3 vec1;
+	vec1.x = pmat[0][0];
+	vec1.y = pmat[0][1];
+	vec1.z = pmat[0][2];
+
+	glm::mat4 matrixRotate;
+
+	BuildRotateVectorsMatrix(vec1, pos, matrixRotate);
 }
 
 void CloneAloHierarchy(ALO* palo, ALO* paloBase)
@@ -603,6 +615,9 @@ void RenderAloGlobset(ALO *palo, CM *pcm, RO *pro)
 				if (palo->globset.aglob[i].dmat.size() != 0)
 					rpl.ro.modelmatrix = modelmatrix * palo->globset.aglob[i].dmat[0];
 
+				/*if (palo->globset.aglob[i].rtck != RTCK_None)
+					AdjustAloRtckMat(palo, pcm, palo->globset.aglob[i].rtck, &palo->globset.aglob[i].posCenter, &rpl.ro.modelmatrix);*/
+
 				SubmitRpl(&rpl);
 
 				if (palo->globset.aglob[i].dmat.size() != 0)
@@ -649,8 +664,14 @@ void DrawGlob(RPL *prpl)
 
 	else
 	{
+		glActiveTexture(GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_2D, 0);
+
 		glActiveTexture(GL_TEXTURE1);
 		glBindTexture(GL_TEXTURE_2D, prpl->ro.pshd->glDiffuseMap);
+
+		glActiveTexture(GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_2D, 0);
 	}
 
 	switch (prpl->rp)
@@ -665,7 +686,13 @@ void DrawGlob(RPL *prpl)
 		case RP_ProjVolume:
 		glEnable(GL_BLEND);
 		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+		glEnable(GL_CULL_FACE);
+		glCullFace(GL_BACK);
+		glDrawElements(GL_TRIANGLES, prpl->ro.cvtx, GL_UNSIGNED_SHORT, 0);
+
 		glDepthMask(false);
+		glCullFace(GL_FRONT);
 		glDrawElements(GL_TRIANGLES, prpl->ro.cvtx, GL_UNSIGNED_SHORT, 0);
 		break;
 		
@@ -675,6 +702,12 @@ void DrawGlob(RPL *prpl)
 		glEnable(GL_BLEND);
 		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
+		glEnable(GL_CULL_FACE);
+		glCullFace(GL_BACK);
+		glDrawElements(GL_TRIANGLES, prpl->ro.cvtx, GL_UNSIGNED_SHORT, 0);
+
+		glDepthMask(false);
+		glCullFace(GL_FRONT);
 		glDrawElements(GL_TRIANGLES, prpl->ro.cvtx, GL_UNSIGNED_SHORT, 0);
 		break;
 		

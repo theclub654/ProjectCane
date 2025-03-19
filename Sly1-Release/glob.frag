@@ -31,6 +31,7 @@ in vec4 ambient;
 in vec4 midtone;
 in vec4 light;
 
+void CullThreeWay();
 void DrawThreeWay();
 void DrawPrelit();
 void DrawVolume();
@@ -44,6 +45,7 @@ void main()
     switch (shdk)
     {
         case SHDK_ThreeWay:
+        CullThreeWay();
         DrawThreeWay();
         break;
 
@@ -63,6 +65,12 @@ void main()
         DrawVolume();
         break;
     }
+}
+
+void CullThreeWay()
+{
+    if (!gl_FrontFacing)
+        discard;
 }
 
 void DrawThreeWay()

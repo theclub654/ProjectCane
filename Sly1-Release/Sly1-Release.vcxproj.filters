@@ -982,13 +982,28 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <None Include="The Hideout.brx">
-      <Filter>Header Files</Filter>
-    </None>
-  </ItemGroup>
-  <ItemGroup>
     <ResourceCompile Include="Sly1-Release.rc">
       <Filter>Resource Files</Filter>
     </ResourceCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="glob.vert">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="collision.vert">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="screen.vert">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="collision.frag">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="glob.frag">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="screen.frag">
+      <Filter>Resource Files</Filter>
+    </None>
   </ItemGroup>
 </Project>

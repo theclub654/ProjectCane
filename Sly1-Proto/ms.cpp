@@ -43,11 +43,14 @@ void RenderMsGlobset(MS *pms, CM *pcm, RO *pro)
                 rpl.ro.fDynamic = pms->globset.aglob[i].fDynamic;
 
                 rpl.posCenter = pms->globset.aglob[i].posCenter;
-
+                
                 rpl.rp = pms->globset.aglob[i].rp;
 
                 if (pms->globset.aglob[i].dmat.size() != 0)
                     rpl.ro.modelmatrix = pms->globset.aglob[i].dmat[0] * modelmatrix;
+
+                /*if (pms->globset.aglob[i].rtck != RTCK_None)
+                    AdjustAloRtckMat(pms, pcm, pms->globset.aglob[i].rtck, &pms->globset.aglob[i].posCenter, &rpl.ro.modelmatrix);*/
 
                 SubmitRpl(&rpl);
 

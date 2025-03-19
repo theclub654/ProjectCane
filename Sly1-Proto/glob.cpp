@@ -61,9 +61,12 @@ void LoadGlobsetFromBrx(GLOBSET *pglobset, ALO *palo, CBinaryInputStream *pbis)
             pglobset->aglob[i].sMRD = pglobset->aglob[instanceIndex].sMRD;
             pglobset->aglobi[i] = pglobset->aglobi[instanceIndex];
 
-            pglobset->aglob[i].dmat.push_back(pbis->ReadMatrix4());
-        }
+            glm::mat4 instanceModelMatrix = pbis->ReadMatrix4();
+            
 
+            pglobset->aglob[i].dmat.push_back(instanceModelMatrix);
+        }
+        
         if ((unk_5 & 2) != 0)
             pglobset->aglobi[i].grfzon = pbis->U32Read();
 
@@ -218,10 +221,10 @@ void LoadGlobsetFromBrx(GLOBSET *pglobset, ALO *palo, CBinaryInputStream *pbis)
                 //std::cout << "Indexes: " << std::hex << pbis->file.tellg() << "\n\n";
                 for (int f = 0; f < indexCount; f++)
                 {
-                    indexes[f].ipos    = pbis->U8Read();
-                    indexes[f].inormal = pbis->U8Read();
-                    indexes[f].iuv     = pbis->U8Read();
-                    indexes[f].bMisc   = pbis->U8Read();
+                    indexes[f].ipos    = (uint32_t)pbis->U8Read();
+                    indexes[f].inormal = (uint32_t)pbis->U8Read();
+                    indexes[f].iuv     = (uint32_t)pbis->U8Read();
+                    indexes[f].bMisc   = (uint32_t)pbis->U8Read();
                 }
 
                 // Loading texture property 
@@ -260,7 +263,7 @@ void LoadGlobsetFromBrx(GLOBSET *pglobset, ALO *palo, CBinaryInputStream *pbis)
                     }
                 }
                 
-                BuildSubGlob(&pglobset->aglob[i].asubglob[a], pglobset->aglob[i].asubglob[a].pshd, vertexes, normals, vertexColors, texcoords, indexes);
+                BuildSubGlob(&pglobset->aglob[i].asubglob[a] ,pglobset->aglob[i].asubglob[a].pshd, vertexes, normals, vertexColors, texcoords, indexes, i, a);
             }
 
             uint16_t numSubMesh1 = pbis->U16Read();
@@ -314,7 +317,7 @@ void LoadGlobsetFromBrx(GLOBSET *pglobset, ALO *palo, CBinaryInputStream *pbis)
     }
 }
 
-void BuildSubGlob(SUBGLOB *psubglob, SHD *pshd, std::vector <glm::vec3> &positions, std::vector <glm::vec3> &normals, std::vector <glm::vec4> &colors, std::vector <glm::vec2> &texcoords, std::vector <VTXFLG> &indexes)
+void BuildSubGlob(SUBGLOB* psubglob, SHD* pshd, std::vector <glm::vec3>& positions, std::vector <glm::vec3>& normals, std::vector <glm::vec4>& colors, std::vector <glm::vec2>& texcoords, std::vector <VTXFLG>& indexes, int globIndex, int subglobIndex)
 {
     psubglob->vertices.resize(indexes.size());
     
@@ -337,21 +340,33 @@ void BuildSubGlob(SUBGLOB *psubglob, SHD *pshd, std::vector <glm::vec3> &positio
         else
             psubglob->vertices[i].uv = texcoords[indexes[i].iuv];
     }
-    
+
     uint32_t idx = 0;
     for (int i = 2; i < indexes.size(); i++)
     {
         if (!(indexes[idx + 2].bMisc & 0x80))
         {
-            INDICE indice;
+            if (i % 2 == 0)
+            {
+                INDICE indice;
 
-            indice.v1 = idx + 0;
-            indice.v2 = idx + 1;
-            indice.v3 = idx + 2;
+                indice.v1 = idx + 0;
+                indice.v2 = idx + 1;
+                indice.v3 = idx + 2;
 
-            psubglob->indices.push_back(indice);
+                psubglob->indices.push_back(indice);
+            }
+            else
+            {
+                INDICE indice;
+
+                indice.v1 = idx + 0;
+                indice.v2 = idx + 2;
+                indice.v3 = idx + 1;
+
+                psubglob->indices.push_back(indice);
+            }
         }
-
         idx++;
     }
     

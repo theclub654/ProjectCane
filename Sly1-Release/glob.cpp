@@ -343,13 +343,26 @@ void BuildSubGlob(SUBGLOB *psubglob, SHD *pshd, std::vector <glm::vec3> &positio
     {
         if (!(indexes[idx + 2].bMisc & 0x80))
         {
-            INDICE indice;
+            if (i % 2 == 0)
+            {
+                INDICE indice;
 
-            indice.v1 = idx + 0;
-            indice.v2 = idx + 1;
-            indice.v3 = idx + 2;
+                indice.v1 = idx + 0;
+                indice.v2 = idx + 1;
+                indice.v3 = idx + 2;
 
-            psubglob->indices.push_back(indice);
+                psubglob->indices.push_back(indice);
+            }
+            else
+            {
+                INDICE indice;
+
+                indice.v1 = idx + 0;
+                indice.v2 = idx + 2;
+                indice.v3 = idx + 1;
+
+                psubglob->indices.push_back(indice);
+            }
         }
 
         idx++;

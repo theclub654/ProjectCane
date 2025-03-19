@@ -469,10 +469,15 @@
     <ClInclude Include="zap.h" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="The Hideout.brx" />
+    <ResourceCompile Include="Sly1-Release.rc" />
   </ItemGroup>
   <ItemGroup>
-    <ResourceCompile Include="Sly1-Release.rc" />
+    <None Include="collision.frag" />
+    <None Include="collision.vert" />
+    <None Include="glob.frag" />
+    <None Include="glob.vert" />
+    <None Include="screen.frag" />
+    <None Include="screen.vert" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -47,3 +47,19 @@ void LoadMatrixFromPosRotInverse(glm::vec3 &pposSrc, glm::mat3 &pmatSrc, glm::ma
 	pmatDst[2][1] = pmatSrc[2][1];
 	pmatDst[2][2] = pmatSrc[2][2];
 }
+
+void BuildRotateVectorsMatrix(glm::vec3 &vec1, glm::vec3 &vec2, glm::mat4 &mat)
+{
+	glm::vec3 p1 = vec1;
+	glm::vec3 p2 = vec2;
+
+	p1 = normalize(p1);
+	p2 = normalize(p2);
+
+
+}
+
+void LoadRotateMatrixRad(float rad, glm::vec3& pnormal, glm::mat4& pmat)
+{
+	
+}
