@@ -31,7 +31,7 @@ in vec4 ambient;
 in vec4 midtone;
 in vec4 light;
 
-void CullThreeWay();
+void CullGlob();
 void DrawThreeWay();
 void DrawPrelit();
 void DrawVolume();
@@ -45,7 +45,7 @@ void main()
     switch (shdk)
     {
         case SHDK_ThreeWay:
-        CullThreeWay();
+        CullGlob();
         DrawThreeWay();
         break;
 
@@ -58,6 +58,7 @@ void main()
         case SHDK_MurkClear:
         case SHDK_MurkFill:
         case SHDK_Max:
+        CullGlob();
         DrawPrelit();
         break;
 
@@ -67,10 +68,10 @@ void main()
     }
 }
 
-void CullThreeWay()
+void CullGlob()
 {
     if (!gl_FrontFacing)
-        discard;
+         discard;
 }
 
 void DrawThreeWay()
@@ -97,7 +98,6 @@ void DrawThreeWay()
         break;
     
         case TWPS_ShadowMidtoneSaturate:
-        
         FragColor += shadow   * ambient;
         FragColor += diffuse  * midtone;
         FragColor += saturate * light;

@@ -57,7 +57,7 @@ void RenderMenuGui(SW* psw)
             {
                 if (psw != nullptr)
                     DeleteWorld(psw);
-             
+                
                 file = ImGuiFileDialog::Instance()->GetFilePathName();
                 filePath = ImGuiFileDialog::Instance()->GetCurrentPath();
                 std::string tempLevelName = ImGuiFileDialog::Instance()->GetCurrentFileName();

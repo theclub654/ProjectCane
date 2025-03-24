@@ -63,14 +63,16 @@ uniform int numFrustumLights;
 
 uniform int shdk;
 uniform float usSelfIllum;
-
 uniform int fDynamic;
 uniform vec3 posCenter;
 
 int fLit;
-
 float objectShadow;
 float objectMidtone;
+
+out vec4 ambient;
+out vec4 midtone;
+out vec4 light;
 
 void InitGlobLighting();
 vec4 AddDirectionLight(DIRLIGHT dirlight);
@@ -80,10 +82,6 @@ vec4 AddPositionLightDynamic(POINTLIGHT pointlight);
 vec4 AddFrustrumLight(FRUSTUMLIGHT frustumlight);
 vec4 AddFrustrumLightDynamic(FRUSTUMLIGHT frustumlight);
 void ProcessThreeWayGlobLighting();
-
-out vec4 ambient;
-out vec4 midtone;
-out vec4 light;
 
 void main()
 {
@@ -136,7 +134,6 @@ vec4 AddDirectionLight(DIRLIGHT dirlight)
     vec3 direction = mat3(inverse(model)) * dirlight.dir;
     
     float diffuse = dot(normalize(direction), normal);
-
     diffuse = diffuse + diffuse * diffuse * diffuse;
    
     float lightShadow  = diffuse * dirlight.ltfn.ruShadow  + dirlight.ltfn.duShadow;
@@ -160,7 +157,6 @@ vec4 AddDynamicLight(vec3 dir, vec3 color, LTFN ltfn)
         InitGlobLighting();
 
     float diffuse = dot(normalize(direction), normal);
-
     diffuse = diffuse + diffuse * diffuse * diffuse;
 
     float lightShadow = ltfn.duShadow + diffuse * ltfn.ruShadow;
@@ -190,7 +186,6 @@ vec4 AddPositionLight(POINTLIGHT pointlight)
     float attenuation = 1.0 / distance * pointlight.falloff.y + pointlight.falloff.x;
 
     float diffuse = dot(direction, normalize(normalWorld));
-
     diffuse = diffuse + diffuse * diffuse * diffuse;
 
     float ruShadow = 0.0;

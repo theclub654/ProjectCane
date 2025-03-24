@@ -31,12 +31,9 @@ in vec4 ambient;
 in vec4 midtone;
 in vec4 light;
 
-void CullThreeWay();
+void CullGlob();
 void DrawThreeWay();
-
 void DrawPrelit();
-
-void CullProjVolume();
 void DrawVolume();
 
 out vec4 FragColor;
@@ -48,7 +45,7 @@ void main()
     switch (shdk)
     {
         case SHDK_ThreeWay:
-        CullThreeWay();
+        CullGlob();
         DrawThreeWay();
         break;
 
@@ -61,17 +58,17 @@ void main()
         case SHDK_MurkClear:
         case SHDK_MurkFill:
         case SHDK_Max:
+        CullGlob();
         DrawPrelit();
         break;
 
         case SHDK_ProjectedVolume:
-        CullProjVolume();
         DrawVolume();
         break;
     }
 }
 
-void CullThreeWay()
+void CullGlob()
 {
     if (!gl_FrontFacing)
          discard;
@@ -115,12 +112,6 @@ void DrawPrelit()
     vec4 diffuse = texture(diffuseMap, texcoord);
 
     FragColor = diffuse * vertexColor;
-}
-
-void CullProjVolume()
-{
-    if (!gl_FrontFacing)
-         discard;
 }
 
 void DrawVolume()
