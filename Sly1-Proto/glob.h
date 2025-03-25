@@ -97,6 +97,12 @@ struct VTXFLG
 	uint32_t bMisc;
 };
 
+struct SUBPOSEF
+{
+	std::vector <uint16_t> aiposf;
+	std::vector <uint16_t> ainormalf;
+};
+
 struct WEKI
 {
 	WEK wek;
@@ -149,6 +155,7 @@ struct SUBGLOB // NOT DONE
 
 	// Object brightness
 	float unSelfIllum;
+	// Object shader property
 	struct SHD* pshd;
 	struct WRBSG *pwrbsg;
 	int cibnd;
@@ -194,7 +201,7 @@ struct GLOB // NOT DONE
 	struct BLOT* pblot;
 	OID oid;
 	char* pchzName;
-}; // NOT DONE
+}; // NOT DONE 
 
 struct GLOBI
 {
@@ -227,4 +234,4 @@ struct GLOBSET // NOT DONE
 // Loads 3D model data from binary file
 void LoadGlobsetFromBrx(GLOBSET *pglobset, ALO *palo, CBinaryInputStream *pbis);
 // Converts strips to tri lists and stores 3D sub model in VRAM
-void BuildSubGlob(SUBGLOB *psubglob, SHD *pshd, std::vector <glm::vec3> &positions, std::vector <glm::vec3> &normals, std::vector <glm::vec4> &colors, std::vector <glm::vec2> &texcoords, std::vector <VTXFLG> &indexes, RP rp);
+void BuildSubGlob(SUBGLOB *psubglob, SHD *pshd, std::vector <glm::vec3> &positions, std::vector <glm::vec3> &normals, std::vector <glm::vec4> &colors, std::vector <glm::vec2> &texcoords, std::vector <VTXFLG> &indexes, SUBPOSEF* subposef, std::vector <glm::vec3>& aposfPoses, std::vector <glm::vec3>& anormalfPoses, std::vector <float>& agWeights);

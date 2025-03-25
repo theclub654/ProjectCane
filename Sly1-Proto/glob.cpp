@@ -233,37 +233,47 @@ void LoadGlobsetFromBrx(GLOBSET *pglobset, ALO *palo, CBinaryInputStream *pbis)
                 pglobset->aglob[i].asubglob[a].cibnd = pbis->U8Read();
                 
                 pbis->file.seekg(pglobset->aglob[i].asubglob[a].cibnd, SEEK_CUR);
-                pbis->file.seekg(vertexCount * pglobset->aglob[i].asubglob[a].cibnd * 4, SEEK_CUR);
+
+                float weightCount = vertexCount * pglobset->aglob[i].asubglob[a].cibnd;
+
+                std::vector <float> agWeights;
+                agWeights.resize(weightCount);
+
+                for (int i = 0; i < weightCount; i++)
+                    agWeights[i] = pbis->F32Read();
+
+                std::vector <glm::vec3> posfPose;
+                std::vector <glm::vec3> normalfPose;
+                SUBPOSEF subposef;
 
                 if (pglobset->cpose != 0)
                 {
-                    uint16_t vertexCount1 = pbis->U16Read();
+                    uint16_t posfPosesCount = pbis->U16Read();
+                    posfPose.resize(posfPosesCount);
 
-                    for (int i = 0; i < vertexCount1; i++)
-                        pbis->ReadVector();
+                    for (int i = 0; i < posfPosesCount; i++)
+                        posfPose[i] = pbis->ReadVector();
 
-                    uint16_t normalCount = pbis->U16Read();
+                    uint16_t normalfPoseCount = pbis->U16Read();
+                    normalfPose.resize(normalfPoseCount);
 
-                    for (int i = 0; i < normalCount; i++)
-                        pbis->ReadVector();
+                    for (int i = 0; i < normalfPoseCount; i++)
+                        normalfPose[i] = pbis->ReadVector();
+
+                    subposef.aiposf.resize(indexCount);
+                    subposef.ainormalf.resize(indexCount);
 
                     for (int i = 0; i < pglobset->cpose; i++)
                     {
                         for (int i = 0; i < indexCount; i++)
-                        {
-                            pbis->U8Read();
-                            pbis->U8Read();
-                        }
+                            subposef.aiposf[i] = pbis->U16Read();
 
                         for (int i = 0; i < indexCount; i++)
-                        {
-                            pbis->U8Read();
-                            pbis->U8Read();
-                        }
+                            subposef.ainormalf[i] = pbis->U16Read();
                     }
                 }
                 
-                BuildSubGlob(&pglobset->aglob[i].asubglob[a] ,pglobset->aglob[i].asubglob[a].pshd, vertexes, normals, vertexColors, texcoords, indexes, pglobset->aglob[i].rp);
+                BuildSubGlob(&pglobset->aglob[i].asubglob[a] ,pglobset->aglob[i].asubglob[a].pshd, vertexes, normals, vertexColors, texcoords, indexes, &subposef, posfPose, normalfPose, agWeights);
             }
 
             uint16_t numSubMesh1 = pbis->U16Read();
@@ -317,7 +327,7 @@ void LoadGlobsetFromBrx(GLOBSET *pglobset, ALO *palo, CBinaryInputStream *pbis)
     }
 }
 
-void BuildSubGlob(SUBGLOB* psubglob, SHD* pshd, std::vector <glm::vec3>& positions, std::vector <glm::vec3>& normals, std::vector <glm::vec4>& colors, std::vector <glm::vec2>& texcoords, std::vector <VTXFLG>& indexes, RP rp)
+void BuildSubGlob(SUBGLOB* psubglob, SHD* pshd, std::vector <glm::vec3>& positions, std::vector <glm::vec3>& normals, std::vector <glm::vec4>& colors, std::vector <glm::vec2>& texcoords, std::vector <VTXFLG>& indexes, SUBPOSEF* subposef, std::vector <glm::vec3>& aposfPoses, std::vector <glm::vec3>& anormalfPoses, std::vector <float>& agWeights)
 {
     psubglob->vertices.resize(indexes.size());
     

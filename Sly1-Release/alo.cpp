@@ -671,7 +671,7 @@ void DrawGlob(RPL *prpl)
 		glDepthFunc(GL_ALWAYS);
 		glStencilFunc(GL_EQUAL, 128, 128);
 		glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP);
-		glBlendFunc(GL_SRC_ALPHA, GL_ONE);
+		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 		glFrontFace(GL_CW);
 		glDrawElements(GL_TRIANGLES, prpl->ro.cvtx, GL_UNSIGNED_SHORT, 0);
 		break;
