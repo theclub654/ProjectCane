@@ -1,10 +1,11 @@
-![Screenshot 2025-02-24 222008](https://github.com/user-attachments/assets/3ea29295-df90-4970-b184-b98c8c054ff8)
+![Screenshot 2025-03-27 212612](https://github.com/user-attachments/assets/6ad745bc-0493-47bb-9374-04c947a4768c)
+
 # Description:
 The goal for this project is to decompile all three games and understand the workings of the games as in the future when we get a pc port up and running it would make modding the games alot easier since we know how the games works, and also rewrite parts of the games that needs to be rewritten to turn into a workable PC port.
 WINDOWS is only supported at the moment other platforms will be supported when i make reasonable progress.
 
 # Current Goal:
-The current goal is to decompile and rewrite the Sly 1 May 19, 2002 Prototype build of the game and make that version a PC port, than after make the PS2 release version asset files compatible with the PC port thus turning the May 19, 2002 port into the release build.
+The current goal is to RE the may proto and release side by side but use the may proto as a template for the release
 
 # Compile:
 If you want to compile the May 19, 2002 version you need to right click the Sly1-Proto in the solutons viewer and click set startup program and build and run
