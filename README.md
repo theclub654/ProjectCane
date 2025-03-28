@@ -1,4 +1,4 @@
-![Screenshot 2025-03-27 212612](https://github.com/user-attachments/assets/6ad745bc-0493-47bb-9374-04c947a4768c)
+![Screenshot 2025-03-27 212612](https://github.com/user-attachments/assets/fd57df0f-7f3e-41af-a415-f26447850229)
 
 # Description:
 The goal for this project is to decompile all three games and understand the workings of the games as in the future when we get a pc port up and running it would make modding the games alot easier since we know how the games works, and also rewrite parts of the games that needs to be rewritten to turn into a workable PC port.
