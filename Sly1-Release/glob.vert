@@ -2,6 +2,10 @@
 
 #define SHDK_ThreeWay 0
 
+#define RKO_OneWay 0
+#define RKO_ThreeWay 1
+#define RKO_CelBorder 2
+
 layout (location = 0) in vec3 vertex;
 layout (location = 1) in vec3 normal;
 layout (location = 2) in vec4 color;
@@ -67,6 +71,8 @@ uniform int numFrustumLights;
 uniform int shdk;
 uniform float usSelfIllum;
 
+uniform int rko;
+
 uniform int fDynamic;
 uniform vec3 posCenter;
 
@@ -79,6 +85,7 @@ float objectMidtone;
 
 int fLit;
 
+void StartThreeWay();
 void InitGlobLighting();
 vec4 AddDirectionLight(DIRLIGHT dirlight);
 vec4 AddDynamicLight(vec3 dir, vec3 color, LTFN ltfn);
@@ -93,9 +100,26 @@ void main()
     vertexColor = color;
     texcoord    = uv;
 
-    if (shdk == SHDK_ThreeWay)
+    switch (rko)
     {
-        if (fDynamic != 1)
+        case RKO_OneWay:
+        gl_Position = matWorldToClip * model * vec4(vertex, 1.0);
+        break;
+
+        case RKO_ThreeWay:
+        StartThreeWay();
+        gl_Position = matWorldToClip * model * vec4(vertex, 1.0);
+        break;
+
+        case RKO_CelBorder:
+        gl_Position = matWorldToClip * model * vec4(vertex, 1.0);
+        break;
+    }
+}
+
+void StartThreeWay()
+{
+    if (fDynamic != 1)
         {
             fLit = 1;
             InitGlobLighting();
@@ -122,9 +146,6 @@ void main()
         }
 
         ProcessGlobLighting();
-    }
-
-    gl_Position = matWorldToClip * model * vec4(vertex, 1.0);
 }
 
 void InitGlobLighting()

@@ -118,9 +118,17 @@ struct RO
 	GLuint *VBO;
 	GLuint *EBO;
 
-	GRFGLOB *grfglob;
-
 	int cvtx;
+
+	GLuint *celVAO;
+	GLuint *celVBO;
+	GLuint *celEBO;
+
+	int celcvtx;
+
+	int fThreeWay;
+
+	GRFGLOB *grfglob;
 
 	SHD *pshd;
 
@@ -129,8 +137,8 @@ struct RO
 	glm::mat4 modelmatrix;
 	float uAlpha;
 	float uAlphaCelBorder;
-	TRLK trlk;
 	int fDynamic;
+	int fCelBorder;
 	TWPS twps;
 };
 

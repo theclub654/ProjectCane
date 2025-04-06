@@ -197,16 +197,18 @@ void DrawSw(SW *psw, CM *pcm)
 
 	PrepareSwLightsForDraw(g_psw);
 
-	SortRenderRpl();
-
 	glUniformMatrix4fv(glGetUniformLocation(glGlobShader.ID, "matWorldToClip"), 1, GL_FALSE, glm::value_ptr(pcm->matWorldToClip));
 
 	glUniform1f(glGetUniformLocation(glGlobShader.ID, "lsm.uShadow"),  g_psw->lsmDefault.uShadow);
 	glUniform1f(glGetUniformLocation(glGlobShader.ID, "lsm.uMidtone"), g_psw->lsmDefault.uMidtone);
+	
+	glUniform4fv(glGetUniformLocation(glGlobShader.ID, "rgbaCel"), 1, glm::value_ptr(g_rgbaCel));
+
+	SortRenderRpl();
 
 	for (int i = 0; i < renderBuffer.size(); i++)
 		renderBuffer[i].PFNDRAW(&renderBuffer[i]);
-	
+
 	renderBuffer.clear();
 }
 

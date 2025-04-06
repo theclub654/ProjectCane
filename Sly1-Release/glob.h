@@ -97,6 +97,19 @@ struct VTXFLG
 	byte bMisc;
 };
 
+struct SUBCEL
+{
+	GLuint VAO;
+	GLuint VBO;
+	GLuint EBO;
+
+	std::vector <glm::vec3> positions;
+	std::vector <uint16_t> indices;
+	std::vector <float> weights;
+
+	int cvtx;
+};
+
 struct WEKI
 {
 	WEK wek;
@@ -141,14 +154,30 @@ struct SUBGLOB // NOT DONE
 	GLuint VBO;
 	GLuint EBO;
 
-	glm::vec3 posCenter; // Submodel orgin
-	float sRadius;
-
 	std::vector <VERTICE> vertices;
 	std::vector <INDICE> indices;
 
+	int cvtx;
+
+	GLuint celVAO;
+	GLuint celVBO;
+	GLuint celEBO;
+
+	std::vector <glm::vec3> celPositions;
+	std::vector <INDICE> celIndices;
+
+	int celcvtx;
+
+	int fCelBorder;
+
+	int fThreeWay;
+
+	glm::vec3 posCenter; // Submodel orgin
+	float sRadius;
+
 	// Object brightness
 	float unSelfIllum;
+	// Object shader property
 	struct SHD* pshd;
 	struct WRBSG *pwrbsg;
 	int cibnd;
@@ -187,7 +216,7 @@ struct GLOB // NOT DONE
 	int csubglob;
 	std::vector <SUBGLOB> asubglob;
 	int csubcel;
-	//SUBCEL *asubcel;
+	std::vector <SUBCEL> asubcel;
 	// Instanced object matrix container
 	std::vector <glm::mat4> dmat;
 	short instanceIndex;
@@ -225,6 +254,6 @@ struct GLOBSET // NOT DONE
 };
 
 // Loads 3D model data from binary file
-void LoadGlobsetFromBrx(GLOBSET *pglobset, ALO *palo, CBinaryInputStream *pbis);
+void LoadGlobsetFromBrx(GLOBSET* pglobset, short cid, ALO* palo, CBinaryInputStream* pbis);
 // Converts strips to tri lists and stores 3D sub model in VRAM
 void BuildSubGlob(SUBGLOB *psubglob, SHD *pshd, std::vector <glm::vec3> &positions, std::vector <glm::vec3> &normals, std::vector <glm::vec4> &colors, std::vector <glm::vec2> &texcoords, std::vector <VTXFLG> &indexes);

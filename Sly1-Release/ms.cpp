@@ -28,12 +28,26 @@ void RenderMsGlobset(MS *pms, CM *pcm, RO *pro)
             {
                 rpl.ro.VAO = &pms->globset.aglob[i].asubglob[a].VAO;
 
+                if (pms->globset.aglob[i].asubglob[a].fCelBorder == 1)
+                {
+                    rpl.ro.celVAO = &pms->globset.aglob[i].asubglob[a].celVAO;
+                    rpl.ro.celcvtx = pms->globset.aglob[i].asubglob[a].celcvtx;
+                    rpl.ro.fCelBorder = 1;
+                }
+                else
+                {
+                    rpl.ro.celVAO = nullptr;
+                    rpl.ro.fCelBorder = 0;
+                }
+
                 rpl.ro.grfglob = &pms->globset.aglob[i].grfglob;
                 rpl.ro.pshd = pms->globset.aglob[i].asubglob[a].pshd;
 
+                rpl.ro.fThreeWay = pms->globset.aglob[i].asubglob[a].fThreeWay;
+
                 rpl.ro.unSelfIllum = &pms->globset.aglob[i].asubglob[a].unSelfIllum;
 
-                rpl.ro.cvtx = pms->globset.aglob[i].asubglob[a].indices.size() * sizeof(INDICE);
+                rpl.ro.cvtx = pms->globset.aglob[i].asubglob[a].cvtx;
                 
                 rpl.z = pms->globset.aglob[i].gZOrder;
 

@@ -179,7 +179,6 @@ void DrawCollision(SO *pso)
 	glDrawElements(GL_LINES, pso->geomCameraLocal.indices.size(), GL_UNSIGNED_SHORT, 0);
 
 	glBindVertexArray(0);
-	glActiveTexture(GL_TEXTURE0);
 }
 
 void DeleteSo(SO *pso)

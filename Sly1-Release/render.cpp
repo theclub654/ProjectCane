@@ -204,9 +204,11 @@ void DrawSw(SW *psw, CM *pcm)
 	glUniform1f(glGetUniformLocation(glGlobShader.ID, "lsm.uShadow"),  g_psw->lsmDefault.uShadow);
 	glUniform1f(glGetUniformLocation(glGlobShader.ID, "lsm.uMidtone"), g_psw->lsmDefault.uMidtone);
 
+	glUniform4fv(glGetUniformLocation(glGlobShader.ID, "rgbaCel"), 1, glm::value_ptr(g_rgbaCel));
+
 	for (int i = 0; i < renderBuffer.size(); i++)
 		renderBuffer[i].PFNDRAW(&renderBuffer[i]);
-	
+
 	renderBuffer.clear();
 }
 

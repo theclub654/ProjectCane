@@ -6,6 +6,7 @@ class LIGHT;
 std::vector<LO*> allWorldObjs;
 std::vector<ALO*> allSWAloObjs;
 std::vector<LIGHT*> allSwLights;
+
 extern std::vector <SO*> allSWSoObjs;
 
 SW* NewSw()

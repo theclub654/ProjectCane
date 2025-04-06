@@ -6,6 +6,20 @@
 #include "debug.h"
 #include "mouse.h"
 
+// Temporary flag
+bool loadEmitMesh = 0;
+GL g_gl;
+GLSHADER glScreenShader;
+GLSHADER glGlobShader;
+GLSHADER glCelBorderShader;
+GLSHADER glCollisionShader;
+std::string file;
+std::string levelName;
+CTransition g_transition;
+bool firstClick = true;
+float deltaTime = 0.0f;
+float lastFrame = 0.0f;
+
 void RenderSw(SW *psw, CM *pcm);
 void RenderSwGlobset(SW *psw, CM *pcm);
 void DrawSw(SW *psw, CM *pcm);

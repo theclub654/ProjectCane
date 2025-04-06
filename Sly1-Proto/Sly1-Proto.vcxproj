@@ -435,6 +435,9 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="..\README.md" />
+    <None Include="celborder.frag" />
+    <None Include="celborder.geom" />
+    <None Include="celborder.vert" />
     <None Include="collision.frag" />
     <None Include="collision.vert" />
     <None Include="glob.frag" />

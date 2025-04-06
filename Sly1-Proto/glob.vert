@@ -2,6 +2,10 @@
 
 #define SHDK_ThreeWay 0
 
+#define RKO_OneWay 0
+#define RKO_ThreeWay 1
+#define RKO_CelBorder 2
+
 layout (location = 0) in vec3 vertex;
 layout (location = 1) in vec3 normal;
 layout (location = 2) in vec4 color;
@@ -38,6 +42,7 @@ struct DIRLIGHT
     LTFN ltfn;
 
 }; uniform DIRLIGHT dirlights[5];
+
 uniform int numDirLights;
 
 struct POINTLIGHT
@@ -49,6 +54,7 @@ struct POINTLIGHT
     LTFN ltfn;
 
 }; uniform POINTLIGHT pointlights[100];
+
 uniform int numPointLights;
 
 struct FRUSTUMLIGHT
@@ -59,21 +65,27 @@ struct FRUSTUMLIGHT
 
    LTFN ltfn; 
 }; uniform FRUSTUMLIGHT frustumlights[5];
+
 uniform int numFrustumLights;
 
 uniform int shdk;
 uniform float usSelfIllum;
+
+uniform int rko;
+
 uniform int fDynamic;
 uniform vec3 posCenter;
-
-int fLit;
-float objectShadow;
-float objectMidtone;
 
 out vec4 ambient;
 out vec4 midtone;
 out vec4 light;
 
+float objectShadow;
+float objectMidtone;
+
+int fLit;
+
+void StartThreeWay();
 void InitGlobLighting();
 vec4 AddDirectionLight(DIRLIGHT dirlight);
 vec4 AddDynamicLight(vec3 dir, vec3 color, LTFN ltfn);
@@ -81,16 +93,33 @@ vec4 AddPositionLight(POINTLIGHT pointlight);
 vec4 AddPositionLightDynamic(POINTLIGHT pointlight);
 vec4 AddFrustrumLight(FRUSTUMLIGHT frustumlight);
 vec4 AddFrustrumLightDynamic(FRUSTUMLIGHT frustumlight);
-void ProcessThreeWayGlobLighting();
+void ProcessGlobLighting();
 
 void main()
 {
     vertexColor = color;
     texcoord    = uv;
 
-    if (shdk == SHDK_ThreeWay)
+    switch (rko)
     {
-        if (fDynamic != 1)
+        case RKO_OneWay:
+        gl_Position = matWorldToClip * model * vec4(vertex, 1.0);
+        break;
+
+        case RKO_ThreeWay:
+        StartThreeWay();
+        gl_Position = matWorldToClip * model * vec4(vertex, 1.0);
+        break;
+
+        case RKO_CelBorder:
+        gl_Position = matWorldToClip * model * vec4(vertex, 1.0);
+        break;
+    }
+}
+
+void StartThreeWay()
+{
+    if (fDynamic != 1)
         {
             fLit = 1;
             InitGlobLighting();
@@ -116,16 +145,13 @@ void main()
                 light += AddFrustrumLightDynamic(frustumlights[i]);
         }
 
-        ProcessThreeWayGlobLighting();
-    }
-
-    gl_Position = matWorldToClip * model * vec4(vertex, 1.0);
+        ProcessGlobLighting();
 }
 
 void InitGlobLighting()
 {
     objectShadow  = lsm.uShadow;
-    objectMidtone = lsm.uMidtone + usSelfIllum * 0.000031;
+    objectMidtone = lsm.uMidtone + usSelfIllum * 3.060163e-05;
     light = vec4(0.0);
 }
 
@@ -134,6 +160,7 @@ vec4 AddDirectionLight(DIRLIGHT dirlight)
     vec3 direction = mat3(inverse(model)) * dirlight.dir;
     
     float diffuse = dot(normalize(direction), normal);
+
     diffuse = diffuse + diffuse * diffuse * diffuse;
    
     float lightShadow  = diffuse * dirlight.ltfn.ruShadow  + dirlight.ltfn.duShadow;
@@ -186,6 +213,7 @@ vec4 AddPositionLight(POINTLIGHT pointlight)
     float attenuation = 1.0 / distance * pointlight.falloff.y + pointlight.falloff.x;
 
     float diffuse = dot(direction, normalize(normalWorld));
+
     diffuse = diffuse + diffuse * diffuse * diffuse;
 
     float ruShadow = 0.0;
@@ -256,7 +284,7 @@ vec4 AddFrustrumLightDynamic(FRUSTUMLIGHT frustumlight)
     return vec4(0.0);
 }
 
-void ProcessThreeWayGlobLighting()
+void ProcessGlobLighting()
 {
     if (fLit == 0)
     {

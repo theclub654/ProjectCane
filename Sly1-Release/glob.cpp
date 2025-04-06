@@ -4,7 +4,7 @@ std::vector <SHD> g_ashd;
 extern std::vector<ALO*> allSWAloObjs;
 extern std::vector<LIGHT*> allSwLights;
 
-void LoadGlobsetFromBrx(GLOBSET *pglobset, ALO *palo, CBinaryInputStream *pbis)
+void LoadGlobsetFromBrx(GLOBSET* pglobset, short cid, ALO* palo, CBinaryInputStream* pbis)
 {
     pglobset->cpsaa = 0;
 
@@ -30,6 +30,7 @@ void LoadGlobsetFromBrx(GLOBSET *pglobset, ALO *palo, CBinaryInputStream *pbis)
 
     int fCloneSubGlob = 0;
 
+    int fCelBorder = 0;
     // Loading each submodel for a model
     for (int i = 0; i < pglobset->cglob; i++)
     {
@@ -267,6 +268,7 @@ void LoadGlobsetFromBrx(GLOBSET *pglobset, ALO *palo, CBinaryInputStream *pbis)
 
             for (int i = 0; i < numSubMesh1; i++)
             {
+                fCelBorder = 1;
                 byte vertexCount2 = pbis->U8Read();
 
                 for (int i = 0; i < vertexCount2; i++)
@@ -310,6 +312,56 @@ void LoadGlobsetFromBrx(GLOBSET *pglobset, ALO *palo, CBinaryInputStream *pbis)
         {
             pglobset->aglob[i].csubglob = pglobset->aglob[pglobset->aglob[i].instanceIndex].csubglob;
             pglobset->aglob[i].asubglob = pglobset->aglob[pglobset->aglob[i].instanceIndex].asubglob;
+        }
+    }
+    
+    if (pglobset->aglob.size() != 0)
+    {
+        if (fCelBorder != 0)
+        {
+            for (int i = 0; i < pglobset->aglob.size(); i++)
+            {
+                if (pglobset->aglob[i].rp != RP_Cutout && pglobset->aglob[i].rp != RP_ProjVolume && pglobset->aglob[i].rp != RP_CutoutAfterProjVolume && pglobset->aglob[i].rp != RP_Translucent)
+                {
+                    for (int a = 0; a < pglobset->aglob[i].asubglob.size(); a++)
+                    {
+                        for (int b = 0; b < pglobset->aglob[i].asubglob[a].vertices.size(); b++)
+                        {
+                            glm::vec3 newPos{};
+
+                            if (cid == 86) // CHARM
+                                newPos = pglobset->aglob[i].asubglob[a].vertices[b].pos * glm::vec3(1.1);
+                            else if (cid == 88) // COIN
+                                newPos = pglobset->aglob[i].asubglob[a].vertices[b].pos * glm::vec3(1.1);
+                            else if (cid == 89) // KEY
+                                newPos = pglobset->aglob[i].asubglob[a].vertices[b].pos * glm::vec3(1.1);
+                            else
+                                newPos = pglobset->aglob[i].asubglob[a].vertices[b].pos + pglobset->aglob[i].asubglob[a].vertices[b].normal * glm::vec3(3.0);
+
+                            pglobset->aglob[i].asubglob[a].celPositions.push_back(glm::vec3(newPos));
+                        }
+
+                        pglobset->aglob[i].asubglob[a].celIndices = pglobset->aglob[i].asubglob[a].indices;
+
+                        pglobset->aglob[i].asubglob[a].celcvtx = pglobset->aglob[i].asubglob[a].celIndices.size() * sizeof(INDICE);
+                        pglobset->aglob[i].asubglob[a].fCelBorder = 1;
+
+                        glGenVertexArrays(1, &pglobset->aglob[i].asubglob[a].celVAO);
+                        glBindVertexArray(pglobset->aglob[i].asubglob[a].celVAO);
+
+                        glGenBuffers(1, &pglobset->aglob[i].asubglob[a].celVBO);
+                        glBindBuffer(GL_ARRAY_BUFFER, pglobset->aglob[i].asubglob[a].celVBO);
+                        glBufferData(GL_ARRAY_BUFFER, pglobset->aglob[i].asubglob[a].celPositions.size() * sizeof(glm::vec3), pglobset->aglob[i].asubglob[a].celPositions.data(), GL_STATIC_DRAW);
+
+                        glGenBuffers(1, &pglobset->aglob[i].asubglob[a].EBO);
+                        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, pglobset->aglob[i].asubglob[a].EBO);
+                        glBufferData(GL_ELEMENT_ARRAY_BUFFER, pglobset->aglob[i].asubglob[a].celIndices.size() * sizeof(INDICE), pglobset->aglob[i].asubglob[a].celIndices.data(), GL_STATIC_DRAW);
+
+                        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), (void*)0);
+                        glEnableVertexAttribArray(0);
+                    }
+                }
+            }
         }
     }
 }
@@ -367,6 +419,8 @@ void BuildSubGlob(SUBGLOB *psubglob, SHD *pshd, std::vector <glm::vec3> &positio
 
         idx++;
     }
+
+    psubglob->cvtx = psubglob->indices.size() * sizeof(INDICE);
     
     glGenVertexArrays(1, &psubglob->VAO);
     glBindVertexArray(psubglob->VAO);

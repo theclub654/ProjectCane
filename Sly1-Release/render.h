@@ -42,3 +42,5 @@ inline bool compareZ(RPL &prpl0, RPL &prpl1);
 void DrawSw(SW *psw, CM *pcm);
 // Draws all collision models in SW
 void DrawSwCollisionAll();
+
+glm::vec4 g_rgbaCel = glm::vec4(0.16, 0.16, 0.16, 1.0);

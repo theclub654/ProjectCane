@@ -874,25 +874,34 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <None Include="screen.vert">
-      <Filter>Resource Files</Filter>
-    </None>
     <None Include="glob.vert">
-      <Filter>Resource Files</Filter>
-    </None>
-    <None Include="collision.vert">
-      <Filter>Resource Files</Filter>
-    </None>
-    <None Include="screen.frag">
       <Filter>Resource Files</Filter>
     </None>
     <None Include="glob.frag">
       <Filter>Resource Files</Filter>
     </None>
+    <None Include="..\README.md">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="collision.vert">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="screen.vert">
+      <Filter>Resource Files</Filter>
+    </None>
     <None Include="collision.frag">
       <Filter>Resource Files</Filter>
     </None>
-    <None Include="..\README.md">
+    <None Include="screen.frag">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="celborder.frag">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="celborder.geom">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="celborder.vert">
       <Filter>Resource Files</Filter>
     </None>
   </ItemGroup>

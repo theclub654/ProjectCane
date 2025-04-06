@@ -1,18 +1,5 @@
 #include "main.h"
 
-// Temporary flag
-bool loadEmitMesh = 0;
-GL g_gl;
-GLSHADER glScreenShader;
-GLSHADER glGlobShader;
-GLSHADER glCollisionShader;
-std::string file;
-std::string levelName;
-CTransition g_transition;
-bool firstClick = true;
-float deltaTime = 0.0f;
-float lastFrame = 0.0f;
-
 int main(int cphzArgs, char* aphzArgs[])
 {
 	// Initializing all things needed for game to be started
@@ -94,9 +81,9 @@ void Startup()
 {
 	g_gl.InitGL();
 	
-	glScreenShader.Init("screen.vert", NULL, "screen.frag");
-	glGlobShader.Init("glob.vert", NULL, "glob.frag");
-	glCollisionShader.Init("collision.vert", NULL, "collision.frag");
+	glScreenShader.Init("screen.vert", NULL ,"screen.frag");
+	glGlobShader.Init("glob.vert", NULL ,"glob.frag");
+	glCollisionShader.Init("collision.vert", NULL ,"collision.frag");
 
 	// Initialize texture samplers for glob shader
 	glGlobShader.Use();

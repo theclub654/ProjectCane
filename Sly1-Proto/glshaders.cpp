@@ -10,12 +10,12 @@ void GLSHADER::Init(const char* vertexFile, const char* geometryFile, const char
 		vertexCode = get_file_contents(vertexFile);
 
 	if (geometryFile != NULL)
-		geometryCode = get_file_contents(fragmentFile);
+		geometryCode = get_file_contents(geometryFile);
 
 	if (fragmentFile != NULL)
 		fragmentCode = get_file_contents(fragmentFile);
 
-	const char* vertexSource   = NULL;
+	const char* vertexSource = NULL;
 	const char* geometrySource = NULL;
 	const char* fragmentSource = NULL;
 

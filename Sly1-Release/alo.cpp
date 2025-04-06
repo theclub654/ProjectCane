@@ -439,7 +439,7 @@ void LoadAloFromBrx(ALO* palo, CBinaryInputStream* pbis)
 	palo->sRadiusRenderAll = pbis->F32Read();
 
 	LoadOptionsFromBrx(palo, pbis);
-	LoadGlobsetFromBrx(&palo->globset, palo, pbis);
+	LoadGlobsetFromBrx(&palo->globset, palo->pvtalo->cid, palo, pbis);
 	LoadAloAloxFromBrx(palo, pbis);
 
 	palo->pvtalo->pfnUpdateAloXfWorld(palo);
@@ -561,6 +561,18 @@ void RenderAloGlobset(ALO *palo, CM *pcm, RO *pro)
 			{
 				rpl.ro.VAO = &palo->globset.aglob[i].asubglob[a].VAO;
 
+				if (palo->globset.aglob[i].asubglob[a].fCelBorder == 1)
+				{
+					rpl.ro.celVAO = &palo->globset.aglob[i].asubglob[a].celVAO;
+					rpl.ro.celcvtx = palo->globset.aglob[i].asubglob[a].celcvtx;
+					rpl.ro.fCelBorder = 1;
+				}
+				else
+				{
+					rpl.ro.celVAO = nullptr;
+					rpl.ro.fCelBorder = 0;
+				}
+
 				rpl.posCenter = palo->globset.aglob[i].posCenter;
 
 				rpl.ro.fDynamic = palo->globset.aglob[i].fDynamic;
@@ -570,7 +582,7 @@ void RenderAloGlobset(ALO *palo, CM *pcm, RO *pro)
 
 				rpl.ro.unSelfIllum = &palo->globset.aglob[i].asubglob[a].unSelfIllum;
 
-				rpl.ro.cvtx = palo->globset.aglob[i].asubglob[a].indices.size() * sizeof(INDICE);
+				rpl.ro.cvtx = palo->globset.aglob[i].asubglob[a].cvtx;
 
 				rpl.z = palo->globset.aglob[i].gZOrder;
 
@@ -608,14 +620,14 @@ void DrawGlob(RPL *prpl)
 
 	glUniformMatrix4fv(glGetUniformLocation(glGlobShader.ID, "model"), 1, GL_FALSE, glm::value_ptr(prpl->ro.modelmatrix));
 
-	glUniform1i(glGetUniformLocation(glGlobShader.ID, "shdk"), prpl->ro.pshd->shdk);
 	glUniform1f(glGetUniformLocation(glGlobShader.ID, "usSelfIllum"), *prpl->ro.unSelfIllum);
-
 	glUniform1i(glGetUniformLocation(glGlobShader.ID, "fDynamic"), prpl->ro.fDynamic);
 	glUniform3fv(glGetUniformLocation(glGlobShader.ID, "posCenter"), 1, glm::value_ptr(prpl->posCenter));
 
 	if (prpl->ro.pshd->shdk == SHDK_ThreeWay)
 	{
+		glUniform1i(glGetUniformLocation(glGlobShader.ID, "rko"), 1);
+
 		glActiveTexture(GL_TEXTURE0);
 		glBindTexture(GL_TEXTURE_2D, prpl->ro.pshd->glShadowMap);
 
@@ -625,16 +637,17 @@ void DrawGlob(RPL *prpl)
 		glActiveTexture(GL_TEXTURE2);
 		glBindTexture(GL_TEXTURE_2D, prpl->ro.pshd->glSaturateMap);
 	}
-
 	else
 	{
+		glUniform1i(glGetUniformLocation(glGlobShader.ID, "rko"), 0);
+
 		glActiveTexture(GL_TEXTURE0);
 		glBindTexture(GL_TEXTURE_2D, 0);
 
 		glActiveTexture(GL_TEXTURE1);
 		glBindTexture(GL_TEXTURE_2D, prpl->ro.pshd->glDiffuseMap);
 
-		glActiveTexture(GL_TEXTURE0);
+		glActiveTexture(GL_TEXTURE2);
 		glBindTexture(GL_TEXTURE_2D, 0);
 	}
 
@@ -645,6 +658,9 @@ void DrawGlob(RPL *prpl)
 		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 		glDepthMask(false);
 		glDrawElements(GL_TRIANGLES, prpl->ro.cvtx, GL_UNSIGNED_SHORT, 0);
+
+		glDisable(GL_BLEND);
+		glDepthMask(true);
 		break;
 
 		case RP_ProjVolume:
@@ -658,8 +674,6 @@ void DrawGlob(RPL *prpl)
 		glStencilFunc(GL_ALWAYS, 128, 128);
 		glStencilOp(GL_NONE, GL_REPLACE, GL_NONE);
 		glColorMask(0, 0, 0, 0);
-		glEnable(GL_CULL_FACE);
-		glCullFace(GL_BACK);
 		glFrontFace(GL_CW);
 		glDrawElements(GL_TRIANGLES, prpl->ro.cvtx, GL_UNSIGNED_SHORT, 0);
 
@@ -674,8 +688,14 @@ void DrawGlob(RPL *prpl)
 		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 		glFrontFace(GL_CW);
 		glDrawElements(GL_TRIANGLES, prpl->ro.cvtx, GL_UNSIGNED_SHORT, 0);
+
+		glDisable(GL_BLEND);
+		glDisable(GL_STENCIL_TEST);
+		glDepthFunc(GL_LESS);
+		glFrontFace(GL_CCW);
+		glDepthMask(true);
 		break;
-		
+
 		case RP_Cutout:
 		case RP_CutoutAfterProjVolume:
 		case RP_Translucent:
@@ -685,27 +705,38 @@ void DrawGlob(RPL *prpl)
 		glDrawElements(GL_TRIANGLES, prpl->ro.cvtx, GL_UNSIGNED_SHORT, 0);
 		glDepthMask(false);
 		glDrawElements(GL_TRIANGLES, prpl->ro.cvtx, GL_UNSIGNED_SHORT, 0);
-		break;
-		
-		default:
-		glDrawElements(GL_TRIANGLES, prpl->ro.cvtx, GL_UNSIGNED_SHORT, 0);
-		break;
-	}
 
-	switch (prpl->rp)
-	{
-		case RP_Background:
-		case RP_ProjVolume:
-		case RP_Cutout:
-		case RP_CutoutAfterProjVolume:
-		case RP_Translucent:
-		glDisable(GL_CULL_FACE);
-		glDisable(GL_STENCIL_TEST);
-		glFrontFace(GL_CCW);
-		glDepthMask(true);
-		glDepthFunc(GL_LESS);
 		glDisable(GL_BLEND);
-		glColorMask(1, 1, 1, 1);
+		glDepthMask(true);
+		break;
+
+		default:
+			if (prpl->ro.fCelBorder == 1)
+			{
+				glEnable(GL_STENCIL_TEST);
+				glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
+				glStencilFunc(GL_ALWAYS, 1, 0xFF);
+				glStencilMask(0xFF);
+				glDrawElements(GL_TRIANGLES, prpl->ro.cvtx, GL_UNSIGNED_SHORT, 0);
+
+				glBindVertexArray(*prpl->ro.celVAO);
+				glUniform1i(glGetUniformLocation(glGlobShader.ID, "rko"), 2);
+				glDepthMask(false);
+				//glDepthFunc(GL_LEQUAL);
+				glStencilFunc(GL_NOTEQUAL, 1, 0xFF);
+				glStencilMask(0x00);
+				glEnable(GL_BLEND);
+				glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+				glDrawElements(GL_TRIANGLES, prpl->ro.celcvtx, GL_UNSIGNED_SHORT, 0);
+
+				glDisable(GL_BLEND);
+				glDepthMask(true);
+				glStencilMask(0xFF);
+				glStencilFunc(GL_ALWAYS, 0, 0xFF);
+				glDepthFunc(GL_LESS);
+			}
+			else
+				glDrawElements(GL_TRIANGLES, prpl->ro.cvtx, GL_UNSIGNED_SHORT, 0);
 		break;
 	}
 
@@ -721,6 +752,10 @@ void DeleteModel(ALO *palo)
 			glDeleteVertexArrays(1, &palo->globset.aglob[i].asubglob[a].VAO);
 			glDeleteBuffers(1, &palo->globset.aglob[i].asubglob[a].VBO);
 			glDeleteBuffers(1, &palo->globset.aglob[i].asubglob[a].EBO);
+
+			glDeleteVertexArrays(1, &palo->globset.aglob[i].asubglob[a].celVAO);
+			glDeleteBuffers(1, &palo->globset.aglob[i].asubglob[a].celVBO);
+			glDeleteBuffers(1, &palo->globset.aglob[i].asubglob[a].celEBO);
 		}
 	}
 }

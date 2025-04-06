@@ -3,7 +3,7 @@
 #include "glob.h"
 #include "act.h"
 
-extern std::vector<LIGHT*> allSwLights;
+extern std::vector <LIGHT*> allSwLights;
 
 enum ACK
 {
@@ -118,9 +118,15 @@ struct RO
 	GLuint *VBO;
 	GLuint *EBO;
 
-	GRFGLOB *grfglob;
-
 	int cvtx;
+
+	GLuint *celVAO;
+	GLuint *celVBO;
+	GLuint *celEBO;
+
+	int celcvtx;
+
+	GRFGLOB *grfglob;
 
 	SHD *pshd;
 
@@ -129,8 +135,8 @@ struct RO
 	glm::mat4 modelmatrix;
 	float uAlpha;
 	float uAlphaCelBorder;
-	TRLK trlk;
 	int fDynamic;
+	int fCelBorder;
 	TWPS twps;
 };
 
