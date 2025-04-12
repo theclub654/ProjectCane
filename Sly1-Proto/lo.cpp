@@ -132,31 +132,24 @@ void OnLoRemove(LO* plo)
 
 int FIsLoInWorld(LO *plo)
 {
-	if (plo != nullptr) 
-	{
-		ALO *loPaloParent = plo->paloParent;
+	if (!plo) return 1;
 
-		while (true) 
-		{
-			ALO *palo = loPaloParent;
+	ALO* parent = plo->paloParent;
 
-			DL *pdl = &palo->dlChild;
+	while (true) {
+		ALO* palo = parent;
+		DL* pdl = palo ? &palo->dlChild : &plo->psw->dlChild;
 
-			if (palo == nullptr) 
-				pdl = &plo->psw->dlChild;
+		if (!FFindDlEntry(pdl, plo))
+			return 0;
 
-			int isFound = FFindDlEntry(pdl, plo);
+		if (!palo)
+			break;
 
-			if (isFound == 0)
-				return 0;
-			
-			if (palo == nullptr) break;
-
-			loPaloParent = palo->paloParent;
-
-			plo = (LO*)palo;
-		}
+		parent = palo->paloParent;
+		plo = static_cast<LO*>(palo);
 	}
+
 	return 1;
 }
 
@@ -198,5 +191,5 @@ int GetLoSize()
 
 void DeleteLo(LO* plo)
 {
-	delete (LO*)plo;
+	delete plo;
 }

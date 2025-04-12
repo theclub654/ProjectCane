@@ -175,6 +175,7 @@
     <ClCompile Include="button.cpp" />
     <ClCompile Include="can.cpp" />
     <ClCompile Include="chkpnt.cpp" />
+    <ClCompile Include="clock.cpp" />
     <ClCompile Include="cm.cpp" />
     <ClCompile Include="cnvo.cpp" />
     <ClCompile Include="coin.cpp" />
@@ -320,6 +321,7 @@
     <ClInclude Include="button.h" />
     <ClInclude Include="can.h" />
     <ClInclude Include="chkpnt.h" />
+    <ClInclude Include="clock.h" />
     <ClInclude Include="cm.h" />
     <ClInclude Include="cnvo.h" />
     <ClInclude Include="coin.h" />
@@ -435,9 +437,6 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="..\README.md" />
-    <None Include="celborder.frag" />
-    <None Include="celborder.geom" />
-    <None Include="celborder.vert" />
     <None Include="collision.frag" />
     <None Include="collision.vert" />
     <None Include="glob.frag" />

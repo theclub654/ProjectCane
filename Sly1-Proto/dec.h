@@ -5,7 +5,7 @@
 typedef int GRFFSO;
 typedef int GRFCID;
 typedef int GRFGLOB;
-typedef uint32_t GRFZON;
+typedef uint64_t GRFZON;
 typedef uint32_t GRFALOX;
 class CBinaryInputStream;
 class PROXY;

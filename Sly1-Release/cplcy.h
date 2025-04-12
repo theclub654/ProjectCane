@@ -2,6 +2,8 @@
 #include "lo.h"
 #include "glob.h"
 
+extern bool g_fDisableInput;
+
 enum CPMT
 {
     CPMT_Truck = 0,
@@ -227,7 +229,7 @@ class CM : public LO
     float sNearFog;
     float sFarFog;
     float uFogMax;
-    RGBA rgbaFog;
+    glm::vec4 rgbaFog;
     FGFN fgfn;
     float tJolt;
     GRFZON grfzon;
@@ -276,8 +278,7 @@ void InitCplcy(CPLCY* pcplcy, CM* pcm);
 void InitCplook(CPLOOK* pcplook, CM* pcm);
 void InitCpalign(CPALIGN* pcpalign, CM* pcm);
 void BuildCmFgfn(CM* pcm, float uFog, FGFN* pfgfn);
-// Makes frustum from proj and lookAt matrix combined
-void BuildFrustrum(glm::mat4 &projViewMatrix, FRUSTUM &frustum);
+void BuildFrustrum(const glm::mat3& pmatLookAt, float rx, float ry, glm::vec3* anormalFrustrum);
 // Update manual camera
 void UpdateCpman(GLFWwindow* window, CPMAN *pcpman, CPDEFI *pcpdefi, float dt);
 

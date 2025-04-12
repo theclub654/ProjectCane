@@ -16,9 +16,9 @@ GLSHADER glCollisionShader;
 std::string file;
 std::string levelName;
 CTransition g_transition;
-bool firstClick = true;
 float deltaTime = 0.0f;
 float lastFrame = 0.0f;
+extern CLOCK g_clock;
 
 void RenderSw(SW *psw, CM *pcm);
 void RenderSwGlobset(SW *psw, CM *pcm);

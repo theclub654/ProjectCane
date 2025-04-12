@@ -3,10 +3,18 @@
 
 struct VBSP 
 {
-    glm::vec3 normal;
-    float gDot;
-	VBSP *pvbspNeg;
-	VBSP *pvbspPos;
+	glm::vec3 normal;
+	float gDot;
+
+	// Children
+	VBSP* pvbspPos = nullptr;
+	VBSP* pvbspNeg = nullptr;
+
+	// Leaf data
+	bool bPosIsLeaf = false;
+	bool bNegIsLeaf = false;
+	GRFZON grfzonPos = 0;
+	GRFZON grfzonNeg = 0;
 };
 
 class VISMAP : public LO

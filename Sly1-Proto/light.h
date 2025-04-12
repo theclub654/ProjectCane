@@ -43,7 +43,9 @@ class LIGHT : public ALO
 		glm::vec3 rgbaColor;
 		LTFN ltfn;
 		glm::vec3 agFallOff;
-		// Diffuse
+		glm::vec3 falloff0Frustum;
+		glm::vec3 falloff1Frustum;
+		glm::mat4 frustum;
 		float gMidtone;
 		float gShadow;
 		float degHighlight;

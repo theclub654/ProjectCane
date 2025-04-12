@@ -4,6 +4,8 @@
 #include "act.h"
 
 extern std::vector <LIGHT*> allSwLights;
+extern bool g_fRenderCelBorders;
+extern inline bool g_fBsp = false;
 
 enum ACK
 {
@@ -133,6 +135,8 @@ struct RO
 	float *unSelfIllum;
 
 	glm::mat4 modelmatrix;
+	FGFN fgfn;
+	float uFog;
 	float uAlpha;
 	float uAlphaCelBorder;
 	int fDynamic;

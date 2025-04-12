@@ -63,8 +63,6 @@ void LoadGlobsetFromBrx(GLOBSET *pglobset, short cid ,ALO *palo, CBinaryInputStr
             pglobset->aglobi[i] = pglobset->aglobi[instanceIndex];
 
             glm::mat4 instanceModelMatrix = pbis->ReadMatrix4();
-            
-
             pglobset->aglob[i].dmat.push_back(instanceModelMatrix);
         }
         
@@ -376,11 +374,11 @@ void LoadGlobsetFromBrx(GLOBSET *pglobset, short cid ,ALO *palo, CBinaryInputStr
                             else if (cid == 96)
                                 newPos = pglobset->aglob[i].asubglob[a].vertices[b].pos * glm::vec3(1.1);
                             else
-                                newPos = pglobset->aglob[i].asubglob[a].vertices[b].pos + pglobset->aglob[i].asubglob[a].vertices[b].normal * glm::vec3(3.0);
+                                newPos = pglobset->aglob[i].asubglob[a].vertices[b].pos + pglobset->aglob[i].asubglob[a].vertices[b].normal * glm::vec3(4.0);
 
                             pglobset->aglob[i].asubglob[a].celPositions.push_back(glm::vec3(newPos));
                         }
-
+                        
                         pglobset->aglob[i].asubglob[a].celIndices = pglobset->aglob[i].asubglob[a].indices;
 
                         pglobset->aglob[i].asubglob[a].celcvtx = pglobset->aglob[i].asubglob[a].celIndices.size() * sizeof(INDICE);

@@ -94,121 +94,50 @@ void LoadTexFromBrx(TEX *ptex, CBinaryInputStream* pbis)
 		ptex->clutIndex[i] = pbis->U16Read();
 }
 
-void ConvertUserHsvToUserRgb(glm::vec3& pvecHSV, glm::vec3& pvecRGB, glm::vec3& pvecFalloff)
+void ConvertUserHsvToUserRgb(glm::vec3& pvecHSV, glm::vec3& pvecRGB)
 {
     float h = pvecHSV.x;
-    float s = pvecHSV.y * 0.003921569;
-    float v = pvecHSV.z * 0.003921569;
+    float s = pvecHSV.y * (1.0f / 255.0f);  // scale from 0–255
+    float v = pvecHSV.z * (1.0f / 255.0f);  // scale from 0–255
 
-    float unk{};
+    // Clamp hue to [0, 360], or set to -1 for undefined
+    float hue = (h >= 0.0f) ? glm::clamp(h, 0.0f, 360.0f) : -1.0f;
 
-    if (0.0 <= h) {
+    // Clamp saturation and value to [0, 1]
+    s = glm::clamp(s, 0.0f, 1.0f);
+    v = glm::clamp(v, 0.0f, 1.0f);
 
-        unk = 0.0;
-        if ((0.0 <= h) && (unk = h, 360.0 < h))
-            unk = 360.0;
-    }
+    glm::vec3 rgb(0.0f);
 
-    else {
-        unk = -1.0;
-    }
-
-    h = 0.0;
-    if ((0.0 <= s) && (h = s, 1.0 < s))
-        h = 1.0;
-
-
-    s = 0.0;
-    if ((0.0 <= v) && (s = v, 1.0 < v))
-        s = 1.0;
-
-    if (h == 0.0)
+    if (s == 0.0f || hue < 0.0f)
     {
-        pvecRGB.r = s;
-        pvecRGB.g = s;
-        pvecRGB.b = s;
+        // Grayscale
+        rgb = glm::vec3(v);
     }
-
     else
     {
-        if (unk == 360.0)
-            unk = 0.0;
-        
-        unk = (unk * 0.01666667);
-        int i = floorf(unk);
-        float f = s * (1.0 - h);
-        unk -= i;
-        float q = s * (1.0 - h * unk);
-        h = s * (1.0 - h * (1.0 - unk));
+        hue = (hue == 360.0f) ? 0.0f : hue;
+        float hueSegment = hue / 60.0f;
+        int i = static_cast<int>(std::floor(hueSegment));
+        float f = hueSegment - i;
+
+        float p = v * (1.0f - s);
+        float q = v * (1.0f - s * f);
+        float t = v * (1.0f - s * (1.0f - f));
 
         switch (i)
         {
-            case 0:
-            case 6:
-                pvecRGB.r = v;
-                pvecRGB.g = h;
-                pvecRGB.b = f;
-
-                pvecFalloff.r = v;
-                pvecFalloff.g = h;
-                pvecFalloff.b = f;
-            break;
-
-            case 1:
-                pvecRGB.r = q;
-                pvecRGB.g = v;
-                pvecRGB.b = h;
-
-                pvecFalloff.r = q;
-                pvecFalloff.g = v;
-                pvecFalloff.b = h;
-            break;
-
-            case 2:
-                pvecRGB.r = f;
-                pvecRGB.g = v;
-                pvecRGB.b = h;
-
-                pvecFalloff.r = f;
-                pvecFalloff.g = v;
-                pvecFalloff.b = h;
-            break;
-
-            case 3:
-                pvecRGB.r = f;
-                pvecRGB.g = q;
-                pvecRGB.b = s;
-
-                pvecFalloff.r = f;
-                pvecFalloff.g = q;
-                pvecFalloff.b = s;
-            break;
-
-            case 4:
-                pvecRGB.r = h;
-                pvecRGB.g = f;
-                pvecRGB.b = v;
-
-                pvecFalloff.r = h;
-                pvecFalloff.g = f;
-                pvecFalloff.b = v;
-           break;
-
-            case 5:
-                pvecRGB.r = v;
-                pvecRGB.g = f;
-                pvecRGB.b = q;
-
-                pvecFalloff.r = v;
-                pvecFalloff.g = f;
-                pvecFalloff.b = q;
-            break;
+            case 0: rgb = glm::vec3(v, t, p); break;
+            case 1: rgb = glm::vec3(q, v, p); break;
+            case 2: rgb = glm::vec3(p, v, t); break;
+            case 3: rgb = glm::vec3(p, q, v); break;
+            case 4: rgb = glm::vec3(t, p, v); break;
+            case 5: rgb = glm::vec3(v, p, q); break;
+            default: rgb = glm::vec3(0.0f); break;
         }
     }
-    
-    pvecRGB.r *= 255.0;
-    pvecRGB.g *= 255.0;
-    pvecRGB.b *= 255.0;
+
+    pvecRGB = rgb * 255.0f;
 }
 
 SHD* PshdFindShader(OID oid)

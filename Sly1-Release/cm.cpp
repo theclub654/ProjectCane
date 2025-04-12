@@ -232,7 +232,12 @@ void* GetCmRgbaFog(CM* pcm)
 
 void SetCmRgbaFog(CM* pcm, RGBA prgbaFog)
 {
-	pcm->rgbaFog = prgbaFog;
+	float R = prgbaFog.bRed / 255.0;
+	float G = prgbaFog.bGreen / 255.0;
+	float B = prgbaFog.bBlue / 255.0;
+	float A = prgbaFog.bAlpha / 255.0;
+
+	pcm->rgbaFog = glm::vec4(R, G, B, A);
 	RecalcCmFrustrum(pcm);
 }
 
@@ -274,10 +279,6 @@ void UpdateCmMat4(CM* pcm)
 {
 	BuildProjectionMatrix(&pcm->radFOV, &g_gl.width, &g_gl.height, &pcm->sNearClip, &pcm->sFarClip, pcm->matProj);
 	BuildLookAt(pcm->pos, pcm->direction, pcm->up ,pcm->lookAt);
-	
-	CombineEyeLookAtProj(&pcm->lookAt, &pcm->matProj, pcm->matWorldToClip);
-
-	BuildFrustrum(pcm->matWorldToClip, pcm->frustum);
 }
 
 bool FInsideCmMrd(CM* pcm, float sRadius, float sMRD, float *puAlpha)

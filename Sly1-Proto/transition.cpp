@@ -16,6 +16,7 @@ void CTransition::Execute(std::string file)
 {
 	// Setting the global game state to load because where loading a file
 	SetPhase(PHASE_Load);
+	ResetClock(&g_clock, 0.0);
 	// THIS IS HERE TEMPORARILY I PLAN ON REWRITING THE WAY THE GAME LOADS FILES
 	CBinaryInputStream pbis{file};
 
@@ -26,8 +27,7 @@ void CTransition::Execute(std::string file)
 		return;
 	}
 	
-	// Deleting parent SW object
-	DeleteSw(g_psw);
+	g_psw = nullptr;
 	// Reading data thats not needed
 	pbis.S32Read();
 	// Reading data thats not needed
@@ -36,6 +36,7 @@ void CTransition::Execute(std::string file)
 	g_psw = (SW*)PloNew(CID::CID_SW, nullptr, nullptr, OID::OID__WORLD, -1);
 	// Loads parent static world from binary file.
 	g_psw->pvtlo->pfnLoadLoFromBrx(g_psw, &pbis);
+	SetClockRate(1.0);
 	// delete file out of memory
 	pbis.file.close();
 	// Setting the level pending flag to 0

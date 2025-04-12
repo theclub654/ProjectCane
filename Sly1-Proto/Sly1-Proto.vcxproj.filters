@@ -438,6 +438,9 @@
     <ClCompile Include="glad.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="clock.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\Libraries\include\imgui\imstb_truetype.h">
@@ -872,6 +875,9 @@
     <ClInclude Include="ac.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="clock.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="glob.vert">
@@ -893,15 +899,6 @@
       <Filter>Resource Files</Filter>
     </None>
     <None Include="screen.frag">
-      <Filter>Resource Files</Filter>
-    </None>
-    <None Include="celborder.frag">
-      <Filter>Resource Files</Filter>
-    </None>
-    <None Include="celborder.geom">
-      <Filter>Resource Files</Filter>
-    </None>
-    <None Include="celborder.vert">
       <Filter>Resource Files</Filter>
     </None>
   </ItemGroup>

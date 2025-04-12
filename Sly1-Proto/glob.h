@@ -238,7 +238,7 @@ struct GLOB // NOT DONE
 
 struct GLOBI
 {
-	int grfzon;
+	GRFZON grfzon;
 	SUBGLOBI asubglobi;
 	int cframeStaticLights;
 	TWPS twps;

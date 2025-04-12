@@ -1,6 +1,6 @@
 #include "brx.h"
 
-std::vector<EOPID> g_aeopid;
+std::vector <EOPID> g_aeopid;
 
 void StartupBrx()
 {

@@ -1,4 +1,4 @@
-#include "light.h"
+﻿#include "light.h"
 
 LIGHT* NewLight()
 {
@@ -52,25 +52,34 @@ void OnLightRemove(LIGHT* plight)
 
 void RebuildLightFrustrum(LIGHT* plight)
 {
-	float xfov = 0.0;
-	if ((0.0 <= plight->degCone) && (xfov = plight->degCone, 175.0 < plight->degCone))
-		xfov = 175.0;
+	float degCone = plight->degCone;
+	float degHotSpot = plight->degHotSpot;
 
-	float yfov = 0.0;
-	if ((0.0 <= plight->degHotSpot) && (yfov = plight->degHotSpot, plight->degHotSpot <= xfov))
-		yfov = plight->degHotSpot;
+	// Clamp cone angle to [0, 175]
+	float outerDeg = glm::clamp(degCone, 0.0f, 175.0f);
 
-	plight->rx = tanf(xfov * 0.008726647);
-	plight->ry = plight->rx;
+	// Clamp hotspot to [0, outerDeg]
+	float innerDeg = glm::clamp(degHotSpot, 0.0f, outerDeg);
 
-	plight->lmFallOffAbsX.gMax = 1.0;
-	plight->lmFallOffAbsY.gMax = 1.0;
+	// Convert degrees to radians: 0.008726647 ≈ π / 180
+	float rx = std::tanf(outerDeg * glm::pi<float>() / 180.0f);
+	float ry = rx;
 
-	plight->lmFallOffAbsX.gMin = tanf(yfov * 0.008726647) / plight->rx;
-	plight->lmFallOffAbsY.gMin = tanf(yfov * 0.008726647) / plight->ry;
+	plight->rx = rx;
+	plight->ry = ry;
 
-	plight->lmFallOffPenumbra.gMin = sqrt(tanf(yfov * 0.008726647) / plight->rx);
-	plight->lmFallOffPenumbra.gMax = 1.0;
+	float tanInner = std::tanf(innerDeg * glm::pi<float>() / 180.0f);
+
+	float ratioX = tanInner / rx;
+	float ratioY = tanInner / ry;
+
+	plight->lmFallOffAbsX.gMax = 1.0f;
+	plight->lmFallOffAbsY.gMax = 1.0f;
+	plight->lmFallOffAbsX.gMin = ratioX;
+	plight->lmFallOffAbsY.gMin = ratioY;
+
+	plight->lmFallOffPenumbra.gMax = 1.0f;
+	plight->lmFallOffPenumbra.gMin = std::sqrt(ratioX);
 }
 void UpdateLightXfWorldHierarchy(LIGHT* plight)
 {
@@ -116,30 +125,18 @@ void FitLinearFunction(float x0, float y0, float x1, float y1, float &pdu, float
 
 void FitRecipFunction(float x0, float y0, float x1, float y1, float* pdu, float* pru)
 {
-	float fVar2 = 0.0001;
-	bool ABS = FFloatsNear(x0, x1, 0.0001);
+	constexpr float epsilon = 0.0001f;
 
-	if (ABS == 0) {
-		if (fVar2 <= abs(x0)) 
-		{
-			if (fVar2 <= abs(x1)) 
-			{
-				fVar2 = (x0 * x1 * (y1 - y0)) / (x0 - x1);
-				*pru = fVar2;
-				*pdu = y0 - fVar2 / x0;
-				return;
-			}
-
-			*pru = 0.0;
+	if (!FFloatsNear(x0, x1, epsilon)) {
+		if (std::abs(x0) >= epsilon && std::abs(x1) >= epsilon) {
+			float ru = (x0 * x1 * (y1 - y0)) / (x0 - x1);
+			*pru = ru;
+			*pdu = y0 - ru / x0;
+			return;
 		}
-
-		else
-			*pru = 0.0;
 	}
 
-	else
-		*pru = 0.0;
-
+	*pru = 0.0f;
 	*pdu = y0;
 }
 
@@ -197,8 +194,9 @@ void RebuildLight(LIGHT* plight)
 
 	if (plight->vecHighlight.z > 0.0001)
 	{
-		ConvertUserHsvToUserRgb(plight->vecHighlight, rgba, plight->agFallOff);
-		
+		ConvertUserHsvToUserRgb(plight->vecHighlight, rgba);
+
+		plight->agFallOff = rgba;
 		plight->agFallOff.x = 1.0 / plight->vecHighlight.z;
 		plight->agFallOff.y = 0.0;
 
@@ -219,9 +217,59 @@ void RebuildLight(LIGHT* plight)
 
 	else if (plight->lightk == LIGHTK_Frustrum || plight->lightk == LIGHTK_Spot)
 	{
-		ConvertAloVec(plight, nullptr, &plight->normalLocal, &plight->agFallOff);
+		// Compute falloff vector in local space
+		glm::vec3 agFallOff;
+		ConvertAloVec(plight, nullptr, &plight->normalLocal, &agFallOff);
 
-		
+		agFallOff *= -1.0f;
+
+		// Compute local up vector
+		glm::vec3 vecUp;
+		ConvertAloVec(plight, nullptr, &plight->vecUpLocal, &vecUp);
+
+		BuildOrthonormalMatrixZ(agFallOff, vecUp, plight->matLookAt);
+		BuildFrustrum(plight->matLookAt, plight->rx, plight->ry, (glm::vec3*)plight->avecFrustrum);
+
+		// Add the distance component to the frustum planes
+		for (int i = 0; i < 4; ++i) 
+		{
+			glm::vec4 plane = plight->avecFrustrum[i];
+			float d = glm::dot(plight->xf.posWorld, glm::vec3(plane));
+			plight->avecFrustrum[i].w = -d;
+		}
+
+		float falloffMax = plight->lmFallOffS.gMax;
+		glm::vec4 nearPlane = glm::vec4(plight->matLookAt[0]);
+		float nearDist = glm::dot(plight->xf.posWorld, glm::vec3(nearPlane));
+		plight->avecFrustrum[4] = nearPlane;
+		plight->avecFrustrum[4].w = -falloffMax - nearDist;
+
+		glm::vec4 flippedNear = nearPlane * glm::vec4(-1, -1, -1, 1);
+		float farDist = glm::dot(plight->xf.posWorld, glm::vec3(flippedNear));
+		plight->avecFrustrum[5] = flippedNear;
+		plight->avecFrustrum[5].w = 50.0f - farDist;
+
+		glm::mat4 matProj;
+		BuildSimpleProjectionMatrix(1.0f / plight->rx, 1.0f / plight->ry, 0.0f, 0.0f, 50.0f, falloffMax, matProj);
+		CombineEyeLookAtProj(plight->xf.posWorld, plight->matLookAt, matProj, plight->frustum);
+
+		agFallOff *= glm::vec3(-1.0f, 1.0f, 1.0f);
+
+		if (plight->lightk == LIGHTK_Frustrum) 
+		{
+			ConvertFallOff(&plight->lmFallOffAbsX, &plight->falloff0Frustum.x, &plight->falloff1Frustum.x);
+			ConvertFallOff(&plight->lmFallOffAbsY, &plight->falloff0Frustum.y, &plight->falloff1Frustum.y);
+			plight->falloff0Frustum.z = 1.0;
+			plight->falloff1Frustum.z = 1.0;
+		}
+		else 
+		{
+			plight->falloff0Frustum.x = 1.0;
+			plight->falloff0Frustum.y = 1.0;
+			plight->falloff1Frustum.x = 0.0;
+			plight->falloff1Frustum.y = 0.0;
+			ConvertFallOff(&plight->lmFallOffPenumbra, &plight->falloff0Frustum.z, &plight->falloff1Frustum.z);
+		}
 	}
 }
 
@@ -416,22 +464,26 @@ void PrepareSwLightsForDraw(SW *psw)
 			glUniform1f(GetUniformLocation(glGlobShader.ID, "dirlights[" + std::to_string(numDirLights) + "].ltfn.duShadow"),    allSwLights[i]->ltfn.duShadow);
 			glUniform1f(GetUniformLocation(glGlobShader.ID, "dirlights[" + std::to_string(numDirLights) + "].ltfn.duMidtone"),   allSwLights[i]->ltfn.duMidtone);
 			glUniform1f(GetUniformLocation(glGlobShader.ID, "dirlights[" + std::to_string(numDirLights) + "].ltfn.duHighlight"), allSwLights[i]->ltfn.duHighlight);
-
+			
 			numDirLights++;
+			break;
 
 			case LIGHTK_Frustrum:
 			case LIGHTK_Spot:
-			glUniform3fv(GetUniformLocation(glGlobShader.ID, "frustumlights[" + std::to_string(numFrustumLights) + "].dir"),     1, glm::value_ptr(allSwLights[i]->xf.matWorld[2]));
-			glUniform3fv(GetUniformLocation(glGlobShader.ID, "frustumlights[" + std::to_string(numFrustumLights) + "].color"),   1, glm::value_ptr(allSwLights[i]->rgbaColor));
-			glUniform3fv(GetUniformLocation(glGlobShader.ID, "frustumlights[" + std::to_string(numFrustumLights) + "].falloff"), 1, glm::value_ptr(allSwLights[i]->agFallOff));
+			glUniform3fv(GetUniformLocation(glGlobShader.ID, "frustumlights[" + std::to_string(numFrustumLights) + "].dir"),      1, glm::value_ptr(allSwLights[i]->xf.matWorld[2]));
+			glUniform3fv(GetUniformLocation(glGlobShader.ID, "frustumlights[" + std::to_string(numFrustumLights) + "].color"),    1, glm::value_ptr(allSwLights[i]->rgbaColor));
+			glUniform3fv(GetUniformLocation(glGlobShader.ID, "frustumlights[" + std::to_string(numFrustumLights) + "].falloff0"), 1, glm::value_ptr(allSwLights[i]->falloff0Frustum));
+			glUniform3fv(GetUniformLocation(glGlobShader.ID, "frustumlights[" + std::to_string(numFrustumLights) + "].falloff1"), 1, glm::value_ptr(allSwLights[i]->falloff0Frustum));
+			glUniformMatrix4fv(glGetUniformLocation(glGlobShader.ID, "frustum"), 1, GL_FALSE, glm::value_ptr(allSwLights[i]->frustum));
 
 			numFrustumLights++;
 			break;
 		}
 	}
 
-	glUniform1i(glGetUniformLocation(glGlobShader.ID, "numDirLights"),   numDirLights);
-	glUniform1i(glGetUniformLocation(glGlobShader.ID, "numPointLights"), numPointLights);
+	glUniform1i(glGetUniformLocation(glGlobShader.ID, "numDirLights"),     numDirLights);
+	glUniform1i(glGetUniformLocation(glGlobShader.ID, "numPointLights"),   numPointLights);
+	glUniform1i(glGetUniformLocation(glGlobShader.ID, "numFrustumLights"), numFrustumLights);
 }
 
 TWPS TwpsFindSwLights(SW *psw, glm::vec3 &ppos, float sRadius, int grffindlight, int cplightMax, int *pcplightStatic, int *pcplightAll, LIGHT **aplight, char *pchzTarget)

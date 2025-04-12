@@ -23,26 +23,27 @@ int main(int cphzArgs, char* aphzArgs[])
 		// Activate Depth testing
 		glEnable(GL_DEPTH_TEST);
 		
-		// Draws everything into the framebuffer
 		RenderMenuGui(g_psw);
 		
 		if (g_psw != nullptr)
 		{
 			//SetupCm(g_pcm);
+			//MarkClockTick(&g_clock);
 			double currentTime = glfwGetTime();
 			deltaTime = currentTime - lastFrame;
 			lastFrame = currentTime;
 
 			UpdateCpman(g_gl.window, &g_pcm->cpman, nullptr, deltaTime);
 
-			if (fRenderModels != 0)
+			//UpdateSw(g_psw, deltaTime);
+
+			if (g_fRenderModels != 0)
 			{
-				//UpdateSw(g_psw, deltaTime);
 				RenderSwGlobset(g_psw, g_pcm);
 				DrawSw(g_psw, g_pcm);
 			}
 
-			if (fRenderCollision != 0)
+			if (g_fRenderCollision != 0)
 				DrawSwCollisionAll();
 		}
 
@@ -92,6 +93,7 @@ void Startup()
 	glUniform1i(glGetUniformLocation(glGlobShader.ID, "saturateMap"), 2);
 
 	std::cout << "Sly Cooper 2002 Sony Computer Entertainment America & Sucker Punch Productions\n";
+	StartupClock();
 	SetPhase(PHASE_Startup);
 	StartupBrx();
 }

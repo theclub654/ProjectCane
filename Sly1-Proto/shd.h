@@ -118,7 +118,7 @@ void LoadFontsFromBrx(CBinaryInputStream *pbis); // GOTTA COME BACK TO THIS
 // Loads texture tables from binary file
 void LoadTexFromBrx(TEX* ptex, CBinaryInputStream* pbis);
 // Converts Custom Hue Saturation Value to RGBA Color
-void ConvertUserHsvToUserRgb(glm::vec3& pvecHSV, glm::vec3& pvecRGB, glm::vec3& pvecFalloff);
+void ConvertUserHsvToUserRgb(glm::vec3& pvecHSV, glm::vec3& pvecRGB);
 // Returns a shader property from global shader vector
 SHD* PshdFindShader(OID oid);
 // Loads texture and shader property's from binary file

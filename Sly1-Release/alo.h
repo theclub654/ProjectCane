@@ -3,7 +3,8 @@
 #include "glob.h"
 #include "act.h"
 
-extern std::vector<LIGHT*> allSwLights;
+extern std::vector <LIGHT*> allSwLights;
+extern bool g_fRenderCelBorders;
 
 enum ACK
 {

@@ -5,6 +5,7 @@
 #include "glshaders.h"
 #include "splicemap.h"
 #include "util.h"
+#include "clock.h"
 #include <bitset>
 
 typedef unsigned int SYMID;

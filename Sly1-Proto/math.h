@@ -7,6 +7,7 @@
 void LoadMatrixFromPosRot(glm::vec3 &ppos, glm::mat3 &pmat, glm::mat4 &pmatDst);
 void LoadMatrixFromPosRotScale(glm::vec3 &vecPos, glm::mat3 &matRot, glm::vec3 &vecScale, glm::mat4 &pmat);
 void LoadMatrixFromPosRotInverse(glm::vec3 &pposSrc, glm::mat3 &pmatSrc, glm::mat4 &pmatDst);
+void BuildOrthonormalMatrixZ(glm::vec3 &pvecX, glm::vec3 &pvecZ, glm::mat4 &pmat);
 // Builds rotation matrix
-void BuildRotateVectorsMatrix(glm::vec3 &vec1, glm::vec3 &vec2, glm::mat4 &mat);
-void LoadRotateMatrixRad(float rad, glm::vec3& pnormal, glm::mat4& pmat);
+void BuildRotateVectorsMatrix(const glm::vec3& vec1, const glm::vec3& vec2, glm::mat3& outMatrix);
+void LoadRotateMatrixRad(float rad, glm::vec3& pnormal, glm::mat3& pmat);

@@ -197,8 +197,9 @@ void RebuildLight(LIGHT* plight)
 
 	if (plight->vecHighlight.z > 0.0001)
 	{
-		ConvertUserHsvToUserRgb(plight->vecHighlight, rgba, plight->agFallOff);
-		
+		ConvertUserHsvToUserRgb(plight->vecHighlight, rgba);
+
+		plight->agFallOff = rgba;
 		plight->agFallOff.x = 1.0 / plight->vecHighlight.z;
 		plight->agFallOff.y = 0.0;
 
@@ -418,6 +419,7 @@ void PrepareSwLightsForDraw(SW *psw)
 			glUniform1f(GetUniformLocation(glGlobShader.ID, "dirlights[" + std::to_string(numDirLights) + "].ltfn.duHighlight"), allSwLights[i]->ltfn.duHighlight);
 
 			numDirLights++;
+			break;
 
 			case LIGHTK_Frustrum:
 			case LIGHTK_Spot:

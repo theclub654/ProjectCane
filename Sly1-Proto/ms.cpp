@@ -42,7 +42,8 @@ void RenderMsGlobset(MS *pms, CM *pcm, RO *pro)
 
                 rpl.ro.grfglob = &pms->globset.aglob[i].grfglob;
                 rpl.ro.pshd = pms->globset.aglob[i].asubglob[a].pshd;
-
+                rpl.ro.fgfn = pms->globset.aglob[i].fgfn;
+                rpl.ro.uFog = pms->globset.aglob[i].uFog;
                 rpl.ro.unSelfIllum = &pms->globset.aglob[i].asubglob[a].unSelfIllum;
 
                 rpl.ro.cvtx = pms->globset.aglob[i].asubglob[a].cvtx;
@@ -61,8 +62,8 @@ void RenderMsGlobset(MS *pms, CM *pcm, RO *pro)
                 if (pms->globset.aglob[i].dmat.size() != 0)
                     rpl.ro.modelmatrix = pms->globset.aglob[i].dmat[0] * modelmatrix;
 
-                /*if (pms->globset.aglob[i].rtck != RTCK_None)
-                    AdjustAloRtckMat(pms, pcm, pms->globset.aglob[i].rtck, &pms->globset.aglob[i].posCenter, &rpl.ro.modelmatrix);*/
+                if (pms->globset.aglob[i].rtck != RTCK_None)
+                    AdjustAloRtckMat(pms, pcm, pms->globset.aglob[i].rtck, &pms->globset.aglob[i].posCenter, rpl.ro.modelmatrix);
 
                 SubmitRpl(&rpl);
 

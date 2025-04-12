@@ -2,17 +2,30 @@
 
 void RenderMenuGui(SW* psw)
 {
+    // Start frame
     ImGui_ImplOpenGL3_NewFrame();
     ImGui_ImplGlfw_NewFrame();
     ImGui::NewFrame();
 
-    if (ImGui::BeginMainMenuBar()) 
+    g_fDisableInput = false; // Reset hover flag
+
+    // Main menu bar
+    if (ImGui::BeginMainMenuBar())
     {
-        if (ImGui::BeginMenu("File")) 
+        if (ImGui::IsWindowHovered(ImGuiHoveredFlags_AllowWhenBlockedByPopup))
+            g_fDisableInput = true;
+
+        if (ImGui::BeginMenu("File"))
         {
             if (ImGui::MenuItem("Open World"))
+            {
                 instance_a.Instance()->OpenDialog("ChooseFileDlgKey", "Choose File", ".brx", ".");
-            
+            }
+            else if (ImGui::IsItemHovered())
+            {
+                g_fDisableInput = true;
+            }
+
             if (ImGui::MenuItem("Close World"))
             {
                 if (psw != nullptr)
@@ -23,15 +36,38 @@ void RenderMenuGui(SW* psw)
                     levelName = "";
                 }
             }
+            else if (ImGui::IsItemHovered())
+            {
+                g_fDisableInput = true;
+            }
 
             ImGui::EndMenu();
         }
 
         if (ImGui::BeginMenu("Render"))
         {
-            if (ImGui::MenuItem("Map", "", &fRenderModels));
+            if (ImGui::MenuItem("Map", "", &g_fRenderModels));
+            if (ImGui::IsItemHovered()) g_fDisableInput = true;
 
-            if (ImGui::MenuItem("Collision", "", &fRenderCollision));
+            if (ImGui::MenuItem("Collision", "", &g_fRenderCollision));
+            if (ImGui::IsItemHovered()) g_fDisableInput = true;
+
+            if (ImGui::MenuItem("Cel Borders", "", &g_fRenderCelBorders));
+            if (ImGui::IsItemHovered()) g_fDisableInput = true;
+
+            ImGui::EndMenu();
+        }
+
+        if (ImGui::BeginMenu("Fog"))
+        {
+            if (ImGui::MenuItem("Off", nullptr, g_fogType == 0))
+                g_fogType = 0;
+
+            if (ImGui::MenuItem("PS2 Style", nullptr, g_fogType == 1))
+                g_fogType = 1;
+
+            if (ImGui::MenuItem("PS3 Style", nullptr, g_fogType == 2))
+                g_fogType = 2;
 
             ImGui::EndMenu();
         }
@@ -46,47 +82,53 @@ void RenderMenuGui(SW* psw)
                     ExportSw();
                     std::cout << "Export Complete" << "\n";
                 }
+                if (ImGui::IsItemHovered()) g_fDisableInput = true;
             }
 
             ImGui::EndMenu();
         }
 
-        if (instance_a.Instance()->Display("ChooseFileDlgKey"))
-        {
-            if (instance_a.Instance()->IsOk() == true)
-            {
-                if (psw != nullptr)
-                    DeleteWorld(psw);
-             
-                file = ImGuiFileDialog::Instance()->GetFilePathName();
-                filePath = ImGuiFileDialog::Instance()->GetCurrentPath();
-                std::string tempLevelName = ImGuiFileDialog::Instance()->GetCurrentFileName();
-                levelName.resize(tempLevelName.size() - 4);
-
-                for (int i = 0; i < tempLevelName.length(); i++)
-                {
-                    char temp = tempLevelName[i];
-
-                    if (temp == '.')
-                        break;
-                    else
-                        levelName[i] = temp;
-                }
-
-                g_transition.m_fPending = 1;
-            }
-            
-            instance_a.Instance()->Close();
-        }
-
         ImGui::EndMainMenuBar();
     }
+
+    // Draw the file dialog
+    if (instance_a.Instance()->Display("ChooseFileDlgKey"))
+    {
+        // Handle file selection
+        if (instance_a.Instance()->IsOk())
+        {
+
+            if (psw != nullptr)
+                DeleteWorld(psw);
+
+            file = ImGuiFileDialog::Instance()->GetFilePathName();
+            filePath = ImGuiFileDialog::Instance()->GetCurrentPath();
+            std::string tempLevelName = ImGuiFileDialog::Instance()->GetCurrentFileName();
+            levelName.resize(tempLevelName.size() - 4);
+
+            for (int i = 0; i < tempLevelName.length(); i++)
+            {
+                char temp = tempLevelName[i];
+                if (temp == '.')
+                    break;
+                else
+                    levelName[i] = temp;
+            }
+
+            g_transition.m_fPending = 1;
+        }
+
+        instance_a.Instance()->Close();
+    }
+
+    if (ImGuiFileDialog::Instance()->IsOpened("ChooseFileDlgKey"))
+        g_fDisableInput = true;
 }
 
 void ExportSw()
 {
     std::filesystem::create_directory(levelName);
-    
+
     uint32_t modelNum = 0;
     glm::mat4 model{};
 
@@ -142,7 +184,7 @@ void ExportSw()
 
                     objFile << "vt " << uv.x << " " << uv.y << "\n";
                 }
-                
+
                 for (int f = 0; f < allSWAloObjs[i]->globset.aglob[a].asubglob[b].indices.size(); f++)
                 {
                     uint16_t indice0 = allSWAloObjs[i]->globset.aglob[a].asubglob[b].indices[f].v1 + 1;

@@ -8,6 +8,7 @@ int  GetCmSize();
 void CloneCm(CM* pcm, CM* pcmBase);
 void RecalcCmFrustrum(CM* pcm);
 void BuildProjectionMatrix(float *fov, float *width, float *height, float *near, float *far, glm::mat4 &pmat);
+void BuildSimpleProjectionMatrix(float rx, float ry, float dxOffset, float dyOffset, float sNear, float sFar, glm::mat4 &pmat);
 void SetSwCameraFov(SW* psw, float radFOV);
 void SetSwCameraNearClip(SW* psw, float sNearClip);
 void SetSwCameraFarClip(SW* psw, float sFarClip);
@@ -41,7 +42,7 @@ void SetCmMrdRatio(CM* pcm, float rMRD);
 void BuildLookAt(glm::vec3 &posEye, glm::vec3 &directionEye, glm::vec3 &upEye, glm::mat4 &pmatLookAt);
 void SetupCm(CM *pcm);
 // Combines a LookAt Matrix and Projection Matrix
-void CombineEyeLookAtProj(glm::mat4 *pmatLookAt, glm::mat4 *pmatProj, glm::mat4 &pmat);
+void CombineEyeLookAtProj(const glm::vec3& eyePos, const glm::mat3& lookAt, const glm::mat4& proj, glm::mat4& pmat);
 // Updates a camera matrix
 void UpdateCmMat4(CM* pcm);
 // Returns whether a object is in the camera view or not 

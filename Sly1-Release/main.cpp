@@ -48,14 +48,15 @@ int main(int cphzArgs, char* aphzArgs[])
 
 			UpdateCpman(g_gl.window, &g_pcm->cpman, nullptr, deltaTime);
 
-			if (fRenderModels != 0)
+			UpdateSw(g_psw, deltaTime);
+
+			if (g_fRenderModels != 0)
 			{
-				UpdateSw(g_psw, deltaTime);
 				RenderSwGlobset(g_psw, g_pcm);
 				DrawSw(g_psw, g_pcm);
 			}
 
-			if (fRenderCollision != 0)
+			if (g_fRenderCollision != 0)
 				DrawSwCollisionAll();
 		}
 

@@ -561,11 +561,20 @@ void RenderAloGlobset(ALO *palo, CM *pcm, RO *pro)
 			{
 				rpl.ro.VAO = &palo->globset.aglob[i].asubglob[a].VAO;
 
-				if (palo->globset.aglob[i].asubglob[a].fCelBorder == 1)
+				
+				if (g_fRenderCelBorders == true)
 				{
-					rpl.ro.celVAO = &palo->globset.aglob[i].asubglob[a].celVAO;
-					rpl.ro.celcvtx = palo->globset.aglob[i].asubglob[a].celcvtx;
-					rpl.ro.fCelBorder = 1;
+					if (palo->globset.aglob[i].asubglob[a].fCelBorder == 1)
+					{
+						rpl.ro.celVAO = &palo->globset.aglob[i].asubglob[a].celVAO;
+						rpl.ro.celcvtx = palo->globset.aglob[i].asubglob[a].celcvtx;
+						rpl.ro.fCelBorder = 1;
+					}
+					else
+					{
+						rpl.ro.celVAO = nullptr;
+						rpl.ro.fCelBorder = 0;
+					}
 				}
 				else
 				{
@@ -620,13 +629,12 @@ void DrawGlob(RPL *prpl)
 
 	glUniformMatrix4fv(glGetUniformLocation(glGlobShader.ID, "model"), 1, GL_FALSE, glm::value_ptr(prpl->ro.modelmatrix));
 
-	glUniform1f(glGetUniformLocation(glGlobShader.ID, "usSelfIllum"), *prpl->ro.unSelfIllum);
-	glUniform1i(glGetUniformLocation(glGlobShader.ID, "fDynamic"), prpl->ro.fDynamic);
-	glUniform3fv(glGetUniformLocation(glGlobShader.ID, "posCenter"), 1, glm::value_ptr(prpl->posCenter));
-
 	if (prpl->ro.pshd->shdk == SHDK_ThreeWay)
 	{
-		glUniform1i(glGetUniformLocation(glGlobShader.ID, "rko"), 1);
+		glUniform1i(glGetUniformLocation(glGlobShader.ID,  "rko"), 1);
+		glUniform1f(glGetUniformLocation(glGlobShader.ID,  "usSelfIllum"), *prpl->ro.unSelfIllum);
+		glUniform1i(glGetUniformLocation(glGlobShader.ID,  "fDynamic"), prpl->ro.fDynamic);
+		glUniform3fv(glGetUniformLocation(glGlobShader.ID, "posCenter"), 1, glm::value_ptr(prpl->posCenter));
 
 		glActiveTexture(GL_TEXTURE0);
 		glBindTexture(GL_TEXTURE_2D, prpl->ro.pshd->glShadowMap);
@@ -722,7 +730,6 @@ void DrawGlob(RPL *prpl)
 				glBindVertexArray(*prpl->ro.celVAO);
 				glUniform1i(glGetUniformLocation(glGlobShader.ID, "rko"), 2);
 				glDepthMask(false);
-				//glDepthFunc(GL_LEQUAL);
 				glStencilFunc(GL_NOTEQUAL, 1, 0xFF);
 				glStencilMask(0x00);
 				glEnable(GL_BLEND);

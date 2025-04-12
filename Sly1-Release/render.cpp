@@ -199,9 +199,16 @@ void DrawSw(SW *psw, CM *pcm)
 
 	SortRenderRpl();
 
-	glUniformMatrix4fv(glGetUniformLocation(glGlobShader.ID, "matWorldToClip"), 1, GL_FALSE, glm::value_ptr(pcm->matWorldToClip));
+	glUniformMatrix4fv(glGetUniformLocation(glGlobShader.ID, "proj"), 1, GL_FALSE, glm::value_ptr(pcm->matProj));
+	glUniformMatrix4fv(glGetUniformLocation(glGlobShader.ID, "view"), 1, GL_FALSE, glm::value_ptr(pcm->lookAt));
 
-	glUniform1f(glGetUniformLocation(glGlobShader.ID, "lsm.uShadow"),  g_psw->lsmDefault.uShadow);
+	glUniform1i(glGetUniformLocation(glGlobShader.ID, "fogType"), g_fogType);
+	glUniform1f(glGetUniformLocation(glGlobShader.ID, "fogNear"), pcm->sNearFog);
+	glUniform1f(glGetUniformLocation(glGlobShader.ID, "fogFar"), pcm->sFarFog);
+	glUniform1f(glGetUniformLocation(glGlobShader.ID, "fogMax"), pcm->uFogMax);
+	glUniform4fv(glGetUniformLocation(glGlobShader.ID, "fogcolor"), 1, glm::value_ptr(pcm->rgbaFog));
+
+	glUniform1f(glGetUniformLocation(glGlobShader.ID, "lsm.uShadow"), g_psw->lsmDefault.uShadow);
 	glUniform1f(glGetUniformLocation(glGlobShader.ID, "lsm.uMidtone"), g_psw->lsmDefault.uMidtone);
 
 	glUniform4fv(glGetUniformLocation(glGlobShader.ID, "rgbaCel"), 1, glm::value_ptr(g_rgbaCel));
@@ -216,8 +223,8 @@ void DrawSwCollisionAll()
 {
 	glCollisionShader.Use();
 
-	int matWorldToClipLocation = glGetUniformLocation(glCollisionShader.ID, "matWorldToClip");
-	glUniformMatrix4fv(matWorldToClipLocation, 1, GL_FALSE, glm::value_ptr(g_pcm->matWorldToClip));
+	glUniformMatrix4fv(glGetUniformLocation(glCollisionShader.ID, "proj"), 1, GL_FALSE, glm::value_ptr(g_pcm->matProj));
+	glUniformMatrix4fv(glGetUniformLocation(glCollisionShader.ID, "view"), 1, GL_FALSE, glm::value_ptr(g_pcm->lookAt));
 
 	for (int i = 0; i < allSWSoObjs.size(); i++)
 		DrawCollision(allSWSoObjs[i]);

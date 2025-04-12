@@ -1,17 +1,19 @@
-#version 330 core
-
-#define SHDK_ThreeWay 0
+﻿#version 330 core
 
 #define RKO_OneWay 0
 #define RKO_ThreeWay 1
 #define RKO_CelBorder 2
+
+#define FOG_PS2 1
+#define FOG_PS3 2
 
 layout (location = 0) in vec3 vertex;
 layout (location = 1) in vec3 normal;
 layout (location = 2) in vec4 color;
 layout (location = 3) in vec2 uv;
 
-uniform mat4 matWorldToClip;
+uniform mat4 proj;
+uniform mat4 view;
 uniform mat4 model;
 
 out vec4 vertexColor;
@@ -41,7 +43,7 @@ struct DIRLIGHT
 
     LTFN ltfn;
 
-}; uniform DIRLIGHT dirlights[5];
+}; uniform DIRLIGHT dirlights[1];
 
 uniform int numDirLights;
 
@@ -61,29 +63,42 @@ struct FRUSTUMLIGHT
 {
    vec3 dir;
    vec3 color;
-   vec3 falloff;
+   vec3 falloff0;
+   vec3 falloff1;
+   mat4 frustum;
 
    LTFN ltfn; 
-}; uniform FRUSTUMLIGHT frustumlights[5];
+}; uniform FRUSTUMLIGHT frustumlights[2];
 
 uniform int numFrustumLights;
 
-uniform int shdk;
-uniform float usSelfIllum;
+struct MATERIAL
+{
+    float ambient;
+    vec3  midtone;
+    vec3  light;
+};
+
+uniform vec3 cameraPos;
 
 uniform int rko;
-
+uniform float usSelfIllum;
 uniform int fDynamic;
 uniform vec3 posCenter;
-
-out vec4 ambient;
-out vec4 midtone;
-out vec4 light;
+uniform float uFog;
 
 float objectShadow;
 float objectMidtone;
+vec4  light;
+int   fLit;
 
-int fLit;
+out MATERIAL material;
+out float fogZ;
+
+uniform float fogNear;
+uniform float fogFar;
+uniform float fogMax;
+uniform int fogType;
 
 void StartThreeWay();
 void InitGlobLighting();
@@ -94,234 +109,258 @@ vec4 AddPositionLightDynamic(POINTLIGHT pointlight);
 vec4 AddFrustrumLight(FRUSTUMLIGHT frustumlight);
 vec4 AddFrustrumLightDynamic(FRUSTUMLIGHT frustumlight);
 void ProcessGlobLighting();
+// This uses the PS2 Style fog
+void CalculateFogPS2();
+// This uses the PS3 style fog
+void CalculateFogPS3();
 
 void main()
 {
     vertexColor = color;
     texcoord    = uv;
 
-    switch (rko)
-    {
-        case RKO_OneWay:
-        gl_Position = matWorldToClip * model * vec4(vertex, 1.0);
-        break;
-
-        case RKO_ThreeWay:
+    if (rko == RKO_ThreeWay)
         StartThreeWay();
-        gl_Position = matWorldToClip * model * vec4(vertex, 1.0);
+    
+    switch(fogType)
+    {
+        case FOG_PS2:
+        CalculateFogPS2();
         break;
 
-        case RKO_CelBorder:
-        gl_Position = matWorldToClip * model * vec4(vertex, 1.0);
+        case FOG_PS3:
+        CalculateFogPS3();
         break;
     }
+    
+    gl_Position = proj * view * model * vec4(vertex, 1.0);
 }
 
 void StartThreeWay()
 {
+
     if (fDynamic != 1)
-        {
-            fLit = 1;
-            InitGlobLighting();
-            for (int i = 0; i < numDirLights; i++)
-                light += AddDirectionLight(dirlights[i]);
+    {
+        InitGlobLighting();
+        for (int i = 0; i < numDirLights; i++)
+            light += AddDirectionLight(dirlights[i]);
 
-            for (int i = 0; i < numPointLights; i++)
-                light += AddPositionLight(pointlights[i]);
+        for (int i = 0; i < numPointLights; i++)
+             light += AddPositionLight(pointlights[i]);
 
-            for (int i = 0; i < numFrustumLights; i++)
-                light += AddFrustrumLight(frustumlights[i]);
-        }
-        else
-        {
-            fLit = 0;
-            for (int i = 0; i < numDirLights; i++)
-                light += AddDynamicLight(dirlights[i].dir, dirlights[i].color, dirlights[i].ltfn);
+        for (int i = 0; i < numFrustumLights; i++)
+             light += AddFrustrumLight(frustumlights[i]);
+    }
+    else
+    {
+        fLit = 0;
+        for (int i = 0; i < numDirLights; i++)
+            light += AddDynamicLight(dirlights[i].dir, dirlights[i].color, dirlights[i].ltfn);
 
-            for (int i = 0; i < numPointLights; i++)
-                light += AddPositionLightDynamic(pointlights[i]);
+        for (int i = 0; i < numPointLights; i++)
+            light += AddPositionLightDynamic(pointlights[i]);
 
-            for (int i = 0; i < numFrustumLights; i++)
-                light += AddFrustrumLightDynamic(frustumlights[i]);
-        }
-
-        ProcessGlobLighting();
+        for (int i = 0; i < numFrustumLights; i++)
+            light += AddFrustrumLightDynamic(frustumlights[i]);
+    }
+    
+    ProcessGlobLighting();
 }
 
 void InitGlobLighting()
 {
     objectShadow  = lsm.uShadow;
-    objectMidtone = lsm.uMidtone + usSelfIllum * 3.060163e-05;
+    objectMidtone = lsm.uMidtone + usSelfIllum * 0.000031;
     light = vec4(0.0);
 }
 
 vec4 AddDirectionLight(DIRLIGHT dirlight)
 {
-    vec3 direction = mat3(inverse(model)) * dirlight.dir;
-    
-    float diffuse = dot(normalize(direction), normal);
+    // Transform light direction into world space
+    vec3 lightDirWorld = normalize(mat3(inverse(model)) * dirlight.dir);
 
-    diffuse = diffuse + diffuse * diffuse * diffuse;
-   
-    float lightShadow  = diffuse * dirlight.ltfn.ruShadow  + dirlight.ltfn.duShadow;
-    float lightMidtone = diffuse * dirlight.ltfn.ruMidtone + dirlight.ltfn.duMidtone;
+    // Dot product between normal and light direction (skip normalize if normal is already normalized)
+    float NdotL = max(dot(normal, lightDirWorld), 0.0);
 
-    diffuse = diffuse * dirlight.ltfn.ruHighlight + dirlight.ltfn.duHighlight;
+    // Stylized boost: N + N^3 approximation
+    float diffuse = NdotL * (1.0 + NdotL * NdotL);
 
-    diffuse = max(diffuse, 0.0);
+    // Ramp contributions without branching
+    float shadow    = diffuse * dirlight.ltfn.ruShadow   + dirlight.ltfn.duShadow;
+    float midtone   = diffuse * dirlight.ltfn.ruMidtone  + dirlight.ltfn.duMidtone;
+    float highlight = diffuse * dirlight.ltfn.ruHighlight + dirlight.ltfn.duHighlight;
 
-    objectShadow  += max(lightShadow,  0.0);
-    objectMidtone += max(lightMidtone, 0.0);
+    // Clamp results
+    shadow    = max(shadow, 0.0);
+    midtone   = max(midtone, 0.0);
+    highlight = max(highlight, 0.0);
 
-    return vec4(dirlight.color, 0.0) * diffuse;
+    // Accumulate tone contributions
+    objectShadow  += shadow;
+    objectMidtone += midtone;
+
+    // Final output color
+    return vec4(dirlight.color * highlight, 0.0);
 }
 
 vec4 AddDynamicLight(vec3 dir, vec3 color, LTFN ltfn)
 {
-    vec3 direction = mat3(inverse(model)) * dir;
+    // Transform light direction into model space
+    vec3 lightDir = normalize(mat3(inverse(model)) * dir);
 
+    // Initialize lighting if needed
     if (fLit == 0)
         InitGlobLighting();
 
-    float diffuse = dot(normalize(direction), normal);
-    diffuse = diffuse + diffuse * diffuse * diffuse;
+    // Compute stylized diffuse term
+    float diffuse = dot(lightDir, normal);
+    diffuse += diffuse * diffuse * diffuse; // Enhance with stylized curve
 
-    float lightShadow = ltfn.duShadow + diffuse * ltfn.ruShadow;
+    // Compute lighting components
+    float shadow  = ltfn.duShadow  + diffuse * ltfn.ruShadow;
+    float midtone = ltfn.duMidtone + diffuse * ltfn.ruMidtone;
+    float highlight = ltfn.duHighlight + diffuse * ltfn.ruHighlight;
+    highlight = max(highlight, 0.0);
 
-    float lightMidtone = ltfn.duMidtone + diffuse * ltfn.ruMidtone;
+    // Accumulate lighting contributions
+    objectShadow  += max(shadow, 0.0);
+    objectMidtone += max(midtone, 0.0);
 
-    diffuse = ltfn.duHighlight + diffuse * ltfn.ruHighlight;
-    diffuse = max(diffuse, 0.0);
-
-    objectShadow  += max(lightShadow, 0.0);
-    objectMidtone += max(lightMidtone, 0.0);
-
+    // Mark lighting as applied
     fLit = 1;
 
-    return vec4(color, 0.0) * diffuse;
+    // Return final color modulated by stylized highlight
+    return vec4(color, 0.0) * highlight;
 }
 
 vec4 AddPositionLight(POINTLIGHT pointlight)
 {
-    vec4 pos = model * vec4(vertex, 1.0);
-    vec3 posWorld = vec3(pos) / pos.w;
-    vec3 normalWorld = mat3(model) * normal;
-    
-    vec3 direction = normalize(pointlight.pos - posWorld);
-    float distance = length(pointlight.pos - posWorld);
+    // World-space position and normal
+    vec3 posWorld    = (model * vec4(vertex, 1.0)).xyz;
+    vec3 normalWorld = normalize(mat3(model) * normal);
 
-    float attenuation = 1.0 / distance * pointlight.falloff.y + pointlight.falloff.x;
+    // Light vector (non-normalized)
+    vec3 toLight   = pointlight.pos - posWorld;
+    float distSqr  = dot(toLight, toLight);
 
-    float diffuse = dot(direction, normalize(normalWorld));
+    // Approximate inverse sqrt for light direction (normalize)
+    float invLen   = inversesqrt(distSqr);
+    vec3 lightDir  = toLight * invLen;
 
-    diffuse = diffuse + diffuse * diffuse * diffuse;
+    // Diffuse
+    float NdotL = max(dot(lightDir, normalWorld), 0.0);
+    float diffuse = NdotL * (1.0 + NdotL * NdotL); // N + N³ ≈ stylized bump
 
-    float ruShadow = 0.0;
+    // Custom attenuation
+    float attenuation = clamp(pointlight.falloff.x + pointlight.falloff.y * invLen, 0.0, 1.0);
 
-    if (attenuation < 0.0)
-    {
-        attenuation = 0.0;
-        ruShadow = pointlight.ltfn.ruShadow;
-    }
-    else
-    {
-        if (attenuation > 1.0)
-            attenuation = 1.0;
+    // Ramp contributions
+    float shadow    = diffuse * pointlight.ltfn.ruShadow   + pointlight.ltfn.duShadow;
+    float midtone   = diffuse * pointlight.ltfn.ruMidtone  + pointlight.ltfn.duMidtone;
+    float highlight = diffuse * pointlight.ltfn.ruHighlight + pointlight.ltfn.duHighlight;
 
-        ruShadow = pointlight.ltfn.ruShadow;
-    }
+    // Multiply all by attenuation
+    shadow    *= attenuation;
+    midtone   *= attenuation;
+    highlight *= attenuation;
 
-    float lightShadow  = diffuse * ruShadow + pointlight.ltfn.duShadow;
-    float lightMidtone = diffuse * pointlight.ltfn.ruMidtone + pointlight.ltfn.duMidtone;
+    // Accumulate shared lighting values
+    objectShadow  += max(shadow, 0.0);
+    objectMidtone += max(midtone, 0.0);
 
-    diffuse = diffuse * pointlight.ltfn.ruHighlight + pointlight.ltfn.duHighlight;
-
-    diffuse = max(diffuse, 0.0) * attenuation;
-
-    objectShadow  += max(lightShadow,  0.0) * attenuation;
-    objectMidtone += max(lightMidtone, 0.0) * attenuation;
-
-    return vec4(pointlight.color, 0.0) * diffuse;
+    // Return final color contribution
+    return vec4(pointlight.color * max(highlight, 0.0), 0.0);
 }
 
 vec4 AddPositionLightDynamic(POINTLIGHT pointlight)
 {
-    vec4 poscenter = model * vec4(posCenter, 1.0);
-    vec3 posCenterWorld = vec3(poscenter) / poscenter.w;
+    // Transform light center to world space
+    vec3 posCenterWorld = vec3(model * vec4(posCenter, 1.0));
 
+    // Compute direction and distance to light
     vec3 direction = normalize(pointlight.pos - posCenterWorld);
     float distance = length(pointlight.pos - posCenterWorld);
 
+    // Compute clamped attenuation
     float attenuation = 1.0 / distance * pointlight.falloff.y + pointlight.falloff.x;
+    attenuation = clamp(attenuation, 0.0, 1.0);
 
-    float falloff = 0.0;
-    if ((0.0 <= attenuation) && (falloff = attenuation, 1.0 < attenuation))
-        falloff = 1.0;
-
+    // Scale light tone functions by attenuation
     LTFN ltfn;
 
-    ltfn.ruShadow = pointlight.ltfn.ruShadow * falloff;
-    ltfn.duShadow = pointlight.ltfn.duShadow * falloff;
+    ltfn.ruShadow = pointlight.ltfn.ruShadow * attenuation;
+    ltfn.duShadow = pointlight.ltfn.duShadow * attenuation;
 
-    ltfn.ruMidtone = pointlight.ltfn.ruMidtone * falloff;
-    ltfn.duMidtone = pointlight.ltfn.duMidtone * falloff;
+    ltfn.ruMidtone = pointlight.ltfn.ruMidtone * attenuation;
+    ltfn.duMidtone = pointlight.ltfn.duMidtone * attenuation;
 
-    ltfn.ruHighlight = pointlight.ltfn.ruHighlight * falloff;
-    ltfn.duHighlight = pointlight.ltfn.duHighlight * falloff;
+    ltfn.ruHighlight = pointlight.ltfn.ruHighlight * attenuation;
+    ltfn.duHighlight = pointlight.ltfn.duHighlight * attenuation;
 
-    return AddDynamicLight(direction, pointlight.color, ltfn);
+    // Apply dynamic lighting
+    return AddDynamicLight(direction, pointlight.color, ltfn) * attenuation;
 }
 
 vec4 AddFrustrumLight(FRUSTUMLIGHT frustumlight)
 {
-    
     return vec4(0.0);
 }
 
 vec4 AddFrustrumLightDynamic(FRUSTUMLIGHT frustumlight)
 {
-    
     return vec4(0.0);
 }
 
 void ProcessGlobLighting()
 {
-    if (fLit == 0)
-    {
-        InitGlobLighting();
-        fLit = 1;
-    }
+    // Find the brightest channel in the light color (used to gauge overall intensity)
+    float dominantLight = max(max(light.r, light.g), light.b);
+    // Invert brightness to get potential shadow strength (brighter light = less shadow)
+    float shadowModifier = 1.0 - dominantLight;
+    // Clamp the object's midtone value so it doesn't exceed remaining shadow range
+    float clampedMidtone = clamp(objectMidtone, 0.0, shadowModifier);
+    // Determine how much of the remaining light can go toward shadows (bounded by objectShadow)
+    float shadowContribution = max(min(shadowModifier - clampedMidtone, objectShadow), 0.0);
+    // Approximate base light intensity from average of vertex color (grayscale luminance)
+    float baseIntensity = dot(vertexColor.rgb, vec3(0.3333333));
 
-    float litR = light.r;
-    float litG = light.g;
-    float litB = light.b;
+    // Assign lighting output
+    material.ambient = shadowContribution * baseIntensity;
+    material.midtone.rgb = clampedMidtone * vertexColor.rgb;
+    material.light   = min(light.rgb, vec3(1.0)) * baseIntensity;
+}
 
-	if (litG < litR)
-		litG = max(litB, litR);
-	else
-	    litG = max(litB, litG);
+void CalculateFogPS2()
+{
+    vec4 worldPos = model * vec4(vertex, 1.0);
+    // Distance to camera
+    float z = length(worldPos.xyz - inverse(view)[3].xyz);
 
-	litG = 1.0 - litG;
+    float recipZ = 1.0 / max(z, 0.0001); // Prevent div by zero
 
-	litB = litG - objectMidtone;
+    // Flip the reciprocal mapping
+    float recipNear = 1.0 / fogNear;
+    float recipFar  = 1.0 / fogFar;
 
-	objectMidtone = min(objectMidtone, litG);
-	objectMidtone = max(objectMidtone, 0.0);
-	litG = min(litB, objectShadow);
+    // remap recipZ from recipNear..recipFar to 0..1
+    float fog = clamp((recipNear - recipZ) / (recipNear - recipFar), 0.0, 1.0);
 
-	litG = max(litG, 0.0);
+    fogZ = clamp(fog  * fogMax, 0.0, 1.0);
+}
 
-    float intensity = (vertexColor.r + vertexColor.g + vertexColor.b) * 0.3333333;
-    
-    ambient.r = litG * intensity;
-    ambient.g = litG * intensity;
-    ambient.b = litG * intensity;
+void CalculateFogPS3()
+{
+    vec4 worldPos = model * vec4(vertex, 1.0);
 
-    midtone.r = objectMidtone * vertexColor.r;
-    midtone.g = objectMidtone * vertexColor.g;
-    midtone.b = objectMidtone * vertexColor.b;
+    // Compute the distance from the camera to the world-space position of the vertex
+    // The camera position is extracted from the inverse of the view matrix (column 3)
+    float distanceToCamera = length(worldPos.xyz - inverse(view)[3].xyz);
 
-    light.r = min(light.r, 1.0) * intensity;
-    light.g = min(light.g, 1.0) * intensity;
-    light.b = min(light.b, 1.0) * intensity;
+    // Linearly map the distance into a 0..1 fog range
+    // uFog is 0 when at fogNear and 1 when at fogFar
+    float uFog = clamp((distanceToCamera - fogNear) / (fogFar - fogNear), 0.0, 1.0);
+
+    // Scale the fog intensity by fogMax (a scalar that controls overall fog strength)
+    // and clamp it to stay within the [0..1] valid fog range
+    fogZ = clamp(uFog * fogMax, 0.0, 1.0);
 }
