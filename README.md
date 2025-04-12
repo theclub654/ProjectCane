@@ -1,4 +1,5 @@
-![Screenshot 2025-03-27 212612](https://github.com/user-attachments/assets/fd57df0f-7f3e-41af-a415-f26447850229)
+
+![Screenshot 2025-04-12 021516](https://github.com/user-attachments/assets/feb25918-f559-4501-b63a-0eaab2dfc097)
 
 # 🕵️ Sly Trilogy Decompilation Project
 
