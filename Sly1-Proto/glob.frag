@@ -18,15 +18,17 @@ struct MATERIAL
     vec3  light;
 };
 
-uniform vec4 fogcolor;
-uniform int fogType;
-uniform vec4 rgbaCel;
-uniform int rko;
-
 in vec4 vertexColor;
 in vec2 texcoord;
+
+uniform int fogType;
+uniform vec4 fogcolor;
+uniform vec4 rgbaCel;
+
+uniform int rko;
+
 in MATERIAL material;
-in float fogZ;
+in float fogIntensity;
 
 out vec4 FragColor;
 
@@ -34,13 +36,14 @@ void CullGlob();
 void DrawOneWay();
 void DrawThreeWay();
 void DrawCelBorder();
-void ApplyFog();
+void ApplyFogPS2();
+void ApplyFogPS3();
 
 void main()
 {
     CullGlob();
-    FragColor = vec4(0.0);
 
+    FragColor = vec4(0.0);
     switch (rko)
     {
         case RKO_OneWay:
@@ -56,7 +59,16 @@ void main()
         break;
     }
 
-    ApplyFog();
+    switch(fogType)
+    {
+        case FOG_PS2:
+        ApplyFogPS2();
+        break;
+
+        case FOG_PS3:
+        ApplyFogPS3();
+        break;
+    }
 }
 
 void CullGlob()
@@ -81,7 +93,7 @@ void DrawThreeWay()
     FragColor.rgb += shadow.rgb   * material.ambient;
     FragColor.rgb += diffuse.rgb  * material.midtone.rgb;
     FragColor.rgb += saturate.rgb * material.light.rgb;
-    
+
     FragColor.a = clamp(vertexColor.a * shadow.a * diffuse.a * saturate.a, 0.0, 1.0);
 }
 
@@ -90,10 +102,12 @@ void DrawCelBorder()
     FragColor = rgbaCel;
 }
 
-void ApplyFog()
+void ApplyFogPS2()
 {
-    if (fogType == FOG_PS2)
-        FragColor.rgb = mix(FragColor.rgb, fogcolor.rgb, clamp(fogcolor.a * fogZ, 0.0, 1.0));
-    else if (fogType == FOG_PS3)
-        FragColor.rgb = mix(FragColor.rgb, fogcolor.rgb, fogZ);
+    FragColor.rgb = mix(FragColor.rgb, fogcolor.rgb, clamp(fogcolor.a * fogIntensity, 0.0, 1.0));
+}
+
+void ApplyFogPS3()
+{
+    FragColor.rgb = mix(FragColor.rgb, fogcolor.rgb, fogIntensity);
 }

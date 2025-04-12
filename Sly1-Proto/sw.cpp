@@ -260,6 +260,7 @@ void DeleteWorld(SW *psw)
 
 	g_psw = nullptr;
 	g_pcm = nullptr;
+	
 	std::cout << "World Deleted\n";
 }
 

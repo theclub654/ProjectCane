@@ -36,7 +36,7 @@ int main(int cphzArgs, char* aphzArgs[])
 		// Activate Depth testing
 		glEnable(GL_DEPTH_TEST);
 		
-		// Draws everything into the framebuffer
+		
 		RenderMenuGui(g_psw);
 		
 		if (g_psw != nullptr)

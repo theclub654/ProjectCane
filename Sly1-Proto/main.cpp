@@ -28,11 +28,11 @@ int main(int cphzArgs, char* aphzArgs[])
 		if (g_psw != nullptr)
 		{
 			//SetupCm(g_pcm);
-			//MarkClockTick(&g_clock);
+			MarkClockTick(&g_clock);
 			double currentTime = glfwGetTime();
 			deltaTime = currentTime - lastFrame;
 			lastFrame = currentTime;
-
+			
 			UpdateCpman(g_gl.window, &g_pcm->cpman, nullptr, deltaTime);
 
 			//UpdateSw(g_psw, deltaTime);

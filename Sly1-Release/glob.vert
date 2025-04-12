@@ -43,7 +43,7 @@ struct DIRLIGHT
 
     LTFN ltfn;
 
-}; uniform DIRLIGHT dirlights[1];
+}; uniform DIRLIGHT dirlights[5];
 
 uniform int numDirLights;
 
@@ -63,12 +63,10 @@ struct FRUSTUMLIGHT
 {
    vec3 dir;
    vec3 color;
-   vec3 falloff0;
-   vec3 falloff1;
-   mat4 frustum;
+   vec3 falloff;
 
    LTFN ltfn; 
-}; uniform FRUSTUMLIGHT frustumlights[2];
+}; uniform FRUSTUMLIGHT frustumlights[5];
 
 uniform int numFrustumLights;
 
@@ -79,26 +77,23 @@ struct MATERIAL
     vec3  light;
 };
 
-uniform vec3 cameraPos;
+uniform float fogNear;
+uniform float fogFar;
+uniform float fogMax;
+uniform int fogType;
 
 uniform int rko;
 uniform float usSelfIllum;
 uniform int fDynamic;
 uniform vec3 posCenter;
-uniform float uFog;
 
 float objectShadow;
 float objectMidtone;
-vec4  light;
-int   fLit;
+vec4 light;
+int  fLit;
 
 out MATERIAL material;
-out float fogZ;
-
-uniform float fogNear;
-uniform float fogFar;
-uniform float fogMax;
-uniform int fogType;
+out float fogIntensity;
 
 void StartThreeWay();
 void InitGlobLighting();
@@ -121,7 +116,7 @@ void main()
 
     if (rko == RKO_ThreeWay)
         StartThreeWay();
-    
+
     switch(fogType)
     {
         case FOG_PS2:
@@ -132,45 +127,45 @@ void main()
         CalculateFogPS3();
         break;
     }
-    
+
     gl_Position = proj * view * model * vec4(vertex, 1.0);
 }
 
 void StartThreeWay()
 {
-
     if (fDynamic != 1)
-    {
-        InitGlobLighting();
-        for (int i = 0; i < numDirLights; i++)
-            light += AddDirectionLight(dirlights[i]);
+        {
+            fLit = 1;
+            InitGlobLighting();
+            for (int i = 0; i < numDirLights; i++)
+                light += AddDirectionLight(dirlights[i]);
 
-        for (int i = 0; i < numPointLights; i++)
-             light += AddPositionLight(pointlights[i]);
+            for (int i = 0; i < numPointLights; i++)
+                light += AddPositionLight(pointlights[i]);
 
-        for (int i = 0; i < numFrustumLights; i++)
-             light += AddFrustrumLight(frustumlights[i]);
-    }
-    else
-    {
-        fLit = 0;
-        for (int i = 0; i < numDirLights; i++)
-            light += AddDynamicLight(dirlights[i].dir, dirlights[i].color, dirlights[i].ltfn);
+            for (int i = 0; i < numFrustumLights; i++)
+                light += AddFrustrumLight(frustumlights[i]);
+        }
+        else
+        {
+            fLit = 0;
+            for (int i = 0; i < numDirLights; i++)
+                light += AddDynamicLight(dirlights[i].dir, dirlights[i].color, dirlights[i].ltfn);
 
-        for (int i = 0; i < numPointLights; i++)
-            light += AddPositionLightDynamic(pointlights[i]);
+            for (int i = 0; i < numPointLights; i++)
+                light += AddPositionLightDynamic(pointlights[i]);
 
-        for (int i = 0; i < numFrustumLights; i++)
-            light += AddFrustrumLightDynamic(frustumlights[i]);
-    }
-    
-    ProcessGlobLighting();
+            for (int i = 0; i < numFrustumLights; i++)
+                light += AddFrustrumLightDynamic(frustumlights[i]);
+        }
+
+        ProcessGlobLighting();
 }
 
 void InitGlobLighting()
 {
     objectShadow  = lsm.uShadow;
-    objectMidtone = lsm.uMidtone + usSelfIllum * 0.000031;
+    objectMidtone = lsm.uMidtone + usSelfIllum * 3.060163e-05;
     light = vec4(0.0);
 }
 
@@ -303,11 +298,13 @@ vec4 AddPositionLightDynamic(POINTLIGHT pointlight)
 
 vec4 AddFrustrumLight(FRUSTUMLIGHT frustumlight)
 {
+    
     return vec4(0.0);
 }
 
 vec4 AddFrustrumLightDynamic(FRUSTUMLIGHT frustumlight)
 {
+    
     return vec4(0.0);
 }
 
@@ -345,7 +342,7 @@ void CalculateFogPS2()
     // remap recipZ from recipNear..recipFar to 0..1
     float fog = clamp((recipNear - recipZ) / (recipNear - recipFar), 0.0, 1.0);
 
-    fogZ = clamp(fog  * fogMax, 0.0, 1.0);
+    fogIntensity = clamp(fog  * fogMax, 0.0, 1.0);
 }
 
 void CalculateFogPS3()
@@ -362,5 +359,5 @@ void CalculateFogPS3()
 
     // Scale the fog intensity by fogMax (a scalar that controls overall fog strength)
     // and clamp it to stay within the [0..1] valid fog range
-    fogZ = clamp(uFog * fogMax, 0.0, 1.0);
+    fogIntensity = clamp(uFog * fogMax, 0.0, 1.0);
 }

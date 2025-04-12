@@ -631,7 +631,8 @@ void DrawGlob(RPL *prpl)
 
 	if (prpl->ro.pshd->shdk == SHDK_ThreeWay)
 	{
-		glUniform1i(glGetUniformLocation(glGlobShader.ID,  "rko"), 1);
+		glUniform1i(glGetUniformLocation(glGlobShader.ID, "rko"), 1);
+
 		glUniform1f(glGetUniformLocation(glGlobShader.ID,  "usSelfIllum"), *prpl->ro.unSelfIllum);
 		glUniform1i(glGetUniformLocation(glGlobShader.ID,  "fDynamic"), prpl->ro.fDynamic);
 		glUniform3fv(glGetUniformLocation(glGlobShader.ID, "posCenter"), 1, glm::value_ptr(prpl->posCenter));
