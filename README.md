@@ -44,7 +44,6 @@ Please follow these best practices when contributing:
 - ✅ **Keep all game assets** intact across all branches
 - ✅ **Avoid raw copy-paste from Ghidra** — always clean up and format code for readability
 - ✅ **Understand what you're decompiling** — aim to interpret and translate behavior, not just transcribe
-- ✅ **Write clean, modern C++** where appropriate
 - ✅ **Preserve accuracy** while making code maintainable
 
 Your effort in maintaining clean and understandable code will benefit the whole community and help build a strong foundation for future work — including full PC support and modding tools.
