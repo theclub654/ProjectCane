@@ -1,7 +1,7 @@
 
 ![Screenshot 2025-04-12 021516](https://github.com/user-attachments/assets/feb25918-f559-4501-b63a-0eaab2dfc097)
 
-# 🕵️ Sly Trilogy Decompilation Project
+# Sly Trilogy Decompilation Project
 
 ## 📖 Project Description
 
