@@ -1,19 +1,61 @@
 ![Screenshot 2025-03-27 212612](https://github.com/user-attachments/assets/fd57df0f-7f3e-41af-a415-f26447850229)
 
-# Description:
-The goal for this project is to decompile all three games and understand the workings of the games as in the future when we get a pc port up and running it would make modding the games alot easier since we know how the games works, and also rewrite parts of the games that needs to be rewritten to turn into a workable PC port.
-WINDOWS is only supported at the moment other platforms will be supported when i make reasonable progress.
+# 🕵️ Sly Trilogy Decompilation Project
 
-# Current Goal:
-The current goal is to RE the may proto and release side by side but use the may proto as a template for the release
+## 📖 Project Description
 
-# Compile:
-If you want to compile the May 19, 2002 version you need to right click the Sly1-Proto in the solutons viewer and click set startup program and build and run
-If you want to compile the release version you need to right click the Sly1-Release in the solutons viewer and click set startup program and build and run
+This project aims to **decompile all three Sly Cooper games**, gain a deep understanding of their internal logic, and lay the groundwork for a functional **PC port**. By reverse engineering the games, we make modding significantly easier and prepare the codebase for future enhancements.
 
-# IMPORTANT
-Please keep all game assets from all branches.
+As part of this process, we will **rewrite parts of the code** where necessary to ensure clean structure, modern compatibility, and portability across platforms.
 
-Please dont just copy and paste code from ghidra make it look nice.
+> 💻 **Note:** Only **Windows** is currently supported. Other platforms will be considered once reasonable progress is made.
 
-It would be very appreciated if you actually try to understand functions and things thats going on instead of just copying stuff over.
+---
+
+## 🎯 Current Objective
+
+Our current focus is to:
+- Reverse engineer the **May 19, 2002 prototype** of Sly 1
+- Use this prototype as a foundation to reconstruct and better understand the **retail release**
+- Maintain and compare **both versions side by side** throughout development
+
+---
+
+## ⚙️ Building the Project
+
+To compile the project, use the instructions below based on your desired target:
+
+### 🧪 May 19, 2002 Prototype
+1. In **Solution Explorer**, right-click on `Sly1-Proto`
+2. Select **Set as Startup Project**
+3. Click **Build** → **Run**
+
+### 📦 Retail Release
+1. In **Solution Explorer**, right-click on `Sly1-Release`
+2. Select **Set as Startup Project**
+3. Click **Build** → **Run**
+
+---
+
+## ⚠️ Guidelines
+
+Please follow these best practices when contributing:
+
+- ✅ **Keep all game assets** intact across all branches
+- ✅ **Avoid raw copy-paste from Ghidra** — always clean up and format code for readability
+- ✅ **Understand what you're decompiling** — aim to interpret and translate behavior, not just transcribe
+- ✅ **Write clean, modern C++** where appropriate
+- ✅ **Preserve accuracy** while making code maintainable
+
+Your effort in maintaining clean and understandable code will benefit the whole community and help build a strong foundation for future work — including full PC support and modding tools.
+
+---
+
+## 🛠️ Contributing
+
+If you're interested in helping out, feel free to:
+- Submit pull requests with your cleaned and understood code
+- Share findings about game logic or behavior
+- Help document function purposes, structures, and quirks
+
+Let’s reverse-engineer some raccoon chaos! 🦝🔥
