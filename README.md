@@ -1,6 +1,7 @@
 
 ![Screenshot 2025-04-12 104934](https://github.com/user-attachments/assets/427a43f6-d1aa-49eb-83a7-8330da425520)
-![Logo 400](https://github.com/user-attachments/assets/c61aef16-88a8-4c4d-809c-c7295aaac31a)
+![Logo 300](https://github.com/user-attachments/assets/49b1b7d4-87db-4134-8f52-dbef28a79d54)
+
 
 
 # Sly Trilogy Decompilation Project
