@@ -36,6 +36,11 @@ LO* PloNew(CID cid, SW* psw, ALO* paloParent, OID oid, int isplice)
 	// Appending object to fist parent list
     AppendDlEntry(PdlFromSwOid(localObject->psw, localObject->oid) , localObject);
 	
+	// Insert into linked list of LO by CID
+	LO** cidHead = &localObject->psw->aploCidHead[cid];
+	localObject->ploCidNext = *cidHead;
+	*cidHead = static_cast<LO*>(localObject);
+
 	// Initializing local object
 	localObject->pvtlo->pfnInitLo(localObject);
 	

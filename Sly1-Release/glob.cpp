@@ -151,8 +151,6 @@ void LoadGlobsetFromBrx(GLOBSET* pglobset, short cid, ALO* palo, CBinaryInputStr
         pglobset->aglob[i].rtck      = (RTCK)pbis->U8Read();
         pglobset->aglob[i].rp        = (RP)pbis->U8Read();
         pglobset->aglob[i].grfglob   = pbis->U8Read();
-        
-        BuildCmFgfn(g_pcm, pglobset->aglob[i].uFog, &pglobset->aglob[i].fgfn);
 
         if (fCloneSubGlob == 0)
         {

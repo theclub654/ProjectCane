@@ -48,11 +48,6 @@ public:
     // return if button changed and is now down
     static bool ButtonWentDown(int button);
 
-private:
-    /*
-        static mouse values
-    */
-
     // x posiiton
     static double x;
     // y position
@@ -79,7 +74,7 @@ private:
     // button state array (true for down, false for up)
     static bool buttons[];
     // button changed array (true if changed)
-    static bool buttonsChanged[];
+    static bool buttonsChanged[];    
 };
 
 #endif

@@ -22,55 +22,66 @@ void RenderMsGlobset(MS *pms, CM *pcm, RO *pro)
 
     for (int i = 0; i < pms->globset.aglob.size(); i++)
     {
-        if ((pms->globset.aglobi[i].grfzon & pcm->grfzon) == pcm->grfzon) // Check if submodel is in camera BSP zone
-        {
-            for (int a = 0; a < pms->globset.aglob[i].asubglob.size(); a++)
-            {
-                rpl.ro.VAO = &pms->globset.aglob[i].asubglob[a].VAO;
+		//glm::vec3 posCenterWorld = glm::vec3(rpl.ro.modelmatrix * glm::vec4(pms->globset.aglob[i].posCenter, 1.0));
 
-                if (pms->globset.aglob[i].asubglob[a].fCelBorder == 1)
-                {
-                    rpl.ro.celVAO = &pms->globset.aglob[i].asubglob[a].celVAO;
-                    rpl.ro.celcvtx = pms->globset.aglob[i].asubglob[a].celcvtx;
-                    rpl.ro.fCelBorder = 1;
-                }
-                else
-                {
-                    rpl.ro.celVAO = nullptr;
-                    rpl.ro.fCelBorder = 0;
-                }
+		if (SphereInFrustum(pcm->frustum, pms->globset.aglob[i].posCenter, pms->globset.aglob[i].sRadius) == 1)
+		{
+			for (int a = 0; a < pms->globset.aglob[i].asubglob.size(); a++)
+			{
+				rpl.ro.VAO = &pms->globset.aglob[i].asubglob[a].VAO;
 
-                rpl.ro.grfglob = &pms->globset.aglob[i].grfglob;
-                rpl.ro.pshd = pms->globset.aglob[i].asubglob[a].pshd;
-                rpl.ro.fgfn = pms->globset.aglob[i].fgfn;
-                rpl.ro.uFog = pms->globset.aglob[i].uFog;
-                rpl.ro.unSelfIllum = &pms->globset.aglob[i].asubglob[a].unSelfIllum;
+				if (g_fRenderCelBorders == true)
+				{
+					if (pms->globset.aglob[i].asubglob[a].fCelBorder == 1)
+					{
+						rpl.ro.celVAO = &pms->globset.aglob[i].asubglob[a].celVAO;
+						rpl.ro.celcvtx = pms->globset.aglob[i].asubglob[a].celcvtx;
+						rpl.ro.fCelBorder = 1;
+					}
+					else
+					{
+						rpl.ro.celVAO = nullptr;
+						rpl.ro.fCelBorder = 0;
+					}
+				}
+				else
+				{
+					rpl.ro.celVAO = nullptr;
+					rpl.ro.fCelBorder = 0;
+				}
 
-                rpl.ro.cvtx = pms->globset.aglob[i].asubglob[a].cvtx;
-                
-                rpl.z = pms->globset.aglob[i].gZOrder;
+				rpl.posCenter = pms->globset.aglob[i].posCenter;
 
-                if (rpl.z == 3.402823e+38)
-                    rpl.z = glm::dot(rpl.z, rpl.z);
+				rpl.ro.fDynamic = pms->globset.aglob[i].fDynamic;
 
-                rpl.ro.fDynamic = pms->globset.aglob[i].fDynamic;
+				rpl.ro.uFog = pms->globset.aglob[i].uFog;
 
-                rpl.posCenter = pms->globset.aglob[i].posCenter;
-                
-                rpl.rp = pms->globset.aglob[i].rp;
+				rpl.ro.grfglob = &pms->globset.aglob[i].grfglob;
 
-                if (pms->globset.aglob[i].dmat.size() != 0)
-                    rpl.ro.modelmatrix = pms->globset.aglob[i].dmat[0] * modelmatrix;
+				rpl.ro.pshd = pms->globset.aglob[i].asubglob[a].pshd;
+				rpl.ro.unSelfIllum = &pms->globset.aglob[i].asubglob[a].unSelfIllum;
 
-                if (pms->globset.aglob[i].rtck != RTCK_None)
-                    AdjustAloRtckMat(pms, pcm, pms->globset.aglob[i].rtck, &pms->globset.aglob[i].posCenter, rpl.ro.modelmatrix);
+				rpl.ro.cvtx = pms->globset.aglob[i].asubglob[a].cvtx;
 
-                SubmitRpl(&rpl);
+				rpl.z = pms->globset.aglob[i].gZOrder;
 
-                if (pms->globset.aglob[i].dmat.size() != 0)
-                    rpl.ro.modelmatrix = modelmatrix;
-            }
-        }
+				if (rpl.z == 3.402823e+38)
+					rpl.z = glm::dot(rpl.z, rpl.z);
+
+				rpl.rp = pms->globset.aglob[i].rp;
+
+				if (pms->globset.aglob[i].dmat.size() != 0)
+					rpl.ro.modelmatrix = modelmatrix * pms->globset.aglob[i].dmat[0];
+
+				//if (palo->globset.aglob[i].rtck != RTCK_None)
+					//AdjustAloRtckMat(palo, pcm, palo->globset.aglob[i].rtck, &palo->globset.aglob[i].posCenter, rpl.ro.modelmatrix);
+
+				SubmitRpl(&rpl);
+
+				if (pms->globset.aglob[i].dmat.size() != 0)
+					rpl.ro.modelmatrix = modelmatrix;
+			}
+		}
     }
 }
 

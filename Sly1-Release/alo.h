@@ -118,29 +118,23 @@ struct RO
 	GLuint *VAO;
 	GLuint *VBO;
 	GLuint *EBO;
-
 	int cvtx;
 
 	GLuint *celVAO;
 	GLuint *celVBO;
 	GLuint *celEBO;
-
 	int celcvtx;
-
-	int fThreeWay;
 
 	GRFGLOB *grfglob;
 
 	SHD *pshd;
-
 	float *unSelfIllum;
 
 	glm::mat4 modelmatrix;
+	float uFog;
 	float uAlpha;
-	float uAlphaCelBorder;
 	int fDynamic;
 	int fCelBorder;
-	TWPS twps;
 };
 
 // Render Priority List

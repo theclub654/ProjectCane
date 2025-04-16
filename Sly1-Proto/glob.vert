@@ -15,6 +15,7 @@ layout (location = 3) in vec2 uv;
 uniform mat4 proj;
 uniform mat4 view;
 uniform mat4 model;
+uniform vec3 cameraPos;
 
 out vec4 vertexColor;
 out vec2 texcoord;
@@ -82,6 +83,8 @@ uniform float fogFar;
 uniform float fogMax;
 uniform int fogType;
 
+uniform float uFog;
+
 uniform int rko;
 uniform float usSelfIllum;
 uniform int fDynamic;
@@ -89,12 +92,12 @@ uniform vec3 posCenter;
 
 float objectShadow;
 float objectMidtone;
-vec4 light;
-int  fLit;
+vec4  light;
 
 out MATERIAL material;
 out float fogIntensity;
 
+vec4 worldPos;
 void StartThreeWay();
 void InitGlobLighting();
 vec4 AddDirectionLight(DIRLIGHT dirlight);
@@ -105,9 +108,9 @@ vec4 AddFrustrumLight(FRUSTUMLIGHT frustumlight);
 vec4 AddFrustrumLightDynamic(FRUSTUMLIGHT frustumlight);
 void ProcessGlobLighting();
 // This uses the PS2 Style fog
-void CalculateFogPS2();
+void CalculateFogPS2(vec4 worldPos);
 // This uses the PS3 style fog
-void CalculateFogPS3();
+void CalculateFogPS3(vec4 worldPos);
 
 void main()
 {
@@ -115,51 +118,53 @@ void main()
     texcoord    = uv;
 
     if (rko == RKO_ThreeWay)
+    {
+        InitGlobLighting();
         StartThreeWay();
+    }
 
-    switch(fogType)
+   vec4 worldPos = model * vec4(vertex, 1.0);
+
+    switch (fogType)
     {
         case FOG_PS2:
-        CalculateFogPS2();
+        CalculateFogPS2(worldPos);
         break;
 
         case FOG_PS3:
-        CalculateFogPS3();
+        CalculateFogPS3(worldPos);
         break;
     }
 
-    gl_Position = proj * view * model * vec4(vertex, 1.0);
+    gl_Position = proj * view * worldPos;
 }
 
 void StartThreeWay()
 {
     if (fDynamic != 1)
-        {
-            fLit = 1;
-            InitGlobLighting();
-            for (int i = 0; i < numDirLights; i++)
-                light += AddDirectionLight(dirlights[i]);
+    {
+        for (int i = 0; i < numDirLights; i++)
+            light += AddDirectionLight(dirlights[i]);
+            
+        for (int i = 0; i < numPointLights; i++)
+            light += AddPositionLight(pointlights[i]);
 
-            for (int i = 0; i < numPointLights; i++)
-                light += AddPositionLight(pointlights[i]);
+        for (int i = 0; i < numFrustumLights; i++)
+            light += AddFrustrumLight(frustumlights[i]);
+    }
+    else
+    {
+        for (int i = 0; i < numDirLights; i++)
+            light += AddDynamicLight(dirlights[i].dir, dirlights[i].color, dirlights[i].ltfn);
+            
+        for (int i = 0; i < numPointLights; i++)
+            light += AddPositionLightDynamic(pointlights[i]);
 
-            for (int i = 0; i < numFrustumLights; i++)
-                light += AddFrustrumLight(frustumlights[i]);
-        }
-        else
-        {
-            fLit = 0;
-            for (int i = 0; i < numDirLights; i++)
-                light += AddDynamicLight(dirlights[i].dir, dirlights[i].color, dirlights[i].ltfn);
-
-            for (int i = 0; i < numPointLights; i++)
-                light += AddPositionLightDynamic(pointlights[i]);
-
-            for (int i = 0; i < numFrustumLights; i++)
-                light += AddFrustrumLightDynamic(frustumlights[i]);
-        }
-
-        ProcessGlobLighting();
+        for (int i = 0; i < numFrustumLights; i++)
+            light += AddFrustrumLightDynamic(frustumlights[i]);
+     }
+     
+     ProcessGlobLighting();
 }
 
 void InitGlobLighting()
@@ -202,11 +207,7 @@ vec4 AddDynamicLight(vec3 dir, vec3 color, LTFN ltfn)
 {
     // Transform light direction into model space
     vec3 lightDir = normalize(mat3(inverse(model)) * dir);
-
-    // Initialize lighting if needed
-    if (fLit == 0)
-        InitGlobLighting();
-
+    
     // Compute stylized diffuse term
     float diffuse = dot(lightDir, normal);
     diffuse += diffuse * diffuse * diffuse; // Enhance with stylized curve
@@ -220,9 +221,6 @@ vec4 AddDynamicLight(vec3 dir, vec3 color, LTFN ltfn)
     // Accumulate lighting contributions
     objectShadow  += max(shadow, 0.0);
     objectMidtone += max(midtone, 0.0);
-
-    // Mark lighting as applied
-    fLit = 1;
 
     // Return final color modulated by stylized highlight
     return vec4(color, 0.0) * highlight;
@@ -327,11 +325,10 @@ void ProcessGlobLighting()
     material.light   = min(light.rgb, vec3(1.0)) * baseIntensity;
 }
 
-void CalculateFogPS2()
+void CalculateFogPS2(vec4 worldPos)
 {
-    vec4 worldPos = model * vec4(vertex, 1.0);
     // Distance to camera
-    float z = length(worldPos.xyz - inverse(view)[3].xyz);
+    float z = length(worldPos.xyz - cameraPos);
 
     float recipZ = 1.0 / max(z, 0.0001); // Prevent div by zero
 
@@ -342,22 +339,25 @@ void CalculateFogPS2()
     // remap recipZ from recipNear..recipFar to 0..1
     float fog = clamp((recipNear - recipZ) / (recipNear - recipFar), 0.0, 1.0);
 
-    fogIntensity = clamp(fog  * fogMax, 0.0, 1.0);
+    if (uFog > 0.0)
+        fogIntensity = clamp(fog * fogMax * uFog, 0.0, 1.0);
+    else
+        fogIntensity = clamp(fog * fogMax, 0.0, 1.0);
 }
 
-void CalculateFogPS3()
+void CalculateFogPS3(vec4 worldPos)
 {
-    vec4 worldPos = model * vec4(vertex, 1.0);
-
     // Compute the distance from the camera to the world-space position of the vertex
-    // The camera position is extracted from the inverse of the view matrix (column 3)
-    float distanceToCamera = length(worldPos.xyz - inverse(view)[3].xyz);
+    float distanceToCamera = length(worldPos.xyz - cameraPos);
 
     // Linearly map the distance into a 0..1 fog range
-    // uFog is 0 when at fogNear and 1 when at fogFar
-    float uFog = clamp((distanceToCamera - fogNear) / (fogFar - fogNear), 0.0, 1.0);
+    // fog is 0 when at fogNear and 1 when at fogFar
+    float fog = clamp((distanceToCamera - fogNear) / (fogFar - fogNear), 0.0, 1.0);
 
     // Scale the fog intensity by fogMax (a scalar that controls overall fog strength)
     // and clamp it to stay within the [0..1] valid fog range
-    fogIntensity = clamp(uFog * fogMax, 0.0, 1.0);
+    if (uFog > 0.0)
+        fogIntensity = clamp(fog * fogMax * uFog, 0.0, 1.0);
+    else
+        fogIntensity = clamp(fog * fogMax, 0.0, 1.0);
 }

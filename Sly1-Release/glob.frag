@@ -4,9 +4,6 @@
 #define RKO_ThreeWay 1
 #define RKO_CelBorder 2
 
-#define FOG_PS2 1
-#define FOG_PS3 2
-
 uniform sampler2D shadowMap;
 uniform sampler2D diffuseMap;
 uniform sampler2D saturateMap;
@@ -36,8 +33,7 @@ void CullGlob();
 void DrawOneWay();
 void DrawThreeWay();
 void DrawCelBorder();
-void ApplyFogPS2();
-void ApplyFogPS3();
+void ApplyFog();
 
 void main()
 {
@@ -59,16 +55,8 @@ void main()
         break;
     }
 
-    switch(fogType)
-    {
-        case FOG_PS2:
-        ApplyFogPS2();
-        break;
-
-        case FOG_PS3:
-        ApplyFogPS3();
-        break;
-    }
+    if (fogType != 0)
+        ApplyFog();
 }
 
 void CullGlob()
@@ -102,12 +90,7 @@ void DrawCelBorder()
     FragColor = rgbaCel;
 }
 
-void ApplyFogPS2()
-{
-    FragColor.rgb = mix(FragColor.rgb, fogcolor.rgb, clamp(fogcolor.a * fogIntensity, 0.0, 1.0));
-}
-
-void ApplyFogPS3()
+void ApplyFog()
 {
     FragColor.rgb = mix(FragColor.rgb, fogcolor.rgb, fogIntensity);
 }

@@ -1,6 +1,14 @@
 #pragma once
 #include "cplcy.h"
 
+enum CMLK
+{
+    CMLK_Nil = -1,
+    CMLK_Grfzon = 0,
+    CMLK_Mrd = 1,
+    CMLK_Max = 2
+};
+
 CM*  NewCm();
 // Initialize camera object
 void InitCm(CM* pcm); // NOT FINISHED
@@ -43,8 +51,9 @@ void BuildLookAt(glm::vec3 &posEye, glm::vec3 &directionEye, glm::vec3 &upEye, g
 void SetupCm(CM *pcm);
 // Combines a LookAt Matrix and Projection Matrix
 void CombineEyeLookAtProj(const glm::vec3& eyePos, const glm::mat3& lookAt, const glm::mat4& proj, glm::mat4& pmat);
+void TransposeFrustrumNormals(const glm::vec3* anormalFrustrum, glm::vec4* outTransposed);
 // Updates a camera matrix
 void UpdateCmMat4(CM* pcm);
 // Returns whether a object is in the camera view or not 
-bool FInsideCmMrd(CM* pcm, float sRadius, float sMRD, float *puAlpha);
+int FInsideCmMrd(const CM* pcm, const glm::vec4& dpos, float sRadius, float sMRD, float* puAlpha);
 void DeleteCm(CM *pcm);

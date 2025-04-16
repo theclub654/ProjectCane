@@ -54,7 +54,8 @@ void LoadRatFromBrx(RAT* prat, CBinaryInputStream* pbis)
 
 void RenderRatAll(RAT* prat, CM* pcm, RO* pro)
 {
-	prat->pvtalo->pfnRenderAloAll(prat, pcm, pro);
+	RenderAloAll(prat, pcm, pro);
+	//prat->pvtalo->pfnRenderAloAll(prat, pcm, pro);
 }
 
 void DeleteRat(RAT *prat)

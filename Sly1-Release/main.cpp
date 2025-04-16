@@ -52,7 +52,7 @@ int main(int cphzArgs, char* aphzArgs[])
 
 			if (g_fRenderModels != 0)
 			{
-				RenderSwGlobset(g_psw, g_pcm);
+				RenderSwAloAll(g_psw, g_pcm);
 				DrawSw(g_psw, g_pcm);
 			}
 

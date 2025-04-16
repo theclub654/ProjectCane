@@ -11,8 +11,6 @@ class PROXY : public ALO
 		DLE dleProxy;
 };
 
-static int ProxyCount = 0;
-
 PROXY*NewProxy();
 void InitSwProxyDl(SW* psw);
 void InitProxy(PROXY *pproxy);

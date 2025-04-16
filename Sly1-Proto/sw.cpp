@@ -130,10 +130,7 @@ void AddSwProxySource(SW* psw, LO* ploProxySource, int cploClone)
 	psl.aploClone.resize(cploClone);
 
 	for (int i = 0; i < cploClone; i++)
-	{
-		LO* clonedLocalObject = PloCloneLo(ploProxySource, psw, nullptr);
-		psl.aploClone[i] = clonedLocalObject;
-	}
+		psl.aploClone[i] = PloCloneLo(ploProxySource, psw, nullptr);
 
 	psw->apsl[psw->cpsl] = psl;
 	psw->cpsl++;

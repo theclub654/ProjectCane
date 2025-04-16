@@ -119,29 +119,23 @@ struct RO
 	GLuint *VAO;
 	GLuint *VBO;
 	GLuint *EBO;
-
 	int cvtx;
 
 	GLuint *celVAO;
 	GLuint *celVBO;
 	GLuint *celEBO;
-
 	int celcvtx;
 
 	GRFGLOB *grfglob;
 
 	SHD *pshd;
-
 	float *unSelfIllum;
 
 	glm::mat4 modelmatrix;
-	FGFN fgfn;
 	float uFog;
 	float uAlpha;
-	float uAlphaCelBorder;
 	int fDynamic;
 	int fCelBorder;
-	TWPS twps;
 };
 
 // Render Priority List
@@ -214,7 +208,7 @@ class ALO : public LO
 		struct CLQ* pclqRotDamping;
 		struct SMPA* psmpaPos;
 		struct SMPA* psmpaRot;
-		struct ALOX* palox;
+		std::vector <ALOX> alox;
 		int cframeStatic;
 		GLOBSET globset;
 		struct SHADOW *pshadow;

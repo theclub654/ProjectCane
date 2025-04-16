@@ -23,9 +23,6 @@ int GetProxySize()
 
 void LoadProxyFromBrx(PROXY* pproxy, CBinaryInputStream* pbis)
 {
-	ProxyCount++;
-	//std::cout << "ProxyCount: " << ProxyCount<<"\n";
-
 	// Proxy source objects to keep track of
 	std::vector <LO*> proxyObjs;
 
@@ -117,7 +114,9 @@ void LoadProxyFromBrx(PROXY* pproxy, CBinaryInputStream* pbis)
 
 	for (int i = 0; i < proxyObjs.size(); i++)
 	{
-		proxyObjs[i]->pvtalo->pfnApplyAloProxy((ALO*)proxyObjs[i], pproxy);
+		if (proxyObjs[i]->pvtalo->pfnApplyAloProxy != nullptr)
+			proxyObjs[i]->pvtalo->pfnApplyAloProxy((ALO*)proxyObjs[i], pproxy);
+
 		proxyObjs[i]->pvtlo->pfnSetLoParent(proxyObjs[i], pproxy->paloParent);
 	}
 

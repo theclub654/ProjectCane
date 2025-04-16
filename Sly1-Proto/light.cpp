@@ -81,6 +81,7 @@ void RebuildLightFrustrum(LIGHT* plight)
 	plight->lmFallOffPenumbra.gMax = 1.0f;
 	plight->lmFallOffPenumbra.gMin = std::sqrt(ratioX);
 }
+
 void UpdateLightXfWorldHierarchy(LIGHT* plight)
 {
 	UpdateAloXfWorldHierarchy(plight);

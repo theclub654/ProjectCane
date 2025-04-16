@@ -32,7 +32,7 @@ void CloneMecha(MECHA* pmecha, MECHA* pmechaBase)
 
 void RenderMechaSelf(MECHA* pmecha, CM* pcm, RO* pro)
 {
-
+	RenderStepSelf(pmecha, pcm, pro);
 }
 
 void DeleteMecha(MECHA *pmecha)

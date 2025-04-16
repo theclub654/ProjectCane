@@ -7,6 +7,7 @@
 #include "mouse.h"
 
 void RenderSw(SW *psw, CM *pcm);
+void RenderSwAloAll(SW* psw, CM* pcm);
 void RenderSwGlobset(SW *psw, CM *pcm);
 void DrawSw(SW *psw, CM *pcm);
 void DrawSwCollisionAll();

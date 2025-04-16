@@ -1,6 +1,7 @@
 #pragma once
 #include "lo.h"
 #include "glob.h"
+#include <array>
 
 extern bool g_fDisableInput;
 
@@ -187,9 +188,8 @@ struct VTCPTN
     void (*pfnUpdateCptn)() = nullptr;
 };
 
-struct FRUSTUM
-{
-    glm::vec4 planes[6];
+struct FRUSTUM {
+    std::array <glm::vec4, 6> planes; // x,y,z = normal, w = distance
 };
 
 // Camera Object
@@ -206,6 +206,7 @@ class CM : public LO
     float pitch;
     bool firstClick;
     glm::vec4 anormalFrustrumTranspose[3];
+    FRUSTUM frustum;
     // Camera lookAt
     glm::mat4 lookAt;
     float rMRDAdjust;
@@ -215,7 +216,6 @@ class CM : public LO
     glm::mat4 matWorldToClip;
     glm::mat4 matClipToWorld;
     glm::vec3 anormalFrustrum[4];
-    FRUSTUM frustum;
     float rMRD;
     // Camera field of view
     float radFOV;
@@ -278,7 +278,12 @@ void InitCplcy(CPLCY* pcplcy, CM* pcm);
 void InitCplook(CPLOOK* pcplook, CM* pcm);
 void InitCpalign(CPALIGN* pcpalign, CM* pcm);
 void BuildCmFgfn(CM* pcm, float uFog, FGFN* pfgfn);
+// Makes frustum
 void BuildFrustrum(const glm::mat3& pmatLookAt, float rx, float ry, glm::vec3* anormalFrustrum);
+// Extract frustum planes from matrix
+FRUSTUM ExtractFrustumPlanes(const glm::mat4& viewProj);
+// Checks if a object is in camera frustum
+bool SphereInFrustum(const FRUSTUM& frustum, const glm::vec3& center, float radius);
 // Update manual camera
 void UpdateCpman(GLFWwindow* window, CPMAN *pcpman, CPDEFI *pcpdefi, float dt);
 

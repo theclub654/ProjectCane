@@ -24,22 +24,24 @@ void InitCpalign(CPALIGN* pcpalign, CM* pcm)
 
 void BuildCmFgfn(CM* pcm, float uFog, FGFN* pfgfn)
 {
-	// Calculate reciprocal distances
 	float recipNear = 1.0f / pcm->sNearFog;
 	float recipFar = 1.0f / pcm->sFarFog;
 
-	// Compute target output range (similar to what PS2 did with 4080.0)
-	float fogStart = 0.0f;
-	float fogEnd = (1.0f - pcm->uFogMax * uFog);
+	// Base remapping range
+	float ruFog = 1.0f / (recipNear - recipFar);
 
-	// Solve linear fit: fog = recipZ * ruFog + duFogBias
-	pfgfn->ruFog = (fogEnd - fogStart) / (recipFar - recipNear);
-	pfgfn->duFogBias = fogStart - pfgfn->ruFog * recipNear;
+	// Apply fogMax * uFog to control the final intensity
+	if (uFog != 0.0)
+		ruFog *= pcm->uFogMax * uFog;
+	else
+		ruFog *= pcm->uFogMax;
 
-	pfgfn->sNearFog = pcm->sNearFog;
+	pfgfn->duFogBias = recipNear;
+	pfgfn->ruFog = ruFog;
+	pfgfn->sNearFog = pcm->sFarFog;
 }
 
-void BuildFrustrum(const glm::mat3& pmatLookAt, float rx, float ry, glm::vec3 *anormalFrustrum)
+void BuildFrustrum(const glm::mat3& pmatLookAt, float rx, float ry, glm::vec3* anormalFrustrum)
 {
 	const glm::vec3& X = pmatLookAt[0];
 	const glm::vec3& Y = pmatLookAt[1];
@@ -68,6 +70,51 @@ void BuildFrustrum(const glm::mat3& pmatLookAt, float rx, float ry, glm::vec3 *a
 		glm::vec3 axis = glm::normalize(Y - Z * ry);
 		anormalFrustrum[3] = glm::normalize(glm::cross(X, axis));
 	}
+}
+
+FRUSTUM ExtractFrustumPlanes(const glm::mat4& viewProj) 
+{
+	FRUSTUM frustum;
+
+	// Transpose the matrix once to access rows
+	glm::mat4 m = glm::transpose(viewProj);
+
+	// Left
+	frustum.planes[0] = m[3] + m[0];
+	// Right
+	frustum.planes[1] = m[3] - m[0];
+	// Bottom
+	frustum.planes[2] = m[3] + m[1];
+	// Top
+	frustum.planes[3] = m[3] - m[1];
+	// Near
+	frustum.planes[4] = m[3] + m[2];
+	// Far
+	frustum.planes[5] = m[3] - m[2];
+
+	// Normalize the planes (important!)
+	for (auto& plane : frustum.planes) 
+	{
+		float length = glm::length(glm::vec3(plane));
+		if (length != 0.0f) 
+			plane /= length;
+	}
+
+	return frustum;
+}
+
+bool SphereInFrustum(const FRUSTUM& frustum, const glm::vec3& center, float radius) 
+{
+	for (int i = 0; i < 6; i++)
+	{
+		float distance = glm::dot(glm::vec3(frustum.planes[i]), center) + frustum.planes[i].w;
+		if (distance < -radius)
+		{
+			// Outside this plane
+			return false;
+		}
+	}
+	return true;
 }
 
 void UpdateCpman(GLFWwindow* window, CPMAN* pcpman, CPDEFI* pcpdefi, float dt)
@@ -102,7 +149,7 @@ void UpdateCpman(GLFWwindow* window, CPMAN* pcpman, CPDEFI* pcpdefi, float dt)
 		{
 			glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_HIDDEN);
 
-			pcpman->pcm->yaw += MOUSE::GetDX();
+			pcpman->pcm->yaw   += MOUSE::GetDX();
 			pcpman->pcm->pitch += MOUSE::GetDY();
 
 			if (pcpman->pcm->pitch > 89.0f)

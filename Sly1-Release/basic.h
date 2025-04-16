@@ -1112,7 +1112,7 @@ struct VTUBG
     void (*pfnPredictStepPosition) = nullptr;
     void (*pfnPredictStepRotation) = nullptr;
     void (*pfnRenderAloAll)(ALO*, CM*, RO*) = RenderAloAll;
-    void (*pfnRenderGomerSelf) = nullptr;
+    void (*pfnRenderGomerSelf)(GOMER*, CM*, RO*) = RenderGomerSelf;
     void (*pfnRenderAloGlobset)(ALO*, CM*, RO*) = RenderAloGlobset;
     void (*pfnUpdateAloInfluences) = nullptr;
     void (*pfnAdjustAloPosition) = nullptr;
@@ -1223,7 +1223,7 @@ struct VTMBG
     void (*pfnPredictStepPosition) = nullptr;
     void (*pfnPredictStepRotation) = nullptr;
     void (*pfnRenderAloAll)(ALO*, CM*, RO*) = RenderAloAll;
-    void (*pfnRenderStepguardSelf) = nullptr;
+    void (*pfnRenderStepguardSelf)(STEPGUARD*, CM*, RO*) = RenderStepguardSelf;
     void (*pfnRenderAloGlobset)(ALO*, CM*, RO*) = RenderAloGlobset;
     void (*pfnUpdateAloInfluences) = nullptr;
     void (*pfnAdjustAloPosition) = nullptr;
@@ -1334,7 +1334,7 @@ struct VTBHG
     void (*pfnPredictStepPosition) = nullptr;
     void (*pfnPredictStepRotation) = nullptr;
     void (*pfnRenderAloAll)(ALO*, CM*, RO*) = RenderAloAll;
-    void (*pfnRenderStepguardSelf) = nullptr;
+    void (*pfnRenderStepguardSelf)(STEPGUARD*, CM*, RO*) = RenderStepguardSelf;;
     void (*pfnRenderAloGlobset)(ALO*, CM*, RO*) = RenderAloGlobset;
     void (*pfnUpdateAloInfluences) = nullptr;
     void (*pfnAdjustAloPosition) = nullptr;
@@ -1445,7 +1445,7 @@ struct VTMURRAY
     void (*pfnPredictStepPosition) = nullptr;
     void (*pfnPredictStepRotation) = nullptr;
     void (*pfnRenderAloAll)(ALO*, CM*, RO*) = RenderAloAll;
-    void (*pfnRenderStepguardSelf) = nullptr;
+    void (*pfnRenderStepguardSelf)(STEPGUARD*, CM*, RO*) = RenderStepguardSelf;;
     void (*pfnRenderAloGlobset)(ALO*, CM*, RO*) = RenderAloGlobset;
     void (*pfnUpdateAloInfluences) = nullptr;
     void (*pfnAdjustAloPosition) = nullptr;
@@ -1556,7 +1556,7 @@ struct VTPUFFC
     void (*pfnPredictStepPosition) = nullptr;
     void (*pfnPredictStepRotation) = nullptr;
     void (*pfnRenderAloAll)(ALO*, CM*, RO*) = RenderAloAll;
-    void (*pfnRenderStepguardSelf) = nullptr;
+    void (*pfnRenderStepguardSelf)(STEPGUARD*, CM*, RO*) = RenderStepguardSelf;;
     void (*pfnRenderAloGlobset)(ALO*, CM*, RO*) = RenderAloGlobset;
     void (*pfnUpdateAloInfluences) = nullptr;
     void (*pfnAdjustAloPosition) = nullptr;
@@ -1667,7 +1667,7 @@ struct VTCRFOD
     void (*pfnPredictStepPosition) = nullptr;
     void (*pfnPredictStepRotation) = nullptr;
     void (*pfnRenderAloAll)(ALO*, CM*, RO*) = RenderAloAll;
-    void (*pfnRenderStepguardSelf) = nullptr;
+    void (*pfnRenderStepguardSelf)(STEPGUARD*, CM*, RO*) = RenderStepguardSelf;;
     void (*pfnRenderAloGlobset)(ALO*, CM*, RO*) = RenderAloGlobset;
     void (*pfnUpdateAloInfluences) = nullptr;
     void (*pfnAdjustAloPosition) = nullptr;
@@ -1778,7 +1778,7 @@ struct VTCRFODB
     void (*pfnPredictStepPosition) = nullptr;
     void (*pfnPredictStepRotation) = nullptr;
     void (*pfnRenderAloAll)(ALO*, CM*, RO*) = RenderAloAll;
-    void (*pfnRenderStepguardSelf) = nullptr;
+    void (*pfnRenderStepguardSelf)(STEPGUARD*, CM*, RO*) = RenderStepguardSelf;;
     void (*pfnRenderAloGlobset)(ALO*, CM*, RO*) = RenderAloGlobset;
     void (*pfnUpdateAloInfluences) = nullptr;
     void (*pfnAdjustAloPosition) = nullptr;
@@ -1889,7 +1889,7 @@ struct VTCRFODK
     void (*pfnPredictStepPosition) = nullptr;
     void (*pfnPredictStepRotation) = nullptr;
     void (*pfnRenderAloAll)(ALO*, CM*, RO*) = RenderAloAll;
-    void (*pfnRenderStepguardSelf) = nullptr;
+    void (*pfnRenderStepguardSelf)(STEPGUARD*, CM*, RO*) = RenderStepguardSelf;;
     void (*pfnRenderAloGlobset)(ALO*, CM*, RO*) = RenderAloGlobset;
     void (*pfnUpdateAloInfluences) = nullptr;
     void (*pfnAdjustAloPosition) = nullptr;
@@ -2001,7 +2001,7 @@ struct VTUNK16
     void (*pfnPredictStepPosition) = nullptr;
     void (*pfnPredictStepRotation) = nullptr;
     void (*pfnRenderAloAll)(ALO*, CM*, RO*) = RenderAloAll;
-    void (*pfnRenderStepguardSelf) = nullptr;
+    void (*pfnRenderStepguardSelf)(STEPGUARD*, CM*, RO*) = RenderStepguardSelf;
     void (*pfnRenderAloGlobset)(ALO*, CM*, RO*) = RenderAloGlobset;
     void (*pfnUpdateAloInfluences) = nullptr;
     void (*pfnAdjustAloPosition) = nullptr;
@@ -2112,7 +2112,7 @@ struct VTTANK
     void (*pfnPredictStepPosition) = nullptr;
     void (*pfnPredictStepRotation) = nullptr;
     void (*pfnRenderTankAll)(TANK*, CM*, RO*) = RenderTankAll;
-    void (*pfnRenderStepSelf) = nullptr;
+    void (*pfnRenderStepSelf)(STEP*, CM*, RO*) = RenderStepSelf;
     void (*pfnRenderAloGlobset)(ALO*, CM*, RO*) = RenderAloGlobset;
     void (*pfnUpdateAloInfluences) = nullptr;
     void (*pfnAdjustAloPosition) = nullptr;

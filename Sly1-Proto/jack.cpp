@@ -104,7 +104,7 @@ void UpdateJackn(JACKN* pjackn, float dt)
 
 void RenderJacknSelf(JACKN* pjackn, CM* pcm, RO* pro)
 {
-
+	pjackn->pvtalo->pfnRenderAloSelf(pjackn, pcm, pro);
 }
 
 void DeleteJackn(JACKN* pjackn)

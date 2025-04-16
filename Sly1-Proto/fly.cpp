@@ -43,7 +43,8 @@ void LoadFlyFromBrx(FLY* pfly, CBinaryInputStream* pbis)
 
 void RenderFlySelf(FLY* pfly, CM* pcm, RO* pro)
 {
-
+	RenderSoSelf(pfly, pcm, pro);
+	//pfly->pvtalo->pfnRenderAloAll(pfly, pcm, pro);
 }
 
 void DeleteFly(FLY *pfly)

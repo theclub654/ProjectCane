@@ -40,7 +40,7 @@ void LoadGlobsetFromBrx(GLOBSET *pglobset, short cid ,ALO *palo, CBinaryInputStr
         {
             fCloneSubGlob = 0;
 
-            pglobset->aglob[i].sMRD = 10000000000.000000;
+            pglobset->aglob[i].sMRD = 1e+10;
             pglobset->aglob[i].sCelBorderMRD = 2000.0;
             pglobset->aglob[i].gZOrder = 0xFFFF7F7F;
             pglobset->aglob[i].uFog = 1.0;
@@ -57,6 +57,7 @@ void LoadGlobsetFromBrx(GLOBSET *pglobset, short cid ,ALO *palo, CBinaryInputStr
             pglobset->aglob[i].instanceIndex = instanceIndex;
             pglobset->aglob[i].posCenter = pglobset->aglob[instanceIndex].posCenter;
             pglobset->aglob[i].sRadius = pglobset->aglob[instanceIndex].sRadius;
+            //pglobset->aglob[i].fgfn = pglobset->aglob[instanceIndex].fgfn;
             pglobset->aglob[i].rp = pglobset->aglob[instanceIndex].rp;
             pglobset->aglob[i].fThreeWay = pglobset->aglob[instanceIndex].fThreeWay;
             pglobset->aglob[i].sMRD = pglobset->aglob[instanceIndex].sMRD;
@@ -90,7 +91,7 @@ void LoadGlobsetFromBrx(GLOBSET *pglobset, short cid ,ALO *palo, CBinaryInputStr
             pglobset->aglob[i].sMRD = pbis->F32Read();
 
             if (pglobset->aglob[i].sMRD == 3.402823e+38)
-                pglobset->aglob[i].sMRD = 10000000000.000000;
+                pglobset->aglob[i].sMRD = 1e+10;
         }
         
         if ((unk_5 & 0x20) != 0)
@@ -152,8 +153,6 @@ void LoadGlobsetFromBrx(GLOBSET *pglobset, short cid ,ALO *palo, CBinaryInputStr
         pglobset->aglob[i].rtck      = (RTCK)pbis->U8Read();
         pglobset->aglob[i].rp        = (RP)pbis->U8Read();
         pglobset->aglob[i].grfglob   = pbis->U8Read();
-        
-        BuildCmFgfn(g_pcm, pglobset->aglob[i].uFog, &pglobset->aglob[i].fgfn);
         
         if (fCloneSubGlob == 0)
         {

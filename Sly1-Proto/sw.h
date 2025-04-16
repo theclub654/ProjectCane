@@ -49,7 +49,7 @@ struct RSE
 	int depth;
 };
 
-// Static World
+// Scene World
 class SW : public LO
 {
 public:
@@ -173,5 +173,5 @@ void DeleteSw(SW* psw);
 // Deletes all world data from memory
 void DeleteWorld(SW* psw);
 
-// Global pointer to parent static world object
+// Global pointer to parent scene world object
 extern inline SW *g_psw = nullptr;

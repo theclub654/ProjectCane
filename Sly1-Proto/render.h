@@ -31,6 +31,7 @@ int g_maxCount = 0;
 // Loops through all objects in a level to see which object is in camera view and other conditions and stores all objects
 // in a render list
 void RenderSw(SW *psw, CM *pcm);
+void RenderSwAloAll(SW* psw, CM* pcm);
 void RenderSwGlobset(SW *psw, CM *pcm);
 // Adds a object to a render list in a sorted order
 void SubmitRpl(RPL *prpl);

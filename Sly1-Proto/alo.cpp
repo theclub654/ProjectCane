@@ -235,7 +235,7 @@ void UpdateAloXfWorld(ALO* palo)
 
 void UpdateAloXfWorldHierarchy(ALO* palo)
 {
-	if (palo->palox == nullptr)
+	if (palo->alox.size() == 0)
 	{
 		UpdateTrans:
 		if (palo->paloParent == nullptr)
@@ -256,7 +256,7 @@ void UpdateAloXfWorldHierarchy(ALO* palo)
 
 	else
 	{
-		if ((palo->palox->grfalox & 0xCU) == 0)
+		if ((palo->alox[0].grfalox & 0xCU) == 0)
 		{
 			palo->paloParent = palo->paloParent;
 			goto UpdateTrans;
@@ -286,7 +286,7 @@ void UpdateAloXfWorldHierarchy(ALO* palo)
 
 	if (object == nullptr)
 	{
-		palo->palox = palo->palox;
+		palo->alox = palo->alox;
 	}
 
 	else
@@ -317,44 +317,44 @@ void TranslateAloToPos(ALO* palo, glm::vec3 &ppos)
 
 void ConvertAloPos(ALO* paloFrom, ALO* paloTo, glm::vec3 &pposFrom, glm::vec3 &pposTo)
 {
-	if (paloFrom != paloTo)
-	{
-		if (paloFrom != nullptr)
-		{
-			pposFrom = paloFrom->xf.matWorld * pposFrom;
-			pposFrom = paloFrom->xf.posWorld + pposFrom;
+	glm::vec3 worldPos;
+
+	// Transform local to world space if `paloFrom` is specified and different from `paloTo`
+	if (paloFrom != paloTo) {
+		if (paloFrom) {
+			worldPos = paloFrom->xf.matWorld * (pposFrom) + paloFrom->xf.posWorld;
+			pposFrom = worldPos;
 		}
 
-		if (paloTo != nullptr)
-		{
-			pposFrom = pposFrom - paloTo->xf.posWorld;
-			pposFrom = pposFrom * paloTo->xf.matWorld;
-			pposTo = pposFrom;
+		// Convert world position to local position relative to `paloTo`
+		if (paloTo) {
+			glm::vec3 localPos = pposFrom - paloTo->xf.posWorld;
+			glm::mat3 invRot = glm::transpose(paloTo->xf.matWorld); // Inverse of rotation
+			pposTo = invRot * localPos;
 			return;
 		}
 	}
 
+	// No transformation needed
 	pposTo = pposFrom;
 }
 
 void ConvertAloVec(ALO* paloFrom, ALO* paloTo, glm::vec3 *pvecFrom, glm::vec3 *pvecTo)
 {
-	if (paloFrom != paloTo)
+	glm::vec3 vecWorld = *pvecFrom;
+
+	// Transform from local to world space if paloFrom is valid and different from paloTo
+	if (paloFrom && paloFrom != paloTo)
+		vecWorld = paloFrom->xf.matWorld * (*pvecFrom);
+
+	// Transform from world to local space of paloTo if it's valid
+	if (paloTo) 
 	{
-		if (paloFrom != nullptr)
-		{
-			glm::vec3 vecWorld = paloFrom->xf.matWorld * *pvecFrom;
-			pvecFrom = &vecWorld;
-		}
-
-		if (paloTo != nullptr)
-		{
-			*pvecTo = paloTo->xf.matWorld * *pvecFrom;
-			return;
-		}
+		glm::mat3 invMat = glm::inverse(paloTo->xf.matWorld);
+		*pvecTo = invMat * vecWorld;
 	}
-
-	*pvecTo = *pvecFrom;
+	else
+		*pvecTo = vecWorld;
 }
 
 void RotateAloToMat(ALO* palo, glm::mat3 &pmat)
@@ -368,12 +368,19 @@ void ConvertAloMat(ALO* paloFrom, ALO* paloTo, glm::mat3 &pmatFrom, glm::mat3 &p
 {
 	if (paloFrom != paloTo)
 	{
-		if (paloFrom != nullptr)
-			pmatFrom = paloFrom->xf.matWorld * pmatFrom;
-
-		if (paloTo != nullptr)
+		if (paloFrom)
 		{
-			pmatTo = paloTo->xf.matWorld * pmatFrom;
+			glm::mat3 fromRot = glm::mat3(paloFrom->xf.matWorld);  // rotation part only
+			pmatFrom = fromRot * pmatFrom;
+		}
+
+		if (paloTo)
+		{
+			glm::mat3 toRot = glm::mat3(paloTo->xf.matWorld);      // rotation part only
+			glm::mat3 toRotT = glm::transpose(toRot);              // transpose = inverse if orthonormal
+
+			glm::mat3 temp = toRotT * pmatFrom;                    // rotate into paloTo local space
+			pmatTo = toRot * temp;                                 // then re-apply paloTo's world rotation
 			return;
 		}
 	}
@@ -459,9 +466,9 @@ void LoadAloAloxFromBrx(ALO* palo, CBinaryInputStream* pbis)
 	if (grfalox != 0)
 	{
 		ALOX alox;
-		palo->palox = &alox;
+		palo->alox.push_back(alox);
 
-		palo->palox->grfalox = grfalox;
+		palo->alox[0].grfalox = grfalox;
 
 		int unk_1;
 
@@ -532,6 +539,10 @@ void UpdateAlo(ALO* palo, float dt)
 
 void RenderAloAll(ALO* palo, CM* pcm, RO* proDup)
 {
+	
+	if (SphereInFrustum(pcm->frustum, palo->xf.posWorld, palo->sRadiusRenderAll) == 0)
+		return;
+
 	palo->pvtalo->pfnRenderAloSelf(palo, pcm, proDup);
 }
 
@@ -547,7 +558,6 @@ void DupAloRo(ALO *palo, RO *proOrig, RO *proDup)
 		glm::vec3 vecScale = glm::vec3(1.0);
 		LoadMatrixFromPosRotScale(palo->xf.posWorld, palo->xf.matWorld, vecScale, proDup->modelmatrix);
 		proDup->uAlpha = 1.0;
-		proDup->uAlphaCelBorder = 1.0;
 	}
 	else
 	{
@@ -568,12 +578,14 @@ void RenderAloGlobset(ALO *palo, CM *pcm, RO *pro)
 	
 	for (int i = 0; i < palo->globset.aglob.size(); i++)
 	{
-		if ((palo->globset.aglobi[i].grfzon & pcm->grfzon) == pcm->grfzon) // Check if submodel is in camera BSP zone
+		glm::vec3 posCenterWorld = glm::vec3(rpl.ro.modelmatrix * glm::vec4(palo->globset.aglob[i].posCenter, 1.0));
+
+		if (SphereInFrustum(pcm->frustum, posCenterWorld, palo->globset.aglob[i].sRadius) == 1)
 		{
 			for (int a = 0; a < palo->globset.aglob[i].asubglob.size(); a++)
 			{
 				rpl.ro.VAO = &palo->globset.aglob[i].asubglob[a].VAO;
-				
+
 				if (g_fRenderCelBorders == true)
 				{
 					if (palo->globset.aglob[i].asubglob[a].fCelBorder == 1)
@@ -593,26 +605,27 @@ void RenderAloGlobset(ALO *palo, CM *pcm, RO *pro)
 					rpl.ro.celVAO = nullptr;
 					rpl.ro.fCelBorder = 0;
 				}
+
 				
-				rpl.posCenter = palo->globset.aglob[i].posCenter;
 
 				rpl.ro.fDynamic = palo->globset.aglob[i].fDynamic;
-				
-				rpl.ro.grfglob = &palo->globset.aglob[i].grfglob;
-				rpl.ro.pshd = palo->globset.aglob[i].asubglob[a].pshd;
-				rpl.ro.fgfn = palo->globset.aglob[i].fgfn;
-				rpl.ro.uFog = palo->globset.aglob[i].uFog;
-				rpl.ro.unSelfIllum = &palo->globset.aglob[i].asubglob[a].unSelfIllum;
 
-				rpl.ro.cvtx = palo->globset.aglob[i].asubglob[a].cvtx;
+				rpl.ro.uFog = palo->globset.aglob[i].uFog;
 
 				rpl.z = palo->globset.aglob[i].gZOrder;
-				
+
+				rpl.posCenter = palo->globset.aglob[i].posCenter;
+				rpl.ro.grfglob = &palo->globset.aglob[i].grfglob;
+
+				rpl.ro.pshd = palo->globset.aglob[i].asubglob[a].pshd;
+				rpl.ro.unSelfIllum = &palo->globset.aglob[i].asubglob[a].unSelfIllum;
+				rpl.ro.cvtx = palo->globset.aglob[i].asubglob[a].cvtx;
+
 				if (rpl.z == 3.402823e+38)
 					rpl.z = glm::dot(rpl.z, rpl.z);
 
 				rpl.rp = palo->globset.aglob[i].rp;
-				
+
 				if (palo->globset.aglob[i].dmat.size() != 0)
 					rpl.ro.modelmatrix = modelmatrix * palo->globset.aglob[i].dmat[0];
 
@@ -643,10 +656,12 @@ void DrawGlob(RPL *prpl)
 	glBindVertexArray(*prpl->ro.VAO);
 
 	glUniformMatrix4fv(glGetUniformLocation(glGlobShader.ID, "model"), 1, GL_FALSE, glm::value_ptr(prpl->ro.modelmatrix));
-	
+	glUniform1f(glGetUniformLocation(glGlobShader.ID, "uFog"), prpl->ro.uFog);
+
 	if (prpl->ro.pshd->shdk == SHDK_ThreeWay)
 	{
-		glUniform1i(glGetUniformLocation(glGlobShader.ID,  "rko"), 1);
+		glUniform1i(glGetUniformLocation(glGlobShader.ID, "rko"), 1);
+		
 		glUniform1f(glGetUniformLocation(glGlobShader.ID,  "usSelfIllum"), *prpl->ro.unSelfIllum);
 		glUniform1i(glGetUniformLocation(glGlobShader.ID,  "fDynamic"), prpl->ro.fDynamic);
 		glUniform3fv(glGetUniformLocation(glGlobShader.ID, "posCenter"), 1, glm::value_ptr(prpl->posCenter));

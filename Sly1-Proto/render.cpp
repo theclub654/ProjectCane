@@ -32,6 +32,15 @@ void RenderSw(SW *psw, CM *pcm)
 	}
 }
 
+void RenderSwAloAll(SW* psw, CM* pcm)
+{
+	for (int i = 0; i < allSWAloObjs.size(); i++)
+	{
+		CID cid = allSWAloObjs[i]->pvtalo->cid;
+		allSWAloObjs[i]->pvtalo->pfnRenderAloAll(allSWAloObjs[i], pcm, nullptr);
+	}
+}
+
 void RenderSwGlobset(SW *psw, CM *pcm)
 {
 	for (int i = 0; i < allSWAloObjs.size(); i++)
@@ -195,20 +204,22 @@ void DrawSw(SW *psw, CM *pcm)
 {
 	glGlobShader.Use();
 
-	PrepareSwLightsForDraw(g_psw);
-
+	//std::cout << renderBuffer.size() << "\n";
 	SortRenderRpl();
+
+	PrepareSwLightsForDraw(g_psw);
 
 	glUniformMatrix4fv(glGetUniformLocation(glGlobShader.ID, "proj"), 1, GL_FALSE, glm::value_ptr(pcm->matProj));
 	glUniformMatrix4fv(glGetUniformLocation(glGlobShader.ID, "view"), 1, GL_FALSE, glm::value_ptr(pcm->lookAt));
+	glUniform3fv(glGetUniformLocation(glGlobShader.ID, "cameraPos"), 1, glm::value_ptr(pcm->pos));
 
-	glUniform1i(glGetUniformLocation(glGlobShader.ID, "fogType"), g_fogType);
-	glUniform1f(glGetUniformLocation(glGlobShader.ID, "fogNear"), pcm->sNearFog);
-	glUniform1f(glGetUniformLocation(glGlobShader.ID, "fogFar"), pcm->sFarFog);
-	glUniform1f(glGetUniformLocation(glGlobShader.ID, "fogMax"), pcm->uFogMax);
+	glUniform1i(glGetUniformLocation(glGlobShader.ID,  "fogType"), g_fogType);
+	glUniform1f(glGetUniformLocation(glGlobShader.ID,  "fogNear"), pcm->sNearFog);
+	glUniform1f(glGetUniformLocation(glGlobShader.ID,  "fogFar"), pcm->sFarFog);
+	glUniform1f(glGetUniformLocation(glGlobShader.ID,  "fogMax"), pcm->uFogMax);
 	glUniform4fv(glGetUniformLocation(glGlobShader.ID, "fogcolor"), 1, glm::value_ptr(pcm->rgbaFog));
 	
-	glUniform1f(glGetUniformLocation(glGlobShader.ID, "lsm.uShadow"), g_psw->lsmDefault.uShadow);
+	glUniform1f(glGetUniformLocation(glGlobShader.ID, "lsm.uShadow"),  g_psw->lsmDefault.uShadow);
 	glUniform1f(glGetUniformLocation(glGlobShader.ID, "lsm.uMidtone"), g_psw->lsmDefault.uMidtone);
 	
 	glUniform4fv(glGetUniformLocation(glGlobShader.ID, "rgbaCel"), 1, glm::value_ptr(g_rgbaCel));

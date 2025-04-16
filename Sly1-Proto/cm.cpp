@@ -68,7 +68,6 @@ void RecalcCmFrustrum(CM* pcm)
 	pcm->sRadiusNearClip = pcm->yScreenRange * sqrt(pcm->rAspect * pcm->rAspect + 1.0) * pcm->sNearClip + 1.0;
 
 	BuildProjectionMatrix(&pcm->radFOV, &g_gl.width, &g_gl.height, &pcm->sNearClip, &pcm->sFarClip, pcm->matProj);
-	BuildCmFgfn(pcm, 1.0, &pcm->fgfn);
 }
 
 void BuildProjectionMatrix(float *fov, float *width, float *height, float *near, float *far, glm::mat4 &pmat)
@@ -304,16 +303,56 @@ void CombineEyeLookAtProj(const glm::vec3& eyePos, const glm::mat3& lookAt, cons
 	pmat = proj * viewInv;
 }
 
+// Transpose frustum normals
+void TransposeFrustrumNormals(const glm::vec3* anormalFrustrum, glm::vec4* outTransposed)
+{
+	for (int i = 0; i < 3; ++i) 
+	{
+		outTransposed[i] = glm::vec4(
+			anormalFrustrum[0][i], // X/Y/Z of normal 0
+			anormalFrustrum[1][i], // X/Y/Z of normal 1
+			anormalFrustrum[2][i], // X/Y/Z of normal 2
+			anormalFrustrum[3][i]  // X/Y/Z of normal 3
+		);
+	}
+}
+
 void UpdateCmMat4(CM* pcm)
 {
 	BuildProjectionMatrix(&pcm->radFOV, &g_gl.width, &g_gl.height, &pcm->sNearClip, &pcm->sFarClip, pcm->matProj);
 	BuildLookAt(pcm->pos, pcm->direction, pcm->up ,pcm->lookAt);
+
+	pcm->frustum = ExtractFrustumPlanes(pcm->matProj * pcm->lookAt);
 }
 
-bool FInsideCmMrd(CM* pcm, float sRadius, float sMRD, float *puAlpha)
+int FInsideCmMrd(const CM* pcm, const glm::vec4& dpos, float sRadius, float sMRD, float* puAlpha)
 {
+	float fVar1;
+	glm::vec3 alphaVec;
+	float fVar2, fVar3;
 
-	return 0;
+	fVar3 = sMRD * pcm->rMRDAdjust + sRadius;
+
+	glm::vec3 adjustedAlphaVec = alphaVec * alphaVec;
+	fVar1 = glm::length(adjustedAlphaVec); // Length squared
+
+	fVar2 = fVar3 * fVar3;
+	if (fVar2 < fVar1) {
+		return 0; // Not inside the region
+	}
+
+	fVar3 = fVar3 - pcm->rMRDAdjust * 400.0f;
+	fVar3 = fVar3 * fVar3;
+	if (fVar3 < fVar1) {
+		fVar3 = (fVar2 - fVar1) / (fVar2 - fVar3);
+	}
+	else {
+		fVar3 = 1.0f;
+	}
+
+	*puAlpha = fVar3; // Set the alpha value based on distance
+
+	return 1; // Inside the region
 }
 
 void DeleteCm(CM *pcm)

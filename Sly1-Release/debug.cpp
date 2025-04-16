@@ -62,12 +62,15 @@ void RenderMenuGui(SW* psw)
         {
             if (ImGui::MenuItem("Off", nullptr, g_fogType == 0))
                 g_fogType = 0;
+            if (ImGui::IsItemHovered()) g_fDisableInput = true;
 
             if (ImGui::MenuItem("PS2 Style", nullptr, g_fogType == 1))
                 g_fogType = 1;
+            if (ImGui::IsItemHovered()) g_fDisableInput = true;
 
             if (ImGui::MenuItem("PS3 Style", nullptr, g_fogType == 2))
                 g_fogType = 2;
+            if (ImGui::IsItemHovered()) g_fDisableInput = true;
 
             ImGui::EndMenu();
         }

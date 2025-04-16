@@ -22,6 +22,7 @@ CLOCK g_clock;
 
 void RenderSw(SW *psw, CM *pcm);
 void RenderSwGlobset(SW *psw, CM *pcm);
+void RenderSwAloAll(SW* psw, CM* pcm);
 void DrawSw(SW *psw, CM *pcm);
 void DrawSwCollisionAll();
 void DeleteWorld(SW *psw);

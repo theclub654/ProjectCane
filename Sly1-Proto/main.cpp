@@ -27,8 +27,8 @@ int main(int cphzArgs, char* aphzArgs[])
 		
 		if (g_psw != nullptr)
 		{
-			//SetupCm(g_pcm);
-			MarkClockTick(&g_clock);
+			SetupCm(g_pcm);
+			//MarkClockTick(&g_clock);
 			double currentTime = glfwGetTime();
 			deltaTime = currentTime - lastFrame;
 			lastFrame = currentTime;
@@ -39,7 +39,7 @@ int main(int cphzArgs, char* aphzArgs[])
 
 			if (g_fRenderModels != 0)
 			{
-				RenderSwGlobset(g_psw, g_pcm);
+				RenderSwAloAll(g_psw, g_pcm);
 				DrawSw(g_psw, g_pcm);
 			}
 
