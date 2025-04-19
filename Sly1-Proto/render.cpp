@@ -54,79 +54,79 @@ void SubmitRpl(RPL *prpl)
 	switch (prpl->rp)
 	{
 		case RP_DynamicTexture:
-			g_dynamicTextureCount++;
+		g_dynamicTextureCount++;
 		break;
 
 		case RP_Background:
-			g_backGroundCount++;
+		g_backGroundCount++;
 		break;
 
 		case RP_BlotContext:
-			g_blotContextCount++;
+		g_blotContextCount++;
 		break;
 
 		case RP_Opaque:
-			g_opaqueCount++;
+		g_opaqueCount++;
 		break;
 
 		case RP_Cutout:
-			g_cutOutCount++;
+		g_cutOutCount++;
 		break;
 
 		case RP_CelBorder:
-			g_celBorderCount++;
+		g_celBorderCount++;
 		break;
 
 		case RP_ProjVolume:
-			g_projVolumeCount++;
+		g_projVolumeCount++;
 		break;
 
 		case RP_OpaqueAfterProjVolume:
-			g_opaqueAfterProjVolumeCount++;
+		g_opaqueAfterProjVolumeCount++;
 		break;
 
 		case RP_CutoutAfterProjVolume:
-			g_cutoutAfterProjVolumeCount++;
+		g_cutoutAfterProjVolumeCount++;
 		break;
 
 		case RP_CelBorderAfterProjVolume:
-			g_celBorderAfterProjVolumeCount++;
+		g_celBorderAfterProjVolumeCount++;
 		break;
 
 		case RP_MurkClear:
-			g_murkClearCount++;
+		g_murkClearCount++;
 		break;
 
 		case RP_MurkOpaque:
-			g_murkOpaqueCount++;
+		g_murkOpaqueCount++;
 		break;
 
 		case RP_MurkFill:
-			g_murkFillCount++;
+		g_murkFillCount++;
 		break;
 
 		case RP_Translucent:
-			g_translucentCount++;
+		g_translucentCount++;
 		break;
 
 		case RP_TranslucentCelBorder:
-			g_translucentCount++;
+		g_translucentCount++;
 		break;
 
 		case RP_Blip:
-			g_blipCount++;
+		g_blipCount++;
 		break;
 
 		case RP_Foreground:
-			g_foreGroundCount++;
+		g_foreGroundCount++;
 		break;
 
 		case RP_WorldMap:
-			g_worldMapCount++;
+		g_worldMapCount++;
 		break;
 
 		case RP_Max:
-			g_maxCount++;
+		g_maxCount++;
 		break;
 	}
 }
@@ -207,20 +207,20 @@ void DrawSw(SW *psw, CM *pcm)
 	//std::cout << renderBuffer.size() << "\n";
 	SortRenderRpl();
 
-	PrepareSwLightsForDraw(g_psw);
+	PrepareSwLightsForDraw(psw, pcm);
 
 	glUniformMatrix4fv(glGetUniformLocation(glGlobShader.ID, "proj"), 1, GL_FALSE, glm::value_ptr(pcm->matProj));
 	glUniformMatrix4fv(glGetUniformLocation(glGlobShader.ID, "view"), 1, GL_FALSE, glm::value_ptr(pcm->lookAt));
 	glUniform3fv(glGetUniformLocation(glGlobShader.ID, "cameraPos"), 1, glm::value_ptr(pcm->pos));
+
+	glUniform1f(glGetUniformLocation(glGlobShader.ID, "lsm.uShadow"),  g_psw->lsmDefault.uShadow);
+	glUniform1f(glGetUniformLocation(glGlobShader.ID, "lsm.uMidtone"), g_psw->lsmDefault.uMidtone);
 
 	glUniform1i(glGetUniformLocation(glGlobShader.ID,  "fogType"), g_fogType);
 	glUniform1f(glGetUniformLocation(glGlobShader.ID,  "fogNear"), pcm->sNearFog);
 	glUniform1f(glGetUniformLocation(glGlobShader.ID,  "fogFar"), pcm->sFarFog);
 	glUniform1f(glGetUniformLocation(glGlobShader.ID,  "fogMax"), pcm->uFogMax);
 	glUniform4fv(glGetUniformLocation(glGlobShader.ID, "fogcolor"), 1, glm::value_ptr(pcm->rgbaFog));
-	
-	glUniform1f(glGetUniformLocation(glGlobShader.ID, "lsm.uShadow"),  g_psw->lsmDefault.uShadow);
-	glUniform1f(glGetUniformLocation(glGlobShader.ID, "lsm.uMidtone"), g_psw->lsmDefault.uMidtone);
 	
 	glUniform4fv(glGetUniformLocation(glGlobShader.ID, "rgbaCel"), 1, glm::value_ptr(g_rgbaCel));
 
@@ -230,7 +230,7 @@ void DrawSw(SW *psw, CM *pcm)
 	renderBuffer.clear();
 }
 
-void DrawSwCollisionAll()
+void DrawSwCollisionAll(CM* pcm)
 {
 	glCollisionShader.Use();
 
@@ -238,5 +238,5 @@ void DrawSwCollisionAll()
 	glUniformMatrix4fv(glGetUniformLocation(glCollisionShader.ID, "view"), 1, GL_FALSE, glm::value_ptr(g_pcm->lookAt));
 
 	for (int i = 0; i < allSWSoObjs.size(); i++)
-		DrawCollision(allSWSoObjs[i]);
+		DrawCollision(pcm, allSWSoObjs[i]);
 }

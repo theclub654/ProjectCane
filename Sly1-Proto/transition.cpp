@@ -37,7 +37,7 @@ void CTransition::Execute(std::string file)
 	// Loads parent static world from binary file.
 	g_psw->pvtlo->pfnLoadLoFromBrx(g_psw, &pbis);
 	SetClockRate(1.0);
-
+	UnlockCm(0);
 	// delete file out of memory
 	pbis.file.close();
 	// Setting the level pending flag to 0

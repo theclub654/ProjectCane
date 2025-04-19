@@ -72,47 +72,41 @@ void BuildFrustrum(const glm::mat3& pmatLookAt, float rx, float ry, glm::vec3* a
 	}
 }
 
-FRUSTUM ExtractFrustumPlanes(const glm::mat4& viewProj) 
+void ExtractFrustumPlanes(const glm::mat4 &viewProj, FRUSTUM *pfrustum) 
 {
-	FRUSTUM frustum;
-
 	// Transpose the matrix once to access rows
 	glm::mat4 m = glm::transpose(viewProj);
-
+	
 	// Left
-	frustum.planes[0] = m[3] + m[0];
+	pfrustum->planes[0] = m[3] + m[0];
 	// Right
-	frustum.planes[1] = m[3] - m[0];
+	pfrustum->planes[1] = m[3] - m[0];
 	// Bottom
-	frustum.planes[2] = m[3] + m[1];
+	pfrustum->planes[2] = m[3] + m[1];
 	// Top
-	frustum.planes[3] = m[3] - m[1];
+	pfrustum->planes[3] = m[3] - m[1];
 	// Near
-	frustum.planes[4] = m[3] + m[2];
+	pfrustum->planes[4] = m[3] + m[2];
 	// Far
-	frustum.planes[5] = m[3] - m[2];
+	pfrustum->planes[5] = m[3] - m[2];
 
-	// Normalize the planes (important!)
-	for (auto& plane : frustum.planes) 
+	// Normalize the planes
+	for (int i = 0; i < 6; i++) 
 	{
-		float length = glm::length(glm::vec3(plane));
+		float length = glm::length(glm::vec3(pfrustum->planes[i]));
 		if (length != 0.0f) 
-			plane /= length;
+			pfrustum->planes[i] /= length;
 	}
-
-	return frustum;
 }
 
-bool SphereInFrustum(const FRUSTUM& frustum, const glm::vec3& center, float radius) 
+bool SphereInFrustum(const FRUSTUM &frustum, const glm::vec3 &position, float radius)
 {
 	for (int i = 0; i < 6; i++)
 	{
-		float distance = glm::dot(glm::vec3(frustum.planes[i]), center) + frustum.planes[i].w;
-		if (distance < -radius)
-		{
-			// Outside this plane
+		float distance = glm::dot(glm::vec3(frustum.planes[i]), position) + frustum.planes[i].w;
+
+		if (distance < -radius )
 			return false;
-		}
 	}
 	return true;
 }

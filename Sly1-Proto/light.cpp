@@ -128,8 +128,10 @@ void FitRecipFunction(float x0, float y0, float x1, float y1, float* pdu, float*
 {
 	constexpr float epsilon = 0.0001f;
 
-	if (!FFloatsNear(x0, x1, epsilon)) {
-		if (std::abs(x0) >= epsilon && std::abs(x1) >= epsilon) {
+	if (!FFloatsNear(x0, x1, epsilon)) 
+	{
+		if (std::abs(x0) >= epsilon && std::abs(x1) >= epsilon) 
+		{
 			float ru = (x0 * x1 * (y1 - y0)) / (x0 - x1);
 			*pru = ru;
 			*pdu = y0 - ru / x0;
@@ -428,7 +430,19 @@ void RemoveLightFromSw(LIGHT* plight)
 	RemoveDlEntry(&plight->psw->dlLight, plight);
 }
 
-void PrepareSwLightsForDraw(SW *psw)
+bool SphereInFrustumLight(const FRUSTUM &frustum, const glm::vec3 &position, float radius)
+{
+	for (int i = 0; i < 6; i++)
+	{
+		float distance = glm::dot(glm::vec3(frustum.planes[i]), position) + frustum.planes[i].w;
+
+		if (distance <= -radius * 3.0)
+			return false;
+	}
+	return true;
+}
+
+void PrepareSwLightsForDraw(SW* psw, CM* pcm)
 {
 	int numDirLights = 0;
 	int numPointLights = 0;
@@ -438,22 +452,6 @@ void PrepareSwLightsForDraw(SW *psw)
 	{
 		switch (allSwLights[i]->lightk)
 		{
-			case LIGHTK_Position:
-			glUniform3fv(GetUniformLocation(glGlobShader.ID, "pointlights[" + std::to_string(numPointLights) + "].pos"),     1, glm::value_ptr(allSwLights[i]->xf.posWorld));
-			glUniform3fv(GetUniformLocation(glGlobShader.ID, "pointlights[" + std::to_string(numPointLights) + "].color"),   1, glm::value_ptr(allSwLights[i]->rgbaColor));
-			glUniform3fv(GetUniformLocation(glGlobShader.ID, "pointlights[" + std::to_string(numPointLights) + "].falloff"), 1, glm::value_ptr(allSwLights[i]->agFallOff));
-
-			glUniform1f(GetUniformLocation(glGlobShader.ID, "pointlights[" + std::to_string(numPointLights) + "].ltfn.ruShadow"),    allSwLights[i]->ltfn.ruShadow);
-			glUniform1f(GetUniformLocation(glGlobShader.ID, "pointlights[" + std::to_string(numPointLights) + "].ltfn.ruMidtone"),   allSwLights[i]->ltfn.ruMidtone);
-			glUniform1f(GetUniformLocation(glGlobShader.ID, "pointlights[" + std::to_string(numPointLights) + "].ltfn.ruHighlight"), allSwLights[i]->ltfn.ruHighlight);
-
-			glUniform1f(GetUniformLocation(glGlobShader.ID, "pointlights[" + std::to_string(numPointLights) + "].ltfn.duShadow"),    allSwLights[i]->ltfn.duShadow);
-			glUniform1f(GetUniformLocation(glGlobShader.ID, "pointlights[" + std::to_string(numPointLights) + "].ltfn.duMidtone"),   allSwLights[i]->ltfn.duMidtone);
-			glUniform1f(GetUniformLocation(glGlobShader.ID, "pointlights[" + std::to_string(numPointLights) + "].ltfn.duHighlight"), allSwLights[i]->ltfn.duHighlight);
-
-			numPointLights++;
-			break;
-
 			case LIGHTK_Direction:
 			glUniform3fv(GetUniformLocation(glGlobShader.ID, "dirlights[" + std::to_string(numDirLights) + "].dir"),   1, glm::value_ptr(allSwLights[i]->xf.matWorld[2]));
 			glUniform3fv(GetUniformLocation(glGlobShader.ID, "dirlights[" + std::to_string(numDirLights) + "].color"), 1, glm::value_ptr(allSwLights[i]->rgbaColor));
@@ -467,6 +465,26 @@ void PrepareSwLightsForDraw(SW *psw)
 			glUniform1f(GetUniformLocation(glGlobShader.ID, "dirlights[" + std::to_string(numDirLights) + "].ltfn.duHighlight"), allSwLights[i]->ltfn.duHighlight);
 			
 			numDirLights++;
+			break;
+
+			case LIGHTK_Position:
+				
+			if (SphereInFrustumLight(pcm->frustum, allSwLights[i]->xf.posWorld, allSwLights[i]->lmFallOffS.gMax) == 1)
+			{
+				glUniform3fv(GetUniformLocation(glGlobShader.ID, "pointlights[" + std::to_string(numPointLights) + "].pos"),     1, glm::value_ptr(allSwLights[i]->xf.posWorld));
+				glUniform3fv(GetUniformLocation(glGlobShader.ID, "pointlights[" + std::to_string(numPointLights) + "].color"),   1, glm::value_ptr(allSwLights[i]->rgbaColor));
+				glUniform3fv(GetUniformLocation(glGlobShader.ID, "pointlights[" + std::to_string(numPointLights) + "].falloff"), 1, glm::value_ptr(allSwLights[i]->agFallOff));
+
+				glUniform1f(GetUniformLocation(glGlobShader.ID, "pointlights[" + std::to_string(numPointLights) + "].ltfn.ruShadow"),    allSwLights[i]->ltfn.ruShadow);
+				glUniform1f(GetUniformLocation(glGlobShader.ID, "pointlights[" + std::to_string(numPointLights) + "].ltfn.ruMidtone"),   allSwLights[i]->ltfn.ruMidtone);
+				glUniform1f(GetUniformLocation(glGlobShader.ID, "pointlights[" + std::to_string(numPointLights) + "].ltfn.ruHighlight"), allSwLights[i]->ltfn.ruHighlight);
+
+				glUniform1f(GetUniformLocation(glGlobShader.ID, "pointlights[" + std::to_string(numPointLights) + "].ltfn.duShadow"),    allSwLights[i]->ltfn.duShadow);
+				glUniform1f(GetUniformLocation(glGlobShader.ID, "pointlights[" + std::to_string(numPointLights) + "].ltfn.duMidtone"),   allSwLights[i]->ltfn.duMidtone);
+				glUniform1f(GetUniformLocation(glGlobShader.ID, "pointlights[" + std::to_string(numPointLights) + "].ltfn.duHighlight"), allSwLights[i]->ltfn.duHighlight);
+
+				numPointLights++;
+			}
 			break;
 
 			case LIGHTK_Frustrum:
@@ -484,20 +502,8 @@ void PrepareSwLightsForDraw(SW *psw)
 
 	glUniform1i(glGetUniformLocation(glGlobShader.ID, "numDirLights"),     numDirLights);
 	glUniform1i(glGetUniformLocation(glGlobShader.ID, "numPointLights"),   numPointLights);
+	//std::cout << "Point Lights: " << numPointLights << "\n";
 	glUniform1i(glGetUniformLocation(glGlobShader.ID, "numFrustumLights"), numFrustumLights);
-}
-
-TWPS TwpsFindSwLights(SW *psw, glm::vec3 &ppos, float sRadius, int grffindlight, int cplightMax, int *pcplightStatic, int *pcplightAll, LIGHT **aplight, char *pchzTarget)
-{
-	for (int i = 0; i < allSwLights.size(); i++)
-	{
-		if (allSwLights[i]->lightk == LIGHTK_Position)
-		{
-			
-		}
-	}
-
-	return TWPS();
 }
 
 void DeleteLight(LIGHT *plight)

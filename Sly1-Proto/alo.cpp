@@ -25,9 +25,9 @@ void InitAlo(ALO* palo)
 	memcpy((char*)&palo->bitfield + 1, &value,  sizeof(byte));
 	memcpy((char*)&palo->bitfield + 2, &value,  sizeof(byte));
 	memcpy((char*)&palo->bitfield + 0, &value1, sizeof(byte));
-
-	palo->sCelBorderMRD = 2139095039;
-	palo->sMRD = 2139095039;
+	
+	palo->sCelBorderMRD = FLT_MAX;
+	palo->sMRD = FLT_MAX;
 	palo->grfzon = -1;
 	palo->xf.mat = glm::identity<glm::mat3>();
 	palo->xf.matWorld = glm::identity<glm::mat3>();
@@ -436,6 +436,9 @@ void LoadAloFromBrx(ALO* palo, CBinaryInputStream* pbis)
 	palo->sCelBorderMRD = pbis->F32Read();
 	palo->sRadiusRenderSelf = pbis->F32Read();
 	palo->sRadiusRenderAll = pbis->F32Read();
+
+	if (palo->sMRD == 3.402823e+38)
+		palo->sMRD = 1e+10;
 	
 	LoadOptionsFromBrx(palo, pbis);
 	LoadGlobsetFromBrx(&palo->globset, palo->pvtalo->cid ,palo, pbis);
@@ -537,13 +540,16 @@ void UpdateAlo(ALO* palo, float dt)
 
 }
 
-void RenderAloAll(ALO* palo, CM* pcm, RO* proDup)
+void RenderAloAll(ALO* palo, CM* pcm, RO* pro)
 {
-	
-	if (SphereInFrustum(pcm->frustum, palo->xf.posWorld, palo->sRadiusRenderAll) == 0)
+	if (!SphereInFrustum(pcm->frustum, palo->xf.posWorld, palo->sRadiusRenderAll))
 		return;
 
-	palo->pvtalo->pfnRenderAloSelf(palo, pcm, proDup);
+	float alpha{};
+	if (!FInsideCmMrd(pcm, pcm->pos - palo->xf.posWorld, palo->sRadiusRenderAll, palo->sMRD, alpha))
+		return;
+
+	palo->pvtalo->pfnRenderAloSelf(palo, pcm, pro);
 }
 
 void RenderAloSelf(ALO* palo, CM* pcm, RO* pro)
@@ -569,74 +575,67 @@ void DupAloRo(ALO *palo, RO *proOrig, RO *proDup)
 void RenderAloGlobset(ALO *palo, CM *pcm, RO *pro)
 {
 	RPL rpl{};
-	
 	rpl.PFNDRAW = DrawGlob;
 
+	// Duplicate rendering object from original
 	DupAloRo(palo, pro, &rpl.ro);
 
-	glm::mat4 modelmatrix = rpl.ro.modelmatrix;
-	
-	for (int i = 0; i < palo->globset.aglob.size(); i++)
+	glm::mat4 baseModelMatrix = rpl.ro.modelmatrix;
+
+	for (int i = 0; i < palo->globset.aglob.size(); ++i) 
 	{
-		glm::vec3 posCenterWorld = glm::vec3(rpl.ro.modelmatrix * glm::vec4(palo->globset.aglob[i].posCenter, 1.0));
+		auto& glob = palo->globset.aglob[i];
+		glm::vec3 posCenterWorld = glm::vec3(baseModelMatrix * glm::vec4(glob.posCenter, 1.0f));
 
-		if (SphereInFrustum(pcm->frustum, posCenterWorld, palo->globset.aglob[i].sRadius) == 1)
-		{
-			for (int a = 0; a < palo->globset.aglob[i].asubglob.size(); a++)
+		if (!SphereInFrustum(pcm->frustum, posCenterWorld, glob.sRadius))
+			continue;
+
+		if (!FInsideCmMrd(pcm, pcm->pos - posCenterWorld, glob.sRadius, glob.sMRD, rpl.ro.uAlpha))
+			continue;
+
+		for (auto& subglob : glob.asubglob) {
+			rpl.ro.VAO = &subglob.VAO;
+
+			// Handle cel border logic
+			if (g_fRenderCelBorders && subglob.fCelBorder == 1) 
 			{
-				rpl.ro.VAO = &palo->globset.aglob[i].asubglob[a].VAO;
-
-				if (g_fRenderCelBorders == true)
-				{
-					if (palo->globset.aglob[i].asubglob[a].fCelBorder == 1)
-					{
-						rpl.ro.celVAO = &palo->globset.aglob[i].asubglob[a].celVAO;
-						rpl.ro.celcvtx = palo->globset.aglob[i].asubglob[a].celcvtx;
-						rpl.ro.fCelBorder = 1;
-					}
-					else
-					{
-						rpl.ro.celVAO = nullptr;
-						rpl.ro.fCelBorder = 0;
-					}
-				}
-				else
-				{
-					rpl.ro.celVAO = nullptr;
-					rpl.ro.fCelBorder = 0;
-				}
-
-				
-
-				rpl.ro.fDynamic = palo->globset.aglob[i].fDynamic;
-
-				rpl.ro.uFog = palo->globset.aglob[i].uFog;
-
-				rpl.z = palo->globset.aglob[i].gZOrder;
-
-				rpl.posCenter = palo->globset.aglob[i].posCenter;
-				rpl.ro.grfglob = &palo->globset.aglob[i].grfglob;
-
-				rpl.ro.pshd = palo->globset.aglob[i].asubglob[a].pshd;
-				rpl.ro.unSelfIllum = &palo->globset.aglob[i].asubglob[a].unSelfIllum;
-				rpl.ro.cvtx = palo->globset.aglob[i].asubglob[a].cvtx;
-
-				if (rpl.z == 3.402823e+38)
-					rpl.z = glm::dot(rpl.z, rpl.z);
-
-				rpl.rp = palo->globset.aglob[i].rp;
-
-				if (palo->globset.aglob[i].dmat.size() != 0)
-					rpl.ro.modelmatrix = modelmatrix * palo->globset.aglob[i].dmat[0];
-
-				//if (palo->globset.aglob[i].rtck != RTCK_None)
-					//AdjustAloRtckMat(palo, pcm, palo->globset.aglob[i].rtck, &palo->globset.aglob[i].posCenter, rpl.ro.modelmatrix);
-
-				SubmitRpl(&rpl);
-
-				if (palo->globset.aglob[i].dmat.size() != 0)
-					rpl.ro.modelmatrix = modelmatrix;
+				rpl.ro.celVAO = &subglob.celVAO;
+				rpl.ro.celcvtx = subglob.celcvtx;
+				rpl.ro.fCelBorder = 1;
 			}
+			else 
+			{
+				rpl.ro.celVAO = nullptr;
+				rpl.ro.fCelBorder = 0;
+			}
+
+			// Common render setup
+			rpl.ro.fDynamic = glob.fDynamic;
+			rpl.ro.uFog = glob.uFog;
+			rpl.z = glob.gZOrder;
+			/*if (rpl.z == 3.402823e+38)
+				rpl.z = glm::length(rpl.ro.uAlpha);*/
+			rpl.posCenter = glob.posCenter;
+			rpl.ro.grfglob = &glob.grfglob;
+			rpl.ro.pshd = subglob.pshd;
+			rpl.ro.unSelfIllum = &subglob.unSelfIllum;
+			rpl.ro.cvtx = subglob.cvtx;
+
+			rpl.rp = (rpl.ro.uAlpha < 1.0f) ? RP_Translucent : glob.rp;
+
+			// Handle dynamic matrix override
+			if (!glob.dmat.empty()) {
+				rpl.ro.modelmatrix = baseModelMatrix * glob.dmat[0];
+			}
+			else {
+				rpl.ro.modelmatrix = baseModelMatrix;
+			}
+
+			// Optional: AdjustAloRtckMat logic (still commented out)
+			// if (glob.rtck != RTCK_None)
+			//     AdjustAloRtckMat(palo, pcm, glob.rtck, &glob.posCenter, rpl.ro.modelmatrix);
+
+			SubmitRpl(&rpl);
 		}
 	}
 }
@@ -657,6 +656,13 @@ void DrawGlob(RPL *prpl)
 
 	glUniformMatrix4fv(glGetUniformLocation(glGlobShader.ID, "model"), 1, GL_FALSE, glm::value_ptr(prpl->ro.modelmatrix));
 	glUniform1f(glGetUniformLocation(glGlobShader.ID, "uFog"), prpl->ro.uFog);
+
+	glUniform1f(glGetUniformLocation(glGlobShader.ID, "uAlpha"), prpl->ro.uAlpha);
+
+	if ((*prpl->ro.grfglob & 4U) == 0)
+		glUniform1f(glGetUniformLocation(glGlobShader.ID, "rDarken"), g_psw->rDarken);
+	else
+		glUniform1f(glGetUniformLocation(glGlobShader.ID, "rDarken"), 1.0);
 
 	if (prpl->ro.pshd->shdk == SHDK_ThreeWay)
 	{
@@ -691,7 +697,7 @@ void DrawGlob(RPL *prpl)
 
 	switch (prpl->rp)
 	{
-	case RP_Background:
+		case RP_Background:
 		glEnable(GL_BLEND);
 		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 		glDepthMask(false);
@@ -701,7 +707,7 @@ void DrawGlob(RPL *prpl)
 		glDepthMask(true);
 		break;
 
-	case RP_ProjVolume:
+		case RP_ProjVolume:
 		glEnable(GL_BLEND);
 		if ((prpl->ro.pshd->grfshd & 2) == 0)
 			glBlendFunc(GL_NONE, GL_ONE);

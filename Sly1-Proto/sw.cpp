@@ -101,7 +101,7 @@ void LoadSwFromBrx(SW* psw, CBinaryInputStream* pbis)
 	LoadTexturesFromBrx(pbis);
 	psw->lsmDefault.uShadow  *= 0.003921569;
 	psw->lsmDefault.uMidtone *= 0.003921569;
-	//SetupCm(g_pcm);
+	SetupCm(g_pcm);
 	std::cout << "World Loaded Successfully\n";
 }
 

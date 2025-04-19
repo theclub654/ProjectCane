@@ -270,7 +270,7 @@ void LoadAloFromBrx(ALO* palo, CBinaryInputStream* pbis);
 void LoadAloAloxFromBrx(ALO* palo, CBinaryInputStream* pbis);
 // Updates ALO object
 void UpdateAlo(ALO *palo, float dt);
-void RenderAloAll(ALO* palo, CM* pcm, RO* proDup);
+void RenderAloAll(ALO* palo, CM* pcm, RO* pro);
 void RenderAloSelf(ALO* palo, CM* pcm, RO* pro);
 void DupAloRo(ALO *palo, RO *proOrig, RO *proDup);
 void RenderAloGlobset(ALO* palo, CM* pcm, RO* pro);

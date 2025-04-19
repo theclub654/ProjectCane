@@ -36,6 +36,7 @@ void CTransition::Execute(std::string file)
 	g_psw = (SW*)PloNew(CID_SW, nullptr, nullptr, OID::OID__WORLD, -1);
 	// Loads parent static world from binary file.
 	g_psw->pvtlo->pfnLoadLoFromBrx(g_psw, &pbis);
+	UnlockCm(0);
 	// delete file out of memory
 	pbis.file.close();
 	// Setting the level pending flag to 0

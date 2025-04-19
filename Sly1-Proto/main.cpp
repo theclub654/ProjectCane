@@ -44,7 +44,7 @@ int main(int cphzArgs, char* aphzArgs[])
 			}
 
 			if (g_fRenderCollision != 0)
-				DrawSwCollisionAll();
+				DrawSwCollisionAll(g_pcm);
 		}
 
 		ImGui::Render();

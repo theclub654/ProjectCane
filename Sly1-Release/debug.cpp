@@ -18,13 +18,9 @@ void RenderMenuGui(SW* psw)
         if (ImGui::BeginMenu("File"))
         {
             if (ImGui::MenuItem("Open World"))
-            {
                 instance_a.Instance()->OpenDialog("ChooseFileDlgKey", "Choose File", ".brx", ".");
-            }
             else if (ImGui::IsItemHovered())
-            {
                 g_fDisableInput = true;
-            }
 
             if (ImGui::MenuItem("Close World"))
             {
@@ -37,15 +33,14 @@ void RenderMenuGui(SW* psw)
                 }
             }
             else if (ImGui::IsItemHovered())
-            {
                 g_fDisableInput = true;
-            }
 
             ImGui::EndMenu();
         }
 
         if (ImGui::BeginMenu("Render"))
         {
+            if (ImGui::IsItemHovered()) g_fDisableInput = true;
             if (ImGui::MenuItem("Map", "", &g_fRenderModels));
             if (ImGui::IsItemHovered()) g_fDisableInput = true;
 
@@ -55,22 +50,30 @@ void RenderMenuGui(SW* psw)
             if (ImGui::MenuItem("Cel Borders", "", &g_fRenderCelBorders));
             if (ImGui::IsItemHovered()) g_fDisableInput = true;
 
-            ImGui::EndMenu();
-        }
+            if (ImGui::BeginMenu("Fog"))
+            {
+                if (ImGui::MenuItem("Off", nullptr, g_fogType == 0))
+                    g_fogType = 0;
+                if (ImGui::IsItemHovered()) g_fDisableInput = true;
 
-        if (ImGui::BeginMenu("Fog"))
-        {
-            if (ImGui::MenuItem("Off", nullptr, g_fogType == 0))
-                g_fogType = 0;
+                if (ImGui::MenuItem("PS2 Style", nullptr, g_fogType == 1))
+                    g_fogType = 1;
+                if (ImGui::IsItemHovered()) g_fDisableInput = true;
+
+                if (ImGui::MenuItem("PS3 Style", nullptr, g_fogType == 2))
+                    g_fogType = 2;
+                if (ImGui::IsItemHovered()) g_fDisableInput = true;
+
+                ImGui::EndMenu();  // End of "Recent Files" sub-menu
+
+                if (ImGui::IsItemHovered()) g_fDisableInput = true;
+            }
+
             if (ImGui::IsItemHovered()) g_fDisableInput = true;
 
-            if (ImGui::MenuItem("PS2 Style", nullptr, g_fogType == 1))
-                g_fogType = 1;
-            if (ImGui::IsItemHovered()) g_fDisableInput = true;
+            ImGui::SliderFloat("Draw Distance", &g_renderDistance, 1.0f, 2.5);
 
-            if (ImGui::MenuItem("PS3 Style", nullptr, g_fogType == 2))
-                g_fogType = 2;
-            if (ImGui::IsItemHovered()) g_fDisableInput = true;
+            if (ImGui::IsItemClicked) g_fDisableInput = true;
 
             ImGui::EndMenu();
         }

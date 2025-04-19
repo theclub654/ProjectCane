@@ -281,7 +281,7 @@ void BuildCmFgfn(CM* pcm, float uFog, FGFN* pfgfn);
 // Makes frustum
 void BuildFrustrum(const glm::mat3& pmatLookAt, float rx, float ry, glm::vec3* anormalFrustrum);
 // Extract frustum planes from matrix
-FRUSTUM ExtractFrustumPlanes(const glm::mat4& viewProj);
+void ExtractFrustumPlanes(const glm::mat4& viewProj, FRUSTUM* pfrustum);
 // Checks if a object is in camera frustum
 bool SphereInFrustum(const FRUSTUM& frustum, const glm::vec3& center, float radius);
 // Update manual camera

@@ -161,10 +161,10 @@ void RenderSoSelf(SO* pso, CM* pcm, RO* pro)
 	RenderAloSelf(pso, pcm, pro);
 }
 
-void DrawCollision(SO *pso)
+void DrawCollision(CM* pcm, SO* pso)
 {
 	glm::mat4 model = pso->xf.matWorld;
-	
+
 	model[3][0] = pso->xf.posWorld[0];
 	model[3][1] = pso->xf.posWorld[1];
 	model[3][2] = pso->xf.posWorld[2];

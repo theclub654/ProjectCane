@@ -3,6 +3,7 @@
 
 extern std::vector<LIGHT*> allSwLights;
 
+
 // Light type
 enum LIGHTK 
 {
@@ -32,40 +33,43 @@ struct LIGHTBLK
 	LIGHTK lightk;
 };
 
+
 class LIGHT : public ALO
 {
 	public:
-		LIGHTK lightk;
-		TWPS twps;
-		// Light color (HSV)
-		glm::vec3 vecHighlight;
-		// Light color (RGBA)
-		glm::vec3 rgbaColor;
-		LTFN ltfn;
-		glm::vec3 agFallOff;
-		// Diffuse
-		float gMidtone;
-		float gShadow;
-		float degHighlight;
-		float degMidtone;
-		float degShadow;
-		int fDynamic;
-		int fExcludeDynamicObjects;
-		glm::vec3 vecDirectionOrig;
-		glm::vec3 normalLocal;
-		LM lmFallOffS;
-		float degCone;
-		float degHotSpot;
-		glm::vec3 vecUpLocal;
-		float rx;
-		float ry;
-		LM lmFallOffPenumbra;
-		LM lmFallOffAbsX;
-		LM lmFallOffAbsY;
-		glm::vec4 avecFrustrum[6];
-		int grfzonBeam;
-		glm::mat4 matLookAt;
-		DLE dleLight;
+	LIGHTK lightk;
+	TWPS twps;
+	// Light color (HSV)
+	glm::vec3 vecHighlight;
+	// Light color (RGBA)
+	glm::vec3 rgbaColor;
+	LTFN ltfn;
+	glm::vec3 agFallOff;
+	glm::vec3 falloff0Frustum;
+	glm::vec3 falloff1Frustum;
+	glm::mat4 frustum;
+	float gMidtone;
+	float gShadow;
+	float degHighlight;
+	float degMidtone;
+	float degShadow;
+	int fDynamic;
+	int fExcludeDynamicObjects;
+	glm::vec3 vecDirectionOrig;
+	glm::vec3 normalLocal;
+	LM lmFallOffS;
+	float degCone;
+	float degHotSpot;
+	glm::vec3 vecUpLocal;
+	float rx;
+	float ry;
+	LM lmFallOffPenumbra;
+	LM lmFallOffAbsX;
+	LM lmFallOffAbsY;
+	glm::vec4 avecFrustrum[6];
+	int grfzonBeam;
+	glm::mat4 matLookAt;
+	DLE dleLight;
 };
 
 LIGHT*NewLight();
@@ -110,8 +114,8 @@ void SetLightHotSpotAngle(LIGHT* plight, float degHotSpot);
 void*GetLightFrustrumUp(LIGHT*plight);
 void SetLightFrustrumUp(LIGHT* plight, glm::vec3 &pvecUpLocal);
 void RemoveLightFromSw(LIGHT* plight);
-void PrepareSwLightsForDraw(SW* psw);
-TWPS TwpsFindSwLights(SW *psw, glm::vec3 &ppos, float sRadius, int grffindlight, int cplightMax, int *pcplightStatic, int *pcplightAll, LIGHT **aplight, char *pchzTarget);
+bool SphereInFrustumLight(const FRUSTUM& frustum, const glm::vec3& position, float radius);
+void PrepareSwLightsForDraw(SW* psw, CM *pcm);
 void DeleteLight(LIGHT *plight);
 
 static std::vector <LIGHT*> g_alight;

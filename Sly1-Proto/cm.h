@@ -15,8 +15,8 @@ void InitCm(CM* pcm); // NOT FINISHED
 int  GetCmSize();
 void CloneCm(CM* pcm, CM* pcmBase);
 void RecalcCmFrustrum(CM* pcm);
+void BuildSimpleProjectionMatrix(float rx, float ry, float dxOffset, float dyOffset, float sNear, float sFar, glm::mat4& pmat);
 void BuildProjectionMatrix(float *fov, float *width, float *height, float *near, float *far, glm::mat4 &pmat);
-void BuildSimpleProjectionMatrix(float rx, float ry, float dxOffset, float dyOffset, float sNear, float sFar, glm::mat4 &pmat);
 void SetSwCameraFov(SW* psw, float radFOV);
 void SetSwCameraNearClip(SW* psw, float sNearClip);
 void SetSwCameraFarClip(SW* psw, float sFarClip);
@@ -48,12 +48,16 @@ void*GetCmMrdRatio(CM* pcm);
 void SetCmMrdRatio(CM* pcm, float rMRD);
 // Builds lookat matrix
 void BuildLookAt(glm::vec3 &posEye, glm::vec3 &directionEye, glm::vec3 &upEye, glm::mat4 &pmatLookAt);
+void UnlockCm(int nParam);
 void SetupCm(CM *pcm);
 // Combines a LookAt Matrix and Projection Matrix
 void CombineEyeLookAtProj(const glm::vec3& eyePos, const glm::mat3& lookAt, const glm::mat4& proj, glm::mat4& pmat);
 void TransposeFrustrumNormals(const glm::vec3* anormalFrustrum, glm::vec4* outTransposed);
 // Updates a camera matrix
 void UpdateCmMat4(CM* pcm);
-// Returns whether a object is in the camera view or not 
-int FInsideCmMrd(const CM* pcm, const glm::vec4& dpos, float sRadius, float sMRD, float* puAlpha);
+// Returns whether a object minimum render distance is in sphere
+bool FInsideCmMrd(const CM *pcm, const glm::vec3 &dpos, float sRadius, float sMRD, float &outAlpha);
 void DeleteCm(CM *pcm);
+
+extern CMLK g_cmlk;
+extern float g_renderDistance;

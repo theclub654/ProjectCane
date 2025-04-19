@@ -1,5 +1,8 @@
 #include "cm.h"
 
+CMLK g_cmlk;
+float g_renderDistance = 1.0;
+
 CM* NewCm()
 {
 	return new CM{};
@@ -20,18 +23,8 @@ void InitCm(CM* pcm)
 	pcm->rMRD = 1.0;
 	pcm->worldUp = glm::vec3(0.0f, 0.0f, 1.0f);
 
-	pcm->direction = glm::vec3(0.0);
-	pcm->direction.x = cos(glm::radians(-pcm->yaw)) * cos(glm::radians(pcm->pitch));
-	pcm->direction.y = sin(glm::radians(-pcm->yaw)) * cos(glm::radians(pcm->pitch));
-	pcm->direction.z = sin(glm::radians(pcm->pitch));
-	pcm->direction = glm::normalize(pcm->direction);
-	pcm->right = glm::normalize(glm::cross(pcm->direction, pcm->worldUp));
-	pcm->up = glm::normalize(glm::cross(pcm->right, pcm->direction));
-
-	pcm->right = glm::vec3(0.0);
 	pcm->lookAt = glm::identity <glm::mat4>();
 	pcm->yaw = -90;
-	pcm->firstClick = true;
 
 	RecalcCmFrustrum(pcm);
 	pcm->cpman.pvtcpman = &g_vtcpman;
@@ -62,18 +55,17 @@ void CloneCm(CM* pcm, CM* pcmBase)
 
 void RecalcCmFrustrum(CM* pcm)
 {
-	pcm->yScreenRange = tanf(pcm->radFOV * 0.5);
-	pcm->xScreenRange = pcm->yScreenRange * pcm->rAspect;
-	pcm->rMRDAdjust   = pcm->rMRD * (1.0 / pcm->radFOV);
-	pcm->sRadiusNearClip = pcm->yScreenRange * sqrt(pcm->rAspect * pcm->rAspect + 1.0) * pcm->sNearClip + 1.0;
+	pcm->rMRDAdjust = pcm->rMRD * (1.0 / pcm->radFOV);
 
 	BuildProjectionMatrix(&pcm->radFOV, &g_gl.width, &g_gl.height, &pcm->sNearClip, &pcm->sFarClip, pcm->matProj);
+	//UpdateCmMat4(pcm);
 }
 
 void BuildProjectionMatrix(float *fov, float *width, float *height, float *near, float *far, glm::mat4 &pmat)
 {
+	*far = 10000000000.0f;
 	pmat = glm::identity <glm::mat4>();
-	pmat = glm::perspective(*fov, *width / *height, *near , 10000000000.0f);
+	pmat = glm::perspective(*fov, *width / *height, *near , *far);
 }
 
 void BuildSimpleProjectionMatrix(float rx, float ry, float dxOffset, float dyOffset, float sNear, float sFar, glm::mat4& pmat)
@@ -271,6 +263,11 @@ void BuildLookAt(glm::vec3 &posEye, glm::vec3 &directionEye, glm::vec3 &upEye ,g
 	pmatLookAt = glm::lookAt(posEye, posEye + directionEye, upEye);
 }
 
+void UnlockCm(int nParam)
+{
+	g_cmlk = CMLK_Nil;
+}
+
 void SetupCm(CM *pcm)
 {
 	if (g_psw != nullptr)
@@ -319,40 +316,56 @@ void TransposeFrustrumNormals(const glm::vec3* anormalFrustrum, glm::vec4* outTr
 
 void UpdateCmMat4(CM* pcm)
 {
-	BuildProjectionMatrix(&pcm->radFOV, &g_gl.width, &g_gl.height, &pcm->sNearClip, &pcm->sFarClip, pcm->matProj);
 	BuildLookAt(pcm->pos, pcm->direction, pcm->up ,pcm->lookAt);
 
-	pcm->frustum = ExtractFrustumPlanes(pcm->matProj * pcm->lookAt);
+	//pcm->matWorldToClip = pcm->matProj * pcm->lookAt;
+
+	ExtractFrustumPlanes(pcm->matProj * pcm->lookAt, &pcm->frustum);
 }
 
-int FInsideCmMrd(const CM* pcm, const glm::vec4& dpos, float sRadius, float sMRD, float* puAlpha)
+bool FInsideCmMrd(const CM *pcm, const glm::vec3 &dpos, float sRadius, float sMRD, float &outAlpha)
 {
-	float fVar1;
-	glm::vec3 alphaVec;
-	float fVar2, fVar3;
-
-	fVar3 = sMRD * pcm->rMRDAdjust + sRadius;
-
-	glm::vec3 adjustedAlphaVec = alphaVec * alphaVec;
-	fVar1 = glm::length(adjustedAlphaVec); // Length squared
-
-	fVar2 = fVar3 * fVar3;
-	if (fVar2 < fVar1) {
-		return 0; // Not inside the region
+	if (g_cmlk == CMLK_Grfzon) {
+		sMRD = 1e10f; // basically disables render distance fade
 	}
 
-	fVar3 = fVar3 - pcm->rMRDAdjust * 400.0f;
-	fVar3 = fVar3 * fVar3;
-	if (fVar3 < fVar1) {
-		fVar3 = (fVar2 - fVar1) / (fVar2 - fVar3);
+	// Calculate outer radius
+	float outerRadius = sMRD * pcm->rMRDAdjust * g_renderDistance + sRadius;
+	float outerRadiusSq = outerRadius * outerRadius;
+
+	// Calculate position of point to test
+	glm::vec3 targetPos;
+	if (g_cmlk == CMLK_Mrd) {
+		targetPos = pcm->pos + glm::vec3(dpos);
 	}
 	else {
-		fVar3 = 1.0f;
+		targetPos = glm::vec3(dpos); // dpos is already world space
 	}
 
-	*puAlpha = fVar3; // Set the alpha value based on distance
+	// Squared distance to CM lock position
+	glm::vec3 delta = targetPos - glm::vec3(0.0);
+	float distanceSq = glm::dot(delta, delta);
 
-	return 1; // Inside the region
+	// Outside the outer boundary
+	if (distanceSq > outerRadiusSq) {
+		return false;
+	}
+
+	// Fade zone calculation
+	float innerRadius = outerRadius - pcm->rMRDAdjust * 400.0f;
+	float innerRadiusSq = innerRadius * innerRadius;
+
+	// If in fade zone, calculate alpha
+	if (distanceSq > innerRadiusSq) {
+		float alpha = (outerRadiusSq - distanceSq) / (outerRadiusSq - innerRadiusSq);
+		alpha = std::clamp(alpha, 0.0f, 1.0f);
+		outAlpha = alpha * alpha * (3.0f - 2.0f * alpha);
+	}
+	else {
+		outAlpha = 1.0f; // fully visible
+	}
+
+	return true;
 }
 
 void DeleteCm(CM *pcm)

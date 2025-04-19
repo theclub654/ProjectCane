@@ -1,18 +1,5 @@
 #include "main.h"
 
-// Temporary flag
-bool loadEmitMesh = 0;
-GL g_gl;
-GLSHADER glScreenShader;
-GLSHADER glGlobShader;
-GLSHADER glCollisionShader;
-std::string file;
-std::string levelName;
-CTransition g_transition;
-bool firstClick = true;
-float deltaTime = 0.0f;
-float lastFrame = 0.0f;
-
 int main(int cphzArgs, char* aphzArgs[])
 {
 	// Initializing all things needed for game to be started
@@ -35,7 +22,6 @@ int main(int cphzArgs, char* aphzArgs[])
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 		// Activate Depth testing
 		glEnable(GL_DEPTH_TEST);
-		
 		
 		RenderMenuGui(g_psw);
 		

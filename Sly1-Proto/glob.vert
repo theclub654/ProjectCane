@@ -338,8 +338,8 @@ void CalculateFogPS2(vec4 worldPos)
 
     // remap recipZ from recipNear..recipFar to 0..1
     float fog = clamp((recipNear - recipZ) / (recipNear - recipFar), 0.0, 1.0);
-
-    if (uFog > 0.0)
+    
+    if (uFog != 0.0)
         fogIntensity = clamp(fog * fogMax * uFog, 0.0, 1.0);
     else
         fogIntensity = clamp(fog * fogMax, 0.0, 1.0);
@@ -356,7 +356,7 @@ void CalculateFogPS3(vec4 worldPos)
 
     // Scale the fog intensity by fogMax (a scalar that controls overall fog strength)
     // and clamp it to stay within the [0..1] valid fog range
-    if (uFog > 0.0)
+    if (uFog != 0.0)
         fogIntensity = clamp(fog * fogMax * uFog, 0.0, 1.0);
     else
         fogIntensity = clamp(fog * fogMax, 0.0, 1.0);

@@ -1,5 +1,8 @@
 #include "cm.h"
 
+CMLK g_cmlk;
+float g_renderDistance = 1.0;
+
 CM* NewCm()
 {
 	return new CM{};
@@ -9,6 +12,7 @@ void InitCm(CM* pcm)
 {
 	InitLo(pcm);
 
+	pcm->rgbaFog = glm::vec4(0.0);
 	pcm->radFOV = 1.0;
 	pcm->rAspect = 1.298701;
 	pcm->sNearClip = 100.0;
@@ -61,12 +65,22 @@ void CloneCm(CM* pcm, CM* pcmBase)
 
 void RecalcCmFrustrum(CM* pcm)
 {
-	pcm->yScreenRange = tanf(pcm->radFOV * 0.5);
-	pcm->xScreenRange = pcm->yScreenRange * pcm->rAspect;
-	pcm->rMRDAdjust   = pcm->rMRD * (1.0 / pcm->radFOV);
-	pcm->sRadiusNearClip = pcm->yScreenRange * sqrt(pcm->rAspect * pcm->rAspect + 1.0) * pcm->sNearClip + 1.0;
+	pcm->rMRDAdjust = pcm->rMRD * (1.0 / pcm->radFOV);
 
 	BuildProjectionMatrix(&pcm->radFOV, &g_gl.width, &g_gl.height, &pcm->sNearClip, &pcm->sFarClip, pcm->matProj);
+}
+
+void BuildSimpleProjectionMatrix(float rx, float ry, float dxOffset, float dyOffset, float sNear, float sFar, glm::mat4& pmat)
+{
+	float fVar1 = (sNear + sFar) / (sNear - sFar);
+
+	pmat[0][0] = rx;
+	pmat[1][1] = ry;
+	pmat[2][0] = dxOffset;
+	pmat[2][1] = dyOffset;
+	pmat[2][2] = fVar1;
+	pmat[2][3] = 1.0f;
+	pmat[3][2] = sNear * (1.0f - fVar1);
 }
 
 void BuildProjectionMatrix(float *fov, float *width, float *height, float *near, float *far, glm::mat4 &pmat)
@@ -257,6 +271,11 @@ void BuildLookAt(glm::vec3 &posEye, glm::vec3 &directionEye, glm::vec3 &upEye ,g
 	pmatLookAt = glm::lookAt(posEye, posEye + directionEye, upEye);
 }
 
+void UnlockCm(int nParam)
+{
+	g_cmlk = CMLK_Nil;
+}
+
 void SetupCm(CM *pcm)
 {
 	if (g_psw != nullptr)
@@ -305,16 +324,54 @@ void TransposeFrustrumNormals(const glm::vec3* anormalFrustrum, glm::vec4* outTr
 
 void UpdateCmMat4(CM* pcm)
 {
-	BuildProjectionMatrix(&pcm->radFOV, &g_gl.width, &g_gl.height, &pcm->sNearClip, &pcm->sFarClip, pcm->matProj);
 	BuildLookAt(pcm->pos, pcm->direction, pcm->up ,pcm->lookAt);
 
-	pcm->frustum = ExtractFrustumPlanes(pcm->matProj * pcm->lookAt);
+	ExtractFrustumPlanes(pcm->matProj * pcm->lookAt, &pcm->frustum);
 }
 
-int FInsideCmMrd(const CM* pcm, const glm::vec4& dpos, float sRadius, float sMRD, float* puAlpha)
+bool FInsideCmMrd(const CM* pcm, const glm::vec3& dpos, float sRadius, float sMRD, float& outAlpha)
 {
+	if (g_cmlk == CMLK_Grfzon) {
+		sMRD = 1e10f; // basically disables render distance fade
+	}
 
-	return 0;
+	// Calculate outer radius
+	float outerRadius = sMRD * pcm->rMRDAdjust * g_renderDistance + sRadius;
+	float outerRadiusSq = outerRadius * outerRadius;
+
+	// Calculate position of point to test
+	glm::vec3 targetPos;
+	if (g_cmlk == CMLK_Mrd) {
+		targetPos = pcm->pos + glm::vec3(dpos);
+	}
+	else {
+		targetPos = glm::vec3(dpos); // dpos is already world space
+	}
+
+	// Squared distance to CM lock position
+	glm::vec3 delta = targetPos - glm::vec3(0.0);
+	float distanceSq = glm::dot(delta, delta);
+
+	// Outside the outer boundary
+	if (distanceSq > outerRadiusSq) {
+		return false;
+	}
+
+	// Fade zone calculation
+	float innerRadius = outerRadius - pcm->rMRDAdjust * 400.0f;
+	float innerRadiusSq = innerRadius * innerRadius;
+
+	// If in fade zone, calculate alpha
+	if (distanceSq > innerRadiusSq) {
+		float alpha = (outerRadiusSq - distanceSq) / (outerRadiusSq - innerRadiusSq);
+		alpha = std::clamp(alpha, 0.0f, 1.0f);
+		outAlpha = alpha * alpha * (3.0f - 2.0f * alpha);
+	}
+	else {
+		outAlpha = 1.0f; // fully visible
+	}
+
+	return true;
 }
 
 void DeleteCm(CM *pcm)

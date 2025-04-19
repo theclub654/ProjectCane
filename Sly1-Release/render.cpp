@@ -204,10 +204,10 @@ void DrawSw(SW *psw, CM *pcm)
 {
 	glGlobShader.Use();
 
-	//std::cout << renderBuffer.size() << "\n";
+	//std::cout << "Objects: " << renderBuffer.size() << "\n";
 	SortRenderRpl();
 
-	PrepareSwLightsForDraw(g_psw);
+	PrepareSwLightsForDraw(psw, pcm);
 
 	glUniformMatrix4fv(glGetUniformLocation(glGlobShader.ID, "proj"), 1, GL_FALSE, glm::value_ptr(pcm->matProj));
 	glUniformMatrix4fv(glGetUniformLocation(glGlobShader.ID, "view"), 1, GL_FALSE, glm::value_ptr(pcm->lookAt));

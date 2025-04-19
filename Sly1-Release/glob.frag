@@ -22,6 +22,9 @@ uniform int fogType;
 uniform vec4 fogcolor;
 uniform vec4 rgbaCel;
 
+uniform float uAlpha;
+uniform float rDarken;
+
 uniform int rko;
 
 in MATERIAL material;
@@ -70,6 +73,8 @@ void DrawOneWay()
     vec4 diffuse = texture(diffuseMap, texcoord);
 
     FragColor = diffuse * vertexColor;
+
+    FragColor.a = clamp(FragColor.a * uAlpha, 0.0, 1.0);
 }
 
 void DrawThreeWay()
@@ -78,11 +83,11 @@ void DrawThreeWay()
     vec4 diffuse  = texture(diffuseMap,  texcoord);
     vec4 saturate = texture(saturateMap, texcoord);
 
-    FragColor.rgb += shadow.rgb   * material.ambient;
-    FragColor.rgb += diffuse.rgb  * material.midtone.rgb;
+    FragColor.rgb += shadow.rgb * material.ambient * rDarken;
+    FragColor.rgb += diffuse.rgb * material.midtone.rgb * rDarken;
     FragColor.rgb += saturate.rgb * material.light.rgb;
 
-    FragColor.a = clamp(vertexColor.a * shadow.a * diffuse.a * saturate.a, 0.0, 1.0);
+    FragColor.a = clamp(vertexColor.a * uAlpha * rDarken * shadow.a * diffuse.a * saturate.a, 0.0, 1.0);
 }
 
 void DrawCelBorder()

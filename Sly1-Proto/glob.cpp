@@ -42,7 +42,7 @@ void LoadGlobsetFromBrx(GLOBSET *pglobset, short cid ,ALO *palo, CBinaryInputStr
 
             pglobset->aglob[i].sMRD = 1e+10;
             pglobset->aglob[i].sCelBorderMRD = 2000.0;
-            pglobset->aglob[i].gZOrder = 0xFFFF7F7F;
+            pglobset->aglob[i].gZOrder = FLT_MAX;
             pglobset->aglob[i].uFog = 1.0;
             pglobset->aglob[i].rSubglobRadius = 1.0;
             pglobset->aglob[i].fDynamic = fRelight;
@@ -57,7 +57,6 @@ void LoadGlobsetFromBrx(GLOBSET *pglobset, short cid ,ALO *palo, CBinaryInputStr
             pglobset->aglob[i].instanceIndex = instanceIndex;
             pglobset->aglob[i].posCenter = pglobset->aglob[instanceIndex].posCenter;
             pglobset->aglob[i].sRadius = pglobset->aglob[instanceIndex].sRadius;
-            //pglobset->aglob[i].fgfn = pglobset->aglob[instanceIndex].fgfn;
             pglobset->aglob[i].rp = pglobset->aglob[instanceIndex].rp;
             pglobset->aglob[i].fThreeWay = pglobset->aglob[instanceIndex].fThreeWay;
             pglobset->aglob[i].sMRD = pglobset->aglob[instanceIndex].sMRD;
@@ -77,10 +76,10 @@ void LoadGlobsetFromBrx(GLOBSET *pglobset, short cid ,ALO *palo, CBinaryInputStr
         {
             float gZOrder = pbis->F32Read();
 
-            if (gZOrder == 0x7F7FFFFF)
+            if (gZOrder == FLT_MAX)
                 pglobset->aglob[i].gZOrder = gZOrder;
             else
-                pglobset->aglob[i].gZOrder = gZOrder * abs(gZOrder);
+                pglobset->aglob[i].gZOrder = gZOrder * glm::abs(gZOrder);
         }
         
         if ((unk_5 & 8) != 0)
@@ -90,7 +89,7 @@ void LoadGlobsetFromBrx(GLOBSET *pglobset, short cid ,ALO *palo, CBinaryInputStr
         {
             pglobset->aglob[i].sMRD = pbis->F32Read();
 
-            if (pglobset->aglob[i].sMRD == 3.402823e+38)
+            if (pglobset->aglob[i].sMRD == FLT_MAX)
                 pglobset->aglob[i].sMRD = 1e+10;
         }
         
@@ -98,7 +97,7 @@ void LoadGlobsetFromBrx(GLOBSET *pglobset, short cid ,ALO *palo, CBinaryInputStr
         {
             float sCelBorderMRD = pbis->F32Read();
 
-            if (sCelBorderMRD == 3.402823e+38)
+            if (sCelBorderMRD == FLT_MAX)
                 pglobset->aglob[i].sCelBorderMRD = 2000.0;
             else
                 pglobset->aglob[i].sCelBorderMRD = sCelBorderMRD;

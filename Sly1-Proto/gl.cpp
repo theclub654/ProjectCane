@@ -1,7 +1,8 @@
 ﻿#include "gl.h"
 
 #ifdef _WIN32
-extern "C" {
+extern "C" 
+{
 	__declspec(dllexport) unsigned long NvOptimusEnablement = 0x00000001;
 	__declspec(dllexport) int AmdPowerXpressRequestHighPerformance = 1;
 }
@@ -132,14 +133,21 @@ void FrameBufferSizeCallBack(GLFWwindow* window, int width, int height)
 {
 	glBindFramebuffer(GL_FRAMEBUFFER, g_gl.fbo);
 
+	// Resize color texture
 	glBindTexture(GL_TEXTURE_2D, g_gl.fbc);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
-
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, nullptr);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, g_gl.fbc, 0);
+	
+	// Resize depth/stencil buffer
 	glBindRenderbuffer(GL_RENDERBUFFER, g_gl.rbo);
 	glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, width, height);
+	glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, g_gl.rbo);
 
 	glViewport(0, 0, width, height);
-
+	
 	g_gl.width  = width;
 	g_gl.height = height;
+
+	if (g_pcm != nullptr)
+		RecalcCmFrustrum(g_pcm);
 }

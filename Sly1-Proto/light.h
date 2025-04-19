@@ -3,6 +3,10 @@
 
 extern std::vector<LIGHT*> allSwLights;
 
+const int CLUSTER_X = 16; // Horizontal tile count (depends on screen width)
+const int CLUSTER_Y = 9;  // Vertical tile count (depends on screen height)
+const int CLUSTER_Z = 24; // Depth slices (logarithmic recommended)
+
 // Light type
 enum LIGHTK 
 {
@@ -13,28 +17,26 @@ enum LIGHTK
 	LIGHTK_Spot = 3,
 	LIGHTK_Max = 4
 };
+
 struct LTFN
 {
 	float ruShadow;
 	float ruMidtone;
 	float ruHighlight;
-	float ruUnused;
 	float duShadow;
 	float duMidtone;
 	float duHighlight;
-	float duUnused;
 };
-struct LIGHTBLK
+
+struct ClusterAABB 
 {
-	struct LIGHT** aplight;
-	int cplight;
-	int grffindlight;
-	LIGHTK lightk;
+	glm::vec3 min;
+	glm::vec3 max;
 };
 
 class LIGHT : public ALO
 {
-	public:
+		public:
 		LIGHTK lightk;
 		TWPS twps;
 		// Light color (HSV)
@@ -112,8 +114,8 @@ void SetLightHotSpotAngle(LIGHT* plight, float degHotSpot);
 void*GetLightFrustrumUp(LIGHT*plight);
 void SetLightFrustrumUp(LIGHT* plight, glm::vec3 &pvecUpLocal);
 void RemoveLightFromSw(LIGHT* plight);
-void PrepareSwLightsForDraw(SW* psw);
-TWPS TwpsFindSwLights(SW *psw, glm::vec3 &ppos, float sRadius, int grffindlight, int cplightMax, int *pcplightStatic, int *pcplightAll, LIGHT **aplight, char *pchzTarget);
+bool SphereInFrustumLight(const FRUSTUM &frustum, const glm::vec3 &position, float radius);
+void PrepareSwLightsForDraw(SW* psw, CM *pcm);
 void DeleteLight(LIGHT *plight);
 
 static std::vector <LIGHT*> g_alight;
