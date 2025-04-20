@@ -237,7 +237,7 @@ void UpdateAloXfWorldHierarchy(ALO* palo)
 {
 	if (palo->alox.size() == 0)
 	{
-		UpdateTrans:
+	UpdateTrans:
 		if (palo->paloParent == nullptr)
 		{
 			palo->xf.posWorld = palo->xf.pos;
@@ -246,11 +246,15 @@ void UpdateAloXfWorldHierarchy(ALO* palo)
 
 		else
 		{
-			palo->xf.pos = palo->paloParent->xf.matWorld * palo->xf.pos;
-			palo->xf.posWorld = palo->xf.pos + palo->paloParent->xf.posWorld;
+			glm::vec3 parentPos = palo->paloParent->xf.posWorld;
+			glm::mat3 parentRot = palo->paloParent->xf.matWorld;
 
-			palo->xf.mat = palo->paloParent->xf.matWorld * palo->xf.mat;
-			palo->xf.matWorld = palo->xf.mat;
+			// Transform local position by parent rotation and add parent position
+			palo->xf.posWorld = parentRot * palo->xf.pos + parentPos;
+
+			// Calculate world rotation by combining parent and local rotations (row-major)
+			glm::mat3 localRot = palo->xf.mat;
+			palo->xf.matWorld = parentRot * localRot;
 		}
 	}
 
@@ -269,13 +273,49 @@ void UpdateAloXfWorldHierarchy(ALO* palo)
 
 		else
 		{
-			palo->xf.pos = palo->xf.pos * palo->paloParent->xf.matWorld;
-			palo->xf.posWorld = palo->paloParent->xf.posWorld + palo->xf.pos;
+			// Load parent world rotation (row-major 3x3 matrix)
+			glm::mat3 parentMatWorld = palo->paloParent->xf.matWorld;
+
+			// Load parent world position
+			glm::vec3 parentPosWorld = palo->paloParent->xf.posWorld;
+
+			// Load local position of palo (child)
+			glm::vec3 localPos = palo->xf.pos;
+
+			// Calculate world position: matWorld * pos + posWorld
+			glm::vec3 worldPos = parentMatWorld * localPos + parentPosWorld;
+
+			// Store the result in palo's posWorld
+			palo->xf.posWorld = worldPos;
 		}
 
 		if (palo->paloParent != nullptr)
 		{
-			palo->xf.matWorld = palo->xf.mat * palo->paloParent->xf.matWorld;
+			// Load parent world matrix components (row-major)
+			glm::mat3 parentMatWorld = palo->paloParent->xf.matWorld;
+
+			// Load child local matrix components (row-major)
+			glm::mat3 childMat = palo->xf.mat;
+
+			// Process the first row of the child matrix
+			glm::vec3 row1 = childMat[0];  // This corresponds to the 1st column of the matrix in SIMD
+			glm::vec3 result1 = parentMatWorld * row1;  // Matrix-vector multiplication
+			palo->xf.posWorld = result1;  // Store the result
+
+			// Process the second row of the child matrix
+			glm::vec3 row2 = childMat[1];  // This corresponds to the 2nd column of the matrix in SIMD
+			glm::vec3 result2 = parentMatWorld * row2;
+			palo->xf.posWorld += result2;  // Accumulate the result
+
+			// Process the third row of the child matrix
+			glm::vec3 row3 = childMat[2];  // This corresponds to the 3rd column of the matrix in SIMD
+			glm::vec3 result3 = parentMatWorld * row3;
+			palo->xf.posWorld += result3;  // Accumulate the result
+
+			// Update the matWorld field of palo (store the results in matWorld as in the original code)
+			palo->xf.matWorld[0] = result1;
+			palo->xf.matWorld[1] = result2;
+			palo->xf.matWorld[2] = result3;
 			goto UpdateTrans;
 		}
 
@@ -296,13 +336,13 @@ void UpdateAloXfWorldHierarchy(ALO* palo)
 			if (object->pvtalo->pfnUpdateAloXfWorldHierarchy == nullptr)
 				object = object->dleChild.paloNext;
 
-			else 
+			else
 			{
 				object->pvtalo->pfnUpdateAloXfWorldHierarchy(object);
 				object = object->dleChild.paloNext;
 			}
 
-			if (object == nullptr) 
+			if (object == nullptr)
 				break;
 		}
 	}
@@ -624,8 +664,8 @@ void RenderAloGlobset(ALO *palo, CM *pcm, RO *pro)
 			rpl.rp = (rpl.ro.uAlpha < 1.0f) ? RP_Translucent : glob.rp;
 
 			// Handle dynamic matrix override
-			if (!glob.dmat.empty()) {
-				rpl.ro.modelmatrix = baseModelMatrix * glob.dmat[0];
+			if (glob.pdmat != nullptr) {
+				rpl.ro.modelmatrix = baseModelMatrix * *glob.pdmat;
 			}
 			else {
 				rpl.ro.modelmatrix = baseModelMatrix;

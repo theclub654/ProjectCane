@@ -50,8 +50,8 @@ struct SOP
 {
     LO* plo;
     int cpar;
-    struct PAR* apar;
-    struct SOP* psopNext;
+    struct PAR *apar;
+    struct SOP *psopNext;
 };
 
 // Proxy Source List
@@ -68,7 +68,7 @@ struct PSL
 struct PXR 
 {
     // Ptr to PRX object
-    struct LO* plo;
+    struct LO *plo;
     // OID for proxy root
     OID oidProxyRoot;
     // List that keeps track of PXR objects
@@ -84,7 +84,7 @@ struct MRG
     // Number of ALO objects to be merged
     int cpalo;
     // The ALO object thats gonna be merged
-    struct ALO** apalo;
+    struct ALO **apalo;
 };
 
 // Local Object
@@ -95,17 +95,17 @@ class LO : public BASIC
 		OID oid;
 		DLE dleOid;
 		// Parent SW Object
-		class SW* psw;
+		class SW *psw;
 		// Objects Parent
-		class ALO* paloParent;
+		class ALO *paloParent;
 		DLE dleChild;
         // Pointer to next LO
-		class LO* ploCidNext;
+		class LO *ploCidNext;
         struct MQ* pmqFirst;
 		// Objects name
-		char* pchzName;
+		char *pchzName;
         struct CFrame* pframe;
-        struct PXR* ppxr;
+        std::shared_ptr <PXR> ppxr;
 		uint64_t dtickPerf;
 };
 

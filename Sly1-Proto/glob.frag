@@ -73,6 +73,7 @@ void DrawOneWay()
     vec4 diffuse = texture(diffuseMap, texcoord);
 
     FragColor = diffuse * vertexColor;
+
     FragColor.a = clamp(FragColor.a * uAlpha, 0.0, 1.0);
 }
 

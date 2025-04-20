@@ -119,6 +119,8 @@ public:
 	int cpsl;
 	// Proxy source list
 	PSL apsl[128];
+	// Used for proxy roots
+	std::vector <PXR> pxr;
 	// Number of clue bottles for each level
 	int cclueAll;
 	// Number of check points for level

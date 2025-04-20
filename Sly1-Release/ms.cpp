@@ -76,8 +76,8 @@ void RenderMsGlobset(MS *pms, CM *pcm, RO *pro)
 				}
 			}
 
-			if (!glob.dmat.empty())
-				rpl.ro.modelmatrix = baseModelMatrix * glob.dmat[0];
+			if (glob.pdmat != nullptr)
+				rpl.ro.modelmatrix = baseModelMatrix * *glob.pdmat;
 			else
 				rpl.ro.modelmatrix = baseModelMatrix;
 

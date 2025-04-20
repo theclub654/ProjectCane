@@ -142,7 +142,7 @@ void ExportSw()
     {
         for (int a = 0; a < allSWAloObjs[i]->globset.aglob.size(); a++)
         {
-            if (allSWAloObjs[i]->globset.aglob[a].dmat.size() == 0)
+            if (allSWAloObjs[i]->globset.aglob[a].pdmat == nullptr)
             {
                 model = allSWAloObjs[i]->xf.matWorld;
                 model[3][0] = allSWAloObjs[i]->xf.posWorld.x;
@@ -157,7 +157,7 @@ void ExportSw()
                 model[3][1] = allSWAloObjs[i]->xf.posWorld.y;
                 model[3][2] = allSWAloObjs[i]->xf.posWorld.z;
 
-                model = model * allSWAloObjs[i]->globset.aglob[a].dmat[0];
+                model = model * *allSWAloObjs[i]->globset.aglob[a].pdmat;
             }
 
             for (int b = 0; b < allSWAloObjs[i]->globset.aglob[a].asubglob.size(); b++)

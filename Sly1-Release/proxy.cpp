@@ -23,9 +23,6 @@ int GetProxySize()
 
 void LoadProxyFromBrx(PROXY* pproxy, CBinaryInputStream* pbis)
 {
-	ProxyCount++;
-	//std::cout << "ProxyCount: " << ProxyCount<<"\n";
-
 	// Proxy source objects to keep track of
 	std::vector <LO*> proxyObjs;
 
@@ -74,13 +71,14 @@ void LoadProxyFromBrx(PROXY* pproxy, CBinaryInputStream* pbis)
 			AddSwProxySource(pproxy->psw, object, cploClone);
 		}
 
-		/*PXR *proxyRoot = new PXR;
-		proxyRoot->plo = object;
-		proxyRoot->oidProxyRoot = pproxy->oid;
-		proxyRoot->pchzProxyRoot = pproxy->pchzName;
-		object->ppxr = proxyRoot;
+		PXR pxr{};
+		pxr.plo = object;
+		pxr.oidProxyRoot = pproxy->oid;
+		pxr.pchzProxyRoot = pproxy->pchzName;
+		std::shared_ptr <PXR> ppxr = std::make_shared<PXR>(pxr);
+		object->ppxr = ppxr;
 
-		AppendDlEntry(&pproxy->dlProxyRoot, proxyRoot);*/
+		AppendDlEntry(&pproxy->dlProxyRoot, &pxr);
 	}
 
 	byte numObjs = pbis->U8Read();
@@ -155,9 +153,18 @@ void LoadProxyFromBrx(PROXY* pproxy, CBinaryInputStream* pbis)
 
 void CloneProxy(PROXY* pproxy, PROXY* pproxyBase)
 {
-	LO lo = *pproxy;
-	*pproxy = *pproxyBase;
-	memcpy(pproxy, &lo, sizeof(LO));
+	pproxy->pvtproxy = pproxyBase->pvtproxy;
+	pproxy->oid = pproxyBase->oid;
+	pproxy->dleOid = pproxyBase->dleOid;
+	pproxy->psw = pproxyBase->psw;
+	pproxy->paloParent = pproxyBase->paloParent;
+	pproxy->dleChild = pproxyBase->dleChild;
+	pproxy->ploCidNext = pproxyBase->ploCidNext;
+	pproxy->pmqFirst = pproxyBase->pmqFirst;
+	pproxy->pchzName = pproxyBase->pchzName;
+	pproxy->pframe = pproxyBase->pframe;
+	pproxy->ppxr = pproxyBase->ppxr;
+	pproxy->dtickPerf = pproxyBase->dtickPerf;
 
 	CloneLo(pproxy, pproxyBase);
 
@@ -167,8 +174,5 @@ void CloneProxy(PROXY* pproxy, PROXY* pproxyBase)
 
 void DeleteProxy(PROXY *pproxy)
 {
-	if (pproxy->ppxr != nullptr)
-		delete pproxy->ppxr;
-
 	delete pproxy;
 }

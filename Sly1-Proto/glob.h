@@ -228,9 +228,8 @@ struct GLOB // NOT DONE
 	std::vector <SUBGLOB> asubglob;
 	int csubcel;
 	std::vector <SUBCEL> asubcel;
-	// Instanced object matrix container
-	std::vector <glm::mat4> dmat;
-	short instanceIndex;
+	// Ptr to instanced object matrix
+	std::shared_ptr <glm::mat4> pdmat;
 	struct BLOT* pblot;
 	OID oid;
 	char* pchzName;

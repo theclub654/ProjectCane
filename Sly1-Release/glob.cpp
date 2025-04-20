@@ -62,7 +62,10 @@ void LoadGlobsetFromBrx(GLOBSET* pglobset, short cid, ALO* palo, CBinaryInputStr
             pglobset->aglob[i].sMRD = pglobset->aglob[instanceIndex].sMRD;
             pglobset->aglobi[i] = pglobset->aglobi[instanceIndex];
 
-            pglobset->aglob[i].dmat.push_back(pbis->ReadMatrix4());
+            glm::mat4 instanceModelMatrix = pbis->ReadMatrix4();
+
+            std::shared_ptr <glm::mat4> mat = std::make_shared <glm::mat4>(instanceModelMatrix);
+            pglobset->aglob[i].pdmat = mat;
         }
 
         if ((unk_5 & 2) != 0)

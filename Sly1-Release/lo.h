@@ -104,7 +104,7 @@ class LO : public BASIC
 		// Objects name
 		char* pchzName;
         struct CFrame* pframe;
-        struct PXR* ppxr;
+        std::shared_ptr <PXR> ppxr;
 		uint64_t dtickPerf;
 };
 

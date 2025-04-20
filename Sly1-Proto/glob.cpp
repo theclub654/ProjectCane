@@ -30,6 +30,7 @@ void LoadGlobsetFromBrx(GLOBSET *pglobset, short cid ,ALO *palo, CBinaryInputStr
 
     int fCloneSubGlob = 0;
     int fCelBorder = 1;
+    int instanceIndex = 0;
 
     // Loading each submodel for a model
     for (int i = 0; i < pglobset->cglob; i++)
@@ -53,8 +54,7 @@ void LoadGlobsetFromBrx(GLOBSET *pglobset, short cid ,ALO *palo, CBinaryInputStr
         {
             fCloneSubGlob = unk_5 & 1;
 
-            int instanceIndex = pbis->S16Read();
-            pglobset->aglob[i].instanceIndex = instanceIndex;
+            instanceIndex = pbis->S16Read();
             pglobset->aglob[i].posCenter = pglobset->aglob[instanceIndex].posCenter;
             pglobset->aglob[i].sRadius = pglobset->aglob[instanceIndex].sRadius;
             pglobset->aglob[i].rp = pglobset->aglob[instanceIndex].rp;
@@ -63,7 +63,9 @@ void LoadGlobsetFromBrx(GLOBSET *pglobset, short cid ,ALO *palo, CBinaryInputStr
             pglobset->aglobi[i] = pglobset->aglobi[instanceIndex];
 
             glm::mat4 instanceModelMatrix = pbis->ReadMatrix4();
-            pglobset->aglob[i].dmat.push_back(instanceModelMatrix);
+
+            std::shared_ptr <glm::mat4> mat = std::make_shared <glm::mat4> (instanceModelMatrix);
+            pglobset->aglob[i].pdmat = mat;
         }
         
         if ((unk_5 & 2) != 0)
@@ -168,7 +170,7 @@ void LoadGlobsetFromBrx(GLOBSET *pglobset, short cid ,ALO *palo, CBinaryInputStr
 
                 //std::cout << std::dec << "Vertex Count: " << (uint32_t)vertexCount << "\n";
                 uint32_t vertexCount = pbis->U8Read();
-                //std::cout << std::dec << "Rotations Count: " << (uint32_t)rotationsCount << "\n";
+                //std::cout << std::dec << "Normal Count: " << (uint32_t)rotationsCount << "\n";
                 uint32_t normalCount = pbis->U8Read();
                 //std::cout << std::dec << "Vertex Color Count: " << (uint32_t)vertexColorCount << "\n";
                 uint32_t vertexColorCount = pbis->U8Read();
@@ -346,8 +348,8 @@ void LoadGlobsetFromBrx(GLOBSET *pglobset, short cid ,ALO *palo, CBinaryInputStr
         }
         else
         {
-            pglobset->aglob[i].csubglob = pglobset->aglob[pglobset->aglob[i].instanceIndex].csubglob;
-            pglobset->aglob[i].asubglob = pglobset->aglob[pglobset->aglob[i].instanceIndex].asubglob;
+            pglobset->aglob[i].csubglob = pglobset->aglob[instanceIndex].csubglob;
+            pglobset->aglob[i].asubglob = pglobset->aglob[instanceIndex].asubglob;
         }
     }
 
