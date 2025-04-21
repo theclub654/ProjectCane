@@ -3,6 +3,7 @@
 #define RKO_OneWay 0
 #define RKO_ThreeWay 1
 #define RKO_CelBorder 2
+#define RKO_Collision 3
 
 uniform sampler2D shadowMap;
 uniform sampler2D diffuseMap;
@@ -27,6 +28,8 @@ uniform float rDarken;
 
 uniform int rko;
 
+uniform vec4 collisionRgba;
+
 in MATERIAL material;
 in float fogIntensity;
 
@@ -36,6 +39,7 @@ void CullGlob();
 void DrawOneWay();
 void DrawThreeWay();
 void DrawCelBorder();
+void DrawCollision();
 void ApplyFog();
 
 void main()
@@ -55,6 +59,10 @@ void main()
 
         case RKO_CelBorder:
         DrawCelBorder();
+        break;
+
+        case RKO_Collision:
+        DrawCollision();
         break;
     }
 
@@ -83,8 +91,8 @@ void DrawThreeWay()
     vec4 diffuse  = texture(diffuseMap,  texcoord);
     vec4 saturate = texture(saturateMap, texcoord);
 
-    FragColor.rgb += shadow.rgb * material.ambient * rDarken;
-    FragColor.rgb += diffuse.rgb * material.midtone.rgb * rDarken;
+    FragColor.rgb += shadow.rgb   * material.ambient * rDarken;
+    FragColor.rgb += diffuse.rgb  * material.midtone.rgb * rDarken;
     FragColor.rgb += saturate.rgb * material.light.rgb;
 
     FragColor.a = clamp(vertexColor.a * uAlpha * rDarken * shadow.a * diffuse.a * saturate.a, 0.0, 1.0);
@@ -93,6 +101,11 @@ void DrawThreeWay()
 void DrawCelBorder()
 {
     FragColor = rgbaCel;
+}
+
+void DrawCollision()
+{
+    FragColor = collisionRgba;
 }
 
 void ApplyFog()

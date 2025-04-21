@@ -13,10 +13,10 @@ extern std::vector <ALO*> allSWAloObjs;
 static std::string filePath;
 static ImGuiFileDialog instance_a;
 extern inline bool g_fRenderModels = true;
-extern inline bool g_fRenderCollision = false;
 extern inline bool g_fRenderCelBorders = true;
 extern inline int  g_fogType = 1;
 extern inline bool g_fDisableInput = false;
+extern inline bool g_fRenderCollision = false; // g_fShowCameraEdges
 
 void DeleteWorld(SW* psw);
 

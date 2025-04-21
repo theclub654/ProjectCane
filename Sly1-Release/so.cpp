@@ -163,23 +163,33 @@ void RenderSoSelf(SO* pso, CM* pcm, RO* pro)
 
 void DrawCollision(SO *pso)
 {
-	glm::mat4 model = pso->xf.matWorld;
-	
-	model[3][0] = pso->xf.posWorld[0];
-	model[3][1] = pso->xf.posWorld[1];
-	model[3][2] = pso->xf.posWorld[2];
-	model[3][3] = 1.0;
+	if (pso->geomLocal.VAO != 0 || pso->geomCameraLocal.VAO != 0)
+	{
+		glm::mat4 model = pso->xf.matWorld;
 
-	glUniformMatrix4fv(glGetUniformLocation(glCollisionShader.ID, "model"), 1, GL_FALSE, glm::value_ptr(model));
+		model[3][0] = pso->xf.posWorld[0];
+		model[3][1] = pso->xf.posWorld[1];
+		model[3][2] = pso->xf.posWorld[2];
+		model[3][3] = 1.0;
 
-	glBindVertexArray(pso->geomLocal.VAO);
-	glDrawElements(GL_LINES, pso->geomLocal.indices.size(), GL_UNSIGNED_SHORT, 0);
+		if (pso->pvtso->cid == CID_VOLZP)
+			glUniform4fv(glGetUniformLocation(glGlobShader.ID, "collisionRgba"), 1, glm::value_ptr(glm::vec4(255.0, 0.0, 0.0, 1.0)));
+		else
+			glUniform4fv(glGetUniformLocation(glGlobShader.ID, "collisionRgba"), 1, glm::value_ptr(glm::vec4(0.76, 0.76, 0.76, 1.0)));
 
-	glBindVertexArray(pso->geomCameraLocal.VAO);
-	glDrawElements(GL_LINES, pso->geomCameraLocal.indices.size(), GL_UNSIGNED_SHORT, 0);
+		glUniformMatrix4fv(glGetUniformLocation(glGlobShader.ID, "model"), 1, GL_FALSE, glm::value_ptr(model));
 
-	glBindVertexArray(0);
-	glActiveTexture(GL_TEXTURE0);
+		glBindVertexArray(pso->geomLocal.VAO);
+		glDrawElements(GL_LINES, pso->geomLocal.indices.size(), GL_UNSIGNED_SHORT, 0);
+
+		if (pso->geomCameraLocal.VAO != 0)
+		{
+			glBindVertexArray(pso->geomCameraLocal.VAO);
+			glDrawElements(GL_LINES, pso->geomCameraLocal.indices.size(), GL_UNSIGNED_SHORT, 0);
+
+			glBindVertexArray(0);
+		}
+	}
 }
 
 void DeleteSo(SO *pso)

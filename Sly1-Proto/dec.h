@@ -810,6 +810,8 @@ DPRIZE*NewDprize();
 void InitDprize(DPRIZE* pdprize);
 int  GetDprizeSize();
 void LoadDprizeFromBrx(DPRIZE* pdprize, CBinaryInputStream* pbis);
+void*GetDprize(DPRIZE* pdprize);
+void*GetTdprizes(DPRIZE* pdprize);
 void CloneDprize(DPRIZE* pdprize, DPRIZE* pdprizeBase);
 void DeleteDprize(DPRIZE *pdprize);
 
@@ -1285,6 +1287,7 @@ void OnPathzoneAdd(PATHZONE* ppathzone);
 void OnPathzoneRemove(PATHZONE* ppathzone);
 void ClonePathzone(PATHZONE* ppathzone, PATHZONE* ppathzoneBase);
 void LoadPathZoneFromBrx(PATHZONE* ppathzone, CBinaryInputStream* pbis);
+void RenderPathzone(PATHZONE* ppathzone, CM* pcm);
 void DeletePathzone(PATHZONE* ppathzone);
 
 // Reach Map
@@ -1329,12 +1332,3 @@ void DeleteAsega(LO* plo);
 class SMA;
 int  GetSmaSize();
 void DeleteSma(LO* plo);
-
-enum CRVK;
-struct CRV;
-struct CRVL;
-struct CRVC;
-
-CRV* PcrvNew(CRVK crvk);
-void LoadCrvlFromBrx(CRVL* pcrvl, CBinaryInputStream* pbis);
-void LoadCrvcFromBrx(CRVC* pcrvc, CBinaryInputStream* pbis);

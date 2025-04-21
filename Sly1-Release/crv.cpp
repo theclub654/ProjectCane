@@ -1,33 +1,36 @@
 #include "crv.h"
 
-CRV* PcrvNew(CRVK crvk)
+std::shared_ptr <CRV> PcrvNew(CRVK crvk)
 {
+	std::shared_ptr <CRV> pcrv;
+
 	if (crvk == CRVK_Linear)
 	{
-		CRVL* pcrvl = new CRVL{};
-		pcrvl->pvtcrvl = &g_vtcrvl;
-		pcrvl->crvk = crvk;
-
-		return pcrvl;
+		CRVL crvl{};
+		crvl.pvtcrvl = &g_vtcrvl;
+		pcrv = std::make_shared <CRVL>(crvl);
 	}
 
 	else
 	{
 		if (crvk == CRVK_Cubic)
 		{
-			CRVC* pcrvc = new CRVC{};
-			pcrvc->pvtcrvc = &g_vtcrvc;
-			pcrvc->crvk - crvk;
-
-			return pcrvc;
+			CRVC crvc{};
+			crvc.pvtcrvc = &g_vtcrvc;
+			pcrv = std::make_shared <CRVC>(crvc);
 		}
 	}
+
+	if (pcrv != nullptr)
+		pcrv->crvk = crvk;
+
+	return pcrv;
 }
 
-void LoadCrvlFromBrx(CRVL* pcrvl, CBinaryInputStream* pbis)
+void LoadCrvlFromBrx(std::shared_ptr <CRVL> pcrvl, CBinaryInputStream* pbis)
 {
 	pcrvl->fClosed = pbis->U8Read();
-    pcrvl->ccv = pbis->U8Read();
+	pcrvl->ccv = pbis->U8Read();
 
 	pcrvl->mpicvu.resize(pcrvl->ccv);
 	pcrvl->mpicvs.resize(pcrvl->ccv);
@@ -35,12 +38,12 @@ void LoadCrvlFromBrx(CRVL* pcrvl, CBinaryInputStream* pbis)
 
 	for (int i = 0; i < pcrvl->ccv; i++)
 	{
-		pcrvl->mpicvu[i]   = pbis->F32Read();
+		pcrvl->mpicvu[i] = pbis->F32Read();
 		pcrvl->mpicvpos[i] = pbis->ReadVector();
 	}
 }
 
-void LoadCrvcFromBrx(CRVC* pcrvc, CBinaryInputStream* pbis)
+void LoadCrvcFromBrx(std::shared_ptr <CRVC> pcrvc, CBinaryInputStream* pbis)
 {
 	pcrvc->fClosed = pbis->U8Read();
 	pcrvc->ccv = pbis->U8Read();
@@ -54,21 +57,14 @@ void LoadCrvcFromBrx(CRVC* pcrvc, CBinaryInputStream* pbis)
 
 	for (int i = 0; i < pcrvc->ccv; i++)
 	{
-		pcrvc->mpicvu[i]       = pbis->F32Read();
-		pcrvc->mpicvpos[i]     = pbis->ReadVector();
-		pcrvc->mpicvdposIn[i]  = pbis->ReadVector();
+		pcrvc->mpicvu[i] = pbis->F32Read();
+		pcrvc->mpicvpos[i] = pbis->ReadVector();
+		pcrvc->mpicvdposIn[i] = pbis->ReadVector();
 		pcrvc->mpicvdposOut[i] = pbis->ReadVector();
 	}
 }
 
-void DeletePcrv(CRVK crvk, CRV *pcrv)
+void DeletePcrv(CRVK crvk, CRV* pcrv)
 {
-	if (crvk == CRVK_Linear)
-		delete (CRVL*)pcrv;
 
-	else
-	{
-		if (crvk == CRVK_Cubic)
-			delete (CRVC*)pcrv;
-	}
 }

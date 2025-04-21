@@ -17,7 +17,10 @@ void InitSwBlipgFreeDl(SW* psw)
 
 void InitBlipg(BLIPG* pblipg)
 {
+	AppendDlEntry(&pblipg->psw->dlBlipgFree, pblipg);
 	InitAlo(pblipg);
+
+	pblipg->sMRD = 1e+10;
 }
 
 int GetBlipgSize()

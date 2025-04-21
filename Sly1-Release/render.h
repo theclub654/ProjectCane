@@ -42,6 +42,6 @@ inline bool compareZ(RPL &prpl0, RPL &prpl1);
 // Loops through that render list of objects to be rendered on the screen
 void DrawSw(SW *psw, CM *pcm);
 // Draws all collision models in SW
-void DrawSwCollisionAll();
+void DrawSwCollisionAll(CM *pcm);
 
 glm::vec4 g_rgbaCel = glm::vec4(0.16, 0.16, 0.16, 1.0);

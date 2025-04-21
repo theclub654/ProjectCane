@@ -28,7 +28,7 @@ class TN : public ALO
 		std::vector <TSURF> atsurf;
 		int ctbsp;
 		std::vector <TBSP> atbsp;
-		struct CRV* pcrv;
+		std::shared_ptr <CRV> pcrv;
 		char TNFN[128];
 		int fCylinder;
 		int fSwitchInAir;

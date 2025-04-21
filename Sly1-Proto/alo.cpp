@@ -360,14 +360,17 @@ void ConvertAloPos(ALO* paloFrom, ALO* paloTo, glm::vec3 &pposFrom, glm::vec3 &p
 	glm::vec3 worldPos;
 
 	// Transform local to world space if `paloFrom` is specified and different from `paloTo`
-	if (paloFrom != paloTo) {
-		if (paloFrom) {
+	if (paloFrom != paloTo) 
+	{
+		if (paloFrom) 
+		{
 			worldPos = paloFrom->xf.matWorld * (pposFrom) + paloFrom->xf.posWorld;
 			pposFrom = worldPos;
 		}
 
 		// Convert world position to local position relative to `paloTo`
-		if (paloTo) {
+		if (paloTo) 
+		{
 			glm::vec3 localPos = pposFrom - paloTo->xf.posWorld;
 			glm::mat3 invRot = glm::transpose(paloTo->xf.matWorld); // Inverse of rotation
 			pposTo = invRot * localPos;

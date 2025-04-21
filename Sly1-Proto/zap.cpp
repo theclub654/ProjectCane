@@ -30,6 +30,20 @@ void CloneTzp(TZP* ptzp, TZP* ptzpBase)
 	ptzp->pstso = nullptr;
 }
 
+void RenderTzpAll(TZP* ptzp, CM* pcm, RO* pro)
+{
+	RenderAloAll(ptzp, pcm, pro);
+}
+
+void DrawZap(RPL* prpl)
+{
+	glUniform1i(glGetUniformLocation(glGlobShader.ID, "rko"), 3);
+	glUniformMatrix4fv(glGetUniformLocation(glGlobShader.ID, "model"), 1, GL_FALSE, glm::value_ptr(prpl->ro.modelmatrix));
+
+	glBindVertexArray(*prpl->ro.VAO);
+	glDrawElements(GL_LINES, prpl->ro.cvtx, GL_UNSIGNED_SHORT, 0);
+}
+
 void DeleteTzp(TZP *ptzp)
 {
 	delete ptzp;
@@ -63,11 +77,6 @@ void CloneVolzp(VOLZP* pvolzp, VOLZP* pvolzpBase)
 	pvolzp->pxa = nullptr;
 	pvolzp->grfpvaXpValid = 0;
 	pvolzp->pstso = nullptr;
-}
-
-void RenderTzpAll(TZP* ptzp, CM* pcm, RO* pro)
-{
-	RenderAloAll(ptzp, pcm, pro);
 }
 
 void DeleteVolzp(VOLZP *pvolzp)

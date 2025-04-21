@@ -42,13 +42,13 @@ void LoadPathZoneFromBrx(PATHZONE* ppathzone, CBinaryInputStream* pbis)
 
     for (int i = 0; i < ppathzone->cg.ccgv; i++)
     {
-        pbis->ReadVector();
+        ppathzone->cg.acgv[i].pos = pbis->ReadVector();
+
         byte unk_4 = pbis->U8Read();
 
         for (int i = 0; i < unk_4; i++)
             pbis->U16Read();
     }
-
 
     for (int i = 0; i < ppathzone->cg.ccge; i++)
     {
@@ -81,7 +81,36 @@ void ClonePathzone(PATHZONE* ppathzone, PATHZONE* ppathzoneBase)
     CloneLo(ppathzone, ppathzoneBase);
 }
 
+void RenderPathzone(PATHZONE* ppathzone, CM* pcm)
+{
+    RPL rpl{};
+
+    rpl.PFNDRAW = DrawPathzone;
+
+    rpl.ro.modelmatrix = glm::identity <glm::mat4>();
+
+    rpl.ro.VAO = &ppathzone->VAO;
+    rpl.rp = RP_Opaque;
+    rpl.ro.cvtx = ppathzone->cvtx;
+
+    SubmitRpl(&rpl);
+}
+
+void DrawPathzone(RPL* prpl)
+{
+    glUniform1i(glGetUniformLocation(glGlobShader.ID, "rko"), 4);
+    glUniformMatrix4fv(glGetUniformLocation(glGlobShader.ID, "model"), 1, GL_FALSE, glm::value_ptr(prpl->ro.modelmatrix));
+
+    glBindVertexArray(*prpl->ro.VAO);
+    //glDrawArrays(GL_LINE_STRIP, 0, prpl->ro.cvtx);
+    glDrawElements(GL_LINES, prpl->ro.cvtx, GL_UNSIGNED_SHORT, 0);
+}
+
 void DeletePathzone(PATHZONE* ppathzone)
 {
+    glDeleteVertexArrays(1, &ppathzone->VAO);
+    glDeleteBuffers(1, &ppathzone->VBO);
+    glDeleteBuffers(1, &ppathzone->EBO);
+
     delete ppathzone;
 }

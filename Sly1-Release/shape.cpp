@@ -54,15 +54,12 @@ void LoadShapeFromBrx(SHAPE* pshape, CBinaryInputStream* pbis)
 
     pshape->pcrv = PcrvNew((CRVK)crvk);
 
-    pshape->pcrv->pvtcrvl->pfnLoadCrvlFromBrx((CRVL*)pshape->pcrv, pbis);
+    pshape->pcrv->pvtcrvl->pfnLoadCrvlFromBrx(std::static_pointer_cast <CRVL> (pshape->pcrv), pbis);
 
     LoadOptionsFromBrx(pshape, pbis);
 }
 
 void DeleteShape(SHAPE* pshape)
 {
-    if (pshape->pcrv != nullptr)
-        DeletePcrv(pshape->pcrv->crvk, pshape->pcrv);
-
     delete pshape;
 }

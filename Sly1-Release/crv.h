@@ -9,21 +9,11 @@ enum CRVK
 	CRVK_Max = 2
 };
 
-struct VTCRVL
-{
-	void (*pfnLoadCrvlFromBrx)(CRVL*, CBinaryInputStream*) = LoadCrvlFromBrx;
-};
-
-struct VTCRVC
-{
-	void (*pfnLoadCrvcFromBrx)(CRVC*, CBinaryInputStream*) = LoadCrvcFromBrx;
-};
-
 struct CRV
 {
 	union
 	{
-		struct VTCRV*  pvtcrv;
+		struct VTCRV* pvtcrv;
 		struct VTCRVL* pvtcrvl;
 		struct VTCRVC* pvtcrvc;
 	};
@@ -38,7 +28,7 @@ struct CRV
 
 struct CRVL : public CRV
 {
-	
+
 };
 
 struct CTCE
@@ -49,17 +39,27 @@ struct CTCE
 
 struct CRVC : public CRV
 {
-	public:
-		std::vector <glm::vec3> mpicvdposIn;
-		std::vector <glm::vec3> mpicvdposOut;
-		CTCE ctce;
-		int icvCache;
+public:
+	std::vector <glm::vec3> mpicvdposIn;
+	std::vector <glm::vec3> mpicvdposOut;
+	CTCE ctce;
+	int icvCache;
 };
 
-CRV* PcrvNew(CRVK crvk);
-void LoadCrvlFromBrx(CRVL *pcrvl, CBinaryInputStream *pbis);
-void LoadCrvcFromBrx(CRVC *pcrvc, CBinaryInputStream *pbis);
-void DeletePcrv(CRVK crvk, CRV *pcrv);
+std::shared_ptr <CRV> PcrvNew(CRVK crvk);
+void LoadCrvlFromBrx(std::shared_ptr <CRVL> pcrvl, CBinaryInputStream* pbis);
+void LoadCrvcFromBrx(std::shared_ptr <CRVC> pcrvc, CBinaryInputStream* pbis);
+void DeletePcrv(CRVK crvk, CRV* pcrv);
+
+struct VTCRVL
+{
+	void (*pfnLoadCrvlFromBrx)(std::shared_ptr <CRVL>, CBinaryInputStream*) = LoadCrvlFromBrx;
+};
+
+struct VTCRVC
+{
+	void (*pfnLoadCrvcFromBrx)(std::shared_ptr <CRVC>, CBinaryInputStream*) = LoadCrvcFromBrx;
+};
 
 inline VTCRVL g_vtcrvl;
 inline VTCRVC g_vtcrvc;

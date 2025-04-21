@@ -162,7 +162,7 @@ void*GetSwDarken(SW* psw);
 void SetSwDarken(SW* psw, float rDarken);
 void*GetSwDarkenSmooth(SW* psw);
 void SetSwDarkenSmooth(SW* psw, float rDarkenSmooth);
-void MatchSwObject(LO* ploMatch, GRFFSO grffsoMask, int fIncludeRemoved, int fProxyMatch, LO* ploContext, int cploMax, int& pcploMatch, LO** aplo, int& pcpaloBest);
+void MatchSwObject(ALO* ploMatch, GRFFSO grffsoMask, int fIncludeRemoved, int fProxyMatch, LO* ploContext, int cploMax, int* pcploMatch, LO** aplo, int* pcpaloBest);
 int  CploFindSwObjects(SW* psw, GRFFSO grffso, OID oid, LO* ploContext, int cploMax, LO** aplo);
 // Finds a LO
 LO*  PloFindSwObject(SW* psw, GRFFSO grffso, OID oid, LO* ploContext);

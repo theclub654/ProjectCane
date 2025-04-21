@@ -990,13 +990,7 @@
     <None Include="glob.vert">
       <Filter>Resource Files</Filter>
     </None>
-    <None Include="collision.vert">
-      <Filter>Resource Files</Filter>
-    </None>
     <None Include="screen.vert">
-      <Filter>Resource Files</Filter>
-    </None>
-    <None Include="collision.frag">
       <Filter>Resource Files</Filter>
     </None>
     <None Include="glob.frag">

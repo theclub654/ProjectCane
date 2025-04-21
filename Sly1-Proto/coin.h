@@ -1,7 +1,8 @@
 #pragma once
 #include "alo.h"
 
-enum DPRIZES {
+enum DPRIZES 
+{
     DPRIZES_Nil = -1,
     DPRIZES_Normal = 0,
     DPRIZES_Collect = 1,
@@ -82,6 +83,8 @@ void InitDprize(DPRIZE *pdprize);//NOT FINISHED
 int  GetDprizeSize();
 void LoadDprizeFromBrx(DPRIZE* pdprize, CBinaryInputStream* pbis);
 void CloneDprize(DPRIZE* pdprize, DPRIZE* pdprizeBase);
+void*GetDprize(DPRIZE *pdprize);
+void*GetTdprizes(DPRIZE* pdprize);
 void RenderDprizeAll(DPRIZE* pdprize, CM* pcm, RO* pro);
 void DeleteDprize(DPRIZE* pdprize);
 

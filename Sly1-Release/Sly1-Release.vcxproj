@@ -472,8 +472,6 @@
     <ResourceCompile Include="Sly1-Release.rc" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="collision.frag" />
-    <None Include="collision.vert" />
     <None Include="glob.frag" />
     <None Include="glob.vert" />
     <None Include="screen.frag" />

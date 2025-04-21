@@ -19,15 +19,13 @@ void LoadExploFromBrx(EXPLO* pexplo, CBinaryInputStream* pbis)
 {
 	EMITB emitb{};
 
-	pexplo->pemitb = new EMITB{};
 	LoadXfmFromBrx(pexplo, pbis);
 	int8_t crvk = pbis->S8Read();
 
 	if (crvk != -1)
 	{
-		CRV* pcrv = PcrvNew((CRVK)crvk);
-		pcrv->pvtcrvl->pfnLoadCrvlFromBrx((CRVL*)pcrv, pbis);
-		DeletePcrv(pcrv->crvk, pcrv);
+		std::shared_ptr <CRV> pcrv = PcrvNew((CRVK)crvk);
+		pcrv->pvtcrvl->pfnLoadCrvlFromBrx(std::static_pointer_cast <CRVL> (pcrv), pbis);
 	}
 
 	if (loadEmitMesh == true)
@@ -49,7 +47,6 @@ void CloneExplo(EXPLO* pexplo, EXPLO* pexploBase)
 	memcpy(pexplo, &lo, sizeof(LO));
 
 	CloneLo(pexplo, pexploBase);
-	pexplo->pemitb->cref++;
 }
 
 void DeleteExplo(EXPLO* pexplo)
@@ -110,9 +107,8 @@ void LoadEmitterFromBrx(EMITTER* pemitter, CBinaryInputStream* pbis)
 
 	if (crvk != -1)
 	{
-		CRV* pcrv = PcrvNew((CRVK)crvk);
-		pcrv->pvtcrvl->pfnLoadCrvlFromBrx((CRVL*)pcrv, pbis);
-		DeletePcrv(pcrv->crvk, pcrv);
+		std::shared_ptr <CRV> pcrv = PcrvNew((CRVK)crvk);
+		pcrv->pvtcrvl->pfnLoadCrvlFromBrx(std::static_pointer_cast <CRVL> (pcrv), pbis);
 	}
 
 	if (loadEmitMesh == true)

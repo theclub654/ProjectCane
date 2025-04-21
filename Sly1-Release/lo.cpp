@@ -43,6 +43,7 @@ void AddLo(LO *plo)
 
 void AddLoHierarchy(LO *plo)
 {
+	plo->pvtlo->pfnAddLo(plo);
 	SendLoMessage(plo, MSGID_added, plo);
 }
 

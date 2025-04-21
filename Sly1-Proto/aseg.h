@@ -14,17 +14,18 @@ enum SEGRPT
 struct CHN
 {
     OID oid;
-    struct ACP* pacp;
-    struct ACR* pacr;
-    struct ACS* pacs;
-    struct ACG* pacgTwist;
+    std::shared_ptr <ACP> pacp;
+    std::shared_ptr <ACR> pacr;
+    std::shared_ptr <ACS> pacs;
+    std::shared_ptr <ACG> pacgTwist;
+    std::vector < std::shared_ptr <ACG>> apacgPose;
     int cpacgPose;
-    struct ACG** apacgPose;
 };
 
 class ASEG : public LO
 {
-public:
+    public:
+
     float tMax;
     int cchn;
     std::vector <CHN> achn;

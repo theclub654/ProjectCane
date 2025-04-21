@@ -3654,7 +3654,8 @@ void BuildEopids()
 	g_aeopid[887].optdat.ibSetUser = 0x2f0;
 	g_aeopid[888].otyp = OTYP_Dprizes;
 	g_aeopid[888].grfeopid = 0x42;
-	g_aeopid[888].optdat.ibGet = 0x2e0;
+	g_aeopid[888].optdat.pfnget = (PFNGET)GetDprize;
+	//g_aeopid[888].optdat.ibGet = 0x2e0;
 	g_aeopid[888].optdat.ibSet = 0xd0;
 	g_aeopid[889].grfeopid = 0x92;
 	g_aeopid[889].optdat.ibGet = 0x344;
@@ -3683,6 +3684,7 @@ void BuildEopids()
 	g_aeopid[893].optdat.ibSetUser = 0x2e0;
 	g_aeopid[894].otyp = OTYP_Float;
 	g_aeopid[894].grfeopid = 0x92;
+	g_aeopid[894].optdat.pfnget = (PFNGET)GetTdprizes;
 	g_aeopid[894].optdat.ibGet = 0x2e4;
 	g_aeopid[894].optdat.ibSet = 0x2e4;
 	g_aeopid[894].optdat.ibSetUser = 0x2e4;

@@ -1429,12 +1429,3 @@ void DeleteAsega(LO* plo);
 class SMA;
 int  GetSmaSize();
 void DeleteSma(LO* plo);
-
-enum CRVK;
-struct CRV;
-struct CRVL;
-struct CRVC;
-
-CRV* PcrvNew(CRVK crvk);
-void LoadCrvlFromBrx(CRVL* pcrvl, CBinaryInputStream* pbis);
-void LoadCrvcFromBrx(CRVC* pcrvc, CBinaryInputStream* pbis);

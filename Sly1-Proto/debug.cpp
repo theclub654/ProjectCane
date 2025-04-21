@@ -42,7 +42,6 @@ void RenderMenuGui(SW* psw)
         {
             if (ImGui::IsItemHovered()) g_fDisableInput = true;
             if (ImGui::MenuItem("Map", "", &g_fRenderModels));
-            if (ImGui::IsItemHovered()) g_fDisableInput = true;
 
             if (ImGui::MenuItem("Collision", "", &g_fRenderCollision));
             if (ImGui::IsItemHovered()) g_fDisableInput = true;
@@ -69,7 +68,8 @@ void RenderMenuGui(SW* psw)
                 if (ImGui::IsItemHovered()) g_fDisableInput = true;
             }
 
-            if (ImGui::IsItemHovered()) g_fDisableInput = true;
+            /*if (ImGui::MenuItem("Pathzones", "", &g_fShowPaths));
+            if (ImGui::IsItemHovered()) g_fDisableInput = true;*/
 
             ImGui::SliderFloat("Draw Distance", &g_renderDistance, 1.0f, 2.5);
             

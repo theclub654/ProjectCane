@@ -65,7 +65,7 @@ void LoadSwObjectsFromBrx(SW *psw, ALO *paloParent, CBinaryInputStream *pbis)
 {
 	// Number of SW objects
 	uint16_t numObjects = pbis->U16Read();
-
+	
 	for (int i = 0; i < numObjects; i++)
 	{
 		// Objects class ID

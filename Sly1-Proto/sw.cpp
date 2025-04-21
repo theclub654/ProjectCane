@@ -190,26 +190,218 @@ void SetSwDarkenSmooth(SW* psw, float rDarkenSmooth)
 	psw->rDarkenSmooth = rDarkenSmooth;
 }
 
-void MatchSwObject(LO* ploMatch, GRFFSO grffsoMask, int fIncludeRemoved, int fProxyMatch, LO* ploContext, int cploMax, int& pcploMatch, LO** aplo, int& pcpaloBest)
+void MatchSwObject(ALO* ploMatch, GRFFSO grffsoMask, int fIncludeRemoved, int fProxyMatch, LO* ploContext, int cploMax, int *pcploMatch, LO** aplo, int *pcpaloBest)
 {
-	
-}
+	ALO* candidate = nullptr;
+	ALO* contextRoot = nullptr;
+	ALO* current = nullptr;
+	ALO* parent = nullptr;
+	std::shared_ptr <PXR> proxy = nullptr;
+	OID oidA = OID_Nil;
+	OID oidB = OID_Nil;
 
-int CploFindSwObjects(SW* psw, GRFFSO grffso, OID oid, LO* ploContext, int cploMax, LO** aplo)
-{
-	int cploMatch;
-	int grffsoMask = grffso & 0xFF;
-
-	if (oid == OID_Nil)
-		cploMatch = 0;
-
-	else
+	switch (grffsoMask) 
 	{
-		
+	case 1: { // Search for cpaloFindSwObjects == 1 in parents
+		parent = ploMatch->paloParent;
+		if (ploMatch->ppxr != nullptr && fProxyMatch == 0) return;
+		if (parent == nullptr) return;
+
+		uint64_t flags = *(uint64_t*)&parent->bitfield;
+		while (((flags >> 41) & 0xF) == 0) {
+			if (parent->ppxr != nullptr) return;
+			parent = parent->paloParent;
+			if (parent == nullptr) return;
+			flags = *(uint64_t*)&parent->bitfield;
+		}
+		if (((flags >> 41) & 0xF) != 1) return;
+		break;
 	}
 
-	return 0;
+	case 2: { // Check if parent is the context
+		parent = ploMatch->paloParent;
+		if (ploMatch->ppxr != nullptr && fProxyMatch == 0) return;
+		if (parent != (ALO*)ploContext) return;
+		break;
+	}
+
+	case 3: { // Check if object is in-world and has cpaloFindSwObjects != 0
+		if ((ploMatch->pvtlo->grfcid & 1) == 0) return;
+
+		uint64_t flags = *(uint64_t*)&ploMatch->bitfield;
+		if ((flags & 0x1E0000000000) == 0) return;
+		break;
+	}
+
+	case 4: { // Climb hierarchy looking for closest cpaloFindSwObjects match
+		if ((ploMatch->pvtlo->grfcid & 1) == 0) {
+			current = ploMatch->paloParent;
+		}
+		else {
+			current = (ALO*)ploMatch;
+		}
+
+		while (current != nullptr) {
+			uint64_t flags = *(uint64_t*)&current->bitfield;
+
+			if ((flags & 0x1E0000000000) != 0) {
+				int score = (flags >> 41) & 0xF;
+				if (score <= *pcpaloBest) {
+					if (score < *pcpaloBest) {
+						*pcpaloBest = score;
+						*pcploMatch = 0;
+					}
+					goto ADD_MATCH;
+				}
+			}
+
+			if (current == candidate) return;
+
+			proxy = current->ppxr;
+			if (proxy == nullptr) {
+				current = current->paloParent;
+			}
+			else if (current == (ALO*)ploMatch && fProxyMatch != 0) {
+				current = current->paloParent;
+			}
+			else {
+				candidate = (ALO*)ploContext;
+				oidB = OID_Nil;
+
+				// Find oidProxyRoot of the context (if any)
+				while (candidate != nullptr) {
+					if (candidate->ppxr != nullptr) {
+						oidB = candidate->ppxr->oidProxyRoot;
+						break;
+					}
+					candidate = candidate->paloParent;
+				}
+
+				oidA = proxy->oidProxyRoot;
+				if (oidA != oidB) return;
+
+				current = current->paloParent;
+			}
+		}
+
+		if (*pcpaloBest != 0x7FFFFFFF) return;
+		break;
+	}
+
+	case 5:
+		// Always match
+		break;
+
+	default:
+		// Invalid or unsupported mask
+		return;
+	}
+
+ADD_MATCH:
+	// Optionally check if object is in-world
+	if (fIncludeRemoved == 0 && FIsLoInWorld(ploMatch) == 0) return;
+
+	// Store match if within bounds
+	int matchCount = *pcploMatch;
+	if (matchCount < cploMax) {
+		aplo[matchCount] = ploMatch;
+	}
+	*pcploMatch = matchCount + 1;
 }
+
+int CploFindSwObjects(SW* psw, int grffso, OID oid, LO* ploContext, int cploMax, LO** aplo) 
+{
+	if (oid == OID_Nil) {
+		return 0;  // No valid OID to search for
+	}
+
+	uint32_t grffsoMask = grffso & 0xFF;
+	bool shouldLimit = !(grffso & 0x200);
+	bool allowProxy = grffso & 0x100;
+
+	ALO* contextAlo = NULL;
+
+	// Determine parent ALO traversal if mask indicates
+	if (grffsoMask == 1 || grffsoMask == 2 || grffsoMask == 3) {
+		contextAlo = (ALO*)ploContext;
+
+		// Special case: if context is not suitable, use its parent
+		if (ploContext && ((ploContext->pvtlo->grfcid ^ 1U) & 1))
+		{
+			contextAlo = ploContext->paloParent;
+		}
+
+		// Flag the ALO parent chain for match context
+		for (ALO* alo = contextAlo; alo; alo = alo->paloParent) 
+		{
+			uint64_t flags = *(uint64_t*)&alo->bitfield;
+			// Manipulating the bitfield flags in `field_0x2d8`
+			*(uint64_t*)&alo->bitfield = (flags & ~0x1E0000000000) | ((alo ? 1 : 0) << 0x29);
+		}
+
+		// If context is null and mask == 3, nothing to do
+		if (!ploContext && grffsoMask == 3) {
+			return 0;
+		}
+
+		// If mask == 3, fall through with mask updated to 5
+		grffsoMask = 5;
+	}
+
+	// Lookup objects with matching OID
+	DL* pdl = PdlFromSwOid(psw, oid);
+	if (!pdl) return 0;
+
+	int cploMatch = 0;
+	int bestDistance = INT_MAX;
+	LO* match = pdl->ploFirst;
+
+	while (match) {
+		if (match->oid == oid) {
+			bool isProxy = match->ppxr && (match->ppxr->oidProxyRoot == oid);
+			bool isDeleted = match->pvtlo->grfcid & 0x100;
+
+			// Checking `ALO` specific bitflags for matching:
+			// `ALO->fHidden` flag, for example, indicates if the object is hidden
+			if (!isDeleted) {
+				if (!isProxy) {
+					// Regular object match
+					MatchSwObject((ALO*)match, grffsoMask, allowProxy, 0, ploContext,
+						cploMax, &cploMatch, aplo, &bestDistance);
+				}
+				else 
+				{
+					// Proxy object match through ACTSEG list
+					/*ACTSEG* seg = (ACTSEG*)match[0xb].dleChild.field1_0x4.ppxrPrev;
+					while (seg) {
+						LO* segObj = *(LO**)&seg->field0_0x0;
+						MatchSwObject(segObj, grffsoMask, allowProxy, 1, ploContext,
+							cploMax, &cploMatch, aplo, &bestDistance);
+						seg = seg->dleAlo.field0_0x0.pactsegNext;
+					}*/
+				}
+			}
+		}
+
+		match = match->dleOid.ploNext;
+	}
+
+	// Clear temporary flags from context ALO tree
+	for (ALO* alo = contextAlo; alo; alo = alo->paloParent) {
+		uint64_t flags = *(uint64_t*)&alo->bitfield;
+		*(uint64_t*)&alo->bitfield = flags & ~0x1E0000000000;
+	}
+
+	// Enforce cploMax if limit flag is not set
+	if (shouldLimit && cploMatch > cploMax) {
+		cploMatch = cploMax;
+	}
+
+	return cploMatch;
+}
+
+
+
 
 LO* PloFindSwObject(SW* psw, GRFFSO grffso, OID oid, LO* ploContext)
 {

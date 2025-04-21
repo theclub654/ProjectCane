@@ -42,6 +42,16 @@ void CloneDprize(DPRIZE* pdprize, DPRIZE* pdprizeBase)
 	ClearDl(&pdprize->dlChild);
 }
 
+void* GetDprize(DPRIZE* pdprize)
+{
+	return &pdprize->dprizes;
+}
+
+void* GetTdprizes(DPRIZE* pdprize)
+{
+	return &pdprize->tDprizes;
+}
+
 void RenderDprizeAll(DPRIZE* pdprize, CM* pcm, RO* pro)
 {
 	RenderAloAll(pdprize, pcm, pro);

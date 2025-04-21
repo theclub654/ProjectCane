@@ -39,6 +39,7 @@ int main(int cphzArgs, char* aphzArgs[])
 
 			if (g_fRenderModels != 0)
 			{
+				//RenderSw(g_psw, g_pcm);
 				RenderSwAloAll(g_psw, g_pcm);
 				DrawSw(g_psw, g_pcm);
 			}
@@ -84,7 +85,6 @@ void Startup()
 	
 	glScreenShader.Init("screen.vert", NULL ,"screen.frag");
 	glGlobShader.Init("glob.vert", NULL ,"glob.frag");
-	glCollisionShader.Init("collision.vert", NULL ,"collision.frag");
 
 	// Initialize texture samplers for glob shader
 	glGlobShader.Use();

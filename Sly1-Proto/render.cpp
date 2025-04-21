@@ -2,8 +2,6 @@
 
 void RenderSw(SW *psw, CM *pcm)
 {
-	glGlobShader.Use();
-
 	DLI dlBusyDli;
 
 	// Loading SW object list
@@ -230,12 +228,9 @@ void DrawSw(SW *psw, CM *pcm)
 	renderBuffer.clear();
 }
 
-void DrawSwCollisionAll(CM* pcm)
+void DrawSwCollisionAll(CM *pcm)
 {
-	glCollisionShader.Use();
-
-	glUniformMatrix4fv(glGetUniformLocation(glCollisionShader.ID, "proj"), 1, GL_FALSE, glm::value_ptr(g_pcm->matProj));
-	glUniformMatrix4fv(glGetUniformLocation(glCollisionShader.ID, "view"), 1, GL_FALSE, glm::value_ptr(g_pcm->lookAt));
+	glUniform1i(glGetUniformLocation(glGlobShader.ID, "rko"), 3);
 
 	for (int i = 0; i < allSWSoObjs.size(); i++)
 		DrawCollision(pcm, allSWSoObjs[i]);

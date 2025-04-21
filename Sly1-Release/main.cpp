@@ -43,7 +43,7 @@ int main(int cphzArgs, char* aphzArgs[])
 			}
 
 			if (g_fRenderCollision != 0)
-				DrawSwCollisionAll();
+				DrawSwCollisionAll(g_pcm);
 		}
 
 		ImGui::Render();
@@ -83,7 +83,6 @@ void Startup()
 	
 	glScreenShader.Init("screen.vert", NULL, "screen.frag");
 	glGlobShader.Init("glob.vert", NULL, "glob.frag");
-	glCollisionShader.Init("collision.vert", NULL, "collision.frag");
 
 	// Initialize texture samplers for glob shader
 	glGlobShader.Use();

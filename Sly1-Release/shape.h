@@ -4,7 +4,7 @@
 class SHAPE : public LO
 {
 	public:
-		struct CRV* pcrv;
+		std::shared_ptr <CRV> pcrv;
 		DLE dleShape;
 };
 

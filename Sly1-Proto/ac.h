@@ -57,7 +57,8 @@ struct ACG
 struct ACPC : public ACP
 {
     glm::vec3 posDefault;
-    std::vector <ACG> apacg;
+    //std::vector <ACG> apacg;
+    std::shared_ptr <ACG> apacg[3];
 };
 
 struct ACPB : public ACP
@@ -65,26 +66,26 @@ struct ACPB : public ACP
     int ckvb;
     std::vector <KVB> akvb;
 };
-
-ACP* PacpNew(ACVK acvk);
-void LoadAcpcFromBrx(ACPC* pacpc, CBinaryInputStream* pbis);
-void LoadAcpbFromBrx(ACPB* pacpb, CBinaryInputStream* pbis);
+ 
+std::shared_ptr <ACP> PacpNew(ACVK acvk);
+void LoadAcpcFromBrx(std::shared_ptr <ACPC> pacpc, CBinaryInputStream* pbis);
+void LoadAcpbFromBrx(std::shared_ptr <ACPB> pacpb, CBinaryInputStream* pbis);
 
 struct VTACP {
     void(*pfnEvaluateAcp) = nullptr;
-    void (*pfnLoadAcpFromBrx)() = nullptr;
+    void(*pfnLoadAcpFromBrx)() = nullptr;
     void(*pfnGetAcpTimes) = nullptr;
 };
 
 struct VTACPC {
     void(*pfnEvaluateAcpc) = nullptr;
-    void (*pfnLoadAcpcFromBrx)(ACPC*, CBinaryInputStream*) = LoadAcpcFromBrx;
+    void(*pfnLoadAcpcFromBrx)(std::shared_ptr <ACPC>, CBinaryInputStream*) = LoadAcpcFromBrx;
     void(*pfnGetAcpcTimes) = nullptr;
 };
 
 struct VTACPB {
     void(*pfnEvaluateAcpb) = nullptr;
-    void (*pfnLoadAcpbFromBrx)(ACPB*, CBinaryInputStream*) = LoadAcpbFromBrx;
+    void(*pfnLoadAcpbFromBrx)(std::shared_ptr <ACPB>, CBinaryInputStream*) = LoadAcpbFromBrx;
     void(*pfnGetAcpbTimes) = nullptr;
 };
 
@@ -113,7 +114,7 @@ struct ACR
 struct ACRC : public ACR
 {
     glm::vec3 eulDefault;
-    std::vector <ACG> apacg;
+    std::shared_ptr <ACG> apacg[3];
 };
 
 struct ACRB : public ACR
@@ -122,9 +123,9 @@ struct ACRB : public ACR
     std::vector <KVB> akvb;
 };
 
-ACR* PacrNew(ACVK acvk);
-void LoadAcrcFromBrx(ACRC* pacrc, CBinaryInputStream* pbis);
-void LoadAcrbFromBrx(ACRB* pacrb, CBinaryInputStream* pbis);
+std::shared_ptr <ACR> PacrNew(ACVK acvk);
+void LoadAcrcFromBrx(std::shared_ptr <ACRC> pacrc, CBinaryInputStream* pbis);
+void LoadAcrbFromBrx(std::shared_ptr <ACRB> pacrb, CBinaryInputStream* pbis);
 
 struct VTACR {
     void(*pfnEvaluateAcr) = nullptr;
@@ -136,7 +137,7 @@ struct VTACR {
 struct VTACRC {
     void(*pfnEvaluateAcrc) = nullptr;
     void(*pfnEvaluateAcrcEul) = nullptr;
-    void (*pfnLoadAcrcFromBrx)(ACRC*, CBinaryInputStream*) = LoadAcrcFromBrx;
+    void(*pfnLoadAcrcFromBrx)(std::shared_ptr <ACRC>, CBinaryInputStream*) = LoadAcrcFromBrx;
     void(*pfnGetAcrcTimes) = nullptr;
 };
 
@@ -150,7 +151,7 @@ struct VTACRBL {
 struct VTACRB {
     void(*pfnEvaluateAcrb) = nullptr;
     void(*pfnEvaluateAcrbEul) = nullptr;
-    void(*pfnLoadAcrbFromBrx)(ACRB*, CBinaryInputStream*) = LoadAcrbFromBrx;
+    void(*pfnLoadAcrbFromBrx)(std::shared_ptr <ACRB>, CBinaryInputStream*) = LoadAcrbFromBrx;
     void(*pfnGetAcrbTimes) = nullptr;
 };
 
@@ -171,7 +172,7 @@ struct ACS
 struct ACSC : public ACS
 {
     glm::vec3 vecDefault;
-    std::vector <ACG> apacg;
+    std::shared_ptr <ACG> apacg[3];
 };
 
 struct ACSB : public ACS
@@ -180,9 +181,9 @@ struct ACSB : public ACS
     std::vector <KVB> akvb;
 };
 
-ACS* PacsNew(ACVK acvk);
-void LoadAcscFromBrx(ACSC* pacsc, CBinaryInputStream* pbis);
-void LoadAcsbFromBrx(ACSB* pacsb, CBinaryInputStream* pbis);
+std::shared_ptr <ACS> PacsNew(ACVK acvk);
+void LoadAcscFromBrx(std::shared_ptr <ACSC> pacsc, CBinaryInputStream* pbis);
+void LoadAcsbFromBrx(std::shared_ptr <ACSB> pacsb, CBinaryInputStream* pbis);
 
 struct VTACS {
     void(*pfnEvaluateAcs) = nullptr;
@@ -192,13 +193,13 @@ struct VTACS {
 
 struct VTACSB {
     void(*pfnEvaluateAcsb) = nullptr;
-    void (*pfnLoadAcsbFromBrx)(ACSB*, CBinaryInputStream*) = LoadAcsbFromBrx;
+    void(*pfnLoadAcsbFromBrx)(std::shared_ptr <ACSB>, CBinaryInputStream*) = LoadAcsbFromBrx;
     void(*pfnGetAcsbTimes) = nullptr;
 };
 
 struct VTACSC {
     void(*pfnEvaluateAcsc) = nullptr;
-    void (*pfnLoadAcscFromBrx)(ACSC*, CBinaryInputStream*) = LoadAcscFromBrx;
+    void(*pfnLoadAcscFromBrx)(std::shared_ptr <ACSC>, CBinaryInputStream*) = LoadAcscFromBrx;
     void(*pfnGetAcscTimes) = nullptr;
 };
 
@@ -273,10 +274,10 @@ struct ACGL : public ACG
     std::vector <KGL> akgl;
 };
 
-ACG* PacgNew(ACGK acgk);
-void LoadAcgbFromBrx(ACGB* pacgb, CBinaryInputStream* pbis);
-void LoadAcgbwFromBrx(ACGBW* pacgbw, CBinaryInputStream* pbis);
-void LoadAcglFromBrx(ACGL* pacgl, CBinaryInputStream* pbis);
+std::shared_ptr <ACG> PacgNew(ACGK acgk);
+void LoadAcgbFromBrx(std::shared_ptr <ACGB> pacgb, CBinaryInputStream* pbis);
+void LoadAcgbwFromBrx(std::shared_ptr <ACGBW> pacgbw, CBinaryInputStream* pbis);
+void LoadAcglFromBrx(std::shared_ptr <ACGL> pacgl, CBinaryInputStream* pbis);
 
 struct VTACGBLP {
     void(*pfnEvaluateAcgblp) = nullptr;
@@ -292,19 +293,19 @@ struct VTACG {
 
 struct VTACGB {
     void(*pfnEvaluateAcgb) = nullptr;
-    void (*pfnLoadAcgbFromBrx)(ACGB*, CBinaryInputStream*) = LoadAcgbFromBrx;
+    void(*pfnLoadAcgbFromBrx)(std::shared_ptr <ACGB>, CBinaryInputStream*) = LoadAcgbFromBrx;
     void(*pfnGetAcgbTimes) = nullptr;
 };
 
 struct VTACGL {
     void(*pfnEvaluateAcgl) = nullptr;
-    void (*pfnLoadAcglFromBrx)(ACGL*, CBinaryInputStream*) = LoadAcglFromBrx;
+    void(*pfnLoadAcglFromBrx)(std::shared_ptr <ACGL>, CBinaryInputStream*) = LoadAcglFromBrx;
     void(*pfnGetAcglTimes) = nullptr;
 };
 
 struct VTACGBW {
     void(*pfnEvaluateAcgbw) = nullptr;
-    void (*pfnLoadAcgbwFromBrx)(ACGBW*, CBinaryInputStream*) = LoadAcgbwFromBrx;
+    void(*pfnLoadAcgbwFromBrx)(std::shared_ptr <ACGBW>, CBinaryInputStream*) = LoadAcgbwFromBrx;
     void(*pfnGetAcgbwTimes) = nullptr;
 };
 
@@ -321,4 +322,4 @@ extern VTACGBLT g_vtacgblt;
 extern VTACGBLP g_vtacgblp;
 
 void LoadAkvbFromBrx(int* pckvb, std::vector <KVB>& pakvb, CBinaryInputStream* pbis);
-void LoadApacgFromBrx(std::vector <ACG>& apacg, glm::vec3& pvecDefault, CBinaryInputStream* pbis);
+void LoadApacgFromBrx(std::shared_ptr<ACG>(&apacg)[3], glm::vec3& pvecDefault, CBinaryInputStream* pbis);

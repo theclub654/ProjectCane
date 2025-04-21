@@ -15,129 +15,147 @@ VTACGL g_vtacgl;
 VTACGBLT g_vtacgblt;
 VTACGBLP g_vtacgblp;
 
-ACP* PacpNew(ACVK acvk)
+std::shared_ptr <ACP> PacpNew(ACVK acvk)
 {
-    ACP* acp{};
+    std::shared_ptr <ACP> pacp{};
+
     if (acvk == ACVK_Bezier)
     {
-        acp = new ACPB{};
-        acp->pvtacpb = &g_vtacpb;
+        ACPB acpb{};
+        acpb.pvtacpb = &g_vtacpb;
+        pacp = std::make_shared <ACPB>(acpb);
     }
 
     else if (acvk < ACVK_Blend)
     {
         if (acvk == ACVK_Component)
         {
-            acp = new ACPC{};
-            acp->pvtacpc = &g_vtacpc;
+            ACPC acpc{};
+            acpc.pvtacpc = &g_vtacpc;
+            pacp = std::make_shared <ACPC>(acpc);
         }
     }
 
-    if (acp != nullptr)
-        acp->acvk = acvk;
+    if (pacp != nullptr)
+        pacp->acvk = acvk;
 
-    return acp;
+    return pacp;
 }
 
-void LoadAcpcFromBrx(ACPC* pacpc, CBinaryInputStream* pbis)
+void LoadAcpcFromBrx(std::shared_ptr <ACPC> pacpc, CBinaryInputStream* pbis)
 {
     LoadApacgFromBrx(pacpc->apacg, pacpc->posDefault, pbis);
 }
 
-void LoadAcpbFromBrx(ACPB* pacpb, CBinaryInputStream* pbis)
+void LoadAcpbFromBrx(std::shared_ptr <ACPB> pacpb, CBinaryInputStream* pbis)
 {
     LoadAkvbFromBrx(&pacpb->ckvb, pacpb->akvb, pbis);
 }
 
-ACR* PacrNew(ACVK acvk)
+std::shared_ptr <ACR> PacrNew(ACVK acvk)
 {
-    ACR* acr{};
+    std::shared_ptr <ACR> pacr{};
 
     if (acvk == ACVK_Bezier)
     {
-        acr = new ACRB{};
-        acr->pvtacrb = &g_vtacrb;
+        ACRB acrb{};
+        acrb.pvtacrb = &g_vtacrb;
+        pacr = std::make_shared <ACRB>(acrb);
     }
 
     else if (acvk < ACVK_Blend)
     {
         if (acvk == ACVK_Component)
         {
-            acr = new ACRC{};
-            acr->pvtacrc = &g_vtacrc;
+            ACRC acrc{};
+            acrc.pvtacrc = &g_vtacrc;
+            pacr = std::make_shared <ACRC>(acrc);
         }
     }
 
-    if (acr != nullptr)
-        acr->acvk = acvk;
+    if (pacr != nullptr)
+        pacr->acvk = acvk;
 
-    return acr;
+    return pacr;
 }
 
-void LoadAcrcFromBrx(ACRC* pacrc, CBinaryInputStream* pbis)
+void LoadAcrcFromBrx(std::shared_ptr <ACRC> pacrc, CBinaryInputStream* pbis)
 {
     LoadApacgFromBrx(pacrc->apacg, pacrc->eulDefault, pbis);
 }
 
-void LoadAcrbFromBrx(ACRB* pacrb, CBinaryInputStream* pbis)
+void LoadAcrbFromBrx(std::shared_ptr <ACRB> pacrb, CBinaryInputStream* pbis)
 {
     LoadAkvbFromBrx(&pacrb->ckvb, pacrb->akvb, pbis);
 }
 
-ACS* PacsNew(ACVK acvk)
+std::shared_ptr <ACS> PacsNew(ACVK acvk)
 {
-    ACS* acs{};
+    std::shared_ptr <ACS> pacs{};
 
     if (acvk == ACVK_Component)
     {
-        acs = new ACSC{};
-        acs->pvtacsc = &g_vtacsc;
+        ACSC acsc{};
+        acsc.pvtacsc = &g_vtacsc;
+        acsc.acvk = acvk;
+        pacs = std::make_shared <ACSC>(acsc);
     }
     else
     {
         if (acvk == ACVK_Bezier)
         {
-            acs = new ACSB{};
-            acs->pvtacsb = &g_vtacsb;
+            ACSB acsb{};
+            acsb.pvtacsb = &g_vtacsb;
+            acsb.acvk = acvk;
+            pacs = std::make_shared <ACSB>(acsb);
         }
     }
 
-    if (acs != nullptr)
-        acs->acvk = acvk;
+    if (pacs != nullptr)
+        pacs->acvk = acvk;
 
-    return acs;
+    return pacs;
 }
 
-void LoadAcscFromBrx(ACSC* pacsc, CBinaryInputStream* pbis)
+void LoadAcscFromBrx(std::shared_ptr <ACSC> pacsc, CBinaryInputStream* pbis)
 {
     LoadApacgFromBrx(pacsc->apacg, pacsc->vecDefault, pbis);
 }
 
-void LoadAcsbFromBrx(ACSB* pacsb, CBinaryInputStream* pbis)
+void LoadAcsbFromBrx(std::shared_ptr <ACSB> pacsb, CBinaryInputStream* pbis)
 {
     LoadAkvbFromBrx(&pacsb->ckvb, pacsb->akvb, pbis);
 }
 
-ACG* PacgNew(ACGK acgk)
+std::shared_ptr <ACG> PacgNew(ACGK acgk)
 {
-    ACG* acg{};
+    std::shared_ptr <ACG> pacg{};
 
     switch (acgk)
     {
     case ACGK_Bezier:
-        acg = new ACGB{};
-        acg->pvtacgb = &g_vtacgb;
+    {
+        ACGB acgb{};
+        acgb.pvtacgb = &g_vtacgb;
+        pacg = std::make_shared <ACGB>(acgb);
         break;
+    }
 
     case ACGK_BezierWeighted:
-        acg = new ACGBW{};
-        acg->pvtacgbw = &g_vtacgbw;
+    {
+        ACGBW acgbw{};
+        acgbw.pvtacgbw = &g_vtacgbw;
+        pacg = std::make_shared <ACGBW>(acgbw);
         break;
+    }
 
     case ACGK_Linear:
-        acg = new ACGL{};
-        acg->pvtacgl = &g_vtacgl;
+    {
+        ACGL acgl{};
+        acgl.pvtacgl = &g_vtacgl;
+        pacg = std::make_shared <ACGL>(acgl);
         break;
+    }
 
     case ACGK_BlendTwist:
         //acg = new ACGBLT;
@@ -150,21 +168,21 @@ ACG* PacgNew(ACGK acgk)
         break;
 
     default:
-        acg = nullptr;
+        pacg = nullptr;
         break;
     }
 
-    if (acg != nullptr)
-        acg->acgk = acgk;
+    if (pacg != nullptr)
+        pacg->acgk = acgk;
 
-    return acg;
+    return pacg;
 }
 
-void LoadAcgbFromBrx(ACGB* pacgb, CBinaryInputStream* pbis)
+void LoadAcgbFromBrx(std::shared_ptr <ACGB> pacgb, CBinaryInputStream* pbis)
 {
-    int ckgb = pbis->U16Read();
+    pacgb->ckgb = pbis->U16Read();
 
-    for (int i = 0; i < ckgb; i++)
+    for (int i = 0; i < pacgb->ckgb; i++)
     {
         pbis->S16Read();
         pbis->F32Read();
@@ -175,7 +193,7 @@ void LoadAcgbFromBrx(ACGB* pacgb, CBinaryInputStream* pbis)
     }
 }
 
-void LoadAcgbwFromBrx(ACGBW* pacgbw, CBinaryInputStream* pbis)
+void LoadAcgbwFromBrx(std::shared_ptr <ACGBW> pacgbw, CBinaryInputStream* pbis)
 {
     pacgbw->ckgbw = pbis->U16Read();
     pacgbw->akgbw.resize(pacgbw->ckgbw);
@@ -193,7 +211,7 @@ void LoadAcgbwFromBrx(ACGBW* pacgbw, CBinaryInputStream* pbis)
     }
 }
 
-void LoadAcglFromBrx(ACGL* pacgl, CBinaryInputStream* pbis)
+void LoadAcglFromBrx(std::shared_ptr <ACGL> pacgl, CBinaryInputStream* pbis)
 {
     pacgl->ckgl = pbis->U16Read();
     pacgl->akgl.resize(pacgl->ckgl);
@@ -218,7 +236,7 @@ void LoadAkvbFromBrx(int* pckvb, std::vector <KVB>& pakvb, CBinaryInputStream* p
     }
 }
 
-void LoadApacgFromBrx(std::vector <ACG>& apacg, glm::vec3& pvecDefault, CBinaryInputStream* pbis)
+void LoadApacgFromBrx(std::shared_ptr<ACG>(&apacg)[3], glm::vec3& pvecDefault, CBinaryInputStream* pbis)
 {
     uint32_t temp0;
     byte unk_0 = pbis->U8Read();
@@ -234,8 +252,9 @@ void LoadApacgFromBrx(std::vector <ACG>& apacg, glm::vec3& pvecDefault, CBinaryI
         {
             ACGK acgk = (ACGK)pbis->U8Read();
 
-            ACG* acg = PacgNew(acgk);
-            acg->pvtacgb->pfnLoadAcgbFromBrx((ACGB*)acg, pbis);
+            std::shared_ptr <ACG> acg = PacgNew(acgk);
+            acg->pvtacgb->pfnLoadAcgbFromBrx(std::static_pointer_cast<ACGB>(acg), pbis);
+            apacg[i] = acg;
         }
     }
 }

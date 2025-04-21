@@ -54,6 +54,11 @@ struct CG
 class PATHZONE : public LO
 {
 	public:
+        GLuint VAO;
+        GLuint VBO;
+        GLuint EBO;
+        int cvtx;
+
 		CG cg;
 		DLE dlePathzone;
 };
@@ -65,4 +70,6 @@ void OnPathzoneAdd(PATHZONE* ppathzone);
 void OnPathzoneRemove(PATHZONE* ppathzone);
 void LoadPathZoneFromBrx(PATHZONE* ppathzone, CBinaryInputStream* pbis);
 void ClonePathzone(PATHZONE* ppathzone, PATHZONE* ppathzoneBase);
+void RenderPathzone(PATHZONE* ppathzone, CM* pcm);
+void DrawPathzone(RPL* prpl);
 void DeletePathzone(PATHZONE* ppathzone);

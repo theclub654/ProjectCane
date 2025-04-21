@@ -159,26 +159,54 @@ void UpdateSo(SO* pso, float dt)
 void RenderSoSelf(SO* pso, CM* pcm, RO* pro)
 {
 	RenderAloSelf(pso, pcm, pro);
+
+	/*if (g_fRenderCollision != 0)
+	{
+		RPL rpl{};
+
+		rpl.PFNDRAW = DrawCollision;
+
+		glm::mat4 baseModelMatrix{};
+		LoadMatrixFromPosRot(pso->xf.posWorld, pso->xf.matWorld, baseModelMatrix);
+		rpl.ro.modelmatrix = baseModelMatrix;
+	    
+		rpl.ro.VAO = &pso->geomLocal.VAO;
+		rpl.rp = RP_Opaque;
+		rpl.ro.cvtx = pso->geomLocal.indices.size();
+
+		SubmitRpl(&rpl);
+	}*/
 }
 
 void DrawCollision(CM* pcm, SO* pso)
 {
-	glm::mat4 model = pso->xf.matWorld;
+	if (pso->geomLocal.VAO != 0 || pso->geomCameraLocal.VAO != 0)
+	{
+		glm::mat4 model = pso->xf.matWorld;
 
-	model[3][0] = pso->xf.posWorld[0];
-	model[3][1] = pso->xf.posWorld[1];
-	model[3][2] = pso->xf.posWorld[2];
-	model[3][3] = 1.0;
+		model[3][0] = pso->xf.posWorld[0];
+		model[3][1] = pso->xf.posWorld[1];
+		model[3][2] = pso->xf.posWorld[2];
+		model[3][3] = 1.0;
 
-	glUniformMatrix4fv(glGetUniformLocation(glCollisionShader.ID, "model"), 1, GL_FALSE, glm::value_ptr(model));
+		if (pso->pvtso->cid == CID_VOLZP)
+			glUniform4fv(glGetUniformLocation(glGlobShader.ID, "collisionRgba"), 1, glm::value_ptr(glm::vec4(255.0, 0.0, 0.0, 1.0)));
+		else
+			glUniform4fv(glGetUniformLocation(glGlobShader.ID, "collisionRgba"), 1, glm::value_ptr(glm::vec4(0.76, 0.76, 0.76, 1.0)));
 
-	glBindVertexArray(pso->geomLocal.VAO);
-	glDrawElements(GL_LINES, pso->geomLocal.indices.size(), GL_UNSIGNED_SHORT, 0);
+		glUniformMatrix4fv(glGetUniformLocation(glGlobShader.ID, "model"), 1, GL_FALSE, glm::value_ptr(model));
 
-	glBindVertexArray(pso->geomCameraLocal.VAO);
-	glDrawElements(GL_LINES, pso->geomCameraLocal.indices.size(), GL_UNSIGNED_SHORT, 0);
+		glBindVertexArray(pso->geomLocal.VAO);
+		glDrawElements(GL_LINES, pso->geomLocal.indices.size(), GL_UNSIGNED_SHORT, 0);
 
-	glBindVertexArray(0);
+		if (pso->geomCameraLocal.VAO != 0)
+		{
+			glBindVertexArray(pso->geomCameraLocal.VAO);
+			glDrawElements(GL_LINES, pso->geomCameraLocal.indices.size(), GL_UNSIGNED_SHORT, 0);
+
+			glBindVertexArray(0);
+		}
+	}
 }
 
 void DeleteSo(SO *pso)

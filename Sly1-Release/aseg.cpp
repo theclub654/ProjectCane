@@ -39,47 +39,55 @@ void LoadAsegFromBrx(ASEG* paseg, CBinaryInputStream* pbis)
         if ((unk_6 & 1) != 0)
         {
             ACVK acvk = (ACVK)pbis->S8Read();
+            std::shared_ptr <ACP> pacp = PacpNew(acvk);
+            paseg->achn[i].pacp = pacp;
 
-            ACP* acp = PacpNew(acvk);
-            acp->pvtacpc->pfnLoadAcpcFromBrx((ACPC*)acp, pbis);
+            pacp->pvtacpc->pfnLoadAcpcFromBrx(std::static_pointer_cast <ACPC>(pacp), pbis);
         }
 
         if ((unk_6 & 2) != 0)
         {
             ACVK acvk = (ACVK)pbis->S8Read();
 
-            ACR* acr = PacrNew(acvk);
-            acr->pvtacrc->pfnLoadAcrcFromBrx((ACRC*)acr, pbis);
+            std::shared_ptr <ACR> pacr = PacrNew(acvk);
+            paseg->achn[i].pacr = pacr;
+            pacr->pvtacrc->pfnLoadAcrcFromBrx(std::static_pointer_cast <ACRC>(pacr), pbis);
         }
 
         if ((unk_6 & 4) != 0)
         {
             ACVK acvk = (ACVK)pbis->S8Read();
 
-            ACS* acs = PacsNew(acvk);
-            acs->pvtacsb->pfnLoadAcsbFromBrx((ACSB*)acs, pbis);
+            std::shared_ptr <ACS> pacs = PacsNew(acvk);
+            paseg->achn[i].pacs = pacs;
+            pacs->pvtacsb->pfnLoadAcsbFromBrx(std::static_pointer_cast <ACSB>(pacs), pbis);
         }
 
         if ((unk_6 & 8) != 0)
         {
             ACGK acgk = (ACGK)pbis->S8Read();
 
-            ACG* acg = PacgNew(acgk);
-            acg->pvtacgb->pfnLoadAcgbFromBrx((ACGB*)acg, pbis);
+            std::shared_ptr <ACG> pacg = PacgNew(acgk);
+            paseg->achn[i].pacgTwist = pacg;
+            pacg->pvtacgb->pfnLoadAcgbFromBrx(std::static_pointer_cast <ACGB>(pacg), pbis);
         }
 
         if ((unk_6 & 0x10) != 0)
         {
             byte cpacgPose = pbis->U8Read();
+            paseg->achn[i].cpacgPose = cpacgPose;
 
-            for (int i = 0; i < cpacgPose; i++)
+            paseg->achn[i].apacgPose.resize(cpacgPose);
+
+            for (int a = 0; a < cpacgPose; a++)
             {
                 ACGK acgk = (ACGK)pbis->S8Read();
 
                 if (acgk != -1)
                 {
-                    ACG* acg = PacgNew(acgk);
-                    acg->pvtacgb->pfnLoadAcgbFromBrx((ACGB*)acg, pbis);
+                    std::shared_ptr <ACG> pacgPose = PacgNew(acgk);
+                    paseg->achn[i].apacgPose[a] = pacgPose;
+                    pacgPose->pvtacgb->pfnLoadAcgbFromBrx(std::static_pointer_cast <ACGB>(pacgPose), pbis);
                 }
             }
         }

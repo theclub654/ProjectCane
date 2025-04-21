@@ -23,7 +23,7 @@ void RenderSw(SW *psw, CM *pcm);
 void RenderSwAloAll(SW* psw, CM* pcm);
 void RenderSwGlobset(SW *psw, CM *pcm);
 void DrawSw(SW *psw, CM *pcm);
-void DrawSwCollisionAll();
+void DrawSwCollisionAll(CM *pcm);
 void DeleteWorld(SW *psw);
 
 // Game loop
