@@ -400,9 +400,6 @@ int CploFindSwObjects(SW* psw, int grffso, OID oid, LO* ploContext, int cploMax,
 	return cploMatch;
 }
 
-
-
-
 LO* PloFindSwObject(SW* psw, GRFFSO grffso, OID oid, LO* ploContext)
 {
 	LO* plo = nullptr;
@@ -421,6 +418,9 @@ void UpdateSw(SW* psw, float dt)
 
 void DeleteWorld(SW *psw)
 {
+	renderBuffer.clear();
+	renderBuffer.shrink_to_fit();
+
 	for (int i = 0; i < allSWAloObjs.size(); i++)
 		DeleteModel(allSWAloObjs[i]);
 

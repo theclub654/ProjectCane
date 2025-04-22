@@ -8,6 +8,14 @@ ASEG* NewAseg()
 void InitAseg(ASEG* paseg)
 {
     InitLo(paseg);
+    InitDl(&paseg->dlAsega, offsetof(ASEGA, dleAseg));
+    
+    paseg->clqMasterSuck.g0 = 1.0;
+    paseg->clqMasterSuck.g2 = 0.0;
+    paseg->clqMasterSuck.g1 = 0.0;
+    paseg->svtMasterSuck = 1.0;
+    paseg->lmMasterSuck.gMin = 0.0;
+    paseg->lmMasterSuck.gMax = 1.0;
 }
 
 int GetAsegSize()

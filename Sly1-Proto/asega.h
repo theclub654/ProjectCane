@@ -1,5 +1,5 @@
 #pragma once
-#include "lo.h"
+#include "ac.h"
 
 class ASEGA : public BASIC
 {

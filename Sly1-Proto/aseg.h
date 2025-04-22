@@ -1,5 +1,5 @@
 #pragma once
-#include "ac.h"
+#include "asega.h"
 
 enum SEGRPT
 {
@@ -18,7 +18,7 @@ struct CHN
     std::shared_ptr <ACR> pacr;
     std::shared_ptr <ACS> pacs;
     std::shared_ptr <ACG> pacgTwist;
-    std::vector < std::shared_ptr <ACG>> apacgPose;
+    std::vector <std::shared_ptr <ACG>> apacgPose;
     int cpacgPose;
 };
 

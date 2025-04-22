@@ -110,7 +110,7 @@ void LoadProxyFromBrx(PROXY* pproxy, CBinaryInputStream* pbis)
 			pbis->F32Read();
 
 		// GOTTA COME BACK TO THIS
-		LoadOptionsFromBrx(proxyObjs[0], pbis);
+		LoadOptionsFromBrx(pvObject, pbis);
 	}
 
 	for (int i = 0; i < proxyObjs.size(); i++)

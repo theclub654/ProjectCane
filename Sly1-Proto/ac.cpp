@@ -182,9 +182,11 @@ void LoadAcgbFromBrx(std::shared_ptr <ACGB> pacgb, CBinaryInputStream* pbis)
 {
     pacgb->ckgb = pbis->U16Read();
 
+    pacgb->akgb.resize(pacgb->ckgb);
+
     for (int i = 0; i < pacgb->ckgb; i++)
     {
-        pbis->S16Read();
+        pacgb->akgb[i].t = pbis->S16Read() * 0.01666667;
         pbis->F32Read();
         pbis->S8Read();
         pbis->S8Read();
@@ -200,14 +202,14 @@ void LoadAcgbwFromBrx(std::shared_ptr <ACGBW> pacgbw, CBinaryInputStream* pbis)
 
     for (int i = 0; i < pacgbw->ckgbw; i++)
     {
-        pbis->S16Read() * 0.01666667;
-        pbis->F32Read();
-        pbis->S8Read();
-        pbis->S8Read();
-        pbis->F32Read();
-        pbis->F32Read();
-        pbis->F32Read();
-        pbis->F32Read();
+        pacgbw->akgbw[i].t = pbis->S16Read() * 0.01666667;
+        pacgbw->akgbw[i].g = pbis->F32Read();
+        pacgbw->akgbw[i].kgbwtIn.kgbtk = (KGBTK)pbis->S8Read();
+        pacgbw->akgbw[i].kgbwtOut.kgbtk = (KGBTK)pbis->S8Read();
+        pacgbw->akgbw[i].kgbwtIn.dt = pbis->F32Read();
+        pacgbw->akgbw[i].kgbwtIn.g = pbis->F32Read() - pacgbw->akgbw[i].g;
+        pacgbw->akgbw[i].kgbwtOut.dt = pbis->F32Read();
+        pacgbw->akgbw[i].kgbwtOut.g = pbis->F32Read() + pacgbw->akgbw[i].g;
     }
 }
 
@@ -223,16 +225,17 @@ void LoadAcglFromBrx(std::shared_ptr <ACGL> pacgl, CBinaryInputStream* pbis)
     }
 }
 
-void LoadAkvbFromBrx(int* pckvb, std::vector <KVB> &pakvb, CBinaryInputStream* pbis)
+void LoadAkvbFromBrx(int *pckvb, std::vector <KVB> &pakvb, CBinaryInputStream* pbis)
 {
-    uint16_t unk_0 = pbis->U16Read();
+    uint16_t ckvb = pbis->U16Read();
+    pakvb.resize(ckvb);
 
-    for (int i = 0; i < unk_0; i++)
+    for (int i = 0; i < ckvb; i++)
     {
-        pbis->S16Read();
-        pbis->ReadVector();
-        pbis->ReadVector();
-        pbis->ReadVector();
+        pakvb[i].t = pbis->S16Read() * 0.01666667;
+        pakvb[i].vec = pbis->ReadVector();
+        pakvb[i].dvecIn = pbis->ReadVector();
+        pakvb[i].dvecOut = pbis->ReadVector();
     }
 }
 

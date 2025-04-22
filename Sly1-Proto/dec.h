@@ -24,6 +24,7 @@ struct FGFN;
 struct SOP;
 extern bool loadEmitMesh;
 
+extern std::vector <RPL> renderBuffer;
 void SubmitRpl(RPL *prpl);
 
 // Local Obeject

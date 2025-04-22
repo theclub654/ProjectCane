@@ -47,7 +47,6 @@ void CloneExplo(EXPLO* pexplo, EXPLO* pexploBase)
 	memcpy(pexplo, &lo, sizeof(LO));
 
 	CloneLo(pexplo, pexploBase);
-	pexplo->pemitb->cref++;
 }
 
 void DeleteExplo(EXPLO* pexplo)

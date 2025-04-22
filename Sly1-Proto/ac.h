@@ -57,7 +57,7 @@ struct ACG
 struct ACPC : public ACP
 {
     glm::vec3 posDefault;
-    //std::vector <ACG> apacg;
+
     std::shared_ptr <ACG> apacg[3];
 };
 

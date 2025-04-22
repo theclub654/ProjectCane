@@ -100,7 +100,6 @@ void LoadEmitblipColorsFromBrx(int crgba, CBinaryInputStream* pbis)
 
 void LoadEmitterFromBrx(EMITTER* pemitter, CBinaryInputStream* pbis)
 {
-	pemitter->pemitb = new EMITB{};
 	LoadAloFromBrx(pemitter, pbis);
 
 	int8_t crvk = pbis->S8Read();
@@ -132,8 +131,6 @@ void CloneEmitter(EMITTER* pemitter, EMITTER* pemitterBase)
 	CloneLo(pemitter, pemitterBase);
 
 	ClearDl(&pemitter->dlChild);
-
-	pemitter->pemitb->cref++;
 }
 
 EMITB* PemitbEnsureEmitter(EMITTER* pemitter, ENSK ensk)

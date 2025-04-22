@@ -1,5 +1,12 @@
 #include "font.h"
 
+int g_cfontBrx;
+std::vector <CFontBrx> g_afontBrx;
+std::vector <CFontBrx> g_pfont;
+std::vector <CFontBrx> g_pfontScreenCounters;
+std::vector <CFontBrx> g_pfontJoy;
+std::vector <GLYFF> g_aglyff;
+
 void CFontBrx::LoadFromBrx(CBinaryInputStream *pbis)
 {
 	FONTF fontf;
