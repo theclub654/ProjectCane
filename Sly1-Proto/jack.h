@@ -28,6 +28,15 @@ enum JACKS
     JACKS_Celebrate = 4,
     JACKS_Max = 5
 };
+
+enum JK 
+{
+    JK_Nil = -1,
+    JK_Out = 0,
+    JK_In = 1,
+    JK_Block = 2,
+    JK_Max = 3
+};
 struct JE 
 {
     int i;
@@ -114,7 +123,7 @@ class JACKF : public ALO
         struct JEP* ajepRim;
         int cjeGap;
         struct JE* ajeGap;
-        enum JK* aaajk;
+        JK aaajk;
         float tDrop;
         glm::vec3 dvDrop;
         int c;

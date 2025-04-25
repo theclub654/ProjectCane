@@ -23,11 +23,10 @@ int GetShapeSize()
 
 void CloneShape(SHAPE* pshape, SHAPE* pshapeBase)
 {
-    LO lo = *pshape;
-    *pshape = *pshapeBase;
-    memcpy(pshape, &lo, sizeof(LO));
-
     CloneLo(pshape, pshapeBase);
+
+    pshape->dleShape = pshapeBase->dleShape;
+    pshape->pcrv = pshapeBase->pcrv;
 }
 
 void SetShapeParent(SHAPE* pshape, ALO* paloParent)

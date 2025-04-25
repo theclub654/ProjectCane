@@ -22,17 +22,34 @@ void UpdateCycleXfWorld(CYCLE* pcycle)
 
 void CloneCycle(CYCLE* pcycle, CYCLE* pcycleBase)
 {
-	LO lo = *pcycle;
-	*pcycle = *pcycleBase;
-	memcpy(pcycle, &lo, sizeof(LO));
+	ClonePo(pcycle, pcycleBase);
 
-	CloneLo(pcycle, pcycleBase);
+    pcycle->sRadiusFrontWheel = pcycleBase->sRadiusFrontWheel;
+    pcycle->sRadiusRearWheel = pcycleBase->sRadiusRearWheel;
+    pcycle->svMax = pcycleBase->svMax;
+    pcycle->radTarget = pcycleBase->radTarget;
+    pcycle->svTarget = pcycleBase->svTarget;
+    pcycle->radFront = pcycleBase->radFront;
+    pcycle->radBankTarget = pcycleBase->radBankTarget;
 
-	ClearDl(&pcycle->dlChild);
+    pcycle->xsxp = pcycleBase->xsxp;
+    pcycle->asxp[0] = pcycleBase->asxp[0];
+    pcycle->asxp[1] = pcycleBase->asxp[1];
 
-	pcycle->pxa = nullptr;
-	pcycle->grfpvaXpValid = 0;
-	pcycle->pstso = nullptr;
+    pcycle->pexplBoost = pcycleBase->pexplBoost;
+    pcycle->pexplDirt = pcycleBase->pexplDirt;
+    pcycle->pexplDust = pcycleBase->pexplDust;
+
+    pcycle->cParticleBoost = pcycleBase->cParticleBoost;
+    pcycle->cParticleDirt = pcycleBase->cParticleDirt;
+    pcycle->cParticleDust = pcycleBase->cParticleDust;
+
+    pcycle->tBoost = pcycleBase->tBoost;
+    pcycle->cBoost = pcycleBase->cBoost;
+    pcycle->tGround = pcycleBase->tGround;
+
+    pcycle->cycles = pcycleBase->cycles;
+    pcycle->tCycles = pcycleBase->tCycles;
 }
 
 void RenderCycleSelf(CYCLE* pcycle, CM* pcm, RO* pro)

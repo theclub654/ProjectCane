@@ -49,13 +49,40 @@ void LoadTnFromBrx(TN* ptn, CBinaryInputStream* pbis)
 
 void CloneTn(TN* ptn, TN* ptnBase)
 {
-    LO lo = *ptn;
-    *ptn = *ptnBase;
-    memcpy(ptn, &lo, sizeof(LO));
+    CloneAlo(ptn, ptnBase);
 
-    CloneLo(ptn, ptnBase);
-
-    ClearDl(&ptn->dlChild);
+    ptn->ppo = ptnBase->ppo;
+    ptn->ctsurf = ptnBase->ctsurf;
+    ptn->atsurf = ptnBase->atsurf;
+    ptn->ctbsp = ptnBase->ctbsp;
+    ptn->atbsp = ptnBase->atbsp;
+    ptn->pcrv = ptnBase->pcrv;
+    std::memcpy(ptn->TNFN, ptnBase->TNFN, sizeof(ptn->TNFN));
+    ptn->fCylinder = ptnBase->fCylinder;
+    ptn->fSwitchInAir = ptnBase->fSwitchInAir;
+    ptn->priCamera = ptnBase->priCamera;
+    ptn->fFakeCylinder = ptnBase->fFakeCylinder;
+    ptn->dradSlack = ptnBase->dradSlack;
+    ptn->tns = ptnBase->tns;
+    ptn->tTns = ptnBase->tTns;
+    ptn->sClosest = ptnBase->sClosest;
+    ptn->matXfm = ptnBase->matXfm;
+    ptn->posXfm = ptnBase->posXfm;
+    ptn->sTotal = ptnBase->sTotal;
+    ptn->posFake = ptnBase->posFake;
+    ptn->sRadFake = ptnBase->sRadFake;
+    ptn->grftnd = ptnBase->grftnd;
+    ptn->fPanOnEntry = ptnBase->fPanOnEntry;
+    ptn->fPanOnIdle = ptnBase->fPanOnIdle;
+    ptn->dtPanOnEntry = ptnBase->dtPanOnEntry;
+    ptn->rswPanOnEntry = ptnBase->rswPanOnEntry;
+    ptn->dtPanOnIdle = ptnBase->dtPanOnIdle;
+    ptn->rswPanOnIdle = ptnBase->rswPanOnIdle;
+    ptn->fUseVolume = ptnBase->fUseVolume;
+    ptn->cfk = ptnBase->cfk;
+    ptn->fCutOnEntry = ptnBase->fCutOnEntry;
+    ptn->radFOV = ptnBase->radFOV;
+    ptn->fNoSquish = ptnBase->fNoSquish;
 }
 
 void LoadTbspFromBrx(CBinaryInputStream* pbis)

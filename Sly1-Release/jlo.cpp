@@ -17,17 +17,13 @@ int GetJlovolSize()
 
 void CloneJlovol(JLOVOL* pjlovol, JLOVOL* pjlovolBase)
 {
-	LO lo = *pjlovol;
-	*pjlovol = *pjlovolBase;
-	memcpy(pjlovol, &lo, sizeof(LO));
+	CloneVolbtn(pjlovol, pjlovolBase);
 
-	CloneLo(pjlovol, pjlovolBase);
-
-	ClearDl(&pjlovol->dlChild);
-
-	pjlovol->pxa = nullptr;
-	pjlovol->grfpvaXpValid = 0;
-	pjlovol->pstso = nullptr;
+	pjlovol->oidLand = pjlovolBase->oidLand;
+	pjlovol->ppntLand = pjlovolBase->ppntLand;
+	pjlovol->oidJloc = pjlovolBase->oidJloc;
+	pjlovol->pjloc = pjlovolBase->pjloc;
+	pjlovol->dleJlo = pjlovolBase->dleJlo;
 }
 
 void DeleteJlovol(JLOVOL* pjlovol)
@@ -58,17 +54,32 @@ void LoadJloFromBrx(JLO* pjlo, CBinaryInputStream* pbis)
 
 void CloneJlo(JLO* pjlo, JLO* pjloBase)
 {
-	LO lo = *pjlo;
-	*pjlo = *pjloBase;
-	memcpy(pjlo, &lo, sizeof(LO));
+	CloneSo(pjlo, pjloBase);
 
-	CloneLo(pjlo, pjloBase);
-
-	ClearDl(&pjlo->dlChild);
-
-	pjlo->pxa = nullptr;
-	pjlo->grfpvaXpValid = 0;
-	pjlo->pstso = nullptr;
+	pjlo->psm = pjloBase->psm;
+	pjlo->psma = pjloBase->psma;
+	pjlo->pjlovolCur = pjloBase->pjlovolCur;
+	pjlo->dlJlovol = pjloBase->dlJlovol;
+	pjlo->ppntFeet = pjloBase->ppntFeet;
+	pjlo->dzFeet = pjloBase->dzFeet;
+	pjlo->prwm = pjloBase->prwm;
+	pjlo->tFireNext = pjloBase->tFireNext;
+	pjlo->oidJlovolStart = pjloBase->oidJlovolStart;
+	pjlo->paloReticle = pjloBase->paloReticle;
+	pjlo->paloTracer = pjloBase->paloTracer;
+	pjlo->ppntTracerStart = pjloBase->ppntTracerStart;
+	pjlo->pasegReticlePop = pjloBase->pasegReticlePop;
+	pjlo->pasegReticleConverge = pjloBase->pasegReticleConverge;
+	pjlo->pxfmTarget = pjloBase->pxfmTarget;
+	pjlo->pxfmStatic = pjloBase->pxfmStatic;
+	pjlo->jlos = pjloBase->jlos;
+	pjlo->tJlos = pjloBase->tJlos;
+	pjlo->radTarget = pjloBase->radTarget;
+	pjlo->dtLand = pjloBase->dtLand;
+	pjlo->tLand = pjloBase->tLand;
+	pjlo->tStick = pjloBase->tStick;
+	pjlo->smpSpin = pjloBase->smpSpin;
+	pjlo->pexc = pjloBase->pexc;
 }
 
 void DeleteJlo(JLO *pjlo)
@@ -98,13 +109,23 @@ void LoadJlocFromBrx(JLOC* pjloc, CBinaryInputStream* pbis)
 
 void CloneJloc(JLOC* pjloc, JLOC* pjlocBase)
 {
-	LO lo = *pjloc;
-	*pjloc = *pjlocBase;
-	memcpy(pjloc, &lo, sizeof(LO));
+	CloneAlo(pjloc, pjlocBase);
 
-	CloneLo(pjloc, pjlocBase);
+	pjloc->cpxfm = pjlocBase->cpxfm;
+	for (int i = 0; i < pjloc->cpxfm; ++i)
+	{
+		pjloc->apxfm[i] = pjlocBase->apxfm[i];
+	}
 
-	ClearDl(&pjloc->dlChild);
+	pjloc->jlock = pjlocBase->jlock;
+	pjloc->jlomk = pjlocBase->jlomk;
+	pjloc->dtFire = pjlocBase->dtFire;
+	pjloc->dtMissile = pjlocBase->dtMissile;
+	pjloc->rAccelTime = pjlocBase->rAccelTime;
+	pjloc->rMissileSpeed = pjlocBase->rMissileSpeed;
+	pjloc->radTilt = pjlocBase->radTilt;
+	pjloc->svLaunch = pjlocBase->svLaunch;
+	pjloc->svTarget = pjlocBase->svTarget;
 }
 
 void DeleteJloc(JLOC* pjloc)

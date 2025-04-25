@@ -235,5 +235,10 @@ void DrawSwCollisionAll(CM *pcm)
 	glUniform1i(glGetUniformLocation(glGlobShader.ID, "rko"), 3);
 
 	for (int i = 0; i < allSWSoObjs.size(); i++)
+	{
+		if ((SphereInFrustum(pcm->frustum, allSWSoObjs[i]->xf.posWorld, allSWSoObjs[i]->geomLocal.sRadius)) == 0)
+			continue;
+
 		DrawCollision(allSWSoObjs[i]);
+	}
 }

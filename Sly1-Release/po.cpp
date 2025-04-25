@@ -22,17 +22,15 @@ void OnPoRemove(PO* ppo)
 
 void ClonePo(PO* ppo, PO* ppoBase)
 {
-	LO lo = *ppo;
-	*ppo = *ppoBase;
-	memcpy(ppo, &lo, sizeof(LO));
+	CloneSo(ppo, ppoBase);
 
-	CloneLo(ppo, ppoBase);
-
-	ClearDl(&ppo->dlChild);
-
-	ppo->pxa = nullptr;
-	ppo->grfpvaXpValid = 0;
-	ppo->pstso = nullptr;
+	ppo->fPlayable = ppoBase->fPlayable;
+	ppo->fLockBase = ppoBase->fLockBase;
+	ppo->posBasePrev = ppoBase->posBasePrev;
+	ppo->tWakeRipple = ppoBase->tWakeRipple;
+	ppo->pambWake = ppoBase->pambWake;
+	ppo->pzi = ppoBase->pzi;
+	ppo->paloUseCharm = ppoBase->paloUseCharm;
 }
 
 int GetPoSize()

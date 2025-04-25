@@ -34,17 +34,45 @@ void OnRatRemove(RAT* prat)
 
 void CloneRat(RAT* prat, RAT* pratBase)
 {
-	LO lo = *prat;
-	*prat = *pratBase;
-	memcpy(prat, &lo, sizeof(LO));
+    CloneSo(prat, pratBase);
 
-	CloneLo(prat, pratBase);
+    // Shallow copy of the value members
+    prat->tRats = pratBase->tRats;
+    prat->tRatsNext = pratBase->tRatsNext;
+    prat->tRatSqueak = pratBase->tRatSqueak;
+    prat->ipaloRender = pratBase->ipaloRender;
+    prat->cpaloRenderScurry = pratBase->cpaloRenderScurry;
+    prat->cpaloRenderFlee = pratBase->cpaloRenderFlee;
+    prat->dsFrameScurry = pratBase->dsFrameScurry;
+    prat->dsFrameFlee = pratBase->dsFrameFlee;
+    prat->sScurry = pratBase->sScurry;
+    prat->svScurry = pratBase->svScurry;
+    prat->svFlee = pratBase->svFlee;
+    prat->svCur = pratBase->svCur;
+    prat->svLeap = pratBase->svLeap;
+    prat->sGroupRadius = pratBase->sGroupRadius;
+    prat->dposTarget = pratBase->dposTarget;
+    prat->posWanderNext = pratBase->posWanderNext;
+    prat->posFrameLast = pratBase->posFrameLast;
+    prat->ccoin = pratBase->ccoin;
 
-	ClearDl(&prat->dlChild);
+    // Shallow copy of the array members (assuming they're pointers)
+    for (int i = 0; i < 16; ++i) {
+        prat->apaloRenderScurry[i] = pratBase->apaloRenderScurry[i];
+        prat->apaloRenderFlee[i] = pratBase->apaloRenderFlee[i];
+    }
 
-	prat->pxa = nullptr;
-	prat->grfpvaXpValid = 0;
-	prat->pstso = nullptr;
+    // Shallow copy of the pointer members (e.g., pointers to ALO, EXPL, TARGET, etc.)
+    prat->paloRenderStopped = pratBase->paloRenderStopped;
+    prat->pexpl = pratBase->pexpl;
+    prat->ptarget = pratBase->ptarget;
+    prat->prathole = pratBase->prathole;
+
+    // Shallow copy of the DLE structure
+    prat->dleRat = pratBase->dleRat;
+
+    // Shallow copy of the LM structure
+    prat->lmDtStop = pratBase->lmDtStop;
 }
 
 void LoadRatFromBrx(RAT* prat, CBinaryInputStream* pbis)
@@ -86,11 +114,9 @@ void OnRatholeRemove(RATHOLE* prathole)
 
 void CloneRathole(RATHOLE* prathole, RATHOLE* pratholeBase)
 {
-	LO lo = *prathole;
-	*prathole = *pratholeBase;
-	memcpy(prathole, &lo, sizeof(LO));
+    CloneVol(prathole, pratholeBase);
 
-	CloneLo(prathole, pratholeBase);
+    prathole->dleRathole = pratholeBase->dleRathole;
 }
 
 void OnRatholeAdd(RATHOLE* prathole)

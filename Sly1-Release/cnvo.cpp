@@ -24,17 +24,11 @@ void LoadCnvoFromBrx(CNVO* pcnvo, CBinaryInputStream* pbis)
 
 void CloneCnvo(CNVO* pcnvo, CNVO* pcnvoBase)
 {
-	LO lo = *pcnvo;
-	*pcnvo = *pcnvoBase;
-	memcpy(pcnvo, &lo, sizeof(LO));
+	CloneSo(pcnvo, pcnvoBase);
 
-	CloneLo(pcnvo, pcnvoBase);
-
-	ClearDl(&pcnvo->dlChild);
-
-	pcnvo->pxa = nullptr;
-	pcnvo->grfpvaXpValid = 0;
-	pcnvo->pstso = nullptr;
+	pcnvo->svBelt = pcnvoBase->svBelt;
+	pcnvo->svuAvg = pcnvoBase->svuAvg;
+	pcnvo->svvAvg = pcnvo->svvAvg;
 }
 
 void DeleteCnvo(CNVO *pcnvo)

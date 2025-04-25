@@ -19,6 +19,8 @@ void LoadExploFromBrx(EXPLO* pexplo, CBinaryInputStream* pbis)
 {
 	EMITB emitb{};
 
+	pexplo->pemitb = std::make_shared <EMITB>(emitb);
+
 	LoadXfmFromBrx(pexplo, pbis);
 	int8_t crvk = pbis->S8Read();
 
@@ -40,13 +42,18 @@ void LoadExploFromBrx(EXPLO* pexplo, CBinaryInputStream* pbis)
 		LoadEmitblipColorsFromBrx(crgba, pbis);
 }
 
+void BindExplo(EXPLO* pexplo)
+{
+
+}
+
 void CloneExplo(EXPLO* pexplo, EXPLO* pexploBase)
 {
-	LO lo = *pexplo;
-	*pexplo = *pexploBase;
-	memcpy(pexplo, &lo, sizeof(LO));
+	CloneExpl(pexplo, pexploBase);
 
-	CloneLo(pexplo, pexploBase);
+	pexplo->pemitb = pexploBase->pemitb;
+	pexplo->oidreference = pexploBase->oidreference;
+	pexplo->oidShape = pexploBase->oidShape;
 }
 
 void DeleteExplo(EXPLO* pexplo)
@@ -100,6 +107,10 @@ void LoadEmitblipColorsFromBrx(int crgba, CBinaryInputStream* pbis)
 
 void LoadEmitterFromBrx(EMITTER* pemitter, CBinaryInputStream* pbis)
 {
+	EMITB emitb{};
+
+	pemitter->pemitb = std::make_shared <EMITB>(emitb);
+
 	LoadAloFromBrx(pemitter, pbis);
 
 	int8_t crvk = pbis->S8Read();
@@ -122,20 +133,47 @@ void LoadEmitterFromBrx(EMITTER* pemitter, CBinaryInputStream* pbis)
 		LoadEmitblipColorsFromBrx(crgba, pbis);
 }
 
+void BindEmitter(EMITTER* pemitter)
+{
+	BindAlo(pemitter);
+}
+
 void CloneEmitter(EMITTER* pemitter, EMITTER* pemitterBase)
 {
-	LO lo = *pemitter;
-	*pemitter = *pemitterBase;
-	memcpy(pemitter, &lo, sizeof(LO));
+	CloneAlo(pemitter, pemitterBase);
 
-	CloneLo(pemitter, pemitterBase);
-
-	ClearDl(&pemitter->dlChild);
+	pemitter->pemitb = pemitterBase->pemitb;
+	pemitter->emitrk = pemitterBase->emitrk;
+	pemitter->cParticle = pemitterBase->cParticle;
+	pemitter->lmSvcParticle = pemitterBase->lmSvcParticle;
+	pemitter->fCountIsDensity = pemitterBase->fCountIsDensity;
+	pemitter->uPauseProb = pemitterBase->uPauseProb;
+	pemitter->lmDtPause = pemitterBase->lmDtPause;
+	pemitter->cParticleConstant = pemitterBase->cParticleConstant;
+	pemitter->oidReference = pemitterBase->oidReference;
+	pemitter->oidRender = pemitterBase->oidRender;
+	pemitter->oidTouch = pemitterBase->oidTouch;
+	pemitter->oidNextRender = pemitterBase->oidNextRender;
+	pemitter->fAutoPause = pemitterBase->fAutoPause;
+	pemitter->oidShape = pemitterBase->oidShape;
+	pemitter->oidGroup = pemitterBase->oidGroup;
+	pemitter->dlGroup = pemitterBase->dlGroup;
+	pemitter->dleGroup = pemitterBase->dleGroup;
+	pemitter->svcParticle = pemitterBase->svcParticle;
+	pemitter->dtRecalcSvc = pemitterBase->dtRecalcSvc;
+	pemitter->tRecalcSvc = pemitterBase->tRecalcSvc;
+	pemitter->rDensity = pemitterBase->rDensity;
+	pemitter->sBoxRadius = pemitterBase->sBoxRadius;
+	pemitter->uParticle = pemitterBase->uParticle;
+	pemitter->tUnpause = pemitterBase->tUnpause;
+	pemitter->pripg = pemitterBase->pripg;
+	pemitter->pblipg = pemitterBase->pblipg;
+	pemitter->fValuesChanged = pemitterBase->fValuesChanged;
 }
 
 EMITB* PemitbEnsureEmitter(EMITTER* pemitter, ENSK ensk)
 {
-	return pemitter->pemitb;
+	return pemitter->pemitb.get();
 }
 
 void RenderEmitterSelf(EMITTER* pemitter, CM* pcm, RO* pro)
@@ -160,11 +198,9 @@ int GetExplSize()
 
 void CloneExpl(EXPL* pexpl, EXPL* pexplBase)
 {
-	LO lo = *pexpl;
-	*pexpl = *pexplBase;
-	memcpy(pexpl, &lo, sizeof(LO));
+	CloneXfm(pexpl, pexplBase);
 
-	CloneLo(pexpl, pexplBase);
+	pexpl->pexplgParent = pexplBase->pexplgParent;
 }
 
 void DeleteExpl(EXPL* pexpl)
@@ -189,11 +225,23 @@ int GetExplsSize()
 
 void CloneExpls(EXPLS* pexpls, EXPLS* pexplsBase)
 {
-	LO lo = *pexpls;
-	*pexpls = *pexplsBase;
-	memcpy(pexpls, &lo, sizeof(LO));
+	CloneExplo(pexpls, pexplsBase);
 
-	CloneLo(pexpls, pexplsBase);
+	pexpls->psfx = pexplsBase->psfx;
+	pexpls->lmcParticle = pexplsBase->lmcParticle;
+	pexpls->oidRender = pexplsBase->oidRender;
+	pexpls->oidNextRender = pexplsBase->oidNextRender;
+	pexpls->oidTouch = pexplsBase->oidTouch;
+	pexpls->dtDelay = pexplsBase->dtDelay;
+	pexpls->fGrouped = pexplsBase->fGrouped;
+	pexpls->pripg = pexplsBase->pripg;
+	pexpls->pblipg = pexplsBase->pblipg;
+	pexpls->tExplodeNext = pexplsBase->tExplodeNext;
+	pexpls->fExplodeSiblings = pexplsBase->fExplodeSiblings;
+}
+
+void BindExpls(EXPLS* pexpls)
+{
 
 }
 
@@ -229,9 +277,17 @@ void LoadExplgFromBrx(EXPLG* pexplg, CBinaryInputStream* pbis)
 	}
 }
 
+void BindExplg(EXPLG* pexplg)
+{
+
+}
+
 void CloneExplg(EXPLG* pexplg, EXPLG* pexplgBase)
 {
-	CloneLo(pexplg, pexplgBase);
+	CloneExpl(pexplg, pexplgBase);
+
+	pexplg->cpexpl = pexplgBase->cpexpl;
+	pexplg->apexpl = pexplgBase->apexpl;
 }
 
 void DeleteExplg(EXPLG* pexplg)

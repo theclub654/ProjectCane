@@ -143,6 +143,7 @@ void InitLasen(LASEN* plasen);
 int  GetLasenSize();
 void LoadLasenFromBrx(LASEN* plasen, CBinaryInputStream* pbis);
 void CloneLasen(LASEN* plasen, LASEN* plasenBase);
+void BindLasen(LASEN* plasen);
 void RenderLasenSelf(LASEN* plasen, CM* pcm, RO* pro);
 void DeleteLasen(LASEN *plasen);
 

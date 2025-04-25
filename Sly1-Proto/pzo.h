@@ -1,6 +1,22 @@
 #pragma once
 #include "po.h"
 
+struct GOAD 
+{
+	int coidDialog;
+	enum OID aoidDialog[4];
+	int cpdialog;
+	struct DIALOG* apdialog[4];
+	int ipdialog;
+};
+
+struct TMBL 
+{
+	struct ALO* palo;
+	struct SM* psmDial;
+	struct SMA* psmaDial;
+};
+
 class SPRIZE : public SO
 {
 	public:
@@ -52,6 +68,22 @@ class LOCKG : public ALO
 class VAULT : public PO
 {
 	public:
+		struct SM* psmVault;
+		struct SMA* psmaVault;
+		struct XFM* pxfmJt;
+		TMBL atmbl[3];
+		int nCombination;
+		enum OID oidDialogCombo;
+		struct DIALOG* pdialogCombo;
+		enum OID oidVolbtnGoad;
+		struct VOLBTN* pvolbtnGoad;
+		int fGoadStart;
+		GOAD mpgoadkgoad[5];
+		int fvault;
+		struct DIALOG* apdialogInstruct[33];
+		int cpdialogPending;
+		struct DIALOG* apdialogPending[6];
+
 };
 
 class SCPRIZE : public SPRIZE
@@ -76,6 +108,7 @@ void InitSprize(SPRIZE* psprize);
 int  GetSprizeSize();
 void LoadSprizeFromBrx(SPRIZE* psprize, CBinaryInputStream* pbis);
 void CloneSprize(SPRIZE* psprize, SPRIZE* psprizeBase);
+void BindSprize(SPRIZE* psprize);
 void DeleteSprize(SPRIZE* psprize);
 
 SCPRIZE*NewScprize();

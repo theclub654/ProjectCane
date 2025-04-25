@@ -19,17 +19,14 @@ int GetRipgSize()
 
 void CloneRipg(RIPG* pripg, RIPG* pripgBase)
 {
-	LO lo = *pripg;
-	*pripg = *pripgBase;
-	memcpy(pripg, &lo, sizeof(LO));
+	CloneSo(pripg, pripgBase);
 
-	CloneLo(pripg, pripgBase);
+	pripg->ripgt = pripgBase->ripgt;
+	pripg->sExpand = pripgBase->sExpand;
 
-	ClearDl(&pripg->dlChild);
+	pripg->dlRip = pripgBase->dlRip;
 
-	pripg->pxa = nullptr;
-	pripg->grfpvaXpValid = 0;
-	pripg->pstso = nullptr;
+	pripg->pripgNext = pripgBase->pripgNext;
 }
 
 void OnRipgRemove(RIPG* pripg)

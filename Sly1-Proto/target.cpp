@@ -30,11 +30,28 @@ void OnTargetRemove(TARGET* ptarget)
 
 void CloneTarget(TARGET* ptarget, TARGET* ptargetBase)
 {
-	LO lo = *ptarget;
-	*ptarget = *ptargetBase;
-	memcpy(ptarget, &lo, sizeof(LO));
+	CloneXfm(ptarget, ptargetBase);
 
-	CloneLo(ptarget, ptargetBase);
+	ptarget->dleTarget = ptargetBase->dleTarget;
+	ptarget->grftak = ptargetBase->grftak;
+	ptarget->sRadiusTarget = ptargetBase->sRadiusTarget;
+	ptarget->fHitTest = ptargetBase->fHitTest;
+}
+
+TARGET* PtargetEnsureAlo(ALO* palo)
+{
+	TARGET *ptarget = (TARGET*)PloFindSwObject(palo->psw, 0x102, OID_ensured_target, palo);
+
+	if (ptarget == nullptr) 
+		ptarget = (TARGET*)PloNew(CID_TARGET, palo->psw, palo, OID_ensured_target, -1);
+
+	return ptarget;
+}
+
+void SetAloTargetHitTest(ALO* palo, int fHitTest)
+{
+	TARGET *ptarget = PtargetEnsureAlo(palo);
+	ptarget->fHitTest = fHitTest;
 }
 
 void DeleteTarget(TARGET* ptarget)

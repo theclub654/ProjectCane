@@ -111,3 +111,5 @@ void InitGold(GOLD* pgold);
 int  GetGoldSize();
 void CloneGold(GOLD* pgold, GOLD* pgoldBase);
 void DeleteGold(GOLD* pgold);
+
+extern SNIP s_asnipDprize[5];

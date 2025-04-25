@@ -22,17 +22,9 @@ void LoadBrkFromBrx(BRK* pbrk, CBinaryInputStream* pbis)
 
 void CloneBrk(BRK* pbrk, BRK* pbrkBase)
 {
-	LO lo = *pbrk;
-	*pbrk = *pbrkBase;
-	memcpy(pbrk, &lo, sizeof(LO));
-
-	CloneLo(pbrk, pbrkBase);
-
-	ClearDl(&pbrk->dlChild);
-
-	pbrk->pxa = nullptr;
-	pbrk->grfpvaXpValid = 0;
-	pbrk->pstso = nullptr;
+	int ichkBroken = pbrk->ichkBroken;
+	CloneSo(pbrk, pbrkBase);
+	pbrk->ichkBroken = ichkBroken;
 }
 
 void DeleteBrk(BRK *pbrk)
@@ -52,17 +44,7 @@ int GetBrkpSize()
 
 void CloneBrkp(BRKP* prkp, BRKP* prkpBase)
 {
-	LO lo = *prkp;
-	*prkp = *prkpBase;
-	memcpy(prkp, &lo, sizeof(LO));
-
-	CloneLo(prkp, prkpBase);
-
-	ClearDl(&prkp->dlChild);
-
-	prkp->pxa = nullptr;
-	prkp->grfpvaXpValid = 0;
-	prkp->pstso = nullptr;
+	CloneSo(prkp, prkpBase);
 }
 
 void DeleteBrkp(BRKP* pbrkp)
@@ -87,18 +69,7 @@ int GetBreakSize()
 
 void CloneBreak(BREAK* pbreak, BREAK* pbreakBase)
 {
-	LO lo = *pbreak;
-	*pbreak = *pbreakBase;
-
-	memcpy(pbreak, &lo, sizeof(LO));
-
-	CloneLo(pbreak, pbreakBase);
-
-	ClearDl(&pbreak->dlChild);
-
-	pbreak->pxa = nullptr;
-	pbreak->grfpvaXpValid = 0;
-	pbreak->pstso = nullptr;
+	CloneBrk(pbreak, pbreakBase);
 }
 
 void DeleteBreak(BREAK* pbreak)
@@ -123,17 +94,9 @@ int GetFragileSize()
 
 void CloneFragile(FRAGILE* pfragile, FRAGILE* pfragileBase)
 {
-	LO lo = *pfragile;
-	*pfragile = *pfragileBase;
-	memcpy(pfragile, &lo, sizeof(LO));
+	CloneBrk(pfragile, pfragileBase);
 
-	CloneLo(pfragile, pfragileBase);
-
-	ClearDl(&pfragile->dlChild);
-
-	pfragile->pxa = nullptr;
-	pfragile->grfpvaXpValid = 0;
-	pfragile->pstso = nullptr;
+	pfragile->psoImpacting = pfragileBase->psoImpacting;
 }
 
 void DeleteFragile(FRAGILE* pfragile)
@@ -153,17 +116,10 @@ int GetZapbreakSize()
 
 void CloneZapbreak(ZAPBREAK* pzapbreak, ZAPBREAK* pzapbreakBase)
 {
-	LO lo = *pzapbreak;
-	*pzapbreak = *pzapbreakBase;
-	memcpy(pzapbreak, &lo, sizeof(LO));
+	CloneFragile(pzapbreak, pzapbreakBase);
 
-	CloneLo(pzapbreak, pzapbreakBase);
-
-	ClearDl(&pzapbreak->dlChild);
-
-	pzapbreak->pxa = nullptr;
-	pzapbreak->grfpvaXpValid = 0;
-	pzapbreak->pstso = nullptr;
+	pzapbreak->zpk = pzapbreakBase->zpk;
+	pzapbreak->ppoZap = pzapbreakBase->ppoZap;
 }
 
 void DeleteZapbreak(ZAPBREAK* pzapbreak)

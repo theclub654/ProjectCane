@@ -61,11 +61,23 @@ void LoadKeyholeFromBrx(KEYHOLE *pkeyhole, CBinaryInputStream *pbis)
 
 void CloneKeyhole(KEYHOLE* pkeyhole, KEYHOLE* pkeyholeBase)
 {
-    LO lo = *pkeyhole;
-    *pkeyhole = *pkeyholeBase;
-    memcpy(pkeyhole, &lo, sizeof(LO));
-
     CloneLo(pkeyhole, pkeyholeBase);
+
+    // Clone the integer cpos
+    pkeyhole->cpos = pkeyholeBase->cpos;
+
+    // Clone the vector of glm::vec4 positions (assuming it's a shallow copy)
+    pkeyhole->apos = pkeyholeBase->apos;
+
+    // Clone the glm::vec4 posMin and posMax
+    pkeyhole->posMin = pkeyholeBase->posMin;
+    pkeyhole->posMax = pkeyholeBase->posMax;
+
+    // Clone the float dx
+    pkeyhole->dx = pkeyholeBase->dx;
+
+    // Clone the KS array mpkpks (assuming shallow copy is sufficient)
+    std::copy(std::begin(pkeyholeBase->mpkpks), std::end(pkeyholeBase->mpkpks), std::begin(pkeyhole->mpkpks));
 }
 
 void DeleteKeyhole(KEYHOLE* pkeyhole)

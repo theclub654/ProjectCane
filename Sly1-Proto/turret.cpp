@@ -12,17 +12,15 @@ int GetTurretSize()
 
 void CloneTurret(TURRET* pturret, TURRET* pturretBase)
 {
-	LO lo = *pturret;
-	*pturret = *pturretBase;
-	memcpy(pturret, &lo, sizeof(LO));
+    ClonePo(pturret, pturretBase);
 
-	CloneLo(pturret, pturretBase);
-
-	ClearDl(&pturret->dlChild);
-
-	pturret->pxa = nullptr;
-	pturret->grfpvaXpValid = 0;
-	pturret->pstso = nullptr;
+    pturret->psm = pturretBase->psm;
+    pturret->psma = pturretBase->psma;
+    pturret->prwm = pturretBase->prwm;
+    pturret->ppntAnchor = pturretBase->ppntAnchor;
+    pturret->pmurray = pturretBase->pmurray;
+    pturret->fCharmEnabled = pturretBase->fCharmEnabled;
+    pturret->tCharmPending = pturretBase->tCharmPending;
 }
 
 void DeleteTurret(TURRET *pturret)

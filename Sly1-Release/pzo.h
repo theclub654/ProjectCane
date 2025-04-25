@@ -1,6 +1,22 @@
 #pragma once
 #include "po.h"
 
+struct TMBL
+{
+	struct ALO* palo;
+	struct SM* psmDial;
+	struct SMA* psmaDial;
+};
+
+struct GOAD
+{
+	int coidDialog;
+	enum OID aoidDialog[4];
+	int cpdialog;
+	struct DIALOG* apdialog[4];
+	int ipdialog;
+};
+
 class SPRIZE : public SO
 {
 	public:
@@ -52,17 +68,27 @@ class LOCKG : public ALO
 class VAULT : public PO
 {
 	public:
+		struct SM* psmVault;
+		struct SMA* psmaVault;
+		struct XFM* pxfmJt;
+		TMBL atmbl[3];
+		int nCombination;
+		OID oidDialogCombo;
+		struct DIALOG* pdialogCombo;
+		OID oidVolbtnGoad;
+		struct VOLBTN* pvolbtnGoad;
+		int fGoadStart;
+		GOAD mpgoadkgoad[5];
+		int fvault;
+		struct DIALOG* apdialogInstruct[33];
+		int cpdialogPending;
+		struct DIALOG* apdialogPending[6];
 };
 
 class SCPRIZE : public SPRIZE
 {
 	public:
 		int ichkCollected;
-};
-
-class LIFETKN : public SCPRIZE
-{
-	public:
 };
 
 VAULT*NewVault();
@@ -83,11 +109,6 @@ void InitScprize(SCPRIZE* pscprize);
 int  GetScprizeSize();
 void CloneScprize(SCPRIZE* pscprize, SCPRIZE* pscprizeBase);
 void DeleteScprize(SCPRIZE* pscprize);
-
-LIFETKN*NewLifetkn();
-int  GetLifetknSize();
-void CloneLifetkn(LIFETKN *plifetkn, LIFETKN *plifetknBase);
-void DeleteLifetkn(LIFETKN *plifetkn);
 
 CLUE*NewClue();
 void InitClue(CLUE* pclue);

@@ -86,6 +86,7 @@ JLOVOL*NewJlovol();
 void InitJlovol(JLOVOL* pjlovol);
 int  GetJlovolSize();
 void CloneJlovol(JLOVOL* pjlovol, JLOVOL* pjlovolBase);
+void BindJlovol(JLOVOL* pjlovol);
 void DeleteJlovol(JLOVOL* pjlovol);
 
 JLO* NewJlo();

@@ -12,11 +12,9 @@ int GetScanSize()
 
 void CloneScan(SCAN* pscan, SCAN* pscanBase)
 {
-	LO lo = *pscan;
-	*pscan = *pscanBase;
-	memcpy(pscan, &lo, sizeof(LO));
-
-	CloneLo(pscan, pscanBase);
+	ClonePnt(pscan, pscanBase);
+	
+	pscan->tbidCaption = pscanBase->tbidCaption;
 }
 
 void DeleteScan(SCAN* pscan)

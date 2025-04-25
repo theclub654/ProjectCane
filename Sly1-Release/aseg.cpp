@@ -292,11 +292,31 @@ void LoadAsegEventsFromBrx(CBinaryInputStream* pbis, int fFrame)
 
 void CloneAseg(ASEG* paseg, ASEG* pasegBase)
 {
-    LO lo = *paseg;
-    *paseg = *pasegBase;
-    memcpy(paseg, &lo, sizeof(LO));
-
     CloneLo(paseg, pasegBase);
+
+    paseg->tMax = pasegBase->tMax;
+    paseg->cchn = pasegBase->cchn;
+    paseg->achn = pasegBase->achn;
+    paseg->oidRoot = pasegBase->oidRoot;
+    paseg->segrpt = pasegBase->segrpt;
+    paseg->fDefault = pasegBase->fDefault;
+    paseg->fHandsOff = pasegBase->fHandsOff;
+    paseg->fRealClock = pasegBase->fRealClock;
+    paseg->ceaApply = pasegBase->ceaApply;
+    paseg->aeaApply = pasegBase->aeaApply;
+    paseg->ceaFrame = pasegBase->ceaFrame;
+    paseg->aeaFrame = pasegBase->aeaFrame;
+    paseg->ceaRetract = pasegBase->ceaRetract;
+    paseg->aeaRetract = pasegBase->aeaRetract;
+    paseg->dlAsega = pasegBase->dlAsega;
+    paseg->nPriority = pasegBase->nPriority;
+    paseg->svtMaster = pasegBase->svtMaster;
+    paseg->clqMasterSuck = pasegBase->clqMasterSuck;
+    paseg->lmMasterSuck = pasegBase->lmMasterSuck;
+    paseg->svtMasterSuck = pasegBase->svtMasterSuck;
+    paseg->pchnStrip = pasegBase->pchnStrip;
+    paseg->coidSearchRoot = pasegBase->coidSearchRoot;
+    paseg->aoidSearchRoot = pasegBase->aoidSearchRoot;
 }
 
 void ApplyAseg(ASEG* paseg, ALO* paloAsegRoot, float tLocal, float svtLocal, int grfapl, ASEGA** ppasega)

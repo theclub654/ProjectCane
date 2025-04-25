@@ -17,17 +17,24 @@ int GetHgSize()
 
 void CloneHg(HG* phg, HG* phgBase)
 {
-	LO lo = *phg;
-	*phg = *phgBase;
-	memcpy(phg, &lo, sizeof(LO));
+    CloneStep(phg, phgBase);
 
-	CloneLo(phg, phgBase);
+    phg->hgs = phgBase->hgs;
+    phg->tHgs = phgBase->tHgs;
+    phg->pasegaCur = phgBase->pasegaCur;
+    phg->swPan = phgBase->swPan;
+    phg->radBank = phgBase->radBank;
+    phg->radTilt = phgBase->radTilt;
 
-	ClearDl(&phg->dlChild);
+    // Clone ablrunRun array
+    for (int i = 0; i < 6; ++i)
+    {
+        phg->ablrunRun[i] = phgBase->ablrunRun[i];
+    }
 
-	phg->pxa = nullptr;
-	phg->grfpvaXpValid = 0;
-	phg->pstso = nullptr;
+    phg->pasegblRun = phgBase->pasegblRun;
+    phg->sffRun = phgBase->sffRun;
+    phg->pasegGlide = phgBase->pasegGlide;
 }
 
 void RenderHgSelf(HG* phg, CM* pcm, RO* pro)

@@ -17,17 +17,16 @@ int GetTzpSize()
 
 void CloneTzp(TZP* ptzp, TZP* ptzpBase)
 {
-	LO lo = *ptzp;
-	*ptzp = *ptzpBase;
-	memcpy(ptzp, &lo, sizeof(LO));
+	CloneSo(ptzp, ptzpBase);
 
-	CloneLo(ptzp, ptzpBase);
+	ptzp->zpd = ptzpBase->zpd;
 
-	ClearDl(&ptzp->dlChild);
-
-	ptzp->pxa = nullptr;
-	ptzp->grfpvaXpValid = 0;
-	ptzp->pstso = nullptr;
+	// Clone array of RZPR elements
+	ptzp->crzpr = ptzpBase->crzpr;
+	for (int i = 0; i < ptzp->crzpr; ++i)
+	{
+		ptzp->arzpr[i] = ptzpBase->arzpr[i];
+	}
 }
 
 void DeleteTzp(TZP *ptzp)
@@ -52,17 +51,7 @@ int GetVolzpSize()
 
 void CloneVolzp(VOLZP* pvolzp, VOLZP* pvolzpBase)
 {
-	LO lo = *pvolzp;
-	*pvolzp = *pvolzpBase;
-	memcpy(pvolzp, &lo, sizeof(LO));
-
-	CloneLo(pvolzp, pvolzpBase);
-
-	ClearDl(&pvolzp->dlChild);
-
-	pvolzp->pxa = nullptr;
-	pvolzp->grfpvaXpValid = 0;
-	pvolzp->pstso = nullptr;
+	CloneTzp(pvolzp, pvolzpBase);
 }
 
 void RenderTzpAll(TZP* ptzp, CM* pcm, RO* pro)

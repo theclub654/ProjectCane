@@ -251,7 +251,7 @@ struct VTALO
     void (*pfnRemoveLoRecursive) = nullptr;
     void (*pfnHandleAloMessage) = nullptr;
     void (*pfnSendLoMessage)(LO*, MSGID, void*) = SendLoMessage;
-    void (*pfnBindAlo) = nullptr;
+    void (*pfnBindAlo)(ALO*) = BindAlo;
     void (*pfnPostAloLoad) = nullptr;
     void (*pfnUpdateAlo)(ALO*, float) = UpdateAlo;
     void (*pfnUpdateAloXfWorld)(ALO*) = UpdateAloXfWorld;
@@ -312,7 +312,7 @@ struct VTSO
     void (*pfnRemoveLoRecursive) = nullptr;
     void (*pfnHandleAloMessage) = nullptr;
     void (*pfnSendSoMessage) = nullptr;
-    void (*pfnBindAlo) = nullptr;
+    void (*pfnBindAlo)(ALO*) = BindAlo;
     void (*pfnPostAloLoad) = nullptr;
     void (*pfnUpdateSo)(SO*, float) = UpdateSo;
     void (*pfnUpdateSoXfWorld)(SO*) = UpdateSoXfWorld;
@@ -398,7 +398,7 @@ struct VTMS
     void (*pfnRemoveLoRecursive) = nullptr;
     void (*pfnHandleAloMessage) = nullptr;
     void (*pfnSendSoMessage) = nullptr;
-    void (*pfnBindAlo) = nullptr;
+    void (*pfnBindAlo)(ALO*) = BindAlo;
     void (*pfnPostAloLoad) = nullptr;
     void (*pfnUpdateSo) = nullptr;
     void (*pfnUpdateSoXfWorld)(SO*) = UpdateSoXfWorld;
@@ -484,7 +484,7 @@ struct VTPO
     void (*pfnRemoveLoRecursive) = nullptr;
     void (*pfnHandlePoMessage) = nullptr;
     void (*pfnSendSoMessage) = nullptr;
-    void (*pfnBindAlo) = nullptr;
+    void (*pfnBindAlo)(ALO*) = BindAlo;
     void (*pfnPostAloLoad) = nullptr;
     void (*pfnUpdatePo) = nullptr;
     void (*pfnUpdateSoXfWorld)(SO*) = UpdateSoXfWorld;
@@ -581,7 +581,7 @@ struct VTSTEP
     void (*pfnRemoveLoRecursive) = nullptr;
     void (*pfnHandlePoMessage) = nullptr;
     void (*pfnSendSoMessage) = nullptr;
-    void (*pfnBindAlo) = nullptr;
+    void (*pfnBindAlo)(ALO*) = BindAlo;
     void (*pfnPostStepLoad) = nullptr;
     void (*pfnUpdateStep) = nullptr;
     void (*pfnUpdateStepXfWorld) (STEP*) = UpdateStepXfWorld;
@@ -681,7 +681,7 @@ struct VTJT
     void (*pfnRemoveLoRecursive) = nullptr;
     void (*pfnHandleJtMessage) = nullptr;
     void (*pfnSendSoMessage) = nullptr;
-    void (*pfnBindAlo) = nullptr;
+    void (*pfnBindAlo)(ALO*) = BindAlo;
     void (*pfnPostJtLoad) = nullptr;
     void (*pfnUpdateJt) = nullptr;
     void (*pfnUpdateStepXfWorld) (STEP*) = UpdateStepXfWorld;
@@ -781,7 +781,7 @@ struct VTSTEPGUARD
     void (*pfnRemoveLoRecursive) = nullptr;
     void (*pfnHandleStepguardMessage) = nullptr;
     void (*pfnSendSoMessage) = nullptr;
-    void (*pfnBindStepguard) = nullptr;
+    void (*pfnBindStepguard)(STEPGUARD*) = BindStepguard;
     void (*pfnPostStepguardLoad) = nullptr;
     void (*pfnUpdateStepguard) = nullptr;
     void (*pfnUpdateStepXfWorld) (STEP*) = UpdateStepXfWorld;
@@ -2002,7 +2002,7 @@ struct VTTANK
     void (*pfnRemoveLoRecursive) = nullptr;
     void (*pfnHandleTankMessage) = nullptr;
     void (*pfnSendSoMessage) = nullptr;
-    void (*pfnBindAlo) = nullptr;
+    void (*pfnBindAlo)(ALO*) = BindAlo;
     void (*pfnPostTankLoad) = nullptr;
     void (*pfnUpdateTank) = nullptr;
     void (*pfnUpdateStepXfWorld) (STEP*) = UpdateStepXfWorld;
@@ -2102,7 +2102,7 @@ struct VTJP
     void (*pfnRemoveLoRecursive) = nullptr;
     void (*pfnHandleJpMessage) = nullptr;
     void (*pfnSendSoMessage) = nullptr;
-    void (*pfnBindAlo) = nullptr;
+    void (*pfnBindAlo)(ALO*) = BindAlo;
     void (*pfnPostJpLoad) = nullptr;
     void (*pfnUpdateJp) = nullptr;
     void (*pfnUpdateStepXfWorld) (STEP*) = UpdateStepXfWorld;
@@ -2202,7 +2202,7 @@ struct VTHG
     void (*pfnRemoveLoRecursive) = nullptr;
     void (*pfnHandlePoMessage) = nullptr;
     void (*pfnSendSoMessage) = nullptr;
-    void (*pfnBindAlo) = nullptr;
+    void (*pfnBindAlo)(ALO*) = BindAlo;
     void (*pfnPostHgLoad) = nullptr;
     void (*pfnUpdateHg) = nullptr;
     void (*pfnUpdateStepXfWorld) (STEP*) = UpdateStepXfWorld;
@@ -2302,7 +2302,7 @@ struct VTMECHA
     void (*pfnRemoveLoRecursive) = nullptr;
     void (*pfnHandleMechaMessage) = nullptr;
     void (*pfnSendSoMessage) = nullptr;
-    void (*pfnBindAlo) = nullptr;
+    void (*pfnBindAlo)(ALO*) = BindAlo;
     void (*pfnPostMechaLoad) = nullptr;
     void (*pfnUpdateMecha) = nullptr;
     void (*pfnUpdateStepXfWorld) (STEP*) = UpdateStepXfWorld;
@@ -2402,7 +2402,7 @@ struct VTROV
     void (*pfnRemoveLoRecursive) = nullptr;
     void (*pfnHandleRovMessage) = nullptr;
     void (*pfnSendSoMessage) = nullptr;
-    void (*pfnBindAlo) = nullptr;
+    void (*pfnBindAlo)(ALO*) = BindAlo;
     void (*pfnPostRovLoad) = nullptr;
     void (*pfnUpdateRov) = nullptr;
     void (*pfnUpdateSoXfWorld)(SO*) = UpdateSoXfWorld;
@@ -2499,7 +2499,7 @@ struct VTTURRET
     void (*pfnRemoveLoRecursive) = nullptr;
     void (*pfnHandleTurretMessage) = nullptr;
     void (*pfnSendSoMessage) = nullptr;
-    void (*pfnBindAlo) = nullptr;
+    void (*pfnBindAlo)(ALO*) = BindAlo;
     void (*pfnPostTurretLoad) = nullptr;
     void (*pfnUpdateTurret) = nullptr;
     void (*pfnUpdateSoXfWorld)(SO*) = UpdateSoXfWorld;
@@ -2596,7 +2596,7 @@ struct VTVAULT
     void (*pfnRemoveLoRecursive) = nullptr;
     void (*pfnHandleVaultMessage) = nullptr;
     void (*pfnSendSoMessage) = nullptr;
-    void (*pfnBindAlo) = nullptr;
+    void (*pfnBindAlo)(ALO*) = BindAlo;
     void (*pfnPostVaultLoad) = nullptr;
     void (*pfnUpdatePo) = nullptr;
     void (*pfnUpdateSoXfWorld)(SO*) = UpdateSoXfWorld;
@@ -2693,7 +2693,7 @@ struct VTPUFFER
     void (*pfnRemoveLoRecursive) = nullptr;
     void (*pfnHandlePufferMessage) = nullptr;
     void (*pfnSendSoMessage) = nullptr;
-    void (*pfnBindAlo) = nullptr;
+    void (*pfnBindAlo)(ALO*) = BindAlo;
     void (*pfnPostPufferLoad) = nullptr;
     void (*pfnUpdatePuffer) = nullptr;
     void (*pfnUpdateSoXfWorld)(SO*) = UpdateSoXfWorld;
@@ -2790,7 +2790,7 @@ struct VTMGV
     void (*pfnRemoveLoRecursive) = nullptr;
     void (*pfnHandleMgvMessage) = nullptr;
     void (*pfnSendSoMessage) = nullptr;
-    void (*pfnBindAlo) = nullptr;
+    void (*pfnBindAlo)(ALO*) = BindAlo;
     void (*pfnPostMgvLoad) = nullptr;
     void (*pfnUpdatePo) = nullptr;
     void (*pfnUpdateSoXfWorld)(SO*) = UpdateSoXfWorld;
@@ -2887,7 +2887,7 @@ struct VTSUV
     void (*pfnRemoveLoRecursive) = nullptr;
     void (*pfnHandleSuvMessage) = nullptr;
     void (*pfnSendSoMessage) = nullptr;
-    void (*pfnBindAlo) = nullptr;
+    void (*pfnBindAlo)(ALO*) = BindAlo;
     void (*pfnPostSuvLoad) = nullptr;
     void (*pfnUpdateSuv) = nullptr;
     void (*pfnUpdateSuvXfWorld)(SUV*) = UpdateSuvXfWorld;
@@ -2984,7 +2984,7 @@ struct VTCYCLE
     void (*pfnRemoveLoRecursive) = nullptr;
     void (*pfnHandlePoMessage) = nullptr;
     void (*pfnSendSoMessage) = nullptr;
-    void (*pfnBindAlo) = nullptr;
+    void (*pfnBindAlo)(ALO*) = BindAlo;
     void (*pfnPostCycleLoad) = nullptr;
     void (*pfnUpdateCycle) = nullptr;
     void (*pfnUpdateCycleXfWorld)(CYCLE*) = UpdateCycleXfWorld;
@@ -3081,7 +3081,7 @@ struct VTLGN
     void (*pfnRemoveLoRecursive) = nullptr;
     void (*pfnHandleLgnMessage) = nullptr;
     void (*pfnSendSoMessage) = nullptr;
-    void (*pfnBindAlo) = nullptr;
+    void (*pfnBindAlo)(ALO*) = BindAlo;
     void (*pfnPostLgnLoad) = nullptr;
     void (*pfnUpdateLgn) = nullptr;
     void (*pfnUpdateSoXfWorld)(SO*) = UpdateSoXfWorld;
@@ -3178,7 +3178,7 @@ struct VTJACK
     void (*pfnRemoveLoRecursive) = nullptr;
     void (*pfnHandlePoMessage) = nullptr;
     void (*pfnSendSoMessage) = nullptr;
-    void (*pfnBindAlo) = nullptr;
+    void (*pfnBindAlo)(ALO*) = BindAlo;
     void (*pfnPostJackLoad) = nullptr;
     void (*pfnUpdatePo) = nullptr;
     void (*pfnUpdateSoXfWorld)(SO*) = UpdateSoXfWorld;
@@ -3275,7 +3275,7 @@ struct VTRIPG
     void (*pfnRemoveLoRecursive) = nullptr;
     void (*pfnHandleAloMessage) = nullptr;
     void (*pfnSendSoMessage) = nullptr;
-    void (*pfnBindAlo) = nullptr;
+    void (*pfnBindAlo)(ALO*) = BindAlo;
     void (*pfnPostAloLoad) = nullptr;
     void (*pfnUpdateRipg) = nullptr;
     void (*pfnUpdateSoXfWorld)(SO*) = UpdateSoXfWorld;
@@ -3361,7 +3361,7 @@ struct VTWATER
     void (*pfnRemoveLoRecursive) = nullptr;
     void (*pfnHandleWaterMessage) = nullptr;
     void (*pfnSendSoMessage) = nullptr;
-    void (*pfnBindAlo) = nullptr;
+    void (*pfnBindAlo)(ALO*) = BindAlo;
     void (*pfnPostWaterLoad) = nullptr;
     void (*pfnUpdateWater) = nullptr;
     void (*pfnUpdateSoXfWorld)(SO*) = UpdateSoXfWorld;
@@ -3447,7 +3447,7 @@ struct VTBRK
     void (*pfnRemoveLoRecursive) = nullptr;
     void (*pfnHandleAloMessage) = nullptr;
     void (*pfnSendSoMessage) = nullptr;
-    void (*pfnBindAlo) = nullptr;
+    void (*pfnBindAlo)(ALO*) = BindAlo;
     void (*pfnPostBrkLoad) = nullptr;
     void (*pfnUpdateBrk) = nullptr;
     void (*pfnUpdateSoXfWorld)(SO*) = UpdateSoXfWorld;
@@ -3534,7 +3534,7 @@ struct VTBREAK
     void (*pfnRemoveLoRecursive) = nullptr;
     void (*pfnHandleAloMessage) = nullptr;
     void (*pfnSendSoMessage) = nullptr;
-    void (*pfnBindAlo) = nullptr;
+    void (*pfnBindAlo)(ALO*) = BindAlo;
     void (*pfnPostBrkLoad) = nullptr;
     void (*pfnUpdateBrk) = nullptr;
     void (*pfnUpdateSoXfWorld)(SO*) = UpdateSoXfWorld;
@@ -3621,7 +3621,7 @@ struct VTALBRK
     void (*pfnRemoveLoRecursive) = nullptr;
     void (*pfnHandleAloMessage) = nullptr;
     void (*pfnSendSoMessage) = nullptr;
-    void (*pfnBindAlo) = nullptr;
+    void (*pfnBindAlo)(ALO*) = BindAlo;
     void (*pfnPostBrkLoad) = nullptr;
     void (*pfnUpdateBrk) = nullptr;
     void (*pfnUpdateSoXfWorld)(SO*) = UpdateSoXfWorld;
@@ -3708,7 +3708,7 @@ struct VTCAN
     void (*pfnRemoveLoRecursive) = nullptr;
     void (*pfnHandleAloMessage) = nullptr;
     void (*pfnSendSoMessage) = nullptr;
-    void (*pfnBindAlo) = nullptr;
+    void (*pfnBindAlo)(ALO*) = BindAlo;
     void (*pfnPostCanLoad) = nullptr;
     void (*pfnUpdateCan) = nullptr;
     void (*pfnUpdateSoXfWorld)(SO*) = UpdateSoXfWorld;
@@ -3795,7 +3795,7 @@ struct VTDARTGUN
     void (*pfnRemoveLoRecursive) = nullptr;
     void (*pfnHandleDartgunMessage) = nullptr;
     void (*pfnSendSoMessage) = nullptr;
-    void (*pfnBindDartgun) = nullptr;
+    void (*pfnBindDartgun)(DARTGUN*) = BindDartgun;
     void (*pfnPostDartgunLoad) = nullptr;
     void (*pfnUpdateDartgun) = nullptr;
     void (*pfnUpdateSoXfWorld)(SO*) = UpdateSoXfWorld;
@@ -3882,7 +3882,7 @@ struct VTSWP
     void (*pfnRemoveLoRecursive) = nullptr;
     void (*pfnHandleAloMessage) = nullptr;
     void (*pfnSendSoMessage) = nullptr;
-    void (*pfnBindAlo) = nullptr;
+    void (*pfnBindAlo)(ALO*) = BindAlo;
     void (*pfnPostSwpLoad) = nullptr;
     void (*pfnUpdateSwp) = nullptr;
     void (*pfnUpdateSoXfWorld)(SO*) = UpdateSoXfWorld;
@@ -3969,7 +3969,7 @@ struct VTFRAGILE
     void (*pfnRemoveLoRecursive) = nullptr;
     void (*pfnHandleAloMessage) = nullptr;
     void (*pfnSendSoMessage) = nullptr;
-    void (*pfnBindAlo) = nullptr;
+    void (*pfnBindAlo)(ALO*) = BindAlo;
     void (*pfnPostBrkLoad) = nullptr;
     void (*pfnUpdateBrk) = nullptr;
     void (*pfnUpdateSoXfWorld)(SO*) = UpdateSoXfWorld;
@@ -4056,7 +4056,7 @@ struct VTZAPBREAK
     void (*pfnRemoveLoRecursive) = nullptr;
     void (*pfnHandleAloMessage) = nullptr;
     void (*pfnSendSoMessage) = nullptr;
-    void (*pfnBindAlo) = nullptr;
+    void (*pfnBindAlo)(ALO*) = BindAlo;
     void (*pfnPostBrkLoad) = nullptr;
     void (*pfnUpdateZapbreak) = nullptr;
     void (*pfnUpdateSoXfWorld)(SO*) = UpdateSoXfWorld;
@@ -4143,7 +4143,7 @@ struct VTBRKP
     void (*pfnRemoveLoRecursive) = nullptr;
     void (*pfnHandleBrkpMessage) = nullptr;
     void (*pfnSendSoMessage) = nullptr;
-    void (*pfnBindAlo) = nullptr;
+    void (*pfnBindAlo)(ALO*) = BindAlo;
     void (*pfnPostAloLoad) = nullptr;
     void (*pfnUpdateBrkp) = nullptr;
     void (*pfnUpdateSoXfWorld)(SO*) = UpdateSoXfWorld;
@@ -4229,7 +4229,7 @@ struct VTBUTTON
     void (*pfnRemoveLoRecursive) = nullptr;
     void (*pfnHandleAloMessage) = nullptr;
     void (*pfnSendSoMessage) = nullptr;
-    void (*pfnBindAlo) = nullptr;
+    void (*pfnBindAlo)(ALO*) = BindAlo;
     void (*pfnPostButtonLoad) = nullptr;
     void (*pfnUpdateButton) = nullptr;
     void (*pfnUpdateSoXfWorld)(SO*) = UpdateSoXfWorld;
@@ -4315,7 +4315,7 @@ struct VTVOLBTN
     void (*pfnRemoveLoRecursive) = nullptr;
     void (*pfnHandleAloMessage) = nullptr;
     void (*pfnSendSoMessage) = nullptr;
-    void (*pfnBindAlo) = nullptr;
+    void (*pfnBindAlo)(ALO*) = BindAlo;
     void (*pfnPostVolbtnLoad) = nullptr;
     void (*pfnUpdateVolbtn) = nullptr;
     void (*pfnUpdateSoXfWorld)(SO*) = UpdateSoXfWorld;
@@ -4401,7 +4401,7 @@ struct VTJLOVOL
     void (*pfnRemoveLoRecursive) = nullptr;
     void (*pfnHandleJlovolMessage) = nullptr;
     void (*pfnSendSoMessage) = nullptr;
-    void (*pfnBindJlovol) = nullptr;
+    void (*pfnBindJlovol)(JLOVOL*) = BindJlovol;
     void (*pfnPostVolbtnLoad) = nullptr;
     void (*pfnUpdateVolbtn) = nullptr;
     void (*pfnUpdateSoXfWorld)(SO*) = UpdateSoXfWorld;
@@ -4487,7 +4487,7 @@ struct VTSQUISH
     void (*pfnRemoveLoRecursive) = nullptr;
     void (*pfnHandleAloMessage) = nullptr;
     void (*pfnSendSoMessage) = nullptr;
-    void (*pfnBindAlo) = nullptr;
+    void (*pfnBindAlo)(ALO*) = BindAlo;
     void (*pfnPostAloLoad) = nullptr;
     void (*pfnUpdateSquish) = nullptr;
     void (*pfnUpdateSoXfWorld)(SO*) = UpdateSoXfWorld;
@@ -4573,7 +4573,7 @@ struct VTBONE
     void (*pfnRemoveLoRecursive) = nullptr;
     void (*pfnHandleAloMessage) = nullptr;
     void (*pfnSendSoMessage) = nullptr;
-    void (*pfnBindAlo) = nullptr;
+    void (*pfnBindAlo)(ALO*) = BindAlo;
     void (*pfnPostAloLoad) = nullptr;
     void (*pfnUpdateSo) = nullptr;
     void (*pfnUpdateSoXfWorld)(SO*) = UpdateSoXfWorld;
@@ -4659,7 +4659,7 @@ struct VTSPRIZE
     void (*pfnRemoveLoRecursive) = nullptr;
     void (*pfnHandleSprizeMessage) = nullptr;
     void (*pfnSendSoMessage) = nullptr;
-    void (*pfnBindSprize) = nullptr;
+    void (*pfnBindSprize)(SPRIZE*) = BindSprize;
     void (*pfnPostSprizeLoad) = nullptr;
     void (*pfnUpdateSprize) = nullptr;
     void (*pfnUpdateSoXfWorld)(SO*) = UpdateSoXfWorld;
@@ -5015,7 +5015,7 @@ struct VTALARM
     void (*pfnRemoveLoRecursive) = nullptr;
     void (*pfnHandleAloMessage) = nullptr;
     void (*pfnSendSoMessage) = nullptr;
-    void (*pfnBindAlo) = nullptr;
+    void (*pfnBindAlo)(ALO*) = BindAlo;
     void (*pfnPostAlarmLoad) = nullptr;
     void (*pfnUpdateAlarm) = nullptr;
     void (*pfnUpdateSoXfWorld)(SO*) = UpdateSoXfWorld;
@@ -5101,7 +5101,7 @@ struct VTSENSOR
     void (*pfnRemoveLoRecursive) = nullptr;
     void (*pfnHandleAloMessage) = nullptr;
     void (*pfnSendSoMessage) = nullptr;
-    void (*pfnBindAlo) = nullptr;
+    void (*pfnBindAlo)(ALO*) = BindAlo;
     void (*pfnPostAloLoad) = nullptr;
     void (*pfnUpdateSensor) = nullptr;
     void (*pfnUpdateSoXfWorld)(SO*) = UpdateSoXfWorld;
@@ -5193,7 +5193,7 @@ struct VTLASEN
     void (*pfnRemoveLoRecursive) = nullptr;
     void (*pfnHandleAloMessage) = nullptr;
     void (*pfnSendSoMessage) = nullptr;
-    void (*pfnBindLasen) = nullptr;
+    void (*pfnBindLasen)(LASEN*) = BindLasen;
     void (*pfnPostLasenLoad) = nullptr;
     void (*pfnUpdateLasen) = nullptr;
     void (*pfnUpdateSoXfWorld)(SO*) = UpdateSoXfWorld;
@@ -5285,7 +5285,7 @@ struct VTCAMSEN
     void (*pfnRemoveLoRecursive) = nullptr;
     void (*pfnHandleAloMessage) = nullptr;
     void (*pfnSendSoMessage) = nullptr;
-    void (*pfnBindAlo) = nullptr;
+    void (*pfnBindAlo)(ALO*) = BindAlo;
     void (*pfnPostCamsenLoad) = nullptr;
     void (*pfnUpdateCamsen) = nullptr;
     void (*pfnUpdateSoXfWorld)(SO*) = UpdateSoXfWorld;
@@ -5377,7 +5377,7 @@ struct VTPRSEN
     void (*pfnRemoveLoRecursive) = nullptr;
     void (*pfnHandleAloMessage) = nullptr;
     void (*pfnSendSoMessage) = nullptr;
-    void (*pfnBindAlo) = nullptr;
+    void (*pfnBindAlo)(ALO*) = BindAlo;
     void (*pfnPostPrsenLoad) = nullptr;
     void (*pfnUpdatePrsen) = nullptr;
     void (*pfnUpdateSoXfWorld)(SO*) = UpdateSoXfWorld;
@@ -5469,7 +5469,7 @@ struct VTBARRIER
     void (*pfnRemoveLoRecursive) = nullptr;
     void (*pfnHandleAloMessage) = nullptr;
     void (*pfnSendSoMessage) = nullptr;
-    void (*pfnBindAlo) = nullptr;
+    void (*pfnBindAlo)(ALO*) = BindAlo;
     void (*pfnPostBarrierLoad) = nullptr;
     void (*pfnUpdateBarrier) = nullptr;
     void (*pfnUpdateSoXfWorld)(SO*) = UpdateSoXfWorld;
@@ -5555,7 +5555,7 @@ struct VTIKH
     void (*pfnRemoveLoRecursive) = nullptr;
     void (*pfnHandleAloMessage) = nullptr;
     void (*pfnSendSoMessage) = nullptr;
-    void (*pfnBindAlo) = nullptr;
+    void (*pfnBindAlo)(ALO*) = BindAlo;
     void (*pfnPostAloLoad) = nullptr;
     void (*pfnUpdateSo) = nullptr;
     void (*pfnUpdateSoXfWorld)(SO*) = UpdateSoXfWorld;
@@ -5641,7 +5641,7 @@ struct VTTZP
     void (*pfnRemoveLoRecursive) = nullptr;
     void (*pfnHandleAloMessage) = nullptr;
     void (*pfnSendSoMessage) = nullptr;
-    void (*pfnBindAlo) = nullptr;
+    void (*pfnBindAlo)(ALO*) = BindAlo;
     void (*pfnPostTzpLoad) = nullptr;
     void (*pfnUpdateTzp) = nullptr;
     void (*pfnUpdateSoXfWorld)(SO*) = UpdateSoXfWorld;
@@ -5727,7 +5727,7 @@ struct VTVOLZP
     void (*pfnRemoveLoRecursive) = nullptr;
     void (*pfnHandleAloMessage) = nullptr;
     void (*pfnSendSoMessage) = nullptr;
-    void (*pfnBindAlo) = nullptr;
+    void (*pfnBindAlo)(ALO*) = BindAlo;
     void (*pfnPostTzpLoad) = nullptr;
     void (*pfnUpdateVolzp) = nullptr;
     void (*pfnUpdateSoXfWorld)(SO*) = UpdateSoXfWorld;
@@ -5813,7 +5813,7 @@ struct VTCNVO
     void (*pfnRemoveLoRecursive) = nullptr;
     void (*pfnHandleAloMessage) = nullptr;
     void (*pfnSendSoMessage) = nullptr;
-    void (*pfnBindAlo) = nullptr;
+    void (*pfnBindAlo)(ALO*) = BindAlo;
     void (*pfnPostCnvoLoad) = nullptr;
     void (*pfnUpdateSo) = nullptr;
     void (*pfnUpdateSoXfWorld)(SO*) = UpdateSoXfWorld;
@@ -5899,7 +5899,7 @@ struct VTHBSK
     void (*pfnRemoveLoRecursive) = nullptr;
     void (*pfnHandleAloMessage) = nullptr;
     void (*pfnSendSoMessage) = nullptr;
-    void (*pfnBindAlo) = nullptr;
+    void (*pfnBindAlo)(ALO*) = BindAlo;
     void (*pfnPostAloLoad) = nullptr;
     void (*pfnUpdateSo) = nullptr;
     void (*pfnUpdateSoXfWorld)(SO*) = UpdateSoXfWorld;
@@ -5985,7 +5985,7 @@ struct VTBOMB
     void (*pfnRemoveLoRecursive) = nullptr;
     void (*pfnHandleBombMessage) = nullptr;
     void (*pfnSendSoMessage) = nullptr;
-    void (*pfnBindAlo) = nullptr;
+    void (*pfnBindAlo)(ALO*) = BindAlo;
     void (*pfnPostBombLoad) = nullptr;
     void (*pfnUpdateBomb) = nullptr;
     void (*pfnUpdateSoXfWorld)(SO*) = UpdateSoXfWorld;
@@ -6071,7 +6071,7 @@ struct VTMISSILE
     void (*pfnRemoveLoRecursive) = nullptr;
     void (*pfnHandleBombMessage) = nullptr;
     void (*pfnSendSoMessage) = nullptr;
-    void (*pfnBindAlo) = nullptr;
+    void (*pfnBindAlo)(ALO*) = BindAlo;
     void (*pfnPostBombLoad) = nullptr;
     void (*pfnUpdateBomb) = nullptr;
     void (*pfnUpdateSoXfWorld)(SO*) = UpdateSoXfWorld;
@@ -6158,7 +6158,7 @@ struct VTACCMISS
     void (*pfnRemoveLoRecursive) = nullptr;
     void (*pfnHandleBombMessage) = nullptr;
     void (*pfnSendSoMessage) = nullptr;
-    void (*pfnBindAlo) = nullptr;
+    void (*pfnBindAlo)(ALO*) = BindAlo;
     void (*pfnPostBombLoad) = nullptr;
     void (*pfnUpdateBomb) = nullptr;
     void (*pfnUpdateSoXfWorld)(SO*) = UpdateSoXfWorld;
@@ -6245,7 +6245,7 @@ struct VTTARMISS
     void (*pfnRemoveLoRecursive) = nullptr;
     void (*pfnHandleBombMessage) = nullptr;
     void (*pfnSendSoMessage) = nullptr;
-    void (*pfnBindAlo) = nullptr;
+    void (*pfnBindAlo)(ALO*) = BindAlo;
     void (*pfnPostBombLoad) = nullptr;
     void (*pfnUpdateTarmiss) = nullptr;
     void (*pfnUpdateSoXfWorld)(SO*) = UpdateSoXfWorld;
@@ -6332,7 +6332,7 @@ struct VTSPLMISS
     void (*pfnRemoveLoRecursive) = nullptr;
     void (*pfnHandleBombMessage) = nullptr;
     void (*pfnSendSoMessage) = nullptr;
-    void (*pfnBindAlo) = nullptr;
+    void (*pfnBindAlo)(ALO*) = BindAlo;
     void (*pfnPostBombLoad) = nullptr;
     void (*pfnUpdateBomb) = nullptr;
     void (*pfnUpdateSoXfWorld)(SO*) = UpdateSoXfWorld;
@@ -6419,7 +6419,7 @@ struct VTGROUNDMISS
     void (*pfnRemoveLoRecursive) = nullptr;
     void (*pfnHandleBombMessage) = nullptr;
     void (*pfnSendSoMessage) = nullptr;
-    void (*pfnBindAlo) = nullptr;
+    void (*pfnBindAlo)(ALO*) = BindAlo;
     void (*pfnPostBombLoad) = nullptr;
     void (*pfnUpdateBomb) = nullptr;
     void (*pfnUpdateSoXfWorld)(SO*) = UpdateSoXfWorld;
@@ -6506,7 +6506,7 @@ struct VTFLY
     void (*pfnRemoveLoRecursive) = nullptr;
     void (*pfnHandleAloMessage) = nullptr;
     void (*pfnSendSoMessage) = nullptr;
-    void (*pfnBindAlo) = nullptr;
+    void (*pfnBindAlo)(ALO*) = BindAlo;
     void (*pfnPostFlyLoad) = nullptr;
     void (*pfnUpdateFly) = nullptr;
     void (*pfnUpdateSoXfWorld)(SO*) = UpdateSoXfWorld;
@@ -6592,7 +6592,7 @@ struct VTRAT
     void (*pfnRemoveLoRecursive) = nullptr;
     void (*pfnHandleAloMessage) = nullptr;
     void (*pfnSendSoMessage) = nullptr;
-    void (*pfnBindAlo) = nullptr;
+    void (*pfnBindAlo)(ALO*) = BindAlo;
     void (*pfnPostRatLoad) = nullptr;
     void (*pfnUpdateRat) = nullptr;
     void (*pfnUpdateSoXfWorld)(SO*) = UpdateSoXfWorld;
@@ -6678,7 +6678,7 @@ struct VTROH
     void (*pfnRemoveLoRecursive) = nullptr;
     void (*pfnHandleAloMessage) = nullptr;
     void (*pfnSendSoMessage) = nullptr;
-    void (*pfnBindAlo) = nullptr;
+    void (*pfnBindAlo)(ALO*) = BindAlo;
     void (*pfnPostRohLoad) = nullptr;
     void (*pfnUpdateRoh) = nullptr;
     void (*pfnUpdateSoXfWorld)(SO*) = UpdateSoXfWorld;
@@ -6764,7 +6764,7 @@ struct VTROC
     void (*pfnRemoveLoRecursive) = nullptr;
     void (*pfnHandleAloMessage) = nullptr;
     void (*pfnSendSoMessage) = nullptr;
-    void (*pfnBindAlo) = nullptr;
+    void (*pfnBindAlo)(ALO*) = BindAlo;
     void (*pfnPostRocLoad) = nullptr;
     void (*pfnUpdateRoc) = nullptr;
     void (*pfnUpdateSoXfWorld)(SO*) = UpdateSoXfWorld;
@@ -6850,7 +6850,7 @@ struct VTROST
     void (*pfnRemoveLoRecursive) = nullptr;
     void (*pfnHandleAloMessage) = nullptr;
     void (*pfnSendSoMessage) = nullptr;
-    void (*pfnBindAlo) = nullptr;
+    void (*pfnBindAlo)(ALO*) = BindAlo;
     void (*pfnPostRostLoad) = nullptr;
     void (*pfnUpdateRost) = nullptr;
     void (*pfnUpdateSoXfWorld)(SO*) = UpdateSoXfWorld;
@@ -6936,7 +6936,7 @@ struct VTROP
     void (*pfnRemoveLoRecursive) = nullptr;
     void (*pfnHandleAloMessage) = nullptr;
     void (*pfnSendSoMessage) = nullptr;
-    void (*pfnBindAlo) = nullptr;
+    void (*pfnBindAlo)(ALO*) = BindAlo;
     void (*pfnPostRopLoad) = nullptr;
     void (*pfnUpdateRop) = nullptr;
     void (*pfnUpdateSoXfWorld)(SO*) = UpdateSoXfWorld;
@@ -7022,7 +7022,7 @@ struct VTDART
     void (*pfnRemoveLoRecursive) = nullptr;
     void (*pfnHandleDartMessage) = nullptr;
     void (*pfnSendSoMessage) = nullptr;
-    void (*pfnBindAlo) = nullptr;
+    void (*pfnBindAlo)(ALO*) = BindAlo;
     void (*pfnPostDartLoad) = nullptr;
     void (*pfnUpdateDart) = nullptr;
     void (*pfnUpdateSoXfWorld)(SO*) = UpdateSoXfWorld;
@@ -7108,7 +7108,7 @@ struct VTUBV
     void (*pfnRemoveLoRecursive) = nullptr;
     void (*pfnHandleAloMessage) = nullptr;
     void (*pfnSendSoMessage) = nullptr;
-    void (*pfnBindAlo) = nullptr;
+    void (*pfnBindAlo)(ALO*) = BindAlo;
     void (*pfnPostUbvLoad) = nullptr;
     void (*pfnUpdateUbv) = nullptr;
     void (*pfnUpdateSoXfWorld)(SO*) = UpdateSoXfWorld;
@@ -7194,7 +7194,7 @@ struct VTUBP
     void (*pfnRemoveLoRecursive) = nullptr;
     void (*pfnHandleAloMessage) = nullptr;
     void (*pfnSendSoMessage) = nullptr;
-    void (*pfnBindAlo) = nullptr;
+    void (*pfnBindAlo)(ALO*) = BindAlo;
     void (*pfnPostUbpLoad) = nullptr;
     void (*pfnUpdateUbp) = nullptr;
     void (*pfnUpdateSoXfWorld)(SO*) = UpdateSoXfWorld;
@@ -7280,7 +7280,7 @@ struct VTDSP
     void (*pfnRemoveLoRecursive) = nullptr;
     void (*pfnHandleAloMessage) = nullptr;
     void (*pfnSendSoMessage) = nullptr;
-    void (*pfnBindAlo) = nullptr;
+    void (*pfnBindAlo)(ALO*) = BindAlo;
     void (*pfnPostDspLoad) = nullptr;
     void (*pfnUpdateDsp) = nullptr;
     void (*pfnUpdateSoXfWorld)(SO*) = UpdateSoXfWorld;
@@ -7366,7 +7366,7 @@ struct VTJLO
     void (*pfnRemoveLoRecursive) = nullptr;
     void (*pfnHandleJloMessage) = nullptr;
     void (*pfnSendSoMessage) = nullptr;
-    void (*pfnBindAlo) = nullptr;
+    void (*pfnBindAlo)(ALO*) = BindAlo;
     void (*pfnPostJloLoad) = nullptr;
     void (*pfnUpdateJlo) = nullptr;
     void (*pfnUpdateSoXfWorld)(SO*) = UpdateSoXfWorld;
@@ -7452,7 +7452,7 @@ struct VTPUFFT
     void (*pfnRemoveLoRecursive) = nullptr;
     void (*pfnHandleAloMessage) = nullptr;
     void (*pfnSendSoMessage) = nullptr;
-    void (*pfnBindAlo) = nullptr;
+    void (*pfnBindAlo)(ALO*) = BindAlo;
     void (*pfnPostPufftLoad) = nullptr;
     void (*pfnUpdateSo) = nullptr;
     void (*pfnUpdateSoXfWorld)(SO*) = UpdateSoXfWorld;
@@ -7538,7 +7538,7 @@ struct VTMRKV
     void (*pfnRemoveLoRecursive) = nullptr;
     void (*pfnHandleAloMessage) = nullptr;
     void (*pfnSendSoMessage) = nullptr;
-    void (*pfnBindAlo) = nullptr;
+    void (*pfnBindAlo)(ALO*) = BindAlo;
     void (*pfnPostAloLoad) = nullptr;
     void (*pfnUpdateSo) = nullptr;
     void (*pfnUpdateSoXfWorld)(SO*) = UpdateSoXfWorld;
@@ -7624,7 +7624,7 @@ struct VTLGNB
     void (*pfnRemoveLoRecursive) = nullptr;
     void (*pfnHandleAloMessage) = nullptr;
     void (*pfnSendSoMessage) = nullptr;
-    void (*pfnBindAlo) = nullptr;
+    void (*pfnBindAlo)(ALO*) = BindAlo;
     void (*pfnPostLgnbLoad) = nullptr;
     void (*pfnUpdateLgnb) = nullptr;
     void (*pfnUpdateSoXfWorld)(SO*) = UpdateSoXfWorld;
@@ -7710,7 +7710,7 @@ struct VTBLIPG
     void (*pfnRemoveLoRecursive) = nullptr;
     void (*pfnHandleAloMessage) = nullptr;
     void (*pfnSendLoMessage)(LO*, MSGID, void*) = SendLoMessage;
-    void (*pfnBindAlo) = nullptr;
+    void (*pfnBindAlo)(ALO*) = BindAlo;
     void (*pfnPostAloLoad) = nullptr;
     void (*pfnUpdateBlipg) = nullptr;
     void (*pfnUpdateAloXfWorld)(ALO*) = UpdateAloXfWorld;
@@ -7771,7 +7771,7 @@ struct VTCAMERA
     void (*pfnRemoveLoRecursive) = nullptr;
     void (*pfnHandleAloMessage) = nullptr;
     void (*pfnSendLoMessage)(LO*, MSGID, void*) = SendLoMessage;
-    void (*pfnBindAlo) = nullptr;
+    void (*pfnBindAlo)(ALO*) = BindAlo;
     void (*pfnPostCameraLoad) = nullptr;
     void (*pfnUpdateAlo)(ALO*, float) = UpdateAlo;
     void (*pfnUpdateAloXfWorld)(ALO*) = UpdateAloXfWorld;;
@@ -7832,7 +7832,7 @@ struct VTLBONE
     void (*pfnRemoveLoRecursive) = nullptr;
     void (*pfnHandleAloMessage) = nullptr;
     void (*pfnSendLoMessage)(LO*, MSGID, void*) = SendLoMessage;
-    void (*pfnBindAlo) = nullptr;
+    void (*pfnBindAlo)(ALO*) = BindAlo;
     void (*pfnPostAloLoad) = nullptr;
     void (*pfnUpdateAlo)(ALO*, float) = UpdateAlo;
     void (*pfnUpdateAloXfWorld)(ALO*) = UpdateAloXfWorld;;
@@ -7893,7 +7893,7 @@ struct VTEMITTER
     void (*pfnRemoveLoRecursive) = nullptr;
     void (*pfnHandleEmitterMessage) = nullptr;
     void (*pfnSendLoMessage)(LO*, MSGID, void*) = SendLoMessage;
-    void (*pfnBindEmitter) = nullptr;
+    void (*pfnBindEmitter)(EMITTER*) = BindEmitter;
     void (*pfnPostEmitterLoad) = nullptr;
     void (*pfnUpdateEmitter) = nullptr;
     void (*pfnUpdateAloXfWorld)(ALO*) = UpdateAloXfWorld;;
@@ -7954,7 +7954,7 @@ struct VTLIGHT
     void (*pfnRemoveLoRecursive) = nullptr;
     void (*pfnHandleAloMessage) = nullptr;
     void (*pfnSendLoMessage)(LO*, MSGID, void*) = SendLoMessage;
-    void (*pfnBindAlo) = nullptr;
+    void (*pfnBindAlo)(ALO*) = BindAlo;
     void (*pfnPostAloLoad) = nullptr;
     void (*pfnUpdateAlo)(ALO*, float) = UpdateAlo;
     void (*pfnUpdateAloXfWorld)(ALO*) = UpdateAloXfWorld;;
@@ -8015,7 +8015,7 @@ struct VTSCH
     void (*pfnRemoveLoRecursive) = nullptr;
     void (*pfnHandleAloMessage) = nullptr;
     void (*pfnSendLoMessage)(LO*, MSGID, void*) = SendLoMessage;
-    void (*pfnBindAlo) = nullptr;
+    void (*pfnBindAlo)(ALO*) = BindAlo;
     void (*pfnPostAloLoad) = nullptr;
     void (*pfnUpdateAlo)(ALO*, float) = UpdateAlo;
     void (*pfnUpdateAloXfWorld)(ALO*) = UpdateAloXfWorld;;
@@ -8076,7 +8076,7 @@ struct VTLIKH
     void (*pfnRemoveLoRecursive) = nullptr;
     void (*pfnHandleAloMessage) = nullptr;
     void (*pfnSendLoMessage)(LO*, MSGID, void*) = SendLoMessage;
-    void (*pfnBindAlo) = nullptr;
+    void (*pfnBindAlo)(ALO*) = BindAlo;
     void (*pfnPostAloLoad) = nullptr;
     void (*pfnUpdateAlo)(ALO*, float) = UpdateAlo;
     void (*pfnUpdateAloXfWorld)(ALO*) = UpdateAloXfWorld;;
@@ -8137,7 +8137,7 @@ struct VTCHKPNT
     void (*pfnRemoveLoRecursive) = nullptr;
     void (*pfnHandleAloMessage) = nullptr;
     void (*pfnSendLoMessage)(LO*, MSGID, void*) = SendLoMessage;
-    void (*pfnBindChkpnt) = nullptr;
+    void (*pfnBindChkpnt)(CHKPNT*) = BindChkpnt;
     void (*pfnPostChkpntLoad) = nullptr;
     void (*pfnUpdateChkpnt) = nullptr;
     void (*pfnUpdateAloXfWorld)(ALO*) = UpdateAloXfWorld;;
@@ -8198,7 +8198,7 @@ struct VTPROXY
     void (*pfnRemoveLoRecursive) = nullptr;
     void (*pfnHandleAloMessage) = nullptr;
     void (*pfnSendLoMessage)(LO*, MSGID, void*) = SendLoMessage;
-    void (*pfnBindAlo) = nullptr;
+    void (*pfnBindAlo)(ALO*) = BindAlo;
     void (*pfnPostProxyLoad) = nullptr;
     void (*pfnUpdateAlo)(ALO*, float) = UpdateAlo;
     void (*pfnUpdateAloXfWorld)(ALO*) = UpdateAloXfWorld;;
@@ -8259,7 +8259,7 @@ struct VTSKY
     void (*pfnRemoveLoRecursive) = nullptr;
     void (*pfnHandleAloMessage) = nullptr;
     void (*pfnSendLoMessage)(LO*, MSGID, void*) = SendLoMessage;
-    void (*pfnBindAlo) = nullptr;
+    void (*pfnBindAlo)(ALO*) = BindAlo;
     void (*pfnPostSkyLoad) = nullptr;
     void (*pfnUpdateSky)(SKY*, float) = UpdateSky;
     void (*pfnUpdateAloXfWorld)(ALO*) = UpdateAloXfWorld;;
@@ -8320,7 +8320,7 @@ struct VTDPRIZE
     void (*pfnRemoveLoRecursive) = nullptr;
     void (*pfnHandleAloMessage) = nullptr;
     void (*pfnSendLoMessage)(LO*, MSGID, void*) = SendLoMessage;
-    void (*pfnBindAlo) = nullptr;
+    void (*pfnBindAlo)(ALO*) = BindAlo;
     void (*pfnPostDprizeLoad) = nullptr;
     void (*pfnUpdateDprize) = nullptr;
     void (*pfnUpdateAloXfWorld)(ALO*) = UpdateAloXfWorld;;
@@ -8382,7 +8382,7 @@ struct VTCHARM
     void (*pfnRemoveLoRecursive) = nullptr;
     void (*pfnHandleAloMessage) = nullptr;
     void (*pfnSendLoMessage)(LO*, MSGID, void*) = SendLoMessage;
-    void (*pfnBindAlo) = nullptr;
+    void (*pfnBindAlo)(ALO*) = BindAlo;
     void (*pfnPostDprizeLoad) = nullptr;
     void (*pfnUpdateDprize) = nullptr;
     void (*pfnUpdateAloXfWorld)(ALO*) = UpdateAloXfWorld;;
@@ -8444,7 +8444,7 @@ struct VTCOIN
     void (*pfnRemoveLoRecursive) = nullptr;
     void (*pfnHandleAloMessage) = nullptr;
     void (*pfnSendLoMessage)(LO*, MSGID, void*) = SendLoMessage;
-    void (*pfnBindAlo) = nullptr;
+    void (*pfnBindAlo)(ALO*) = BindAlo;
     void (*pfnPostDprizeLoad) = nullptr;
     void (*pfnUpdateCoin) = nullptr;
     void (*pfnUpdateAloXfWorld)(ALO*) = UpdateAloXfWorld;;
@@ -8506,7 +8506,7 @@ struct VTKEY
     void (*pfnRemoveLoRecursive) = nullptr;
     void (*pfnHandleAloMessage) = nullptr;
     void (*pfnSendLoMessage)(LO*, MSGID, void*) = SendLoMessage;
-    void (*pfnBindAlo) = nullptr;
+    void (*pfnBindAlo)(ALO*) = BindAlo;
     void (*pfnPostDprizeLoad) = nullptr;
     void (*pfnUpdateDprize) = nullptr;
     void (*pfnUpdateAloXfWorld)(ALO*) = UpdateAloXfWorld;;
@@ -8568,7 +8568,7 @@ struct VTGOLD
     void (*pfnRemoveLoRecursive) = nullptr;
     void (*pfnHandleAloMessage) = nullptr;
     void (*pfnSendLoMessage)(LO*, MSGID, void*) = SendLoMessage;
-    void (*pfnBindAlo) = nullptr;
+    void (*pfnBindAlo)(ALO*) = BindAlo;
     void (*pfnPostDprizeLoad) = nullptr;
     void (*pfnUpdateDprize) = nullptr;
     void (*pfnUpdateAloXfWorld)(ALO*) = UpdateAloXfWorld;;
@@ -8630,7 +8630,7 @@ struct VTLOCK
     void (*pfnRemoveLoRecursive) = nullptr;
     void (*pfnHandleAloMessage) = nullptr;
     void (*pfnSendLoMessage)(LO*, MSGID, void*) = SendLoMessage;
-    void (*pfnBindAlo) = nullptr;
+    void (*pfnBindAlo)(ALO*) = BindAlo;
     void (*pfnPostLockLoad) = nullptr;
     void (*pfnUpdateAlo)(ALO*, float) = UpdateAlo;
     void (*pfnUpdateAloXfWorld)(ALO*) = UpdateAloXfWorld;;
@@ -8691,7 +8691,7 @@ struct VTLOCKG
     void (*pfnRemoveLoRecursive) = nullptr;
     void (*pfnHandleAloMessage) = nullptr;
     void (*pfnSendLoMessage)(LO*, MSGID, void*) = SendLoMessage;
-    void (*pfnBindAlo) = nullptr;
+    void (*pfnBindAlo)(ALO*) = BindAlo;
     void (*pfnPostLockgLoad) = nullptr;
     void (*pfnUpdateAlo)(ALO*, float) = UpdateAlo;
     void (*pfnUpdateAloXfWorld)(ALO*) = UpdateAloXfWorld;;
@@ -8752,7 +8752,7 @@ struct VTTAIL
     void (*pfnRemoveLoRecursive) = nullptr;
     void (*pfnHandleAloMessage) = nullptr;
     void (*pfnSendLoMessage)(LO*, MSGID, void*) = SendLoMessage;
-    void (*pfnBindAlo) = nullptr;
+    void (*pfnBindAlo)(ALO*) = BindAlo;
     void (*pfnPostTailLoad) = nullptr;
     void (*pfnUpdateAlo)(ALO*, float) = UpdateAlo;
     void (*pfnUpdateAloXfWorld)(ALO*) = UpdateAloXfWorld;;
@@ -8813,7 +8813,7 @@ struct VTROB
     void (*pfnRemoveLoRecursive) = nullptr;
     void (*pfnHandleAloMessage) = nullptr;
     void (*pfnSendLoMessage)(LO*, MSGID, void*) = SendLoMessage;
-    void (*pfnBindRob) = nullptr;
+    void (*pfnBindRob)(ROB*) = BindRob;
     void (*pfnPostRobLoad) = nullptr;
     void (*pfnUpdateRob) = nullptr;
     void (*pfnUpdateAloXfWorld)(ALO*) = UpdateAloXfWorld;;
@@ -8874,7 +8874,7 @@ struct VTFLASH
     void (*pfnRemoveLoRecursive) = nullptr;
     void (*pfnHandleAloMessage) = nullptr;
     void (*pfnSendLoMessage)(LO*, MSGID, void*) = SendLoMessage;
-    void (*pfnBindAlo) = nullptr;
+    void (*pfnBindAlo)(ALO*) = BindAlo;
     void (*pfnPostAloLoad) = nullptr;
     void (*pfnUpdateFlash) = nullptr;
     void (*pfnUpdateAloXfWorld)(ALO*) = UpdateAloXfWorld;;
@@ -8935,7 +8935,7 @@ struct VTDYSH
     void (*pfnRemoveLoRecursive) = nullptr;
     void (*pfnHandleAloMessage) = nullptr;
     void (*pfnSendLoMessage)(LO*, MSGID, void*) = SendLoMessage;
-    void (*pfnBindAlo) = nullptr;
+    void (*pfnBindAlo)(ALO*) = BindAlo;
     void (*pfnPostAloLoad) = nullptr;
     void (*pfnUpdateAlo)(ALO*, float) = UpdateAlo;
     void (*pfnUpdateAloXfWorld)(ALO*) = UpdateAloXfWorld;;
@@ -8996,7 +8996,7 @@ struct VTSCENTMAP
     void (*pfnRemoveLoRecursive) = nullptr;
     void (*pfnHandleAloMessage) = nullptr;
     void (*pfnSendLoMessage)(LO*, MSGID, void*) = SendLoMessage;
-    void (*pfnBindAlo) = nullptr;
+    void (*pfnBindAlo)(ALO*) = BindAlo;
     void (*pfnPostScentmapLoad) = nullptr;
     void (*pfnUpdateScentmap) = nullptr;
     void (*pfnUpdateAloXfWorld)(ALO*) = UpdateAloXfWorld;;
@@ -9057,7 +9057,7 @@ struct VTWAYPOINT
     void (*pfnRemoveLoRecursive) = nullptr;
     void (*pfnHandleWaypointMessage) = nullptr;
     void (*pfnSendLoMessage)(LO*, MSGID, void*) = SendLoMessage;
-    void (*pfnBindAlo) = nullptr;
+    void (*pfnBindAlo)(ALO*) = BindAlo;
     void (*pfnPostWaypointLoad) = nullptr;
     void (*pfnUpdateWaypoint) = nullptr;
     void (*pfnUpdateAloXfWorld)(ALO*) = UpdateAloXfWorld;;
@@ -9118,7 +9118,7 @@ struct VTTN
     void (*pfnRemoveLoRecursive) = nullptr;
     void (*pfnHandleAloMessage) = nullptr;
     void (*pfnSendLoMessage)(LO*, MSGID, void*) = SendLoMessage;
-    void (*pfnBindAlo) = nullptr;
+    void (*pfnBindAlo)(ALO*) = BindAlo;
     void (*pfnPostTnLoad) = nullptr;
     void (*pfnUpdateTn) = nullptr;
     void (*pfnUpdateAloXfWorld)(ALO*) = UpdateAloXfWorld;;
@@ -9179,7 +9179,7 @@ struct VTJLOC
     void (*pfnRemoveLoRecursive) = nullptr;
     void (*pfnHandleAloMessage) = nullptr;
     void (*pfnSendLoMessage)(LO*, MSGID, void*) = SendLoMessage;
-    void (*pfnBindAlo) = nullptr;
+    void (*pfnBindAlo)(ALO*) = BindAlo;
     void (*pfnPostJlocLoad) = nullptr;
     void (*pfnUpdateAlo)(ALO*, float) = UpdateAlo;
     void (*pfnUpdateAloXfWorld)(ALO*) = UpdateAloXfWorld;;
@@ -9240,7 +9240,7 @@ struct VTDIALOG
     void (*pfnRemoveLoRecursive) = nullptr;
     void (*pfnHandleDialogMessage) = nullptr;
     void (*pfnSendLoMessage)(LO*, MSGID, void*) = SendLoMessage;
-    void (*pfnBindAlo) = nullptr;
+    void (*pfnBindAlo)(ALO*) = BindAlo;
     void (*pfnPostAloLoad) = nullptr;
     void (*pfnUpdateDialog) = nullptr;
     void (*pfnUpdateAloXfWorld)(ALO*) = UpdateAloXfWorld;;
@@ -9301,7 +9301,7 @@ struct VTSPEAKER
     void (*pfnRemoveLoRecursive) = nullptr;
     void (*pfnHandleAloMessage) = nullptr;
     void (*pfnSendLoMessage)(LO*, MSGID, void*) = SendLoMessage;
-    void (*pfnBindAlo) = nullptr;
+    void (*pfnBindAlo)(ALO*) = BindAlo;
     void (*pfnPostSpeakerLoad) = nullptr;
     void (*pfnUpdateAlo)(ALO*, float) = UpdateAlo;
     void (*pfnUpdateAloXfWorld)(ALO*) = UpdateAloXfWorld;;
@@ -9362,7 +9362,7 @@ struct VTROPE
     void (*pfnRemoveLoRecursive) = nullptr;
     void (*pfnHandleAloMessage) = nullptr;
     void (*pfnSendLoMessage)(LO*, MSGID, void*) = SendLoMessage;
-    void (*pfnBindAlo) = nullptr;
+    void (*pfnBindAlo)(ALO*) = BindAlo;
     void (*pfnPostRopeLoad) = nullptr;
     void (*pfnUpdateAlo)(ALO*, float) = UpdateAlo;
     void (*pfnUpdateAloXfWorld)(ALO*) = UpdateAloXfWorld;;
@@ -9423,7 +9423,7 @@ struct VTWM
     void (*pfnRemoveLoRecursive) = nullptr;
     void (*pfnHandleWmMessage) = nullptr;
     void (*pfnSendLoMessage)(LO*, MSGID, void*) = SendLoMessage;
-    void (*pfnBindWm) = nullptr;
+    void (*pfnBindWm)(WM*) = BindWm;
     void (*pfnPostWmLoad) = nullptr;
     void (*pfnUpdateWm) = nullptr;
     void (*pfnUpdateAloXfWorld)(ALO*) = UpdateAloXfWorld;;
@@ -9484,7 +9484,7 @@ struct VTPUFFB
     void (*pfnRemoveLoRecursive) = nullptr;
     void (*pfnHandleAloMessage) = nullptr;
     void (*pfnSendLoMessage)(LO*, MSGID, void*) = SendLoMessage;
-    void (*pfnBindAlo) = nullptr;
+    void (*pfnBindAlo)(ALO*) = BindAlo;
     void (*pfnPostPuffbLoad) = nullptr;
     void (*pfnUpdatePuffb) = nullptr;
     void (*pfnUpdateAloXfWorld)(ALO*) = UpdateAloXfWorld;;
@@ -9545,7 +9545,7 @@ struct VTCRBRAIN
     void (*pfnRemoveLoRecursive) = nullptr;
     void (*pfnHandleAloMessage) = nullptr;
     void (*pfnSendLoMessage)(LO*, MSGID, void*) = SendLoMessage;
-    void (*pfnBindAlo) = nullptr;
+    void (*pfnBindAlo)(ALO*) = BindAlo;
     void (*pfnPostAloLoad) = nullptr;
     void (*pfnUpdateAlo)(ALO*, float) = UpdateAlo;
     void (*pfnUpdateAloXfWorld)(ALO*) = UpdateAloXfWorld;;
@@ -9606,7 +9606,7 @@ struct VTMGC
     void (*pfnRemoveLoRecursive) = nullptr;
     void (*pfnHandleMgcMessage) = nullptr;
     void (*pfnSendLoMessage)(LO*, MSGID, void*) = SendLoMessage;
-    void (*pfnBindAlo) = nullptr;
+    void (*pfnBindAlo)(ALO*) = BindAlo;
     void (*pfnPostMgcLoad) = nullptr;
     void (*pfnUpdateMgc) = nullptr;
     void (*pfnUpdateAloXfWorld)(ALO*) = UpdateAloXfWorld;;
@@ -9667,7 +9667,7 @@ struct VTJACKB
     void (*pfnRemoveLoRecursive) = nullptr;
     void (*pfnHandleJackbMessage) = nullptr;
     void (*pfnSendLoMessage)(LO*, MSGID, void*) = SendLoMessage;
-    void (*pfnBindAlo) = nullptr;
+    void (*pfnBindAlo)(ALO*) = BindAlo;
     void (*pfnPostJackbLoad) = nullptr;
     void (*pfnUpdateJackb) = nullptr;
     void (*pfnUpdateAloXfWorld)(ALO*) = UpdateAloXfWorld;;
@@ -9728,7 +9728,7 @@ struct VTJACKN
     void (*pfnRemoveLoRecursive) = nullptr;
     void (*pfnHandleAloMessage) = nullptr;
     void (*pfnSendLoMessage)(LO*, MSGID, void*) = SendLoMessage;
-    void (*pfnBindAlo) = nullptr;
+    void (*pfnBindAlo)(ALO*) = BindAlo;
     void (*pfnPostAloLoad) = nullptr;
     void (*pfnUpdateJackn)(JACKN*, float) = UpdateJackn;
     void (*pfnUpdateAloXfWorld)(ALO*) = UpdateAloXfWorld;;
@@ -9789,7 +9789,7 @@ struct VTJACKF
     void (*pfnRemoveLoRecursive) = nullptr;
     void (*pfnHandleAloMessage) = nullptr;
     void (*pfnSendLoMessage)(LO*, MSGID, void*) = SendLoMessage;
-    void (*pfnBindAlo) = nullptr;
+    void (*pfnBindAlo)(ALO*) = BindAlo;
     void (*pfnPostAloLoad) = nullptr;
     void (*pfnUpdateJackf) = nullptr;
     void (*pfnUpdateAloXfWorld)(ALO*) = UpdateAloXfWorld;;
@@ -9976,7 +9976,7 @@ struct VTHSHAPE
     void (*pfnRemoveLoRecursive) = nullptr;
     void (*pfnHandleLoMessage) = nullptr;
     void (*pfnSendLoMessage)(LO*, MSGID, void*) = SendLoMessage;
-    void (*pfnBindHshape) = nullptr;
+    void (*pfnBindHshape)(HSHAPE*) = BindHshape;
     void (*pfnPostLoLoad)(LO*) = PostLoLoad;
     void (*pfnUpdateLo) = nullptr;
     void (*pfnUpdateLoXfWorld) = nullptr;
@@ -10355,7 +10355,7 @@ struct VTEXPLG
     void (*pfnRemoveLoRecursive) = nullptr;
     void (*pfnHandleLoMessage) = nullptr;
     void (*pfnSendLoMessage)(LO*, MSGID, void*) = SendLoMessage;
-    void (*pfnBindExplg) = nullptr;
+    void (*pfnBindExplg)(EXPLG*) = BindExplg;
     void (*pfnPostExplLoad) = nullptr;
     void (*pfnUpdateLo) = nullptr;
     void (*pfnUpdateLoXfWorld) = nullptr;
@@ -10398,7 +10398,7 @@ struct VTEXPLO
     void (*pfnRemoveLoRecursive) = nullptr;
     void (*pfnHandleLoMessage) = nullptr;
     void (*pfnSendLoMessage)(LO*, MSGID, void*) = SendLoMessage;
-    void (*pfnBindExplo) = nullptr;
+    void (*pfnBindExplo)(EXPLO*) = BindExplo;
     void (*pfnPostExplLoad) = nullptr;
     void (*pfnUpdateLo) = nullptr;
     void (*pfnUpdateLoXfWorld) = nullptr;
@@ -10441,7 +10441,7 @@ struct VTEXPLS
     void (*pfnRemoveLoRecursive) = nullptr;
     void (*pfnHandleExplsMessage) = nullptr;
     void (*pfnSendLoMessage)(LO*, MSGID, void*) = SendLoMessage;
-    void (*pfnBindExpls) = nullptr;
+    void (*pfnBindExpls)(EXPLS*) = BindExpls;
     void (*pfnPostExplLoad) = nullptr;
     void (*pfnUpdateLo) = nullptr;
     void (*pfnUpdateLoXfWorld) = nullptr;
@@ -10610,7 +10610,7 @@ struct VTEXIT
     void (*pfnRemoveLoRecursive) = nullptr;
     void (*pfnHandleAloMessage) = nullptr;
     void (*pfnSendLoMessage)(LO*, MSGID, void*) = SendLoMessage;
-    void (*pfnBindAlo) = nullptr;
+    void (*pfnBindAlo)(ALO*) = BindAlo;
     void (*pfnPostExitLoad) = nullptr;
     void (*pfnUpdateExit) = nullptr;
     void (*pfnUpdateAloXfWorld)(ALO*) = UpdateAloXfWorld;;
@@ -10839,7 +10839,7 @@ struct VTHPNT
     void (*pfnRemoveLoRecursive) = nullptr;
     void (*pfnHandleLoMessage) = nullptr;
     void (*pfnSendLoMessage)(LO*, MSGID, void*) = SendLoMessage;
-    void (*pfnBindHpnt) = nullptr;
+    void (*pfnBindHpnt)(HPNT*) = BindHpnt;
     void (*pfnPostLoLoad)(LO*) = PostLoLoad;
     void (*pfnUpdateLo) = nullptr;
     void (*pfnUpdateLoXfWorld) = nullptr;
@@ -11259,7 +11259,7 @@ struct VTSGG
     void (*pfnRemoveLoRecursive) = nullptr;
     void (*pfnHandleLoMessage) = nullptr;
     void (*pfnSendLoMessage)(LO*, MSGID, void*) = SendLoMessage;
-    void (*pfnBindSgg) = nullptr;
+    void (*pfnBindSgg)(SGG*) = BindSgg;
     void (*pfnPostLoLoad)(LO*) = PostLoLoad;
     void (*pfnUpdateLo) = nullptr;
     void (*pfnUpdateLoXfWorld) = nullptr;

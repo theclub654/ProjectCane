@@ -2,6 +2,7 @@
 #include "so.h"
 #include "shape.h"
 #include "pnt.h"
+#include "tn.h"
 
 enum JTHK
 {
@@ -74,6 +75,7 @@ int  GetHshapeSize();
 void OnHshapeAdd(HSHAPE* phshape);
 void OnHshapeRemove(HSHAPE* phshape);
 void CloneHshape(HSHAPE* phshape, HSHAPE* phshapeBase);
+void BindHshape(HSHAPE* phshape);
 void DeleteHshape(HSHAPE* phshape);
 
 HPNT*NewHpnt();
@@ -82,4 +84,5 @@ int  GetHpntSize();
 void OnHpntAdd(HPNT* phpnt);
 void OnHpntRemove(HPNT* phpnt);
 void CloneHpnt(HPNT* phpnt, HPNT* phpntBase);
+void BindHpnt(HPNT* phpnt);
 void DeleteHpnt(HPNT* phpnt);

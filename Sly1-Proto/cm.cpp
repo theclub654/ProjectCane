@@ -46,11 +46,94 @@ int GetCmSize()
 
 void CloneCm(CM* pcm, CM* pcmBase)
 {
-	LO lo = *pcm;
-	*pcm = *pcmBase;
-	memcpy(pcm, &lo, sizeof(LO));
-
 	CloneLo(pcm, pcmBase);
+
+	pcm->pos = pcmBase->pos;
+	pcm->direction = pcmBase->direction;
+	pcm->up = pcmBase->up;
+	pcm->right = pcmBase->right;
+	pcm->worldUp = pcmBase->worldUp;
+	pcm->yaw = pcmBase->yaw;
+	pcm->pitch = pcmBase->pitch;
+	pcm->firstClick = pcmBase->firstClick;
+
+	for (int i = 0; i < 3; ++i)
+		pcm->anormalFrustrumTranspose[i] = pcmBase->anormalFrustrumTranspose[i];
+
+	pcm->frustum = pcmBase->frustum;
+	pcm->lookAt = pcmBase->lookAt;
+	pcm->rMRDAdjust = pcmBase->rMRDAdjust;
+	pcm->matProj = pcmBase->matProj;
+	pcm->matWorldToClip = pcmBase->matWorldToClip;
+	pcm->matClipToWorld = pcmBase->matClipToWorld;
+
+	for (int i = 0; i < 4; ++i)
+		pcm->anormalFrustrum[i] = pcmBase->anormalFrustrum[i];
+
+	pcm->rMRD = pcmBase->rMRD;
+	pcm->radFOV = pcmBase->radFOV;
+	pcm->rAspect = pcmBase->rAspect;
+	pcm->sNearClip = pcmBase->sNearClip;
+	pcm->sFarClip = pcmBase->sFarClip;
+	pcm->sRadiusNearClip = pcmBase->sRadiusNearClip;
+	pcm->xScreenRange = pcmBase->xScreenRange;
+	pcm->yScreenRange = pcmBase->yScreenRange;
+	pcm->sNearFog = pcmBase->sNearFog;
+	pcm->sFarFog = pcmBase->sFarFog;
+	pcm->uFogMax = pcmBase->uFogMax;
+	pcm->rgbaFog = pcmBase->rgbaFog;
+	pcm->fgfn = pcmBase->fgfn;
+	pcm->tJolt = pcmBase->tJolt;
+	pcm->grfzon = pcmBase->grfzon;
+
+	pcm->fCutNext = pcmBase->fCutNext;
+	pcm->fCut = pcmBase->fCut;
+	pcm->fRadCut = pcmBase->fRadCut;
+	pcm->radCut = pcmBase->radCut;
+	pcm->fDisplaced = pcmBase->fDisplaced;
+	pcm->uPanProgress = pcmBase->uPanProgress;
+	pcm->uTiltProgress = pcmBase->uTiltProgress;
+	pcm->uSProgress = pcmBase->uSProgress;
+
+	pcm->dposCenter = pcmBase->dposCenter;
+	pcm->vCenter = pcmBase->vCenter;
+	pcm->dposAdjust = pcmBase->dposAdjust;
+	pcm->vAdjust = pcmBase->vAdjust;
+	pcm->dposFocus = pcmBase->dposFocus;
+	pcm->vFocus = pcmBase->vFocus;
+	pcm->posScreen = pcmBase->posScreen;
+	pcm->vScreen = pcmBase->vScreen;
+
+	pcm->swPanPos = pcmBase->swPanPos;
+	pcm->swTiltPos = pcmBase->swTiltPos;
+	pcm->sv = pcmBase->sv;
+	pcm->swPanMat = pcmBase->swPanMat;
+	pcm->swTiltMat = pcmBase->swTiltMat;
+
+	pcm->posCenterPrev = pcmBase->posCenterPrev;
+	pcm->posClear = pcmBase->posClear;
+	pcm->matClear = pcmBase->matClear;
+
+	pcm->psoFocusPrev = pcmBase->psoFocusPrev;
+	pcm->cpdefiPrev = pcmBase->cpdefiPrev;
+
+	pcm->cpaloFade = pcmBase->cpaloFade;
+	for (int i = 0; i < 8; ++i)
+		pcm->apaloFade[i] = pcmBase->apaloFade[i];
+
+	pcm->tActivateCplcy = pcmBase->tActivateCplcy;
+	pcm->matRotateToCam = pcmBase->matRotateToCam;
+	pcm->matRotateTiltToCam = pcmBase->matRotateTiltToCam;
+
+	pcm->ccpr = pcmBase->ccpr;
+	for (int i = 0; i < 8; ++i)
+		pcm->acpr[i] = pcmBase->acpr[i];
+
+	pcm->cpman = pcmBase->cpman;
+	pcm->cplook = pcmBase->cplook;
+	pcm->cpalign = pcmBase->cpalign;
+	pcm->cpaseg = pcmBase->cpaseg;
+	pcm->cptn = pcmBase->cptn;
 }
 
 void RecalcCmFrustrum(CM* pcm)
@@ -58,7 +141,7 @@ void RecalcCmFrustrum(CM* pcm)
 	pcm->rMRDAdjust = pcm->rMRD * (1.0 / pcm->radFOV);
 
 	BuildProjectionMatrix(&pcm->radFOV, &g_gl.width, &g_gl.height, &pcm->sNearClip, &pcm->sFarClip, pcm->matProj);
-	//UpdateCmMat4(pcm);
+	UpdateCmMat4(pcm);
 }
 
 void BuildProjectionMatrix(float *fov, float *width, float *height, float *near, float *far, glm::mat4 &pmat)

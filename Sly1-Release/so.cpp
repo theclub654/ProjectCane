@@ -59,17 +59,76 @@ void OnSoRemove(SO* pso)
 
 void CloneSo(SO* pso, SO* psoBase)
 {
-	LO lo = *pso;
-	*pso = *psoBase;
-	memcpy(pso, &lo, sizeof(LO));
+	pso->dleRoot = psoBase->dleRoot;
+	pso->dlPhys = psoBase->dlPhys;
+	pso->dlePhys = psoBase->dlePhys;
+	pso->momintLocal = psoBase->momintLocal;
+	pso->momintInvLocal = psoBase->momintInvLocal;
+	pso->dvGravity = psoBase->dvGravity;
+	pso->gBuoyancy = psoBase->gBuoyancy;
+	pso->gViscosity = psoBase->gViscosity;
+	pso->m = psoBase->m;
+	pso->posWorldPrev = psoBase->posWorldPrev;
+	pso->geomLocal = psoBase->geomLocal;
+	pso->geomWorld = psoBase->geomWorld;
+	pso->plvo = psoBase->plvo;
+	pso->sRadiusSelf = psoBase->sRadiusSelf;
+	pso->sRadiusAll = psoBase->sRadiusAll;
+	pso->sRadiusPrune = psoBase->sRadiusPrune;
+	pso->posPrune = psoBase->posPrune;
+	pso->bspc = psoBase->bspc;
+	pso->cnpg = psoBase->cnpg;
+	pso->anpg = psoBase->anpg;
+	pso->mpibspinpg = psoBase->mpibspinpg;
+	pso->chsg = psoBase->chsg;
+	pso->ahsg = psoBase->ahsg;
+	pso->mpisurfihsgMic = psoBase->mpisurfihsgMic;
+	pso->dleBusySo = psoBase->dleBusySo;
+	pso->posMin = psoBase->posMin;
+	pso->posMax = psoBase->posMax;
+	pso->constrForce = psoBase->constrForce;
+	pso->constrTorque = psoBase->constrTorque;
+	pso->poxa = psoBase->poxa;
+	pso->dpos = psoBase->dpos;
+	pso->drot = psoBase->drot;
+	pso->pxa = psoBase->pxa;
+	pso->pxpInternal = psoBase->pxpInternal;
+	pso->grfpvaXpValid = psoBase->grfpvaXpValid;
+	pso->ipsoRoot = psoBase->ipsoRoot;
+	pso->ipso = psoBase->ipso;
+	pso->posComLocal = psoBase->posComLocal;
+	pso->psoPhysHook = psoBase->psoPhysHook;
+	pso->geomCameraLocal = psoBase->geomCameraLocal;
+	pso->geomCameraWorld = psoBase->geomCameraWorld;
+	pso->bspcCamera = psoBase->bspcCamera;
+	pso->cmk = psoBase->cmk;
+	pso->egk = psoBase->egk;
+	pso->fSphere = psoBase->fSphere;
+	pso->fClone = psoBase->fClone;
+	pso->fNoXpsAll = psoBase->fNoXpsAll;
+	pso->fNoXpsSelf = psoBase->fNoXpsSelf;
+	pso->fNoXpsCenter = psoBase->fNoXpsCenter;
+	pso->fActive = psoBase->fActive;
+	pso->fVelcro = psoBase->fVelcro;
+	pso->fIgnoreLocked = psoBase->fIgnoreLocked;
+	pso->fIceable = psoBase->fIceable;
+	pso->fRoot = psoBase->fRoot;
+	pso->fPhys = psoBase->fPhys;
+	pso->fNoGravity = psoBase->fNoGravity;
+	pso->fCenterXp = psoBase->fCenterXp;
+	pso->fLockedSelf = psoBase->fLockedSelf;
+	pso->fLockedAll = psoBase->fLockedAll;
+	pso->fLockedAbove = psoBase->fLockedAbove;
+	pso->fCpsoBuildContactGroup = psoBase->fCpsoBuildContactGroup;
+	pso->fCpxpBuildArray = psoBase->fCpxpBuildArray;
+	pso->fUpdateXaList1 = psoBase->fUpdateXaList1;
+	pso->fUpdateXaList2 = psoBase->fUpdateXaList2;
+	pso->fRecalcSwXpAll = psoBase->fRecalcSwXpAll;
+	pso->fHandleDiveEffect = psoBase->fHandleDiveEffect;
+	pso->fGenSpliceTouchEvents = psoBase->fGenSpliceTouchEvents;
+	pso->pstso = psoBase->pstso;
 
-	CloneLo(pso, psoBase);
-
-	ClearDl(&pso->dlChild);
-
-	pso->pxa = nullptr;
-	pso->grfpvaXpValid = 0;
-	pso->pstso = nullptr;
+	CloneAlo(pso, psoBase);
 }
 
 void SetSoParent(SO* pso, ALO* paloParent)

@@ -20,17 +20,15 @@ int GetWaterSize()
 
 void CloneWater(WATER* pwater, WATER* pwaterBase)
 {
-	LO lo = *pwater;
-	*pwater = *pwaterBase;
-	memcpy(pwater, &lo, sizeof(LO));
+	CloneSo(pwater, pwaterBase);
 
-	CloneLo(pwater, pwaterBase);
-
-	ClearDl(&pwater->dlChild);
-
-	pwater->pxa = nullptr;
-	pwater->grfpvaXpValid = 0;
-	pwater->pstso = nullptr;
+	pwater->pxaTargets = pwaterBase->pxaTargets;
+	pwater->pmapCurrent = pwaterBase->pmapCurrent;
+	pwater->mrg = pwaterBase->mrg;
+	pwater->vCurrent = pwaterBase->vCurrent;
+	pwater->fSplash = pwaterBase->fSplash;
+	pwater->fZap = pwaterBase->fZap;
+	pwater->zpd = pwaterBase->zpd;
 }
 
 void DeleteWater(WATER *pwater)

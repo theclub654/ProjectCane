@@ -27,17 +27,14 @@ void LoadMissileFromBrx(MISSILE* pmissile, CBinaryInputStream* pbis)
 
 void CloneMissile(MISSILE* pmissile, MISSILE* pmissileBase)
 {
-	LO lo = *pmissile;
-	*pmissile = *pmissileBase;
-	memcpy(pmissile, &lo, sizeof(LO));
+	CloneBomb(pmissile, pmissileBase);
 
-	CloneLo(pmissile, pmissileBase);
-
-	ClearDl(&pmissile->dlChild);
-
-	pmissile->pxa = nullptr;
-	pmissile->grfpvaXpValid = 0;
-	pmissile->pstso = nullptr;
+	pmissile->svMissileLaunch = pmissileBase->svMissileLaunch;
+	pmissile->paloTarget = pmissileBase->paloTarget;
+	pmissile->posTargetLocal = pmissileBase->posTargetLocal;
+	pmissile->pasegFire = pmissileBase->pasegFire;
+	pmissile->pasegaCur = pmissileBase->pasegaCur;
+	pmissile->fFollowTrajectory = pmissileBase->fFollowTrajectory;
 }
 
 void RenderMissileAll(MISSILE* pmissile, CM* pcm, RO* pro)
@@ -67,17 +64,11 @@ int GetAccmissSize()
 
 void CloneAccmiss(ACCMISS* paccmiss, ACCMISS* paccmissBase)
 {
-	LO lo = *paccmiss;
-	*paccmiss = *paccmissBase;
-	memcpy(paccmiss, &lo, sizeof(LO));
+	CloneMissile(paccmiss, paccmissBase);
 
-	CloneLo(paccmiss, paccmissBase);
-
-	ClearDl(&paccmiss->dlChild);
-
-	paccmiss->pxa = nullptr;
-	paccmiss->grfpvaXpValid = 0;
-	paccmiss->pstso = nullptr;
+	paccmiss->svMissileMax = paccmissBase->svMissileMax;
+	paccmiss->sdvMissileMax = paccmissBase->sdvMissileMax;
+	paccmiss->vTarget = paccmissBase->vTarget;
 }
 
 void DeleteAccmiss(ACCMISS* paccmiss)
@@ -102,17 +93,10 @@ int GetTarmissSize()
 
 void CloneTarmiss(TARMISS* ptarmiss, TARMISS* ptarmissBase)
 {
-	LO lo = *ptarmiss;
-	*ptarmiss = *ptarmissBase;
-	memcpy(ptarmiss, &lo, sizeof(LO));
+	CloneAccmiss(ptarmiss, ptarmissBase);
 
-	CloneLo(ptarmiss, ptarmissBase);
-
-	ClearDl(&ptarmiss->dlChild);
-
-	ptarmiss->pxa = nullptr;
-	ptarmiss->grfpvaXpValid = 0;
-	ptarmiss->pstso = nullptr;
+	ptarmiss->clqSwMax = ptarmissBase->clqSwMax;
+	ptarmiss->lmSwMax = ptarmissBase->lmSwMax;
 }
 
 void DeleteTarmiss(TARMISS *ptarmiss)
@@ -132,17 +116,13 @@ int GetSplmissSize()
 
 void CloneSplmiss(SPLMISS* psplmiss, SPLMISS* psplmissBase)
 {
-	LO lo = *psplmiss;
-	*psplmiss = *psplmissBase;
-	memcpy(psplmiss, &lo, sizeof(LO));
+	CloneMissile(psplmiss, psplmissBase);
 
-	CloneLo(psplmiss, psplmissBase);
-
-	ClearDl(&psplmiss->dlChild);
-
-	psplmiss->pxa = nullptr;
-	psplmiss->grfpvaXpValid = 0;
-	psplmiss->pstso = nullptr;
+	psplmiss->dtImpact = psplmissBase->dtImpact;
+	psplmiss->svMissileImpact = psplmissBase->svMissileImpact;
+	psplmiss->uBank = psplmissBase->uBank;
+	psplmiss->tImpact = psplmissBase->tImpact;
+	psplmiss->vImpact = psplmissBase->vImpact;
 }
 
 void DeleteSplmiss(SPLMISS *psplmiss)
@@ -169,17 +149,9 @@ int GetGroundmissSize()
 
 void CloneGroundmiss(GROUNDMISS* pgroundmiss, GROUNDMISS* pgroundmissBase)
 {
-	LO lo = *pgroundmiss;
-	*pgroundmiss = *pgroundmissBase;
-	memcpy(pgroundmiss, &lo, sizeof(LO));
+	CloneMissile(pgroundmiss, pgroundmissBase);
 
-	CloneLo(pgroundmiss, pgroundmissBase);
-
-	ClearDl(&pgroundmiss->dlChild);
-
-	pgroundmiss->pxa = nullptr;
-	pgroundmiss->grfpvaXpValid = 0;
-	pgroundmiss->pstso = nullptr;
+	pgroundmiss->sdvTrackMax = pgroundmissBase->sdvTrackMax;
 }
 
 void DeleteGroundmiss(GROUNDMISS *pgroundmiss)

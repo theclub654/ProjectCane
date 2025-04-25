@@ -17,17 +17,16 @@ int GetMurraySize()
 
 void CloneMurray(MURRAY* pmurray, MURRAY* pmurrayBase)
 {
-	LO lo = *pmurray;
-	*pmurray = *pmurrayBase;
-	memcpy(pmurray, &lo, sizeof(LO));
+    CloneStepguard(pmurray, pmurrayBase);
 
-	CloneLo(pmurray, pmurrayBase);
-
-	ClearDl(&pmurray->dlChild);
-
-	pmurray->pxa = nullptr;
-	pmurray->grfpvaXpValid = 0;
-	pmurray->pstso = nullptr;
+    // Shallow copy fields
+    pmurray->cpaloEnemy = pmurrayBase->cpaloEnemy;
+    for (int i = 0; i < 4; ++i)
+        pmurray->apaloEnemy[i] = pmurrayBase->apaloEnemy[i];
+    pmurray->pxfmPatrol = pmurrayBase->pxfmPatrol;
+    pmurray->pxfmPursue = pmurrayBase->pxfmPursue;
+    pmurray->pasegCelebrateKey = pmurrayBase->pasegCelebrateKey;
+    pmurray->pturret = pmurrayBase->pturret;
 }
 
 void DeleteMurray(MURRAY* pmurray)

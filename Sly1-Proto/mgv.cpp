@@ -24,17 +24,18 @@ void LoadMgvFromBrx(MGV* pmgv, CBinaryInputStream* pbis)
 
 void CloneMgv(MGV* pmgv, MGV* pmgvBase)
 {
-	LO lo = *pmgv;
-	*pmgv = *pmgvBase;
-	memcpy(pmgv, &lo, sizeof(LO));
+    ClonePo(pmgv, pmgvBase);
 
-	CloneLo(pmgv, pmgvBase);
-
-	ClearDl(&pmgv->dlChild);
-
-	pmgv->pxa = nullptr;
-	pmgv->grfpvaXpValid = 0;
-	pmgv->pstso = nullptr;
+    pmgv->psm = pmgvBase->psm;
+    pmgv->psma = pmgvBase->psma;
+    for (int i = 0; i < 3; ++i)
+        pmgv->apmgc[i] = pmgvBase->apmgc[i];
+    pmgv->ipmgcCur = pmgvBase->ipmgcCur;
+    for (int i = 0; i < 3; ++i)
+        pmgv->atmblPoints[i] = pmgvBase->atmblPoints[i];
+    pmgv->tmblLives = pmgvBase->tmblLives;
+    pmgv->clives = pmgvBase->clives;
+    pmgv->cpoints = pmgvBase->cpoints;
 }
 
 void DeleteMgv(MGV *pmgv)

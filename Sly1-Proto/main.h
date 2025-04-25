@@ -7,6 +7,7 @@
 #include "transition.h"
 #include "debug.h"
 #include "mouse.h"
+#include "update.h"
 
 // Temporary flag
 bool loadEmitMesh = 0;

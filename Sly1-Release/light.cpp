@@ -80,13 +80,67 @@ void UpdateLightXfWorldHierarchy(LIGHT* plight)
 
 void CloneLight(LIGHT* plight, LIGHT* plightBase)
 {
-	LO lo = *plight;
-	*plight = *plightBase;
-	memcpy(plight, &lo, sizeof(LO));
+	CloneAlo(plight, plightBase);
 
-	CloneLo(plight, plightBase);
+	// Clone the LIGHTK structure (direct copy)
+	plight->lightk = plightBase->lightk;
 
-	ClearDl(&plight->dlChild);
+	// Clone the TWPS structure (direct copy)
+	plight->twps = plightBase->twps;
+
+	// Clone the color vectors (HSV and RGBA)
+	plight->vecHighlight = plightBase->vecHighlight;
+	plight->rgbaColor = plightBase->rgbaColor;
+
+	// Clone the LTFN structure (direct copy)
+	plight->ltfn = plightBase->ltfn;
+
+	// Clone the falloff vectors
+	plight->agFallOff = plightBase->agFallOff;
+	plight->falloff0Frustum = plightBase->falloff0Frustum;
+	plight->falloff1Frustum = plightBase->falloff1Frustum;
+
+	// Clone the matrix values (frustum and matLookAt)
+	plight->frustum = plightBase->frustum;
+	plight->matLookAt = plightBase->matLookAt;
+
+	// Clone the float values
+	plight->gMidtone = plightBase->gMidtone;
+	plight->gShadow = plightBase->gShadow;
+	plight->degHighlight = plightBase->degHighlight;
+	plight->degMidtone = plightBase->degMidtone;
+	plight->degShadow = plightBase->degShadow;
+	plight->degCone = plightBase->degCone;
+	plight->degHotSpot = plightBase->degHotSpot;
+	plight->rx = plightBase->rx;
+	plight->ry = plightBase->ry;
+
+	// Clone the vectors for local direction and normals
+	plight->vecDirectionOrig = plightBase->vecDirectionOrig;
+	plight->normalLocal = plightBase->normalLocal;
+	plight->vecUpLocal = plightBase->vecUpLocal;
+
+	// Clone the LM structures (light falloff and penumbra)
+	plight->lmFallOffS = plightBase->lmFallOffS;
+	plight->lmFallOffPenumbra = plightBase->lmFallOffPenumbra;
+	plight->lmFallOffAbsX = plightBase->lmFallOffAbsX;
+	plight->lmFallOffAbsY = plightBase->lmFallOffAbsY;
+
+	// Clone the frustrum vector array (size 6)
+	for (int i = 0; i < 6; ++i)
+	{
+		plight->avecFrustrum[i] = plightBase->avecFrustrum[i];
+	}
+
+	// Clone the grfzonBeam (int value)
+	plight->grfzonBeam = plightBase->grfzonBeam;
+
+	// Clone the dynamic flags (int values)
+	plight->fDynamic = plightBase->fDynamic;
+	plight->fExcludeDynamicObjects = plightBase->fExcludeDynamicObjects;
+
+	// Clone the DLE structure (direct copy)
+	plight->dleLight = plightBase->dleLight;
 }
 
 void AddLightToSw(LIGHT* plight)

@@ -17,13 +17,9 @@ int GetDyshSize()
 
 void CloneDysh(DYSH* pdysh, DYSH* pdyshBase)
 {
-	LO lo = *pdysh;
-	*pdysh = *pdyshBase;
-	memcpy(pdysh, &lo, sizeof(LO));
+	CloneAlo(pdysh, pdyshBase);
 
-	CloneLo(pdysh, pdyshBase);
-
-	ClearDl(&pdysh->dlChild);
+	pdysh->pshadowGen = pdyshBase->pshadowGen;
 }
 
 void RenderDyshSelf(DYSH* pdysh, CM* pcm, RO* pro)

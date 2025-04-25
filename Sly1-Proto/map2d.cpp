@@ -7,11 +7,16 @@ MAP* NewMap()
 
 void CloneMap(MAP* pmap, MAP* pmapBase)
 {
-	LO lo = *pmap;
-	*pmap = *pmapBase;
-	memcpy(pmap, &lo, sizeof(LO));
+    CloneLo(pmap, pmapBase);
 
-	CloneLo(pmap, pmapBase);
+    pmap->cpos = pmapBase->cpos;
+    pmap->ctri = pmapBase->ctri;
+    pmap->cmbsp = pmapBase->cmbsp;
+    pmap->cbEach = pmapBase->cbEach;
+    pmap->apos = pmapBase->apos;
+    pmap->atri = pmapBase->atri;
+    pmap->ambsp = pmapBase->ambsp;
+    pmap->mpiposab = pmapBase->mpiposab;
 }
 
 int GetMapSize()

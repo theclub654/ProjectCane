@@ -29,11 +29,9 @@ void OnSpireRemove(SPIRE* pspire)
 
 void CloneSpire(SPIRE* pspire, SPIRE* pspireBase)
 {
-	LO lo = *pspire;
-	*pspire = *pspireBase;
-	memcpy(pspire, &lo, sizeof(LO));
+	ClonePnt(pspire, pspireBase);
 
-	CloneLo(pspire, pspireBase);
+	pspire->dleSpire = pspireBase->dleSpire;
 }
 
 void DeleteSpire(SPIRE* pspire)

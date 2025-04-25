@@ -61,8 +61,6 @@ public:
     struct MRSGC* amrsgc;
 };
 
-static int LoadAsegaCount;
-
 ASEG* NewAseg();
 void InitAseg(ASEG* paseg);
 int  GetAsegSize();

@@ -30,11 +30,12 @@ void OnTargetRemove(TARGET* ptarget)
 
 void CloneTarget(TARGET* ptarget, TARGET* ptargetBase)
 {
-	LO lo = *ptarget;
-	*ptarget = *ptargetBase;
-	memcpy(ptarget, &lo, sizeof(LO));
+	CloneXfm(ptarget, ptargetBase);
 
-	CloneLo(ptarget, ptargetBase);
+	ptarget->dleTarget = ptargetBase->dleTarget;
+	ptarget->grftak = ptargetBase->grftak;
+	ptarget->sRadiusTarget = ptargetBase->sRadiusTarget;
+	ptarget->fHitTest = ptargetBase->fHitTest;
 }
 
 void DeleteTarget(TARGET* ptarget)

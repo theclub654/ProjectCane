@@ -16,4 +16,6 @@ int  GetTargetSize();
 void OnTargetAdd(TARGET* ptarget);
 void OnTargetRemove(TARGET* ptarget);
 void CloneTarget(TARGET* ptarget, TARGET* ptargetBase);
+TARGET* PtargetEnsureAlo(ALO* palo);
+void SetAloTargetHitTest(ALO* palo, int fHitTest);
 void DeleteTarget(TARGET* ptarget);

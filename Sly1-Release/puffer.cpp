@@ -17,17 +17,39 @@ void LoadPufferFromBrx(PUFFER* ppuffer, CBinaryInputStream* pbis)
 
 void ClonePuffer(PUFFER* ppuffer, PUFFER* ppufferBase)
 {
-	LO lo = *ppuffer;
-	*ppuffer = *ppufferBase;
-	memcpy(ppuffer, &lo, sizeof(LO));
+	ClonePo(ppuffer, ppufferBase);
 
-	CloneLo(ppuffer, ppufferBase);
+	// Shallow copy fields
+	ppuffer->normalGround = ppufferBase->normalGround;
+	ppuffer->pvolCollect = ppufferBase->pvolCollect;
+	ppuffer->pwater = ppufferBase->pwater;
+	ppuffer->pvolFire = ppufferBase->pvolFire;
 
-	ClearDl(&ppuffer->dlChild);
+	// Copy the pointers for appntFloor
+	for (int i = 0; i < 4; ++i)
+	{
+		ppuffer->appntFloor[i] = ppufferBase->appntFloor[i];
+	}
 
-	ppuffer->pxa = nullptr;
-	ppuffer->grfpvaXpValid = 0;
-	ppuffer->pstso = nullptr;
+	// Shallow copy other ALO, ACTLA, EMITTER pointers
+	ppuffer->paloFireGun = ppufferBase->paloFireGun;
+	ppuffer->paloFireGunTarget = ppufferBase->paloFireGunTarget;
+	ppuffer->pactlaFireGun = ppufferBase->pactlaFireGun;
+	ppuffer->pemitterFire = ppufferBase->pemitterFire;
+	ppuffer->pemitterSpray = ppufferBase->pemitterSpray;
+	ppuffer->ppntFireNatural = ppufferBase->ppntFireNatural;
+	ppuffer->ppufft = ppufferBase->ppufft;
+	ppuffer->paloJt = ppufferBase->paloJt;
+	ppuffer->paloGut = ppufferBase->paloGut;
+	ppuffer->pactadjGut = ppufferBase->pactadjGut;
+	ppuffer->paloHead = ppufferBase->paloHead;
+	ppuffer->pactadjHead = ppufferBase->pactadjHead;
+
+	// Copy scalar values
+	ppuffer->npuffcEaten = ppufferBase->npuffcEaten;
+	ppuffer->npufftLit = ppufferBase->npufftLit;
+	ppuffer->npufftMax = ppufferBase->npufftMax;
+	ppuffer->tGameMax = ppufferBase->tGameMax;
 }
 
 int GetPufferSize()
@@ -52,13 +74,17 @@ int GetPuffbSize()
 
 void ClonePuffb(PUFFB* ppuffb, PUFFB* ppuffbBase)
 {
-	LO lo = *ppuffb;
-	*ppuffb = *ppuffbBase;
-	memcpy(ppuffb, &lo, sizeof(LO));
+	CloneAlo(ppuffb, ppuffbBase);
 
-	CloneLo(ppuffb, ppuffbBase);
+	ppuffb->cppathzone = ppuffbBase->cppathzone;
+	ppuffb->cppuffv = ppuffbBase->cppuffv;
+	ppuffb->cppuffc = ppuffbBase->cppuffc;
+	ppuffb->tSpawnNext = ppuffbBase->tSpawnNext;
 
-	ClearDl(&ppuffb->dlChild);
+	ppuffb->appathzone = ppuffbBase->appathzone;
+	ppuffb->mpippathzonecpuffc = ppuffbBase->mpippathzonecpuffc;
+	ppuffb->appuffv = ppuffbBase->appuffv;
+	ppuffb->appuffc = ppuffbBase->appuffc;
 }
 
 void DeletePuffb(PUFFB* ppuffb)
@@ -83,11 +109,20 @@ int GetPuffvSize()
 
 void ClonePuffv(PUFFV* ppuffv, PUFFV* ppuffvBase)
 {
-	LO lo = *ppuffv;
-	*ppuffv = *ppuffvBase;
-	memcpy(ppuffv, &lo, sizeof(LO));
+	CloneSo(ppuffv, ppuffvBase);
 
-	CloneLo(ppuffv, ppuffvBase);
+	// Shallow copy of the value members
+	ppuffv->oidPathzone = ppuffvBase->oidPathzone;
+	ppuffv->oidPuffvJump = ppuffvBase->oidPuffvJump;
+	ppuffv->coidPuffvLand = ppuffvBase->coidPuffvLand;
+	ppuffv->cppuffvLand = ppuffvBase->cppuffvLand;
+	ppuffv->tChosen = ppuffvBase->tChosen;
+
+	// Shallow copy of pointer members
+	ppuffv->ppathzone = ppuffvBase->ppathzone;
+	ppuffv->ppuffvJump = ppuffvBase->ppuffvJump;
+	std::copy(std::begin(ppuffvBase->aoidPuffvLand), std::end(ppuffvBase->aoidPuffvLand), std::begin(ppuffv->aoidPuffvLand));
+	std::copy(std::begin(ppuffvBase->appuffvLand), std::end(ppuffvBase->appuffvLand), std::begin(ppuffv->appuffvLand));
 }
 
 void DeletePuffv(PUFFV* ppuffv)
@@ -107,17 +142,16 @@ int GetPuffcSize()
 
 void ClonePuffc(PUFFC* ppuffc, PUFFC* ppuffcBase)
 {
-	LO lo = *ppuffc;
-	*ppuffc = *ppuffcBase;
-	memcpy(ppuffc, &lo, sizeof(LO));
+	CloneStepguard(ppuffc, ppuffcBase);
 
-	CloneLo(ppuffc, ppuffcBase);
+	// Shallow copy of the value members
+	ppuffc->posPathzoneNext = ppuffcBase->posPathzoneNext;
 
-	ClearDl(&ppuffc->dlChild);
-
-	ppuffc->pxa = nullptr;
-	ppuffc->grfpvaXpValid = 0;
-	ppuffc->pstso = nullptr;
+	// Shallow copy of the pointer members
+	ppuffc->pwater = ppuffcBase->pwater;
+	ppuffc->ppathzoneNext = ppuffcBase->ppathzoneNext;
+	ppuffc->ppuffvNext = ppuffcBase->ppuffvNext;
+	ppuffc->ppuffb = ppuffcBase->ppuffb;
 }
 
 void DeletePuffc(PUFFC* ppuffc)
@@ -137,17 +171,12 @@ int GetPufftSize()
 
 void ClonePufft(PUFFT* ppufft, PUFFT* ppufftBase)
 {
-	LO lo = *ppufft;
-	*ppufft = *ppufftBase;
-	memcpy(ppufft, &lo, sizeof(LO));
+	CloneSo(ppufft, ppufftBase);
 
-	CloneLo(ppufft, ppufftBase);
+	ppufft->fLit = ppufftBase->fLit;
 
-	ClearDl(&ppufft->dlChild);
-
-	ppufft->pxa = nullptr;
-	ppufft->grfpvaXpValid = 0;
-	ppufft->pstso = nullptr;
+	ppufft->ppntFire = ppufftBase->ppntFire;
+	ppufft->pemitterFire = ppufftBase->pemitterFire;
 }
 
 void DeletePufft(PUFFT *ppufft)

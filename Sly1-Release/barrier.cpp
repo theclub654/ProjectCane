@@ -17,17 +17,20 @@ int GetBarrierSize()
 
 void CloneBarrier(BARRIER* pbarrier, BARRIER* pbarrierBase)
 {
-	LO lo = *pbarrier;
-	*pbarrier = *pbarrierBase;
-	memcpy(pbarrier, &lo, sizeof(LO));
+    CloneSo(pbarrier, pbarrierBase);
 
-	CloneLo(pbarrier, pbarrierBase);
+    pbarrier->fAllow = pbarrierBase->fAllow;
+    pbarrier->coid = pbarrierBase->coid;
+    for (int i = 0; i < 4; ++i)
+        pbarrier->aoid[i] = pbarrierBase->aoid[i];
 
-	ClearDl(&pbarrier->dlChild);
+    pbarrier->ccid = pbarrierBase->ccid;
+    for (int i = 0; i < 4; ++i)
+        pbarrier->acid[i] = pbarrierBase->acid[i];
 
-	pbarrier->pxa = nullptr;
-	pbarrier->grfpvaXpValid = 0;
-	pbarrier->pstso = nullptr;
+    pbarrier->barwarp = pbarrierBase->barwarp;
+    pbarrier->psoWarp = pbarrierBase->psoWarp;
+    pbarrier->psoLastWarped = pbarrierBase->psoLastWarped;
 }
 
 void DeleteBarrier(BARRIER* pbarrier)

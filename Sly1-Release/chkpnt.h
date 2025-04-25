@@ -19,7 +19,7 @@ class CHKPNT : public SO
         int ibitChkpnt;
 };
 
-class VOL : public SO
+class VOL : public XFM
 {
 	public:
         int ctsurf;

@@ -153,22 +153,10 @@ void LoadProxyFromBrx(PROXY* pproxy, CBinaryInputStream* pbis)
 
 void CloneProxy(PROXY* pproxy, PROXY* pproxyBase)
 {
-	pproxy->pvtproxy = pproxyBase->pvtproxy;
-	pproxy->oid = pproxyBase->oid;
-	pproxy->dleOid = pproxyBase->dleOid;
-	pproxy->psw = pproxyBase->psw;
-	pproxy->paloParent = pproxyBase->paloParent;
-	pproxy->dleChild = pproxyBase->dleChild;
-	pproxy->ploCidNext = pproxyBase->ploCidNext;
-	pproxy->pmqFirst = pproxyBase->pmqFirst;
-	pproxy->pchzName = pproxyBase->pchzName;
-	pproxy->pframe = pproxyBase->pframe;
-	pproxy->ppxr = pproxyBase->ppxr;
-	pproxy->dtickPerf = pproxyBase->dtickPerf;
+	CloneAlo(pproxy, pproxyBase);
 
-	CloneLo(pproxy, pproxyBase);
+	DL proxyRootDl = pproxy->dlProxyRoot;
 
-	ClearDl(&pproxy->dlChild);
 	ClearDl(&pproxy->dlProxyRoot);
 }
 

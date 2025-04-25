@@ -50,6 +50,18 @@ void LoadSmFromBrx(SM* psm, CBinaryInputStream* pbis)
 	}
 }
 
+void CloneSm(SM* psm, SM* psmBase)
+{
+	CloneLo(psm, psmBase);
+
+	psm->csms = psmBase->csms;
+	psm->asms = psmBase->asms;
+	psm->csmt = psmBase->csmt;
+	psm->asmt = psmBase->asmt;
+	psm->fDefault = psmBase->fDefault;
+	psm->dlSma = psmBase->dlSma;
+}
+
 void DeleteSm(SM* psm)
 {
 	delete psm;

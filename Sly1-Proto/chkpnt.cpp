@@ -20,15 +20,34 @@ void LoadChkpntFromBrx(CHKPNT* pchkpnt, CBinaryInputStream* pbis)
 	LoadAloFromBrx(pchkpnt, pbis);
 }
 
+void BindChkpnt(CHKPNT* pchkpnt)
+{
+	BindChkpnt(pchkpnt);
+}
+
 void CloneChkpnt(CHKPNT* pchkpnt, CHKPNT* pchkpntBase)
 {
-	LO lo = *pchkpnt;
-	*pchkpnt = *pchkpntBase;
-	memcpy(pchkpnt, &lo, sizeof(LO));
+	CloneAlo(pchkpnt, pchkpntBase);
 
-	CloneLo(pchkpnt, pchkpntBase);
+	pchkpnt->coidAseg = pchkpntBase->coidAseg;
+	for (int i = 0; i < 4; ++i)
+		pchkpnt->aoidAseg[i] = pchkpntBase->aoidAseg[i];
 
-	ClearDl(&pchkpnt->dlChild);
+	pchkpnt->cpaseg = pchkpntBase->cpaseg;
+	for (int i = 0; i < 4; ++i)
+		pchkpnt->apaseg[i] = pchkpntBase->apaseg[i];
+
+	pchkpnt->coidVol = pchkpntBase->coidVol;
+	for (int i = 0; i < 4; ++i)
+		pchkpnt->aoidVol[i] = pchkpntBase->aoidVol[i];
+
+	pchkpnt->cpvol = pchkpntBase->cpvol;
+	for (int i = 0; i < 4; ++i)
+		pchkpnt->apvol[i] = pchkpntBase->apvol[i];
+
+	pchkpnt->oidWarp = pchkpntBase->oidWarp;
+	pchkpnt->ichkTriggered = pchkpntBase->ichkTriggered;
+	pchkpnt->ibitChkpnt = pchkpntBase->ibitChkpnt;
 }
 
 void DeleteChkpnt(CHKPNT *pchkpnt)
@@ -56,11 +75,12 @@ void LoadVolFromBrx(VOL* pvol, CBinaryInputStream* pbis)
 
 void CloneVol(VOL* pvol, VOL* pvolBase)
 {
-	LO lo = *pvol;
-	*pvol = *pvolBase;
-	memcpy(pvol, &lo, sizeof(LO));
+	CloneXfm(pvol, pvolBase);
 
-	CloneLo(pvol, pvolBase);
+	pvol->ctsurf = pvolBase->ctsurf;
+	pvol->atsurf = pvolBase->atsurf;
+	pvol->ctbsp  = pvolBase->ctbsp;
+	pvol->atbsp  = pvolBase->atbsp;
 }
 
 void DeleteVol(VOL* pvol)

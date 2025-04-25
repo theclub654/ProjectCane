@@ -19,17 +19,38 @@ int GetSensorSize()
 
 void CloneSensor(SENSOR* psensor, SENSOR* psensorBase)
 {
-	LO lo = *psensor;
-	*psensor = *psensorBase;
-	memcpy(psensor, &lo, sizeof(LO));
+	CloneSo(psensor, psensorBase); // Assuming CloneSo handles copying the base class (SO) members
 
-	CloneLo(psensor, psensorBase);
+	// Shallow copy of value members
+	psensor->tSensors = psensorBase->tSensors;
+	psensor->fTriggerAll = psensorBase->fTriggerAll;
+	psensor->dtEnabling = psensorBase->dtEnabling;
+	psensor->dtDisabling = psensorBase->dtDisabling;
+	psensor->fRemainDisabledIndefinite = psensorBase->fRemainDisabledIndefinite;
+	psensor->svtRestore = psensorBase->svtRestore;
 
-	ClearDl(&psensor->dlChild);
+	// Shallow copy of pointer members
+	psensor->palarm = psensorBase->palarm;
+	psensor->pamb = psensorBase->pamb;
+	psensor->pasegaPause = psensorBase->pasegaPause;
 
-	psensor->pxa = nullptr;
-	psensor->grfpvaXpValid = 0;
-	psensor->pstso = nullptr;
+	// Shallow copy of arrays
+	for (int i = 0; i < 4; ++i)
+	{
+		psensor->aoidTrigger[i] = psensorBase->aoidTrigger[i];
+		psensor->aoidNoTrigger[i] = psensorBase->aoidNoTrigger[i];
+		psensor->acidTrigger[i] = psensorBase->acidTrigger[i];
+		psensor->acidNoTrigger[i] = psensorBase->acidNoTrigger[i];
+	}
+
+	// Shallow copy of other struct members
+	psensor->sensm = psensorBase->sensm;
+	psensor->sensors = psensorBase->sensors;
+	psensor->sensorsInitial = psensorBase->sensorsInitial;
+	psensor->coidTrigger = psensorBase->coidTrigger;
+	psensor->coidNoTrigger = psensorBase->coidNoTrigger;
+	psensor->ccidTrigger = psensorBase->ccidTrigger;
+	psensor->ccidNoTrigger = psensorBase->ccidNoTrigger;
 }
 
 void DeleteSensor(SENSOR *psensor)
@@ -65,17 +86,29 @@ void LoadLasenFromBrx(LASEN* plasen, CBinaryInputStream* pbis)
 
 void CloneLasen(LASEN* plasen, LASEN* plasenBase)
 {
-	LO lo = *plasen;
-	*plasen = *plasenBase;
-	memcpy(plasen, &lo, sizeof(LO));
+	CloneSensor(plasen, plasenBase); // Assuming CloneSensor handles copying the base class (SENSOR) members
 
-	CloneLo(plasen, plasenBase);
+	// Shallow copy of value members
+	plasen->cposBeamShapeMax = plasenBase->cposBeamShapeMax;
+	plasen->dtDamageDisabling = plasenBase->dtDamageDisabling;
+	plasen->fBusyLasen = plasenBase->fBusyLasen;
+	plasen->tSenseNext = plasenBase->tSenseNext;
+	plasen->fJtOnlyTriggerObject = plasenBase->fJtOnlyTriggerObject;
+	plasen->uDrawMax = plasenBase->uDrawMax;
+	plasen->svuDrawMax = plasenBase->svuDrawMax;
 
-	ClearDl(&plasen->dlChild);
+	// Shallow copy of pointer members
+	plasen->paloRenderSense = plasenBase->paloRenderSense;
+	plasen->paloRenderDamage = plasenBase->paloRenderDamage;
 
-	plasen->pxa = nullptr;
-	plasen->grfpvaXpValid = 0;
-	plasen->pstso = nullptr;
+	// Shallow copy of array members
+	for (int i = 0; i < 16; ++i)
+	{
+		plasen->albeam[i] = plasenBase->albeam[i];
+	}
+
+	// Shallow copy of other struct members
+	plasen->dleBusyLasen = plasenBase->dleBusyLasen;
 }
 
 void RenderLasenSelf(LASEN* plasen, CM* pcm, RO* pro)
@@ -106,17 +139,20 @@ int GetCamsenSize()
 
 void CloneCamsen(CAMSEN* pcamsen, CAMSEN* pcamsenBase)
 {
-	LO lo = *pcamsen;
-	*pcamsen = *pcamsenBase;
-	memcpy(pcamsen, &lo, sizeof(LO));
+	CloneSensor(pcamsen, pcamsenBase); // Assuming CloneSensor handles copying the base class (SENSOR) members
 
-	CloneLo(pcamsen, pcamsenBase);
+	// Shallow copy of value members
+	pcamsen->tCsdts = pcamsenBase->tCsdts;
+	pcamsen->dtDamageFocus = pcamsenBase->dtDamageFocus;
+	pcamsen->dtDamageZap = pcamsenBase->dtDamageZap;
+	pcamsen->dtDamageUnfocus = pcamsenBase->dtDamageUnfocus;
 
-	ClearDl(&pcamsen->dlChild);
+	// Shallow copy of pointer members
+	pcamsen->paloRenderDamage = pcamsenBase->paloRenderDamage;
+	pcamsen->paloRenderZap = pcamsenBase->paloRenderZap;
 
-	pcamsen->pxa = nullptr;
-	pcamsen->grfpvaXpValid = 0;
-	pcamsen->pstso = nullptr;
+	// Shallow copy of struct member
+	pcamsen->csdts = pcamsenBase->csdts;
 }
 
 void RenderCamsenSelf(CAMSEN* pcamsen, CM* pcm, RO* pro)
@@ -146,17 +182,30 @@ int GetPrsenSize()
 
 void ClonePrsen(PRSEN* pprsen, PRSEN* pprsenBase)
 {
-	LO lo = *pprsen;
-	*pprsen = *pprsenBase;
-	memcpy(pprsen, &lo, sizeof(LO));
+	CloneSensor(pprsen, pprsenBase); // Assuming CloneSensor handles copying the base class (SENSOR) members
 
-	CloneLo(pprsen, pprsenBase);
+	// Shallow copy of value members
+	pprsen->iframeSenseStart = pprsenBase->iframeSenseStart;
+	pprsen->iframeSenseEnd = pprsenBase->iframeSenseEnd;
+	pprsen->dtSenseAnim = pprsenBase->dtSenseAnim;
+	pprsen->pssatSense = pprsenBase->pssatSense;
+	pprsen->iframeDamageStart = pprsenBase->iframeDamageStart;
+	pprsen->iframeDamageEnd = pprsenBase->iframeDamageEnd;
+	pprsen->dtDamageAnim = pprsenBase->dtDamageAnim;
+	pprsen->pssatDamage = pprsenBase->pssatDamage;
+	pprsen->iframeDisabledStart = pprsenBase->iframeDisabledStart;
+	pprsen->iframeDisabledEnd = pprsenBase->iframeDisabledEnd;
+	pprsen->dtDisabledAnim = pprsenBase->dtDisabledAnim;
+	pprsen->pssatDisabled = pprsenBase->pssatDisabled;
+	pprsen->iframeDisablingFlash = pprsenBase->iframeDisablingFlash;
+	pprsen->svtDisablingFlash = pprsenBase->svtDisablingFlash;
+	pprsen->dtRemainEnabled = pprsenBase->dtRemainEnabled;
+	pprsen->dtRemainDisabled = pprsenBase->dtRemainDisabled;
+	pprsen->tSensePrev = pprsenBase->tSensePrev;
+	pprsen->fTriggered = pprsenBase->fTriggered;
 
-	ClearDl(&pprsen->dlChild);
-
-	pprsen->pxa = nullptr;
-	pprsen->grfpvaXpValid = 0;
-	pprsen->pstso = nullptr;
+	// Shallow copy of pointer members
+	pprsen->ploop = pprsenBase->ploop;
 }
 
 void DeletePrsen(PRSEN *ppprsen)

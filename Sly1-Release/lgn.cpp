@@ -17,17 +17,45 @@ int GetLgnSize()
 
 void CloneLgn(LGN* plgn, LGN* plgnBase)
 {
-	LO lo = *plgn;
-	*plgn = *plgnBase;
-	memcpy(plgn, &lo, sizeof(LO));
+	ClonePo(plgn, plgnBase);
 
-	CloneLo(plgn, plgnBase);
+	// Clone the LGNS structure
+	plgn->lgns = plgnBase->lgns;
 
-	ClearDl(&plgn->dlChild);
+	// Clone the float tLgns
+	plgn->tLgns = plgnBase->tLgns;
 
-	plgn->pxa = nullptr;
-	plgn->grfpvaXpValid = 0;
-	plgn->pstso = nullptr;
+	// Clone the SM pointer
+	plgn->psm = plgnBase->psm;
+
+	// Clone the SMA pointer
+	plgn->psma = plgnBase->psma;
+
+	// Clone the ALO pointers (paloTurret, paloPlatform, paloJt, paloGut)
+	plgn->paloTurret = plgnBase->paloTurret;
+	plgn->paloPlatform = plgnBase->paloPlatform;
+	plgn->paloJt = plgnBase->paloJt;
+	plgn->paloGut = plgnBase->paloGut;
+
+	// Clone the ACTADJ pointer
+	plgn->pactadjGut = plgnBase->pactadjGut;
+
+	// Clone the glm::vec3 posGutTurret
+	plgn->posGutTurret = plgnBase->posGutTurret;
+
+	// Clone the int fFlash
+	plgn->fFlash = plgnBase->fFlash;
+
+	// Clone the float tFlash, tCharm, tCharmPending
+	plgn->tFlash = plgnBase->tFlash;
+	plgn->tCharm = plgnBase->tCharm;
+	plgn->tCharmPending = plgnBase->tCharmPending;
+
+	// Clone the int fCharmEnabled
+	plgn->fCharmEnabled = plgnBase->fCharmEnabled;
+
+	// Clone the XP pointer pxpZap
+	plgn->pxpZap = plgnBase->pxpZap;
 }
 
 void RenderLgnAll(LGN* plgn, CM* pcm, RO* pro)

@@ -50,6 +50,18 @@ void LoadSmFromBrx(SM* psm, CBinaryInputStream* pbis)
 	}
 }
 
+void CloneSm(SM* psm, SM* psmBase)
+{
+	CloneLo(psm, psmBase);
+
+	psm->csms = psmBase->csms;
+	psm->asms = psmBase->asms;
+	psm->csmt = psmBase->csmt;
+	psm->asmt = psmBase->asmt;
+	psm->fDefault = psmBase->fDefault;
+	psm->dlSma = psmBase->dlSma;
+}
+
 void DeleteSm(SM* psm)
 {
 	delete psm;
@@ -63,6 +75,22 @@ SMA* NewSma()
 void InitSwSmaDl(SW* psw)
 {
 	InitDl(&psw->dlSma, offsetof(SMA, dleSw));
+}
+
+void CloneSma(SMA* psma, SMA* psmaBase)
+{
+	psma->dleSm = psmaBase->dleSm;
+	psma->dleSw = psmaBase->dleSw;  
+	psma->psm = psmaBase->psm;      
+	psma->paloRoot = psmaBase->paloRoot;  
+	psma->grfapl = psmaBase->grfapl;  
+	psma->pasegaCur = psmaBase->pasegaCur;  
+	psma->ismsCur = psmaBase->ismsCur;  
+	psma->ismsNext = psmaBase->ismsNext;  
+	psma->ismsGoal = psmaBase->ismsGoal;  
+	psma->psmtCur = psmaBase->psmtCur;  
+	psma->svtLocal = psmaBase->svtLocal;
+	psma->pmqFirst = psmaBase->pmqFirst;
 }
 
 int GetSmaSize()

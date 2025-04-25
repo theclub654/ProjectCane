@@ -258,8 +258,18 @@ void LoadOptionFromBrx(void* pvObject, EOPID eopid, int eopidID, CBinaryInputStr
 			}
 
 			default:
-				if (pbis->S16Read() == 0x4 && eopid.otyp == OTYP_Emitok)
+				short optionDataShort = pbis->S16Read();
+
+				if (optionDataShort == 0x4 && eopid.otyp == OTYP_Emitok)
+				{
 					loadEmitMesh = true;
+					/*if (eopid.optdat.pfnget != nullptr)
+						memcpy(objectDataPtr, &optionDataShort, sizeof(short));*/
+				}
+					
+
+				/*if (eopid.optdat.pfnget != nullptr)
+					memcpy(objectDataPtr, &optionDataShort, sizeof(short));*/
 			return;
 		}
 	}

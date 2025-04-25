@@ -33,13 +33,50 @@ void LoadDprizeFromBrx(DPRIZE* pdprize, CBinaryInputStream* pbis)
 
 void CloneDprize(DPRIZE* pdprize, DPRIZE* pdprizeBase)
 {
-	LO lo = *pdprize;
-	*pdprize = *pdprizeBase;
-	memcpy(pdprize, &lo, sizeof(LO));
+	CloneAlo(pdprize, pdprizeBase);
 
-	CloneLo(pdprize, pdprizeBase);
+	pdprize->dprizes = pdprizeBase->dprizes;
+	pdprize->tDprizes = pdprizeBase->tDprizes;
+	pdprize->dprizesInit = pdprizeBase->dprizesInit;
+	pdprize->oidInitialState = pdprizeBase->oidInitialState;
+	pdprize->dtInitialSkip = pdprizeBase->dtInitialSkip;
 
-	ClearDl(&pdprize->dlChild);
+	pdprize->psm = pdprizeBase->psm;
+	pdprize->psma = pdprizeBase->psma;
+	pdprize->ptarget = pdprizeBase->ptarget;
+
+	pdprize->posCenter = pdprizeBase->posCenter;
+	pdprize->vCenter = pdprizeBase->vCenter;
+	pdprize->dvCenter = pdprizeBase->dvCenter;
+
+	pdprize->uGlintChance = pdprizeBase->uGlintChance;
+	pdprize->ppntFrontGlint = pdprizeBase->ppntFrontGlint;
+	pdprize->ppntBackGlint = pdprizeBase->ppntBackGlint;
+
+	pdprize->fLeft = pdprizeBase->fLeft;
+	pdprize->tGlint = pdprizeBase->tGlint;
+
+	pdprize->fNeverReuse = pdprizeBase->fNeverReuse;
+	pdprize->fReuseCandidate = pdprizeBase->fReuseCandidate;
+	pdprize->fLastBounce = pdprizeBase->fLastBounce;
+
+	pdprize->svLastBounceMax = pdprizeBase->svLastBounceMax;
+	pdprize->svLastBounce = pdprizeBase->svLastBounce;
+	pdprize->sRadiusBounce = pdprizeBase->sRadiusBounce;
+	pdprize->sRadiusCollect = pdprizeBase->sRadiusCollect;
+	pdprize->rzBounce = pdprizeBase->rzBounce;
+	pdprize->rxyBounce = pdprizeBase->rxyBounce;
+	pdprize->radSmooth = pdprizeBase->radSmooth;
+	pdprize->normalSmooth = pdprizeBase->normalSmooth;
+
+	pdprize->fSwirlDone = pdprizeBase->fSwirlDone;
+	pdprize->dleDprize = pdprizeBase->dleDprize;
+	pdprize->ichkCollected = pdprizeBase->ichkCollected;
+
+	pdprize->pexplCollect = pdprizeBase->pexplCollect;
+	pdprize->pexplAttract = pdprizeBase->pexplAttract;
+	pdprize->svcAttract = pdprizeBase->svcAttract;
+	pdprize->cAttract = pdprizeBase->cAttract;
 }
 
 void RenderDprizeAll(DPRIZE* pdprize, CM* pcm, RO* pro)
@@ -69,13 +106,7 @@ int GetCharmSize()
 
 void CloneCharm(CHARM* pcharm, CHARM* pcharmBase)
 {
-	LO lo = *pcharm;
-	*pcharm = *pcharmBase;
-	memcpy(pcharm, &lo, sizeof(LO));
-
-	CloneLo(pcharm, pcharmBase);
-
-	ClearDl(&pcharm->dlChild);
+	CloneDprize(pcharm, pcharmBase);
 }
 
 void DeleteCharm(CHARM* pcharm)
@@ -100,18 +131,32 @@ int GetCoinSize()
 
 void CloneCoin(COIN* pcoin, COIN* pcoinBase)
 {
-	LO lo = *pcoin;
-	*pcoin = *pcoinBase;
-	memcpy(pcoin, &lo, sizeof(LO));
-
-	CloneLo(pcoin, pcoinBase);
-
-	ClearDl(&pcoin->dlChild);
+	CloneDprize(pcoin, pcoinBase);
 }
 
 void DeleteCoin(COIN* pcoin)
 {
 	delete pcoin;
+}
+
+LIFETKN* NewLifetkn()
+{
+	return new LIFETKN{};
+}
+
+int GetLifetknSize()
+{
+	return sizeof(LIFETKN);
+}
+
+void CloneLifetkn(LIFETKN* plifetkn, LIFETKN* plifetknBase)
+{
+	CloneDprize(plifetkn, plifetknBase);
+}
+
+void DeleteLifetkn(LIFETKN* plifetkn)
+{
+	delete plifetkn;
 }
 
 KEY* NewKey()
@@ -131,13 +176,7 @@ int GetKeySize()
 
 void CloneKey(KEY* pkey, KEY* pkeyBase)
 {
-	LO lo = *pkey;
-	*pkey = *pkeyBase;
-	memcpy(pkey, &lo, sizeof(LO));
-
-	CloneLo(pkey, pkeyBase);
-
-	ClearDl(&pkey->dlChild);
+	CloneDprize(pkey, pkeyBase);
 }
 
 void DeleteKey(KEY* pkey)
@@ -163,13 +202,7 @@ int GetGoldSize()
 
 void CloneGold(GOLD* pgold, GOLD* pgoldBase)
 {
-	LO lo = *pgold;
-	*pgold = *pgoldBase;
-	memcpy(pgold, &lo, sizeof(LO));
-
-	CloneLo(pgold, pgoldBase);
-
-	ClearDl(&pgold->dlChild);
+	CloneDprize(pgold, pgoldBase);
 }
 
 void DeleteGold(GOLD* pgold)

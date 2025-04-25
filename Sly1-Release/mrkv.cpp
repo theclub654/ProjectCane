@@ -17,17 +17,11 @@ int GetMrkvSize()
 
 void CloneMrkv(MRKV* pmrkv, MRKV* pmrkvBase)
 {
-	LO lo = *pmrkv;
-	*pmrkv = *pmrkvBase;
-	memcpy(pmrkv, &lo, sizeof(LO));
+	CloneSo(pmrkv, pmrkvBase);
 
-	CloneLo(pmrkv, pmrkvBase);
-
-	ClearDl(&pmrkv->dlChild);
-
-	pmrkv->pxa = nullptr;
-	pmrkv->grfpvaXpValid = 0;
-	pmrkv->pstso = nullptr;
+	pmrkv->normal = pmrkvBase->normal;
+	pmrkv->lmAlpha = pmrkvBase->lmAlpha;
+	pmrkv->sDepth = pmrkvBase->sDepth;
 }
 
 void DeleteMrkv(MRKV *pmrkv)

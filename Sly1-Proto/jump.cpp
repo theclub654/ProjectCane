@@ -23,11 +23,17 @@ void OnJmtRemove(JMT* pjmt)
 
 void CloneJmt(JMT* pjmt, JMT* pjmtBase)
 {
-	LO lo = *pjmt;
-	*pjmt = *pjmtBase;
-	memcpy(pjmt, &lo, sizeof(LO));
+	ClonePnt(pjmt, pjmtBase);
 
-	CloneLo(pjmt, pjmtBase);
+	// Clone the DLE structure (assuming it's a simple structure, shallow copy should suffice)
+	pjmt->dleJmt = pjmtBase->dleJmt;
+
+	// Clone the float sRadius
+	pjmt->sRadius = pjmtBase->sRadius;
+
+	// Clone the OID and pointers (assuming these need shallow copying)
+	pjmt->oidSetIgnoreJt = pjmtBase->oidSetIgnoreJt;
+	pjmt->psoSetIgnoreJt = pjmtBase->psoSetIgnoreJt;
 }
 
 void DeleteJmt(JMT* pjmt)

@@ -28,11 +28,15 @@ void OnPipeRemove(PIPE* ppipe)
 
 void ClonePipe(PIPE* ppipe, PIPE* ppipeBase)
 {
-	LO lo = *ppipe;
-	*ppipe = *ppipeBase;
-	memcpy(ppipe, &lo, sizeof(LO));
+	CloneShape(ppipe, ppipeBase);
 
-	CloneLo(ppipe, ppipeBase);
+	ppipe->dlePipe = ppipeBase->dlePipe;
+	ppipe->vecFace = ppipeBase->vecFace;
+	ppipe->fCameraManual = ppipeBase->fCameraManual;
+	ppipe->szCameraOffset = ppipeBase->szCameraOffset;
+	ppipe->sxyCameraOffset = ppipeBase->sxyCameraOffset;
+	ppipe->sfxidGrab = ppipeBase->sfxidGrab;
+	ppipe->sfxidRelease = ppipeBase->sfxidRelease;
 }
 
 void DeletePipe(PIPE* ppipe)

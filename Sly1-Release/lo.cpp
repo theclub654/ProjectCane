@@ -70,7 +70,11 @@ void CloneLo(LO* plo, LO* ploBase)
 
 	plo->oid = ploBase->oid;
 	plo->pchzName = ploBase->pchzName;
-	plo->ppxr = ploBase->ppxr;
+
+	if (ploBase->ppxr)
+		plo->ppxr = std::make_shared<PXR>(*ploBase->ppxr); // Deep copy
+	else
+		plo->ppxr.reset();
 }
 
 LO* PloCloneLo(LO* plo, SW* psw, ALO* paloParent)
@@ -98,7 +102,7 @@ void RemoveLo(LO* plo)
 	// Loading objects parent child list
 	DL* objectChildList = &plo->paloParent->dlChild;
 
-	// If object doesnt have a parent load up the static world dlChild
+	// If object doesnt have a parent load up the sw world dlChild
 	if (plo->paloParent == nullptr)
 		objectChildList = &plo->psw->dlChild;
 
@@ -199,5 +203,5 @@ int GetLoSize()
 
 void DeleteLo(LO* plo)
 {
-	delete (LO*)plo;
+	delete plo;
 }

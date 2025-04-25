@@ -154,6 +154,13 @@ struct GLEAM
 	CLQC clqc;
 };
 
+struct BND
+{
+	ALO* palo;
+	glm::mat4 dmatOrig;
+	glm::mat4 dmat;
+};
+
 struct FGFN
 {
 	float duFogBias;
@@ -248,7 +255,7 @@ struct GLOBI
 struct GLOBSET // NOT DONE
 {
 	int cbnd;
-	struct BND* abnd;
+	std::vector <BND> abnd;
 	std::vector <OID> mpibndoid;
 	uint64_t cglob;
 	std::vector <GLOB> aglob;

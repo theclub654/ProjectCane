@@ -224,6 +224,7 @@ void BuildEopids()
 	g_aeopid[86].otyp = OTYP_Float;
 	g_aeopid[86].grfeopid = 0x120;
 	g_aeopid[87].grfeopid = 0x120;
+	g_aeopid[87].optdat.pfnset = (PFNSET)SetAloTargetHitTest;
 	g_aeopid[87].otyp = OTYP_Bool;
 	g_aeopid[88].optdat.ibSet = 1;
 	g_aeopid[88].otyp = OTYP_Void;

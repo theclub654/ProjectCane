@@ -22,17 +22,40 @@ void LoadButtonFromBrx(BUTTON* pbutton, CBinaryInputStream* pbis)
 
 void CloneButton(BUTTON* pbutton, BUTTON* pbuttonBase)
 {
-	LO lo = *pbutton;
-	*pbutton = *pbuttonBase;
-	memcpy(pbutton, &lo, sizeof(LO));
+    CloneSo(pbutton, pbuttonBase);
 
-	CloneLo(pbutton, pbuttonBase);
+    pbutton->btnt = pbuttonBase->btnt;
+    pbutton->btn = pbuttonBase->btn;
+    pbutton->coidPush = pbuttonBase->coidPush;
+    for (int i = 0; i < 8; ++i)
+        pbutton->aoidPush[i] = pbuttonBase->aoidPush[i];
 
-	ClearDl(&pbutton->dlChild);
+    pbutton->coidNoPush = pbuttonBase->coidNoPush;
+    for (int i = 0; i < 8; ++i)
+        pbutton->aoidNoPush[i] = pbuttonBase->aoidNoPush[i];
 
-	pbutton->pxa = nullptr;
-	pbutton->grfpvaXpValid = 0;
-	pbutton->pstso = nullptr;
+    pbutton->ccidPush = pbuttonBase->ccidPush;
+    for (int i = 0; i < 8; ++i)
+        pbutton->acidPush[i] = pbuttonBase->acidPush[i];
+
+    pbutton->ccidNoPush = pbuttonBase->ccidNoPush;
+    for (int i = 0; i < 8; ++i)
+        pbutton->acidNoPush[i] = pbuttonBase->acidNoPush[i];
+
+    pbutton->istopClosestCur = pbuttonBase->istopClosestCur;
+    pbutton->cposStop = pbuttonBase->cposStop;
+    for (int i = 0; i < 2; ++i)
+        pbutton->aposStop[i] = pbuttonBase->aposStop[i];
+
+    pbutton->cmatStop = pbuttonBase->cmatStop;
+    for (int i = 0; i < 2; ++i)
+        pbutton->amatStop[i] = pbuttonBase->amatStop[i];
+
+    pbutton->posLever = pbuttonBase->posLever;
+    for (int i = 0; i < 2; ++i)
+        pbutton->anormLimits[i] = pbuttonBase->anormLimits[i];
+
+    pbutton->phndSwitchHook = pbuttonBase->phndSwitchHook;
 }
 
 void DeleteButton(BUTTON *pbutton)

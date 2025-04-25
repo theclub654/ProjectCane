@@ -19,13 +19,21 @@ int GetMgcSize()
 
 void CloneMgc(MGC* pmgc, MGC* pmgcBase)
 {
-	LO lo = *pmgc;
-	*pmgc = *pmgcBase;
-	memcpy(pmgc, &lo, sizeof(LO));
+    CloneAlo(pmgc, pmgcBase);
 
-	CloneLo(pmgc, pmgcBase);
-
-	ClearDl(&pmgc->dlChild);
+    pmgc->psmGenerate = pmgcBase->psmGenerate;
+    pmgc->psmaGenerate = pmgcBase->psmaGenerate;
+    pmgc->psmCollect = pmgcBase->psmCollect;
+    pmgc->psmaCollect = pmgcBase->psmaCollect;
+    pmgc->pasegPath = pmgcBase->pasegPath;
+    pmgc->pvolSmash = pmgcBase->pvolSmash;
+    pmgc->pvolHole = pmgcBase->pvolHole;
+    pmgc->dlMgcoFree = pmgcBase->dlMgcoFree;
+    pmgc->dlMgco = pmgcBase->dlMgco;
+    pmgc->fDamaging = pmgcBase->fDamaging;
+    pmgc->pexplGood = pmgcBase->pexplGood;
+    pmgc->pexplBad = pmgcBase->pexplBad;
+    pmgc->pmgv = pmgcBase->pmgv;
 }
 
 void LoadMgcFromBrx(MGC* pmgc, CBinaryInputStream* pbis)

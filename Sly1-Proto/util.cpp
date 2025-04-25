@@ -28,6 +28,59 @@ float GLimitAbs(float g, float absLimit)
 	return absLimit;
 }
 
+float GSmooth(float gCur, float gTarget, float dt, SMP* psmp, float* pdgNext)
+{
+	float delta = gCur - gTarget;
+	bool isNegative = delta < 0.0f;
+	if (isNegative) delta = -delta;
+
+	float acc = psmp->svFast;
+	float vSlow = psmp->svSlow;
+	float dtFast = psmp->dtFast;
+
+	float accelDist = (vSlow + acc) * dtFast * 0.5f;
+	float velocity = 0.0f;
+	bool finalStepHandled = false;
+
+	if (accelDist <= delta) {
+		float accelTime = (delta - accelDist) / acc;
+		if (dt <= accelTime) {
+			velocity = -acc;
+			delta -= acc * dt;
+			finalStepHandled = true;
+		}
+		else {
+			dt -= accelTime;
+			delta = accelDist;
+		}
+	}
+
+	if (!finalStepHandled) {
+		float tSolution = 0.0f;
+		float a = (acc - vSlow) / (2.0f * dtFast);
+		float b = vSlow;
+		float c = -delta;
+
+		if (CSolveQuadratic(a, b, c, &tSolution) && tSolution > dt) {
+			float t = tSolution - dt;
+			float accelRate = (acc - vSlow) / dtFast;
+			float vMid = vSlow + accelRate * t;
+			velocity = -0.5f * (vSlow + vMid);
+			delta = (vSlow * t) + (0.5f * accelRate * t * t);
+		}
+		else {
+			velocity = -vSlow;
+			delta = vSlow * dt;
+		}
+	}
+
+	float result = isNegative ? gTarget - delta : gTarget + delta;
+	if (pdgNext != nullptr) {
+		*pdgNext = isNegative ? -velocity : velocity;
+	}
+	return result;
+}
+
 //TODO: GSmooth
 //TODO: GSmoothA
 //TODO: RadSmooth
@@ -97,24 +150,31 @@ bool FFloatsNear(float g1, float g2, float gEpsilon)
 }
 
 //solve a quadratic equation of the form ax^2+bx+c
-int CSolveQuadratic(float a, float b, float c, float *solutions)
+int CSolveQuadratic(float a, float b, float c, float *ax)
 {
-	float delta = b * b - a * c * 4.0;
-	if (delta < 0.0)
-		return 0; //no solution
-
-	float sqrtOver2a = sqrtf(delta) / (a + a);
-	float bOver2a = b / (a + a);
-	if (fabs(sqrtOver2a) < 0.0001f)
-	{
-		//one solution
-		solutions[0] = -bOver2a;
-		return 1;
+	if (std::abs(a) < 1e-6f) {
+		// Degenerate case: not a quadratic equation
+		return 0;
 	}
-	
-	//two solutions
-	solutions[0] = -bOver2a + sqrtOver2a;
-	solutions[1] = -bOver2a - sqrtOver2a;
+
+	float discriminant = b * b - 4.0f * a * c;
+	if (discriminant < 0.0f) {
+		return 0; // No real roots
+	}
+
+	float inv2a = 1.0f / (2.0f * a);
+	float sqrtDisc = std::sqrt(discriminant);
+	float rootOffset = sqrtDisc * inv2a;
+	float mid = -b * inv2a;
+
+	if (std::abs(rootOffset) < 0.0001f) {
+		*ax = mid;
+		return 1; // One root (numerically close)
+	}
+
+	ax[0] = mid + rootOffset;
+	ax[1] = mid - rootOffset;
+	if (ax[0] > ax[1]) std::swap(ax[0], ax[1]); // Return smaller root first
 	return 2;
 }
 

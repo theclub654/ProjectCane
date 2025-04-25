@@ -29,11 +29,9 @@ void OnLandingRemove(LANDING* planding)
 
 void CloneLanding(LANDING* planding, LANDING* plandingBase)
 {
-	LO lo = *planding;
-	*planding = *plandingBase;
-	memcpy(planding, &lo, sizeof(LO));
+	CloneShape(planding, plandingBase);
 
-	CloneLo(planding, plandingBase);
+	planding->dleLanding = plandingBase->dleLanding;
 }
 
 void DeleteLanding(LANDING* planding)

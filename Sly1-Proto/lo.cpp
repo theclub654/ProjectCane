@@ -55,7 +55,11 @@ void RemoveLoHierarchy(LO* plo)
 
 void SnipLo(LO* plo)
 {
-
+	if (FIsLoInWorld(plo) != 0)
+	{
+		if (plo->pvtalo->pfnBindAlo != nullptr)
+			plo->pvtalo->pfnBindAlo((ALO*)plo);
+	}
 }
 
 void CloneLoHierarchy(LO* plo, LO* ploBase)
@@ -70,7 +74,11 @@ void CloneLo(LO* plo, LO* ploBase)
 
 	plo->oid = ploBase->oid;
 	plo->pchzName = ploBase->pchzName;
-	plo->ppxr = ploBase->ppxr;
+
+	if (ploBase->ppxr)
+		plo->ppxr = std::make_shared<PXR>(*ploBase->ppxr);
+	else
+		plo->ppxr.reset();
 }
 
 LO* PloCloneLo(LO* plo, SW* psw, ALO* paloParent)
@@ -148,7 +156,7 @@ int FIsLoInWorld(LO *plo)
 			break;
 
 		parent = palo->paloParent;
-		plo = static_cast<LO*>(palo);
+		plo = palo;
 	}
 
 	return 1;
@@ -156,7 +164,7 @@ int FIsLoInWorld(LO *plo)
 
 void PostLoLoad(LO* plo)
 {
-
+	
 }
 
 void SetLoParent(LO *plo, ALO *paloParent)

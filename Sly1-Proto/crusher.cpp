@@ -17,17 +17,10 @@ int GetCrfodbSize()
 
 void CloneCrfodb(CRFODB* pcrfodb, CRFODB* pcrfodbBase)
 {
-	LO lo = *pcrfodb;
-	*pcrfodb = *pcrfodbBase;
-	memcpy(pcrfodb, &lo, sizeof(LO));
+	CloneCrfod(pcrfodb, pcrfodbBase);
 
-	CloneLo(pcrfodb, pcrfodbBase);
-
-	ClearDl(&pcrfodb->dlChild);
-
-	pcrfodb->pxa = nullptr;
-	pcrfodb->grfpvaXpValid = 0;
-	pcrfodb->pstso = nullptr;
+	pcrfodb->fDetectLatch = pcrfodbBase->fDetectLatch;
+	pcrfodb->cpoint = pcrfodbBase->cpoint;
 }
 
 void DeleteCrfodb(CRFODB* pcrfodb)
@@ -59,17 +52,9 @@ void OnCrfodRemove(CRFOD* pcrfod)
 
 void CloneCrfod(CRFOD* pcrfod, CRFOD* pcrfodBase)
 {
-	LO lo = *pcrfod;
-	*pcrfod = *pcrfodBase;
-	memcpy(pcrfod, &lo, sizeof(LO));
+	CloneStepguard(pcrfod, pcrfodBase);
 
-	CloneLo(pcrfod, pcrfodBase);
-
-	ClearDl(&pcrfod->dlChild);
-
-	pcrfod->pxa = nullptr;
-	pcrfod->grfpvaXpValid = 0;
-	pcrfod->pstso = nullptr;
+	pcrfod->dleCrfod = pcrfodBase->dleCrfod;
 }
 
 int GetCrfodSize()
@@ -94,17 +79,7 @@ int GetCrfodkSize()
 
 void CloneCrfodk(CRFODK* pcrfodk, CRFODK* pcrfodkBase)
 {
-	LO lo = *pcrfodk;
-	*pcrfodk = *pcrfodkBase;
-	memcpy(pcrfodk, &lo, sizeof(LO));
-
-	CloneLo(pcrfodk, pcrfodkBase);
-
-	ClearDl(&pcrfodk->dlChild);
-
-	pcrfodk->pxa = nullptr;
-	pcrfodk->grfpvaXpValid = 0;
-	pcrfodk->pstso = nullptr;
+	CloneCrfod(pcrfodk, pcrfodkBase);
 }
 
 void DeleteCrfodk(CRFODK* pcrfodk)
@@ -129,11 +104,11 @@ int GetCrbrainSize()
 
 void CloneCrbrain(CRBRAIN* pcrbrain, CRBRAIN* pcrbrainBase)
 {
-	LO lo = *pcrbrain;
-	*pcrbrain = *pcrbrainBase;
-	memcpy(pcrbrain, &lo, sizeof(LO));
+	CloneAlo(pcrbrain, pcrbrainBase);
 
-	CloneLo(pcrbrain, pcrbrainBase);
+	pcrbrain->cpoint = pcrbrainBase->cpoint;
+	pcrbrain->cpointMax = pcrbrainBase->cpointMax;
+	pcrbrain->tContest = pcrbrainBase->tContest;
 }
 
 void DeleteCrbrain(CRBRAIN* pcrbrain)

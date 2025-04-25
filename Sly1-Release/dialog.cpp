@@ -23,13 +23,29 @@ void LoadDialogFromBrx(DIALOG* pdialog, CBinaryInputStream* pbis)
 
 void CloneDialog(DIALOG* pdialog, DIALOG* pdialogBase)
 {
-	LO lo = *pdialog;
-	*pdialog = *pdialogBase;
-	memcpy(pdialog, &lo, sizeof(LO));
+    CloneAlo(pdialog, pdialogBase);
 
-	CloneLo(pdialog, pdialogBase);
+    pdialog->dialogk = pdialogBase->dialogk;
+    pdialog->dialogs = pdialogBase->dialogs;
+    pdialog->tDialogs = pdialogBase->tDialogs;
 
-	ClearDl(&pdialog->dlChild);
+    pdialog->cde = pdialogBase->cde;
+    pdialog->ade = pdialogBase->ade;
+
+    pdialog->ideCur = pdialogBase->ideCur;
+    pdialog->dp = pdialogBase->dp;
+    pdialog->oidPntAnchor = pdialogBase->oidPntAnchor;
+    pdialog->pfPlayed = pdialogBase->pfPlayed;
+    pdialog->fPlayed = pdialogBase->fPlayed;
+
+    pdialog->cpfEquivalence = pdialogBase->cpfEquivalence;
+    for (int i = 0; i < 4; ++i)
+    {
+        pdialog->apfEquivalence[i] = pdialogBase->apfEquivalence[i];
+    }
+
+    pdialog->fDefault = pdialogBase->fDefault;
+    pdialog->fCrucial = pdialogBase->fCrucial;
 }
 
 void LoadDialogEventsFromBrx(DIALOG* pdialog, CBinaryInputStream* pbis, int* pcde, DE** pade)

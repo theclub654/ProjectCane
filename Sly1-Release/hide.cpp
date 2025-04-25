@@ -33,17 +33,13 @@ void LoadHbskFromBrx(HBSK* phbsk, CBinaryInputStream* pbis)
 
 void CloneHbsk(HBSK* phbsk, HBSK* phbskBase)
 {
-	LO lo = *phbsk;
-	*phbsk = *phbskBase;
-	memcpy(phbsk, &lo, sizeof(LO));
+	CloneSo(phbsk, phbskBase);
 
-	CloneLo(phbsk, phbskBase);
-
-	ClearDl(&phbsk->dlChild);
-
-	phbsk->pxa = nullptr;
-	phbsk->grfpvaXpValid = 0;
-	phbsk->pstso = nullptr;
+	phbsk->hbsks = phbskBase->hbsks;
+	phbsk->tHbsks = phbskBase->tHbsks;
+	phbsk->dleHbsk = phbskBase->dleHbsk;
+	phbsk->sFlattenRadius = phbskBase->sFlattenRadius;
+	phbsk->cMaxDartsStuck = phbskBase->cMaxDartsStuck;
 }
 
 void DeleteHbsk(HBSK *phbsk)
@@ -79,11 +75,15 @@ void OnHshapeRemove(HSHAPE* phshape)
 
 void CloneHshape(HSHAPE* phshape, HSHAPE* phshapeBase)
 {
-	LO lo = *phshape;
-	*phshape = *phshapeBase;
-	memcpy(phshape, &lo, sizeof(LO));
+	CloneShape(phshape, phshapeBase);
 
-	CloneLo(phshape, phshapeBase);
+	phshape->dleHshape = phshapeBase->dleHshape;
+	phshape->jthk = phshapeBase->jthk;
+	phshape->oidTnHide = phshapeBase->oidTnHide;
+	phshape->ptnHide = phshapeBase->ptnHide;
+	phshape->fTunnel = phshapeBase->fTunnel;
+	phshape->grfhp = phshapeBase->grfhp;
+	phshape->fDetect = phshapeBase->fDetect;
 }
 
 void DeleteHshape(HSHAPE* phshape)
@@ -119,11 +119,16 @@ void OnHpntRemove(HPNT* phpnt)
 
 void CloneHpnt(HPNT* phpnt, HPNT* phpntBase)
 {
-	LO lo = *phpnt;
-	*phpnt = *phpntBase;
-	memcpy(phpnt, &lo, sizeof(LO));
+	ClonePnt(phpnt, phpntBase);
 
-	CloneLo(phpnt, phpntBase);
+	phpnt->dleHpnt = phpntBase->dleHpnt;
+	phpnt->jthk = phpntBase->jthk;
+	phpnt->sFlattenRadius = phpntBase->sFlattenRadius;
+	phpnt->oidTnHide = phpntBase->oidTnHide;
+	phpnt->ptnHide = phpntBase->ptnHide;
+	phpnt->fTunnel = phpntBase->fTunnel;
+	phpnt->fDetect = phpntBase->fDetect;
+	phpnt->dzIgnore = phpntBase->dzIgnore;
 }
 
 void DeleteHpnt(HPNT* phpnt)

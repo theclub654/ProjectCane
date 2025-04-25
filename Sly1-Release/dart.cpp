@@ -33,17 +33,26 @@ void RemoveDart(DART* pdart)
 
 void CloneDart(DART* pdart, DART* pdartBase)
 {
-	LO lo = *pdart;
-	*pdart = *pdartBase;
-	memcpy(pdart, &lo, sizeof(LO));
+    CloneSo(pdart, pdartBase);
 
-	CloneLo(pdart, pdartBase);
+    pdart->darts = pdartBase->darts;
+    pdart->tDarts = pdartBase->tDarts;
+    pdart->svDart = pdartBase->svDart;
+    pdart->sRadiusFireCloud = pdartBase->sRadiusFireCloud;
+    pdart->sRadiusStrikeCloud = pdartBase->sRadiusStrikeCloud;
+    pdart->dtFade = pdartBase->dtFade;
+    pdart->dtMaxStuck = pdartBase->dtMaxStuck;
 
-	ClearDl(&pdart->dlChild);
+    pdart->dleDartFree = pdartBase->dleDartFree;
+    pdart->pasegSticking = pdartBase->pasegSticking;
+    pdart->pasegaSticking = pdartBase->pasegaSticking;
+    pdart->paloTarget = pdartBase->paloTarget;
 
-	pdart->pxa = nullptr;
-	pdart->grfpvaXpValid = 0;
-	pdart->pstso = nullptr;
+    pdart->dtLaunchToTarget = pdartBase->dtLaunchToTarget;
+    pdart->dzTarget = pdartBase->dzTarget;
+
+    pdart->pdartgunFiredFrom = pdartBase->pdartgunFiredFrom;
+    pdart->pexpl = pdartBase->pexpl;
 }
 
 void LoadDartFromBrx(DART* pdart, CBinaryInputStream* pbis)

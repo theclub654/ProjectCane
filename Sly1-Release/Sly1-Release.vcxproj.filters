@@ -54,9 +54,6 @@
     <ClCompile Include="spaprops.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="unk15.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="chkpnt.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -507,9 +504,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="unk16.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="unk15.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="unk0.h">

@@ -27,13 +27,26 @@ int GetBlipgSize()
 
 void CloneBlipg(BLIPG* pblipg, BLIPG* pblipgBase)
 {
-	LO lo = *pblipg;
-	*pblipg = *pblipgBase;
-	memcpy(pblipg, &lo, sizeof(LO));
+    CloneAlo(pblipg, pblipgBase);
 
-	CloneLo(pblipg, pblipgBase);
-
-	ClearDl(&pblipg->dlChild);
+    pblipg->pemitter = pblipgBase->pemitter;
+    pblipg->clqScale = pblipgBase->clqScale;
+    pblipg->clqAlpha = pblipgBase->clqAlpha;
+    pblipg->clqTexture = pblipgBase->clqTexture;
+    pblipg->clqColor = pblipgBase->clqColor;
+    pblipg->blipmk = pblipgBase->blipmk;
+    pblipg->blipgm = pblipgBase->blipgm;
+    pblipg->pshd = pblipgBase->pshd;
+    pblipg->cqwTexture = pblipgBase->cqwTexture;
+    pblipg->crgba = pblipgBase->crgba;
+    for (int i = 0; i < 32; ++i)
+        pblipg->argba[i] = pblipgBase->argba[i];
+    pblipg->fColorRanges = pblipgBase->fColorRanges;
+    pblipg->blipok = pblipgBase->blipok;
+    pblipg->rSFlying = pblipgBase->rSFlying;
+    pblipg->cblipe = pblipgBase->cblipe;
+    pblipg->dlBlip = pblipgBase->dlBlip;
+    pblipg->dleBlipg = pblipgBase->dleBlipg;
 }
 
 void OnBlipgAdd(BLIPG* pblipg)

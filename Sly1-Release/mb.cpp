@@ -22,17 +22,44 @@ void LoadMbgFromBrx(MBG* pmbg, CBinaryInputStream* pbis)
 
 void CloneMbg(MBG* pmbg, MBG* pmbgBase)
 {
-	LO lo = *pmbg;
-	*pmbg = *pmbgBase;
-	memcpy(pmbg, &lo, sizeof(LO));
+    CloneStepguard(pmbg, pmbgBase);
 
-	CloneLo(pmbg, pmbgBase);
+    // Clone scalar members
+    pmbg->mbak = pmbgBase->mbak;
+    pmbg->tMbsk = pmbgBase->tMbsk;
+    pmbg->fAbandonExternal = pmbgBase->fAbandonExternal;
+    pmbg->fLeftFootDown = pmbgBase->fLeftFootDown;
+    pmbg->fRightFootDown = pmbgBase->fRightFootDown;
 
-	ClearDl(&pmbg->dlChild);
+    // Clone the mpmbakpaseg array (pointers to ASEG*)
+    for (int i = 0; i < 3; ++i)
+    {
+        pmbg->mpmbakpaseg[i] = pmbgBase->mpmbakpaseg[i]; // Direct pointer copy (if deep copy required, allocate new memory)
+    }
 
-	pmbg->pxa = nullptr;
-	pmbg->grfpvaXpValid = 0;
-	pmbg->pstso = nullptr;
+    // Clone the mpmbakprwm array (pointers to RWM*)
+    for (int i = 0; i < 3; ++i)
+    {
+        pmbg->mpmbakprwm[i] = pmbgBase->mpmbakprwm[i]; // Direct pointer copy (if deep copy required, allocate new memory)
+    }
+
+    // Clone mbsk (assumed to be a structure)
+    pmbg->mbsk = pmbgBase->mbsk;
+
+    // Clone the mpmbskpxfm array (pointers to XFM*)
+    for (int i = 0; i < 4; ++i)
+    {
+        pmbg->mpmbskpxfm[i] = pmbgBase->mpmbskpxfm[i]; // Direct pointer copy (if deep copy required, allocate new memory)
+    }
+
+    // Clone the ablrun array (BLRUN structures)
+    for (int i = 0; i < 6; ++i)
+    {
+        pmbg->ablrun[i] = pmbgBase->ablrun[i]; // Direct copy of BLRUN structures
+    }
+
+    // Clone the pasegblRun (pointer to ASEGBL)
+    pmbg->pasegblRun = pmbgBase->pasegblRun;
 }
 
 void DeleteMbg(MBG* pmbg)
@@ -57,17 +84,14 @@ int GetBhgSize()
 
 void CloneBhg(BHG* pbhg, BHG* pbhgBase)
 {
-	LO lo = *pbhg;
-	*pbhg = *pbhgBase;
-	memcpy(pbhg, &lo, sizeof(LO));
+    CloneStepguard(pbhg, pbhgBase);
 
-	CloneLo(pbhg, pbhgBase);
+    // Clone scalar members
+    pbhg->oidScentmap = pbhgBase->oidScentmap;
+    pbhg->tScent = pbhgBase->tScent;
 
-	ClearDl(&pbhg->dlChild);
-
-	pbhg->pxa = nullptr;
-	pbhg->grfpvaXpValid = 0;
-	pbhg->pstso = nullptr;
+    // Shallow copy of the pscentmap pointer
+    pbhg->pscentmap = pbhgBase->pscentmap;
 }
 
 void DeleteBhg(BHG* phg)
@@ -92,13 +116,15 @@ int GetScentmapSize()
 
 void CloneScentmap(SCENTMAP* pscentmap, SCENTMAP* pscentmapBase)
 {
-	LO lo = *pscentmap;
-	*pscentmap = *pscentmapBase;
-	memcpy(pscentmap, &lo, sizeof(LO));
+    CloneAlo(pscentmap, pscentmapBase);
 
-	CloneLo(pscentmap, pscentmapBase);
-
-	ClearDl(&pscentmap->dlChild);
+    pscentmap->cxMax = pscentmapBase->cxMax;
+    pscentmap->cyMax = pscentmapBase->cyMax;
+    pscentmap->cscp = pscentmapBase->cscp;
+    pscentmap->ascp = pscentmapBase->ascp;
+    pscentmap->mpixiypscpFirst = pscentmapBase->mpixiypscpFirst;
+    pscentmap->posMin = pscentmapBase->posMin;
+    pscentmap->posMax = pscentmapBase->posMax;
 }
 
 void DeleteScentmap(SCENTMAP* pscentmap)

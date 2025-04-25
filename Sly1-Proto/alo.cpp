@@ -72,66 +72,127 @@ void RemoveAloHierarchy(ALO *palo)
 
 void OnAloAdd(ALO* palo)
 {
-	if (palo->paloParent == nullptr)
-	{
+	if (!palo) return;
+
+	ALO* parent = palo->paloParent;
+	SW* psw = palo->psw;
+
+	if (!parent) {
 		palo->paloRoot = palo;
 
-		if (palo->fRealClock == 0)
-		{
-			AppendDlEntry(&palo->psw->dlMRD, palo);
-			*(unsigned long*)&palo->bitfield = *(unsigned long*)&palo->bitfield | 0x2000000000;
-			AppendDlEntry(&palo->psw->dlBusy, palo);
+		if (palo->fRealClock == 0) {
+			AppendDlEntry(&psw->dlMRD, palo);
+			palo->bitfield.fBusy = true;
+			AppendDlEntry(&psw->dlBusy, palo);
 
-			if ((palo->pvtlo->grfcid & 2U) != 0)
-				AppendDlEntry(&palo->psw->dlBusySo, palo);
+			if (palo->pvtlo->grfcid & 0x2U) {
+				AppendDlEntry(&psw->dlBusySo, palo);
+			}
 
 			palo->paloFreezeRoot = palo;
-			palo->dlFreeze.paloLast = palo;
 			palo->dlFreeze.paloFirst = palo;
-		}
+			palo->dlFreeze.paloLast = palo;
 
-		else
-			AppendDlEntry(&palo->psw->dlMRDRealClock, palo);
+			/*for (int i = palo->cpmrg - 1; i >= 0; --i) {
+				if (MRG* pmrg = palo->apmrg[i]) {
+					MergeSwGroup(psw, pmrg);
+				}
+			}*/
+		}
+		else {
+			AppendDlEntry(&psw->dlMRDRealClock, palo);
+		}
+	}
+	else {
+		palo->paloRoot = parent->paloRoot;
+
+		/*if (parent->bitfield.fFrozen)
+			parent->pvtalo->pfnFreezeAlo();*/
+		
 	}
 
-	if (palo->pshadow != 0)
-		AppendDlEntry(&palo->psw->dlShadow, palo->pshadow);
+	// Position actuator
+	/*if (palo->pactPos != nullptr) {
+		glm::vec3 w{}, v{};
+		actPos->pvtact->pfnGetActPositionGoal(0, actPos, &w, &v);
+		palo->pvtalo->pfnTranslateAloToPos(palo, &w);
+		palo->pvtalo->pfnSetAloVelocityVec(palo, &v);
+	}*/
 
-	palo->pvtalo->pfnUpdateAloXfWorld(palo);
+	// Rotation actuator
+	/*if (palo->pactRot != nullptr) {
+		glm::mat3 mat{};
+		glm::vec3 w{};
+		palo->pactRot->pvtact->pfnGetActRotationGoal(0, actRot, &mat, &w);
+		palo->pvtalo->pfnRotateAloToMat(palo, &mat);
+		palo->pvtalo->pfnSetAloAngularVelocityVec(palo, &w);
+	}*/
 
+	/*if (palo->bitfield.fForceCameraFade) 
+		AddCmFadeObject(g_pcm, palo);*/
+
+	if (palo->pshadow != nullptr) 
+		AppendDlEntry(&psw->dlShadow, palo->pshadow);
+
+	if (palo->pvtlo->pfnUpdateLoXfWorld != nullptr)
+		palo->pvtalo->pfnUpdateAloXfWorld(palo);
+
+	//HandleLoSpliceEvent(palo, 4, 0, nullptr);
 	ResolveAlo(palo);
 }
 
 void OnAloRemove(ALO* palo)
 {
-	if (palo->paloParent == nullptr)
-	{
-		if (palo->fRealClock != 0)
-			RemoveDlEntry(&palo->psw->dlMRDRealClock, palo);
+	if (!palo) return;
 
-		else
-		{
-			if (true)
-			{
-				RemoveDlEntry(&palo->psw->dlMRD, palo);
-				RemoveDlEntry(&palo->psw->dlBusy, palo);
+	SW* psw = palo->psw;
 
-				if ((palo->pvtalo->grfcid & 0x2U) != 0)
-				{
-					RemoveDlEntry(&palo->psw->dlBusySo, palo);
+	OnLoRemove(static_cast<LO*>(palo));
+
+	if (!palo->paloParent) {
+		if (palo->fRealClock != 0) {
+			RemoveDlEntry(&psw->dlMRDRealClock, palo);
+		}
+		else {
+			RemoveDlEntry(&psw->dlMRD, palo);
+
+			if (palo->bitfield.fBusy) {
+				palo->bitfield.fBusy = false;
+				RemoveDlEntry(&psw->dlBusy, palo);
+
+				if ((palo->pvtlo->grfcid & 0x2U) != 0) {
+					RemoveDlEntry(&psw->dlBusySo, palo);
 				}
 			}
-
-			palo->paloFreezeRoot = nullptr;
-			ClearDl(&palo->dlFreeze);
 		}
+
+		//SplinterSwFreezeGroup(psw, palo->paloFreezeRoot);
+		palo->paloFreezeRoot = nullptr;
+		ClearDl(&palo->dlFreeze);
 	}
 
-	if (palo->pshadow != nullptr)
-		RemoveDlEntry(&palo->psw->dlShadow, palo->pshadow);
+	// Check for camera fade flag
+	/*if (palo->bitfield.fForceCameraFade) {
+		RemoveCmFadeObject(g_pcm, palo);
+	}*/
 
+	if (palo->pshadow != nullptr) {
+		RemoveDlEntry(&psw->dlShadow, palo->pshadow);
+	}
+
+	// If object is frozen, call the freeze callback if it exists
+	/*if (palo->bitfield.fFrozen) 
+		palo->pvtalo->pfnFreezeLo()*/
+	
 	ResolveAlo(palo);
 	palo->paloRoot = nullptr;
+
+	//HandleLoSpliceEvent(palo, 5, 0, nullptr);
+}
+
+void UpdateAloOrig(ALO* palo)
+{
+
 }
 
 void AdjustAloRtckMat(ALO* palo, CM* pcm, RTCK rtck, glm::vec3* pposCenter, glm::mat4 &pmat)
@@ -181,11 +242,67 @@ void CloneAloHierarchy(ALO* palo, ALO* paloBase)
 
 void CloneAlo(ALO* palo, ALO* paloBase)
 {
-	LO lo = *palo;
-	*palo = *paloBase;
-	memcpy(palo, &lo, sizeof(LO));
+	palo->dlChild = paloBase->dlChild;
+	//palo->dleBusy = paloBase->dleBusy;
+	//palo->dleMRD = paloBase->dleMRD;
+	//palo->paloRoot = paloBase->paloRoot;
+	//palo->paloFreezeRoot = paloBase->paloFreezeRoot;
+	//palo->dleFreeze = paloBase->dleFreeze;
+	//palo->dlFreeze = paloBase->dlFreeze;
+	palo->cpmrg = paloBase->cpmrg;
+	for (int i = 0; i < 4; ++i)
+		palo->apmrg[i] = paloBase->apmrg[i];
+	palo->sMRD = paloBase->sMRD;
+	palo->sCelBorderMRD = paloBase->sCelBorderMRD;
+	palo->grfzon = paloBase->grfzon;
+	palo->dsMRDSnap = paloBase->dsMRDSnap;
+	std::memcpy(palo->frz, paloBase->frz, sizeof(palo->frz));
+	palo->xf = paloBase->xf;
+	palo->posOrig = paloBase->posOrig;
+	palo->matOrig = paloBase->matOrig;
+	palo->eulOrig = paloBase->eulOrig;
+	//palo->dlAct = paloBase->dlAct;
+	palo->pactPos = paloBase->pactPos;
+	palo->pactRot = paloBase->pactRot;
+	palo->pactScale = paloBase->pactScale;
+	palo->apactPose = paloBase->apactPose;
+	palo->pactRestore = paloBase->pactRestore;
+	palo->pactla = paloBase->pactla;
+	palo->pactbank = paloBase->pactbank;
+	palo->pikh = paloBase->pikh;
+	palo->pclqPosSpring = paloBase->pclqPosSpring;
+	palo->pclqPosDamping = paloBase->pclqPosDamping;
+	palo->pclqRotSpring = paloBase->pclqRotSpring;
+	palo->pclqRotDamping = paloBase->pclqRotDamping;
+	palo->psmpaPos = paloBase->psmpaPos;
+	palo->psmpaRot = paloBase->psmpaRot;
+	if (paloBase->palox)
+		palo->palox = std::make_unique<ALOX>(*paloBase->palox);
+	else
+		palo->palox.reset();
+	palo->cframeStatic = paloBase->cframeStatic;
+	palo->globset = paloBase->globset;
+	palo->pshadow = paloBase->pshadow;
+	palo->pthrob = paloBase->pthrob;
+	palo->sFastShadowRadius = paloBase->sFastShadowRadius;
+	palo->sFastShadowDepth = paloBase->sFastShadowDepth;
+	palo->fRealClock = paloBase->fRealClock;
+	palo->pfader = paloBase->pfader;
+	palo->dtUpdatePause = paloBase->dtUpdatePause;
+	palo->pasegd = paloBase->pasegd;
+	palo->sRadiusRenderSelf = paloBase->sRadiusRenderSelf;
+	palo->sRadiusRenderAll = paloBase->sRadiusRenderAll;
+	palo->psfx = paloBase->psfx;
+	palo->ficg = paloBase->ficg;
+	palo->cposec = paloBase->cposec;
+	palo->aposec = paloBase->aposec;
+	palo->pactrefCombo = paloBase->pactrefCombo;
+	palo->pdlrFirst = paloBase->pdlrFirst;
+	//palo->bitfield = paloBase->bitfield;
+	palo->ackRot = paloBase->ackRot;
 
 	CloneLo(palo, paloBase);
+
 
 	ClearDl(&palo->dlChild);
 }
@@ -228,6 +345,28 @@ void ApplyAloProxy(ALO* palo, PROXY* pproxyApply)
 	palo->matOrig = palo->xf.mat;
 }
 
+void BindAlo(ALO *palo)
+{
+	BindAloAlox(palo);
+	UpdateAloOrig(palo);
+	BindGlobset(&palo->globset, palo);
+
+	LO *plo = palo->dlChild.ploFirst;
+
+	while (plo != nullptr)
+	{
+		if (plo->pvtalo->pfnBindAlo != nullptr)
+			plo->pvtalo->pfnBindAlo((ALO*)plo);
+		
+		plo = plo->dleChild.ploNext;
+	}
+}
+
+void BindGlobset(GLOBSET* pglobset, ALO* palo)
+{
+	
+}
+
 void UpdateAloXfWorld(ALO* palo)
 {
 	palo->pvtalo->pfnUpdateAloXfWorldHierarchy(palo);
@@ -235,7 +374,7 @@ void UpdateAloXfWorld(ALO* palo)
 
 void UpdateAloXfWorldHierarchy(ALO* palo)
 {
-	if (palo->alox.size() == 0)
+	if (palo->palox == nullptr)
 	{
 	UpdateTrans:
 		if (palo->paloParent == nullptr)
@@ -260,7 +399,7 @@ void UpdateAloXfWorldHierarchy(ALO* palo)
 
 	else
 	{
-		if ((palo->alox[0].grfalox & 0xCU) == 0)
+		if ((palo->palox->grfalox & 0xCU) == 0)
 		{
 			palo->paloParent = palo->paloParent;
 			goto UpdateTrans;
@@ -326,7 +465,7 @@ void UpdateAloXfWorldHierarchy(ALO* palo)
 
 	if (object == nullptr)
 	{
-		palo->alox = palo->alox;
+		
 	}
 
 	else
@@ -440,7 +579,7 @@ void AddAloHierarchy(ALO* palo)
 	plo.m_ibDle = palo->dlChild.ibDle;
 	// Loading the first parent of the object
 	plo.m_pdliNext = s_pdliFirst;
-
+	
 	s_pdliFirst = &plo;
 
 	plo.m_ppv = (void**)(uintptr_t)plo.m_pdl;
@@ -512,9 +651,11 @@ void LoadAloAloxFromBrx(ALO* palo, CBinaryInputStream* pbis)
 	if (grfalox != 0)
 	{
 		ALOX alox;
-		palo->alox.push_back(alox);
+		palo->palox = std::make_shared <ALOX>(alox);
 
-		palo->alox[0].grfalox = grfalox;
+		palo->palox->grfalox = grfalox;
+		palo->palox->matPreRotation = glm::identity <glm::mat3>();
+		palo->palox->matPostRotation = glm::identity <glm::mat3>();
 
 		int unk_1;
 
@@ -525,7 +666,7 @@ void LoadAloAloxFromBrx(ALO* palo, CBinaryInputStream* pbis)
 
 		if (grfalox & 2)
 		{
-			pbis->ReadMatrix();
+			palo->palox->matPostRotation = pbis->ReadMatrix();
 		}
 
 		if (((grfalox & 0xc) != 0) && (unk_1 = pbis->S16Read() != -1))
@@ -578,6 +719,41 @@ void LoadAloAloxFromBrx(ALO* palo, CBinaryInputStream* pbis)
 	}
 }
 
+void BindAloAlox(ALO* palo)
+{
+
+}
+
+void SnipAloObjects(ALO* palo, int csnip, SNIP* asnip)
+{
+	SW* psw = palo->psw;
+
+	for (int i = 0; i < csnip; ++i) {
+		const SNIP& snip = asnip[i];
+		uint32_t grffso = (snip.grfsnip & 0x1) ? 0x105 : 0x101;
+
+		if ((snip.grfsnip & 0x20) == 0)
+			grffso &= ~0x100; // Remove 0x100 if bit 0x20 is not set
+
+		LO* plo = PloFindSwObject(psw, grffso, snip.oid, palo);
+
+		if (plo != nullptr) {
+			if ((snip.grfsnip & 0x08) == 0) {
+				// Store the pointer to the found object at a specific offset
+				// NOTE: Replace this with proper field access if possible.
+				/*reinterpret_cast<LO**>(
+					reinterpret_cast<char*>(palo->apmrg) + snip.ib - 0x7C)[0] = plo;*/
+			}
+
+			if ((snip.grfsnip & 0x04) == 0)
+				SnipLo(plo);
+
+			if ((snip.grfsnip & 0x10) != 0)
+				SubscribeLoObject(plo, palo);
+		}
+	}
+}
+
 void UpdateAlo(ALO* palo, float dt)
 {
 
@@ -585,6 +761,9 @@ void UpdateAlo(ALO* palo, float dt)
 
 void RenderAloAll(ALO* palo, CM* pcm, RO* pro)
 {
+	/*if (((palo->grfzon & pcm->grfzon) != pcm->grfzon))
+		return;*/
+
 	if (!SphereInFrustum(pcm->frustum, palo->xf.posWorld, palo->sRadiusRenderAll))
 		return;
 
@@ -630,6 +809,9 @@ void RenderAloGlobset(ALO *palo, CM *pcm, RO *pro)
 		auto& glob = palo->globset.aglob[i];
 		glm::vec3 posCenterWorld = glm::vec3(baseModelMatrix * glm::vec4(glob.posCenter, 1.0f));
 
+		/*if ((palo->globset.aglobi[i].grfzon & pcm->grfzon) != pcm->grfzon)
+			continue;*/
+
 		if (!SphereInFrustum(pcm->frustum, posCenterWorld, glob.sRadius))
 			continue;
 
@@ -673,10 +855,9 @@ void RenderAloGlobset(ALO *palo, CM *pcm, RO *pro)
 			else {
 				rpl.ro.modelmatrix = baseModelMatrix;
 			}
-
-			// Optional: AdjustAloRtckMat logic (still commented out)
-			// if (glob.rtck != RTCK_None)
-			//     AdjustAloRtckMat(palo, pcm, glob.rtck, &glob.posCenter, rpl.ro.modelmatrix);
+			
+			 /*if (glob.rtck != RTCK_None)
+				 AdjustAloRtckMat(palo, pcm, glob.rtck, &glob.posCenter, rpl.ro.modelmatrix);*/
 
 			SubmitRpl(&rpl);
 		}

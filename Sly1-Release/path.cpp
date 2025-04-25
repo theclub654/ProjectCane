@@ -74,11 +74,10 @@ void LoadPathZoneFromBrx(PATHZONE* ppathzone, CBinaryInputStream* pbis)
 
 void ClonePathzone(PATHZONE* ppathzone, PATHZONE* ppathzoneBase)
 {
-    LO lo = *ppathzone;
-    *ppathzone = *ppathzoneBase;
-    memcpy(ppathzone, &lo, sizeof(LO));
-
     CloneLo(ppathzone, ppathzoneBase);
+
+    ppathzone->cg = ppathzoneBase->cg;
+    ppathzone->dlePathzone = ppathzoneBase->dlePathzone;
 }
 
 void DeletePathzone(PATHZONE* ppathzone)

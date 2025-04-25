@@ -17,13 +17,20 @@ int GetTailSize()
 
 void CloneTail(TAIL* ptail, TAIL* ptailBase)
 {
-	LO lo = *ptail;
-	*ptail = *ptailBase;
-	memcpy(ptail, &lo, sizeof(LO));
+    CloneAlo(ptail, ptailBase);
 
-	CloneLo(ptail, ptailBase);
-
-	ClearDl(&ptail->dlChild);
+    ptail->ptailFirst = ptailBase->ptailFirst;
+    ptail->ctsd = ptailBase->ctsd;
+    ptail->atsd = ptailBase->atsd;
+    ptail->fReset = ptailBase->fReset;
+    ptail->rSpring = ptailBase->rSpring;
+    ptail->rDampingWorld = ptailBase->rDampingWorld;
+    ptail->rDampingLocal = ptailBase->rDampingLocal;
+    ptail->radMax = ptailBase->radMax;
+    ptail->cIterate = ptailBase->cIterate;
+    ptail->dvGravity = ptailBase->dvGravity;
+    ptail->fUnlockRot = ptailBase->fUnlockRot;
+    ptail->posTip = ptailBase->posTip;
 }
 
 void DeleteTail(TAIL* ptail)

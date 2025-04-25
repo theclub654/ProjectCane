@@ -24,6 +24,9 @@ void RenderMsGlobset(MS *pms, CM *pcm, RO *pro)
 		auto& glob = pms->globset.aglob[i];
 		glm::vec3 posCenterWorld = glm::vec3(baseModelMatrix * glm::vec4(glob.posCenter, 1.0f));
 
+		/*if ((pms->globset.aglobi[i].grfzon & pcm->grfzon) != pcm->grfzon)
+			continue;*/
+
 		if (!SphereInFrustum(pcm->frustum, posCenterWorld, glob.sRadius))
 			continue;
 
@@ -80,6 +83,9 @@ void RenderMsGlobset(MS *pms, CM *pcm, RO *pro)
 				rpl.ro.modelmatrix = baseModelMatrix * *glob.pdmat;
 			else
 				rpl.ro.modelmatrix = baseModelMatrix;
+
+			/*if (glob.rtck != RTCK_None)
+				AdjustAloRtckMat(pms, pcm, glob.rtck, &pms->xf.posWorld, rpl.ro.modelmatrix);*/
 
 			SubmitRpl(&rpl);
 		}

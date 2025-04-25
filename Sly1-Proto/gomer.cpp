@@ -17,17 +17,19 @@ int GetGomerSize()
 
 void CloneGomer(GOMER* pgomer, GOMER* pgomerBase)
 {
-	LO lo = *pgomer;
-	*pgomer = *pgomerBase;
-	memcpy(pgomer, &lo, sizeof(LO));
+    CloneStepguard(pgomer, pgomerBase);
 
-	CloneLo(pgomer, pgomerBase);
-
-	ClearDl(&pgomer->dlChild);
-
-	pgomer->pxa = nullptr;
-	pgomer->grfpvaXpValid = 0;
-	pgomer->pstso = nullptr;
+    pgomer->sAbandon = pgomerBase->sAbandon;
+    pgomer->dzAbandon = pgomerBase->dzAbandon;
+    pgomer->oidAbandon = pgomerBase->oidAbandon;
+    pgomer->pvolAbandon = pgomerBase->pvolAbandon;
+    pgomer->lmSDetect = pgomerBase->lmSDetect;
+    pgomer->lmRadDetect = pgomerBase->lmRadDetect;
+    pgomer->oidDetect = pgomerBase->oidDetect;
+    pgomer->pvolDetect = pgomerBase->pvolDetect;
+    pgomer->fDetectLatch = pgomerBase->fDetectLatch;
+    pgomer->fDetectLatchExternal = pgomerBase->fDetectLatchExternal;
+    pgomer->fAbandonExternal = pgomerBase->fAbandonExternal;
 }
 
 void RenderGomerSelf(GOMER* pgomer, CM* pcm, RO* pro)

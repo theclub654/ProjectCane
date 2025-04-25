@@ -12,11 +12,11 @@ int GetFrzgSize()
 
 void CloneFrzg(FRZG* pfrzg, FRZG* pfrzgBase)
 {
-	LO lo = *pfrzg;
-	*pfrzg = *pfrzgBase;
-	memcpy(pfrzg, &lo, sizeof(LO));
-
 	CloneLo(pfrzg, pfrzgBase);
+
+	pfrzg->coid = pfrzgBase->coid;
+	std::memcpy(pfrzg->aoid, pfrzgBase->aoid, sizeof(pfrzgBase->aoid));
+	pfrzg->mrg = pfrzgBase->mrg;
 }
 
 void DeleteFrzg(FRZG* pfrzg)

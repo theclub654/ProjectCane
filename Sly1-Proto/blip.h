@@ -19,7 +19,7 @@ class BLIPG : public ALO
         struct SHD* pshd;
         int cqwTexture;
         int crgba;
-        RGBA argba[32];
+        glm::vec4 argba[32];
         int fColorRanges;
         BLIPOK blipok;
         float rSFlying;

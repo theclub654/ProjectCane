@@ -17,17 +17,23 @@ void LoadSquishFromBrx(SQUISH* psquish, CBinaryInputStream* pbis)
 
 void CloneSquish(SQUISH* psquish, SQUISH* psquishBase)
 {
-	LO lo = *psquish;
-	*psquish = *psquishBase;
-	memcpy(psquish, &lo, sizeof(LO));
+    CloneSo(psquish, psquishBase);
 
-	CloneLo(psquish, psquishBase);
-
-	ClearDl(&psquish->dlChild);
-
-	psquish->pxa = nullptr;
-	psquish->grfpvaXpValid = 0;
-	psquish->pstso = nullptr;
+    psquish->elasLast = psquishBase->elasLast;
+    psquish->sdvSquish = psquishBase->sdvSquish;
+    psquish->tSquish = psquishBase->tSquish;
+    psquish->dtSquish = psquishBase->dtSquish;
+    psquish->normalSquish = psquishBase->normalSquish;
+    psquish->clqDtImpact = psquishBase->clqDtImpact;
+    psquish->lmDtImpact = psquishBase->lmDtImpact;
+    psquish->clqSquishImpact = psquishBase->clqSquishImpact;
+    psquish->lmSquishImpact = psquishBase->lmSquishImpact;
+    psquish->clqStretchImpact = psquishBase->clqStretchImpact;
+    psquish->lmStretchImpact = psquishBase->lmStretchImpact;
+    psquish->clqSquishMoving = psquishBase->clqSquishMoving;
+    psquish->lmSquishMoving = psquishBase->lmSquishMoving;
+    psquish->clqStretchMoving = psquishBase->clqStretchMoving;
+    psquish->lmStretchMoving = psquishBase->lmStretchMoving;
 }
 
 void RenderSquishSelf(SQUISH* psquish, CM* pcm, RO* pro)

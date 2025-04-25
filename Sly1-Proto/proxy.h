@@ -1,6 +1,5 @@
 #pragma once
 #include "alo.h"
-#include "dec.h"
 
 extern bool loadEmitMesh;
 

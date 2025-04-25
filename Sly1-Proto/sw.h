@@ -165,7 +165,8 @@ void SetSwDarkenSmooth(SW* psw, float rDarkenSmooth);
 void MatchSwObject(ALO* ploMatch, GRFFSO grffsoMask, int fIncludeRemoved, int fProxyMatch, LO* ploContext, int cploMax, int* pcploMatch, LO** aplo, int* pcpaloBest);
 int  CploFindSwObjects(SW* psw, GRFFSO grffso, OID oid, LO* ploContext, int cploMax, LO** aplo);
 // Finds a LO
-LO*  PloFindSwObject(SW* psw, GRFFSO grffso, OID oid, LO* ploContext);
+LO  *PloFindSwObject(SW* psw, GRFFSO grffso, OID oid, LO* ploContext);
+LO  *PloFindSwNearest(SW* psw, OID oid, LO* ploContext);
 // Update all objects in SW
 void UpdateSw(SW* psw, float dt); // Gotta come back to this
 // Delete SW object

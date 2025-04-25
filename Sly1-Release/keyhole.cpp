@@ -61,11 +61,18 @@ void LoadKeyholeFromBrx(KEYHOLE *pkeyhole, CBinaryInputStream *pbis)
 
 void CloneKeyhole(KEYHOLE* pkeyhole, KEYHOLE* pkeyholeBase)
 {
-    LO lo = *pkeyhole;
-    *pkeyhole = *pkeyholeBase;
-    memcpy(pkeyhole, &lo, sizeof(LO));
-
     CloneLo(pkeyhole, pkeyholeBase);
+
+    pkeyhole->cpos = pkeyholeBase->cpos;
+
+    pkeyhole->apos = pkeyholeBase->apos;
+
+    pkeyhole->posMin = pkeyholeBase->posMin;
+    pkeyhole->posMax = pkeyholeBase->posMax;
+
+    pkeyhole->dx = pkeyholeBase->dx;
+
+    std::copy(std::begin(pkeyholeBase->mpkpks), std::end(pkeyholeBase->mpkpks), std::begin(pkeyhole->mpkpks));
 }
 
 void DeleteKeyhole(KEYHOLE* pkeyhole)

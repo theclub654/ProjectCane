@@ -29,18 +29,14 @@ struct CLQC
 
 struct SMP
 {
-	union
-	{
-		float ag[1];
-		float svFast;
-	};
-
+	float svFast;
 	float svSlow;
 	float dtFast;
 };
 
 float RadNormalize(float param_1);
 float GLimitAbs(float param_1, float param_2);
+float GSmooth(float gCur, float gTarget, float dt, SMP* psmp, float* pdgNext);
 //TODO: GSmooth
 //TODO: GSmoothA
 //TODO: RadSmooth

@@ -11,12 +11,6 @@ enum BRPT
     BRPT_Appear = 4,
     BRPT_Max = 5
 };
-struct BRP 
-{
-    BRPT brpt;
-    OID oid;
-    struct LO* plo;
-};
 enum EXRK 
 {
     EXRK_Nil = -1,
@@ -31,6 +25,13 @@ enum BRKPS
     BRKPS_Pending = 1,
     BRKPS_Fading = 2,
     BRKPS_Max = 3
+};
+
+struct BRP
+{
+    BRPT brpt;
+    OID oid;
+    struct LO* plo;
 };
 
 class BRK : public SO
@@ -72,7 +73,7 @@ class BREAK : public BRK
 class FRAGILE : public BRK
 {
 	public:
-        struct SO* psoImpacting;
+        SO* psoImpacting;
 };
 
 class BRKP : public SO

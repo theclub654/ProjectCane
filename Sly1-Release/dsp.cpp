@@ -12,17 +12,15 @@ int GetDspSize()
 
 void CloneDsp(DSP* pdsp, DSP* pdspBase)
 {
-	LO lo = *pdsp;
-	*pdsp = *pdspBase;
-	memcpy(pdsp, &lo, sizeof(LO));
+    CloneSo(pdsp, pdspBase);
 
-	CloneLo(pdsp, pdspBase);
-
-	ClearDl(&pdsp->dlChild);
-
-	pdsp->pxa = nullptr;
-	pdsp->grfpvaXpValid = 0;
-	pdsp->pstso = nullptr;
+    pdsp->psm = pdspBase->psm;
+    pdsp->psma = pdspBase->psma;
+    pdsp->oidDispense = pdspBase->oidDispense;
+    pdsp->cpso = pdspBase->cpso;
+    pdsp->apso = pdspBase->apso;
+    pdsp->psoCur = pdspBase->psoCur;
+    pdsp->ptargetCur = pdspBase->ptargetCur;
 }
 
 void DeleteDsp(DSP *pdsp)

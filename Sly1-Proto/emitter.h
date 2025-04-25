@@ -232,7 +232,7 @@ class EXPLG : public EXPL
 class EXPLO : public EXPL
 {
 	public:
-		struct EMITB* pemitb;
+		std::shared_ptr <EMITB> pemitb;
 		OID oidreference;
 		OID oidShape;
 };
@@ -254,8 +254,9 @@ class EXPLS : public EXPLO
 
 class EMITTER : public ALO
 {
-public:
-    struct EMITB* pemitb;
+    public:
+
+    std::shared_ptr <EMITB> pemitb;
     EMITRK emitrk;
     int cParticle;
     LM lmSvcParticle;
@@ -291,6 +292,7 @@ EXPLO*NewExplo();
 void InitExplo(EXPLO* pexplo);
 int  GetExploSize();
 void LoadExploFromBrx(EXPLO* pexplo, CBinaryInputStream* pbis);
+void BindExplo(EXPLO* pexplo);
 void CloneExplo(EXPLO* pexplo, EXPLO* pexploBase);
 void DeleteExplo(EXPLO* pexplo);
 
@@ -300,6 +302,7 @@ int  GetEmitterSize();
 void LoadEmitMeshFromBrx(CBinaryInputStream* pbis);
 void LoadEmitblipColorsFromBrx(int crgba, CBinaryInputStream* pbis);
 void LoadEmitterFromBrx(EMITTER* pemitter, CBinaryInputStream* pbis);
+void BindEmitter(EMITTER* pemitter);
 void CloneEmitter(EMITTER* pemitter, EMITTER* pemitterBase);
 EMITB* PemitbEnsureEmitter(EMITTER* pemitter, ENSK ensk);
 void RenderEmitterSelf(EMITTER* pemitter, CM* pcm, RO* pro);
@@ -314,10 +317,12 @@ EXPLS*NewExpls();
 void InitExpls(EXPLS* pexpls);
 int  GetExplsSize();
 void CloneExpls(EXPLS* pexpls, EXPLS* pexplsBase);
+void BindExpls(EXPLS* pexpls);
 void DeleteExpls(EXPLS* pexpls);
 
 EXPLG*NewExplg();
 int  GetExplgSize();
 void LoadExplgFromBrx(EXPLG* pexplg, CBinaryInputStream* pbis);
+void BindExplg(EXPLG* pexplg);
 void CloneExplg(EXPLG* pexplg, EXPLG* pexplgBase);
 void DeleteExplg(EXPLG* pexplg);

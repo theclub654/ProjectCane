@@ -75,7 +75,7 @@ struct CONSTR
 // Static Object
 class SO : public ALO
 {
-public:
+	public:
 	DLE dleRoot;
 	DL dlPhys;
 	DLE dlePhys;

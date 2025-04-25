@@ -17,17 +17,30 @@ int GetAlarmSize()
 
 void CloneAlarm(ALARM* palarm, ALARM* palarmBase)
 {
-	LO lo = *palarm;
-	*palarm = *palarmBase;
-	memcpy(palarm, &lo, sizeof(LO));
+    int ichkDisabled = palarm->ichkDisabled;
+    CloneSo(palarm, palarmBase);
 
-	CloneLo(palarm, palarmBase);
+    palarm->alarms = palarmBase->alarms;
+    palarm->tAlarms = palarmBase->tAlarms;
+    palarm->psm = palarmBase->psm;
+    palarm->psma = palarmBase->psma;
+    palarm->dtReset = palarmBase->dtReset;
+    palarm->calbrks = palarmBase->calbrks;
+    std::memcpy(palarm->aoidAlbrks, palarmBase->aoidAlbrks, sizeof(palarm->aoidAlbrks));
+    palarm->coidSensors = palarmBase->coidSensors;
+    std::memcpy(palarm->aoidSensors, palarmBase->aoidSensors, sizeof(palarm->aoidSensors));
+    palarm->cpsensors = palarmBase->cpsensors;
+    std::memcpy(palarm->apsensors, palarmBase->apsensors, sizeof(palarm->apsensors));
+    palarm->coidStepguards = palarmBase->coidStepguards;
+    std::memcpy(palarm->aoidStepguards, palarmBase->aoidStepguards, sizeof(palarm->aoidStepguards));
+    palarm->calbrksDisabled = palarmBase->calbrksDisabled;
+    palarm->pambSiren = palarmBase->pambSiren;
+    palarm->pexc = palarmBase->pexc;
+    palarm->fSilent = palarmBase->fSilent;
+    palarm->crsmg = palarmBase->crsmg;
+    std::memcpy(palarm->arsmg, palarmBase->arsmg, sizeof(palarm->arsmg));
 
-	ClearDl(&palarm->dlChild);
-
-	palarm->pxa = nullptr;
-	palarm->grfpvaXpValid = 0;
-	palarm->pstso = nullptr;
+    palarm->ichkDisabled = ichkDisabled;
 }
 
 void DeleteAlarm(ALARM* palarm)
@@ -47,17 +60,9 @@ int GetAlbrkSize()
 
 void CloneAlbrk(ALBRK* palbrk, ALBRK* palbrkBase)
 {
-	LO lo = *palbrk;
-	*palbrk = *palbrkBase;
-	memcpy(palbrk, &lo, sizeof(LO));
+    CloneBrk(palbrk, palbrkBase);
 
-	CloneLo(palbrk, palbrkBase);
-
-	ClearDl(&palbrk->dlChild);
-
-	palbrk->pxa = nullptr;
-	palbrk->grfpvaXpValid = 0;
-	palbrk->pstso = nullptr;
+    palbrk->palarm = palbrkBase->palarm;
 }
 
 void DeleteAlbrk(ALBRK* palbrk)

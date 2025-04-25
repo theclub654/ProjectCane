@@ -17,13 +17,30 @@ int GetSpeakerSize()
 
 void CloneSpeaker(SPEAKER* pspeaker, SPEAKER* pspeakerBase)
 {
-	LO lo = *pspeaker;
-	*pspeaker = *pspeakerBase;
-	memcpy(pspeaker, &lo, sizeof(LO));
+	CloneAlo(pspeaker, pspeakerBase);
 
-	CloneLo(pspeaker, pspeakerBase);
+    pspeaker->rgbaText = pspeakerBase->rgbaText;
 
-	ClearDl(&pspeaker->dlChild);
+    // Copy basic float values
+    pspeaker->radFOV = pspeakerBase->radFOV;
+    pspeaker->sDistCm = pspeakerBase->sDistCm;
+    pspeaker->uxTv = pspeakerBase->uxTv;
+    pspeaker->uyTv = pspeakerBase->uyTv;
+
+    // Copy glm::vec3 values (which are copyable)
+    pspeaker->dposLight = pspeakerBase->dposLight;
+    pspeaker->dposLightConfront = pspeakerBase->dposLightConfront;
+
+    // Copy confrontation texture UVs
+    pspeaker->uxTvConfront = pspeakerBase->uxTvConfront;
+    pspeaker->uyTvConfront = pspeakerBase->uyTvConfront;
+
+    // Copy OID (assuming OID is trivially copyable)
+    pspeaker->oidSmIdle = pspeakerBase->oidSmIdle;
+
+    // Shallow copy of pointers to SM and SMA structures
+    pspeaker->psmIdle = pspeakerBase->psmIdle;
+    pspeaker->psmaIdle = pspeakerBase->psmaIdle;
 }
 
 void DeleteSpeaker(SPEAKER* pspeaker)

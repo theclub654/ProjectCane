@@ -282,7 +282,6 @@
     <ClCompile Include="unk11.cpp" />
     <ClCompile Include="unk13.cpp" />
     <ClCompile Include="unk14.cpp" />
-    <ClCompile Include="unk15.cpp" />
     <ClCompile Include="unk16.cpp" />
     <ClCompile Include="unk17.cpp" />
     <ClCompile Include="unk2.cpp" />
@@ -446,7 +445,6 @@
     <ClInclude Include="unk11.h" />
     <ClInclude Include="unk13.h" />
     <ClInclude Include="unk14.h" />
-    <ClInclude Include="unk15.h" />
     <ClInclude Include="unk16.h" />
     <ClInclude Include="unk17.h" />
     <ClInclude Include="unk2.h" />

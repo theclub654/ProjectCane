@@ -65,6 +65,11 @@ class COIN : public DPRIZE
         float tLose;
 };
 
+class LIFETKN : public DPRIZE
+{
+    public:
+};
+
 class KEY : public DPRIZE
 {
     public:
@@ -96,6 +101,11 @@ void InitCoin(COIN* pcoin);
 int  GetCoinSize();
 void CloneCoin(COIN* pcoin, COIN* pcoinBase);
 void DeleteCoin(COIN *pcoin);
+
+LIFETKN* NewLifetkn();
+int  GetLifetknSize();
+void CloneLifetkn(LIFETKN* plifetkn, LIFETKN* plifetknBase);
+void DeleteLifetkn(LIFETKN* plifetkn);
 
 KEY* NewKey();
 void InitKey(KEY* pkey);

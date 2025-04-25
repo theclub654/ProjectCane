@@ -17,17 +17,40 @@ int GetDartgunSize()
 
 void CloneDartgun(DARTGUN* pdartgun, DARTGUN* pdartgunBase)
 {
-	LO lo = *pdartgun;
-	*pdartgun = *pdartgunBase;
-	memcpy(pdartgun, &lo, sizeof(LO));
+	CloneBreak(pdartgun, pdartgunBase);
 
-	CloneLo(pdartgun, pdartgunBase);
+    pdartgun->oidDart = pdartgunBase->oidDart;
+    pdartgun->cDarts = pdartgunBase->cDarts;
+    pdartgun->pdartReadyToFire = pdartgunBase->pdartReadyToFire;
+    pdartgun->pdartFading = pdartgunBase->pdartFading;
+    pdartgun->dtFireInterval = pdartgunBase->dtFireInterval;
+    pdartgun->dzTarget = pdartgunBase->dzTarget;
+    pdartgun->tLastFire = pdartgunBase->tLastFire;
+    pdartgun->paloTarget = pdartgunBase->paloTarget;
+    pdartgun->pratTarget = pdartgunBase->pratTarget;
+    pdartgun->posOrigDart = pdartgunBase->posOrigDart;
+    pdartgun->matOrigDart = pdartgunBase->matOrigDart;
+    pdartgun->paloOrigDartParent = pdartgunBase->paloOrigDartParent;
+    pdartgun->paloLookAt = pdartgunBase->paloLookAt;
+    pdartgun->paloLid = pdartgunBase->paloLid;
+    pdartgun->psm = pdartgunBase->psm;
+    pdartgun->psma = pdartgunBase->psma;
 
-	ClearDl(&pdartgun->dlChild);
+    pdartgun->coidRatTarget = pdartgunBase->coidRatTarget;
+    std::memcpy(pdartgun->aoidRatTarget, pdartgunBase->aoidRatTarget, sizeof(pdartgun->aoidRatTarget));
 
-	pdartgun->pxa = nullptr;
-	pdartgun->grfpvaXpValid = 0;
-	pdartgun->pstso = nullptr;
+    pdartgun->cpratTarget = pdartgunBase->cpratTarget;
+    std::memcpy(pdartgun->apratTarget, pdartgunBase->apratTarget, sizeof(pdartgun->apratTarget));
+
+    pdartgun->cpratInTargetArea = pdartgunBase->cpratInTargetArea;
+    std::memcpy(pdartgun->apratInTargetArea, pdartgunBase->apratInTargetArea, sizeof(pdartgun->apratInTargetArea));
+
+    pdartgun->fJtInTargetArea = pdartgunBase->fJtInTargetArea;
+}
+
+void BindDartgun(DARTGUN* pdartgun)
+{
+    BindAlo(pdartgun);
 }
 
 void DeleteDartgun(DARTGUN* pdartgun)

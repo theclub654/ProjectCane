@@ -1,10 +1,12 @@
 #pragma once
+#include <iostream>
 // Forward declarations
 #include "math.h"
 
 typedef int GRFFSO;
 typedef int GRFCID;
 typedef int GRFGLOB;
+typedef int GRFIK;
 typedef uint64_t GRFZON;
 typedef uint32_t GRFALOX;
 class CBinaryInputStream;
@@ -23,7 +25,6 @@ struct RGBA;
 struct FGFN;
 struct SOP;
 extern bool loadEmitMesh;
-
 extern std::vector <RPL> renderBuffer;
 void SubmitRpl(RPL *prpl);
 
@@ -67,6 +68,7 @@ void TranslateAloToPos(ALO* palo, glm::vec3& ppos);
 void RotateAloToMat(ALO* palo, glm::mat3& pmat);
 void SetAloParent(ALO* palo, ALO* paloParent);
 void ApplyAloProxy(ALO* palo, PROXY* pproxyApply);
+void BindAlo(ALO* palo);
 void LoadAloFromBrx(ALO* palo, CBinaryInputStream* pbis);
 void UpdateAlo(ALO* palo, float dt);
 void RenderAloAll(ALO* palo, CM* pcm, RO* pro);
@@ -139,6 +141,7 @@ void OnStepguardAdd(STEPGUARD* pstepguard);
 void OnStepguardRemove(STEPGUARD* pstepguard);
 void CloneStepguard(STEPGUARD* pstepguard, STEPGUARD* pstepguardBase);
 void LoadStepGuardFromBrx(STEPGUARD* pstepguard, CBinaryInputStream* pbis);
+void BindStepguard(STEPGUARD* pstepguard);
 void RenderStepguardSelf(STEPGUARD* pstepguard, CM* pcm, RO* pro);
 int  GetStepguardSize();
 void DeleteStepguard(STEPGUARD* pstepguard);
@@ -364,6 +367,7 @@ DARTGUN*NewDartgun();
 void InitDartgun(DARTGUN* pdartgun);
 int  GetDartgunSize();
 void CloneDartgun(DARTGUN* pdartgun, DARTGUN* pdartgunBase);
+void BindDartgun(DARTGUN* pdartgun);
 void DeleteDartgun(DARTGUN *pdartgun);
 
 class SWP;
@@ -413,6 +417,7 @@ JLOVOL*NewJlovol();
 void InitJlovol(JLOVOL* pjlovol);
 int  GetJlovolSize();
 void CloneJlovol(JLOVOL* pjlovol, JLOVOL* pjlovolBase);
+void BindJlovol(JLOVOL* pjlovol);
 void DeleteJlovol(JLOVOL *pjlovol);
 
 class SQUISH;
@@ -435,6 +440,7 @@ void InitSprize(SPRIZE* psprize);
 int  GetSprizeSize();
 void LoadSprizeFromBrx(SPRIZE* psprize, CBinaryInputStream* pbis);
 void CloneSprize(SPRIZE* psprize, SPRIZE* psprizeBase);
+void BindSprize(SPRIZE* psprize);
 void DeleteSprize(SPRIZE* psprize);
 
 class SCPRIZE;
@@ -481,6 +487,7 @@ void InitLasen(LASEN* plasen);
 int  GetLasenSize();
 void LoadLasenFromBrx(LASEN* plasen, CBinaryInputStream* pbis);
 void CloneLasen(LASEN* plasen, LASEN* plasenBase);
+void BindLasen(LASEN* plasen);
 void RenderLasenSelf(LASEN* plasen, CM* pcm, RO* pro);
 void DeleteLasen(LASEN *plasen);
 
@@ -735,6 +742,7 @@ void InitEmitter(EMITTER* pemitter);
 int  GetEmitterSize();
 void CloneEmitter(EMITTER* pemitter, EMITTER* pemitterBase);
 void LoadEmitterFromBrx(EMITTER* pemitter, CBinaryInputStream* pbis);
+void BindEmitter(EMITTER* pemitter);
 EMITB* PemitbEnsureEmitter(EMITTER* pemitter, ENSK ensk);
 void RenderEmitterSelf(EMITTER* pemitter, CM* pcm, RO* pro);
 void DeleteEmitter(EMITTER *pemitter);
@@ -789,6 +797,7 @@ CHKPNT*NewChkpnt();
 void InitChkpnt(CHKPNT* pchkpnt);
 int  GetChkpntSize();
 void LoadChkpntFromBrx(CHKPNT* pchkpnt, CBinaryInputStream* pbis);
+void BindChkpnt(CHKPNT* pchkpnt);
 void CloneChkpnt(CHKPNT* pchkpnt, CHKPNT* pchkpntBase);
 void DeleteChkpnt(CHKPNT* pchkpnt);
 
@@ -871,6 +880,7 @@ ROB* NewRob();
 void InitRob(ROB* prob);
 int  GetRobSize();
 void CloneRob(ROB* prob, ROB* probBase);
+void BindRob(ROB* prob);
 void DeleteRob(ROB *prob);
 
 class FLASH;
@@ -950,6 +960,7 @@ class WM;
 WM*  NewWm();
 int  GetWmSize();
 void CloneWm(WM* pwm, WM* pwmBase);
+void BindWm(WM* pwm);
 void RenderWmAll(WM* pwm, CM* pcm, RO* pro);
 void DeleteWm(WM* pwm);
 
@@ -1075,6 +1086,7 @@ int  GetHshapeSize();
 void OnHshapeAdd(HSHAPE* phshape);
 void OnHshapeRemove(HSHAPE* phshape);
 void CloneHshape(HSHAPE* phshape, HSHAPE* phshapeBase);
+void BindHshape(HSHAPE* phshape);
 void DeleteHshape(HSHAPE* phshape);
 
 class PIPE;
@@ -1126,6 +1138,7 @@ int  GetTargetSize();
 void OnTargetAdd(TARGET* ptarget);
 void OnTargetRemove(TARGET* ptarget);
 void CloneTarget(TARGET* ptarget, TARGET* ptargetBase);
+void SetAloTargetHitTest(ALO* palo, int fHitTest);
 void DeleteTarget(TARGET* ptarget);
 
 class HND;
@@ -1147,6 +1160,7 @@ EXPLG*NewExplg();
 int  GetExplgSize();
 void CloneExplg(EXPLG* pexplg, EXPLG* pexplgBase);
 void LoadExplgFromBrx(EXPLG* pexplg, CBinaryInputStream* pbis);
+void BindExplg(EXPLG* pexplg);
 void DeleteExplg(EXPLG* pexplg);
 
 class EXPLO;
@@ -1155,6 +1169,7 @@ int  GetExploSize();
 void InitExplo(EXPLO* pexplo);
 void CloneExplo(EXPLO* pexplo, EXPLO* pexploBase);
 void LoadExploFromBrx(EXPLO* pexplo, CBinaryInputStream* pbis);
+void BindExplo(EXPLO* pexplo);
 void DeleteExplo(EXPLO* pexplo);
 
 class EXPLS;
@@ -1162,6 +1177,7 @@ EXPLS*NewExpls();
 int  GetExplsSize();
 void InitExpls(EXPLS* pexpls);
 void CloneExpls(EXPLS* pexpls, EXPLS* pexplsBase);
+void BindExpls(EXPLS* pexpls);
 void DeleteExpls(EXPLS* pexpls);
 
 class VOL;
@@ -1209,6 +1225,7 @@ int  GetHpntSize();
 void OnHpntAdd(HPNT* phpnt);
 void OnHpntRemove(HPNT* phpnt);
 void CloneHpnt(HPNT* phpnt, HPNT* phpntBase);
+void BindHpnt(HPNT* phpnt);
 void DeleteHpnt(HPNT* phpnt);
 
 class JMT;
@@ -1278,6 +1295,7 @@ SGG* NewSgg();
 void InitSgg(SGG* psgg);
 int  GetSggSize();
 void CloneSgg(SGG* psgg, SGG* psggBase);
+void BindSgg(SGG* psgg);
 void DeleteSgg(SGG* psgg);
 
 // AI Path's

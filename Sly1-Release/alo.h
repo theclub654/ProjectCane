@@ -68,6 +68,14 @@ enum DMS : unsigned int
 	DMS_UseMat = 1
 };
 
+enum SCSK
+{
+	SCSK_Nil = -1,
+	SCSK_Fixed = 0,
+	SCSK_Stretch = 1,
+	SCSK_Max = 2
+};
+
 struct XF
 {
 	glm::mat3 mat;
@@ -96,6 +104,103 @@ struct RSMG
 
 struct ALOX
 {
+	glm::mat3 matPreRotation;
+	glm::mat3 matPostRotation;
+
+	union
+	{
+		ALO* paloParent;
+	} foster;
+
+	union
+	{
+		OID oidIkh;
+		ALO* paloIkh;
+		int fInvalid;
+	}ikj;
+
+	union
+	{
+		glm::vec3 posIkh;
+		glm::vec3 posWrist;
+		ALO* paloShoulder;
+
+		union
+		{
+			OID oidElbow;
+			ALO* paloElbow;
+
+		};
+
+		ALO* paloCommon;
+		float radTwistOrig;
+		float radTwist;
+		float dradTwist;
+		int grfik;
+	}ikh;
+
+	union
+	{
+		ALO* paloSchRot;
+		int ipaloRot;
+		ALO* paloSchPos;
+		int ipaloPos;
+		int fInvalidRot;
+		int fInvalidPos;
+
+	}scj;
+
+	union
+	{
+		glm::vec3 posSch;
+		glm::vec3 posEnd;
+		float gStrength;
+		union
+		{
+			OID oidScjStart;
+			ALO* paloScjStart;
+		};
+
+		union
+		{
+			OID oidScjEnd;
+			ALO* paloScjEnd;
+		};
+
+		union
+		{
+			OID oidSchPrev;
+			ALO* paloSchPrev;
+		};
+		ALO* paloCommon;
+		SCSK scsk;
+		int cpalo;
+		ALO** apalo;
+
+	}sch;
+
+	union
+	{
+		union
+		{
+			OID oidFocus;
+			PNT* ppntFocus;
+		};
+
+		union
+		{
+			OID oidTarget;
+			PNT* ppntTarget;
+
+		};
+	}looker;
+
+	union
+	{
+		glm::mat4 matInfluence;
+		int fSsc;
+		int fMatInfluence;
+	}joint;
 	GRFALOX grfalox;
 };
 
@@ -207,7 +312,7 @@ class ALO : public LO
 		struct CLQ* pclqRotDamping;
 		struct SMPA* psmpaPos;
 		struct SMPA* psmpaRot;
-		struct ALOX* palox;
+		std::shared_ptr <ALOX> palox;
 		int cframeStatic;
 		GLOBSET globset;
 		struct SHADOW *pshadow;

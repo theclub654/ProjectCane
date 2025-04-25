@@ -12,13 +12,9 @@ int GetSkySize()
 
 void CloneSky(SKY* psky, SKY* pskyBase)
 {
-	LO lo = *psky;
-	*psky = *pskyBase;
-	memcpy(psky, &lo, sizeof(LO));
+	CloneAlo(psky, pskyBase);
 
-	CloneLo(psky, pskyBase);
-
-	ClearDl(&psky->dlChild);
+	psky->fFollowZ = pskyBase->fFollowZ;
 }
 
 void UpdateSky(SKY* psky, float dt)

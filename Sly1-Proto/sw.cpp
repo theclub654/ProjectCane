@@ -407,8 +407,16 @@ LO* PloFindSwObject(SW* psw, GRFFSO grffso, OID oid, LO* ploContext)
 	return plo;
 }
 
+LO* PloFindSwNearest(SW* psw, OID oid, LO* ploContext)
+{
+	LO* plo = nullptr;
+	CploFindSwObjects(psw, 0x204, oid, ploContext, 1, &plo);
+	return plo;
+}
+
 void UpdateSw(SW* psw, float dt)
 {
+	
 	for (int i = 0; i < allSWAloObjs.size(); i++)
 	{
 		if (allSWAloObjs[i]->pvtalo->pfnUpdateAlo != nullptr)

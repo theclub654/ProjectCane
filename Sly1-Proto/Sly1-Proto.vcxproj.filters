@@ -441,6 +441,9 @@
     <ClCompile Include="clock.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="update.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\Libraries\include\imgui\imstb_truetype.h">
@@ -876,6 +879,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="clock.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="update.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

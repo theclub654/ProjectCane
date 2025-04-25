@@ -7863,68 +7863,67 @@ struct VTCOIN
 
 static VTCOIN g_vtcoin;
 
-
-struct VTUNK15
+struct VTLIFETKN
 {
     VT* pvtSuper = g_vtdprize.pvtSuper;
-    CID cid = CID_UNK15;
+    CID cid = CID_LIFETKN;
     GRFCID grfcid = 0x1;
 
-    void*(*pfnNewUnk15) () = NewUnk15;
-    void (*pfnInitUnk15)(UNK15*) = InitUnk15;
-    void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
-    void (*pfnAddLo) (LO*) = AddLo;
-    void (*pfnRemoveLo)(LO*) = RemoveLo;
-    void (*pfnAddAloHierarchy)(ALO*) = AddAloHierarchy;
-    void (*pfnRemoveAloHierarchy)(ALO*) = RemoveAloHierarchy;
-    void (*pfnOnAloAdd)(ALO*) = OnAloAdd;
-    void (*pfnOnAloRemove)(ALO*) = OnAloRemove;
-    void (*pfnCloneAloHierarchy)(ALO*, ALO*) = CloneAloHierarchy;
-    void (*pfnCloneUnk15)(UNK15*, UNK15*) = CloneUnk15;
-    void (*pfnLoadDprizeFromBrx)(DPRIZE*, CBinaryInputStream*) = LoadDprizeFromBrx;
-    void (*pfnAddLoRecursive) = nullptr;
-    void (*pfnRemoveLoRecursive) = nullptr;
-    void (*pfnHandleAloMessage) = nullptr;
-    void (*pfnSendLoMessage)(LO*, MSGID, void*) = SendLoMessage;
-    void (*pfnBindAlo) = nullptr;
-    void (*pfnPostDprizeLoad) = nullptr;
-    void (*pfnUpdateDprize) = nullptr;
-    void (*pfnUpdateAloXfWorld)(ALO*) = UpdateAloXfWorld;;
-    void (*pfnUpdateAloXfWorldHierarchy)(ALO*) = UpdateAloXfWorldHierarchy;
-    void (*pfnFreezeAlo) = nullptr;
-    void (*pfnSetAloParent)(ALO*, ALO*) = SetAloParent;
-    void (*pfnApplyAloProxy)(ALO*, PROXY*) = ApplyAloProxy;
-    void (*pfnSubscribeLoObject)(LO*, LO*) = SubscribeLoObject;
-    void (*pfnUnsubscribeLoObject)(LO*, LO*) = UnsubscribeLoObject;
-    void (*pfnSubscribeLoStruct)(LO*, void*, void*) = SubscribeLoStruct;
-    void (*pfnUnsubscribeLoStruct)(LO*, void*, void*) = UnsubscribeLoStruct;
-    void (*pfnGetAloParams) = nullptr;
-    void (*pfnUpdateLoLiveEdit) = nullptr;
-    int  (*pfnGetDprizeSize) () = GetDprizeSize;
-    void (*pfnDeleteUnk15) (UNK15*) = DeleteUnk15;
-    void (*pfnProjectDprizeTransform) = nullptr;
-    void (*pfnPresetAloAccel) = nullptr;
-    void (*pfnTranslateAloToPos)(ALO*, glm::vec3&) = TranslateAloToPos;
-    void (*pfnRotateAloToMat)(ALO*, glm::mat3&) = RotateAloToMat;;
-    void (*pfnMatchAloOtherObject) = nullptr;
-    void (*pfnSetAloVelocityVec) = nullptr;
-    void (*pfnSetAloAngularVelocityVec) = nullptr;
-    void (*pfnPredictAloPosition) = nullptr;
-    void (*pfnPredictAloRotation) = nullptr;
-    void (*pfnRenderDprizeAll)(DPRIZE*, CM*, RO*) = RenderDprizeAll;
-    void (*pfnRenderAloSelf)(ALO*, CM*, RO*) = RenderAloSelf;
-    void (*pfnRenderAloGlobset)(ALO*, CM*, RO*) = RenderAloGlobset;
-    void (*pfnUpdateAloInfluences) = nullptr;
-    void (*pfnAdjustAloPosition) = nullptr;
-    void (*pfnAdjustAloRotation) = nullptr;
-    void (*pfnUnadjustAloRotation) = nullptr;
-    void (*pfnRecacheAloActList) = nullptr;
-    void (*pfnUpdateAloConstraints) = nullptr;
-    void (*pfnFAbsorbDprizeWkr) = nullptr;
-    void (*pfnSetDprizeDprizes) = nullptr;
+    LIFETKN*(*pfnNewLifetkn)() = NewLifetkn;
+    void(*pfnInitDprize)(DPRIZE*) = InitDprize;
+    void(*pfnSetLoDefaults) (LO*) = SetLoDefaults;
+    void(*pfnAddLo) (LO*) = AddLo;
+    void(*pfnRemoveLo)(LO*) = RemoveLo;
+    void(*pfnAddAloHierarchy)(ALO*) = AddAloHierarchy;
+    void(*pfnRemoveAloHierarchy)(ALO*) = RemoveAloHierarchy;
+    void(*pfnOnAloAdd)(ALO*) = OnAloAdd;
+    void(*pfnOnAloRemove)(ALO*) = OnAloRemove;
+    void(*pfnCloneAloHierarchy)(ALO*, ALO*) = CloneAloHierarchy;
+    void(*pfnCloneLifetkn)(LIFETKN*, LIFETKN*) = CloneLifetkn;
+    void(*pfnLoadDprizeFromBrx)(DPRIZE*, CBinaryInputStream*) = LoadDprizeFromBrx;
+    void(*pfnAddLoRecursive) = nullptr;
+    void(*pfnRemoveLoRecursive) = nullptr;
+    void(*pfnHandleAloMessage) = nullptr;
+    void(*pfnSendLoMessage)(LO*, MSGID, void*) = SendLoMessage;
+    void(*pfnBindAlo) = nullptr;
+    void(*pfnPostDprizeLoad) = nullptr;
+    void(*pfnUpdateDprize) = nullptr;
+    void(*pfnUpdateAloXfWorld)(ALO*) = UpdateAloXfWorld;;
+    void(*pfnUpdateAloXfWorldHierarchy)(ALO*) = UpdateAloXfWorldHierarchy;
+    void(*pfnFreezeAlo) = nullptr;
+    void(*pfnSetAloParent)(ALO*, ALO*) = SetAloParent;
+    void(*pfnApplyAloProxy)(ALO*, PROXY*) = ApplyAloProxy;
+    void(*pfnSubscribeLoObject)(LO*, LO*) = SubscribeLoObject;
+    void(*pfnUnsubscribeLoObject)(LO*, LO*) = UnsubscribeLoObject;
+    void(*pfnSubscribeLoStruct)(LO*, void*, void*) = SubscribeLoStruct;
+    void(*pfnUnsubscribeLoStruct)(LO*, void*, void*) = UnsubscribeLoStruct;
+    void(*pfnGetAloParams) = nullptr;
+    void(*pfnUpdateLoLiveEdit) = nullptr;
+    int (*pfnGetDprizeSize) () = GetDprizeSize;
+    void(*pfnDeleteLifeTkn) (LIFETKN*) = DeleteLifetkn;
+    void(*pfnProjectDprizeTransform) = nullptr;
+    void(*pfnPresetAloAccel) = nullptr;
+    void(*pfnTranslateAloToPos)(ALO*, glm::vec3&) = TranslateAloToPos;
+    void(*pfnRotateAloToMat)(ALO*, glm::mat3&) = RotateAloToMat;;
+    void(*pfnMatchAloOtherObject) = nullptr;
+    void(*pfnSetAloVelocityVec) = nullptr;
+    void(*pfnSetAloAngularVelocityVec) = nullptr;
+    void(*pfnPredictAloPosition) = nullptr;
+    void(*pfnPredictAloRotation) = nullptr;
+    void(*pfnRenderDprizeAll)(DPRIZE*, CM*, RO*) = RenderDprizeAll;
+    void(*pfnRenderAloSelf)(ALO*, CM*, RO*) = RenderAloSelf;
+    void(*pfnRenderAloGlobset)(ALO*, CM*, RO*) = RenderAloGlobset;
+    void(*pfnUpdateAloInfluences) = nullptr;
+    void(*pfnAdjustAloPosition) = nullptr;
+    void(*pfnAdjustAloRotation) = nullptr;
+    void(*pfnUnadjustAloRotation) = nullptr;
+    void(*pfnRecacheAloActList) = nullptr;
+    void(*pfnUpdateAloConstraints) = nullptr;
+    void(*pfnFAbsorbDprizeWkr) = nullptr;
+    void(*pfnSetDprizeDprizes) = nullptr;
 };
 
-static VTUNK15 g_vtunk15;
+static VTLIFETKN g_vtlifetkn;
 
 struct VTKEY
 {
@@ -10802,8 +10801,8 @@ static std::unordered_map <CID, void*> g_mpcidpvt =
     { CID_SKY, &g_vtsky },
     { CID_DPRIZE, &g_vtdprize },
     { CID_CHARM, &g_vtcharm },
+    { CID_LIFETKN, &g_vtlifetkn },
     { CID_COIN, &g_vtcoin },
-    { CID_UNK15, &g_vtunk15 },
     { CID_KEY, &g_vtkey },
     { CID_GOLD, &g_vtgold },
     { CID_UNK7, &g_vtunk7 },

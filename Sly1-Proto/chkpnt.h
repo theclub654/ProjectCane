@@ -1,8 +1,6 @@
 #pragma once
 #include "xform.h"
 
-void LoadTbspFromBrx(CBinaryInputStream* pbis);
-
 class CHKPNT : public ALO
 {
 	public:
@@ -32,6 +30,7 @@ CHKPNT* NewChkpnt();
 void InitChkpnt(CHKPNT* pchkpnt);
 int  GetChkpntSize();
 void LoadChkpntFromBrx(CHKPNT* pchkpnt, CBinaryInputStream* pbis);
+void BindChkpnt(CHKPNT* pchkpnt);
 void CloneChkpnt(CHKPNT* pchkpnt, CHKPNT* pchkpntBase);
 void DeleteChkpnt(CHKPNT *pchkpnt);
 

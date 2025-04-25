@@ -68,6 +68,13 @@ enum DMS : unsigned int
 	DMS_Normal = 0,
 	DMS_UseMat = 1
 };
+enum SCSK 
+{
+	SCSK_Nil = -1,
+	SCSK_Fixed = 0,
+	SCSK_Stretch = 1,
+	SCSK_Max = 2
+};
 
 struct XF
 {
@@ -95,8 +102,112 @@ struct RSMG
 	OID oidUntriggerGoal;
 };
 
+struct SNIP
+{
+	int grfsnip;
+	OID oid;
+	int ib;
+};
+
 struct ALOX
 {
+	glm::mat3 matPreRotation;
+	glm::mat3 matPostRotation;
+
+	union
+	{
+		ALO *paloParent;
+	} foster;
+
+	union
+	{
+		OID oidIkh;
+		ALO *paloIkh;
+		int fInvalid;
+	}ikj;
+
+	union
+	{
+		glm::vec3 posIkh;
+		glm::vec3 posWrist;
+		ALO *paloShoulder;
+
+		union
+		{
+			OID oidElbow;
+			ALO *paloElbow;
+
+		};
+
+		ALO* paloCommon;
+		float radTwistOrig;
+		float radTwist;
+		float dradTwist;
+		GRFIK grfik;
+	}ikh;
+
+	union
+	{
+		ALO *paloSchRot;
+		int ipaloRot;
+		ALO *paloSchPos;
+		int ipaloPos;
+		int fInvalidRot;
+		int fInvalidPos;
+
+	}scj;
+
+	union
+	{
+		glm::vec3 posSch;
+		glm::vec3 posEnd;
+		float gStrength;
+		union
+		{
+			OID oidScjStart;
+			ALO* paloScjStart;
+		};
+
+		union
+		{
+			OID oidScjEnd;
+			ALO* paloScjEnd;
+		};
+
+		union
+		{
+			OID oidSchPrev;
+			ALO* paloSchPrev;
+		};
+		ALO* paloCommon;
+		SCSK scsk;
+		int cpalo;
+		ALO** apalo;
+
+	}sch;
+
+	union
+	{
+		union
+		{
+			OID oidFocus;
+			PNT* ppntFocus;
+		};
+
+		union
+		{
+			OID oidTarget;
+			PNT* ppntTarget;
+
+		};
+	}looker;
+
+	union
+	{
+		glm::mat4 matInfluence;
+		int fSsc;
+		int fMatInfluence;
+	}joint;
 	GRFALOX grfalox;
 };
 
@@ -208,7 +319,7 @@ class ALO : public LO
 		struct CLQ* pclqRotDamping;
 		struct SMPA* psmpaPos;
 		struct SMPA* psmpaRot;
-		std::vector <ALOX> alox;
+		std::shared_ptr <ALOX> palox;
 		int cframeStatic;
 		GLOBSET globset;
 		struct SHADOW *pshadow;
@@ -243,6 +354,7 @@ void RemoveAloHierarchy(ALO *palo);
 void OnAloAdd(ALO* palo); // NOT FINISHED
 // Removes ALO from Hierarchy
 void OnAloRemove(ALO* palo);
+void UpdateAloOrig(ALO* palo);
 // Makes ALO object follow camera rotation
 void AdjustAloRtckMat(ALO* palo, CM* pcm, RTCK rtck, glm::vec3* pposCenter, glm::mat4 &pmat);
 // Makes a copy of ALO and all of its children
@@ -254,6 +366,8 @@ void ResolveAlo(ALO *palo);
 void SetAloParent(ALO* palo, ALO* paloParent);
 // Apply transformation to proxy ALO
 void ApplyAloProxy(ALO* palo, PROXY* pproxyApply);
+void BindAlo(ALO* palo);
+void BindGlobset(GLOBSET* pglobset, ALO* palo);
 // Updates the ALO objects transformations
 void UpdateAloXfWorld(ALO* palo);
 // Updates the ALO objects world transformation hierarchy
@@ -269,6 +383,8 @@ void ConvertAloMat(ALO* paloFrom, ALO* paloTo, glm::mat3 &pmatFrom, glm::mat3 &p
 void LoadAloFromBrx(ALO* palo, CBinaryInputStream* pbis);
 // Loads bone data from binary file
 void LoadAloAloxFromBrx(ALO* palo, CBinaryInputStream* pbis);
+void BindAloAlox(ALO* palo);
+void SnipAloObjects(ALO *palo, int csnip, SNIP *asnip);
 // Updates ALO object
 void UpdateAlo(ALO *palo, float dt);
 void RenderAloAll(ALO* palo, CM* pcm, RO* pro);

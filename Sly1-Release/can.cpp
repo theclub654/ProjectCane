@@ -17,17 +17,33 @@ int GetCanSize()
 
 void CloneCan(CAN* pcan, CAN* pcanBase)
 {
-	LO lo = *pcan;
-	*pcan = *pcanBase;
-	memcpy(pcan, &lo, sizeof(LO));
+    CloneBreak(pcan, pcanBase);
 
-	CloneLo(pcan, pcanBase);
+    pcan->cans = pcanBase->cans;
+    pcan->prwm = pcanBase->prwm;
+    pcan->psoTurret = pcanBase->psoTurret;
+    pcan->fLeadTarget = pcanBase->fLeadTarget;
+    pcan->lmRange = pcanBase->lmRange;
+    pcan->lmActivate = pcanBase->lmActivate;
+    pcan->lmDeactivate = pcanBase->lmDeactivate;
+    pcan->radPanMax = pcanBase->radPanMax;
+    pcan->dradFireThreshold = pcanBase->dradFireThreshold;
+    pcan->dtFireInterval = pcanBase->dtFireInterval;
+    pcan->tLastFire = pcanBase->tLastFire;
+    pcan->dzAim = pcanBase->dzAim;
+    pcan->swTumble = pcanBase->swTumble;
+    pcan->smpTracking = pcanBase->smpTracking;
+    pcan->fFireEnabled = pcanBase->fFireEnabled;
+    pcan->cuFireAccuracy = pcanBase->cuFireAccuracy;
 
-	ClearDl(&pcan->dlChild);
+    for (int i = 0; i < 5; ++i)
+        pcan->auFireAccuracy[i] = pcanBase->auFireAccuracy[i];
 
-	pcan->pxa = nullptr;
-	pcan->grfpvaXpValid = 0;
-	pcan->pstso = nullptr;
+    pcan->posTarget = pcanBase->posTarget;
+    pcan->ppntMuzzle = pcanBase->ppntMuzzle;
+    pcan->psm = pcanBase->psm;
+    pcan->psma = pcanBase->psma;
+    pcan->cFired = pcanBase->cFired;
 }
 
 void DeleteCan(CAN *pcan)

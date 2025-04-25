@@ -59,17 +59,76 @@ void OnSoRemove(SO* pso)
 
 void CloneSo(SO* pso, SO* psoBase)
 {
-	LO lo = *pso;
-	*pso = *psoBase;
-	memcpy(pso, &lo, sizeof(LO));
-
-	CloneLo(pso, psoBase);
-
-	ClearDl(&pso->dlChild);
-
+	//pso->dleRoot = psoBase->dleRoot;
+	//pso->dlPhys = psoBase->dlPhys;
+	//pso->dlePhys = psoBase->dlePhys;
+	pso->momintLocal = psoBase->momintLocal;
+	pso->momintInvLocal = psoBase->momintInvLocal;
+	pso->dvGravity = psoBase->dvGravity;
+	pso->gBuoyancy = psoBase->gBuoyancy;
+	pso->gViscosity = psoBase->gViscosity;
+	pso->m = psoBase->m;
+	pso->posWorldPrev = psoBase->posWorldPrev;
+	pso->geomLocal = psoBase->geomLocal;
+	pso->geomWorld = psoBase->geomWorld;
+	pso->plvo = psoBase->plvo;
+	pso->sRadiusSelf = psoBase->sRadiusSelf;
+	pso->sRadiusAll = psoBase->sRadiusAll;
+	pso->sRadiusPrune = psoBase->sRadiusPrune;
+	pso->posPrune = psoBase->posPrune;
+	pso->bspc = psoBase->bspc;
+	pso->cnpg = psoBase->cnpg;
+	pso->anpg = psoBase->anpg;
+	pso->mpibspinpg = psoBase->mpibspinpg; 
+	pso->chsg = psoBase->chsg;
+	pso->ahsg = psoBase->ahsg; 
+	pso->mpisurfihsgMic = psoBase->mpisurfihsgMic;
+	//pso->dleBusySo = psoBase->dleBusySo;
+	pso->posMin = psoBase->posMin;
+	pso->posMax = psoBase->posMax;
+	pso->constrForce = psoBase->constrForce;
+	pso->constrTorque = psoBase->constrTorque;
+	//pso->poxa = psoBase->poxa;
+	pso->dpos = psoBase->dpos;
+	pso->drot = psoBase->drot;
 	pso->pxa = nullptr;
+	pso->pxpInternal = psoBase->pxpInternal;
 	pso->grfpvaXpValid = 0;
+	pso->ipsoRoot = psoBase->ipsoRoot;
+	pso->ipso = psoBase->ipso;
+	pso->posComLocal = psoBase->posComLocal;
+	//pso->psoPhysHook = psoBase->psoPhysHook;
+	pso->geomCameraLocal = psoBase->geomCameraLocal;
+	pso->geomCameraWorld = psoBase->geomCameraWorld;
+	//pso->bspcCamera = psoBase->bspcCamera;
+	pso->cmk = psoBase->cmk;
+	pso->egk = psoBase->egk;
+	pso->fSphere = psoBase->fSphere;
+	pso->fClone = psoBase->fClone;
+	pso->fNoXpsAll = psoBase->fNoXpsAll;
+	pso->fNoXpsSelf = psoBase->fNoXpsSelf;
+	pso->fNoXpsCenter = psoBase->fNoXpsCenter;
+	pso->fActive = psoBase->fActive;
+	pso->fVelcro = psoBase->fVelcro;
+	pso->fIgnoreLocked = psoBase->fIgnoreLocked;
+	pso->fIceable = psoBase->fIceable;
+	pso->fRoot = psoBase->fRoot;
+	pso->fPhys = psoBase->fPhys;
+	pso->fNoGravity = psoBase->fNoGravity;
+	pso->fCenterXp = psoBase->fCenterXp;
+	pso->fLockedSelf = psoBase->fLockedSelf;
+	pso->fLockedAll = psoBase->fLockedAll;
+	pso->fLockedAbove = psoBase->fLockedAbove;
+	pso->fCpsoBuildContactGroup = psoBase->fCpsoBuildContactGroup;
+	pso->fCpxpBuildArray = psoBase->fCpxpBuildArray;
+	pso->fUpdateXaList1 = psoBase->fUpdateXaList1;
+	pso->fUpdateXaList2 = psoBase->fUpdateXaList2;
+	pso->fRecalcSwXpAll = psoBase->fRecalcSwXpAll;
+	pso->fHandleDiveEffect = psoBase->fHandleDiveEffect;
+	pso->fGenSpliceTouchEvents = psoBase->fGenSpliceTouchEvents;
 	pso->pstso = nullptr;
+
+	CloneAlo(pso, psoBase);
 }
 
 void SetSoParent(SO* pso, ALO* paloParent)
@@ -180,32 +239,29 @@ void RenderSoSelf(SO* pso, CM* pcm, RO* pro)
 
 void DrawCollision(CM* pcm, SO* pso)
 {
-	if (pso->geomLocal.VAO != 0 || pso->geomCameraLocal.VAO != 0)
+	glm::mat4 model = pso->xf.matWorld;
+
+	model[3][0] = pso->xf.posWorld[0];
+	model[3][1] = pso->xf.posWorld[1];
+	model[3][2] = pso->xf.posWorld[2];
+	model[3][3] = 1.0;
+
+	if (pso->pvtso->cid == CID_VOLZP)
+		glUniform4fv(glGetUniformLocation(glGlobShader.ID, "collisionRgba"), 1, glm::value_ptr(glm::vec4(255.0, 0.0, 0.0, 1.0)));
+	else
+		glUniform4fv(glGetUniformLocation(glGlobShader.ID, "collisionRgba"), 1, glm::value_ptr(glm::vec4(0.76, 0.76, 0.76, 1.0)));
+
+	glUniformMatrix4fv(glGetUniformLocation(glGlobShader.ID, "model"), 1, GL_FALSE, glm::value_ptr(model));
+
+	glBindVertexArray(pso->geomLocal.VAO);
+	glDrawElements(GL_LINES, pso->geomLocal.indices.size(), GL_UNSIGNED_SHORT, 0);
+
+	if (pso->geomCameraLocal.VAO != 0)
 	{
-		glm::mat4 model = pso->xf.matWorld;
+		glBindVertexArray(pso->geomCameraLocal.VAO);
+		glDrawElements(GL_LINES, pso->geomCameraLocal.indices.size(), GL_UNSIGNED_SHORT, 0);
 
-		model[3][0] = pso->xf.posWorld[0];
-		model[3][1] = pso->xf.posWorld[1];
-		model[3][2] = pso->xf.posWorld[2];
-		model[3][3] = 1.0;
-
-		if (pso->pvtso->cid == CID_VOLZP)
-			glUniform4fv(glGetUniformLocation(glGlobShader.ID, "collisionRgba"), 1, glm::value_ptr(glm::vec4(255.0, 0.0, 0.0, 1.0)));
-		else
-			glUniform4fv(glGetUniformLocation(glGlobShader.ID, "collisionRgba"), 1, glm::value_ptr(glm::vec4(0.76, 0.76, 0.76, 1.0)));
-
-		glUniformMatrix4fv(glGetUniformLocation(glGlobShader.ID, "model"), 1, GL_FALSE, glm::value_ptr(model));
-
-		glBindVertexArray(pso->geomLocal.VAO);
-		glDrawElements(GL_LINES, pso->geomLocal.indices.size(), GL_UNSIGNED_SHORT, 0);
-
-		if (pso->geomCameraLocal.VAO != 0)
-		{
-			glBindVertexArray(pso->geomCameraLocal.VAO);
-			glDrawElements(GL_LINES, pso->geomCameraLocal.indices.size(), GL_UNSIGNED_SHORT, 0);
-
-			glBindVertexArray(0);
-		}
+		glBindVertexArray(0);
 	}
 }
 

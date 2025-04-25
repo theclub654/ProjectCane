@@ -17,11 +17,13 @@ int GetHndSize()
 
 void CloneHnd(HND* phnd, HND* phndBase)
 {
-	LO lo = *phnd;
-	*phnd = *phndBase;
-	memcpy(phnd, &lo, sizeof(LO));
+	CloneTarget(phnd, phndBase);
 
-	CloneLo(phnd, phndBase);
+	phnd->hndk = phndBase->hndk;
+	phnd->svzJumpBoost = phndBase->svzJumpBoost;
+	phnd->sfxidGrab = phndBase->sfxidGrab;
+	phnd->sfxidRelease = phndBase->sfxidRelease;
+	phnd->sRadiusHook = phndBase->sRadiusHook;
 }
 
 void LoadHndFromBrx(HND* phnd, CBinaryInputStream* pbis)

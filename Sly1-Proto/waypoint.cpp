@@ -17,13 +17,21 @@ int GetWaypointSize()
 
 void CloneWaypoint(WAYPOINT* pwaypoint, WAYPOINT* pwaypointBase)
 {
-	LO lo = *pwaypoint;
-	*pwaypoint = *pwaypointBase;
-	memcpy(pwaypoint, &lo, sizeof(LO));
+    CloneAlo(pwaypoint, pwaypointBase);
 
-	CloneLo(pwaypoint, pwaypointBase);
+    pwaypoint->wps = pwaypointBase->wps;
+    pwaypoint->tWps = pwaypointBase->tWps;
+    pwaypoint->dtPause = pwaypointBase->dtPause;
+    pwaypoint->paseg = pwaypointBase->paseg;
+    pwaypoint->oidSync = pwaypointBase->oidSync;
+    pwaypoint->crsmgSet = pwaypointBase->crsmgSet;
 
-	ClearDl(&pwaypoint->dlChild);
+    // Clone RSMG array
+    for (int i = 0; i < 4; i++) {
+        pwaypoint->arsmgSet[i] = pwaypointBase->arsmgSet[i];
+    }
+
+    pwaypoint->pwpsg = pwaypointBase->pwpsg;
 }
 
 void DeleteWaypoint(WAYPOINT* pwaypoint)

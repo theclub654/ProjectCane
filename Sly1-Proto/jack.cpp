@@ -17,17 +17,49 @@ int GetJackSize()
 
 void CloneJack(JACK* pjack, JACK* pjackBase)
 {
-	LO lo = *pjack;
-	*pjack = *pjackBase;
-	memcpy(pjack, &lo, sizeof(LO));
+    ClonePo(pjack, pjackBase);
 
-	CloneLo(pjack, pjackBase);
+    pjack->jacks = pjackBase->jacks;
+    pjack->tJacks = pjackBase->tJacks;
+    pjack->pasegaCur = pjackBase->pasegaCur;
+    pjack->pasegStop = pjackBase->pasegStop;
+    pjack->pasegRim = pjackBase->pasegRim;
+    pjack->pasegGap = pjackBase->pasegGap;
+    pjack->pasegZap = pjackBase->pasegZap;
+    pjack->pasegDead = pjackBase->pasegDead;
+    pjack->pasegCelebrate = pjackBase->pasegCelebrate;
+    pjack->pjackf = pjackBase->pjackf;
+    pjack->pjackb = pjackBase->pjackb;
 
-	ClearDl(&pjack->dlChild);
+    for (int i = 0; i < 32; ++i)
+    {
+        pjack->apjackn[i] = pjackBase->apjackn[i];
+    }
 
-	pjack->pxa = nullptr;
-	pjack->grfpvaXpValid = 0;
-	pjack->pstso = nullptr;
+    for (int i = 0; i < 4; ++i)
+    {
+        pjack->apjackfDrop[i] = pjackBase->apjackfDrop[i];
+    }
+
+    pjack->cjpr = pjackBase->cjpr;
+    for (int i = 0; i < 6; ++i)
+    {
+        pjack->ajpr[i] = pjackBase->ajpr[i];
+    }
+
+    pjack->iCur = pjackBase->iCur;
+    pjack->jCur = pjackBase->jCur;
+    pjack->iNext = pjackBase->iNext;
+    pjack->jNext = pjackBase->jNext;
+    pjack->uCur = pjackBase->uCur;
+    pjack->radTarget = pjackBase->radTarget;
+    pjack->cpjacknActive = pjackBase->cpjacknActive;
+    pjack->cpjacknTarget = pjackBase->cpjacknTarget;
+    pjack->tNextJackn = pjackBase->tNextJackn;
+    pjack->pshdTop = pjackBase->pshdTop;
+    pjack->pshdSides = pjackBase->pshdSides;
+    pjack->pshdGap = pjackBase->pshdGap;
+    pjack->matPosToUv = pjackBase->matPosToUv;
 }
 
 void DeleteJack(JACK* pjack)
@@ -52,13 +84,31 @@ int GetJackbSize()
 
 void CloneJackb(JACKB* pjackb, JACKB* pjackbBase)
 {
-	LO lo = *pjackb;
-	*pjackb = *pjackbBase;
-	memcpy(pjackb, &lo, sizeof(LO));
+    CloneAlo(pjackb, pjackbBase);
 
-	CloneLo(pjackb, pjackbBase);
+    pjackb->pjack = pjackbBase->pjack;
+    pjackb->jbs = pjackbBase->jbs;
+    pjackb->tJbs = pjackbBase->tJbs;
+    pjackb->pasegaCur = pjackbBase->pasegaCur;
+    pjackb->jbsNext = pjackbBase->jbsNext;
+    pjackb->radTarget = pjackbBase->radTarget;
 
-	ClearDl(&pjackb->dlChild);
+    // Clone ablWalk array
+    for (int i = 0; i < 2; ++i)
+    {
+        pjackb->ablWalk[i] = pjackbBase->ablWalk[i];
+    }
+
+    pjackb->pasegblWalk = pjackbBase->pasegblWalk;
+    pjackb->pasegSpike = pjackbBase->pasegSpike;
+    pjackb->pasegFly = pjackbBase->pasegFly;
+    pjackb->pasegTaunt = pjackbBase->pasegTaunt;
+    pjackb->ppntLeftWingTip = pjackbBase->ppntLeftWingTip;
+    pjackb->ppntRightWingTip = pjackbBase->ppntRightWingTip;
+    pjackb->jbws = pjackbBase->jbws;
+    pjackb->jbwsNext = pjackbBase->jbwsNext;
+    pjackb->posPlant = pjackbBase->posPlant;
+    pjackb->posNextPlant = pjackbBase->posNextPlant;
 }
 
 void DeleteJackb(JACKB* pjackb)
@@ -88,13 +138,21 @@ void LoadJacknFromBrx(JACKN* pjackn, CBinaryInputStream* pbis)
 
 void CloneJackn(JACKN* pjackn, JACKN* pjacknBase)
 {
-	LO lo = *pjackn;
-	*pjackn = *pjacknBase;
-	memcpy(pjackn, &lo, sizeof(LO));
+    CloneAlo(pjackn, pjacknBase);
 
-	CloneLo(pjackn, pjacknBase);
+    pjackn->pjack = pjacknBase->pjack;
+    pjackn->pjackf = pjacknBase->pjackf;
+    pjackn->cpaloRender = pjacknBase->cpaloRender;
 
-	ClearDl(&pjackn->dlChild);
+    // Clone apaloRender array
+    for (int i = 0; i < 16; ++i)
+    {
+        pjackn->apaloRender[i] = pjacknBase->apaloRender[i];
+    }
+
+    pjackn->svu = pjacknBase->svu;
+    pjackn->u = pjacknBase->u;
+    pjackn->fGap = pjacknBase->fGap;
 }
 
 void UpdateJackn(JACKN* pjackn, float dt)
@@ -129,13 +187,47 @@ int GetJackfSize()
 
 void CloneJackf(JACKF* pjackf, JACKF* pjackfBase)
 {
-	LO lo = *pjackf;
-	*pjackf = *pjackfBase;
-	memcpy(pjackf, &lo, sizeof(LO));
+    CloneAlo(pjackf, pjackfBase);
 
-	CloneLo(pjackf, pjackfBase);
+    pjackf->pjack = pjackfBase->pjack;
+    pjackf->cjeRim = pjackfBase->cjeRim;
 
-	ClearDl(&pjackf->dlChild);
+    // Clone ajeRim array
+    if (pjackf->cjeRim > 0)
+    {
+        pjackf->ajeRim = new JE[pjackf->cjeRim];
+        for (int i = 0; i < pjackf->cjeRim; ++i)
+        {
+            pjackf->ajeRim[i] = pjackfBase->ajeRim[i];
+        }
+    }
+
+    // Clone ajepRim array
+    /*if (pjackf->cjeRim > 0)
+    {
+        pjackf->ajepRim = new JEP[pjackf->cjeRim];
+        for (int i = 0; i < pjackf->cjeRim; ++i)
+        {
+            pjackf->ajepRim[i] = pjackfBase->ajepRim[i];
+        }
+    }*/
+
+    pjackf->cjeGap = pjackfBase->cjeGap;
+
+    // Clone ajeGap array
+    if (pjackf->cjeGap > 0)
+    {
+        pjackf->ajeGap = new JE[pjackf->cjeGap];
+        for (int i = 0; i < pjackf->cjeGap; ++i)
+        {
+            pjackf->ajeGap[i] = pjackfBase->ajeGap[i];
+        }
+    }
+
+    pjackf->aaajk = pjackfBase->aaajk;
+    pjackf->tDrop = pjackfBase->tDrop;
+    pjackf->dvDrop = pjackfBase->dvDrop;
+    pjackf->c = pjackfBase->c;
 }
 
 void RenderJackfSelf(JACKF* pjackf, CM* pcm, RO* pro)

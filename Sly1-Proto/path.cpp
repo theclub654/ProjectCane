@@ -30,6 +30,7 @@ void OnPathzoneRemove(PATHZONE* ppathzone)
 void LoadPathZoneFromBrx(PATHZONE* ppathzone, CBinaryInputStream* pbis)
 {
     LoadLoFromBrx(ppathzone, pbis);
+
     ppathzone->cg.ccgv = pbis->U16Read();
     ppathzone->cg.acgv.resize(ppathzone->cg.ccgv);
 
@@ -74,11 +75,16 @@ void LoadPathZoneFromBrx(PATHZONE* ppathzone, CBinaryInputStream* pbis)
 
 void ClonePathzone(PATHZONE* ppathzone, PATHZONE* ppathzoneBase)
 {
-    LO lo = *ppathzone;
-    *ppathzone = *ppathzoneBase;
-    memcpy(ppathzone, &lo, sizeof(LO));
-
     CloneLo(ppathzone, ppathzoneBase);
+
+    // Shallow copy fields
+    ppathzone->VAO = ppathzoneBase->VAO;
+    ppathzone->VBO = ppathzoneBase->VBO;
+    ppathzone->EBO = ppathzoneBase->EBO;
+    ppathzone->cvtx = ppathzoneBase->cvtx;
+
+    ppathzone->cg = ppathzoneBase->cg;
+    ppathzone->dlePathzone = ppathzoneBase->dlePathzone;
 }
 
 void RenderPathzone(PATHZONE* ppathzone, CM* pcm)

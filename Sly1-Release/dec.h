@@ -881,11 +881,10 @@ int  GetCoinSize();
 void CloneCoin(COIN* pcoin, COIN* pcoinBase);
 void DeleteCoin(COIN *pcoin);
 
-class UNK15;
-void*NewUnk15();
-void InitUnk15(UNK15* punk15);
-void CloneUnk15(UNK15* punk15, UNK15* punk15Base);
-void DeleteUnk15(UNK15* punk15);
+LIFETKN* NewLifetkn();
+int  GetLifetknSize();
+void CloneLifetkn(LIFETKN* plifetkn, LIFETKN* plifetknBase);
+void DeleteLifetkn(LIFETKN* plifetkn);
 
 class KEY;
 KEY* NewKey();

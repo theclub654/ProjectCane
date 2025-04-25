@@ -179,12 +179,67 @@ void CloneAloHierarchy(ALO* palo, ALO* paloBase)
 
 void CloneAlo(ALO* palo, ALO* paloBase)
 {
-	LO lo = *palo;
-	*palo = *paloBase;
-	memcpy(palo, &lo, sizeof(LO));
+	palo->dlChild = paloBase->dlChild;
+	palo->dleBusy = paloBase->dleBusy;
+	palo->dleMRD = paloBase->dleMRD;
+	palo->paloRoot = paloBase->paloRoot;
+	palo->paloFreezeRoot = paloBase->paloFreezeRoot;
+	palo->dleFreeze = paloBase->dleFreeze;
+	palo->dlFreeze = paloBase->dlFreeze;
+	palo->cpmrg = paloBase->cpmrg;
+	for (int i = 0; i < 4; ++i)
+		palo->apmrg[i] = paloBase->apmrg[i];
+	palo->sMRD = paloBase->sMRD;
+	palo->sCelBorderMRD = paloBase->sCelBorderMRD;
+	palo->grfzon = paloBase->grfzon;
+	palo->dsMRDSnap = paloBase->dsMRDSnap;
+	std::memcpy(palo->frz, paloBase->frz, sizeof(palo->frz));
+	palo->xf = paloBase->xf;
+	palo->posOrig = paloBase->posOrig;
+	palo->matOrig = paloBase->matOrig;
+	palo->eulOrig = paloBase->eulOrig;
+	palo->dlAct = paloBase->dlAct;
+	palo->pactPos = paloBase->pactPos;
+	palo->pactRot = paloBase->pactRot;
+	palo->pactScale = paloBase->pactScale;
+	palo->apactPose = paloBase->apactPose;
+	palo->pactRestore = paloBase->pactRestore;
+	palo->pactla = paloBase->pactla;
+	palo->pactbank = paloBase->pactbank;
+	palo->pikh = paloBase->pikh;
+	palo->pclqPosSpring = paloBase->pclqPosSpring;
+	palo->pclqPosDamping = paloBase->pclqPosDamping;
+	palo->pclqRotSpring = paloBase->pclqRotSpring;
+	palo->pclqRotDamping = paloBase->pclqRotDamping;
+	palo->psmpaPos = paloBase->psmpaPos;
+	palo->psmpaRot = paloBase->psmpaRot;
+
+	if (paloBase->palox)
+		palo->palox = std::make_unique<ALOX>(*paloBase->palox);
+	else
+		palo->palox.reset();
+	palo->cframeStatic = paloBase->cframeStatic;
+	palo->globset = paloBase->globset;
+	palo->pshadow = paloBase->pshadow;
+	palo->pthrob = paloBase->pthrob;
+	palo->sFastShadowRadius = paloBase->sFastShadowRadius;
+	palo->sFastShadowDepth = paloBase->sFastShadowDepth;
+	palo->fRealClock = paloBase->fRealClock;
+	palo->pfader = paloBase->pfader;
+	palo->dtUpdatePause = paloBase->dtUpdatePause;
+	palo->pasegd = paloBase->pasegd;
+	palo->sRadiusRenderSelf = paloBase->sRadiusRenderSelf;
+	palo->sRadiusRenderAll = paloBase->sRadiusRenderAll;
+	palo->psfx = paloBase->psfx;
+	palo->ficg = paloBase->ficg;
+	palo->cposec = paloBase->cposec;
+	palo->aposec = paloBase->aposec; // deep copy of vector
+	palo->pactrefCombo = paloBase->pactrefCombo;
+	palo->pdlrFirst = paloBase->pdlrFirst;
+	palo->bitfield = paloBase->bitfield;
+	palo->ackRot = paloBase->ackRot;
 
 	CloneLo(palo, paloBase);
-
 	ClearDl(&palo->dlChild);
 }
 
@@ -514,7 +569,7 @@ void LoadAloAloxFromBrx(ALO* palo, CBinaryInputStream* pbis)
 	if (grfalox != 0)
 	{
 		ALOX alox;
-		palo->palox = &alox;
+		palo->palox = std::make_shared <ALOX>(alox);
 
 		palo->palox->grfalox = grfalox;
 

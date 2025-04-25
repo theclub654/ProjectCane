@@ -181,6 +181,7 @@ SGG* NewSgg();
 void InitSgg(SGG* psgg);
 int  GetSggSize();
 void CloneSgg(SGG* psgg, SGG* psggBase);
+void BindSgg(SGG* psgg);
 void DeleteSgg(SGG* psgg);
 
 STEPGUARD*NewStepguard();
@@ -189,6 +190,7 @@ void OnStepguardAdd(STEPGUARD* pstepguard);
 void OnStepguardRemove(STEPGUARD* pstepguard);
 void CloneStepguard(STEPGUARD* pstepguard, STEPGUARD* pstepguardBase);
 void LoadStepGuardFromBrx(STEPGUARD *pstepguard, CBinaryInputStream *pbis);
+void BindStepguard(STEPGUARD* pstepguard);
 void RenderStepguardSelf(STEPGUARD* pstepguard, CM* pcm, RO* pro);
 int  GetStepguardSize();
 void DeleteStepguard(STEPGUARD* pstepguard);

@@ -34,7 +34,6 @@ int main(int cphzArgs, char* aphzArgs[])
 			lastFrame = currentTime;
 			
 			UpdateCpman(g_gl.window, &g_pcm->cpman, nullptr, deltaTime);
-
 			//UpdateSw(g_psw, deltaTime);
 
 			if (g_fRenderModels != 0)

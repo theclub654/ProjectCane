@@ -12,11 +12,9 @@ int GetScanSize()
 
 void CloneScan(SCAN* pscan, SCAN* pscanBase)
 {
-	LO lo = *pscan;
-	*pscan = *pscanBase;
-	memcpy(pscan, &lo, sizeof(LO));
+	ClonePnt(pscan, pscanBase);
 
-	CloneLo(pscan, pscanBase);
+	pscan->tbidCaption = pscanBase->tbidCaption;
 }
 
 void LoadScanFromBrx(SCAN* pscan, CBinaryInputStream* pbis)

@@ -24,11 +24,10 @@ void LoadXfmFromBrx(XFM *pxfm, CBinaryInputStream* pbis)
 
 void CloneXfm(XFM* pxfm, XFM* pxfmBase)
 {
-	LO lo = *pxfm;
-	*pxfm = *pxfmBase;
-	memcpy(pxfm, &lo, sizeof(LO));
-
 	CloneLo(pxfm, pxfmBase);
+
+	pxfm->posLocal = pxfmBase->posLocal;
+	pxfm->matLocal = pxfmBase->matLocal;
 }
 
 void SetXfmParent(XFM* pxfm, ALO* paloParent)
@@ -89,11 +88,40 @@ void LoadWarpFromBrx(WARP* pwarp, CBinaryInputStream* pbis)
 
 void CloneWarp(WARP* pwarp, WARP* pwarpBase)
 {
-	LO lo = *pwarp;
-	*pwarp = *pwarpBase;
-	memcpy(pwarp, &lo, sizeof(LO));
+	CloneXfm(pwarp, pwarpBase);
 
-	CloneLo(pwarp, pwarpBase);
+	pwarp->widmenu = pwarpBase->widmenu;
+	pwarp->v = pwarpBase->v;
+	pwarp->fDefault = pwarpBase->fDefault;
+	pwarp->radCmInit = pwarpBase->radCmInit;
+	pwarp->cpaseg = pwarpBase->cpaseg;
+
+	// Clone apaseg (array of void pointers)
+	if (pwarp->apaseg != nullptr && pwarpBase->apaseg != nullptr) {
+		for (int i = 0; i < pwarpBase->cpaseg; i++) {
+			pwarp->apaseg[i] = pwarpBase->apaseg[i];
+		}
+	}
+
+	pwarp->coidHide = pwarpBase->coidHide;
+
+	// Clone aoidHide (vector of OIDs)
+	pwarp->aoidHide = pwarpBase->aoidHide;
+
+	pwarp->coidShowWhenDifficult = pwarpBase->coidShowWhenDifficult;
+
+	// Clone aoidShowWhenDifficult (array of OIDs)
+	for (int i = 0; i < 4; i++) {
+		pwarp->aoidShowWhenDifficult[i] = pwarpBase->aoidShowWhenDifficult[i];
+	}
+
+	pwarp->oidAlias = pwarpBase->oidAlias;
+	pwarp->crsmg = pwarpBase->crsmg;
+
+	// Clone RSMG array
+	for (int i = 0; i < 4; i++) {
+		pwarp->arsmg[i] = pwarpBase->arsmg[i];
+	}
 }
 
 void DeleteWarp(WARP* pwarp)
@@ -142,13 +170,42 @@ void LoadExitFromBrx(EXIT* pexit, CBinaryInputStream* pbis)
 
 void CloneExit(EXIT* pexit, EXIT* pexitBase)
 {
-	LO lo = *pexit;
-	*pexit = *pexitBase;
-	memcpy(pexit, &lo, sizeof(LO));
+	CloneAlo(pexit, pexitBase);
 
-	CloneLo(pexit, pexitBase);
+	pexit->fDefault = pexitBase->fDefault;
+	pexit->fKeyed = pexitBase->fKeyed;
+	pexit->fFollowDefault = pexitBase->fFollowDefault;
+	pexit->fTotals = pexitBase->fTotals;
+	pexit->exits = pexitBase->exits;
+	pexit->tExits = pexitBase->tExits;
+	pexit->ctsurf = pexitBase->ctsurf;
 
-	ClearDl(&pexit->dlChild);
+	// Clone atsurf (pointer to surface data)
+	pexit->atsurf = pexitBase->atsurf;
+
+	pexit->ctbsp = pexitBase->ctbsp;
+
+	// Clone atbsp (pointer to BSP data)
+	pexit->atbsp = pexitBase->atbsp;
+
+	pexit->widWarp = pexitBase->widWarp;
+	pexit->oidWarp = pexitBase->oidWarp;
+	pexit->edkAlt = pexitBase->edkAlt;
+	pexit->widAlt = pexitBase->widAlt;
+	pexit->oidAlt = pexitBase->oidAlt;
+	pexit->cpaseg = pexitBase->cpaseg;
+
+	// Clone apaseg (array of void pointers)
+	if (pexit->apaseg != nullptr && pexitBase->apaseg != nullptr) {
+		for (int i = 0; i < pexitBase->cpaseg; i++) {
+			pexit->apaseg[i] = pexitBase->apaseg[i];
+		}
+	}
+
+	pexit->wipek = pexitBase->wipek;
+	pexit->tWipe = pexitBase->tWipe;
+	pexit->dtUnblock = pexitBase->dtUnblock;
+	pexit->dtTriggerWipe = pexitBase->dtTriggerWipe;
 }
 
 void UpdateExit(EXIT* pexit, float dt)
@@ -173,13 +230,15 @@ int GetCameraSize()
 
 void CloneCamera(CAMERA* pcamera, CAMERA* pcameraBase)
 {
-	LO lo = *pcamera;
-	*pcamera = *pcameraBase;
-	memcpy(pcamera, &lo, sizeof(LO));
+	CloneAlo(pcamera, pcameraBase);
 
-	CloneLo(pcamera, pcameraBase);
-
-	ClearDl(&pcamera->dlChild);
+	pcamera->oidTarget = pcameraBase->oidTarget;
+	pcamera->ppntTarget = pcameraBase->ppntTarget;
+	pcamera->paloTarget = pcameraBase->paloTarget;
+	pcamera->posEye = pcameraBase->posEye;
+	pcamera->vecView = pcameraBase->vecView;
+	pcamera->vecUp = pcameraBase->vecUp;
+	pcamera->fSetCplcy = pcameraBase->fSetCplcy;
 }
 
 void InitCamera(CAMERA* pcamera)

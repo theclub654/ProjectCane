@@ -23,13 +23,15 @@ void LoadFlashFromBrx(FLASH* pflash, CBinaryInputStream* pbis)
 
 void CloneFlash(FLASH* pflash, FLASH* pflashBase)
 {
-	LO lo = *pflash;
-	*pflash = *pflashBase;
-	memcpy(pflash, &lo, sizeof(LO));
+	CloneAlo(pflash, pflashBase);
 
-	CloneLo(pflash, pflashBase);
-
-	ClearDl(&pflash->dlChild);
+	pflash->ctsurf = pflashBase->ctsurf;
+	pflash->atsurf = pflashBase->atsurf;
+	pflash->ctbsp = pflashBase->ctbsp;
+	pflash->atbsp = pflashBase->atbsp;
+	pflash->smpScale = pflashBase->smpScale;
+	pflash->gScaleCur = pflashBase->gScaleCur;
+	pflash->gScaleTarget = pflashBase->gScaleTarget;
 }
 
 void RenderFlashSelf(FLASH* pflash, CM* pcm, RO* pro)

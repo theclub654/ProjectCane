@@ -22,17 +22,35 @@ void OnBombAdd(BOMB* pbomb)
 
 void CloneBomb(BOMB* pbomb, BOMB* pbombBase)
 {
-	LO lo = *pbomb;
-	*pbomb = *pbombBase;
-	memcpy(pbomb, &lo, sizeof(LO));
+    CloneSo(pbomb, pbombBase);
 
-	CloneLo(pbomb, pbombBase);
+    pbomb->bdt = pbombBase->bdt;
+    pbomb->tDetonate = pbombBase->tDetonate;
+    pbomb->sDetonateRadius = pbombBase->sDetonateRadius;
+    pbomb->sDetonateRadiusJt = pbombBase->sDetonateRadiusJt;
+    pbomb->fTouchDamage = pbombBase->fTouchDamage;
+    pbomb->tDelay = pbombBase->tDelay;
+    pbomb->iDetonationProp = pbombBase->iDetonationProp;
+    pbomb->sdvMax = pbombBase->sdvMax;
+    pbomb->lmMass = pbombBase->lmMass;
+    pbomb->mMax = pbombBase->mMax;
+    pbomb->cpbrkp = pbombBase->cpbrkp;
 
-	ClearDl(&pbomb->dlChild);
+    for (int i = 0; i < 16; ++i)
+        pbomb->apbrkp[i] = pbombBase->apbrkp[i];
 
-	pbomb->pxa = nullptr;
-	pbomb->grfpvaXpValid = 0;
-	pbomb->pstso = nullptr;
+    pbomb->pexpl = pbombBase->pexpl;
+    pbomb->rExplodeScale = pbombBase->rExplodeScale;
+    pbomb->clqRadiusToSv = pbombBase->clqRadiusToSv;
+    pbomb->lmSv = pbombBase->lmSv;
+    pbomb->clqRadiusToSw = pbombBase->clqRadiusToSw;
+    pbomb->lmSw = pbombBase->lmSw;
+    pbomb->posDetonate = pbombBase->posDetonate;
+    pbomb->normalDetonate = pbombBase->normalDetonate;
+    pbomb->fExplodeEffects = pbombBase->fExplodeEffects;
+    pbomb->fReclaim = pbombBase->fReclaim;
+    pbomb->zpk = pbombBase->zpk;
+    pbomb->psfxDet = pbombBase->psfxDet;
 }
 
 void LoadBombFromBrx(BOMB* pbomb, CBinaryInputStream* pbis)

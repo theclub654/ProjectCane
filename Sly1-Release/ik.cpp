@@ -12,17 +12,7 @@ int GetIkhSize()
 
 void CloneIkh(IKH* pikh, IKH* pikhBase)
 {
-	LO lo = *pikh;
-	*pikh = *pikhBase;
-	memcpy(pikh, &lo, sizeof(LO));
-
-	CloneLo(pikh, pikhBase);
-
-	ClearDl(&pikh->dlChild);
-
-	pikh->pxa = nullptr;
-	pikh->grfpvaXpValid = 0;
-	pikh->pstso = nullptr;
+	CloneSo(pikh, pikhBase);
 }
 
 void RenderIkhSelf(IKH* pikh, CM* pcm, RO* pro)
@@ -47,13 +37,7 @@ int GetLikhSize()
 
 void CloneLikh(LIKH* plikh, LIKH* plikhBase)
 {
-	LO lo = *plikh;
-	*plikh = *plikhBase;
-	memcpy(plikh, &lo, sizeof(LO));
-
-	CloneLo(plikh, plikhBase);
-
-	ClearDl(&plikh->dlChild);
+	CloneAlo(plikh, plikhBase);
 }
 
 void RenderLikhSelf(LIKH* plikh, CM* pcm, RO* pro)

@@ -17,17 +17,23 @@ int GetUbgSize()
 
 void CloneUbg(UBG* pubg, UBG* pubgBase)
 {
-	LO lo = *pubg;
-	*pubg = *pubgBase;
-	memcpy(pubg, &lo, sizeof(LO));
+	CloneGomer(pubg, pubgBase);
 
-	CloneLo(pubg, pubgBase);
+	pubg->psmWorld = pubgBase->psmWorld;
+	pubg->psmaWorld = pubgBase->psmaWorld;
+	pubg->oidPatrolGoal = pubgBase->oidPatrolGoal;
+	pubg->cJump = pubgBase->cJump;
+	pubg->pxfmMiddle = pubgBase->pxfmMiddle;
 
-	ClearDl(&pubg->dlChild);
+	for (int i = 0; i < 6; ++i)
+		pubg->apsoPads[i] = pubgBase->apsoPads[i];
 
-	pubg->pxa = nullptr;
-	pubg->grfpvaXpValid = 0;
-	pubg->pstso = nullptr;
+	pubg->psoLastDunk = pubgBase->psoLastDunk;
+
+	for (int i = 0; i < 4; ++i)
+		pubg->aichk[i] = pubgBase->aichk[i];
+
+	pubg->nBossctr = pubgBase->nBossctr;
 }
 
 void RenderUbpAll(UBP* pubp, CM* pcm, RO* pro)
@@ -52,11 +58,13 @@ int GetUbpSize()
 
 void CloneUbp(UBP* pubp, UBP* pubpBase)
 {
-	LO lo = *pubp;
-	*pubp = *pubpBase;
-	memcpy(pubp, &lo, sizeof(LO));
+	CloneSo(pubp, pubpBase);
 
-	CloneLo(pubp, pubpBase);
+	pubp->pubv = pubpBase->pubv;
+	pubp->ubps = pubpBase->ubps;
+	pubp->tUbps = pubpBase->tUbps;
+	pubp->pactval = pubpBase->pactval;
+	pubp->pbomb = pubpBase->pbomb;
 }
 
 void DeleteUbp(UBP *pubp)
@@ -76,11 +84,29 @@ int GetUbvSize()
 
 void CloneUbv(UBV* pubv, UBV* pubvBase)
 {
-	LO lo = *pubv;
-	*pubv = *pubvBase;
-	memcpy(pubv, &lo, sizeof(LO));
+	CloneSo(pubv, pubvBase);
 
-	CloneLo(pubv, pubvBase);
+	pubv->ubvs = pubvBase->ubvs;
+	pubv->tUbvs = pubvBase->tUbvs;
+
+	for (int i = 0; i < 12; ++i)
+		pubv->apubp[i] = pubvBase->apubp[i];
+
+	for (int i = 0; i < 2; ++i)
+		pubv->apubpBase[i] = pubvBase->apubpBase[i];
+
+	pubv->dposPadRow = pubvBase->dposPadRow;
+	pubv->dposPadCol = pubvBase->dposPadCol;
+	pubv->dposBase = pubvBase->dposBase;
+
+	pubv->cswap = pubvBase->cswap;
+	pubv->iswap = pubvBase->iswap;
+
+	for (int i = 0; i < 24; ++i)
+		pubv->aswap[i] = pubvBase->aswap[i];
+
+	for (int i = 0; i < 4; ++i)
+		pubv->mprowcolSafe[i] = pubvBase->mprowcolSafe[i];
 }
 
 void DeleteUbv(UBV *pubv)

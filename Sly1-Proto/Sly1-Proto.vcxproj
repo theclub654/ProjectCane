@@ -277,6 +277,7 @@
     <ClCompile Include="transition.cpp" />
     <ClCompile Include="turret.cpp" />
     <ClCompile Include="ub.cpp" />
+    <ClCompile Include="update.cpp" />
     <ClCompile Include="util.cpp" />
     <ClCompile Include="vec.cpp" />
     <ClCompile Include="vis.cpp" />
@@ -424,6 +425,7 @@
     <ClInclude Include="transition.h" />
     <ClInclude Include="turret.h" />
     <ClInclude Include="ub.h" />
+    <ClInclude Include="update.h" />
     <ClInclude Include="util.h" />
     <ClInclude Include="vec.h" />
     <ClInclude Include="vis.h" />

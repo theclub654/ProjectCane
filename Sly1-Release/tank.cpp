@@ -17,17 +17,25 @@ int GetTankSize()
 
 void CloneTank(TANK* ptank, TANK* ptankBase)
 {
-	LO lo = *ptank;
-	*ptank = *ptankBase;
-	memcpy(ptank, &lo, sizeof(LO));
+    CloneStep(ptank, ptankBase);
 
-	CloneLo(ptank, ptankBase);
-
-	ClearDl(&ptank->dlChild);
-
-	ptank->pxa = nullptr;
-	ptank->grfpvaXpValid = 0;
-	ptank->pstso = nullptr;
+    ptank->tanks = ptankBase->tanks;
+    ptank->tTanks = ptankBase->tTanks;
+    ptank->fFlash = ptankBase->fFlash;
+    ptank->tFlash = ptankBase->tFlash;
+    ptank->tCharm = ptankBase->tCharm;
+    ptank->tCharmPending = ptankBase->tCharmPending;
+    ptank->fCharmEnabled = ptankBase->fCharmEnabled;
+    ptank->fAllowEject = ptankBase->fAllowEject;
+    ptank->pxpZap = ptankBase->pxpZap;
+    ptank->paloJt = ptankBase->paloJt;
+    ptank->paloGut = ptankBase->paloGut;
+    ptank->pactadjGut = ptankBase->pactadjGut;
+    ptank->paloHead = ptankBase->paloHead;
+    ptank->pactadjHead = ptankBase->pactadjHead;
+    ptank->psm = ptankBase->psm;
+    ptank->psma = ptankBase->psma;
+    ptank->ppntAnchor = ptankBase->ppntAnchor;
 }
 
 void RenderTankAll(TANK* ptank, CM* pcm, RO* pro)

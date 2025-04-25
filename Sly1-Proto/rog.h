@@ -291,4 +291,5 @@ ROB* NewRob();
 void InitRob(ROB* prob);
 int  GetRobSize();
 void CloneRob(ROB* prob, ROB* probBase);
+void BindRob(ROB* prob);
 void DeleteRob(ROB *prob);

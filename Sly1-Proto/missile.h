@@ -29,6 +29,8 @@ class TARMISS : public ACCMISS
 
 class SPLMISS : public MISSILE
 {
+	public:
+
 	float dtImpact;
 	float svMissileImpact;
 	float uBank;

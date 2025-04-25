@@ -18,11 +18,9 @@ void LoadPntFromBrx(PNT* pnt, CBinaryInputStream* pbis)
 
 void ClonePnt(PNT* pnt, PNT* pntBase)
 {
-	LO lo = *pnt;
-	*pnt = *pntBase;
-	memcpy(pnt, &lo, sizeof(LO));
-
 	CloneLo(pnt, pntBase);
+
+	pnt->posLocal = pntBase->posLocal;
 }
 
 void SetPntParent(PNT* ppnt, ALO* paloParent)
@@ -33,7 +31,7 @@ void SetPntParent(PNT* ppnt, ALO* paloParent)
 
 void ApplyPntProxy(PNT* ppnt, PROXY* pproxyApply)
 {
-
+	ConvertAloPos((ALO*)pproxyApply, nullptr, ppnt->posLocal, ppnt->posLocal);
 }
 
 void DeletePnt(PNT* ppnt)
