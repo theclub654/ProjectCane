@@ -218,17 +218,20 @@ struct EMITB {
     }emitx;
     char* pchzName;
 };
+
 class EXPL : public XFM
 {
 	public:
 		class EXPLG *pexplgParent;
 };
+
 class EXPLG : public EXPL
 {
 	public:
 		int cpexpl;
 		EXPL *apexpl;
 };
+
 class EXPLO : public EXPL
 {
 	public:
@@ -285,15 +288,13 @@ class EMITTER : public ALO
     int fValuesChanged;
 };
 
-static int LoadExploCount = 0;
-static int LoadEmitterCount = 0;
-
 EXPLO*NewExplo();
 void InitExplo(EXPLO* pexplo);
 int  GetExploSize();
 void LoadExploFromBrx(EXPLO* pexplo, CBinaryInputStream* pbis);
 void BindExplo(EXPLO* pexplo);
 void CloneExplo(EXPLO* pexplo, EXPLO* pexploBase);
+void*GetExploEmitok(EXPLO* pexplo);
 void DeleteExplo(EXPLO* pexplo);
 
 EMITTER*NewEmitter();
@@ -305,6 +306,7 @@ void LoadEmitterFromBrx(EMITTER* pemitter, CBinaryInputStream* pbis);
 void BindEmitter(EMITTER* pemitter);
 void CloneEmitter(EMITTER* pemitter, EMITTER* pemitterBase);
 EMITB* PemitbEnsureEmitter(EMITTER* pemitter, ENSK ensk);
+void* GetEmitterEmitok(EMITTER* pemitter);
 void RenderEmitterSelf(EMITTER* pemitter, CM* pcm, RO* pro);
 void DeleteEmitter(EMITTER *pemitter);
 
@@ -317,6 +319,7 @@ EXPLS*NewExpls();
 void InitExpls(EXPLS* pexpls);
 int  GetExplsSize();
 void CloneExpls(EXPLS* pexpls, EXPLS* pexplsBase);
+void*GetExplsEmitok(EXPLS* pexpls);
 void BindExpls(EXPLS* pexpls);
 void DeleteExpls(EXPLS* pexpls);
 

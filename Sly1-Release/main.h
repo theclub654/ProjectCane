@@ -1,7 +1,9 @@
 #pragma once
 #include <iostream>
 #include <windows.h>
-#include "input.h"
+#include <chrono>
+#include <thread>
+
 #include "transition.h"
 #include "debug.h"
 #include "mouse.h"
@@ -15,7 +17,7 @@ GLSHADER glCollisionShader;
 std::string file;
 std::string levelName;
 CTransition g_transition;
-bool firstClick = true;
+CLOCK g_clock;
 float deltaTime = 0.0f;
 float lastFrame = 0.0f;
 

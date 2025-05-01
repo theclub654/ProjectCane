@@ -75,72 +75,41 @@ void PrependDlEntry(DL* pdl, void* pv)
 
 void RemoveDlEntry(DL *pdl, void *pv)
 {
-	// Holds ptr to previous entry
-	void* prevEntry{};
-	// Data entry to be removed
-	DLE* entry0{};
-	DLE* entry1{};
-	DLI* entry2{};
+	if (!pdl || !pv) return;
 
-	// Loading data's entry thats being removed
-	entry0 = PdleFromDlEntry(pdl, pv);
+	DLE* dle = PdleFromDlEntry(pdl, pv);
+	if (!dle) return;
 
-	if (s_pdliFirst == (DLI*)nullptr)
-		// Loads ptr to previous entry data list
-		prevEntry = entry0->pvPrev;
+	void* prev = dle->pvPrev;
+	void* next = dle->pvNext;
 
-	else
-	{
-		// Loads previous entry's data list
-		entry1 = (DLE*)s_pdliFirst->m_ppv;
-		entry2 = s_pdliFirst;
-
-		while (true)
-		{
-			if (entry1 == entry0)
-			{
-				if (entry0->pvPrev == nullptr)
-					entry2->m_ppv = (void**)(uintptr_t)pdl;
-				else
-				{
-					entry1 = PdleFromDlEntry(pdl, entry0->pvPrev);
-					entry2->m_ppv = (void**)(uintptr_t)entry1;
-				}
-				entry2 = entry2->m_pdliNext;
-			}
-
-			else
-				entry2 = entry2->m_pdliNext;
-
-			if (entry2 == nullptr) 
-				break;
-
-			entry1 = (DLE*)entry2->m_ppv;
+	// Update previous element's next pointer
+	if (!prev) {
+		// Removing first element
+		pdl->pvFirst = next;
+	}
+	else {
+		DLE* prevDle = PdleFromDlEntry(pdl, prev);
+		if (prevDle) {
+			prevDle->pvNext = next;
 		}
-
-		prevEntry = entry0->pvPrev;
 	}
 
-	if (prevEntry == nullptr)
-		pdl->pvFirst = (DL*)entry0->pvNext;
-
-	else
-	{
-		entry1 = PdleFromDlEntry(pdl, prevEntry);
-		entry1->pvNext = entry0->pvNext;
+	// Update next element's previous pointer
+	if (!next) {
+		// Removing last element
+		pdl->pvLast = prev;
+	}
+	else {
+		DLE* nextDle = PdleFromDlEntry(pdl, next);
+		if (nextDle) {
+			nextDle->pvPrev = prev;
+		}
 	}
 
-	if (entry0->pvNext == nullptr)
-		pdl->pvLast = (DL*)entry0->pvPrev;
-
-	else
-	{
-		entry1 = PdleFromDlEntry(pdl, entry0->pvNext);
-		entry1->pvPrev = entry0->pvPrev;
-	}
-
-	entry0->pvPrev = nullptr;
-	entry0->pvNext = nullptr;
+	// Clear links in removed entry
+	dle->pvPrev = nullptr;
+	dle->pvNext = nullptr;
 }
 
 int FFindDlEntry(DL *pdl, void *pv)

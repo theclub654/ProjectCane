@@ -105,32 +105,32 @@ bool SphereInFrustum(const FRUSTUM& frustum, const glm::vec3& center, float radi
 
 void UpdateCpman(GLFWwindow* window, CPMAN* pcpman, CPDEFI* pcpdefi, float dt)
 {
+	float speed = 8000.0;
+	float velocity = dt * speed;
+
+	if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
+		pcpman->pcm->pos += pcpman->pcm->direction * velocity;
+
+	if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
+		pcpman->pcm->pos -= pcpman->pcm->direction * velocity;
+
+	if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
+		pcpman->pcm->pos += pcpman->pcm->right * velocity;
+
+	if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
+		pcpman->pcm->pos -= pcpman->pcm->right * velocity;
+
+	if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS)
+		pcpman->pcm->pos += pcpman->pcm->up * velocity;
+
+	if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS)
+		pcpman->pcm->pos -= pcpman->pcm->up * velocity;
+
+	if (glfwGetKey(window, GLFW_KEY_R) == GLFW_PRESS)
+		pcpman->pcm->pos = glm::vec3{ 0.0 };
+
 	if (g_fDisableInput != true)
 	{
-		float speed = 10000.0;
-		float velocity = (float)dt * speed;
-
-		if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
-			pcpman->pcm->pos += pcpman->pcm->direction * velocity;
-
-		if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
-			pcpman->pcm->pos -= pcpman->pcm->direction * velocity;
-
-		if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
-			pcpman->pcm->pos += pcpman->pcm->right * velocity;
-
-		if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
-			pcpman->pcm->pos -= pcpman->pcm->right * velocity;
-
-		if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS)
-			pcpman->pcm->pos += pcpman->pcm->up * velocity;
-
-		if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS)
-			pcpman->pcm->pos -= pcpman->pcm->up * velocity;
-
-		if (glfwGetKey(window, GLFW_KEY_R) == GLFW_PRESS)
-			pcpman->pcm->pos = glm::vec3{ 0.0 };
-
 		if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS)
 		{
 			glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_HIDDEN);

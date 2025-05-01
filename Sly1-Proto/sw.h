@@ -3,33 +3,6 @@
 #include "difficulty.h"
 #include "cm.h"
 
-void InitSwBusySoDl(SW* psw);
-void InitSwRootDl(SW* psw);
-void InitSwAsegaDl(SW* psw);
-void InitSwAsegaRealClockDl(SW* psw);
-void InitSwAsegaPending(SW* psw);
-void InitSwSmaDl(SW* psw);
-void InitSwLightDl(SW* psw);
-void InitSwShadowDl(SW* psw);
-void InitSwProxyDl(SW* psw);
-void InitSwFlyDl(SW* psw);
-void InitSwDprizeDl(SW* psw);
-void InitSwRatDl(SW* psw);
-void InitSwRatholeDl(SW* psw);
-void InitSwDartFreeDl(SW* psw);
-void InitSwSpireDl(SW* psw);
-void InitSwRailDl(SW* psw);
-void InitSwLandingDl(SW* psw);
-void InitSwLasenDl(SW* psw);
-void InitSwBlipgDl(SW* psw);
-void InitSwBlipgFreeDl(SW* psw);
-void InitSwFaderDl(SW* psw);
-void InitSwRealClockFader(SW* psw);
-void InitSwCrfodDl(SW* psw);
-void InitSwShapeDl(SW* psw);
-void InitSwPathzoneDl(SW* psw);
-void DeleteSwCollision();
-
 struct LSM
 {
 	// Ambient strength
@@ -139,6 +112,31 @@ public:
 SW*  NewSw();
 // Initializing SW object
 void InitSw(SW* psw); // GOTTA COME BACK TO THIS
+void InitSwBusySoDl(SW* psw);
+void InitSwRootDl(SW* psw);
+void InitSwAsegaDl(SW* psw);
+void InitSwAsegaRealClockDl(SW* psw);
+void InitSwAsegaPending(SW* psw);
+void InitSwSmaDl(SW* psw);
+void InitSwLightDl(SW* psw);
+void InitSwShadowDl(SW* psw);
+void InitSwProxyDl(SW* psw);
+void InitSwFlyDl(SW* psw);
+void InitSwDprizeDl(SW* psw);
+void InitSwRatDl(SW* psw);
+void InitSwRatholeDl(SW* psw);
+void InitSwDartFreeDl(SW* psw);
+void InitSwSpireDl(SW* psw);
+void InitSwRailDl(SW* psw);
+void InitSwLandingDl(SW* psw);
+void InitSwLasenDl(SW* psw);
+void InitSwBlipgDl(SW* psw);
+void InitSwBlipgFreeDl(SW* psw);
+void InitSwFaderDl(SW* psw);
+void InitSwRealClockFader(SW* psw);
+void InitSwCrfodDl(SW* psw);
+void InitSwShapeDl(SW* psw);
+void InitSwPathzoneDl(SW* psw);
 // Returns size of SW
 int  GetSwSize();
 // Initializing the base offset to data
@@ -169,6 +167,8 @@ LO  *PloFindSwObject(SW* psw, GRFFSO grffso, OID oid, LO* ploContext);
 LO  *PloFindSwNearest(SW* psw, OID oid, LO* ploContext);
 // Update all objects in SW
 void UpdateSw(SW* psw, float dt); // Gotta come back to this
+void UpdateSwObjects(SW* psw, float dt);
+void DeleteSwCollision();
 // Delete SW object
 void DeleteSw(SW* psw);
 // Deletes all world data from memory

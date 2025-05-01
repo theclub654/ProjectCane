@@ -33,6 +33,7 @@ void InitChkpnt(CHKPNT* pchkpnt);
 int  GetChkpntSize();
 void LoadChkpntFromBrx(CHKPNT* pchkpnt, CBinaryInputStream* pbis);
 void CloneChkpnt(CHKPNT* pchkpnt, CHKPNT* pchkpntBase);
+void BindChkpnt(CHKPNT* pchkpnt);
 void DeleteChkpnt(CHKPNT *pchkpnt);
 
 VOL* NewVol();

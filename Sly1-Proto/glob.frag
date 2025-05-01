@@ -51,10 +51,16 @@ void main()
     {
         case RKO_OneWay:
         DrawOneWay();
+
+        if (fogType != 0)
+            ApplyFog();
         break;
 
         case RKO_ThreeWay:
         DrawThreeWay();
+
+        if (fogType != 0)
+            ApplyFog();
         break;
 
         case RKO_CelBorder:
@@ -65,9 +71,6 @@ void main()
         DrawCollision();
         break;
     }
-
-    if (fogType != 0)
-        ApplyFog();
 }
 
 void CullGlob()

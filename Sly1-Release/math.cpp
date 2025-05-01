@@ -1,6 +1,6 @@
 #include "math.h"
 
-void LoadMatrixFromPosRot(glm::vec3 &ppos, glm::mat3 &pmat, glm::mat4 &pmatDst)
+void LoadMatrixFromPosRot(glm::vec3& ppos, glm::mat3& pmat, glm::mat4& pmatDst)
 {
 	pmatDst = pmat;
 
@@ -10,42 +10,58 @@ void LoadMatrixFromPosRot(glm::vec3 &ppos, glm::mat3 &pmat, glm::mat4 &pmatDst)
 	pmatDst[3][3] = 1.0;
 }
 
-void LoadMatrixFromPosRotScale(glm::vec3 &vecPos, glm::mat3 &matRot, glm::vec3 &vecScale, glm::mat4 &pmat)
+void LoadMatrixFromPosRotScale(glm::vec3& vecPos, glm::mat3& matRot, glm::vec3& vecScale, glm::mat4& pmat)
 {
+	pmat = glm::mat4(1.0f); // Initialize to identity
+
+	// Apply scaled rotation
 	pmat[0][0] = matRot[0][0] * vecScale.x;
 	pmat[0][1] = matRot[0][1] * vecScale.x;
 	pmat[0][2] = matRot[0][2] * vecScale.x;
-	pmat[0][3] = 0.0;
-
 	pmat[1][0] = matRot[1][0] * vecScale.y;
 	pmat[1][1] = matRot[1][1] * vecScale.y;
 	pmat[1][2] = matRot[1][2] * vecScale.y;
-	pmat[1][3] = 0.0;
-
 	pmat[2][0] = matRot[2][0] * vecScale.z;
 	pmat[2][1] = matRot[2][1] * vecScale.z;
 	pmat[2][2] = matRot[2][2] * vecScale.z;
-	pmat[2][3] = 0.0;
 
+	// Set translation (position)
 	pmat[3][0] = vecPos.x;
 	pmat[3][1] = vecPos.y;
 	pmat[3][2] = vecPos.z;
-	pmat[3][3] = 1.0;
 }
 
-void LoadMatrixFromPosRotInverse(glm::vec3 &pposSrc, glm::mat3 &pmatSrc, glm::mat4 &pmatDst)
+void LoadMatrixFromPosRotInverse(glm::vec3& pposSrc, glm::mat3& pmatSrc, glm::mat4& pmatDst)
 {
-	pmatDst[0][0] = pmatSrc[0][0];
-	pmatDst[0][1] = pmatSrc[0][1];
-	pmatDst[0][2] = pmatSrc[0][2];
+	glm::mat3 invRotation = glm::transpose(pmatSrc);
 
-	pmatDst[1][0] = pmatSrc[1][0];
-	pmatDst[1][1] = pmatSrc[1][1];
-	pmatDst[1][2] = pmatSrc[1][2];
+	// Invert translation: rotate and negate the original position
+	glm::vec3 invPosition = -(invRotation * (pposSrc));
 
-	pmatDst[2][0] = pmatSrc[2][0];
-	pmatDst[2][1] = pmatSrc[2][1];
-	pmatDst[2][2] = pmatSrc[2][2];
+	// Build the final 4x4 matrix
+	pmatDst = glm::mat4(1.0f); // Identity first
+
+	(pmatDst)[0][0] = invRotation[0][0];
+	(pmatDst)[1][0] = invRotation[0][1];
+	(pmatDst)[2][0] = invRotation[0][2];
+
+	(pmatDst)[0][1] = invRotation[1][0];
+	(pmatDst)[1][1] = invRotation[1][1];
+	(pmatDst)[2][1] = invRotation[1][2];
+
+	(pmatDst)[0][2] = invRotation[2][0];
+	(pmatDst)[1][2] = invRotation[2][1];
+	(pmatDst)[2][2] = invRotation[2][2];
+
+	(pmatDst)[3][0] = invPosition.x;
+	(pmatDst)[3][1] = invPosition.y;
+	(pmatDst)[3][2] = invPosition.z;
+	(pmatDst)[3][3] = 1.0f;
+
+	// Set remaining elements explicitly to zero
+	(pmatDst)[0][3] = 0.0f;
+	(pmatDst)[1][3] = 0.0f;
+	(pmatDst)[2][3] = 0.0f;
 }
 
 void BuildOrthonormalMatrixZ(glm::vec3& pvecX, glm::vec3& pvecZ, glm::mat4& pmat)

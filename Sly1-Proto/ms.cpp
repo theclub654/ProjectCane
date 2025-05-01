@@ -22,10 +22,15 @@ void RenderMsGlobset(MS *pms, CM *pcm, RO *pro)
 	for (int i = 0; i < pms->globset.aglob.size(); ++i) 
 	{
 		auto& glob = pms->globset.aglob[i];
+		auto& globi = pms->globset.aglobi[i];
+		
+		if (g_fBsp != 0)
+		{
+			if ((globi.grfzon & pcm->grfzon) != pcm->grfzon)
+				continue;
+		}
+		
 		glm::vec3 posCenterWorld = glm::vec3(baseModelMatrix * glm::vec4(glob.posCenter, 1.0f));
-
-		/*if ((pms->globset.aglobi[i].grfzon & pcm->grfzon) != pcm->grfzon)
-			continue;*/
 
 		if (!SphereInFrustum(pcm->frustum, posCenterWorld, glob.sRadius))
 			continue;
@@ -55,16 +60,16 @@ void RenderMsGlobset(MS *pms, CM *pcm, RO *pro)
 				rpl.z = glm::length(rpl.ro.uAlpha);*/
 			rpl.ro.uFog = glob.uFog;
 			rpl.posCenter = glob.posCenter;
-			rpl.ro.grfglob = &glob.grfglob;
+			rpl.ro.grfglob = glob.grfglob;
 			rpl.ro.pshd = subglob.pshd;
-			rpl.ro.unSelfIllum = &subglob.unSelfIllum;
+			rpl.ro.unSelfIllum = subglob.unSelfIllum;
 			rpl.ro.cvtx = subglob.cvtx;
 
 			rpl.rp = glob.rp;
 
-			if (rpl.ro.uAlpha < 1.0) 
+			if (rpl.ro.uAlpha != 1.0)
 			{
-				switch (rpl.rp) 
+				switch (rpl.rp)
 				{
 					case RP_Opaque:
 					case RP_Cutout:
@@ -75,8 +80,8 @@ void RenderMsGlobset(MS *pms, CM *pcm, RO *pro)
 					case RP_CelBorder:
 					case RP_CelBorderAfterProjVolume:
 					rpl.rp = RP_TranslucentCelBorder;
-					break;
 				}
+
 			}
 
 			if (glob.pdmat != nullptr)

@@ -60,7 +60,7 @@ void OnBlipgAdd(BLIPG* pblipg)
 
 void RenderBlipgSelf(BLIPG* pblipg, CM* pcm, RO* pro)
 {
-	
+    
 }
 
 void DeleteBlipg(BLIPG* pblipg)

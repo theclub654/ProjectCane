@@ -77,7 +77,7 @@ void LoadProxyFromBrx(PROXY* pproxy, CBinaryInputStream* pbis)
 		pxr.pchzProxyRoot = pproxy->pchzName;
 		std::shared_ptr <PXR> ppxr = std::make_shared<PXR>(pxr);
 		object->ppxr = ppxr;
-
+		//std::cout << &pproxy->dlProxyRoot <<"\n";
 		AppendDlEntry(&pproxy->dlProxyRoot, &pxr);
 	}
 
@@ -153,11 +153,56 @@ void LoadProxyFromBrx(PROXY* pproxy, CBinaryInputStream* pbis)
 
 void CloneProxy(PROXY* pproxy, PROXY* pproxyBase)
 {
+	// Backup the original DLE and DL before cloning
+	DLE savedDleProxy = pproxy->dleProxy;
+	DL savedDlProxyRoot = pproxy->dlProxyRoot;
+
+	// Clone base ALO part of PROXY
 	CloneAlo(pproxy, pproxyBase);
 
-	DL proxyRootDl = pproxy->dlProxyRoot;
+	// Restore DLE and DL that CloneAlo may have overwritten
+	pproxy->dleProxy = savedDleProxy;
+	pproxy->dlProxyRoot = savedDlProxyRoot;
 
+	// Clear the cloned object's DL list
 	ClearDl(&pproxy->dlProxyRoot);
+
+	// If the original proxy list has entries, replicate them
+	if (savedDlProxyRoot.pvFirst != nullptr) {
+		DL current = savedDlProxyRoot;
+		ALO* aloParent = pproxy->paloParent;
+
+		while (current.pvFirst != nullptr) {
+			LO* matchingLO = nullptr;
+
+			// Try to find an existing child LO whose ppxr matches the original entry
+			for (LO* lo = aloParent->dlChild.ploFirst; lo != nullptr; lo = lo->dleChild.ploNext) {
+				if (lo->ppxr.get() == current.pvFirst) {
+					matchingLO = lo;
+					break;
+				}
+			}
+
+			// Allocate new PXR smart pointer
+			std::shared_ptr<PXR> pxr = std::make_shared<PXR>();
+
+			pxr->oidProxyRoot = pproxy->oid;
+			pxr->pchzProxyRoot = pproxy->pchzName;
+
+			if (matchingLO != nullptr) {
+				pxr->plo = matchingLO;
+				matchingLO->ppxr = pxr;
+			}
+			else {
+				pxr->plo = current.ploFirst; // fallback to raw LO* from old list
+			}
+
+			AppendDlEntry(&pproxy->dlProxyRoot, &pxr);
+
+			// Move to next DLE entry
+			current.pvFirst = current.ploFirst->dleChild.ploNext;
+		}
+	}
 }
 
 void DeleteProxy(PROXY *pproxy)

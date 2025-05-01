@@ -28,7 +28,7 @@ void InitAlo(ALO* palo)
 	
 	palo->sCelBorderMRD = FLT_MAX;
 	palo->sMRD = FLT_MAX;
-	palo->grfzon = -1;
+	palo->grfzon = 0xfffffff;
 	palo->xf.mat = glm::identity<glm::mat3>();
 	palo->xf.matWorld = glm::identity<glm::mat3>();
 	palo->matOrig = glm::identity<glm::mat3>();
@@ -128,7 +128,7 @@ void OnAloAdd(ALO* palo)
 		palo->pvtalo->pfnSetAloAngularVelocityVec(palo, &w);
 	}*/
 
-	/*if (palo->bitfield.fForceCameraFade) 
+	/*if (palo->bitfield.fForceCameraFade == true) 
 		AddCmFadeObject(g_pcm, palo);*/
 
 	if (palo->pshadow != nullptr) 
@@ -282,6 +282,8 @@ void CloneAlo(ALO* palo, ALO* paloBase)
 		palo->palox.reset();
 	palo->cframeStatic = paloBase->cframeStatic;
 	palo->globset = paloBase->globset;
+	for (int i = 0; i < palo->globset.aglob.size(); i++)
+		numRo += palo->globset.aglob[i].csubglob;
 	palo->pshadow = paloBase->pshadow;
 	palo->pthrob = paloBase->pthrob;
 	palo->sFastShadowRadius = paloBase->sFastShadowRadius;
@@ -302,7 +304,6 @@ void CloneAlo(ALO* palo, ALO* paloBase)
 	palo->ackRot = paloBase->ackRot;
 
 	CloneLo(palo, paloBase);
-
 
 	ClearDl(&palo->dlChild);
 }
@@ -570,6 +571,574 @@ void ConvertAloMat(ALO* paloFrom, ALO* paloTo, glm::mat3 &pmatFrom, glm::mat3 &p
 	pmatTo = pmatFrom;
 }
 
+void SetAloInitialVelocity(ALO* palo, glm::vec3* pv)
+{
+	const glm::mat4& m = palo->xf.mat;
+
+	glm::vec3 transformedVelocity =
+		glm::vec3(m[0]) * pv->x +
+		glm::vec3(m[1]) * pv->y +
+		glm::vec3(m[2]) * pv->z;
+
+	palo->xf.v = transformedVelocity;
+}
+
+void SetAloInitialAngularVelocity(ALO* palo, const glm::vec3* pw)
+{
+	const glm::mat4& m = palo->xf.mat;
+
+	glm::vec3 transformedAngularVelocity =
+		glm::vec3(m[0]) * pw->x +
+		glm::vec3(m[1]) * pw->y +
+		glm::vec3(m[2]) * pw->z;
+
+	palo->xf.w = transformedAngularVelocity;
+}
+
+ASEGD* PasegdEnsureAlo(ALO* palo)
+{
+	if (palo->pasegd == nullptr) 
+	{
+		palo->pasegd = std::make_shared <ASEGD>();
+		palo->pasegd->oidAseg = OID_Nil;
+		palo->pasegd->iak = IAK_Time;
+		palo->pasegd->tLocal = 0.0f;
+		palo->pasegd->svtLocal = 1.0f;
+	}
+
+	return palo->pasegd.get();
+}
+
+void SetAloAsegdOid(ALO* palo, short oid)
+{
+	palo->pasegd->oidAseg = (OID)oid;
+}
+
+void SetAloAsegdtLocal(ALO* palo, float tLocal)
+{
+	palo->pasegd->tLocal = tLocal;
+}
+
+void SetAloAsegdSvtLocal(ALO* palo, float svtLocal)
+{
+	palo->pasegd->svtLocal = svtLocal;
+}
+
+void SetAloAsegdiak(ALO* palo, int iak)
+{
+	palo->pasegd->iak = (IAK)iak;
+}
+
+void SetAloFrozen(ALO* palo, bool fFrozen)
+{
+	palo->bitfield.fFrozen = fFrozen;
+}
+
+void SetAloEuler(ALO* palo, glm::vec3* peul)
+{
+
+}
+
+void SetAloVelocityLocal(ALO* palo, glm::vec3* pvec)
+{
+	// Convert local-space velocity to world-space velocity
+	glm::vec3 localVelocity = *pvec;
+	glm::vec3 worldVelocity = palo->xf.mat * localVelocity;
+
+	//palo->pvtalo->pfnSetAloVelocityVec(palo, &worldVelocity);
+}
+
+void SetAloFastShadowRadius(ALO* palo, float sRadius)
+{
+	palo->sFastShadowRadius = sRadius;
+}
+
+void SetAloFastShadowDepth(ALO* palo, float sDepth)
+{
+	palo->sFastShadowDepth = sDepth;
+}
+
+void SetAloCastShadow(ALO* palo, int fCastShadow)
+{
+
+}
+
+void SetAloNoFreeze(ALO* palo, int fNoFreeze)
+{
+	palo->bitfield.fFrozen = fNoFreeze;
+}
+
+void SetAloRestorePosition(ALO* palo, int fRestore)
+{
+
+}
+
+void SetAloRestorePositionAck(ALO* palo, ACK ack)
+{
+
+}
+
+void SetAloPositionSpring(ALO* palo, float r)
+{
+
+}
+
+void SetAloPositionSpringDetail(ALO* palo, CLQ* pclq)
+{
+
+}
+
+void SetAloPositionDamping(ALO* palo, float r)
+{
+
+}
+
+void SetAloPositionDampingDetail(ALO* palo, CLQ* pclq)
+{
+
+}
+
+void SetAloRestoreRotation(ALO* palo, int fRestore)
+{
+
+}
+
+void SetAloRestoreRotationAck(ALO* palo, ACK ack)
+{
+
+}
+
+void SetAloRotationSpring(ALO* palo, float r)
+{
+
+}
+
+void SetAloRotationSpringDetail(ALO* palo, CLQ* pclq)
+{
+
+}
+
+void SetAloRotationDamping(ALO* palo, float r)
+{
+
+}
+
+void SetAloRotationDampingDetail(ALO* palo, CLQ* pclq)
+{
+
+}
+
+void SetAloPositionSmooth(ALO* palo, float r)
+{
+
+}
+
+void SetAloPositionSmoothDetail(ALO* palo, SMPA* psmpa)
+{
+
+}
+
+void SetAloRotationSmooth(ALO* palo, float r)
+{
+
+}
+
+void SetAloRotationSmoothDetail(ALO* palo, SMPA* psmpa)
+{
+
+}
+
+void SetAloPositionSmoothMaxAccel(ALO* palo, float r)
+{
+
+}
+
+void SetAloRotationSmoothMaxAccel(ALO* palo, float r)
+{
+
+}
+
+void SetAloDefaultAckPos(ALO* palo, ACK ack)
+{
+
+}
+
+void SetAloDefaultAckRot(ALO* palo, ACK ack)
+{
+
+}
+
+void SetAloLookAt(ALO* palo, ACK ack)
+{
+
+}
+
+void SetAloLookAtIgnore(ALO* palo, float sIgnore)
+{
+
+}
+
+void SetAloLookAtPanFunction(ALO* palo, CLQ* pclq)
+{
+
+}
+
+void SetAloLookAtPanLimits(ALO* palo, LM* plm)
+{
+
+}
+
+void SetAloLookAtTiltFunction(ALO* palo, CLQ* pclq)
+{
+
+}
+
+void SetAloLookAtTiltLimits(ALO* palo, LM* plm)
+{
+
+}
+
+void SetAloLookAtEnabledPriority(ALO* palo, int nPriority)
+{
+
+}
+
+void SetAloLookAtDisabledPriority(ALO* palo, int nPriority)
+{
+
+}
+
+void SetAloTargetAttacks(ALO* palo, int grftak)
+{
+
+}
+
+void SetAloTargetRadius(ALO* palo, float sRadiusTarget)
+{
+
+}
+
+void SetAloThrobKind(ALO* palo, THROBK throbk)
+{
+
+}
+
+void SetAloThrobInColor(ALO* palo, glm::vec3* phsvInColor)
+{
+
+}
+
+void SetAloThrobOutColor(ALO* palo, glm::vec3* phsvOutColor)
+{
+
+}
+
+void SetAloThrobDtInOut(ALO* palo, float dtInOut)
+{
+
+}
+
+void SetAloSfxid(ALO* palo, SFXID sfxid)
+{
+
+}
+
+void SetAloSStart(ALO* palo, float sStart)
+{
+
+}
+
+void SetAloSFull(ALO* palo, float sFull)
+{
+
+}
+
+void SetAloUVolumeSpl(ALO* palo, float uVol)
+{
+
+}
+
+void SetAloUVolume(ALO* palo, float uVol)
+{
+
+}
+
+void SetAloUPitchSpl(ALO* palo, float uPitch)
+{
+
+}
+
+void SetAloUPitch(ALO* palo, float uPitch)
+{
+
+}
+
+void SetAloSndRepeat(ALO* palo, LM* plm)
+{
+
+}
+
+void SetAloUDoppler(ALO* palo, float uDoppler)
+{
+
+}
+
+void SetAloInteractCane(ALO* palo, int grfic)
+{
+
+}
+
+void SetAloInteractCaneSweep(ALO* palo, int grfic)
+{
+
+}
+
+void SetAloInteractCaneRush(ALO* palo, int grfic)
+{
+
+}
+
+void SetAloInteractCaneSmash(ALO* palo, int grfic)
+{
+
+}
+
+void SetAloInteractBomb(ALO* palo, int grfic)
+{
+
+}
+
+void SetAloInteractShock(ALO* palo, int grfic)
+{
+
+}
+
+void SetAloPoseCombo(ALO* palo, OID oidCombo)
+{
+
+}
+
+void SetAloForceCameraFade(ALO* palo, int fFade)
+{
+
+}
+
+void* GetAloFrozen(ALO* palo)
+{
+	return nullptr;
+}
+
+void* GetAloXfPos(ALO* palo)
+{
+	return &palo->xf.pos;
+}
+
+void* GetAloXfPosOrig(ALO* palo)
+{
+	return &palo->posOrig;
+}
+
+void* GetAloXfPosWorld(ALO* palo)
+{
+	return &palo->xf.posWorld;
+}
+
+void* GetAloXfMat(ALO* palo)
+{
+	return &palo->xf.mat;
+}
+
+void* GetAloMatOrig(ALO* palo)
+{
+	return &palo->matOrig;
+}
+
+void* GetAloXfMatWorld(ALO* palo)
+{
+	return &palo->xf.matWorld;
+}
+
+void* GetAloEuler(ALO* palo)
+{
+	return nullptr;
+}
+
+void GetAloVelocityLocal(ALO* palo, glm::vec3* pvec)
+{
+	// Transform world velocity into local space by applying the inverse of the rotation matrix.
+	// If the matrix is orthonormal, the inverse is just the transpose.
+	glm::mat3 rotation = palo->xf.mat;
+	glm::vec3 worldVelocity = palo->xf.v;
+
+	// Convert world velocity to local space
+	*pvec = glm::transpose(rotation) * worldVelocity;
+}
+
+void* GetAloXfw(ALO* palo)
+{
+	return &palo->xf.w;
+}
+
+void* GetAloXfdv(ALO* palo)
+{
+	return &palo->xf.dv;
+}
+
+void* GetAloXfdw(ALO* palo)
+{
+	return &palo->xf.dw;
+}
+
+void* GetAloRoot(ALO* palo)
+{
+	return palo->paloRoot;
+}
+
+void GetAloFastShadowRadius(ALO* palo, float* psRadius)
+{
+	*psRadius = palo->sFastShadowRadius;
+}
+
+void GetAloFastShadowDepth(ALO* palo, float* psDepth)
+{
+	*psDepth = palo->sFastShadowDepth;
+}
+
+void GetAloCastShadow(ALO* palo, int* pfCastShadow)
+{
+
+}
+
+void GetAloLookAtIgnore(ALO* palo, float* psIgnore)
+{
+
+}
+
+void GetAloLookAtPanFunction(ALO* palo, CLQ* pclq)
+{
+
+}
+
+void GetAloLookAtPanLimits(ALO* palo, LM* plm)
+{
+
+}
+
+void GetAloLookAtTiltFunction(ALO* palo, CLQ* pclq)
+{
+
+}
+
+void GetAloLookAtTiltLimits(ALO* palo, LM* plm)
+{
+
+}
+
+void GetAloLookAtEnabledPriority(ALO* palo, int* pnPriority)
+{
+
+}
+
+void GetAloLookAtDisabledPriority(ALO* palo, int* pnPriority)
+{
+
+}
+
+int FGetAloChildrenList(ALO* palo, void* pvstate)
+{
+	return 0;
+}
+
+void GetAloThrobKind(ALO* palo, THROBK* pthrobk)
+{
+
+}
+
+void GetAloThrobInColor(ALO* palo, glm::vec3* phsvInColor)
+{
+
+}
+
+void GetAloThrobOutColor(ALO* palo, glm::vec3* phsvOutColor)
+{
+
+}
+
+void GetAloThrobDtInOut(ALO* palo, float* pdtInOut)
+{
+
+}
+
+void GetAloSfxid(ALO* palo, SFXID* psfxid)
+{
+
+}
+
+void GetAloSStart(ALO* palo, float* psStart)
+{
+
+}
+
+void GetAloSFull(ALO* palo, float* psFull)
+{
+
+}
+
+void GetAloUVolume(ALO* palo, float* puVol)
+{
+
+}
+
+void GetAloUPitch(ALO* palo, float* puPitch)
+{
+
+}
+
+void GetAloSndRepeat(ALO* palo, LM* plmRepeat)
+{
+
+}
+
+void GetAloUDoppler(ALO* palo, float* puDoppler)
+{
+
+}
+
+void GetAloInteractCane(ALO* palo, int* pgrfic)
+{
+
+}
+
+void GetAloInteractCaneSweep(ALO* palo, int* pgrfic)
+{
+
+}
+
+void GetAloInteractCaneRush(ALO* palo, int* pgrfic)
+{
+
+}
+
+void GetAloInteractCaneSmash(ALO* palo, int* pgrfic)
+{
+
+}
+
+void GetAloInteractBomb(ALO* palo, int* pgrfic)
+{
+
+}
+
+void GetAloInteractShock(ALO* palo, int* pgrfic)
+{
+
+}
+
+void* GetAlofRealClock(ALO* palo)
+{
+	return &palo->fRealClock;;
+}
+
 void AddAloHierarchy(ALO* palo)
 {
 	DLI plo;
@@ -728,7 +1297,8 @@ void SnipAloObjects(ALO* palo, int csnip, SNIP* asnip)
 {
 	SW* psw = palo->psw;
 
-	for (int i = 0; i < csnip; ++i) {
+	for (int i = 0; i < csnip; ++i) 
+	{
 		const SNIP& snip = asnip[i];
 		uint32_t grffso = (snip.grfsnip & 0x1) ? 0x105 : 0x101;
 
@@ -737,12 +1307,13 @@ void SnipAloObjects(ALO* palo, int csnip, SNIP* asnip)
 
 		LO* plo = PloFindSwObject(psw, grffso, snip.oid, palo);
 
-		if (plo != nullptr) {
-			if ((snip.grfsnip & 0x08) == 0) {
+		if (plo != nullptr) 
+		{
+			if ((snip.grfsnip & 0x08) == 0) 
+			{
 				// Store the pointer to the found object at a specific offset
 				// NOTE: Replace this with proper field access if possible.
-				/*reinterpret_cast<LO**>(
-					reinterpret_cast<char*>(palo->apmrg) + snip.ib - 0x7C)[0] = plo;*/
+				reinterpret_cast<LO**>(reinterpret_cast<char*>(palo->apmrg) + snip.ib - 0x7C)[0] = plo;
 			}
 
 			if ((snip.grfsnip & 0x04) == 0)
@@ -761,17 +1332,80 @@ void UpdateAlo(ALO* palo, float dt)
 
 void RenderAloAll(ALO* palo, CM* pcm, RO* pro)
 {
-	/*if (((palo->grfzon & pcm->grfzon) != pcm->grfzon))
-		return;*/
+	if (g_fBsp != 0)
+	{
+		if ((palo->grfzon & pcm->grfzon) != pcm->grfzon)
+			return;
+	}
+	
+	RO ro{};
+	RO *proOriginal = &ro;
+	glm::vec3 pos{};
+	
+	if (pro != nullptr)
+		pos = pro->modelmatrix[3];
+	else
+		pos = palo->xf.posWorld;
 
-	if (!SphereInFrustum(pcm->frustum, palo->xf.posWorld, palo->sRadiusRenderAll))
+	if (!SphereInFrustum(pcm->frustum, pos, palo->sRadiusRenderAll))
 		return;
 
 	float alpha{};
 	if (!FInsideCmMrd(pcm, pcm->pos - palo->xf.posWorld, palo->sRadiusRenderAll, palo->sMRD, alpha))
 		return;
 
-	palo->pvtalo->pfnRenderAloSelf(palo, pcm, pro);
+	if (alpha == 1.0)
+		proOriginal = pro;
+	else
+	{
+		DupAloRo(palo, pro, &ro);
+		ro.uAlpha = ro.uAlpha * alpha;
+		proOriginal = &ro;
+	}
+
+	palo->pvtalo->pfnRenderAloSelf(palo, pcm, proOriginal);
+
+	ALO* child = palo->dlChild.paloFirst;
+	float fastShadowRadius = palo->sFastShadowRadius;
+
+	if (proOriginal == nullptr)
+	{
+		// No proxy: simple render all children
+		for (; child != nullptr; child = child->dleChild.paloNext) {
+			if (child->pvtlo->grfcid & 1U)
+				child->pvtalo->pfnRenderAloAll(child, pcm, nullptr);
+		}
+	}
+	else {
+		// Proxy exists: need to adjust transforms
+		RO roChild;
+
+		for (; child != nullptr; child = child->dleChild.paloNext) {
+			if (!(child->pvtlo->grfcid & 1U)) {
+				continue;
+			}
+
+			glm::mat4 childLocalMatrix;
+			if (child->ppxr == nullptr) {
+				LoadMatrixFromPosRot(child->xf.pos, child->xf.mat, childLocalMatrix);
+			}
+			else
+			{
+				glm::mat4 invParentWorld = glm::inverse(palo->xf.matWorld);
+				LoadMatrixFromPosRot(child->xf.posWorld, child->xf.matWorld, childLocalMatrix);
+				glm::mat4 proxyAdjust = invParentWorld * proOriginal->modelmatrix;
+				childLocalMatrix = proxyAdjust * childLocalMatrix;
+			}
+
+			// Compute final child world matrix
+			roChild.modelmatrix = proOriginal->modelmatrix * childLocalMatrix;
+			roChild.uAlpha = proOriginal->uAlpha;
+
+
+			// Render child with adjusted transform
+			child->pvtalo->pfnRenderAloAll(child, pcm, &roChild);
+		}
+	}
 }
 
 void RenderAloSelf(ALO* palo, CM* pcm, RO* pro)
@@ -779,7 +1413,7 @@ void RenderAloSelf(ALO* palo, CM* pcm, RO* pro)
 	palo->pvtalo->pfnRenderAloGlobset(palo, pcm, pro);
 }
 
-void DupAloRo(ALO *palo, RO *proOrig, RO *proDup)
+void DupAloRo(ALO* palo, RO* proOrig, RO* proDup)
 {
 	if (proOrig == nullptr)
 	{
@@ -790,27 +1424,39 @@ void DupAloRo(ALO *palo, RO *proOrig, RO *proDup)
 	else
 	{
 		if (proOrig != proDup)
+		{
 			proDup->modelmatrix = proOrig->modelmatrix;
+			proDup->uAlpha = proOrig->uAlpha;
+		}
 	}
 }
 
-void RenderAloGlobset(ALO *palo, CM *pcm, RO *pro)
+void RenderAloGlobset(ALO* palo, CM* pcm, RO* pro)
 {
 	RPL rpl{};
+	RO* proDup;
 	rpl.PFNDRAW = DrawGlob;
 
+	proDup = &rpl.ro;
 	// Duplicate rendering object from original
-	DupAloRo(palo, pro, &rpl.ro);
+	DupAloRo(palo, pro, proDup);
 
 	glm::mat4 baseModelMatrix = rpl.ro.modelmatrix;
 
-	for (int i = 0; i < palo->globset.aglob.size(); ++i) 
+	float baseAlpha = rpl.ro.uAlpha;
+
+	for (int i = 0; i < palo->globset.aglob.size(); ++i)
 	{
 		auto& glob = palo->globset.aglob[i];
-		glm::vec3 posCenterWorld = glm::vec3(baseModelMatrix * glm::vec4(glob.posCenter, 1.0f));
+		auto& globi = palo->globset.aglobi[i];
+		
+		if (g_fBsp != 0)
+		{
+			if ((globi.grfzon & pcm->grfzon) != pcm->grfzon)
+				continue;
+		}
 
-		/*if ((palo->globset.aglobi[i].grfzon & pcm->grfzon) != pcm->grfzon)
-			continue;*/
+		glm::vec3 posCenterWorld = glm::vec3(baseModelMatrix * glm::vec4(glob.posCenter, 1.0f));
 
 		if (!SphereInFrustum(pcm->frustum, posCenterWorld, glob.sRadius))
 			continue;
@@ -818,7 +1464,10 @@ void RenderAloGlobset(ALO *palo, CM *pcm, RO *pro)
 		if (!FInsideCmMrd(pcm, pcm->pos - posCenterWorld, glob.sRadius, glob.sMRD, rpl.ro.uAlpha))
 			continue;
 
-		for (auto& subglob : glob.asubglob) {
+		for (auto& subglob : glob.asubglob) 
+		{
+			rpl.ro.uAlpha *= baseAlpha;
+
 			rpl.ro.VAO = &subglob.VAO;
 
 			// Handle cel border logic
@@ -834,31 +1483,85 @@ void RenderAloGlobset(ALO *palo, CM *pcm, RO *pro)
 				rpl.ro.fCelBorder = 0;
 			}
 
-			// Common render setup
+			if (glob.gleam.size() != 0)
+			{
+				glm::vec3 normal = glob.gleam[0].normal;
+
+				const glm::vec4& colY = rpl.ro.modelmatrix[1];
+				const glm::vec4& colZ = rpl.ro.modelmatrix[2];
+
+				// Blend vectors based on normal components
+				glm::vec4 blendedY = colY + colY * normal.y;
+				glm::vec4 blendedZ = colZ + colZ * normal.z;
+
+				// Compute direction vector length
+				glm::vec3 dirVec = glm::vec3(blendedZ);
+				float lengthSquared = glm::dot(dirVec, dirVec);
+
+				glm::vec4 resultDir = (lengthSquared < 0.0001f)
+					? glm::vec4(0.0f)
+					: glm::normalize(blendedZ);
+
+				// Transform direction using camera matrix
+				glm::vec4 transformed = g_pcm->lookAt * resultDir;
+				float intensity = std::abs(transformed.x);
+
+				// Polynomial light modulation
+				const auto& clqc = glob.gleam[0].clqc;
+				LM lm{ 0.0f, 1.0f };
+				float gain = GLimitLm(&lm,
+					clqc.g0 + intensity * (clqc.g1 + intensity * (clqc.g2 + intensity * clqc.g3)));
+
+				rpl.ro.uAlpha *= gain;
+			}
+
+			/*SMP smp;
+
+			smp.svFast = 2.0;
+			smp.svSlow = 0.0;
+			smp.dtFast = 0.1;
+
+			rpl.ro.uAlpha = GSmooth(rpl.ro.uAlpha, 0.5, g_clock.dt, &smp, nullptr);*/
+			
 			rpl.ro.fDynamic = glob.fDynamic;
 			rpl.ro.uFog = glob.uFog;
 			rpl.z = glob.gZOrder;
 			/*if (rpl.z == 3.402823e+38)
-				rpl.z = glm::length(rpl.ro.uAlpha);*/
+				rpl.z = glm::dot(rpl.ro.uAlpha, rpl.ro.uAlpha);*/
 			rpl.posCenter = glob.posCenter;
-			rpl.ro.grfglob = &glob.grfglob;
+			rpl.ro.grfglob = glob.grfglob;
 			rpl.ro.pshd = subglob.pshd;
-			rpl.ro.unSelfIllum = &subglob.unSelfIllum;
+			rpl.ro.unSelfIllum = subglob.unSelfIllum;
 			rpl.ro.cvtx = subglob.cvtx;
 
-			rpl.rp = (rpl.ro.uAlpha < 1.0f) ? RP_Translucent : glob.rp;
+			rpl.rp = glob.rp;
 
-			// Handle dynamic matrix override
-			if (glob.pdmat != nullptr) {
+			if (rpl.ro.uAlpha != 1.0)
+			{
+				switch (rpl.rp)
+				{
+					case RP_Opaque:
+					case RP_Cutout:
+					case RP_OpaqueAfterProjVolume:
+					case RP_CutoutAfterProjVolume:
+					rpl.rp = RP_Translucent;
+					break;
+					case RP_CelBorder:
+					case RP_CelBorderAfterProjVolume:
+					rpl.rp = RP_TranslucentCelBorder;
+					break;
+				}
+
+			}
+
+			if (glob.pdmat != nullptr) 
 				rpl.ro.modelmatrix = baseModelMatrix * *glob.pdmat;
-			}
-			else {
+			else
 				rpl.ro.modelmatrix = baseModelMatrix;
-			}
 			
 			 /*if (glob.rtck != RTCK_None)
-				 AdjustAloRtckMat(palo, pcm, glob.rtck, &glob.posCenter, rpl.ro.modelmatrix);*/
-
+				 AdjustAloRtckMat(palo, pcm, glob.rtck, &glob.posCenter, baseModelMatrix);*/
+			
 			SubmitRpl(&rpl);
 		}
 	}
@@ -883,7 +1586,7 @@ void DrawGlob(RPL *prpl)
 
 	glUniform1f(glGetUniformLocation(glGlobShader.ID, "uAlpha"), prpl->ro.uAlpha);
 
-	if ((*prpl->ro.grfglob & 4U) == 0)
+	if ((prpl->ro.grfglob & 4U) == 0)
 		glUniform1f(glGetUniformLocation(glGlobShader.ID, "rDarken"), g_psw->rDarken);
 	else
 		glUniform1f(glGetUniformLocation(glGlobShader.ID, "rDarken"), 1.0);
@@ -892,7 +1595,7 @@ void DrawGlob(RPL *prpl)
 	{
 		glUniform1i(glGetUniformLocation(glGlobShader.ID, "rko"), 1);
 		
-		glUniform1f(glGetUniformLocation(glGlobShader.ID,  "usSelfIllum"), *prpl->ro.unSelfIllum);
+		glUniform1f(glGetUniformLocation(glGlobShader.ID,  "usSelfIllum"), prpl->ro.unSelfIllum);
 		glUniform1i(glGetUniformLocation(glGlobShader.ID,  "fDynamic"), prpl->ro.fDynamic);
 		glUniform3fv(glGetUniformLocation(glGlobShader.ID, "posCenter"), 1, glm::value_ptr(prpl->posCenter));
 
@@ -992,14 +1695,17 @@ void DrawGlob(RPL *prpl)
 			// === Second Pass: Draw outline where stencil != 1 ===
 			glBindVertexArray(*prpl->ro.celVAO);
 			glUniform1i(glGetUniformLocation(glGlobShader.ID, "rko"), 2);
-			glDepthMask(GL_FALSE);
+			glDepthMask(false);
+			//glDepthFunc(GL_LEQUAL);
+			/*glEnable(GL_POLYGON_OFFSET_FILL);
+			glPolygonOffset(0.5f, 0.5f);*/
 			glStencilFunc(GL_NOTEQUAL, 1, 0xFF);
 			glStencilMask(0x00);
-			glEnable(GL_BLEND);
-			glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+			
 			glDrawElements(GL_TRIANGLES, prpl->ro.celcvtx, GL_UNSIGNED_SHORT, 0);
 
 			// === Restore State ===
+			glDisable(GL_POLYGON_OFFSET_FILL);
 			glDisable(GL_BLEND);
 			glDepthMask(GL_TRUE);
 			glStencilMask(0xFF);

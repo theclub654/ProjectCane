@@ -34,6 +34,15 @@ struct SMP
 	float dtFast;
 };
 
+struct SMPA 
+{
+	float svFast;
+	float svSlow;
+	float dtFast;
+	float sdvMax;
+};
+
+
 float RadNormalize(float param_1);
 float GLimitAbs(float param_1, float param_2);
 float GSmooth(float gCur, float gTarget, float dt, SMP* psmp, float* pdgNext);

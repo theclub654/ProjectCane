@@ -292,6 +292,7 @@ void InitExplo(EXPLO* pexplo);
 int  GetExploSize();
 void LoadExploFromBrx(EXPLO* pexplo, CBinaryInputStream* pbis);
 void CloneExplo(EXPLO* pexplo, EXPLO* pexploBase);
+void BindExplo(EXPLO* pexplo);
 void DeleteExplo(EXPLO* pexplo);
 
 EMITTER*NewEmitter();
@@ -303,6 +304,7 @@ void LoadEmitterFromBrx(EMITTER* pemitter, CBinaryInputStream* pbis);
 void CloneEmitter(EMITTER* pemitter, EMITTER* pemitterBase);
 EMITB* PemitbEnsureEmitter(EMITTER* pemitter, ENSK ensk);
 void RenderEmitterSelf(EMITTER* pemitter, CM* pcm, RO* pro);
+void BindEmitter(EMITTER* pemitter);
 void DeleteEmitter(EMITTER *pemitter);
 
 EXPL*NewExpl();
@@ -314,10 +316,12 @@ EXPLS*NewExpls();
 void InitExpls(EXPLS* pexpls);
 int  GetExplsSize();
 void CloneExpls(EXPLS* pexpls, EXPLS* pexplsBase);
+void BindExpls(EXPLS* pexpls);
 void DeleteExpls(EXPLS* pexpls);
 
 EXPLG*NewExplg();
 int  GetExplgSize();
 void LoadExplgFromBrx(EXPLG* pexplg, CBinaryInputStream* pbis);
 void CloneExplg(EXPLG* pexplg, EXPLG* pexplgBase);
+void BindExplg(EXPLG* pexplg);
 void DeleteExplg(EXPLG* pexplg);

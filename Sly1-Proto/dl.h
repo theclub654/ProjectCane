@@ -123,7 +123,7 @@ struct DLE
 		void* pvNext;
 		class LO* ploNext;
 		class ALO* paloNext;
-		/*class SO* psoNext;
+		class SO* psoNext;
 		class ASEGA* pasegaNext;
 		class ACTSEG* pactsegNext;
 		class AMB* pambNext;
@@ -165,7 +165,7 @@ struct DLE
 		class JLOVOL* pjlovolNext;
 		class EMITTER* pemitterNext;
 		class MGCO* pmgcoNext;
-		class JMT* pjmtNext;*/
+		class JMT* pjmtNext;
 	};
 
 	union
@@ -174,7 +174,7 @@ struct DLE
 		void* pvPrev;
 		class LO* ploPrev;
 		class ALO* paloPrev;
-		/*class SO* psoPrev;
+		class SO* psoPrev;
 		class ASEGA* pasegaPrev;
 		class ACTSEG* pactsegPrev;
 		class AMB* pambPrev;
@@ -216,7 +216,7 @@ struct DLE
 		class JLOVOL* pjlovolPrev;
 		class EMITTER* pemitterPrev;
 		class MGCO* pmgcoPrev;
-		class JMT* pjmtPrev;*/
+		class JMT* pjmtPrev;
 	};
 };
 

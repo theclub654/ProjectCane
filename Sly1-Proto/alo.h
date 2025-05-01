@@ -76,6 +76,18 @@ enum SCSK
 	SCSK_Max = 2
 };
 
+enum THROBK 
+{
+	THROBK_Nil = -1,
+	THROBK_Pipe = 0,
+	THROBK_Ninja = 1,
+	THROBK_Rail = 2,
+	THROBK_Hide = 3,
+	THROBK_Foo = 4,
+	THROBK_Bar = 5,
+	THROBK_Max = 6
+};
+
 struct XF
 {
 	glm::mat3 mat;
@@ -108,6 +120,25 @@ struct SNIP
 	OID oid;
 	int ib;
 };
+
+enum IAK
+{
+	IAK_Nil = -1,
+	IAK_Time = 0,
+	IAK_Proportion = 1,
+	IAK_Nearest = 2,
+	IAK_Max = 3
+};
+
+struct ASEGD 
+{
+	struct ASEG* paseg;
+	OID oidAseg;
+	IAK iak;
+	float tLocal;
+	float svtLocal;
+};
+
 
 struct ALOX
 {
@@ -225,40 +256,6 @@ struct FICG
 	byte grficShock;
 };
 
-struct RO
-{
-	GLuint *VAO;
-	GLuint *VBO;
-	GLuint *EBO;
-	int cvtx;
-
-	GLuint *celVAO;
-	GLuint *celVBO;
-	GLuint *celEBO;
-	int celcvtx;
-
-	GRFGLOB *grfglob;
-
-	SHD *pshd;
-	float *unSelfIllum;
-
-	glm::mat4 modelmatrix;
-	float uFog;
-	float uAlpha;
-	int fDynamic;
-	int fCelBorder;
-};
-
-// Render Priority List
-struct RPL
-{
-	void (*PFNDRAW)(RPL*);
-	RP rp;
-	RO ro;
-	float z;
-	glm::vec3 posCenter;
-};
-
 struct BITFIELD
 {
 	// First Byte
@@ -329,7 +326,7 @@ class ALO : public LO
 		int fRealClock;
 		struct FADER* pfader;
 		float dtUpdatePause;
-		struct ASEGD* pasegd;
+		std::shared_ptr <ASEGD> pasegd;
 		float sRadiusRenderSelf;
 		float sRadiusRenderAll;
 		struct SFX* psfx;
@@ -379,6 +376,114 @@ void ConvertAloVec(ALO* paloFrom, ALO* paloTo, glm::vec3 *pvecFrom, glm::vec3 *p
 void RotateAloToMat(ALO* palo, glm::mat3& pmat);
 // Rotate or scale object to a new transformation, similar to the glm::rotate or glm::scale function
 void ConvertAloMat(ALO* paloFrom, ALO* paloTo, glm::mat3 &pmatFrom, glm::mat3 &pmatTo);
+void SetAloInitialVelocity(ALO* palo, glm::vec3* pv);
+void SetAloInitialAngularVelocity(ALO* palo, const glm::vec3* pw);
+ASEGD* PasegdEnsureAlo(ALO* palo);
+void SetAloAsegdOid(ALO* palo, short oid);
+void SetAloAsegdtLocal(ALO* palo, float tLocal);
+void SetAloAsegdSvtLocal(ALO* palo, float svtLocal);
+void SetAloAsegdiak(ALO* palo, int iak);
+void SetAloFrozen(ALO* palo, bool fFrozen);
+void SetAloEuler(ALO* palo, glm::vec3* peul);
+void SetAloVelocityLocal(ALO* palo, glm::vec3* pvec);
+void SetAloFastShadowRadius(ALO* palo, float sRadius);
+void SetAloFastShadowDepth(ALO* palo, float sDepth);
+void SetAloCastShadow(ALO* palo, int fCastShadow);
+void SetAloNoFreeze(ALO* palo, int fNoFreeze);
+void SetAloRestorePosition(ALO* palo, int fRestore);
+void SetAloRestorePositionAck(ALO* palo, ACK ack);
+void SetAloPositionSpring(ALO* palo, float r);
+void SetAloPositionSpringDetail(ALO* palo, CLQ* pclq);
+void SetAloPositionDamping(ALO* palo, float r);
+void SetAloPositionDampingDetail(ALO* palo, CLQ* pclq);
+void SetAloRestoreRotation(ALO* palo, int fRestore);
+void SetAloRestoreRotationAck(ALO* palo, ACK ack);
+void SetAloRotationSpring(ALO* palo, float r);
+void SetAloRotationSpringDetail(ALO* palo, CLQ* pclq);
+void SetAloRotationDamping(ALO* palo, float r);
+void SetAloRotationDampingDetail(ALO* palo, CLQ* pclq);
+void SetAloPositionSmooth(ALO* palo, float r);
+void SetAloPositionSmoothDetail(ALO* palo, SMPA* psmpa);
+void SetAloRotationSmooth(ALO* palo, float r);
+void SetAloRotationSmoothDetail(ALO* palo, SMPA* psmpa);
+void SetAloPositionSmoothMaxAccel(ALO* palo, float r);
+void SetAloRotationSmoothMaxAccel(ALO* palo, float r);
+void SetAloDefaultAckPos(ALO* palo, ACK ack);
+void SetAloDefaultAckRot(ALO* palo, ACK ack);
+void SetAloLookAt(ALO* palo, ACK ack);
+void SetAloLookAtIgnore(ALO* palo, float sIgnore);
+void SetAloLookAtPanFunction(ALO* palo, CLQ* pclq);
+void SetAloLookAtPanLimits(ALO* palo, LM* plm);
+void SetAloLookAtTiltFunction(ALO* palo, CLQ* pclq);
+void SetAloLookAtTiltLimits(ALO* palo, LM* plm);
+void SetAloLookAtEnabledPriority(ALO* palo, int nPriority);
+void SetAloLookAtDisabledPriority(ALO* palo, int nPriority);
+void SetAloTargetAttacks(ALO* palo, int grftak);
+void SetAloTargetRadius(ALO* palo, float sRadiusTarget);
+void SetAloThrobKind(ALO* palo, THROBK throbk);
+void SetAloThrobInColor(ALO* palo, glm::vec3* phsvInColor);
+void SetAloThrobOutColor(ALO* palo, glm::vec3* phsvOutColor);
+void SetAloThrobDtInOut(ALO* palo, float dtInOut);
+void SetAloSfxid(ALO* palo, SFXID sfxid);
+void SetAloSStart(ALO* palo, float sStart);
+void SetAloSFull(ALO* palo, float sFull);
+void SetAloUVolumeSpl(ALO* palo, float uVol);
+void SetAloUVolume(ALO* palo, float uVol);
+void SetAloUPitchSpl(ALO* palo, float uPitch);
+void SetAloUPitch(ALO* palo, float uPitch);
+void SetAloSndRepeat(ALO* palo, LM* plm);
+void SetAloUDoppler(ALO* palo, float uDoppler);
+void SetAloInteractCane(ALO* palo, int grfic);
+void SetAloInteractCaneSweep(ALO* palo, int grfic);
+void SetAloInteractCaneRush(ALO* palo, int grfic);
+void SetAloInteractCaneSmash(ALO* palo, int grfic);
+void SetAloInteractBomb(ALO* palo, int grfic);
+void SetAloInteractShock(ALO* palo, int grfic);
+void SetAloPoseCombo(ALO* palo, OID oidCombo);
+void SetAloForceCameraFade(ALO* palo, int fFade);
+//GOTTA COME BACK TO THIS
+void*GetAloFrozen(ALO* palo);
+void*GetAloXfPos(ALO* palo);
+void*GetAloXfPosOrig(ALO* palo);
+void*GetAloXfPosWorld(ALO* palo);
+void*GetAloXfMat(ALO* palo);
+void*GetAloMatOrig(ALO* palo);
+void*GetAloXfMatWorld(ALO* palo);
+void*GetAloEuler(ALO* palo);
+void GetAloVelocityLocal(ALO* palo, glm::vec3* pvec);
+void*GetAloXfw(ALO* palo);
+void*GetAloXfdv(ALO* palo);
+void*GetAloXfdw(ALO* palo);
+void*GetAloRoot(ALO* palo);
+void GetAloFastShadowRadius(ALO* palo, float* psRadius);
+void GetAloFastShadowDepth(ALO* palo, float* psDepth);
+void GetAloCastShadow(ALO* palo, int* pfCastShadow);
+void GetAloLookAtIgnore(ALO* palo, float* psIgnore);
+void GetAloLookAtPanFunction(ALO* palo, CLQ* pclq);
+void GetAloLookAtPanLimits(ALO* palo, LM* plm);
+void GetAloLookAtTiltFunction(ALO* palo, CLQ* pclq);
+void GetAloLookAtTiltLimits(ALO* palo, LM* plm);
+void GetAloLookAtEnabledPriority(ALO* palo, int* pnPriority);
+void GetAloLookAtDisabledPriority(ALO* palo, int* pnPriority);
+int  FGetAloChildrenList(ALO* palo, void* pvstate);
+void GetAloThrobKind(ALO* palo, THROBK* pthrobk);
+void GetAloThrobInColor(ALO* palo, glm::vec3* phsvInColor);
+void GetAloThrobOutColor(ALO* palo, glm::vec3* phsvOutColor);
+void GetAloThrobDtInOut(ALO* palo, float* pdtInOut);
+void GetAloSfxid(ALO* palo, SFXID* psfxid);
+void GetAloSStart(ALO* palo, float* psStart);
+void GetAloSFull(ALO* palo, float* psFull);
+void GetAloUVolume(ALO* palo, float* puVol);
+void GetAloUPitch(ALO* palo, float* puPitch);
+void GetAloSndRepeat(ALO* palo, LM* plmRepeat);
+void GetAloUDoppler(ALO* palo, float* puDoppler);
+void GetAloInteractCane(ALO* palo, int* pgrfic);
+void GetAloInteractCaneSweep(ALO* palo, int* pgrfic);
+void GetAloInteractCaneRush(ALO* palo, int* pgrfic);
+void GetAloInteractCaneSmash(ALO* palo, int* pgrfic);
+void GetAloInteractBomb(ALO* palo, int* pgrfic);
+void GetAloInteractShock(ALO* palo, int* pgrfic);
+void*GetAlofRealClock(ALO* palo);
 // Loads ALO object from binary file
 void LoadAloFromBrx(ALO* palo, CBinaryInputStream* pbis);
 // Loads bone data from binary file

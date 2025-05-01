@@ -5,6 +5,7 @@
 #include "glshaders.h"
 #include "splicemap.h"
 #include "util.h"
+#include "clock.h"
 #include <bitset>
 
 typedef unsigned int SYMID;
@@ -111,7 +112,7 @@ class LO : public BASIC
 // Creates a new local object
 LO* NewLo();
 // Initializes Local Object
-void InitLo(LO *parentLo);
+void InitLo(LO* parentLo);
 void SetLoDefaults(LO* parentLo);
 // Adds LO to parent LO if LO doesnt have a parent it makes LO a parent
 void AddLo(LO* plo); // GOTTA COME BACK
@@ -120,20 +121,24 @@ void RemoveLoHierarchy(LO* plo);
 void SnipLo(LO* plo);
 void CloneLoHierarchy(LO* plo, LO* ploBase);
 void CloneLo(LO* plo, LO* ploBase);
-LO*  PloCloneLo(LO* plo, SW* psw, ALO* paloParent);
-void SendLoMessage(LO *plo, MSGID msgid, void *pv); // GOTTA COME BACK
-void LoadLoFromBrx(LO *plo, CBinaryInputStream* pbis);
-void RemoveLo(LO *plo); // GOTTA COME BACK
-void OnLoAdd(LO *plo);
-void OnLoRemove(LO *plo);
+LO* PloCloneLo(LO* plo, SW* psw, ALO* paloParent);
+void SendLoMessage(LO* plo, MSGID msgid, void* pv); // GOTTA COME BACK
+void LoadLoFromBrx(LO* plo, CBinaryInputStream* pbis);
+void RemoveLo(LO* plo); // GOTTA COME BACK
+void OnLoAdd(LO* plo);
+void OnLoRemove(LO* plo);
 // Returns whether LO is in world or not
-int  FIsLoInWorld(LO *plo);
-void PostLoLoad(LO *plo); // GOTTA COMEB BACK
-void SetLoParent(LO *plo, ALO *paloParent);
+int  FIsLoInWorld(LO* plo);
+void GetLoInWorld(LO* plo, int* pfInWorld);
+OID  GetLoOid(LO* plo);
+OID  OidProxyLo(LO* plo);
+void GetLoOidProxy(LO* plo, OID* poid);
+void PostLoLoad(LO* plo); // GOTTA COMEB BACK
+void SetLoParent(LO* plo, ALO* paloParent);
 void SubscribeLoObject(LO* plo, LO* ploTarget);
 void UnsubscribeLoObject(LO* plo, LO* ploTarget);
 void SubscribeLoStruct(LO* plo, void* pfnmq, void* pvContext);
-void UnsubscribeLoStruct(LO* plo, void *pfnmq, void* pvContext);
+void UnsubscribeLoStruct(LO* plo, void* pfnmq, void* pvContext);
 int  GetLoSize();
 void DeleteLo(LO* plo);
 

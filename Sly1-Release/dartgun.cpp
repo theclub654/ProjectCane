@@ -48,6 +48,11 @@ void CloneDartgun(DARTGUN* pdartgun, DARTGUN* pdartgunBase)
     pdartgun->fJtInTargetArea = pdartgunBase->fJtInTargetArea;
 }
 
+void BindDartgun(DARTGUN* pdartgun)
+{
+    BindAlo(pdartgun);
+}
+
 void DeleteDartgun(DARTGUN* pdartgun)
 {
 	delete pdartgun;

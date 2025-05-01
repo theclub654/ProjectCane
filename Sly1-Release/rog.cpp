@@ -329,6 +329,11 @@ void CloneRob(ROB* prob, ROB* probBase)
 	std::copy(std::begin(probBase->aoidRost), std::end(probBase->aoidRost), std::begin(prob->aoidRost));
 }
 
+void BindRob(ROB* prob)
+{
+	BindAlo(prob);
+}
+
 void DeleteRob(ROB *prob)
 {
 	delete prob;

@@ -2,6 +2,13 @@
 
 void UnloadShaders()
 {
+    for (int i = 0; i < g_ashd.size(); i++)
+    {
+        glDeleteTextures(1, &g_ashd[i].glShadowMap);
+        glDeleteTextures(1, &g_ashd[i].glDiffuseMap);
+        glDeleteTextures(1, &g_ashd[i].glSaturateMap);
+    }
+
 	g_cshd = 0;
 	g_ashd.clear();
 	g_ashd.shrink_to_fit();

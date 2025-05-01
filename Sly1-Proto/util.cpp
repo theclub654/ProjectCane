@@ -56,13 +56,13 @@ float GSmooth(float gCur, float gTarget, float dt, SMP* psmp, float* pdgNext)
 	}
 
 	if (!finalStepHandled) {
-		float tSolution = 0.0f;
+		float tSolutions[2] = { 0.0f, 0.0f };
 		float a = (acc - vSlow) / (2.0f * dtFast);
 		float b = vSlow;
 		float c = -delta;
 
-		if (CSolveQuadratic(a, b, c, &tSolution) && tSolution > dt) {
-			float t = tSolution - dt;
+		if (CSolveQuadratic(a, b, c, &tSolutions[0]) && tSolutions[0] > dt) {
+			float t = tSolutions[0] - dt;
 			float accelRate = (acc - vSlow) / dtFast;
 			float vMid = vSlow + accelRate * t;
 			velocity = -0.5f * (vSlow + vMid);

@@ -7,7 +7,7 @@ typedef int GRFEOPID;
 typedef int BOOL;
 
 typedef void* (*PFNGET)(void*);
-typedef void* (*PFNSETBYTE)(void*, unsigned char);
+typedef void* (*PFNSETBYTE)(void*, bool);
 typedef void* (*PFNSETSHORT)(void*, short);
 typedef void* (*PFNSET)(void*, int);
 typedef void* (*PFNSETFLOAT)(void*, float);
@@ -2217,4 +2217,4 @@ struct EOPID
 void BuildEopids();
 
 // Used to store option data
-extern std::vector<EOPID> g_aeopid;
+extern std::vector <EOPID> g_aeopid;

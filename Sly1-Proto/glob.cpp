@@ -1,8 +1,6 @@
 #include "glob.h"
 
 std::vector <SHD> g_ashd;
-extern std::vector<ALO*> allSWAloObjs;
-extern std::vector<LIGHT*> allSwLights;
 
 void LoadGlobsetFromBrx(GLOBSET *pglobset, short cid ,ALO *palo, CBinaryInputStream *pbis)
 {
@@ -29,7 +27,7 @@ void LoadGlobsetFromBrx(GLOBSET *pglobset, short cid ,ALO *palo, CBinaryInputStr
     pglobset->aglobi.resize(pglobset->cglob);
 
     int fCloneSubGlob = 0;
-    int fCelBorder = 1;
+    int fCelBorder = 0;
     int instanceIndex = 0;
 
     // Loading each submodel for a model
@@ -70,6 +68,8 @@ void LoadGlobsetFromBrx(GLOBSET *pglobset, short cid ,ALO *palo, CBinaryInputStr
         
         if ((unk_5 & 2) != 0)
             pglobset->aglobi[i].grfzon = pbis->U32Read();
+        else
+            pglobset->aglobi[i].grfzon = -1;
 
         if ((unk_5 & 0x200) != 0)
             pglobset->aglob[i].rSubglobRadius = pbis->F32Read();
@@ -154,13 +154,15 @@ void LoadGlobsetFromBrx(GLOBSET *pglobset, short cid ,ALO *palo, CBinaryInputStr
         pglobset->aglob[i].rtck      = (RTCK)pbis->U8Read();
         pglobset->aglob[i].rp        = (RP)pbis->U8Read();
         pglobset->aglob[i].grfglob   = pbis->U8Read();
-        
+
         if (fCloneSubGlob == 0)
         {
             // Number of submodels
             // std::cout << "Model Start: " << std::hex << file.tellg()<<"\n";
             pglobset->aglob[i].csubglob = pbis->U16Read();
             pglobset->aglob[i].asubglob.resize(pglobset->aglob[i].csubglob);
+
+            numRo += pglobset->aglob[i].csubglob;
 
             for (int a = 0; a < pglobset->aglob[i].csubglob; a++)
             {
@@ -350,6 +352,8 @@ void LoadGlobsetFromBrx(GLOBSET *pglobset, short cid ,ALO *palo, CBinaryInputStr
         {
             pglobset->aglob[i].csubglob = pglobset->aglob[instanceIndex].csubglob;
             pglobset->aglob[i].asubglob = pglobset->aglob[instanceIndex].asubglob;
+
+            numRo += pglobset->aglob[instanceIndex].csubglob;
         }
     }
 
@@ -374,7 +378,7 @@ void LoadGlobsetFromBrx(GLOBSET *pglobset, short cid ,ALO *palo, CBinaryInputStr
                             else if (cid == 96)
                                 newPos = pglobset->aglob[i].asubglob[a].vertices[b].pos * glm::vec3(1.1);
                             else
-                                newPos = pglobset->aglob[i].asubglob[a].vertices[b].pos + pglobset->aglob[i].asubglob[a].vertices[b].normal * glm::vec3(4.0);
+                                newPos = pglobset->aglob[i].asubglob[a].vertices[b].pos + glm::normalize(pglobset->aglob[i].asubglob[a].vertices[b].normal) * glm::vec3(4.0);
 
                             pglobset->aglob[i].asubglob[a].celPositions.push_back(glm::vec3(newPos));
                         }

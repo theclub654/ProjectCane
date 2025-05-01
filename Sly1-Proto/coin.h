@@ -81,6 +81,7 @@ DPRIZE* NewDprize();
 void InitSwDprizeDl(SW* psw);
 void InitDprize(DPRIZE *pdprize);//NOT FINISHED
 int  GetDprizeSize();
+void SnipDprizeObject(DPRIZE* pdprize);
 void LoadDprizeFromBrx(DPRIZE* pdprize, CBinaryInputStream* pbis);
 void CloneDprize(DPRIZE* pdprize, DPRIZE* pdprizeBase);
 void*GetDprize(DPRIZE *pdprize);

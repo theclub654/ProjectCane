@@ -14,13 +14,9 @@ bool loadEmitMesh = 0;
 GL g_gl;
 GLSHADER glScreenShader;
 GLSHADER glGlobShader;
-GLSHADER glCelBorderShader;
-GLSHADER glCollisionShader;
 std::string file;
 std::string levelName;
 CTransition g_transition;
-float deltaTime = 0.0f;
-float lastFrame = 0.0f;
 CLOCK g_clock;
 
 void RenderSw(SW *psw, CM *pcm);

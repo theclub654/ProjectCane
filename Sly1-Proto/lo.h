@@ -129,6 +129,10 @@ void OnLoAdd(LO *plo);
 void OnLoRemove(LO *plo);
 // Returns whether LO is in world or not
 int  FIsLoInWorld(LO *plo);
+void GetLoInWorld(LO* plo, int* pfInWorld);
+OID  GetLoOid(LO *plo);
+OID  OidProxyLo(LO *plo);
+void GetLoOidProxy(LO *plo, OID *poid);
 void PostLoLoad(LO *plo); // GOTTA COMEB BACK
 void SetLoParent(LO *plo, ALO *paloParent);
 void SubscribeLoObject(LO* plo, LO* ploTarget);

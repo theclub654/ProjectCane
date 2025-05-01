@@ -45,6 +45,11 @@ void CloneChkpnt(CHKPNT* pchkpnt, CHKPNT* pchkpntBase)
 	pchkpnt->ibitChkpnt = pchkpntBase->ibitChkpnt;
 }
 
+void BindChkpnt(CHKPNT* pchkpnt)
+{
+	BindAlo(pchkpnt);
+}
+
 void DeleteChkpnt(CHKPNT *pchkpnt)
 {
 	delete pchkpnt;

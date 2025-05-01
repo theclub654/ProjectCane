@@ -26,6 +26,11 @@ void CloneJlovol(JLOVOL* pjlovol, JLOVOL* pjlovolBase)
 	pjlovol->dleJlo = pjlovolBase->dleJlo;
 }
 
+void BindJlovol(JLOVOL* pjlovol)
+{
+	BindAlo(pjlovol);
+}
+
 void DeleteJlovol(JLOVOL* pjlovol)
 {
 	delete pjlovol;

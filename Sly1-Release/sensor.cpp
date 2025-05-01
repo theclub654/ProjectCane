@@ -111,6 +111,11 @@ void CloneLasen(LASEN* plasen, LASEN* plasenBase)
 	plasen->dleBusyLasen = plasenBase->dleBusyLasen;
 }
 
+void BindLasen(LASEN* plasen)
+{
+	BindAlo(plasen);
+}
+
 void RenderLasenSelf(LASEN* plasen, CM* pcm, RO* pro)
 {
 	RenderSoSelf(plasen, pcm, pro);

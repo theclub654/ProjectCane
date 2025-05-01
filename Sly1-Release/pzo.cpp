@@ -92,6 +92,11 @@ void CloneSprize(SPRIZE* psprize, SPRIZE* psprizeBase)
 	psprize->fJtDone = psprizeBase->fJtDone;
 }
 
+void BindSprize(SPRIZE* psprize)
+{
+	BindAlo(psprize);
+}
+
 void DeleteSprize(SPRIZE *psprize)
 {
 	delete psprize;

@@ -1,8 +1,6 @@
 #include "sw.h"
 #include "debug.h"
 
-class LIGHT;
-
 std::vector<LO*> allWorldObjs;
 std::vector<ALO*> allSWAloObjs;
 std::vector<LIGHT*> allSwLights;
@@ -99,6 +97,8 @@ void LoadSwFromBrx(SW* psw, CBinaryInputStream* pbis)
 	std::cout << "Loading Textures...\n";
 	// Loads textures from binary file
 	LoadTexturesFromBrx(pbis);
+	AllocateRpl();
+	AllocateLightBlkList();
 	psw->lsmDefault.uShadow  *= 0.003921569;
 	psw->lsmDefault.uMidtone *= 0.003921569;
 	SetupCm(g_pcm);
@@ -416,18 +416,41 @@ LO* PloFindSwNearest(SW* psw, OID oid, LO* ploContext)
 
 void UpdateSw(SW* psw, float dt)
 {
-	
-	for (int i = 0; i < allSWAloObjs.size(); i++)
-	{
-		if (allSWAloObjs[i]->pvtalo->pfnUpdateAlo != nullptr)
-			allSWAloObjs[i]->pvtalo->pfnUpdateAlo(allSWAloObjs[i], dt);
-	}
+	UpdateSwObjects(psw, g_clock.dt);
+}
+
+void UpdateSwObjects(SW* psw, float dt)
+{
+
 }
 
 void DeleteWorld(SW *psw)
 {
 	renderBuffer.clear();
 	renderBuffer.shrink_to_fit();
+	
+	DeallocateLightBlkList();
+
+	numRo = 0;
+	g_dynamicTextureCount = 0;
+	g_backGroundCount = 0;
+	g_blotContextCount = 0;
+	g_opaqueCount = 0;
+	g_cutOutCount = 0;
+	g_celBorderCount = 0;
+	g_projVolumeCount = 0;
+	g_opaqueAfterProjVolumeCount = 0;
+	g_cutoutAfterProjVolumeCount = 0;
+	g_celBorderAfterProjVolumeCount = 0;
+	g_murkClearCount = 0;
+	g_murkOpaqueCount = 0;
+	g_murkFillCount = 0;
+	g_translucentCount = 0;
+	g_translucentCelBorderCount = 0;
+	g_blipCount = 0;
+	g_foreGroundCount = 0;
+	g_worldMapCount = 0;
+	g_maxCount = 0;
 
 	for (int i = 0; i < allSWAloObjs.size(); i++)
 		DeleteModel(allSWAloObjs[i]);
@@ -436,13 +459,6 @@ void DeleteWorld(SW *psw)
 
 	for (int i = 0; i < allWorldObjs.size(); i++)
 		allWorldObjs[i]->pvtlo->pfnDeleteLo(allWorldObjs[i]);
-
-	for (int i = 0; i < g_ashd.size(); i++)
-	{
-		glDeleteTextures(1, &g_ashd[i].glShadowMap);
-		glDeleteTextures(1, &g_ashd[i].glDiffuseMap);
-		glDeleteTextures(1, &g_ashd[i].glSaturateMap);
-	}
 
 	allSWAloObjs.clear();
 	allSWAloObjs.shrink_to_fit();

@@ -86,6 +86,11 @@ void CloneHshape(HSHAPE* phshape, HSHAPE* phshapeBase)
 	phshape->fDetect = phshapeBase->fDetect;
 }
 
+void BindHshape(HSHAPE* phshape)
+{
+
+}
+
 void DeleteHshape(HSHAPE* phshape)
 {
 	delete phshape;
@@ -129,6 +134,11 @@ void CloneHpnt(HPNT* phpnt, HPNT* phpntBase)
 	phpnt->fTunnel = phpntBase->fTunnel;
 	phpnt->fDetect = phpntBase->fDetect;
 	phpnt->dzIgnore = phpntBase->dzIgnore;
+}
+
+void BindHpnt(HPNT* phpnt)
+{
+
 }
 
 void DeleteHpnt(HPNT* phpnt)

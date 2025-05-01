@@ -49,6 +49,9 @@ void RenderMenuGui(SW* psw)
             if (ImGui::MenuItem("Cel Borders", "", &g_fRenderCelBorders));
             if (ImGui::IsItemHovered()) g_fDisableInput = true;
 
+            if (ImGui::MenuItem("BSP (Binary Space Partition", "", &g_fBsp));
+            if (ImGui::IsItemHovered()) g_fDisableInput = true;
+
             if (ImGui::BeginMenu("Fog"))
             {
                 if (ImGui::MenuItem("Off", nullptr, g_fogType == 0))
@@ -67,9 +70,6 @@ void RenderMenuGui(SW* psw)
 
                 if (ImGui::IsItemHovered()) g_fDisableInput = true;
             }
-
-            /*if (ImGui::MenuItem("Pathzones", "", &g_fShowPaths));
-            if (ImGui::IsItemHovered()) g_fDisableInput = true;*/
 
             ImGui::SliderFloat("Draw Distance", &g_renderDistance, 1.0f, 2.5);
             

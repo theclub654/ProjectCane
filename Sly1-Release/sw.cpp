@@ -1,8 +1,6 @@
 #include "sw.h"
 #include "debug.h"
 
-class LIGHT;
-
 std::vector<LO*> allWorldObjs;
 std::vector<ALO*> allSWAloObjs;
 std::vector<LIGHT*> allSwLights;
@@ -98,6 +96,8 @@ void LoadSwFromBrx(SW* psw, CBinaryInputStream* pbis)
 	//std::cout << std::hex << pbis->file.tellg();
 	// Loads all the static world objects from the binary file
 	LoadSwObjectsFromBrx(psw, nullptr, pbis);
+	AllocateRpl();
+	AllocateLightBlkList();
 	// Aligns binary stream to texture data
 	pbis->Align(0x10);
 	std::cout << "Loading Textures...\n";
@@ -414,6 +414,13 @@ LO* PloFindSwObject(SW* psw, GRFFSO grffso, OID oid, LO* ploContext)
 	return plo;
 }
 
+LO* PloFindSwNearest(SW* psw, OID oid, LO* ploContext)
+{
+	LO* plo = nullptr;
+	CploFindSwObjects(psw, 0x204, oid, ploContext, 1, &plo);
+	return plo;
+}
+
 void UpdateSw(SW* psw, float dt)
 {
 	for (int i = 0; i < allSWAloObjs.size(); i++)
@@ -428,6 +435,29 @@ void DeleteWorld(SW *psw)
 	renderBuffer.clear();
 	renderBuffer.shrink_to_fit();
 
+	DeallocateLightBlkList();
+
+	numRo = 0;
+	g_dynamicTextureCount = 0;
+	g_backGroundCount = 0;
+	g_blotContextCount = 0;
+	g_opaqueCount = 0;
+	g_cutOutCount = 0;
+	g_celBorderCount = 0;
+	g_projVolumeCount = 0;
+	g_opaqueAfterProjVolumeCount = 0;
+	g_cutoutAfterProjVolumeCount = 0;
+	g_celBorderAfterProjVolumeCount = 0;
+	g_murkClearCount = 0;
+	g_murkOpaqueCount = 0;
+	g_murkFillCount = 0;
+	g_translucentCount = 0;
+	g_translucentCelBorderCount = 0;
+	g_blipCount = 0;
+	g_foreGroundCount = 0;
+	g_worldMapCount = 0;
+	g_maxCount = 0;
+
 	for (int i = 0; i < allSWAloObjs.size(); i++)
 		DeleteModel(allSWAloObjs[i]);
 
@@ -435,13 +465,6 @@ void DeleteWorld(SW *psw)
 
 	for (int i = 0; i < allWorldObjs.size(); i++)
 		allWorldObjs[i]->pvtlo->pfnDeleteLo(allWorldObjs[i]);
-
-	for (int i = 0; i < g_ashd.size(); i++)
-	{
-		glDeleteTextures(1, &g_ashd[i].glShadowMap);
-		glDeleteTextures(1, &g_ashd[i].glDiffuseMap);
-		glDeleteTextures(1, &g_ashd[i].glSaturateMap);
-	}
 
 	allSWAloObjs.clear();
 	allSWAloObjs.shrink_to_fit();
@@ -456,6 +479,7 @@ void DeleteWorld(SW *psw)
 
 	g_psw = nullptr;
 	g_pcm = nullptr;
+
 	std::cout << "World Deleted\n";
 }
 

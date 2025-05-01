@@ -84,6 +84,40 @@ struct INDICE
 	uint16_t v3;
 };
 
+struct RO
+{
+	GLuint* VAO;
+	GLuint* VBO;
+	GLuint* EBO;
+	int cvtx;
+
+	GLuint* celVAO;
+	GLuint* celVBO;
+	GLuint* celEBO;
+	int celcvtx;
+
+	GRFGLOB grfglob;
+
+	SHD* pshd;
+	float unSelfIllum;
+
+	glm::mat4 modelmatrix;
+	float uFog;
+	float uAlpha;
+	int fDynamic;
+	int fCelBorder;
+};
+
+// Render Priority List
+struct RPL
+{
+	void (*PFNDRAW)(RPL*);
+	RP rp;
+	RO ro;
+	float z;
+	glm::vec3 posCenter;
+};
+
 // Vertex Flag
 struct VTXFLG
 {

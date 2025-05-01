@@ -38,6 +38,20 @@ void CloneTarget(TARGET* ptarget, TARGET* ptargetBase)
 	ptarget->fHitTest = ptargetBase->fHitTest;
 }
 
+void RenderTarget(TARGET* ptarget, CM* pcm)
+{
+	LO *ptarget1 = ptarget->psw->aploStock[0xf];
+
+	if (ptarget != nullptr)
+	{
+		RO ro;
+
+		ro.modelmatrix = glm::identity <glm::mat4>();
+		ro.uAlpha = 1.0;
+		ptarget1->pvtalo->pfnRenderAloAll((ALO*)ptarget1, pcm, &ro);
+	}
+}
+
 TARGET* PtargetEnsureAlo(ALO* palo)
 {
 	TARGET *ptarget = (TARGET*)PloFindSwObject(palo->psw, 0x102, OID_ensured_target, palo);

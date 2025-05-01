@@ -20,17 +20,23 @@ struct LTFN
 	float ruMidtone;
 	float ruHighlight;
 	float ruUnused;
+
 	float duShadow;
 	float duMidtone;
 	float duHighlight;
 	float duUnused;
 };
+
 struct LIGHTBLK
 {
-	struct LIGHT** aplight;
-	int cplight;
-	int grffindlight;
-	LIGHTK lightk;
+	int  lightk;
+	glm::ivec3 pad;
+	glm::vec4 pos;
+	glm::vec4 dir;
+	glm::vec4 color;
+	glm::vec4 falloff;
+	glm::vec4 ru;
+	glm::vec4 du;
 };
 
 
@@ -114,8 +120,11 @@ void SetLightHotSpotAngle(LIGHT* plight, float degHotSpot);
 void*GetLightFrustrumUp(LIGHT*plight);
 void SetLightFrustrumUp(LIGHT* plight, glm::vec3 &pvecUpLocal);
 void RemoveLightFromSw(LIGHT* plight);
+void AllocateLightBlkList();
 bool SphereInFrustumLight(const FRUSTUM& frustum, const glm::vec3& position, float radius);
-void PrepareSwLightsForDraw(SW* psw, CM *pcm);
+void PrepareSwLights(SW* psw, CM* pcm);
+void DeallocateLightBlkList();
 void DeleteLight(LIGHT *plight);
 
-static std::vector <LIGHT*> g_alight;
+extern int numRl;
+extern std::vector <LIGHTBLK> lightBlk;

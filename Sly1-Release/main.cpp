@@ -4,7 +4,7 @@ int main(int cphzArgs, char* aphzArgs[])
 {
 	// Initializing all things needed for game to be started
 	Startup();
-	
+
 	while (!glfwWindowShouldClose(g_gl.window))
 	{
 		// If level pending flag is set to other than zero load up level
@@ -13,7 +13,7 @@ int main(int cphzArgs, char* aphzArgs[])
 			// Loads level
 			g_transition.Execute(file);
 		}
-		
+
 		// Using custom frame buffer
 		glBindFramebuffer(GL_FRAMEBUFFER, g_gl.fbo);
 		// Making custom frame buffer all black
@@ -22,23 +22,25 @@ int main(int cphzArgs, char* aphzArgs[])
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 		// Activate Depth testing
 		glEnable(GL_DEPTH_TEST);
-		
+
 		RenderMenuGui(g_psw);
-		
+
 		if (g_psw != nullptr)
 		{
-			//SetupCm(g_pcm);
+			SetupCm(g_pcm);
+			MarkClockTick(&g_clock);
+
 			double currentTime = glfwGetTime();
 			deltaTime = currentTime - lastFrame;
 			lastFrame = currentTime;
 
 			UpdateCpman(g_gl.window, &g_pcm->cpman, nullptr, deltaTime);
-
 			UpdateSw(g_psw, deltaTime);
 
 			if (g_fRenderModels != 0)
 			{
-				RenderSwAloAll(g_psw, g_pcm);
+				RenderSw(g_psw, g_pcm);
+				//RenderSwAloAll(g_psw, g_pcm);
 				DrawSw(g_psw, g_pcm);
 			}
 
@@ -80,17 +82,18 @@ int main(int cphzArgs, char* aphzArgs[])
 void Startup()
 {
 	g_gl.InitGL();
-	
+
 	glScreenShader.Init("screen.vert", NULL, "screen.frag");
 	glGlobShader.Init("glob.vert", NULL, "glob.frag");
 
 	// Initialize texture samplers for glob shader
 	glGlobShader.Use();
-	glUniform1i(glGetUniformLocation(glGlobShader.ID, "shadowMap"),   0);
-	glUniform1i(glGetUniformLocation(glGlobShader.ID, "diffuseMap"),  1);
+	glUniform1i(glGetUniformLocation(glGlobShader.ID, "shadowMap"), 0);
+	glUniform1i(glGetUniformLocation(glGlobShader.ID, "diffuseMap"), 1);
 	glUniform1i(glGetUniformLocation(glGlobShader.ID, "saturateMap"), 2);
 
 	std::cout << "Sly Cooper 2002 Sony Computer Entertainment America & Sucker Punch Productions\n";
+	StartupClock();
 	SetPhase(PHASE_Startup);
 	StartupBrx();
 }

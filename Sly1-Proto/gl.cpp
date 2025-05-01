@@ -116,7 +116,6 @@ void GL::TerminateGL()
 
 	glScreenShader.Delete();
 	glGlobShader.Delete();
-	glCollisionShader.Delete();
 	ImGui_ImplOpenGL3_Shutdown();
 	ImGui_ImplGlfw_Shutdown();
 	ImGui::DestroyContext();

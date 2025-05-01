@@ -1,8 +1,6 @@
 #include "glob.h"
 
 std::vector <SHD> g_ashd;
-extern std::vector<ALO*> allSWAloObjs;
-extern std::vector<LIGHT*> allSwLights;
 
 void LoadGlobsetFromBrx(GLOBSET* pglobset, short cid, ALO* palo, CBinaryInputStream* pbis)
 {
@@ -29,8 +27,9 @@ void LoadGlobsetFromBrx(GLOBSET* pglobset, short cid, ALO* palo, CBinaryInputStr
     pglobset->aglobi.resize(pglobset->cglob);
 
     int fCloneSubGlob = 0;
-
     int fCelBorder = 0;
+    int instanceIndex = 0;
+
     // Loading each submodel for a model
     for (int i = 0; i < pglobset->cglob; i++)
     {
@@ -53,7 +52,7 @@ void LoadGlobsetFromBrx(GLOBSET* pglobset, short cid, ALO* palo, CBinaryInputStr
         {
             fCloneSubGlob = unk_5 & 1;
 
-            int instanceIndex = pbis->S16Read();
+            instanceIndex = pbis->S16Read();
             pglobset->aglob[i].instanceIndex = instanceIndex;
             pglobset->aglob[i].posCenter = pglobset->aglob[instanceIndex].posCenter;
             pglobset->aglob[i].sRadius = pglobset->aglob[instanceIndex].sRadius;
@@ -70,6 +69,8 @@ void LoadGlobsetFromBrx(GLOBSET* pglobset, short cid, ALO* palo, CBinaryInputStr
 
         if ((unk_5 & 2) != 0)
             pglobset->aglobi[i].grfzon = pbis->U32Read();
+        else
+            pglobset->aglobi[i].grfzon = -1;
 
         if ((unk_5 & 0x200) != 0)
             pglobset->aglob[i].rSubglobRadius = pbis->F32Read();
@@ -161,6 +162,8 @@ void LoadGlobsetFromBrx(GLOBSET* pglobset, short cid, ALO* palo, CBinaryInputStr
             // std::cout << "Model Start: " << std::hex << file.tellg()<<"\n";
             pglobset->aglob[i].csubglob = pbis->U16Read();
             pglobset->aglob[i].asubglob.resize(pglobset->aglob[i].csubglob);
+
+            numRo += pglobset->aglob[i].csubglob;
 
             for (int a = 0; a < pglobset->aglob[i].csubglob; a++)
             {
@@ -313,6 +316,8 @@ void LoadGlobsetFromBrx(GLOBSET* pglobset, short cid, ALO* palo, CBinaryInputStr
         {
             pglobset->aglob[i].csubglob = pglobset->aglob[pglobset->aglob[i].instanceIndex].csubglob;
             pglobset->aglob[i].asubglob = pglobset->aglob[pglobset->aglob[i].instanceIndex].asubglob;
+
+            numRo += pglobset->aglob[instanceIndex].csubglob;
         }
     }
     

@@ -2,15 +2,15 @@
 
 MS* NewMs()
 {
-    return new MS{};
+	return new MS{};
 }
 
 int GetMsSize()
 {
-    return sizeof(MS);
+	return sizeof(MS);
 }
 
-void RenderMsGlobset(MS *pms, CM *pcm, RO *pro)
+void RenderMsGlobset(MS* pms, CM* pcm, RO* pro)
 {
 	RPL rpl{};
 	rpl.PFNDRAW = DrawGlob;
@@ -22,6 +22,14 @@ void RenderMsGlobset(MS *pms, CM *pcm, RO *pro)
 	for (int i = 0; i < pms->globset.aglob.size(); ++i)
 	{
 		auto& glob = pms->globset.aglob[i];
+		auto& globi = pms->globset.aglobi[i];
+
+		if (g_fBsp != 0)
+		{
+			if ((pms->globset.aglobi[i].grfzon & pcm->grfzon) != pcm->grfzon)
+				continue;
+		}
+
 		glm::vec3 posCenterWorld = glm::vec3(baseModelMatrix * glm::vec4(glob.posCenter, 1.0f));
 
 		if (!SphereInFrustum(pcm->frustum, posCenterWorld, glob.sRadius))
@@ -52,14 +60,14 @@ void RenderMsGlobset(MS *pms, CM *pcm, RO *pro)
 				rpl.z = glm::length(rpl.ro.uAlpha);*/
 			rpl.ro.uFog = glob.uFog;
 			rpl.posCenter = glob.posCenter;
-			rpl.ro.grfglob = &glob.grfglob;
+			rpl.ro.grfglob = glob.grfglob;
 			rpl.ro.pshd = subglob.pshd;
-			rpl.ro.unSelfIllum = &subglob.unSelfIllum;
+			rpl.ro.unSelfIllum = subglob.unSelfIllum;
 			rpl.ro.cvtx = subglob.cvtx;
 
 			rpl.rp = glob.rp;
 
-			if (rpl.ro.uAlpha < 1.0)
+			if (rpl.ro.uAlpha != 1.0)
 			{
 				switch (rpl.rp)
 				{
@@ -72,8 +80,8 @@ void RenderMsGlobset(MS *pms, CM *pcm, RO *pro)
 				case RP_CelBorder:
 				case RP_CelBorderAfterProjVolume:
 					rpl.rp = RP_TranslucentCelBorder;
-					break;
 				}
+
 			}
 
 			if (glob.pdmat != nullptr)
@@ -81,12 +89,15 @@ void RenderMsGlobset(MS *pms, CM *pcm, RO *pro)
 			else
 				rpl.ro.modelmatrix = baseModelMatrix;
 
+			/*if (glob.rtck != RTCK_None)
+				AdjustAloRtckMat(pms, pcm, glob.rtck, &pms->xf.posWorld, rpl.ro.modelmatrix);*/
+
 			SubmitRpl(&rpl);
 		}
 	}
 }
 
-void DeleteMs(MS *pms)
+void DeleteMs(MS* pms)
 {
-    delete pms;
+	delete pms;
 }

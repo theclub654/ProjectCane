@@ -56,6 +56,11 @@ void CloneExplo(EXPLO* pexplo, EXPLO* pexploBase)
 	pexplo->oidShape = pexploBase->oidShape;
 }
 
+void* GetExploEmitok(EXPLO* pexplo)
+{
+	return &pexplo->pemitb->emito.emitok;
+}
+
 void DeleteExplo(EXPLO* pexplo)
 {
 	delete pexplo;
@@ -176,6 +181,11 @@ EMITB* PemitbEnsureEmitter(EMITTER* pemitter, ENSK ensk)
 	return pemitter->pemitb.get();
 }
 
+void* GetEmitterEmitok(EMITTER* pemitter)
+{
+	return &pemitter->pemitb->emito.emitok;
+}
+
 void RenderEmitterSelf(EMITTER* pemitter, CM* pcm, RO* pro)
 {
 
@@ -199,7 +209,6 @@ int GetExplSize()
 void CloneExpl(EXPL* pexpl, EXPL* pexplBase)
 {
 	CloneXfm(pexpl, pexplBase);
-
 	pexpl->pexplgParent = pexplBase->pexplgParent;
 }
 
@@ -238,6 +247,11 @@ void CloneExpls(EXPLS* pexpls, EXPLS* pexplsBase)
 	pexpls->pblipg = pexplsBase->pblipg;
 	pexpls->tExplodeNext = pexplsBase->tExplodeNext;
 	pexpls->fExplodeSiblings = pexplsBase->fExplodeSiblings;
+}
+
+void* GetExplsEmitok(EXPLS* pexpls)
+{
+	return &pexpls->pemitb->emito.emitok;
 }
 
 void BindExpls(EXPLS* pexpls)
@@ -279,7 +293,7 @@ void LoadExplgFromBrx(EXPLG* pexplg, CBinaryInputStream* pbis)
 
 void BindExplg(EXPLG* pexplg)
 {
-
+	
 }
 
 void CloneExplg(EXPLG* pexplg, EXPLG* pexplgBase)

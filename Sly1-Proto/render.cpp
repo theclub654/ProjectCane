@@ -1,32 +1,43 @@
 ﻿#include "render.h"
 
+void AllocateRpl()
+{
+	renderBuffer.resize(numRo);
+
+	numRo = 0;
+}
+
 void RenderSw(SW *psw, CM *pcm)
 {
-	DLI dlBusyDli;
+	// Set up a DLI walker for the busy object list in the current SW (Scene/World)
+	DLI dlBusyWalker;
+	dlBusyWalker.m_pdl = &psw->dlBusy;                // Point to the actual DL list
+	dlBusyWalker.m_ibDle = psw->dlBusy.ibDle;         // Offset to the 'next' pointer inside each object
+	dlBusyWalker.m_pdliNext = s_pdliFirst;            // Link this walker into a global list of DLI walkers
 
-	// Loading SW object list
-	dlBusyDli.m_pdl = &psw->dlBusy;
-	// Loading base offset to next object
-	dlBusyDli.m_ibDle = psw->dlBusy.ibDle;
+	// Get the first object (LO) in the busy list
+	LO* currentObject = psw->dlBusy.ploFirst;
 
-	dlBusyDli.m_pdliNext = s_pdliFirst;
+	// Set up the pointer to the "next" object in the list,
+	// using offset-based pointer arithmetic from current object
+	dlBusyWalker.m_ppv = reinterpret_cast<void**>(reinterpret_cast<uintptr_t>(currentObject) + dlBusyWalker.m_ibDle);
 
-	// Loading first object in SW object list
-	LO *localObject = psw->dlBusy.ploFirst;
-	// Loading pointer to next object in SW list
-	dlBusyDli.m_ppv = (void**)((uintptr_t)localObject + dlBusyDli.m_ibDle);
-	
-	s_pdliFirst = &dlBusyDli;
+	// Save the current DLI walker globally
+	s_pdliFirst = &dlBusyWalker;
 
-	// Looping through all objects in a level
-	while (localObject != 0)
+	// Loop over every object in the busy list
+	while (currentObject != nullptr) 
 	{
-		// Setting object up to be rendered
-		localObject->pvtalo->pfnRenderAloAll((ALO*)localObject, pcm, 0);
-		// Loading next object
-		localObject = (LO*)*dlBusyDli.m_ppv;
-		// Loading pointer to next object to render
-		dlBusyDli.m_ppv = (void**)((uintptr_t)localObject + dlBusyDli.m_ibDle);
+		// Call the rendering function on the current object
+		// This renders the object and all of its attached ALO children
+		currentObject->pvtalo->pfnRenderAloAll(reinterpret_cast<ALO*>(currentObject), pcm, nullptr);
+
+		// Move to the next object in the list using the stored offset
+		currentObject = reinterpret_cast<LO*>(*dlBusyWalker.m_ppv);
+
+		// If there is a next object, update the walker’s pointer to its next link
+		if (currentObject != nullptr) 
+			dlBusyWalker.m_ppv = reinterpret_cast<void**>(reinterpret_cast<uintptr_t>(currentObject) + dlBusyWalker.m_ibDle);
 	}
 }
 
@@ -35,6 +46,7 @@ void RenderSwAloAll(SW* psw, CM* pcm)
 	for (int i = 0; i < allSWAloObjs.size(); i++)
 	{
 		CID cid = allSWAloObjs[i]->pvtalo->cid;
+		
 		allSWAloObjs[i]->pvtalo->pfnRenderAloAll(allSWAloObjs[i], pcm, nullptr);
 	}
 }
@@ -47,7 +59,8 @@ void RenderSwGlobset(SW *psw, CM *pcm)
 
 void SubmitRpl(RPL *prpl)
 {
-	renderBuffer.push_back(*prpl);
+	renderBuffer[numRo] = *prpl;
+	numRo++;
 
 	switch (prpl->rp)
 	{
@@ -108,7 +121,7 @@ void SubmitRpl(RPL *prpl)
 		break;
 
 		case RP_TranslucentCelBorder:
-		g_translucentCount++;
+		g_translucentCelBorderCount++;
 		break;
 
 		case RP_Blip:
@@ -131,42 +144,38 @@ void SubmitRpl(RPL *prpl)
 
 void SortRenderRpl()
 {
-	std::sort(renderBuffer.begin(), renderBuffer.end(), compareRP);
+	std::sort(renderBuffer.begin(), renderBuffer.begin() + numRo, compareRP);
+	
+	int offset = g_dynamicTextureCount;
 
-	if (g_cutOutCount != 0)
-	{
-		int startIndex = g_dynamicTextureCount + g_backGroundCount + g_blotContextCount + g_opaqueCount;
-		int endIndex = startIndex + g_cutOutCount;
+	if (g_backGroundCount > 1) 
+		std::sort(renderBuffer.begin() + offset, renderBuffer.begin() + offset + g_backGroundCount, compareZ);
+	
+	offset += g_backGroundCount;
 
-		std::sort(renderBuffer.begin() + startIndex, renderBuffer.begin() + endIndex, compareZ);
-	}
+	offset += g_blotContextCount;
+	offset += g_opaqueCount;
 
-	if (g_cutoutAfterProjVolumeCount != 0)
-	{
-		int startIndex = g_dynamicTextureCount + g_backGroundCount + g_blotContextCount + g_opaqueCount + g_cutOutCount + g_celBorderCount + g_projVolumeCount + g_opaqueAfterProjVolumeCount;
-		int endIndex = startIndex + g_cutoutAfterProjVolumeCount;
+	if (g_cutOutCount > 1) 
+		std::sort(renderBuffer.begin() + offset, renderBuffer.begin() + offset + g_cutOutCount, compareZ);
+	
+	offset += g_cutOutCount;
+	offset += g_celBorderCount;
+	offset += g_projVolumeCount;
+	offset += g_opaqueAfterProjVolumeCount;
 
-		std::sort(renderBuffer.begin() + startIndex, renderBuffer.begin() + endIndex, compareZ);
-	}
+	if (g_cutoutAfterProjVolumeCount > 1) 
+		std::sort(renderBuffer.begin() + offset, renderBuffer.begin() + offset + g_cutoutAfterProjVolumeCount, compareZ);
+	
+	offset += g_cutoutAfterProjVolumeCount;
+	offset += g_celBorderAfterProjVolumeCount;
+	offset += g_murkClearCount;
+	offset += g_murkOpaqueCount;
+	offset += g_murkFillCount;
 
-	if (g_translucentCount != 0)
-	{
-		int startIndex = g_dynamicTextureCount + g_backGroundCount + g_blotContextCount + g_opaqueCount + g_cutOutCount + g_celBorderCount + g_projVolumeCount + g_opaqueAfterProjVolumeCount +
-		g_cutoutAfterProjVolumeCount + g_celBorderAfterProjVolumeCount + g_murkClearCount + g_murkOpaqueCount + g_murkFillCount;
-
-		int endIndex = startIndex + g_translucentCount;
-
-		std::sort(renderBuffer.begin() + startIndex, renderBuffer.begin() + endIndex, compareZ);
-	}
-
-	if (g_backGroundCount != 0)
-	{
-		int startIndex = g_dynamicTextureCount;
-		int endIndex = startIndex + g_backGroundCount;
-
-		std::sort(renderBuffer.begin() + startIndex, renderBuffer.begin() + endIndex, compareZ);
-	}
-
+	if (g_translucentCount > 1) 
+		std::sort(renderBuffer.begin() + offset, renderBuffer.begin() + offset + g_translucentCount, compareZ);
+	
 	g_dynamicTextureCount = 0;
 	g_backGroundCount = 0;
 	g_blotContextCount = 0;
@@ -202,10 +211,10 @@ void DrawSw(SW *psw, CM *pcm)
 {
 	glGlobShader.Use();
 
-	//std::cout << renderBuffer.size() << "\n";
+	//std::cout << numRo << "\n";
 	SortRenderRpl();
 
-	PrepareSwLightsForDraw(psw, pcm);
+	PrepareSwLights(psw, pcm);
 
 	glUniformMatrix4fv(glGetUniformLocation(glGlobShader.ID, "proj"), 1, GL_FALSE, glm::value_ptr(pcm->matProj));
 	glUniformMatrix4fv(glGetUniformLocation(glGlobShader.ID, "view"), 1, GL_FALSE, glm::value_ptr(pcm->lookAt));
@@ -222,10 +231,10 @@ void DrawSw(SW *psw, CM *pcm)
 	
 	glUniform4fv(glGetUniformLocation(glGlobShader.ID, "rgbaCel"), 1, glm::value_ptr(g_rgbaCel));
 
-	for (int i = 0; i < renderBuffer.size(); i++)
+	for (int i = 0; i < numRo; i++)
 		renderBuffer[i].PFNDRAW(&renderBuffer[i]);
 
-	renderBuffer.clear();
+	numRo = 0;
 }
 
 void DrawSwCollisionAll(CM *pcm)

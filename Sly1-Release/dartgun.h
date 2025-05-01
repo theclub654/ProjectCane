@@ -33,4 +33,5 @@ DARTGUN*NewDartgun();
 void InitDartgun(DARTGUN* pdartgun);
 int  GetDartgunSize();
 void CloneDartgun(DARTGUN* pdartgun, DARTGUN* pdartgunBase);
+void BindDartgun(DARTGUN* pdartgun);
 void DeleteDartgun(DARTGUN* pdartgun);

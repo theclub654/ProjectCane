@@ -1,34 +1,43 @@
 ﻿#include "render.h"
 
-void RenderSw(SW *psw, CM *pcm)
+void AllocateRpl()
 {
-	glGlobShader.Use();
+	renderBuffer.resize(numRo);
 
-	DLI dlBusyDli;
+	numRo = 0;
+}
 
-	// Loading SW object list
-	dlBusyDli.m_pdl = &psw->dlBusy;
-	// Loading base offset to next object
-	dlBusyDli.m_ibDle = psw->dlBusy.ibDle;
+void RenderSw(SW* psw, CM* pcm)
+{
+	// Set up a DLI walker for the busy object list in the current SW (Scene/World)
+	DLI dlBusyWalker;
+	dlBusyWalker.m_pdl = &psw->dlBusy;                // Point to the actual DL list
+	dlBusyWalker.m_ibDle = psw->dlBusy.ibDle;         // Offset to the 'next' pointer inside each object
+	dlBusyWalker.m_pdliNext = s_pdliFirst;            // Link this walker into a global list of DLI walkers
 
-	dlBusyDli.m_pdliNext = s_pdliFirst;
+	// Get the first object (LO) in the busy list
+	LO* currentObject = psw->dlBusy.ploFirst;
 
-	// Loading first object in SW object list
-	LO *localObject = psw->dlBusy.ploFirst;
-	// Loading pointer to next object in SW list
-	dlBusyDli.m_ppv = (void**)((uintptr_t)localObject + dlBusyDli.m_ibDle);
-	
-	s_pdliFirst = &dlBusyDli;
+	// Set up the pointer to the "next" object in the list,
+	// using offset-based pointer arithmetic from current object
+	dlBusyWalker.m_ppv = reinterpret_cast<void**>(reinterpret_cast<uintptr_t>(currentObject) + dlBusyWalker.m_ibDle);
 
-	// Looping through all objects in a level
-	while (localObject != 0)
+	// Save the current DLI walker globally
+	s_pdliFirst = &dlBusyWalker;
+
+	// Loop over every object in the busy list
+	while (currentObject != nullptr)
 	{
-		// Setting object up to be rendered
-		localObject->pvtalo->pfnRenderAloAll((ALO*)localObject, pcm, 0);
-		// Loading next object
-		localObject = (LO*)*dlBusyDli.m_ppv;
-		// Loading pointer to next object to render
-		dlBusyDli.m_ppv = (void**)((uintptr_t)localObject + dlBusyDli.m_ibDle);
+		// Call the rendering function on the current object
+		// This renders the object and all of its attached ALO children
+		currentObject->pvtalo->pfnRenderAloAll(reinterpret_cast<ALO*>(currentObject), pcm, nullptr);
+
+		// Move to the next object in the list using the stored offset
+		currentObject = reinterpret_cast<LO*>(*dlBusyWalker.m_ppv);
+
+		// If there is a next object, update the walker’s pointer to its next link
+		if (currentObject != nullptr)
+			dlBusyWalker.m_ppv = reinterpret_cast<void**>(reinterpret_cast<uintptr_t>(currentObject) + dlBusyWalker.m_ibDle);
 	}
 }
 
@@ -37,137 +46,135 @@ void RenderSwAloAll(SW* psw, CM* pcm)
 	for (int i = 0; i < allSWAloObjs.size(); i++)
 	{
 		CID cid = allSWAloObjs[i]->pvtalo->cid;
+
 		allSWAloObjs[i]->pvtalo->pfnRenderAloAll(allSWAloObjs[i], pcm, nullptr);
 	}
 }
 
-void RenderSwGlobset(SW *psw, CM *pcm)
+void RenderSwGlobset(SW* psw, CM* pcm)
 {
 	for (int i = 0; i < allSWAloObjs.size(); i++)
 		allSWAloObjs[i]->pvtalo->pfnRenderAloGlobset(allSWAloObjs[i], pcm, nullptr);
 }
 
-void SubmitRpl(RPL *prpl)
+void SubmitRpl(RPL* prpl)
 {
-	renderBuffer.push_back(*prpl);
+	renderBuffer[numRo] = *prpl;
+	numRo++;
 
 	switch (prpl->rp)
 	{
-		case RP_DynamicTexture:
-			g_dynamicTextureCount++;
+	case RP_DynamicTexture:
+		g_dynamicTextureCount++;
 		break;
 
-		case RP_Background:
-			g_backGroundCount++;
+	case RP_Background:
+		g_backGroundCount++;
 		break;
 
-		case RP_BlotContext:
-			g_blotContextCount++;
+	case RP_BlotContext:
+		g_blotContextCount++;
 		break;
 
-		case RP_Opaque:
-			g_opaqueCount++;
+	case RP_Opaque:
+		g_opaqueCount++;
 		break;
 
-		case RP_Cutout:
-			g_cutOutCount++;
+	case RP_Cutout:
+		g_cutOutCount++;
 		break;
 
-		case RP_CelBorder:
-			g_celBorderCount++;
+	case RP_CelBorder:
+		g_celBorderCount++;
 		break;
 
-		case RP_ProjVolume:
-			g_projVolumeCount++;
+	case RP_ProjVolume:
+		g_projVolumeCount++;
 		break;
 
-		case RP_OpaqueAfterProjVolume:
-			g_opaqueAfterProjVolumeCount++;
+	case RP_OpaqueAfterProjVolume:
+		g_opaqueAfterProjVolumeCount++;
 		break;
 
-		case RP_CutoutAfterProjVolume:
-			g_cutoutAfterProjVolumeCount++;
+	case RP_CutoutAfterProjVolume:
+		g_cutoutAfterProjVolumeCount++;
 		break;
 
-		case RP_CelBorderAfterProjVolume:
-			g_celBorderAfterProjVolumeCount++;
+	case RP_CelBorderAfterProjVolume:
+		g_celBorderAfterProjVolumeCount++;
 		break;
 
-		case RP_MurkClear:
-			g_murkClearCount++;
+	case RP_MurkClear:
+		g_murkClearCount++;
 		break;
 
-		case RP_MurkOpaque:
-			g_murkOpaqueCount++;
+	case RP_MurkOpaque:
+		g_murkOpaqueCount++;
 		break;
 
-		case RP_MurkFill:
-			g_murkFillCount++;
+	case RP_MurkFill:
+		g_murkFillCount++;
 		break;
 
-		case RP_Translucent:
-			g_translucentCount++;
+	case RP_Translucent:
+		g_translucentCount++;
 		break;
 
-		case RP_TranslucentCelBorder:
-			g_translucentCount++;
+	case RP_TranslucentCelBorder:
+		g_translucentCelBorderCount++;
 		break;
 
-		case RP_Blip:
-			g_blipCount++;
+	case RP_Blip:
+		g_blipCount++;
 		break;
 
-		case RP_Foreground:
-			g_foreGroundCount++;
+	case RP_Foreground:
+		g_foreGroundCount++;
 		break;
 
-		case RP_WorldMap:
-			g_worldMapCount++;
+	case RP_WorldMap:
+		g_worldMapCount++;
 		break;
 
-		case RP_Max:
-			g_maxCount++;
+	case RP_Max:
+		g_maxCount++;
 		break;
 	}
 }
 
 void SortRenderRpl()
 {
-	std::sort(renderBuffer.begin(), renderBuffer.end(), compareRP);
+	std::sort(renderBuffer.begin(), renderBuffer.begin() + numRo, compareRP);
 
-	if (g_cutOutCount != 0)
-	{
-		int startIndex = g_dynamicTextureCount + g_backGroundCount + g_blotContextCount + g_opaqueCount;
-		int endIndex = startIndex + g_cutOutCount;
+	int offset = g_dynamicTextureCount;
 
-		std::sort(renderBuffer.begin() + startIndex, renderBuffer.begin() + endIndex, compareZ);
-	}
+	if (g_backGroundCount > 1)
+		std::sort(renderBuffer.begin() + offset, renderBuffer.begin() + offset + g_backGroundCount, compareZ);
 
-	if (g_cutoutAfterProjVolumeCount != 0)
-	{
-		int startIndex = g_dynamicTextureCount + g_backGroundCount + g_blotContextCount + g_opaqueCount + g_cutOutCount + g_celBorderCount + g_projVolumeCount + g_opaqueAfterProjVolumeCount;
-		int endIndex = startIndex + g_cutoutAfterProjVolumeCount;
+	offset += g_backGroundCount;
 
-		std::sort(renderBuffer.begin() + startIndex, renderBuffer.begin() + endIndex, compareZ);
-	}
+	offset += g_blotContextCount;
+	offset += g_opaqueCount;
 
-	if (g_translucentCount != 0)
-	{
-		int startIndex = g_dynamicTextureCount + g_backGroundCount + g_blotContextCount + g_opaqueCount + g_cutOutCount + g_celBorderCount + g_projVolumeCount + g_opaqueAfterProjVolumeCount +
-		g_cutoutAfterProjVolumeCount + g_celBorderAfterProjVolumeCount + g_murkClearCount + g_murkOpaqueCount + g_murkFillCount;
+	if (g_cutOutCount > 1)
+		std::sort(renderBuffer.begin() + offset, renderBuffer.begin() + offset + g_cutOutCount, compareZ);
 
-		int endIndex = startIndex + g_translucentCount;
+	offset += g_cutOutCount;
+	offset += g_celBorderCount;
+	offset += g_projVolumeCount;
+	offset += g_opaqueAfterProjVolumeCount;
 
-		std::sort(renderBuffer.begin() + startIndex, renderBuffer.begin() + endIndex, compareZ);
-	}
+	if (g_cutoutAfterProjVolumeCount > 1)
+		std::sort(renderBuffer.begin() + offset, renderBuffer.begin() + offset + g_cutoutAfterProjVolumeCount, compareZ);
 
-	if (g_backGroundCount != 0)
-	{
-		int startIndex = g_dynamicTextureCount;
-		int endIndex = startIndex + g_backGroundCount;
+	offset += g_cutoutAfterProjVolumeCount;
+	offset += g_celBorderAfterProjVolumeCount;
+	offset += g_murkClearCount;
+	offset += g_murkOpaqueCount;
+	offset += g_murkFillCount;
 
-		std::sort(renderBuffer.begin() + startIndex, renderBuffer.begin() + endIndex, compareZ);
-	}
+	if (g_translucentCount > 1)
+		std::sort(renderBuffer.begin() + offset, renderBuffer.begin() + offset + g_translucentCount, compareZ);
 
 	g_dynamicTextureCount = 0;
 	g_backGroundCount = 0;
@@ -190,28 +197,31 @@ void SortRenderRpl()
 	g_maxCount = 0;
 }
 
-inline bool compareRP(RPL &prpl0, RPL &prpl1)
+inline bool compareRP(RPL& prpl0, RPL& prpl1)
 {
 	return prpl0.rp < prpl1.rp;
 }
 
-inline bool compareZ(RPL &prpl0, RPL &prpl1)
+inline bool compareZ(RPL& prpl0, RPL& prpl1)
 {
 	return prpl0.z > prpl1.z;
 }
 
-void DrawSw(SW *psw, CM *pcm)
+void DrawSw(SW* psw, CM* pcm)
 {
 	glGlobShader.Use();
 
-	//std::cout << "Objects: " << renderBuffer.size() << "\n";
+	//std::cout << numRo << "\n";
 	SortRenderRpl();
 
-	PrepareSwLightsForDraw(psw, pcm);
+	PrepareSwLights(psw, pcm);
 
 	glUniformMatrix4fv(glGetUniformLocation(glGlobShader.ID, "proj"), 1, GL_FALSE, glm::value_ptr(pcm->matProj));
 	glUniformMatrix4fv(glGetUniformLocation(glGlobShader.ID, "view"), 1, GL_FALSE, glm::value_ptr(pcm->lookAt));
 	glUniform3fv(glGetUniformLocation(glGlobShader.ID, "cameraPos"), 1, glm::value_ptr(pcm->pos));
+
+	glUniform1f(glGetUniformLocation(glGlobShader.ID, "lsm.uShadow"), g_psw->lsmDefault.uShadow);
+	glUniform1f(glGetUniformLocation(glGlobShader.ID, "lsm.uMidtone"), g_psw->lsmDefault.uMidtone);
 
 	glUniform1i(glGetUniformLocation(glGlobShader.ID, "fogType"), g_fogType);
 	glUniform1f(glGetUniformLocation(glGlobShader.ID, "fogNear"), pcm->sNearFog);
@@ -219,18 +229,15 @@ void DrawSw(SW *psw, CM *pcm)
 	glUniform1f(glGetUniformLocation(glGlobShader.ID, "fogMax"), pcm->uFogMax);
 	glUniform4fv(glGetUniformLocation(glGlobShader.ID, "fogcolor"), 1, glm::value_ptr(pcm->rgbaFog));
 
-	glUniform1f(glGetUniformLocation(glGlobShader.ID, "lsm.uShadow"), g_psw->lsmDefault.uShadow);
-	glUniform1f(glGetUniformLocation(glGlobShader.ID, "lsm.uMidtone"), g_psw->lsmDefault.uMidtone);
-
 	glUniform4fv(glGetUniformLocation(glGlobShader.ID, "rgbaCel"), 1, glm::value_ptr(g_rgbaCel));
 
-	for (int i = 0; i < renderBuffer.size(); i++)
+	for (int i = 0; i < numRo; i++)
 		renderBuffer[i].PFNDRAW(&renderBuffer[i]);
 
-	renderBuffer.clear();
+	numRo = 0;
 }
 
-void DrawSwCollisionAll(CM *pcm)
+void DrawSwCollisionAll(CM* pcm)
 {
 	glUniform1i(glGetUniformLocation(glGlobShader.ID, "rko"), 3);
 

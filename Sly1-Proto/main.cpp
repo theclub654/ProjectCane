@@ -28,18 +28,15 @@ int main(int cphzArgs, char* aphzArgs[])
 		if (g_psw != nullptr)
 		{
 			SetupCm(g_pcm);
-			//MarkClockTick(&g_clock);
-			double currentTime = glfwGetTime();
-			deltaTime = currentTime - lastFrame;
-			lastFrame = currentTime;
+			MarkClockTick(&g_clock);
 			
-			UpdateCpman(g_gl.window, &g_pcm->cpman, nullptr, deltaTime);
-			//UpdateSw(g_psw, deltaTime);
+			UpdateCpman(g_gl.window, &g_pcm->cpman, nullptr, g_clock.dt);
+			UpdateSw(g_psw, g_clock.dt);
 
 			if (g_fRenderModels != 0)
 			{
-				//RenderSw(g_psw, g_pcm);
-				RenderSwAloAll(g_psw, g_pcm);
+				RenderSw(g_psw, g_pcm);
+				//RenderSwAloAll(g_psw, g_pcm);
 				DrawSw(g_psw, g_pcm);
 			}
 

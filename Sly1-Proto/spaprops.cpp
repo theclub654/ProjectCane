@@ -6,6 +6,7 @@ void BuildEopids()
 
 	g_aeopid[0].otyp = OTYP_Cid;
 	g_aeopid[0].grfeopid = 4;
+	g_aeopid[0].optdat.pfnget = (PFNGET)GetBasicCid;
 	g_aeopid[1].grfeopid = 1;
 	g_aeopid[1].otyp = OTYP_Bool;
 	g_aeopid[1].optdat.ibGet = 0;
@@ -28,6 +29,7 @@ void BuildEopids()
 	g_aeopid[6].grfeopid = 2;
 	g_aeopid[7].otyp = OTYP_Bool;
 	g_aeopid[7].grfeopid = 4;
+	g_aeopid[7].optdat.pfnget = (PFNGET)GetLoInWorld;
 	g_aeopid[8].otyp = OTYP_Alo;
 	g_aeopid[8].grfeopid = 2;
 	g_aeopid[8].optdat.ibGet = 0x18;
@@ -40,8 +42,10 @@ void BuildEopids()
 	g_aeopid[10].optdat.ibGet = 0;
 	g_aeopid[10].optdat.ibSet = 1;
 	g_aeopid[11].otyp = OTYP_Oid;
+	g_aeopid[11].optdat.pfnget = (PFNGET)GetLoOid;
 	g_aeopid[11].grfeopid = 2;
 	g_aeopid[11].optdat.ibGet = 8;
+	g_aeopid[11].optdat.pfnget = (PFNGET)GetLoOidProxy;
 	g_aeopid[12].otyp = OTYP_Oid;
 	g_aeopid[12].grfeopid = 4;
 	g_aeopid[13].optdat.ibGet = 0;
@@ -71,19 +75,28 @@ void BuildEopids()
 	g_aeopid[20].optdat.ibSet = 2;
 	g_aeopid[21].grfeopid = 0x100;
 	g_aeopid[21].otyp = OTYP_Vector;
+	g_aeopid[21].optdat.pfnsetvec3 = (PFNSETVEC3)SetAloInitialVelocity;
 	g_aeopid[22].grfeopid = 0x100;
 	g_aeopid[22].otyp = OTYP_Vector;
+	g_aeopid[22].optdat.pfnsetvec3 = (PFNSETVEC3)SetAloInitialAngularVelocity;
 	g_aeopid[23].grfeopid = 0x1080;
 	g_aeopid[23].otyp = OTYP_Oid;
+	g_aeopid[23].optdat.pfnsetshort = (PFNSETSHORT)SetAloAsegdOid;
 	g_aeopid[23].optdat.ibSetUser = 4;
+	g_aeopid[23].optdat.pfnensure = (PFNENSURE)PasegdEnsureAlo;
 	g_aeopid[24].otyp = OTYP_Float;
 	g_aeopid[24].grfeopid = 0x1080;
 	g_aeopid[24].optdat.ibSetUser = 0xc;
+	g_aeopid[24].optdat.pfnsetfloat = (PFNSETFLOAT)SetAloAsegdtLocal;
+	g_aeopid[24].optdat.pfnensure = (PFNENSURE)PasegdEnsureAlo;
 	g_aeopid[25].optdat.ibSetUser = 0x10;
+	g_aeopid[25].optdat.pfnsetfloat = (PFNSETFLOAT)SetAloAsegdSvtLocal;
 	g_aeopid[25].otyp = OTYP_Float;
 	g_aeopid[25].grfeopid = 0x1080;
 	g_aeopid[26].otyp = OTYP_Iak;
 	g_aeopid[26].grfeopid = 0x1080;
+	g_aeopid[26].optdat.pfnensure = (PFNENSURE)PasegdEnsureAlo;
+	g_aeopid[26].optdat.pfnset = (PFNSET)SetAloAsegdiak;
 	g_aeopid[26].optdat.ibSetUser = 8;
 	g_aeopid[27].otyp = OTYP_Void;
 	g_aeopid[27].grfeopid = 1;
@@ -91,223 +104,438 @@ void BuildEopids()
 	g_aeopid[27].optdat.ibSet = 0;
 	g_aeopid[28].grfeopid = 4;
 	g_aeopid[28].otyp = OTYP_Bool;
+	g_aeopid[28].optdat.pfnsetbyte = (PFNSETBYTE)SetAloFrozen;
+	g_aeopid[28].optdat.pfnget = (PFNGET)GetAloFrozen;
+
+	// GOTTA COME BACK TO THIS
 	g_aeopid[29].optdat.ibSet = 0x8c;
+	g_aeopid[29].optdat.pfnget = (PFNGET)GetAloXfPos;
 	g_aeopid[29].optdat.ibGet = 0x110;
 	g_aeopid[29].grfeopid = 0x42;
 	g_aeopid[29].otyp = OTYP_Vector;
+
+	g_aeopid[30].optdat.pfnget = (PFNGET)GetAloXfPosOrig;
 	g_aeopid[30].optdat.ibGet = 0x1a0;
 	g_aeopid[30].grfeopid = 2;
 	g_aeopid[30].otyp = OTYP_Vector;
+
+	g_aeopid[31].optdat.pfnget = (PFNGET)GetAloXfPosWorld;
 	g_aeopid[31].optdat.ibGet = 0x150;
 	g_aeopid[31].grfeopid = 2;
 	g_aeopid[31].otyp = OTYP_Vector;
+
+	//GOTTA COME BACK TO THIS
+	g_aeopid[32].optdat.pfnget = (PFNGET)GetAloXfMat;
 	g_aeopid[32].optdat.ibGet = 0xe0;
 	g_aeopid[32].otyp = OTYP_Matrix;
 	g_aeopid[32].optdat.ibSet = 0x90;
 	g_aeopid[32].grfeopid = 0x42;
+
+	g_aeopid[33].optdat.pfnget = (PFNGET)GetAloMatOrig;
 	g_aeopid[33].otyp = OTYP_Matrix;
 	g_aeopid[33].optdat.ibGet = 0x1b0;
 	g_aeopid[33].grfeopid = 2;
+
+	g_aeopid[34].optdat.pfnget = (PFNGET)GetAloXfMatWorld;
 	g_aeopid[34].otyp = OTYP_Matrix;
 	g_aeopid[34].optdat.ibGet = 0x120;
 	g_aeopid[34].grfeopid = 2;
+
 	g_aeopid[35].otyp = OTYP_Vector;
+	// GOTTA COME BACK TO THIS
+	g_aeopid[35].optdat.pfnget = (PFNGET)GetAloEuler;
 	g_aeopid[35].grfeopid = 0x124;
+	g_aeopid[35].optdat.pfnsetvec3 = (PFNSETVEC3)SetAloEuler;
+
 	g_aeopid[36].grfeopid = 0x24;
 	g_aeopid[36].otyp = OTYP_Vector;
+	g_aeopid[36].optdat.pfnget = (PFNGET)GetAloVelocityLocal;
+	g_aeopid[36].optdat.pfnsetvec3 = (PFNSETVEC3)SetAloVelocityLocal;
+
 	g_aeopid[37].grfeopid = 0x42;
 	g_aeopid[37].otyp = OTYP_Vector;
+	g_aeopid[37].optdat.pfnget = (PFNGET)GetAloXfw;
 	g_aeopid[37].optdat.ibGet = 0x170;
 	g_aeopid[37].optdat.ibSet = 0x9c;
+
+	g_aeopid[38].optdat.pfnget = (PFNGET)GetAloXfdv;
 	g_aeopid[38].optdat.ibGet = 0x180;
 	g_aeopid[38].otyp = OTYP_Vector;
 	g_aeopid[38].grfeopid = 2;
+
+	g_aeopid[39].optdat.pfnget = (PFNGET)GetAloXfdw;
 	g_aeopid[39].optdat.ibGet = 400;
 	g_aeopid[39].otyp = OTYP_Vector;
 	g_aeopid[39].grfeopid = 2;
+
 	g_aeopid[40].otyp = OTYP_Alo;
+	g_aeopid[40].optdat.pfnget = (PFNGET)GetAloRoot;
 	g_aeopid[40].optdat.ibGet = 0x5c;
 	g_aeopid[40].grfeopid = 2;
+
 	g_aeopid[41].otyp = OTYP_Float;
 	g_aeopid[41].grfeopid = 0x124;
+	g_aeopid[41].optdat.pfnget = (PFNGET)GetAloFastShadowRadius;
+	g_aeopid[41].optdat.pfnsetfloat = (PFNSETFLOAT)SetAloFastShadowRadius;
+
+
 	g_aeopid[42].otyp = OTYP_Float;
 	g_aeopid[42].grfeopid = 0x124;
-	g_aeopid[43].grfeopid = 0x124;
+	g_aeopid[42].optdat.pfnget = (PFNGET)GetAloFastShadowDepth;
+	g_aeopid[42].optdat.pfnsetfloat = (PFNSETFLOAT)SetAloFastShadowDepth;
+
 	g_aeopid[43].otyp = OTYP_Bool;
+	g_aeopid[43].grfeopid = 0x124;
+	g_aeopid[43].optdat.pfnget = (PFNGET)GetAloCastShadow;
+	g_aeopid[43].optdat.pfnset = (PFNSET)SetAloCastShadow;
+
 	g_aeopid[44].otyp = OTYP_Oid;
 	g_aeopid[44].grfeopid = 0x124;
+
 	g_aeopid[45].otyp = OTYP_Float;
 	g_aeopid[45].grfeopid = 0x124;
+
 	g_aeopid[46].otyp = OTYP_Float;
 	g_aeopid[46].grfeopid = 0x124;
+
 	g_aeopid[47].otyp = OTYP_Float;
 	g_aeopid[47].grfeopid = 0x124;
+
 	g_aeopid[48].otyp = OTYP_Float;
 	g_aeopid[48].grfeopid = 0x124;
+
 	g_aeopid[49].otyp = OTYP_Float;
 	g_aeopid[49].grfeopid = 0x124;
 	g_aeopid[50].otyp = OTYP_Vector;
 	g_aeopid[50].grfeopid = 0x124;
 	g_aeopid[51].otyp = OTYP_Oid;
 	g_aeopid[51].grfeopid = 0x100;
+ 
 	g_aeopid[52].otyp = OTYP_Bool;
 	g_aeopid[52].grfeopid = 0x100;
+	g_aeopid[52].optdat.pfnset = (PFNSET)SetAloNoFreeze;
+
 	g_aeopid[53].grfeopid = 0x100;
 	g_aeopid[53].otyp = OTYP_Bool;
+	g_aeopid[53].optdat.pfnset = (PFNSET)SetAloRestorePosition;
+
 	g_aeopid[54].grfeopid = 0x100;
 	g_aeopid[54].otyp = OTYP_Ack;
+	g_aeopid[54].optdat.pfnset = (PFNSET)SetAloRestorePositionAck;
+
 	g_aeopid[55].grfeopid = 0x120;
 	g_aeopid[55].otyp = OTYP_Float;
+	g_aeopid[55].optdat.pfnset = (PFNSET)SetAloPositionSpring;
+
 	g_aeopid[56].grfeopid = 0x120;
 	g_aeopid[56].otyp = OTYP_Clq;
+	g_aeopid[56].optdat.pfnsetvec4 = (PFNSETVEC4)SetAloPositionSpringDetail;
+
 	g_aeopid[57].grfeopid = 0x120;
 	g_aeopid[57].otyp = OTYP_Float;
+	g_aeopid[57].optdat.pfnsetfloat = (PFNSETFLOAT)SetAloPositionDamping;
+
 	g_aeopid[58].otyp = OTYP_Clq;
 	g_aeopid[58].grfeopid = 0x120;
+	g_aeopid[58].optdat.pfnsetvec4 = (PFNSETVEC4)SetAloPositionDampingDetail;
+
 	g_aeopid[59].grfeopid = 0x100;
 	g_aeopid[59].otyp = OTYP_Bool;
+	g_aeopid[59].optdat.pfnset = (PFNSET)SetAloRestoreRotation;
+
 	g_aeopid[60].grfeopid = 0x100;
 	g_aeopid[60].otyp = OTYP_Ack;
+	g_aeopid[60].optdat.pfnset = (PFNSET)SetAloRestoreRotationAck;
+
 	g_aeopid[61].grfeopid = 0x120;
 	g_aeopid[61].otyp = OTYP_Float;
+	g_aeopid[61].optdat.pfnsetfloat = (PFNSETFLOAT)SetAloRotationSpring;
+
 	g_aeopid[62].otyp = OTYP_Clq;
 	g_aeopid[62].grfeopid = 0x120;
+	g_aeopid[62].optdat.pfnsetvec4 = (PFNSETVEC4)SetAloRotationSpringDetail;
+
 	g_aeopid[63].grfeopid = 0x120;
 	g_aeopid[63].otyp = OTYP_Float;
+	g_aeopid[63].optdat.pfnsetfloat = (PFNSETFLOAT)SetAloRotationDamping;
+
 	g_aeopid[64].grfeopid = 0x120;
 	g_aeopid[64].otyp = OTYP_Clq;
+	g_aeopid[64].optdat.pfnsetvec4 = (PFNSETVEC4)SetAloRotationDampingDetail;
+
 	g_aeopid[65].grfeopid = 0x120;
 	g_aeopid[65].otyp = OTYP_Float;
+	g_aeopid[65].optdat.pfnsetfloat = (PFNSETFLOAT)SetAloPositionSmooth;
+
 	g_aeopid[66].grfeopid = 0x120;
 	g_aeopid[66].otyp = OTYP_Smpa;
+	g_aeopid[66].optdat.pfnsetvec4 = (PFNSETVEC4)SetAloPositionSmoothDetail;
+
 	g_aeopid[67].otyp = OTYP_Float;
 	g_aeopid[67].grfeopid = 0x120;
+	g_aeopid[67].optdat.pfnsetfloat = (PFNSETFLOAT)SetAloRotationSmooth;
+
 	g_aeopid[68].otyp = OTYP_Smpa;
 	g_aeopid[68].grfeopid = 0x120;
+	g_aeopid[68].optdat.pfnsetvec4 = (PFNSETVEC4)SetAloRotationSmoothDetail;
+
 	g_aeopid[69].otyp = OTYP_Float;
 	g_aeopid[69].grfeopid = 0x120;
+	g_aeopid[69].optdat.pfnsetfloat = (PFNSETFLOAT)SetAloPositionSmoothMaxAccel;
+
 	g_aeopid[70].otyp = OTYP_Float;
 	g_aeopid[70].grfeopid = 0x120;
+	g_aeopid[70].optdat.pfnsetfloat = (PFNSETFLOAT)SetAloRotationSmoothMaxAccel;
+
+
 	g_aeopid[71].otyp = OTYP_Ack;
 	g_aeopid[71].grfeopid = 0x100;
+	g_aeopid[71].optdat.pfnset = (PFNSET)SetAloDefaultAckPos;
+
 	g_aeopid[72].otyp = OTYP_Ack;
 	g_aeopid[72].grfeopid = 0x100;
+	g_aeopid[72].optdat.pfnset = (PFNSET)SetAloDefaultAckRot;
+
 	g_aeopid[73].otyp = OTYP_Vector4;
 	g_aeopid[73].grfeopid = 0;
+
 	g_aeopid[74].otyp = OTYP_Ack;
 	g_aeopid[74].grfeopid = 0x100;
+	g_aeopid[74].optdat.pfnset = (PFNSET)SetAloLookAt;
+
 	g_aeopid[75].otyp = OTYP_Float;
 	g_aeopid[75].grfeopid = 0x124;
+	g_aeopid[75].optdat.pfnget = (PFNGET)GetAloLookAtIgnore;
+	g_aeopid[75].optdat.pfnsetfloat = (PFNSETFLOAT)SetAloLookAtIgnore;
+
 	g_aeopid[76].otyp = OTYP_Clq;
 	g_aeopid[76].grfeopid = 0x124;
+	g_aeopid[76].optdat.pfnget = (PFNGET)GetAloLookAtPanFunction;
+	g_aeopid[76].optdat.pfnsetvec4 = (PFNSETVEC4)SetAloLookAtPanFunction;
+
 	g_aeopid[77].otyp = OTYP_Lm;
 	g_aeopid[77].grfeopid = 0x124;
+	g_aeopid[77].optdat.pfnget = (PFNGET)GetAloLookAtPanLimits;
+	g_aeopid[77].optdat.pfnsetvec2 = (PFNSETVEC2)SetAloLookAtPanLimits;
+
 	g_aeopid[78].otyp = OTYP_Clq;
 	g_aeopid[78].grfeopid = 0x124;
+	g_aeopid[78].optdat.pfnget = (PFNGET)GetAloLookAtTiltFunction;
+	g_aeopid[78].optdat.pfnsetvec4 = (PFNSETVEC4)SetAloLookAtTiltFunction;
+
 	g_aeopid[79].otyp = OTYP_Lm;
 	g_aeopid[79].grfeopid = 0x124;
+	g_aeopid[79].optdat.pfnget = (PFNGET)GetAloLookAtTiltLimits;
+	g_aeopid[79].optdat.pfnsetvec2 = (PFNSETVEC2)SetAloLookAtTiltLimits;
+
 	g_aeopid[80].otyp = OTYP_Int;
 	g_aeopid[80].grfeopid = 0x124;
+	g_aeopid[80].optdat.pfnget = (PFNGET)GetAloLookAtEnabledPriority;
+	g_aeopid[80].optdat.pfnset = (PFNSET)SetAloLookAtEnabledPriority;
+
 	g_aeopid[81].otyp = OTYP_Int;
 	g_aeopid[81].grfeopid = 0x124;
+	g_aeopid[81].optdat.pfnget = (PFNGET)GetAloLookAtDisabledPriority;
+	g_aeopid[81].optdat.pfnset = (PFNSET)SetAloLookAtDisabledPriority;
+
+	//GOTTA COME BACK TO THIS
 	g_aeopid[82].otyp = OTYP_Void;
 	g_aeopid[82].grfeopid = 0x401;
 	g_aeopid[82].optdat.ibSet = 3;
+
 	g_aeopid[83].otyp = OTYP_Lo;
 	g_aeopid[83].grfeopid = 4;
+	g_aeopid[83].optdat.pfnget = (PFNGET)FGetAloChildrenList;
+
+	//GOTTA COME BACK TO THIS
 	g_aeopid[84].otyp = OTYP_Void;
 	g_aeopid[84].grfeopid = 1;
 	g_aeopid[84].optdat.ibSet = 2;
 	g_aeopid[84].optdat.ibGet = 0;
+
 	g_aeopid[85].otyp = OTYP_Ftak;
 	g_aeopid[85].grfeopid = 0x120;
+	g_aeopid[85].optdat.pfnset = (PFNSET)SetAloTargetAttacks;
+
 	g_aeopid[86].otyp = OTYP_Float;
 	g_aeopid[86].grfeopid = 0x120;
+	g_aeopid[86].optdat.pfnsetfloat = (PFNSETFLOAT)SetAloTargetRadius;
+
+	g_aeopid[87].otyp = OTYP_Bool;
 	g_aeopid[87].grfeopid = 0x120;
 	g_aeopid[87].optdat.pfnset = (PFNSET)SetAloTargetHitTest;
-	g_aeopid[87].otyp = OTYP_Bool;
-	g_aeopid[88].optdat.ibSet = 1;
+
+	//GOTTA COME BACK TO THIS
 	g_aeopid[88].otyp = OTYP_Void;
 	g_aeopid[88].grfeopid = 1;
+	g_aeopid[88].optdat.ibSet = 1;
 	g_aeopid[88].optdat.ibGet = 0;
+
 	g_aeopid[89].otyp = OTYP_Throbk;
 	g_aeopid[89].grfeopid = 0x124;
+	g_aeopid[89].optdat.pfnset = (PFNSET)SetAloThrobKind;
+	g_aeopid[89].optdat.pfnget = (PFNGET)GetAloThrobKind;
+
 	g_aeopid[90].otyp = OTYP_Vector;
 	g_aeopid[90].grfeopid = 0x124;
+	g_aeopid[90].optdat.pfnget = (PFNGET)GetAloThrobInColor;
+	g_aeopid[90].optdat.pfnsetvec3 = (PFNSETVEC3)SetAloThrobInColor;
+
 	g_aeopid[91].otyp = OTYP_Vector;
 	g_aeopid[91].grfeopid = 0x124;
+	g_aeopid[91].optdat.pfnsetvec3 = (PFNSETVEC3)SetAloThrobOutColor;
+	g_aeopid[91].optdat.pfnget = (PFNGET)GetAloThrobOutColor;
+
 	g_aeopid[92].otyp = OTYP_Float;
 	g_aeopid[92].grfeopid = 0x124;
+	g_aeopid[92].optdat.pfnsetfloat = (PFNSETFLOAT)SetAloThrobDtInOut;
+	g_aeopid[92].optdat.pfnget = (PFNGET)GetAloThrobDtInOut;
+
+	//GOTTA COME BACK TO THIS
 	g_aeopid[93].otyp = OTYP_Sfxid;
 	g_aeopid[93].grfeopid = 0x124;
+	g_aeopid[93].optdat.pfnget = (PFNGET)GetAloSfxid;
+	g_aeopid[93].optdat.pfnset = (PFNSET)SetAloSfxid;
+
 	g_aeopid[94].otyp = OTYP_Float;
 	g_aeopid[94].grfeopid = 0x104;
+	g_aeopid[94].optdat.pfnsetfloat = (PFNSETFLOAT)SetAloSStart;
+	g_aeopid[94].optdat.pfnget = (PFNGET)GetAloSStart;
+
 	g_aeopid[95].otyp = OTYP_Float;
 	g_aeopid[95].grfeopid = 0x104;
+	g_aeopid[95].optdat.pfnget = (PFNGET)GetAloSFull;
+	//g_aeopid[95].optdat.pfnsetUser = SetAloSFull;
+	g_aeopid[95].optdat.pfnsetfloat = (PFNSETFLOAT)SetAloSFull;
+
 	g_aeopid[96].otyp = OTYP_Float;
 	g_aeopid[96].grfeopid = 0x124;
+	g_aeopid[96].optdat.pfnget = (PFNGET)GetAloUVolume;
+	g_aeopid[96].optdat.pfnsetfloat = (PFNSETFLOAT)SetAloUVolumeSpl;
+	//g_aeopid[96].optdat.pfnsetUser = SetAloUVolume;
+
 	g_aeopid[97].otyp = OTYP_Float;
 	g_aeopid[97].grfeopid = 0x124;
+	g_aeopid[97].optdat.pfnget = (PFNGET)GetAloUPitch;
+	g_aeopid[97].optdat.pfnsetfloat = (PFNSETFLOAT)SetAloUPitchSpl;
+	//g_aeopid[97].optdat.pfnsetUser = SetAloUPitch;
+
 	g_aeopid[98].otyp = OTYP_Lm;
 	g_aeopid[98].grfeopid = 0x104;
+	g_aeopid[98].optdat.pfnget = (PFNGET)GetAloSndRepeat;
+	//g_aeopid[98].optdat.pfnsetUser = SetAloSndRepeat;
+
+	// GOTTA COME BACK TO THIS
 	g_aeopid[99].optdat.ibSet = 5;
 	g_aeopid[99].otyp = OTYP_Void;
 	g_aeopid[99].grfeopid = 1;
 	g_aeopid[99].optdat.ibGet = 0;
+
+	// GOTTA COME BACK TO THIS
 	g_aeopid[100].otyp = OTYP_Void;
 	g_aeopid[100].grfeopid = 1;
 	g_aeopid[100].optdat.ibGet = 0;
 	g_aeopid[100].optdat.ibSet = 0;
+
 	g_aeopid[101].grfeopid = 0x104;
 	g_aeopid[101].otyp = OTYP_Float;
+	g_aeopid[101].optdat.pfnget = (PFNGET)GetAloUDoppler;
+	g_aeopid[101].optdat.pfnsetfloat = (PFNSETFLOAT)SetAloUDoppler;
+	//g_aeopid[101].optdat.pfnsetUser = SetAloUDoppler;
+
 	g_aeopid[102].otyp = OTYP_Fic;
 	g_aeopid[102].grfeopid = 0x124;
+	g_aeopid[102].optdat.pfnset = (PFNSET)SetAloInteractCane;
+	g_aeopid[102].optdat.pfnget = (PFNGET)GetAloInteractCane;
+	//g_aeopid[102].optdat.pfnsetUser = SetAloInteractCane;
+
 	g_aeopid[103].otyp = OTYP_Fic;
 	g_aeopid[103].grfeopid = 0x124;
+	//g_aeopid[103].optdat.pfnsetUser = SetAloInteractCaneSweep;
+	g_aeopid[103].optdat.pfnset = (PFNSET)SetAloInteractCaneSweep;
+	g_aeopid[103].optdat.pfnget = (PFNGET)GetAloInteractCaneSweep;
+
 	g_aeopid[104].otyp = OTYP_Fic;
 	g_aeopid[104].grfeopid = 0x124;
+	g_aeopid[104].optdat.pfnset = (PFNSET)SetAloInteractCaneRush;
+	g_aeopid[104].optdat.pfnget = (PFNGET)GetAloInteractCaneRush;
+	//g_aeopid[104].optdat.pfnsetUser = SetAloInteractCaneRush;
+
 	g_aeopid[105].otyp = OTYP_Fic;
 	g_aeopid[105].grfeopid = 0x124;
+	g_aeopid[105].optdat.pfnget = (PFNGET)GetAloInteractCaneSmash;
+	g_aeopid[105].optdat.pfnset = (PFNSET)SetAloInteractCaneSmash;
+	//g_aeopid[105].optdat.pfnsetUser = SetAloInteractCaneSmash;
+
 	g_aeopid[106].otyp = OTYP_Fic;
 	g_aeopid[106].grfeopid = 0x124;
+	g_aeopid[106].optdat.pfnget = (PFNGET)GetAloInteractBomb;
+	g_aeopid[106].optdat.pfnset = (PFNSET)SetAloInteractBomb;
+	//g_aeopid[106].optdat.pfnsetUser = SetAloInteractBomb;
+
 	g_aeopid[107].otyp = OTYP_Fic;
 	g_aeopid[107].grfeopid = 0x124;
+	g_aeopid[107].optdat.pfnget = (PFNGET)GetAloInteractShock;
+	g_aeopid[107].optdat.pfnset = (PFNSET)SetAloInteractShock;
+	//g_aeopid[107].optdat.pfnsetUser = SetAloInteractShock;
+
 	g_aeopid[108].otyp = OTYP_Oid;
 	g_aeopid[108].grfeopid = 0x20;
+	g_aeopid[108].optdat.pfnset = (PFNSET)SetAloPoseCombo;
+
+	// GOTTA COME BACK
 	g_aeopid[109].otyp = OTYP_Void;
 	g_aeopid[109].grfeopid = 1;
 	g_aeopid[109].optdat.ibGet = 0;
 	g_aeopid[109].optdat.ibSet = 1;
+
+	// GOTTA COME BACK
 	g_aeopid[110].otyp = OTYP_Void;
 	g_aeopid[110].grfeopid = 1;
 	g_aeopid[110].optdat.ibGet = 0;
 	g_aeopid[110].optdat.ibSet = 1;
+
+	g_aeopid[111].otyp = OTYP_Bool;
 	g_aeopid[111].grfeopid = 0x102;
 	g_aeopid[111].optdat.ibGet = 0x2a4;
-	g_aeopid[111].otyp = OTYP_Bool;
+	g_aeopid[111].optdat.pfnget = (PFNGET)GetAlofRealClock;
+
+	//GOTTA COME BACK TO THIS
 	g_aeopid[112].otyp = OTYP_Sma;
 	g_aeopid[112].grfeopid = 1;
 	g_aeopid[112].optdat.ibGet = 0;
 	g_aeopid[112].optdat.ibSet = 1;
+	
+	//GOTTA COME BACK
 	g_aeopid[113].otyp = OTYP_Asega;
 	g_aeopid[113].optdat.ibSet = 1;
 	g_aeopid[113].grfeopid = 1;
 	g_aeopid[113].optdat.ibGet = 0;
+
+	//GOTTA COME BACK
 	g_aeopid[114].otyp = OTYP_Asega;
 	g_aeopid[114].grfeopid = 1;
 	g_aeopid[114].optdat.ibSet = 0;
 	g_aeopid[114].optdat.ibGet = 0;
+
 	g_aeopid[115].otyp = OTYP_Bool;
 	g_aeopid[115].grfeopid = 0x120;
+	g_aeopid[115].optdat.pfnset = (PFNSET)SetAloForceCameraFade;
+	//g_aeopid[115].optdat.pfnsetUser = SetAloForceCameraFade;
+
+	//GOTTA COME BACK
 	g_aeopid[116].otyp = OTYP_Void;
 	g_aeopid[116].grfeopid = 1;
 	g_aeopid[116].optdat.ibSet = 1;
 	g_aeopid[116].optdat.ibGet = 0;
+
 	g_aeopid[117].otyp = OTYP_Float;
 	g_aeopid[117].grfeopid = 0x22;
 	g_aeopid[117].optdat.ibGet = 0x378;
+
 	g_aeopid[118].otyp = OTYP_Mtlk;
 	g_aeopid[118].grfeopid = 0x120;
+
 	g_aeopid[119].otyp = OTYP_Vector;
 	g_aeopid[119].optdat.ibSetUser = 0x360;
 	g_aeopid[119].grfeopid = 0x92;

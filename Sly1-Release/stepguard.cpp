@@ -58,6 +58,11 @@ void CloneSgg(SGG* psgg, SGG* psggBase)
     psgg->fDetect = psggBase->fDetect;
 }
 
+void BindSgg(SGG* psgg)
+{
+
+}
+
 void DeleteSgg(SGG* psgg)
 {
 	delete psgg;
@@ -196,6 +201,11 @@ void CloneStepguard(STEPGUARD* pstepguard, STEPGUARD* pstepguardBase)
 void LoadStepGuardFromBrx(STEPGUARD* pstepguard, CBinaryInputStream* pbis)
 {
 	LoadSoFromBrx(pstepguard, pbis);
+}
+
+void BindStepguard(STEPGUARD* pstepguard)
+{
+    BindAlo(pstepguard);
 }
 
 void RenderStepguardSelf(STEPGUARD* pstepguard, CM* pcm, RO* pro)

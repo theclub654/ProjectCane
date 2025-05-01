@@ -72,5 +72,6 @@ class WM : public ALO
 WM*  NewWm();
 int  GetWmSize();
 void CloneWm(WM* pwm, WM* pwmBase);
+void BindWm(WM* pwm);
 void RenderWmAll(WM* pwm, CM* pcm, RO* pro);
 void DeleteWm(WM* pwm);

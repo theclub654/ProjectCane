@@ -37,6 +37,11 @@ void CloneWm(WM* pwm, WM* pwmBase)
     pwm->fManualWarp = pwmBase->fManualWarp;
 }
 
+void BindWm(WM* pwm)
+{
+    BindAlo(pwm);
+}
+
 void RenderWmAll(WM* pwm, CM* pcm, RO* pro)
 {
 	RenderAloAll(pwm, pcm, pro);

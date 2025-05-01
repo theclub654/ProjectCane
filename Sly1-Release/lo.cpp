@@ -16,10 +16,10 @@ void SetLoDefaults(LO* parentLo)
 
 }
 
-void AddLo(LO *plo)
+void AddLo(LO* plo)
 {
 	// Loading objects parent child list
-	DL *objectChildList = &plo->paloParent->dlChild;
+	DL* objectChildList = &plo->paloParent->dlChild;
 
 	// If object doesnt have a parent load up the static world dlChild
 	if (plo->paloParent == nullptr)
@@ -41,9 +41,9 @@ void AddLo(LO *plo)
 	}
 }
 
-void AddLoHierarchy(LO *plo)
+void AddLoHierarchy(LO* plo)
 {
-	plo->pvtlo->pfnAddLo(plo);
+	plo->pvtlo->pfnOnLoAdd(plo);
 	SendLoMessage(plo, MSGID_added, plo);
 }
 
@@ -55,7 +55,11 @@ void RemoveLoHierarchy(LO* plo)
 
 void SnipLo(LO* plo)
 {
-
+	if (FIsLoInWorld(plo) != 0)
+	{
+		if (plo->pvtalo->pfnBindAlo != nullptr)
+			plo->pvtalo->pfnBindAlo((ALO*)plo);
+	}
 }
 
 void CloneLoHierarchy(LO* plo, LO* ploBase)
@@ -72,7 +76,7 @@ void CloneLo(LO* plo, LO* ploBase)
 	plo->pchzName = ploBase->pchzName;
 
 	if (ploBase->ppxr)
-		plo->ppxr = std::make_shared<PXR>(*ploBase->ppxr); // Deep copy
+		plo->ppxr = std::make_shared<PXR>(*ploBase->ppxr);
 	else
 		plo->ppxr.reset();
 }
@@ -87,7 +91,7 @@ LO* PloCloneLo(LO* plo, SW* psw, ALO* paloParent)
 	return localObject;
 }
 
-void SendLoMessage(LO *plo, MSGID msgid, void *pv)
+void SendLoMessage(LO* plo, MSGID msgid, void* pv)
 {
 
 }
@@ -102,7 +106,7 @@ void RemoveLo(LO* plo)
 	// Loading objects parent child list
 	DL* objectChildList = &plo->paloParent->dlChild;
 
-	// If object doesnt have a parent load up the sw world dlChild
+	// If object doesnt have a parent load up the sw dlChild
 	if (plo->paloParent == nullptr)
 		objectChildList = &plo->psw->dlChild;
 
@@ -135,34 +139,52 @@ void OnLoRemove(LO* plo)
 
 }
 
-int FIsLoInWorld(LO *plo)
+int FIsLoInWorld(LO* plo)
 {
-	if (plo != nullptr) 
-	{
-		ALO *loPaloParent = plo->paloParent;
+	if (!plo) return 1;
 
-		while (true) 
-		{
-			ALO *palo = loPaloParent;
+	ALO* parent = plo->paloParent;
 
-			DL *pdl = &palo->dlChild;
+	while (true) {
+		ALO* palo = parent;
+		DL* pdl = palo ? &palo->dlChild : &plo->psw->dlChild;
 
-			if (palo == nullptr) 
-				pdl = &plo->psw->dlChild;
+		if (!FFindDlEntry(pdl, plo))
+			return 0;
 
-			int isFound = FFindDlEntry(pdl, plo);
+		if (!palo)
+			break;
 
-			if (isFound == 0)
-				return 0;
-			
-			if (palo == nullptr) break;
-
-			loPaloParent = palo->paloParent;
-
-			plo = (LO*)palo;
-		}
+		parent = palo->paloParent;
+		plo = palo;
 	}
+
 	return 1;
+}
+
+void GetLoInWorld(LO* plo, int* pfInWorld)
+{
+	int fIsLoInWorld = FIsLoInWorld(plo);
+	*pfInWorld = fIsLoInWorld;
+}
+
+OID GetLoOid(LO* plo)
+{
+	return plo->oid;
+}
+
+OID OidProxyLo(LO* plo)
+{
+	if (plo->ppxr == nullptr)
+		return OID_Nil;
+
+	return plo->ppxr->oidProxyRoot;
+}
+
+void GetLoOidProxy(LO* plo, OID* poid)
+{
+	OID prooxyOid = OidProxyLo(plo);
+	*poid = prooxyOid;
 }
 
 void PostLoLoad(LO* plo)
@@ -170,7 +192,7 @@ void PostLoLoad(LO* plo)
 
 }
 
-void SetLoParent(LO *plo, ALO *paloParent)
+void SetLoParent(LO* plo, ALO* paloParent)
 {
 	plo->pvtlo->pfnRemoveLo(plo);
 	plo->paloParent = paloParent;

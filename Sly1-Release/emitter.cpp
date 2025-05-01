@@ -49,6 +49,11 @@ void CloneExplo(EXPLO* pexplo, EXPLO* pexploBase)
 	pexplo->oidShape = pexploBase->oidShape;
 }
 
+void BindExplo(EXPLO* pexplo)
+{
+
+}
+
 void DeleteExplo(EXPLO* pexplo)
 {
 	delete pexplo;
@@ -165,6 +170,11 @@ void RenderEmitterSelf(EMITTER* pemitter, CM* pcm, RO* pro)
 
 }
 
+void BindEmitter(EMITTER* pemitter)
+{
+	BindAlo(pemitter);
+}
+
 void DeleteEmitter(EMITTER *pemitter)
 {
 	delete pemitter;
@@ -225,6 +235,11 @@ void CloneExpls(EXPLS* pexpls, EXPLS* pexplsBase)
 
 }
 
+void BindExpls(EXPLS* pexpls)
+{
+	BindExplo(pexpls);
+}
+
 void DeleteExpls(EXPLS* pexpls)
 {
 	delete pexpls;
@@ -263,6 +278,11 @@ void CloneExplg(EXPLG* pexplg, EXPLG* pexplgBase)
 
 	pexplg->cpexpl = pexplgBase->cpexpl;
 	pexplg->apexpl = pexplgBase->apexpl;
+}
+
+void BindExplg(EXPLG* pexplg)
+{
+
 }
 
 void DeleteExplg(EXPLG* pexplg)

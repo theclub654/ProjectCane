@@ -102,6 +102,7 @@ void InitSprize(SPRIZE* psprize);
 int  GetSprizeSize();
 void LoadSprizeFromBrx(SPRIZE* psprize, CBinaryInputStream* pbis);
 void CloneSprize(SPRIZE* psprize, SPRIZE* psprizeBase);
+void BindSprize(SPRIZE* psprize);
 void DeleteSprize(SPRIZE* psprize);
 
 SCPRIZE*NewScprize();

@@ -162,6 +162,31 @@ int FIsLoInWorld(LO *plo)
 	return 1;
 }
 
+void GetLoInWorld(LO* plo, int* pfInWorld)
+{
+	int fIsLoInWorld = FIsLoInWorld(plo);
+	*pfInWorld = fIsLoInWorld;
+}
+
+OID GetLoOid(LO* plo)
+{
+	return plo->oid;
+}
+
+OID OidProxyLo(LO* plo)
+{
+	if (plo->ppxr == nullptr) 
+		return OID_Nil;
+
+	return plo->ppxr->oidProxyRoot;
+}
+
+void GetLoOidProxy(LO* plo, OID* poid)
+{
+	OID prooxyOid = OidProxyLo(plo);
+	*poid = prooxyOid;
+}
+
 void PostLoLoad(LO* plo)
 {
 	
