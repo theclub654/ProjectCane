@@ -1,8 +1,6 @@
 #pragma once
 #include "alo.h"
 
-extern std::vector<LIGHT*> allSwLights;
-
 // Light type
 enum LIGHTK 
 {
@@ -30,7 +28,9 @@ struct LTFN
 struct LIGHTBLK
 {
 	int  lightk;
-	glm::ivec3 pad;
+	int  pad1;
+	int  pad2;
+	int  pad3;
 	glm::vec4 pos;
 	glm::vec4 dir;
 	glm::vec4 color;
@@ -121,10 +121,13 @@ void*GetLightFrustrumUp(LIGHT*plight);
 void SetLightFrustrumUp(LIGHT* plight, glm::vec3 &pvecUpLocal);
 void RemoveLightFromSw(LIGHT* plight);
 void AllocateLightBlkList();
-bool SphereInFrustumLight(const FRUSTUM &frustum, const glm::vec3 &position, float radius);
 void PrepareSwLights(SW* psw, CM* pcm);
 void DeallocateLightBlkList();
 void DeleteLight(LIGHT *plight);
+void DeallocateLightVector();
 
+extern std::vector <LIGHT*> allSwLights;
+
+extern GLuint g_lightUbo;
 extern int numRl;
 extern std::vector <LIGHTBLK> lightBlk;

@@ -213,8 +213,12 @@ void LoadShadersFromBrx(CBinaryInputStream *pbis)
 
 void LoadTexturesFromBrx(CBinaryInputStream* pbis)
 {
-    for (uint16_t i = 0; i < 0x100; i += 0x20) {
-        for (uint16_t j = i; j < i + 8; j++) {
+    uint8_t csm1ClutIndices[256];
+
+    for (uint16_t i = 0; i < 0x100; i += 0x20) 
+    {
+        for (uint16_t j = i; j < i + 8; j++) 
+        {
             csm1ClutIndices[j + 0x0]  = static_cast <uint8_t>(j) + 0x0;
             csm1ClutIndices[j + 0x8]  = static_cast <uint8_t>(j) + 0x10;
             csm1ClutIndices[j + 0x10] = static_cast <uint8_t>(j) + 0x8;
@@ -229,16 +233,16 @@ void LoadTexturesFromBrx(CBinaryInputStream* pbis)
         switch (g_ashd[i].shdk)
         {
             case SHDK_ThreeWay:
-            MakeTexture(g_ashd[i].glShadowMap, g_ashd[i].atex[0].clutIndex[0], g_ashd[i].atex[0].bmpIndex[0], pbis);
-            MakeTexture(g_ashd[i].glDiffuseMap, g_ashd[i].atex[0].clutIndex[1], g_ashd[i].atex[0].bmpIndex[0], pbis);
+            MakeTexture(g_ashd[i].glShadowMap,  g_ashd[i].atex[0].clutIndex[0], g_ashd[i].atex[0].bmpIndex[0], csm1ClutIndices, pbis);
+            MakeTexture(g_ashd[i].glDiffuseMap, g_ashd[i].atex[0].clutIndex[1], g_ashd[i].atex[0].bmpIndex[0], csm1ClutIndices, pbis);
 
             SHD *pshd;
             pshd = PshdFindShader(g_ashd[i].oidAltSat);
 
             if (pshd == nullptr)
-                MakeTexture(g_ashd[i].glSaturateMap, g_ashd[i].atex[0].clutIndex[2], g_ashd[i].atex[0].bmpIndex[0], pbis);
+                MakeTexture(g_ashd[i].glSaturateMap, g_ashd[i].atex[0].clutIndex[2], g_ashd[i].atex[0].bmpIndex[0], csm1ClutIndices, pbis);
             else
-                MakeTexture(pshd->glSaturateMap, pshd->atex[0].clutIndex[2], pshd->atex[0].bmpIndex[0], pbis);
+                MakeTexture(pshd->glSaturateMap, pshd->atex[0].clutIndex[2], pshd->atex[0].bmpIndex[0], csm1ClutIndices, pbis);
 
             break;
 
@@ -246,20 +250,20 @@ void LoadTexturesFromBrx(CBinaryInputStream* pbis)
             case SHDK_Background:
             case SHDK_MurkFill:
             case SHDK_Max:
-            MakeTexture(g_ashd[i].glDiffuseMap, g_ashd[i].atex[0].clutIndex[0], g_ashd[i].atex[0].bmpIndex[0], pbis);
+            MakeTexture(g_ashd[i].glDiffuseMap, g_ashd[i].atex[0].clutIndex[0], g_ashd[i].atex[0].bmpIndex[0], csm1ClutIndices, pbis);
             break;
 
             case SHDK_Shadow:
             case SHDK_SpotLight:
-            MakeTexture(g_ashd[i].glDiffuseMap, g_ashd[i].atex[0].clutIndex[0], g_ashd[i].atex[0].bmpIndex[0], pbis);
+            MakeTexture(g_ashd[i].glDiffuseMap, g_ashd[i].atex[0].clutIndex[0], g_ashd[i].atex[0].bmpIndex[0], csm1ClutIndices, pbis);
             break;
 
             case SHDK_ProjectedVolume:
-            MakeTexture(g_ashd[i].glDiffuseMap, g_ashd[i].atex[0].clutIndex[0], g_ashd[i].atex[0].bmpIndex[0], pbis);
+            MakeTexture(g_ashd[i].glDiffuseMap, g_ashd[i].atex[0].clutIndex[0], g_ashd[i].atex[0].bmpIndex[0], csm1ClutIndices, pbis);
             break;
 
             case SHDK_CreateTexture:
-            MakeTexture(g_ashd[i].glDiffuseMap, g_ashd[i].atex[0].clutIndex[0], g_ashd[i].atex[0].bmpIndex[0], pbis);
+            MakeTexture(g_ashd[i].glDiffuseMap, g_ashd[i].atex[0].clutIndex[0], g_ashd[i].atex[0].bmpIndex[0], csm1ClutIndices, pbis);
             break;
         }
     }
@@ -300,7 +304,7 @@ std::vector <byte> MakePallete(uint32_t clutIndex, CBinaryInputStream* pbis)
     return buffer;
 }
 
-void MakeTexture(GLuint &textureReference, int16_t clutIndex, int16_t bmpIndex, CBinaryInputStream* pbis)
+void MakeTexture(GLuint &textureReference, int16_t clutIndex, int16_t bmpIndex, uint8_t *csm1ClutIndices, CBinaryInputStream* pbis)
 {
     if (clutIndex >= g_aclut.size() || bmpIndex >= g_abmp.size())
         return;
@@ -361,3 +365,17 @@ void MakeTexture(GLuint &textureReference, int16_t clutIndex, int16_t bmpIndex, 
 
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, texture.data());
 }
+
+
+int g_cclut;
+std::vector <CLUT> g_aclut;
+int g_grfzonShaders;
+int g_cbmp;
+int g_cshd;
+std::vector <BMP> g_abmp;
+std::vector <SHD> g_ashd;
+int g_cpsaa;
+std::vector <SAA> g_apsaa;
+std::vector <TEX> g_atex;
+// Start of texture data
+size_t textureDataStart;

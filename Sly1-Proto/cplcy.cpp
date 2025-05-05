@@ -105,7 +105,7 @@ bool SphereInFrustum(const FRUSTUM &frustum, const glm::vec3 &position, float ra
 	{
 		float distance = glm::dot(glm::vec3(frustum.planes[i]), position) + frustum.planes[i].w;
 
-		if (distance < -radius )
+		if (distance < -radius)
 			return false;
 	}
 	return true;
@@ -113,7 +113,7 @@ bool SphereInFrustum(const FRUSTUM &frustum, const glm::vec3 &position, float ra
 
 void UpdateCpman(GLFWwindow* window, CPMAN* pcpman, CPDEFI* pcpdefi, float dt)
 {
-	float speed = 8000.0;
+	float speed = 6000.0;
 	float velocity = dt * speed;
 
 	if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
@@ -143,21 +143,24 @@ void UpdateCpman(GLFWwindow* window, CPMAN* pcpman, CPDEFI* pcpdefi, float dt)
 		{
 			glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_HIDDEN);
 
-			pcpman->pcm->yaw   += MOUSE::GetDX();
+			pcpman->pcm->yaw += MOUSE::GetDX();
 			pcpman->pcm->pitch += MOUSE::GetDY();
 
-			if (pcpman->pcm->pitch > 89.0f)
-				pcpman->pcm->pitch = 89.0f;
+			// Clamp pitch to avoid gimbal lock
+			pcpman->pcm->pitch = glm::clamp(pcpman->pcm->pitch, -89.0f, 89.0f);
 
-			else if (pcpman->pcm->pitch < -89.0f)
-				pcpman->pcm->pitch = -89.0f;
+			// Update the direction vector based on yaw and pitch
+			float yawRad = glm::radians(pcpman->pcm->yaw);
+			float pitchRad = glm::radians(pcpman->pcm->pitch);
 
-			pcpman->pcm->direction.x = cos(glm::radians(-pcpman->pcm->yaw)) * cos(glm::radians(pcpman->pcm->pitch));
-			pcpman->pcm->direction.y = sin(glm::radians(-pcpman->pcm->yaw)) * cos(glm::radians(pcpman->pcm->pitch));
-			pcpman->pcm->direction.z = sin(glm::radians(pcpman->pcm->pitch));
+			pcpman->pcm->direction.x = cos(-yawRad) * cos(pitchRad);
+			pcpman->pcm->direction.y = sin(-yawRad) * cos(pitchRad);
+			pcpman->pcm->direction.z = sin(pitchRad);
 
+			// Normalize the direction vector
 			pcpman->pcm->direction = glm::normalize(pcpman->pcm->direction);
 
+			// Update the right and up vectors to match the new camera orientation
 			pcpman->pcm->right = glm::normalize(glm::cross(pcpman->pcm->direction, pcpman->pcm->worldUp));
 			pcpman->pcm->up = glm::normalize(glm::cross(pcpman->pcm->right, pcpman->pcm->direction));
 		}

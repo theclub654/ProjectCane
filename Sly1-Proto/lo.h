@@ -142,5 +142,7 @@ void UnsubscribeLoStruct(LO* plo, void *pfnmq, void* pvContext);
 int  GetLoSize();
 void DeleteLo(LO* plo);
 
+extern std::vector <LO*> allWorldObjs;
+
 #include "sw.h"
 #include "alo.h"

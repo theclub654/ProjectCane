@@ -42,3 +42,5 @@ void CTransition::Execute(std::string file)
 	// Setting the level pending flag to 0
 	m_fPending = 0;
 }
+
+CTransition g_transition;

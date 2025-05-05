@@ -9,7 +9,7 @@
 #define LIGHTK_Frustrum 2
 #define LIGHTK_Spot 3
 
-#define MAX_LIGHTS 100
+#define MAX_LIGHTS 255
 
 #define FOG_PS2 1
 #define FOG_PS3 2
@@ -33,7 +33,6 @@ struct LIGHT
     vec4 du;
 };
 
-
 layout(std140) uniform LIGHTBLK
 {
     LIGHT lights[MAX_LIGHTS];
@@ -54,15 +53,15 @@ struct LSM
     float uMidtone;
 }; uniform LSM lsm;
 
-uniform mat4 proj;
-uniform mat4 view;
-uniform mat4 model;
+uniform mat4 matWorldToClip;
 uniform vec3 cameraPos;
 
+uniform mat4 model;
+
+uniform int   fogType;
 uniform float fogNear;
 uniform float fogFar;
 uniform float fogMax;
-uniform int fogType;
 
 uniform float uFog;
 
@@ -70,6 +69,8 @@ uniform int rko;
 uniform float usSelfIllum;
 uniform int fDynamic;
 uniform vec3 posCenter;
+
+vec4 worldPos;
 
 float objectShadow;
 float objectMidtone;
@@ -90,14 +91,16 @@ vec4 AddPositionLightDynamic(LIGHT pointlight);
 //vec4 AddFrustrumLightDynamic(FRUSTUMLIGHT frustumlight);
 void ProcessGlobLighting();
 // This uses the PS2 Style fog
-void CalculateFogPS2(vec4 worldPos);
+void CalculateFogPS2();
 // This uses the PS3 style fog
-void CalculateFogPS3(vec4 worldPos);
+void CalculateFogPS3();
 
 void main()
 {
     vertexColor = color;
     texcoord    = uv;
+
+     worldPos = model * vec4(vertex, 1.0);
 
     if (rko == RKO_ThreeWay)
     {
@@ -105,20 +108,18 @@ void main()
         StartThreeWay();
     }
 
-   vec4 worldPos = model * vec4(vertex, 1.0);
-
     switch (fogType)
     {
         case FOG_PS2:
-        CalculateFogPS2(worldPos);
+        CalculateFogPS2();
         break;
 
         case FOG_PS3:
-        CalculateFogPS3(worldPos);
+        CalculateFogPS3();
         break;
     }
 
-    gl_Position = proj * view * worldPos;
+    gl_Position = matWorldToClip * worldPos;
 }
 
 void StartThreeWay()
@@ -163,14 +164,14 @@ void StartThreeWay()
 void InitGlobLighting()
 {
     objectShadow  = lsm.uShadow;
-    objectMidtone = lsm.uMidtone + usSelfIllum * 3.060163e-05;
+    objectMidtone = lsm.uMidtone + usSelfIllum * 0.000031;
     light = vec4(0.0);
 }
 
 vec4 AddDirectionLight(LIGHT dirlight)
 {
     // Transform light direction into world space
-    vec3 lightDirWorld = normalize(mat3(inverse(model)) * vec3(dirlight.dir));
+    vec3 lightDirWorld = normalize(mat3(transpose(model)) * vec3(dirlight.dir));
 
     // Dot product between normal and light direction (skip normalize if normal is already normalized)
     float NdotL = max(dot(normal, lightDirWorld), 0.0);
@@ -199,7 +200,7 @@ vec4 AddDirectionLight(LIGHT dirlight)
 vec4 AddDynamicLight(vec4 dir, vec4 color, vec4 ru, vec4 du)
 {
     // Transform light direction into model space
-    vec3 lightDir = normalize(mat3(inverse(model)) * vec3(dir));
+    vec3 lightDir = normalize(mat3(transpose(model)) * vec3(dir));
     
     // Compute stylized diffuse term
     float diffuse = dot(lightDir, normal);
@@ -309,39 +310,37 @@ void ProcessGlobLighting()
     material.light   = min(light.rgb, vec3(1.0)) * baseIntensity;
 }
 
-void CalculateFogPS2(vec4 worldPos)
+void CalculateFogPS2()
 {
     // Distance to camera
-    float z = length(worldPos.xyz - cameraPos);
+    float z = length(cameraPos - worldPos.xyz);
+    float recipZ = inversesqrt(z * z + 1e-8); // more stable & fast on GPUs
 
-    float recipZ = 1.0 / max(z, 0.0001); // Prevent div by zero
-
-    // Flip the reciprocal mapping
     float recipNear = 1.0 / fogNear;
     float recipFar  = 1.0 / fogFar;
 
-    // remap recipZ from recipNear..recipFar to 0..1
-    float fog = clamp((recipNear - recipZ) / (recipNear - recipFar), 0.0, 1.0);
-    
-    if (uFog != 0.0)
-        fogIntensity = clamp(fog * fogMax * uFog, 0.0, 1.0);
-    else
-        fogIntensity = clamp(fog * fogMax, 0.0, 1.0);
+    float denom = max(recipNear - recipFar, 1e-6); // avoid divide by 0
+    float fog = clamp((recipNear - recipZ) * (1.0 / denom), 0.0, 1.0);
+
+    // Use mix/step to avoid branching on uFog
+    float fogMult = mix(fogMax, fogMax * uFog, step(0.001, uFog));
+    fogIntensity = fog * fogMult;
 }
 
-void CalculateFogPS3(vec4 worldPos)
+void CalculateFogPS3()
 {
-    // Compute the distance from the camera to the world-space position of the vertex
-    float distanceToCamera = length(worldPos.xyz - cameraPos);
+    // Compute squared distance for performance, avoid sqrt unless necessary
+    vec3  offset = cameraPos - worldPos.xyz;
+    float distance2 = dot(offset, offset);
+    float distanceToCamera = sqrt(distance2);
 
-    // Linearly map the distance into a 0..1 fog range
-    // fog is 0 when at fogNear and 1 when at fogFar
-    float fog = clamp((distanceToCamera - fogNear) / (fogFar - fogNear), 0.0, 1.0);
+    // Precompute inverse range for fog mapping
+    float invFogRange = 1.0 / max(fogFar - fogNear, 1e-6);
 
-    // Scale the fog intensity by fogMax (a scalar that controls overall fog strength)
-    // and clamp it to stay within the [0..1] valid fog range
-    if (uFog != 0.0)
-        fogIntensity = clamp(fog * fogMax * uFog, 0.0, 1.0);
-    else
-        fogIntensity = clamp(fog * fogMax, 0.0, 1.0);
+    // Linear fog factor in 0..1 range
+    float fog = clamp((distanceToCamera - fogNear) * invFogRange, 0.0, 1.0);
+
+    // Branchless fog intensity scaling
+    float fogMult = mix(fogMax, fogMax * uFog, step(0.001, uFog));
+    fogIntensity = fog * fogMult;
 }

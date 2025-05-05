@@ -3,10 +3,6 @@
 #include "glob.h"
 #include "act.h"
 
-extern std::vector <LIGHT*> allSwLights;
-extern bool g_fRenderCelBorders;
-extern inline bool g_fBsp = false;
-
 enum ACK
 {
 	ACK_Nil = -1,
@@ -75,7 +71,6 @@ enum SCSK
 	SCSK_Stretch = 1,
 	SCSK_Max = 2
 };
-
 enum THROBK
 {
 	THROBK_Nil = -1,
@@ -442,19 +437,19 @@ void SetAloInteractShock(ALO* palo, int grfic);
 void SetAloPoseCombo(ALO* palo, OID oidCombo);
 void SetAloForceCameraFade(ALO* palo, int fFade);
 //GOTTA COME BACK TO THIS
-void* GetAloFrozen(ALO* palo);
-void* GetAloXfPos(ALO* palo);
-void* GetAloXfPosOrig(ALO* palo);
-void* GetAloXfPosWorld(ALO* palo);
-void* GetAloXfMat(ALO* palo);
-void* GetAloMatOrig(ALO* palo);
-void* GetAloXfMatWorld(ALO* palo);
-void* GetAloEuler(ALO* palo);
+void*GetAloFrozen(ALO* palo);
+void*GetAloXfPos(ALO* palo);
+void*GetAloXfPosOrig(ALO* palo);
+void*GetAloXfPosWorld(ALO* palo);
+void*GetAloXfMat(ALO* palo);
+void*GetAloMatOrig(ALO* palo);
+void*GetAloXfMatWorld(ALO* palo);
+void*GetAloEuler(ALO* palo);
 void GetAloVelocityLocal(ALO* palo, glm::vec3* pvec);
-void* GetAloXfw(ALO* palo);
-void* GetAloXfdv(ALO* palo);
-void* GetAloXfdw(ALO* palo);
-void* GetAloRoot(ALO* palo);
+void*GetAloXfw(ALO* palo);
+void*GetAloXfdv(ALO* palo);
+void*GetAloXfdw(ALO* palo);
+void*GetAloRoot(ALO* palo);
 void GetAloFastShadowRadius(ALO* palo, float* psRadius);
 void GetAloFastShadowDepth(ALO* palo, float* psDepth);
 void GetAloCastShadow(ALO* palo, int* pfCastShadow);
@@ -483,7 +478,7 @@ void GetAloInteractCaneRush(ALO* palo, int* pgrfic);
 void GetAloInteractCaneSmash(ALO* palo, int* pgrfic);
 void GetAloInteractBomb(ALO* palo, int* pgrfic);
 void GetAloInteractShock(ALO* palo, int* pgrfic);
-void* GetAlofRealClock(ALO* palo);
+void*GetAlofRealClock(ALO* palo);
 // Loads ALO object from binary file
 void LoadAloFromBrx(ALO* palo, CBinaryInputStream* pbis);
 // Loads bone data from binary file
@@ -505,3 +500,5 @@ void DeleteModel(ALO* palo);
 int  GetAloSize();
 // Delete ALO object from memory
 void DeleteAlo(ALO* palo);
+
+extern std::vector <ALO*> allSWAloObjs;

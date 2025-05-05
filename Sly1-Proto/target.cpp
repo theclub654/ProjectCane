@@ -46,7 +46,7 @@ void RenderTarget(TARGET* ptarget, CM* pcm)
 	{
 		RO ro;
 
-		ro.modelmatrix = glm::identity <glm::mat4>();
+		ro.model = glm::identity <glm::mat4>();
 		ro.uAlpha = 1.0;
 		ptarget1->pvtalo->pfnRenderAloAll((ALO*)ptarget1, pcm, &ro);
 	}

@@ -1,9 +1,6 @@
 #pragma once
 #include "lo.h"
 
-extern std::vector<LO*> allWorldObjs;
-static int LoadOptionsFromBrxCount = 0;
-
 // Initializes Options
 void StartupBrx();
 // Returns a new static world object
@@ -17,5 +14,3 @@ DL* PdlFromSwOid(SW* psw, OID oid);
 // Loads all the options data for a LO
 void LoadOptionsFromBrx(void* pvObject, CBinaryInputStream *pbis);
 void LoadOptionFromBrx(void* pvObject, EOPID eopid, int eopidID, CBinaryInputStream* pbis);
-
-static char** g_mpoidachz;

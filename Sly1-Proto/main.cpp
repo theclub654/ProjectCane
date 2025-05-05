@@ -84,9 +84,7 @@ void Startup()
 
 	// Initialize texture samplers for glob shader
 	glGlobShader.Use();
-	glUniform1i(glGetUniformLocation(glGlobShader.ID, "shadowMap"),   0);
-	glUniform1i(glGetUniformLocation(glGlobShader.ID, "diffuseMap"),  1);
-	glUniform1i(glGetUniformLocation(glGlobShader.ID, "saturateMap"), 2);
+	InitGlslUniforms();
 
 	std::cout << "Sly Cooper 2002 Sony Computer Entertainment America & Sucker Punch Productions\n";
 	StartupClock();

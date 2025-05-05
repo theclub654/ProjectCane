@@ -280,7 +280,7 @@ void InitCpalign(CPALIGN* pcpalign, CM* pcm);
 void BuildCmFgfn(CM* pcm, float uFog, FGFN* pfgfn);
 // Makes frustum
 void BuildFrustrum(const glm::mat3 &pmatLookAt, float rx, float ry, glm::vec3 *anormalFrustrum);
-// Extract frustum planes from matrix
+// Extract frustum planes from proj view matrix
 void ExtractFrustumPlanes(const glm::mat4 &viewProj, FRUSTUM *pfrustum);
 // Checks if a object is in camera frustum
 bool SphereInFrustum(const FRUSTUM &frustum, const glm::vec3 &position, float radius);

@@ -142,40 +142,50 @@ void SubmitRpl(RPL *prpl)
 	}
 }
 
+int GetFogType()
+{
+	return g_fogType;
+}
+
+void SetFogType(int fogType)
+{
+	g_fogType = fogType;
+}
+
 void SortRenderRpl()
 {
 	std::sort(renderBuffer.begin(), renderBuffer.begin() + numRo, compareRP);
-	
+
 	int offset = g_dynamicTextureCount;
 
-	if (g_backGroundCount > 1) 
+	if (g_backGroundCount > 1)
 		std::sort(renderBuffer.begin() + offset, renderBuffer.begin() + offset + g_backGroundCount, compareZ);
-	
+
 	offset += g_backGroundCount;
 
 	offset += g_blotContextCount;
 	offset += g_opaqueCount;
 
-	if (g_cutOutCount > 1) 
+	if (g_cutOutCount > 1)
 		std::sort(renderBuffer.begin() + offset, renderBuffer.begin() + offset + g_cutOutCount, compareZ);
-	
+
 	offset += g_cutOutCount;
 	offset += g_celBorderCount;
 	offset += g_projVolumeCount;
 	offset += g_opaqueAfterProjVolumeCount;
 
-	if (g_cutoutAfterProjVolumeCount > 1) 
+	if (g_cutoutAfterProjVolumeCount > 1)
 		std::sort(renderBuffer.begin() + offset, renderBuffer.begin() + offset + g_cutoutAfterProjVolumeCount, compareZ);
-	
+
 	offset += g_cutoutAfterProjVolumeCount;
 	offset += g_celBorderAfterProjVolumeCount;
 	offset += g_murkClearCount;
 	offset += g_murkOpaqueCount;
 	offset += g_murkFillCount;
 
-	if (g_translucentCount > 1) 
+	if (g_translucentCount > 1)
 		std::sort(renderBuffer.begin() + offset, renderBuffer.begin() + offset + g_translucentCount, compareZ);
-	
+
 	g_dynamicTextureCount = 0;
 	g_backGroundCount = 0;
 	g_blotContextCount = 0;
@@ -216,20 +226,19 @@ void DrawSw(SW *psw, CM *pcm)
 
 	PrepareSwLights(psw, pcm);
 
-	glUniformMatrix4fv(glGetUniformLocation(glGlobShader.ID, "proj"), 1, GL_FALSE, glm::value_ptr(pcm->matProj));
-	glUniformMatrix4fv(glGetUniformLocation(glGlobShader.ID, "view"), 1, GL_FALSE, glm::value_ptr(pcm->lookAt));
-	glUniform3fv(glGetUniformLocation(glGlobShader.ID, "cameraPos"), 1, glm::value_ptr(pcm->pos));
+	glUniformMatrix4fv(glslmatWorldToClip, 1, GL_FALSE, glm::value_ptr(pcm->matWorldToClip));
+	glUniform3fv(glslCameraPos, 1, glm::value_ptr(pcm->pos));
 
-	glUniform1f(glGetUniformLocation(glGlobShader.ID, "lsm.uShadow"),  g_psw->lsmDefault.uShadow);
-	glUniform1f(glGetUniformLocation(glGlobShader.ID, "lsm.uMidtone"), g_psw->lsmDefault.uMidtone);
+	glUniform1f(glslLsmShadow,  g_psw->lsmDefault.uShadow);
+	glUniform1f(glslLsmDiffuse, g_psw->lsmDefault.uMidtone);
 
-	glUniform1i(glGetUniformLocation(glGlobShader.ID,  "fogType"), g_fogType);
-	glUniform1f(glGetUniformLocation(glGlobShader.ID,  "fogNear"), pcm->sNearFog);
-	glUniform1f(glGetUniformLocation(glGlobShader.ID,  "fogFar"), pcm->sFarFog);
-	glUniform1f(glGetUniformLocation(glGlobShader.ID,  "fogMax"), pcm->uFogMax);
-	glUniform4fv(glGetUniformLocation(glGlobShader.ID, "fogcolor"), 1, glm::value_ptr(pcm->rgbaFog));
+	glUniform1i(glslFogType, g_fogType);
+	glUniform1f(glslFogNear, pcm->sNearFog);
+	glUniform1f(glslFogFar,  pcm->sFarFog);
+	glUniform1f(glslFogMax,  pcm->uFogMax);
+	glUniform4fv(glslFogColor, 1, glm::value_ptr(pcm->rgbaFog));
 	
-	glUniform4fv(glGetUniformLocation(glGlobShader.ID, "rgbaCel"), 1, glm::value_ptr(g_rgbaCel));
+	glUniform4fv(glslRgbaCel, 1, glm::value_ptr(g_rgbaCel));
 
 	for (int i = 0; i < numRo; i++)
 		renderBuffer[i].PFNDRAW(&renderBuffer[i]);
@@ -239,7 +248,7 @@ void DrawSw(SW *psw, CM *pcm)
 
 void DrawSwCollisionAll(CM *pcm)
 {
-	glUniform1i(glGetUniformLocation(glGlobShader.ID, "rko"), 3);
+	glUniform1i(glslRko, 3);
 
 	for (int i = 0; i < allSWSoObjs.size(); i++)
 	{

@@ -210,3 +210,6 @@ void DeleteProxy(PROXY *pproxy)
 {
 	delete pproxy;
 }
+
+// Temporary flag
+bool loadEmitMesh = 0;

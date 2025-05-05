@@ -1,7 +1,6 @@
 #pragma once
 #include "alo.h"
 #include "bsp.h"
-extern std::vector<SO*> allSWSoObjs;
 
 enum ZPK
 {
@@ -14,7 +13,6 @@ enum ZPK
 	ZPK_Pit = 5,
 	ZPK_Max = 6
 };
-
 enum CMK 
 {
 	CMK_Nil = -1,
@@ -23,7 +21,6 @@ enum CMK
 	CMK_Opaque = 2,
 	CMK_Max = 3
 };
-
 enum EGK 
 {
 	EGK_Nil = -1,
@@ -31,6 +28,13 @@ enum EGK
 	EGK_Yes = 1,
 	EGK_No = 2,
 	EGK_Max = 3
+};
+enum CT
+{
+	CT_Free = 0,
+	CT_Tangent = 1,
+	CT_Project = 2,
+	CT_Locked = 3
 };
 
 struct ZPD
@@ -55,14 +59,6 @@ struct HSG
 {
 	int ipglob;
 	int ipsubglob;
-};
-
-enum CT 
-{
-	CT_Free = 0,
-	CT_Tangent = 1,
-	CT_Project = 2,
-	CT_Locked = 3
 };
 
 struct CONSTR 
@@ -177,3 +173,6 @@ void DeleteSo(SO *pso);
 void DeleteSwCollision();
 // Deletes a SO collision data from VRAM
 void DeleteSoGeom(SO* pso);
+void DeallocateSoVector();
+
+extern std::vector <SO*> allSWSoObjs;

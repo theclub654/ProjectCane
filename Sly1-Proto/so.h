@@ -1,8 +1,6 @@
 #pragma once
 #include "alo.h"
 #include "bsp.h"
-extern std::vector<SO*> allSWSoObjs;
-inline bool g_fRenderCollision;
 
 enum ZPK
 {
@@ -178,3 +176,6 @@ void DeleteSo(SO *pso);
 void DeleteSwCollision();
 // Deletes a SO collision data from VRAM
 void DeleteSoGeom(SO* pso);
+void DeallocateSoVector();
+
+extern std::vector<SO*> allSWSoObjs;

@@ -9,6 +9,7 @@ typedef int GRFFSO;
 typedef int GRFCID;
 typedef int GRFGLOB;
 typedef int GRFIK;
+typedef unsigned int SYMID;
 typedef uint64_t GRFZON;
 typedef uint32_t GRFALOX;
 class CBinaryInputStream;
@@ -237,6 +238,7 @@ void UpdateSo(SO* pso, float dt);
 void RenderSoSelf(SO* pso, CM* pcm, RO* pro);
 int  GetSoSize();
 void DeleteSo(SO *pso);
+void DeallocateSoVector();
 
 // Merged Statics
 MS*  NewMs();
@@ -978,6 +980,7 @@ void SetLightHotSpotAngle(LIGHT* plight, float degHotSpot);
 void*GetLightFrustrumUp(LIGHT* plight);
 void SetLightFrustrumUp(LIGHT* plight, glm::vec3& pvecUpLocal);
 void DeleteLight(LIGHT *plight);
+void DeallocateLightVector();
 
 class LIKH;
 LIKH*NewLikh();
@@ -1263,7 +1266,7 @@ CM*  NewCm();
 void InitCm(CM* pcm);
 int  GetCmSize();
 void CloneCm(CM* pcm, CM* pcmBase);
-void RecalcCmFrustrum(CM* pcm);
+void RecalcCm(CM* pcm);
 void BuildCmFgfn(CM* pcm, float uFog, FGFN* pfgfn);
 void SetSwCameraFov(SW* psw, float radFOV);
 void SetSwCameraNearClip(SW* psw, float sNearClip);

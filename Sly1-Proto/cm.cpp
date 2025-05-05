@@ -1,8 +1,5 @@
 #include "cm.h"
 
-CMLK g_cmlk;
-float g_renderDistance = 1.0;
-
 CM* NewCm()
 {
 	return new CM{};
@@ -25,8 +22,8 @@ void InitCm(CM* pcm)
 
 	pcm->lookAt = glm::identity <glm::mat4>();
 	pcm->yaw = -90;
-
-	RecalcCmFrustrum(pcm);
+	
+	RecalcCm(pcm);
 	pcm->cpman.pvtcpman = &g_vtcpman;
 	InitCplcy(&pcm->cpman, pcm);
 	(pcm->cplook).pvtcplook = &g_vtcplook;
@@ -136,9 +133,11 @@ void CloneCm(CM* pcm, CM* pcmBase)
 	pcm->cptn = pcmBase->cptn;
 }
 
-void RecalcCmFrustrum(CM* pcm)
+void RecalcCm(CM* pcm)
 {
-	pcm->rMRDAdjust = pcm->rMRD * (1.0 / pcm->radFOV);
+	pcm->rMRDAdjust = pcm->rMRD * (1.0 / g_renderDistance);
+
+	pcm->radFOV = 45.0;
 
 	BuildProjectionMatrix(&pcm->radFOV, &g_gl.width, &g_gl.height, &pcm->sNearClip, &pcm->sFarClip, pcm->matProj);
 	UpdateCmMat4(pcm);
@@ -255,7 +254,7 @@ void* GetCmFov(CM* pcm)
 void SetCmFov(CM* pcm, float radFOV)
 {
 	pcm->radFOV = radFOV;
-	RecalcCmFrustrum(pcm);
+	RecalcCm(pcm);
 }
 
 void* GetCmNearClip(CM* pcm)
@@ -266,7 +265,7 @@ void* GetCmNearClip(CM* pcm)
 void SetCmNearClip(CM* pcm, float sNearClip)
 {
 	pcm->sNearClip = sNearClip;
-	RecalcCmFrustrum(pcm);
+	RecalcCm(pcm);
 }
 
 void* GetCmFarClip(CM* pcm)
@@ -277,7 +276,7 @@ void* GetCmFarClip(CM* pcm)
 void SetCmFarClip(CM* pcm, float sFarClip)
 {
 	pcm->sFarClip = sFarClip;
-	RecalcCmFrustrum(pcm);
+	RecalcCm(pcm);
 }
 
 void* GetCmNearFog(CM* pcm)
@@ -288,7 +287,6 @@ void* GetCmNearFog(CM* pcm)
 void SetCmNearFog(CM* pcm, float sNearFog)
 {
 	pcm->sNearFog = sNearFog;
-	RecalcCmFrustrum(pcm);
 }
 
 void* GetCmFarFog(CM* pcm)
@@ -299,7 +297,6 @@ void* GetCmFarFog(CM* pcm)
 void SetCmFarFog(CM* pcm, float sFarFog)
 {
 	pcm->sFarFog = sFarFog;
-	RecalcCmFrustrum(pcm);
 }
 
 void* GetCmUFogMax(CM* pcm)
@@ -310,7 +307,6 @@ void* GetCmUFogMax(CM* pcm)
 void SetCmUFogMax(CM* pcm, float uFogMax)
 {
 	pcm->uFogMax = uFogMax;
-	RecalcCmFrustrum(pcm);
 }
 
 void* GetCmRgbaFog(CM* pcm)
@@ -326,7 +322,6 @@ void SetCmRgbaFog(CM* pcm, RGBA prgbaFog)
 	float A = prgbaFog.bAlpha / 255.0;
 
 	pcm->rgbaFog = glm::vec4(R, G, B, A);
-	RecalcCmFrustrum(pcm);
 }
 
 void* GetCmMrdRatio(CM* pcm)
@@ -337,7 +332,7 @@ void* GetCmMrdRatio(CM* pcm)
 void SetCmMrdRatio(CM* pcm, float rMRD)
 {
 	pcm->rMRD = rMRD;
-	RecalcCmFrustrum(g_pcm);
+	RecalcCm(g_pcm);
 }
 
 void BuildLookAt(glm::vec3 &posEye, glm::vec3 &directionEye, glm::vec3 &upEye ,glm::mat4 &pmatLookAt)
@@ -383,27 +378,25 @@ void CombineEyeLookAtProj(const glm::vec3& eyePos, const glm::mat3& lookAt, cons
 	pmat = proj * viewInv;
 }
 
-// Transpose frustum normals
-void TransposeFrustrumNormals(const glm::vec3* anormalFrustrum, glm::vec4* outTransposed)
-{
-	for (int i = 0; i < 3; ++i) 
-	{
-		outTransposed[i] = glm::vec4(
-			anormalFrustrum[0][i], // X/Y/Z of normal 0
-			anormalFrustrum[1][i], // X/Y/Z of normal 1
-			anormalFrustrum[2][i], // X/Y/Z of normal 2
-			anormalFrustrum[3][i]  // X/Y/Z of normal 3
-		);
-	}
-}
-
 void UpdateCmMat4(CM* pcm)
 {
 	BuildLookAt(pcm->pos, pcm->direction, pcm->up ,pcm->lookAt);
 
-	//pcm->matWorldToClip = pcm->matProj * pcm->lookAt;
+	pcm->matWorldToClip = pcm->matProj * pcm->lookAt;
 
-	ExtractFrustumPlanes(pcm->matProj * pcm->lookAt, &pcm->frustum);
+	//BuildFrustrum(pcm->lookAt, pcm->xScreenRange, pcm->yScreenRange, pcm->anormalFrustrum);
+
+	//// Transpose the 4x4 matrix manually
+	//for (int i = 0; i < 3; ++i) 
+	//{
+	//	pcm->anormalFrustrumTranspose[i] = glm::vec4(
+	//		pcm->anormalFrustrum[0][i],
+	//		pcm->anormalFrustrum[1][i],
+	//		pcm->anormalFrustrum[2][i],
+	//		pcm->anormalFrustrum[3][i]);
+	//}
+
+	ExtractFrustumPlanes(pcm->matWorldToClip, &pcm->frustum);
 }
 
 bool FInsideCmMrd(const CM *pcm, const glm::vec3 &dpos, float sRadius, float sMRD, float &outAlpha)
@@ -455,3 +448,6 @@ void DeleteCm(CM *pcm)
 {
 	delete pcm;
 }
+
+CMLK g_cmlk;
+float g_renderDistance = 1.0;

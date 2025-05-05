@@ -38,7 +38,7 @@ struct RGBA
 // CLUT property
 struct CLUT
 {
-    uint32_t grfzon;
+    GRFZON grfzon;
     // Number of colors in a CLUT
     short numColors;
     // Color size of the CLUT
@@ -54,7 +54,7 @@ struct BMP
     short bmpWidth;
     // BMP height
     short bmpHeight;
-    uint32_t grfzon;
+    GRFZON grfzon;
     byte psm;
     byte cgsRow;
     short cgsPixels;
@@ -130,28 +130,26 @@ std::vector <byte> MakeBmp(uint32_t bmpIndex, CBinaryInputStream* pbis);
 // Make color pallete
 std::vector <byte> MakePallete(uint32_t clutIndex, CBinaryInputStream* pbis);
 // Make texture
-void MakeTexture(GLuint &textureReference, int16_t clutIndex, int16_t bmpIndex, CBinaryInputStream* pbis);
+void MakeTexture(GLuint& textureReference, int16_t clutIndex, int16_t bmpIndex, uint8_t* csm1ClutIndices, CBinaryInputStream* pbis);
 
 // Global variable which holds the number of CLUT's in a binary file
-static int g_cclut;
+extern int g_cclut;
 // Global vector for CLUT property's
-static std::vector <CLUT> g_aclut;
-static int g_grfzonShaders;
+extern std::vector <CLUT> g_aclut;
+extern int g_grfzonShaders;
 // Global variable which holds the number of BMP's in a binary file
-static int g_cbmp;
-// Global vector for BMP property's
-static std::vector <BMP> g_abmp;
+extern int g_cbmp;
 // Global variable which holds the number of shader's in a binary file
-static int g_cshd;
+extern int g_cshd;
+// Global vector for BMP property's
+extern std::vector <BMP> g_abmp;
 // Global vector for shader property's
 extern std::vector <SHD> g_ashd;
 // Global variable which holds the number of shader animation's in a binary file
-static int g_cpsaa;
+extern int g_cpsaa;
 // Global vector for shader animation property's
-static std::vector <SAA> g_apsaa;
+extern std::vector <SAA> g_apsaa;
 // Table for texture property's
-static std::vector<TEX> g_atex;
-// Unswizzled CLUT indices
-static uint8_t csm1ClutIndices[256];
+extern std::vector<TEX> g_atex;
 // Start of texture data
-static size_t textureDataStart;
+extern size_t textureDataStart;

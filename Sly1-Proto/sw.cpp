@@ -1,11 +1,4 @@
 #include "sw.h"
-#include "debug.h"
-
-std::vector<LO*> allWorldObjs;
-std::vector<ALO*> allSWAloObjs;
-std::vector<LIGHT*> allSwLights;
-
-extern std::vector <SO*> allSWSoObjs;
 
 SW* NewSw()
 {
@@ -464,10 +457,9 @@ void DeleteWorld(SW *psw)
 	allSWAloObjs.shrink_to_fit();
 	allWorldObjs.clear();
 	allWorldObjs.shrink_to_fit();
-	allSwLights.clear();
-	allSwLights.shrink_to_fit();
-	allSWSoObjs.clear();
-	allSWSoObjs.shrink_to_fit();
+
+	DeallocateLightVector();
+	DeallocateSoVector();
 
 	UnloadShaders();
 

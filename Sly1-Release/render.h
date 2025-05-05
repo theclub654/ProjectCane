@@ -3,9 +3,6 @@
 #include "light.h"
 #include "debug.h"
 
-extern std::vector <ALO*> allSWAloObjs;
-extern std::vector <LIGHT*> allSwLights;
-std::vector <SO*> allSWSoObjs;
 std::vector <RPL> renderBuffer;
 
 int numRo;

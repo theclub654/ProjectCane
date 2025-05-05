@@ -12,7 +12,8 @@ enum TWPS
 	TWPS_ShadowMidtone = 1,
 	TWPS_ShadowMidtoneSaturate = 2
 };
-enum TRLK {
+enum TRLK 
+{
 	TRLK_Nil = -1,
 	TRLK_Download = 0,
 	TRLK_DownloadRelight = 1,
@@ -101,7 +102,7 @@ struct RO
 	SHD* pshd;
 	float unSelfIllum;
 
-	glm::mat4 modelmatrix;
+	glm::mat4 model;
 	float uFog;
 	float uAlpha;
 	int fDynamic;
@@ -287,7 +288,38 @@ struct GLOBSET // NOT DONE
 	struct SAA** apsaa;
 };
 
+// Initializes glsl uniform locations
+void InitGlslUniforms();
 // Loads 3D model data from binary file
 void LoadGlobsetFromBrx(GLOBSET* pglobset, short cid, ALO* palo, CBinaryInputStream* pbis);
 // Converts strips to tri lists and stores 3D sub model in VRAM
 void BuildSubGlob(SUBGLOB *psubglob, SHD *pshd, std::vector <glm::vec3> &positions, std::vector <glm::vec3> &normals, std::vector <glm::vec4> &colors, std::vector <glm::vec2> &texcoords, std::vector <VTXFLG> &indexes);
+
+extern int  g_fogType;
+extern bool g_fRenderModels;
+extern bool g_fRenderCollision;
+extern bool g_fRenderCelBorders;
+extern bool g_fBsp;
+
+extern GLuint glslNumLights;
+extern GLuint glslmatWorldToClip;
+extern GLuint glslCameraPos;
+extern GLuint glslFogType;
+extern GLuint glslFogNear;
+extern GLuint glslFogFar;
+extern GLuint glslFogMax;
+extern GLuint glslFogColor;
+extern GLuint glslLsmShadow;
+extern GLuint glslLsmDiffuse;
+extern GLuint glslRgbaCel;
+extern GLuint glslModel;
+extern GLuint glslinvModel;
+extern GLuint glslUFog;
+extern GLuint glslUAlpha;
+extern GLuint glslRDarken;
+extern GLuint glslRko;
+extern GLuint glslusSelfIllum;
+extern GLuint glslFDynamic;
+extern GLuint glslPosCenter;
+extern GLuint glslfAlphaTest;
+extern GLuint glslCollisionRgba;

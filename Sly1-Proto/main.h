@@ -9,16 +9,7 @@
 #include "mouse.h"
 #include "update.h"
 
-// Temporary flag
-bool loadEmitMesh = 0;
-GL g_gl;
-GLSHADER glScreenShader;
-GLSHADER glGlobShader;
-std::string file;
-std::string levelName;
-CTransition g_transition;
-CLOCK g_clock;
-
+void InitGlslUniforms();
 void RenderSw(SW *psw, CM *pcm);
 void RenderSwGlobset(SW *psw, CM *pcm);
 void RenderSwAloAll(SW* psw, CM* pcm);
@@ -30,3 +21,5 @@ void DeleteWorld(SW *psw);
 int  main(int cphzArgs, char* aphzArgs[]);
 // Initializing all the things needed for the game to run
 void Startup();
+
+CLOCK g_clock;

@@ -206,3 +206,8 @@ void ExportSw()
         }
     }
 }
+
+bool g_fDisableInput = false;
+std::string filePath = "";
+std::string file = "";
+std::string levelName = "";

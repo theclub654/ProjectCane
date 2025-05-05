@@ -148,5 +148,7 @@ void FrameBufferSizeCallBack(GLFWwindow* window, int width, int height)
 	g_gl.height = height;
 
 	if (g_pcm != nullptr)
-		RecalcCmFrustrum(g_pcm);
+		RecalcCm(g_pcm);
 }
+
+GL g_gl;

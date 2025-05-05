@@ -14,7 +14,7 @@ CM*  NewCm();
 void InitCm(CM* pcm); // NOT FINISHED
 int  GetCmSize();
 void CloneCm(CM* pcm, CM* pcmBase);
-void RecalcCmFrustrum(CM* pcm);
+void RecalcCm(CM* pcm);
 void BuildSimpleProjectionMatrix(float rx, float ry, float dxOffset, float dyOffset, float sNear, float sFar, glm::mat4& pmat);
 void BuildProjectionMatrix(float *fov, float *width, float *height, float *near, float *far, glm::mat4 &pmat);
 void SetSwCameraFov(SW* psw, float radFOV);
@@ -52,7 +52,6 @@ void UnlockCm(int nParam);
 void SetupCm(CM *pcm);
 // Combines a LookAt Matrix and Projection Matrix
 void CombineEyeLookAtProj(const glm::vec3& eyePos, const glm::mat3& lookAt, const glm::mat4& proj, glm::mat4& pmat);
-void TransposeFrustrumNormals(const glm::vec3* anormalFrustrum, glm::vec4* outTransposed);
 // Updates a camera matrix
 void UpdateCmMat4(CM* pcm);
 // Returns whether a object minimum render distance is in sphere

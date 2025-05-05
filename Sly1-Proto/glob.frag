@@ -19,14 +19,16 @@ struct MATERIAL
 in vec4 vertexColor;
 in vec2 texcoord;
 
-uniform int fogType;
-uniform vec4 fogcolor;
+uniform int  fogType;
+uniform vec4 fogColor;
 uniform vec4 rgbaCel;
 
 uniform float uAlpha;
 uniform float rDarken;
 
 uniform int rko;
+
+uniform int fAlphaTest;
 
 uniform vec4 collisionRgba;
 
@@ -58,7 +60,6 @@ void main()
 
         case RKO_ThreeWay:
         DrawThreeWay();
-
         if (fogType != 0)
             ApplyFog();
         break;
@@ -86,6 +87,12 @@ void DrawOneWay()
     FragColor = diffuse * vertexColor;
 
     FragColor.a = clamp(FragColor.a * uAlpha, 0.0, 1.0);
+
+    if (fAlphaTest == 1)
+    {
+         if (FragColor.a < 0.1)
+             discard;
+    }
 }
 
 void DrawThreeWay()
@@ -98,7 +105,16 @@ void DrawThreeWay()
     FragColor.rgb += diffuse.rgb  * material.midtone.rgb * rDarken;
     FragColor.rgb += saturate.rgb * material.light.rgb;
 
-    FragColor.a = clamp(vertexColor.a * uAlpha * rDarken * shadow.a * diffuse.a * saturate.a, 0.0, 1.0);
+    float finalAlpha = vertexColor.a * shadow.a * diffuse.a * saturate.a;
+   
+    FragColor.a = clamp(finalAlpha * uAlpha, 0.0, 1.0);
+
+    if (fAlphaTest == 1)
+    {
+         if (FragColor.a < 0.1)
+             discard;
+    }
+        
 }
 
 void DrawCelBorder()
@@ -113,5 +129,5 @@ void DrawCollision()
 
 void ApplyFog()
 {
-    FragColor.rgb = mix(FragColor.rgb, fogcolor.rgb, fogIntensity);
+    FragColor.rgb = mix(FragColor.rgb, fogColor.rgb, fogIntensity);
 }

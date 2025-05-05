@@ -3,10 +3,6 @@
 #include "glob.h"
 #include "act.h"
 
-extern std::vector <LIGHT*> allSwLights;
-extern bool g_fRenderCelBorders;
-extern inline bool g_fBsp = false;
-
 enum ACK
 {
 	ACK_Nil = -1,
@@ -75,7 +71,6 @@ enum SCSK
 	SCSK_Stretch = 1,
 	SCSK_Max = 2
 };
-
 enum THROBK 
 {
 	THROBK_Nil = -1,
@@ -505,3 +500,5 @@ void DeleteModel(ALO *palo);
 int  GetAloSize();
 // Delete ALO object from memory
 void DeleteAlo(ALO *palo);
+
+extern std::vector <ALO*> allSWAloObjs;

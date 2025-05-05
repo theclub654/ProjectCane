@@ -8,8 +8,6 @@
 #include "clock.h"
 #include <bitset>
 
-typedef unsigned int SYMID;
-
 LO* PloNew(CID cid, SW* psw, ALO* paloParent, OID oid, int isplice);
 DL* PdlFromSwOid(SW* psw, OID oid);
 void LoadSwObjectsFromBrx(SW* psw, ALO* paloParent, CBinaryInputStream* pbis);
@@ -141,6 +139,8 @@ void SubscribeLoStruct(LO* plo, void* pfnmq, void* pvContext);
 void UnsubscribeLoStruct(LO* plo, void* pfnmq, void* pvContext);
 int  GetLoSize();
 void DeleteLo(LO* plo);
+
+extern std::vector <LO*> allWorldObjs;
 
 #include "sw.h"
 #include "alo.h"

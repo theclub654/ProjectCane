@@ -115,7 +115,6 @@ void GL::TerminateGL()
 
 	glScreenShader.Delete();
 	glGlobShader.Delete();
-	glCollisionShader.Delete();
 	ImGui_ImplOpenGL3_Shutdown();
 	ImGui_ImplGlfw_Shutdown();
 	ImGui::DestroyContext();
@@ -148,5 +147,7 @@ void FrameBufferSizeCallBack(GLFWwindow* window, int width, int height)
 	g_gl.height = height;
 
 	if (g_pcm != nullptr)
-		RecalcCmFrustrum(g_pcm);
+		RecalcCm(g_pcm);
 }
+
+GL g_gl;

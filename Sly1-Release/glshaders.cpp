@@ -135,3 +135,6 @@ std::string get_file_contents(const char* filename)
 
 	throw(errno);
 }
+
+GLSHADER glScreenShader;
+GLSHADER glGlobShader;

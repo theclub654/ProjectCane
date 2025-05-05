@@ -1,6 +1,39 @@
 #include "glob.h"
 
-std::vector <SHD> g_ashd;
+void InitGlslUniforms()
+{
+    glslNumLights = glGetUniformLocation(glGlobShader.ID, "numLights");
+    glslmatWorldToClip = glGetUniformLocation(glGlobShader.ID, "matWorldToClip");
+    glslCameraPos = glGetUniformLocation(glGlobShader.ID, "cameraPos");
+
+    glslLsmShadow = glGetUniformLocation(glGlobShader.ID, "lsm.uShadow");
+    glslLsmDiffuse = glGetUniformLocation(glGlobShader.ID, "lsm.uMidtone");
+
+    glslFogType = glGetUniformLocation(glGlobShader.ID, "fogType");
+    glslFogNear = glGetUniformLocation(glGlobShader.ID, "fogNear");
+    glslFogFar = glGetUniformLocation(glGlobShader.ID, "fogFar");
+    glslFogMax = glGetUniformLocation(glGlobShader.ID, "fogMax");
+    glslFogColor = glGetUniformLocation(glGlobShader.ID, "fogColor");
+
+    glslRgbaCel = glGetUniformLocation(glGlobShader.ID, "rgbaCel");
+
+    glslModel = glGetUniformLocation(glGlobShader.ID, "model");
+    glslUFog = glGetUniformLocation(glGlobShader.ID, "uFog");
+    glslUAlpha = glGetUniformLocation(glGlobShader.ID, "uAlpha");
+
+    glslRDarken = glGetUniformLocation(glGlobShader.ID, "rDarken");
+    glslRko = glGetUniformLocation(glGlobShader.ID, "rko");
+    glslusSelfIllum = glGetUniformLocation(glGlobShader.ID, "usSelfIllum");
+    glslFDynamic = glGetUniformLocation(glGlobShader.ID, "fDynamic");
+    glslPosCenter = glGetUniformLocation(glGlobShader.ID, "posCenter");
+    glslfAlphaTest = glGetUniformLocation(glGlobShader.ID, "fAlphaTest");
+
+    glslCollisionRgba = glGetUniformLocation(glGlobShader.ID, "collisionRgba");
+
+    glUniform1i(glGetUniformLocation(glGlobShader.ID, "shadowMap"), 0);
+    glUniform1i(glGetUniformLocation(glGlobShader.ID, "diffuseMap"), 1);
+    glUniform1i(glGetUniformLocation(glGlobShader.ID, "saturateMap"), 2);
+}
 
 void LoadGlobsetFromBrx(GLOBSET* pglobset, short cid, ALO* palo, CBinaryInputStream* pbis)
 {
@@ -455,3 +488,31 @@ void BuildSubGlob(SUBGLOB *psubglob, SHD *pshd, std::vector <glm::vec3> &positio
     glVertexAttribPointer(3, 2, GL_FLOAT, GL_FALSE, sizeof(VERTICE), (void*)offsetof(VERTICE, uv));
     glEnableVertexAttribArray(3);
 }
+
+int  g_fogType = 1;
+bool g_fRenderModels = true;
+bool g_fRenderCollision = false;
+bool g_fRenderCelBorders = true;
+bool g_fBsp = false;
+
+GLuint glslNumLights = 0;
+GLuint glslmatWorldToClip = 0;
+GLuint glslCameraPos = 0;
+GLuint glslFogType = 0;
+GLuint glslFogNear = 0;
+GLuint glslFogFar = 0;
+GLuint glslFogMax = 0;
+GLuint glslFogColor = 0;
+GLuint glslLsmShadow = 0;
+GLuint glslLsmDiffuse = 0;
+GLuint glslRgbaCel = 0;
+GLuint glslModel = 0;
+GLuint glslUFog = 0;
+GLuint glslUAlpha = 0;
+GLuint glslRDarken = 0;
+GLuint glslRko = 0;
+GLuint glslusSelfIllum = 0;
+GLuint glslFDynamic = 0;
+GLuint glslPosCenter = 0;
+GLuint glslfAlphaTest = 0;
+GLuint glslCollisionRgba = 0;

@@ -132,3 +132,5 @@ int FIsDlEmpty(DL* pdl)
 	else
 		return 0;
 }
+
+DLI* s_pdliFirst = nullptr;

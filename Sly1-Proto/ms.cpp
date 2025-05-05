@@ -17,19 +17,20 @@ void RenderMsGlobset(MS *pms, CM *pcm, RO *pro)
 
 	glm::mat4 baseModelMatrix{};
 	LoadMatrixFromPosRot(pms->xf.posWorld, pms->xf.matWorld, baseModelMatrix);
-	rpl.ro.modelmatrix = baseModelMatrix;
+
+	rpl.ro.model = baseModelMatrix;
 
 	for (int i = 0; i < pms->globset.aglob.size(); ++i) 
 	{
-		auto& glob = pms->globset.aglob[i];
-		auto& globi = pms->globset.aglobi[i];
-		
 		if (g_fBsp != 0)
 		{
-			if ((globi.grfzon & pcm->grfzon) != pcm->grfzon)
+			if ((pms->globset.aglobi[i].grfzon & pcm->grfzon) != pcm->grfzon)
 				continue;
 		}
-		
+
+		auto& glob = pms->globset.aglob[i];
+		auto& globi = pms->globset.aglobi[i];
+
 		glm::vec3 posCenterWorld = glm::vec3(baseModelMatrix * glm::vec4(glob.posCenter, 1.0f));
 
 		if (!SphereInFrustum(pcm->frustum, posCenterWorld, glob.sRadius))
@@ -55,9 +56,7 @@ void RenderMsGlobset(MS *pms, CM *pcm, RO *pro)
 			}
 
 			rpl.ro.fDynamic = glob.fDynamic;
-			rpl.z = glob.gZOrder;
-			/*if (rpl.z == 3.402823e+38)
-				rpl.z = glm::length(rpl.ro.uAlpha);*/
+
 			rpl.ro.uFog = glob.uFog;
 			rpl.posCenter = glob.posCenter;
 			rpl.ro.grfglob = glob.grfglob;
@@ -77,17 +76,18 @@ void RenderMsGlobset(MS *pms, CM *pcm, RO *pro)
 					case RP_CutoutAfterProjVolume:
 					rpl.rp = RP_Translucent;
 					break;
-					case RP_CelBorder:
-					case RP_CelBorderAfterProjVolume:
-					rpl.rp = RP_TranslucentCelBorder;
 				}
-
 			}
 
-			if (glob.pdmat != nullptr)
-				rpl.ro.modelmatrix = baseModelMatrix * *glob.pdmat;
+			if (rpl.rp == RP_Background)
+				rpl.z = glob.gZOrder;
 			else
-				rpl.ro.modelmatrix = baseModelMatrix;
+				rpl.z = glm::length2(pcm->pos - glob.posCenter);
+
+			if (glob.pdmat != nullptr)
+				rpl.ro.model = baseModelMatrix * *glob.pdmat;
+			else
+				rpl.ro.model = baseModelMatrix;
 
 			/*if (glob.rtck != RTCK_None)
 				AdjustAloRtckMat(pms, pcm, glob.rtck, &pms->xf.posWorld, rpl.ro.modelmatrix);*/

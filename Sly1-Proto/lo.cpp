@@ -227,3 +227,5 @@ void DeleteLo(LO* plo)
 {
 	delete plo;
 }
+
+std::vector <LO*> allWorldObjs;

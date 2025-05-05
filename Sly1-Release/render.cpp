@@ -216,20 +216,19 @@ void DrawSw(SW* psw, CM* pcm)
 
 	PrepareSwLights(psw, pcm);
 
-	glUniformMatrix4fv(glGetUniformLocation(glGlobShader.ID, "proj"), 1, GL_FALSE, glm::value_ptr(pcm->matProj));
-	glUniformMatrix4fv(glGetUniformLocation(glGlobShader.ID, "view"), 1, GL_FALSE, glm::value_ptr(pcm->lookAt));
-	glUniform3fv(glGetUniformLocation(glGlobShader.ID, "cameraPos"), 1, glm::value_ptr(pcm->pos));
+	glUniformMatrix4fv(glslmatWorldToClip, 1, GL_FALSE, glm::value_ptr(pcm->matWorldToClip));
+	glUniform3fv(glslCameraPos, 1, glm::value_ptr(pcm->pos));
 
-	glUniform1f(glGetUniformLocation(glGlobShader.ID, "lsm.uShadow"), g_psw->lsmDefault.uShadow);
-	glUniform1f(glGetUniformLocation(glGlobShader.ID, "lsm.uMidtone"), g_psw->lsmDefault.uMidtone);
+	glUniform1f(glslLsmShadow, g_psw->lsmDefault.uShadow);
+	glUniform1f(glslLsmDiffuse, g_psw->lsmDefault.uMidtone);
 
-	glUniform1i(glGetUniformLocation(glGlobShader.ID, "fogType"), g_fogType);
-	glUniform1f(glGetUniformLocation(glGlobShader.ID, "fogNear"), pcm->sNearFog);
-	glUniform1f(glGetUniformLocation(glGlobShader.ID, "fogFar"), pcm->sFarFog);
-	glUniform1f(glGetUniformLocation(glGlobShader.ID, "fogMax"), pcm->uFogMax);
-	glUniform4fv(glGetUniformLocation(glGlobShader.ID, "fogcolor"), 1, glm::value_ptr(pcm->rgbaFog));
+	glUniform1i(glslFogType, g_fogType);
+	glUniform1f(glslFogNear, pcm->sNearFog);
+	glUniform1f(glslFogFar, pcm->sFarFog);
+	glUniform1f(glslFogMax, pcm->uFogMax);
+	glUniform4fv(glslFogColor, 1, glm::value_ptr(pcm->rgbaFog));
 
-	glUniform4fv(glGetUniformLocation(glGlobShader.ID, "rgbaCel"), 1, glm::value_ptr(g_rgbaCel));
+	glUniform4fv(glslRgbaCel, 1, glm::value_ptr(g_rgbaCel));
 
 	for (int i = 0; i < numRo; i++)
 		renderBuffer[i].PFNDRAW(&renderBuffer[i]);

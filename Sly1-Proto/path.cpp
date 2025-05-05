@@ -93,7 +93,7 @@ void RenderPathzone(PATHZONE* ppathzone, CM* pcm)
 
     rpl.PFNDRAW = DrawPathzone;
 
-    rpl.ro.modelmatrix = glm::identity <glm::mat4>();
+    rpl.ro.model = glm::identity <glm::mat4>();
 
     rpl.ro.VAO = &ppathzone->VAO;
     rpl.rp = RP_Opaque;
@@ -105,7 +105,7 @@ void RenderPathzone(PATHZONE* ppathzone, CM* pcm)
 void DrawPathzone(RPL* prpl)
 {
     glUniform1i(glGetUniformLocation(glGlobShader.ID, "rko"), 4);
-    glUniformMatrix4fv(glGetUniformLocation(glGlobShader.ID, "model"), 1, GL_FALSE, glm::value_ptr(prpl->ro.modelmatrix));
+    glUniformMatrix4fv(glGetUniformLocation(glGlobShader.ID, "model"), 1, GL_FALSE, glm::value_ptr(prpl->ro.model));
 
     glBindVertexArray(*prpl->ro.VAO);
     //glDrawArrays(GL_LINE_STRIP, 0, prpl->ro.cvtx);

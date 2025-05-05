@@ -36,7 +36,7 @@ void InitCm(CM* pcm)
 	pcm->yaw = -90;
 	pcm->firstClick = true;
 
-	RecalcCmFrustrum(pcm);
+	RecalcCm(pcm);
 	pcm->cpman.pvtcpman = &g_vtcpman;
 	InitCplcy(&pcm->cpman, pcm);
 	(pcm->cplook).pvtcplook = &g_vtcplook;
@@ -146,7 +146,7 @@ void CloneCm(CM* pcm, CM* pcmBase)
 	pcm->cptn = pcmBase->cptn;
 }
 
-void RecalcCmFrustrum(CM* pcm)
+void RecalcCm(CM* pcm)
 {
 	pcm->rMRDAdjust = pcm->rMRD * (1.0 / pcm->radFOV);
 
@@ -263,7 +263,7 @@ void* GetCmFov(CM* pcm)
 void SetCmFov(CM* pcm, float radFOV)
 {
 	pcm->radFOV = radFOV;
-	RecalcCmFrustrum(pcm);
+	RecalcCm(pcm);
 }
 
 void* GetCmNearClip(CM* pcm)
@@ -274,7 +274,7 @@ void* GetCmNearClip(CM* pcm)
 void SetCmNearClip(CM* pcm, float sNearClip)
 {
 	pcm->sNearClip = sNearClip;
-	RecalcCmFrustrum(pcm);
+	RecalcCm(pcm);
 }
 
 void* GetCmFarClip(CM* pcm)
@@ -285,7 +285,7 @@ void* GetCmFarClip(CM* pcm)
 void SetCmFarClip(CM* pcm, float sFarClip)
 {
 	pcm->sFarClip = sFarClip;
-	RecalcCmFrustrum(pcm);
+	RecalcCm(pcm);
 }
 
 void* GetCmNearFog(CM* pcm)
@@ -296,7 +296,7 @@ void* GetCmNearFog(CM* pcm)
 void SetCmNearFog(CM* pcm, float sNearFog)
 {
 	pcm->sNearFog = sNearFog;
-	RecalcCmFrustrum(pcm);
+	RecalcCm(pcm);
 }
 
 void* GetCmFarFog(CM* pcm)
@@ -307,7 +307,7 @@ void* GetCmFarFog(CM* pcm)
 void SetCmFarFog(CM* pcm, float sFarFog)
 {
 	pcm->sFarFog = sFarFog;
-	RecalcCmFrustrum(pcm);
+	RecalcCm(pcm);
 }
 
 void* GetCmUFogMax(CM* pcm)
@@ -318,7 +318,7 @@ void* GetCmUFogMax(CM* pcm)
 void SetCmUFogMax(CM* pcm, float uFogMax)
 {
 	pcm->uFogMax = uFogMax;
-	RecalcCmFrustrum(pcm);
+	RecalcCm(pcm);
 }
 
 void* GetCmRgbaFog(CM* pcm)
@@ -334,7 +334,7 @@ void SetCmRgbaFog(CM* pcm, RGBA prgbaFog)
 	float A = prgbaFog.bAlpha / 255.0;
 
 	pcm->rgbaFog = glm::vec4(R, G, B, A);
-	RecalcCmFrustrum(pcm);
+	RecalcCm(pcm);
 }
 
 void* GetCmMrdRatio(CM* pcm)
@@ -345,7 +345,7 @@ void* GetCmMrdRatio(CM* pcm)
 void SetCmMrdRatio(CM* pcm, float rMRD)
 {
 	pcm->rMRD = rMRD;
-	RecalcCmFrustrum(g_pcm);
+	RecalcCm(g_pcm);
 }
 
 void BuildLookAt(glm::vec3 &posEye, glm::vec3 &directionEye, glm::vec3 &upEye ,glm::mat4 &pmatLookAt)
@@ -408,6 +408,8 @@ void TransposeFrustrumNormals(const glm::vec3* anormalFrustrum, glm::vec4* outTr
 void UpdateCmMat4(CM* pcm)
 {
 	BuildLookAt(pcm->pos, pcm->direction, pcm->up ,pcm->lookAt);
+
+	pcm->matWorldToClip = pcm->matProj * pcm->lookAt;
 
 	ExtractFrustumPlanes(pcm->matProj * pcm->lookAt, &pcm->frustum);
 }

@@ -5,6 +5,7 @@
 // Glob is just another word for model.
 
 extern class CM* g_pcm;
+extern std::vector <SHD> g_ashd;
 
 enum TWPS 
 {
@@ -101,7 +102,7 @@ struct RO
 	SHD* pshd;
 	float unSelfIllum;
 
-	glm::mat4 modelmatrix;
+	glm::mat4 model;
 	float uFog;
 	float uAlpha;
 	int fDynamic;
@@ -304,8 +305,38 @@ struct GLOBSET // NOT DONE
 	struct SAA** apsaa;
 };
 
+// Initializes glsl uniform locations
+void InitGlslUniforms();
 // Loads 3D model data from binary file
-void LoadGlobsetFromBrx(GLOBSET* pglobset, short cid, ALO* palo, CBinaryInputStream* pbis);
+void LoadGlobsetFromBrx(GLOBSET* pglobset, short cid, ALO* palo, glm::mat3 modelMatrix,CBinaryInputStream* pbis);
 // Converts strips to tri lists and stores 3D sub model in VRAM
 void BuildSubGlob(SUBGLOB *psubglob, SHD *pshd, std::vector <glm::vec3> &positions, std::vector <glm::vec3> &normals, std::vector <glm::vec4> &colors, std::vector <glm::vec2> &texcoords, std::vector <VTXFLG> &indexes, SUBPOSEF* subposef, std::vector <glm::vec3>& aposfPoses, std::vector <glm::vec3>& anormalfPoses, std::vector <float>& agWeights);
 void BuildSubcel(GLOBSET *pglobset, SUBCEL *psubcel, int cposf, std::vector <glm::vec3> &aposf, int ctwef, std::vector <TWEF> &atwef, std::vector <SUBPOSEF> &asubposef, std::vector <glm::vec3> &aposfPoses, std::vector <float> &agWeights);
+
+extern int  g_fogType;
+extern bool g_fRenderModels;
+extern bool g_fRenderCollision;
+extern bool g_fRenderCelBorders;
+extern bool g_fBsp;
+
+extern GLuint glslNumLights;
+extern GLuint glslmatWorldToClip;
+extern GLuint glslCameraPos;
+extern GLuint glslFogType;
+extern GLuint glslFogNear;
+extern GLuint glslFogFar;
+extern GLuint glslFogMax;
+extern GLuint glslFogColor;
+extern GLuint glslLsmShadow;
+extern GLuint glslLsmDiffuse;
+extern GLuint glslRgbaCel;
+extern GLuint glslModel;
+extern GLuint glslUFog;
+extern GLuint glslUAlpha;
+extern GLuint glslRDarken;
+extern GLuint glslRko;
+extern GLuint glslusSelfIllum;
+extern GLuint glslFDynamic;
+extern GLuint glslPosCenter;
+extern GLuint glslfAlphaTest;
+extern GLuint glslCollisionRgba;
