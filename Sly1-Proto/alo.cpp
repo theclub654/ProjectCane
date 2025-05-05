@@ -1533,10 +1533,19 @@ void RenderAloGlobset(ALO* palo, CM* pcm, RO* pro)
 				}
 			}
 
-			if (rpl.rp == RP_Background)
+			switch (rpl.rp)
+			{
+				case RP_Background:
 				rpl.z = glob.gZOrder;
-			else
+				break;
+
+				case RP_Cutout:
+				case RP_CutoutAfterProjVolume:
+				case RP_Translucent:
 				rpl.z = glm::length(pcm->pos - glob.posCenter);
+				break;
+			}
+
 
 			if (glob.pdmat != nullptr) 
 				rpl.ro.model = baseModelMatrix * *glob.pdmat;
@@ -1649,10 +1658,17 @@ void DrawGlob(RPL *prpl)
 		glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP);
 		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 		glFrontFace(GL_CW);
-		glUniform1i(glslfAlphaTest, 1);
-		glDrawElements(GL_TRIANGLES, prpl->ro.cvtx, GL_UNSIGNED_SHORT, 0);
-
-		glUniform1i(glslfAlphaTest, 0);
+		if ((prpl->ro.pshd->grfshd & 2) == 0)
+		{
+			glUniform1i(glslfAlphaTest, 0);
+			glDrawElements(GL_TRIANGLES, prpl->ro.cvtx, GL_UNSIGNED_SHORT, 0);
+		}
+		else
+		{
+			glUniform1i(glslfAlphaTest, 1);
+			glDrawElements(GL_TRIANGLES, prpl->ro.cvtx, GL_UNSIGNED_SHORT, 0);
+			glUniform1i(glslfAlphaTest, 0);
+		}
 		glDisable(GL_BLEND);
 		glDisable(GL_STENCIL_TEST);
 		glDepthFunc(GL_LESS);

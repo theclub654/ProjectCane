@@ -81,10 +81,18 @@ void RenderMsGlobset(MS* pms, CM* pcm, RO* pro)
 
 			}
 
-			if (rpl.rp == RP_Background)
+			switch (rpl.rp)
+			{
+				case RP_Background:
 				rpl.z = glob.gZOrder;
-			else
-				rpl.z = glm::distance(pcm->pos, glob.posCenter);
+				break;
+
+				case RP_Cutout:
+				case RP_CutoutAfterProjVolume:
+				case RP_Translucent:
+				rpl.z = glm::length(pcm->pos - glob.posCenter);
+				break;
+			}
 
 			if (glob.pdmat != nullptr)
 				rpl.ro.model = baseModelMatrix * *glob.pdmat;
