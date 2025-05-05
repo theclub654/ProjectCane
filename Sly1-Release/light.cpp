@@ -499,7 +499,7 @@ void AllocateLightBlkList()
 
 void PrepareSwLights(SW* psw, CM* pcm)
 {
-	LIGHT* plight = psw->dlLight.plightFirst; 
+	LIGHT* plight = psw->dlLight.plightFirst;
 
 	while (plight != nullptr)
 	{
@@ -546,6 +546,11 @@ void PrepareSwLights(SW* psw, CM* pcm)
 			plight = plight->dleLight.plightNext;
 			break;
 		}
+
+		case LIGHTK_Frustrum:
+		case LIGHTK_Spot:
+			plight = plight->dleLight.plightNext;
+			break;
 		}
 	}
 

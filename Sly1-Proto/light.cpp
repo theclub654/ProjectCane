@@ -546,6 +546,11 @@ void PrepareSwLights(SW* psw, CM* pcm)
 				plight = plight->dleLight.plightNext;
 				break;
 			}
+
+			case LIGHTK_Frustrum:
+			case LIGHTK_Spot:
+			plight = plight->dleLight.plightNext;
+			break;
 		}
 	}
 
