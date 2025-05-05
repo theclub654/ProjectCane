@@ -1438,7 +1438,7 @@ void RenderAloGlobset(ALO* palo, CM* pcm, RO* pro)
 	glm::mat4 baseModelMatrix = rpl.ro.model;
 
 	float baseAlpha = rpl.ro.uAlpha;
-
+	
 	for (int i = 0; i < palo->globset.aglob.size(); ++i)
 	{
 		if (g_fBsp != 0)
@@ -1536,7 +1536,7 @@ void RenderAloGlobset(ALO* palo, CM* pcm, RO* pro)
 			if (rpl.rp == RP_Background)
 				rpl.z = glob.gZOrder;
 			else
-				rpl.z = glm::length2(pcm->pos - glob.posCenter);
+				rpl.z = glm::length(pcm->pos - glob.posCenter);
 
 			if (glob.pdmat != nullptr) 
 				rpl.ro.model = baseModelMatrix * *glob.pdmat;
@@ -1610,10 +1610,14 @@ void DrawGlob(RPL *prpl)
 	switch (prpl->rp)
 	{
 		case RP_Background:
+		glUniform1i(glslfAlphaTest, 1);
+		glDrawElements(GL_TRIANGLES, prpl->ro.cvtx, GL_UNSIGNED_SHORT, 0);
+
 		glEnable(GL_BLEND);
 		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
 		glDepthMask(false);
+		glUniform1i(glslfAlphaTest, 0);
 		glDrawElements(GL_TRIANGLES, prpl->ro.cvtx, GL_UNSIGNED_SHORT, 0);
 
 		glDisable(GL_BLEND);
@@ -1628,7 +1632,7 @@ void DrawGlob(RPL *prpl)
 			glBlendFunc(GL_SRC_ALPHA, GL_ONE);
 		glDepthMask(false);
 		glEnable(GL_STENCIL_TEST);
-		glStencilFunc(GL_ALWAYS, 128, 128);
+		glStencilFunc(GL_ALWAYS, 255, 255);
 		glStencilOp(GL_NONE, GL_REPLACE, GL_NONE);
 		glColorMask(0, 0, 0, 0);
 		glFrontFace(GL_CW);
@@ -1641,12 +1645,14 @@ void DrawGlob(RPL *prpl)
 
 		glDepthMask(true);
 		glDepthFunc(GL_GREATER);
-		glStencilFunc(GL_EQUAL, 128, 128);
+		glStencilFunc(GL_EQUAL, 255, 255);
 		glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP);
 		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 		glFrontFace(GL_CW);
+		glUniform1i(glslfAlphaTest, 1);
 		glDrawElements(GL_TRIANGLES, prpl->ro.cvtx, GL_UNSIGNED_SHORT, 0);
 
+		glUniform1i(glslfAlphaTest, 0);
 		glDisable(GL_BLEND);
 		glDisable(GL_STENCIL_TEST);
 		glDepthFunc(GL_LESS);
@@ -1657,10 +1663,12 @@ void DrawGlob(RPL *prpl)
 		case RP_Cutout:
 		case RP_CutoutAfterProjVolume:
 		case RP_Translucent:
+
+		glUniform1i(glslfAlphaTest, 1);
+		glDrawElements(GL_TRIANGLES, prpl->ro.cvtx, GL_UNSIGNED_SHORT, 0);
+
 		glEnable(GL_BLEND);
 		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-		glUniform1i(glslfAlphaTest, 0);
-		glDrawElements(GL_TRIANGLES, prpl->ro.cvtx, GL_UNSIGNED_SHORT, 0);
 
 		glDepthMask(false);
 		glUniform1i(glslfAlphaTest, 0);

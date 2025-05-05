@@ -554,6 +554,7 @@ void PrepareSwLights(SW* psw, CM* pcm)
 		}
 	}
 
+
 	if (numRl != 0)
 	{
 		glBindBuffer(GL_UNIFORM_BUFFER, g_lightUbo);
@@ -561,12 +562,12 @@ void PrepareSwLights(SW* psw, CM* pcm)
 
 		// Bind UBO to binding point 0
 		glBindBufferBase(GL_UNIFORM_BUFFER, 0, g_lightUbo);
-
-		// Send numLights separately (as it's a uniform, not in the UBO)
-		glUniform1i(glslNumLights, numRl);
-		//std::cout << numRl<<"\n";
-		numRl = 0;
 	}
+
+	// Send numLights separately
+	glUniform1i(glslNumLights, numRl);
+	//std::cout << numRl<<"\n";
+	numRl = 0;
 }
 
 void DeallocateLightBlkList()

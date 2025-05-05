@@ -72,6 +72,7 @@ int main(int cphzArgs, char* aphzArgs[])
 		DeleteWorld(g_psw);
 
 	g_gl.TerminateGL();
+
 	return 0;
 }
 

@@ -30,12 +30,8 @@ int main(int cphzArgs, char* aphzArgs[])
 			SetupCm(g_pcm);
 			MarkClockTick(&g_clock);
 
-			double currentTime = glfwGetTime();
-			deltaTime = currentTime - lastFrame;
-			lastFrame = currentTime;
-
-			UpdateCpman(g_gl.window, &g_pcm->cpman, nullptr, deltaTime);
-			UpdateSw(g_psw, deltaTime);
+			UpdateCpman(g_gl.window, &g_pcm->cpman, nullptr, g_clock.dt);
+			UpdateSw(g_psw, g_clock.dt);
 
 			if (g_fRenderModels != 0)
 			{

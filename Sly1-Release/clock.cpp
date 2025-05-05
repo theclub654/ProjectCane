@@ -1,12 +1,5 @@
 #include "clock.h"
 
-uint32_t s_tickLastRaw = 0;
-uint32_t s_tickWrapCount = 0;
-std::atomic<uint32_t> Count{ 0 };
-float g_rtClockDebug = 1.0;
-float g_rtClockPowerUp = 1.0;
-float g_rtClock = 1.0;
-
 void StartupClock()
 {
     // Initialize the last raw tick count using atomic Count
@@ -87,3 +80,11 @@ void ResetClock(CLOCK* pclock, float t)
 {
     pclock->t = t;
 }
+
+CLOCK g_clock;
+uint32_t s_tickLastRaw = 0;
+uint32_t s_tickWrapCount = 0;
+std::atomic<uint32_t> Count{ 0 };
+float g_rtClockDebug = 1.0;
+float g_rtClockPowerUp = 1.0;
+float g_rtClock = 1.0;

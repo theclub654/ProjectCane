@@ -82,7 +82,7 @@ void RenderMsGlobset(MS *pms, CM *pcm, RO *pro)
 			if (rpl.rp == RP_Background)
 				rpl.z = glob.gZOrder;
 			else
-				rpl.z = glm::length2(pcm->pos - glob.posCenter);
+				rpl.z = glm::length(pcm->pos - glob.posCenter);
 
 			if (glob.pdmat != nullptr)
 				rpl.ro.model = baseModelMatrix * *glob.pdmat;

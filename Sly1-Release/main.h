@@ -8,7 +8,6 @@
 #include "debug.h"
 #include "mouse.h"
 
-void InitGlslUniforms();
 void RenderSw(SW *psw, CM *pcm);
 void RenderSwAloAll(SW* psw, CM* pcm);
 void RenderSwGlobset(SW *psw, CM *pcm);
@@ -20,8 +19,3 @@ void DeleteWorld(SW *psw);
 int  main(int cphzArgs, char* aphzArgs[]);
 // Initializing all the things needed for the game to run
 void Startup();
-
-CLOCK g_clock;
-
-float deltaTime = 0.0f;
-float lastFrame = 0.0f;

@@ -49,6 +49,7 @@ void main()
     CullGlob();
 
     FragColor = vec4(0.0);
+
     switch (rko)
     {
         case RKO_OneWay:
@@ -88,11 +89,8 @@ void DrawOneWay()
 
     FragColor.a = clamp(FragColor.a * uAlpha, 0.0, 1.0);
 
-    if (fAlphaTest == 1)
-    {
-         if (FragColor.a < 0.1)
-             discard;
-    }
+    if (fAlphaTest == 1 && FragColor.a < 0.9)
+        discard;
 }
 
 void DrawThreeWay()
@@ -109,12 +107,8 @@ void DrawThreeWay()
    
     FragColor.a = clamp(finalAlpha * uAlpha, 0.0, 1.0);
 
-    if (fAlphaTest == 1)
-    {
-         if (FragColor.a < 0.1)
-             discard;
-    }
-        
+    if (fAlphaTest == 1 && FragColor.a < 0.9)
+        discard;
 }
 
 void DrawCelBorder()
