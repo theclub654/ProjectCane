@@ -49,7 +49,6 @@ void main()
     CullGlob();
 
     FragColor = vec4(0.0);
-
     switch (rko)
     {
         case RKO_OneWay:
@@ -61,6 +60,7 @@ void main()
 
         case RKO_ThreeWay:
         DrawThreeWay();
+
         if (fogType != 0)
             ApplyFog();
         break;

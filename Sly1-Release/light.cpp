@@ -574,11 +574,8 @@ void DeallocateLightBlkList()
 	lightBlk.clear();
 	lightBlk.shrink_to_fit();
 
-	if (g_lightUbo != 0)
-	{
-		glDeleteBuffers(1, &g_lightUbo);
-		g_lightUbo = 0;
-	}
+	glDeleteBuffers(1, &g_lightUbo);
+	g_lightUbo = 0;
 
 	numRl = 0;
 }

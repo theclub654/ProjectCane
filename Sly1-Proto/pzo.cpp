@@ -127,6 +127,11 @@ void DeleteScprize(SCPRIZE *pscprize)
 	delete pscprize;
 }
 
+void StartupLifeCtr(LIFECTR* plifectr)
+{
+	plifectr->pvtlifectr = &g_vtlifectr;
+}
+
 LIFETKN* NewLifetkn()
 {
 	return new LIFETKN{};
@@ -145,6 +150,11 @@ void CloneLifetkn(LIFETKN* plifetkn, LIFETKN* plifetknBase)
 void DeleteLifetkn(LIFETKN *plifetkn)
 {
 	delete plifetkn;
+}
+
+void StartupClueCtr(CLUECTR* pcluectr)
+{
+	pcluectr->pvtcluectr = &g_vtcluectr;
 }
 
 CLUE* NewClue()
@@ -265,3 +275,6 @@ void DeleteLockg(LOCKG* plockg)
 {
 	delete plockg;
 }
+
+CLUECTR g_cluectr;
+LIFECTR g_lifectr;

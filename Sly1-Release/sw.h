@@ -167,6 +167,7 @@ LO* PloFindSwObject(SW* psw, GRFFSO grffso, OID oid, LO* ploContext);
 LO* PloFindSwNearest(SW* psw, OID oid, LO* ploContext);
 // Update all objects in SW
 void UpdateSw(SW* psw, float dt); // Gotta come back to this
+void UpdateSwObjects(SW* psw, float dt);
 void DeleteSwCollision();
 // Delete SW object
 void DeleteSw(SW* psw);
@@ -174,4 +175,4 @@ void DeleteSw(SW* psw);
 void DeleteWorld(SW* psw);
 
 // Global pointer to parent scene world object
-extern inline SW* g_psw = nullptr;
+inline SW* g_psw = nullptr;

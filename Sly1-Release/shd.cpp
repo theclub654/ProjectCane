@@ -235,14 +235,7 @@ void LoadTexturesFromBrx(CBinaryInputStream* pbis)
         case SHDK_ThreeWay:
             MakeTexture(g_ashd[i].glShadowMap, g_ashd[i].atex[0].clutIndex[0], g_ashd[i].atex[0].bmpIndex[0], csm1ClutIndices, pbis);
             MakeTexture(g_ashd[i].glDiffuseMap, g_ashd[i].atex[0].clutIndex[1], g_ashd[i].atex[0].bmpIndex[0], csm1ClutIndices, pbis);
-
-            SHD* pshd;
-            pshd = PshdFindShader(g_ashd[i].oidAltSat);
-
-            if (pshd == nullptr)
-                MakeTexture(g_ashd[i].glSaturateMap, g_ashd[i].atex[0].clutIndex[2], g_ashd[i].atex[0].bmpIndex[0], csm1ClutIndices, pbis);
-            else
-                MakeTexture(pshd->glSaturateMap, pshd->atex[0].clutIndex[2], pshd->atex[0].bmpIndex[0], csm1ClutIndices, pbis);
+            MakeTexture(g_ashd[i].glSaturateMap, g_ashd[i].atex[0].clutIndex[2], g_ashd[i].atex[0].bmpIndex[0], csm1ClutIndices, pbis);
 
             break;
 

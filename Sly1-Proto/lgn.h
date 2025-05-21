@@ -12,6 +12,13 @@ enum LGNS
     LGNS_Max = 4
 };
 
+struct LGNR : public BLOT
+{
+    glm::vec3 vScreen;
+    glm::vec3 posScreen;
+    struct TARGET* ptargetCur;
+};
+
 class LGN : public PO
 {
 	public:
@@ -63,6 +70,9 @@ class SWP : public BREAK
         struct EXPL* pexplCrash;
 };
 
+void StartupLgnr(LGNR* plgnr);
+void DrawLgnr(LGNR* plgnr);
+
 LGN* NewLgn();
 void InitLgn(LGN* plgn);
 int  GetLgnSize();
@@ -81,3 +91,5 @@ void InitSwp(SWP* pswp);
 int  GetSwpSize();
 void CloneSwp(SWP* pswp, SWP* pswpBase);
 void DeleteSwp(SWP* pswp);
+
+extern LGNR g_lgnr;

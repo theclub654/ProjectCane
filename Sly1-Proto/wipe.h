@@ -30,3 +30,7 @@ struct WIPE
     TRANS transButton;
     WIPEK wipekButton;
 };
+
+void InitWipe(WIPE *pwipe);
+
+extern WIPE g_wipe;

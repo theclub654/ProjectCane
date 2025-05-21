@@ -105,31 +105,24 @@ void BuildOrthonormalMatrixZ(glm::vec3 &pvecX, glm::vec3 &pvecZ, glm::mat4 &pmat
 
 void BuildRotateVectorsMatrix(const glm::vec3& vec1, const glm::vec3& vec2, glm::mat3& outMatrix)
 {
-	glm::vec3 v1 = glm::normalize(vec1);
-	glm::vec3 v2 = glm::normalize(vec2);
+	glm::vec3 fwd = glm::normalize(vec1); // Forward direction (toward the camera)
+	glm::vec3 right = glm::cross(vec2, fwd); // Right vector
 
-	float cosAngle = glm::clamp(glm::dot(v1, v2), -1.0f, 1.0f);
-	float angle = std::acos(cosAngle);
-
-	glm::vec3 axis = glm::cross(v1, v2);
-	float axisLenSq = glm::length2(axis);
-
-	// Handle case where vectors are parallel or nearly parallel
-	if (axisLenSq < 1e-8f)
-	{
-		// Try a fallback axis perpendicular to v1
-		axis = glm::cross(v1, glm::vec3(1.0f, 0.0f, 0.0f));
-		if (glm::length2(axis) < 1e-8f)
-			axis = glm::cross(v1, glm::vec3(0.0f, 1.0f, 0.0f));
-
-		axis = glm::normalize(axis);
-	}
-	else
-	{
-		axis = glm::normalize(axis);
+	if (glm::length2(right) < 0.0001f) {
+		// If forward and up are nearly parallel, use a fallback right vector
+		right = glm::cross(glm::vec3(1.0f, 0.0f, 0.0f), fwd);
+		if (glm::length2(right) < 0.0001f) {
+			right = glm::cross(glm::vec3(0.0f, 1.0f, 0.0f), fwd);
+		}
 	}
 
-	LoadRotateMatrixRad(angle, axis, outMatrix);
+	right = glm::normalize(right); // Normalize the right vector
+	glm::vec3 up = glm::normalize(glm::cross(fwd, right)); // Recalculate up vector to maintain orthogonality
+
+	// Build the rotation matrix (right, up, forward)
+	outMatrix[0] = right;
+	outMatrix[1] = up;
+	outMatrix[2] = -fwd; // Negative because the object should face the camera
 }
 
 void LoadRotateMatrixRad(float rad, glm::vec3& pnormal, glm::mat3& pmat)
@@ -153,3 +146,7 @@ void LoadRotateMatrixRad(float rad, glm::vec3& pnormal, glm::mat3& pmat)
 	// Rodrigues' rotation formula
 	pmat = oneMinusC * outer + c * glm::mat3(1.0f) + s * crossMat;
 }
+
+glm::vec3 g_normalX = glm::vec3(1.0f, 0.0f, 0.0f);
+glm::vec3 g_normalY = glm::vec3(0.0f, 1.0f, 0.0f);
+glm::vec3 g_normalZ = glm::vec3(0.0f, 0.0f, 1.0f);

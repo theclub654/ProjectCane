@@ -126,7 +126,7 @@ void LoadGlobsetFromBrx(GLOBSET *pglobset, short cid ,ALO *palo, glm::mat3 model
         {
             pglobset->aglob[i].sMRD = pbis->F32Read();
 
-            if (pglobset->aglob[i].sMRD == FLT_MAX)
+            if (pglobset->aglob[i].sMRD == 3.402823e+38)
                 pglobset->aglob[i].sMRD = 1e+10;
         }
         
@@ -134,7 +134,7 @@ void LoadGlobsetFromBrx(GLOBSET *pglobset, short cid ,ALO *palo, glm::mat3 model
         {
             float sCelBorderMRD = pbis->F32Read();
 
-            if (sCelBorderMRD == FLT_MAX)
+            if (sCelBorderMRD == 3.402823e+38)
                 pglobset->aglob[i].sCelBorderMRD = 2000.0;
             else
                 pglobset->aglob[i].sCelBorderMRD = sCelBorderMRD;

@@ -2,6 +2,7 @@
 #include "lo.h"
 #include "difficulty.h"
 #include "cm.h"
+#include "ui.h"
 
 struct LSM
 {
@@ -174,5 +175,5 @@ void DeleteSw(SW* psw);
 // Deletes all world data from memory
 void DeleteWorld(SW* psw);
 
-// Global pointer to parent scene world object
-extern inline SW *g_psw = nullptr;
+// Global pointer to scene world object
+inline SW *g_psw = nullptr;

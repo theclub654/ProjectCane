@@ -105,6 +105,8 @@ class LO : public BASIC
         struct CFrame* pframe;
         std::shared_ptr <PXR> ppxr;
 		uint64_t dtickPerf;
+        int fHit;
+        int numProxy;
 };
 
 // Creates a new local object

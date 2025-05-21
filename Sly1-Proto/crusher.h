@@ -14,6 +14,11 @@ class CRFODB :public CRFOD
 		int cpoint;
 };
 
+struct CRUSHERCTR : public CTR
+{
+
+};
+
 class CRBRAIN : public ALO
 {
 	public:
@@ -26,6 +31,9 @@ class CRFODK : public CRFOD
 {
 	public:
 };
+
+void StartupCrusherCtr(CRUSHERCTR* pcrusherctr);
+float DtVisibleCrusherctr(CRUSHERCTR* pcrusherctr);
 
 CRFODB*NewCrfodb();
 void InitCrfodb(CRFODB *pcrfodb);
@@ -51,3 +59,5 @@ void InitCrbrain(CRBRAIN* pcrbrain);
 int  GetCrbrainSize();
 void CloneCrbrain(CRBRAIN* pcrbrain, CRBRAIN* pcrbrainBase);
 void DeleteCrbrain(CRBRAIN* pcrbrain);
+
+extern CRUSHERCTR g_crusherctr;

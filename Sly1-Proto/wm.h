@@ -34,6 +34,7 @@ enum WORLDLEVEL
     WORLDLEVEL_Boss = 8,
     WORLDLEVEL_Max = 9
 };
+
 struct WMW 
 {
     struct ASEG* pasegWarp;
@@ -48,6 +49,13 @@ struct WMW
     float swDot;
 };
 
+struct WMC : public BLOT
+{
+    struct WM *pwm;
+    float uWarp;
+    float uWarpTarget;
+};
+
 class WM : public ALO
 {
 	public:
@@ -56,10 +64,10 @@ class WM : public ALO
         WORLDLEVEL worldlevelCur;
         WORLDLEVEL worldlevelGoal;
         WMS wmsActive;
-        struct ASEG* pasegOpen;
-        struct ASEG* pasegClose;
-        struct ASEGA* pasegaOpenClose;
-        struct ASEGA* pasegaMove;
+        struct ASEG *pasegOpen;
+        struct ASEG *pasegClose;
+        struct ASEGA *pasegaOpenClose;
+        struct ASEGA *pasegaMove;
         WMD wmdMoveFrom;
         WORLDLEVEL worldlevelMoveFrom;
         WMW awmw[9];
@@ -75,3 +83,11 @@ void CloneWm(WM* pwm, WM* pwmBase);
 void BindWm(WM* pwm);
 void RenderWmAll(WM* pwm, CM* pcm, RO* pro);
 void DeleteWm(WM* pwm);
+
+void StartupWmc(WMC* pwmc);
+void PostWmcLoad(WMC* pwmc);
+void OnWmcActive(WMC* pwmc, int fActive);
+void UpdateWmcActive(WMC* pwmc, JOY* pjoy);
+void DrawWmc(WMC* pwmc);
+
+extern WMC g_wmc;

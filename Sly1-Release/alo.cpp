@@ -74,7 +74,7 @@ void OnAloAdd(ALO* palo)
 	ALO* parent = palo->paloParent;
 	SW* psw = palo->psw;
 
-	if (!parent) {
+	if (parent == nullptr) {
 		palo->paloRoot = palo;
 
 		if (palo->fRealClock == 0) {
@@ -82,7 +82,7 @@ void OnAloAdd(ALO* palo)
 			palo->bitfield.fBusy = true;
 			AppendDlEntry(&psw->dlBusy, palo);
 
-			if (palo->pvtlo->grfcid & 0x2U) {
+			if ((palo->pvtlo->grfcid & 0x2U) != 0) {
 				AppendDlEntry(&psw->dlBusySo, palo);
 			}
 
@@ -144,16 +144,16 @@ void OnAloRemove(ALO* palo)
 
 	SW* psw = palo->psw;
 
-	OnLoRemove(static_cast<LO*>(palo));
+	OnLoRemove(palo);
 
-	if (!palo->paloParent) {
+	if (palo->paloParent == nullptr) {
 		if (palo->fRealClock != 0) {
 			RemoveDlEntry(&psw->dlMRDRealClock, palo);
 		}
 		else {
 			RemoveDlEntry(&psw->dlMRD, palo);
 
-			if (palo->bitfield.fBusy) {
+			if (palo->bitfield.fBusy == true) {
 				palo->bitfield.fBusy = false;
 				RemoveDlEntry(&psw->dlBusy, palo);
 
@@ -485,6 +485,48 @@ void UpdateAloXfWorldHierarchy(ALO* palo)
 	}
 }
 
+void UpdateAloHierarchy(ALO* palo, float dt)
+{
+	if (palo->pvtalo->pfnUpdateAlo != nullptr)
+		palo->pvtalo->pfnUpdateAlo(palo, dt);
+
+	int isInSw = FIsLoInWorld(palo);
+
+	if (isInSw == true)
+	{
+		DLI dlBusyWalker;
+
+		dlBusyWalker.m_pdl = &palo->dlChild;        // Point to the actual DL list
+		dlBusyWalker.m_ibDle = palo->dlChild.ibDle; // Offset to the 'next' pointer inside each object
+		dlBusyWalker.m_pdliNext = s_pdliFirst;      // Link this walker into a global list of DLI walkers
+
+		// Get the first object (LO) in the busy list
+		LO* currentObject = palo->dlChild.ploFirst;
+
+		// Set up the pointer to the "next" object in the list,
+		// using offset-based pointer arithmetic from current object
+		dlBusyWalker.m_ppv = reinterpret_cast<void**>(reinterpret_cast<uintptr_t>(currentObject) + dlBusyWalker.m_ibDle);
+
+		// Save the current DLI walker globally
+		s_pdliFirst = &dlBusyWalker;
+
+		// Loop over every object in the busy list
+		while (currentObject != nullptr)
+		{
+			// Call the update function on the current object child
+			// This updates the object and all of its attached ALO children
+			if ((currentObject->pvtalo->grfcid & 1U) != 0)
+				UpdateAloHierarchy(reinterpret_cast<ALO*>(currentObject), dt);
+
+			// Move to the next object in the list using the stored offset
+			currentObject = reinterpret_cast<LO*>(*dlBusyWalker.m_ppv);
+
+			// If there is a next object, update the walker’s pointer to its next link
+			dlBusyWalker.m_ppv = reinterpret_cast<void**>(reinterpret_cast<uintptr_t>(currentObject) + dlBusyWalker.m_ibDle);
+		}
+	}
+}
+
 void TranslateAloToPos(ALO* palo, glm::vec3& ppos)
 {
 	palo->xf.pos = ppos;
@@ -499,14 +541,14 @@ void ConvertAloPos(ALO* paloFrom, ALO* paloTo, glm::vec3& pposFrom, glm::vec3& p
 	// Transform local to world space if `paloFrom` is specified and different from `paloTo`
 	if (paloFrom != paloTo)
 	{
-		if (paloFrom)
+		if (paloFrom != nullptr)
 		{
 			worldPos = paloFrom->xf.matWorld * (pposFrom)+paloFrom->xf.posWorld;
 			pposFrom = worldPos;
 		}
 
 		// Convert world position to local position relative to `paloTo`
-		if (paloTo)
+		if (paloTo != nullptr)
 		{
 			glm::vec3 localPos = pposFrom - paloTo->xf.posWorld;
 			glm::mat3 invRot = glm::transpose(paloTo->xf.matWorld); // Inverse of rotation
@@ -1297,6 +1339,11 @@ void SnipAloObjects(ALO* palo, int csnip, SNIP* asnip)
 				SubscribeLoObject(plo, palo);
 		}
 	}
+}
+
+void PostAloLoad(ALO* palo)
+{
+
 }
 
 void UpdateAlo(ALO* palo, float dt)

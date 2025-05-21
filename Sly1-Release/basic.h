@@ -224,7 +224,7 @@ struct VTALO
     void (*pfnHandleAloMessage) = nullptr;
     void (*pfnSendLoMessage)(LO*, MSGID, void*) = SendLoMessage;
     void (*pfnBindAlo)(ALO*) = BindAlo;
-    void (*pfnPostAloLoad) = nullptr;
+    void (*pfnPostAloLoad) (ALO*) = PostAloLoad;
     void (*pfnUpdateAlo)(ALO*, float) = UpdateAlo;
     void (*pfnUpdateAloXfWorld)(ALO*) = UpdateAloXfWorld;
     void (*pfnUpdateAloXfWorldHierarchy)(ALO*) = UpdateAloXfWorldHierarchy;
@@ -285,7 +285,7 @@ struct VTSO
     void (*pfnHandleAloMessage) = nullptr;
     void (*pfnSendSoMessage) = nullptr;
     void (*pfnBindAlo) (ALO*) = BindAlo;
-    void (*pfnPostAloLoad) = nullptr;
+    void (*pfnPostAloLoad) (ALO*) = PostAloLoad;
     void (*pfnUpdateSo)(SO*, float) = UpdateSo;
     void (*pfnUpdateSoXfWorld)(SO*) = UpdateSoXfWorld;
     void (*pfnUpdateSoXfWorldHierarchy)(SO*) = UpdateSoXfWorldHierarchy;
@@ -371,7 +371,7 @@ struct VTMS
     void (*pfnHandleAloMessage) = nullptr;
     void (*pfnSendSoMessage) = nullptr;
     void (*pfnBindAlo) (ALO*) = BindAlo;
-    void (*pfnPostAloLoad) = nullptr;
+    void (*pfnPostAloLoad) (ALO*) = PostAloLoad;
     void (*pfnUpdateSo) = nullptr;
     void (*pfnUpdateSoXfWorld)(SO*) = UpdateSoXfWorld;
     void (*pfnUpdateSoXfWorldHierarchy)(SO*) = UpdateSoXfWorldHierarchy;
@@ -457,7 +457,7 @@ struct VTPO
     void (*pfnHandlePoMessage) = nullptr;
     void (*pfnSendSoMessage) = nullptr;
     void (*pfnBindAlo) (ALO*) = BindAlo;
-    void (*pfnPostAloLoad) = nullptr;
+    void (*pfnPostAloLoad) (ALO*) = PostAloLoad;
     void (*pfnUpdatePo) = nullptr;
     void (*pfnUpdateSoXfWorld)(SO*) = UpdateSoXfWorld;
     void (*pfnUpdateSoXfWorldHierarchy)(SO*) = UpdateSoXfWorldHierarchy;
@@ -2769,7 +2769,7 @@ struct VTUNK0
     void (*pfnHandlePoMessage) = nullptr;
     void (*pfnSendSoMessage) = nullptr;
     void (*pfnBindAlo) (ALO*) = BindAlo;
-    void (*pfnPostAloLoad) = nullptr;
+    void (*pfnPostAloLoad) (ALO*) = PostAloLoad;
     void (*pfnUpdatePo) = nullptr;
     void (*pfnUpdateSoXfWorld)(SO*) = UpdateSoXfWorld;
     void (*pfnUpdateSoXfWorldHierarchy)(SO*) = UpdateSoXfWorldHierarchy;
@@ -2866,7 +2866,7 @@ struct VTUNK1
     void (*pfnHandlePoMessage) = nullptr;
     void (*pfnSendSoMessage) = nullptr;
     void (*pfnBindAlo) (ALO*) = BindAlo;
-    void (*pfnPostAloLoad) = nullptr;
+    void (*pfnPostAloLoad) (ALO*) = PostAloLoad;
     void (*pfnUpdatePo) = nullptr;
     void (*pfnUpdateSoXfWorld)(SO*) = UpdateSoXfWorld;
     void (*pfnUpdateSoXfWorldHierarchy)(SO*) = UpdateSoXfWorldHierarchy;
@@ -2963,7 +2963,7 @@ struct VTUNK2
     void (*pfnHandlePoMessage) = nullptr;
     void (*pfnSendSoMessage) = nullptr;
     void (*pfnBindAlo) (ALO*) = BindAlo;
-    void (*pfnPostAloLoad) = nullptr;
+    void (*pfnPostAloLoad) (ALO*) = PostAloLoad;
     void (*pfnUpdatePo) = nullptr;
     void (*pfnUpdateSoXfWorld)(SO*) = UpdateSoXfWorld;
     void (*pfnUpdateSoXfWorldHierarchy)(SO*) = UpdateSoXfWorldHierarchy;
@@ -3060,7 +3060,7 @@ struct VTRIPG
     void (*pfnHandleAloMessage) = nullptr;
     void (*pfnSendSoMessage) = nullptr;
     void (*pfnBindAlo) (ALO*) = BindAlo;
-    void (*pfnPostAloLoad) = nullptr;
+    void (*pfnPostAloLoad) (ALO*) = PostAloLoad;
     void (*pfnUpdateRipg) = nullptr;
     void (*pfnUpdateSoXfWorld)(SO*) = UpdateSoXfWorld;
     void (*pfnUpdateSoXfWorldHierarchy)(SO*) = UpdateSoXfWorldHierarchy;
@@ -3841,7 +3841,7 @@ struct VTBRKP
     void (*pfnHandleBrkpMessage) = nullptr;
     void (*pfnSendSoMessage) = nullptr;
     void (*pfnBindAlo) (ALO*) = BindAlo;
-    void (*pfnPostAloLoad) = nullptr;
+    void (*pfnPostAloLoad) (ALO*) = PostAloLoad;
     void (*pfnUpdateBrkp) = nullptr;
     void (*pfnUpdateSoXfWorld)(SO*) = UpdateSoXfWorld;
     void (*pfnUpdateSoXfWorldHierarchy)(SO*) = UpdateSoXfWorldHierarchy;
@@ -4185,7 +4185,7 @@ struct VTBONE
     void (*pfnHandleAloMessage) = nullptr;
     void (*pfnSendSoMessage) = nullptr;
     void (*pfnBindAlo) (ALO*) = BindAlo;
-    void (*pfnPostAloLoad) = nullptr;
+    void (*pfnPostAloLoad) (ALO*) = PostAloLoad;
     void (*pfnUpdateSo) = nullptr;
     void (*pfnUpdateSoXfWorld)(SO*) = UpdateSoXfWorld;
     void (*pfnUpdateSoXfWorldHierarchy)(SO*) = UpdateSoXfWorldHierarchy;
@@ -4273,7 +4273,7 @@ struct VTUNK17
     void (*pfnHandleAloMessage) = nullptr;
     void (*pfnSendSoMessage) = nullptr;
     void (*pfnBindAlo) (ALO*) = BindAlo;
-    void (*pfnPostAloLoad) = nullptr;
+    void (*pfnPostAloLoad) (ALO*) = PostAloLoad;
     void (*pfnUpdateSo)(SO*, float) = UpdateSo;
     void (*pfnUpdateSoXfWorld)(SO*) = UpdateSoXfWorld;
     void (*pfnUpdateSoXfWorldHierarchy)(SO*) = UpdateSoXfWorldHierarchy;
@@ -4715,7 +4715,7 @@ struct VTSENSOR
     void (*pfnHandleAloMessage) = nullptr;
     void (*pfnSendSoMessage) = nullptr;
     void (*pfnBindAlo) (ALO*) = BindAlo;
-    void (*pfnPostAloLoad) = nullptr;
+    void (*pfnPostAloLoad) (ALO*) = PostAloLoad;
     void (*pfnUpdateSensor) = nullptr;
     void (*pfnUpdateSoXfWorld)(SO*) = UpdateSoXfWorld;
     void (*pfnUpdateSoXfWorldHierarchy)(SO*) = UpdateSoXfWorldHierarchy;
@@ -5169,7 +5169,7 @@ struct VTIKH
     void (*pfnHandleAloMessage) = nullptr;
     void (*pfnSendSoMessage) = nullptr;
     void (*pfnBindAlo) (ALO*) = BindAlo;
-    void (*pfnPostAloLoad) = nullptr;
+    void (*pfnPostAloLoad) (ALO*) = PostAloLoad;
     void (*pfnUpdateSo) = nullptr;
     void (*pfnUpdateSoXfWorld)(SO*) = UpdateSoXfWorld;
     void (*pfnUpdateSoXfWorldHierarchy)(SO*) = UpdateSoXfWorldHierarchy;
@@ -5513,7 +5513,7 @@ struct VTHBSK
     void (*pfnHandleAloMessage) = nullptr;
     void (*pfnSendSoMessage) = nullptr;
     void (*pfnBindAlo) (ALO*) = BindAlo;
-    void (*pfnPostAloLoad) = nullptr;
+    void (*pfnPostAloLoad) (ALO*) = PostAloLoad;
     void (*pfnUpdateSo) = nullptr;
     void (*pfnUpdateSoXfWorld)(SO*) = UpdateSoXfWorld;
     void (*pfnUpdateSoXfWorldHierarchy)(SO*) = UpdateSoXfWorldHierarchy;
@@ -6806,7 +6806,7 @@ struct VTMRKV
     void (*pfnHandleAloMessage) = nullptr;
     void (*pfnSendSoMessage) = nullptr;
     void (*pfnBindAlo) (ALO*) = BindAlo;
-    void (*pfnPostAloLoad) = nullptr;
+    void (*pfnPostAloLoad) (ALO*) = PostAloLoad;
     void (*pfnUpdateSo) = nullptr;
     void (*pfnUpdateSoXfWorld)(SO*) = UpdateSoXfWorld;
     void (*pfnUpdateSoXfWorldHierarchy)(SO*) = UpdateSoXfWorldHierarchy;
@@ -6893,7 +6893,7 @@ struct VTUNK4
     void (*pfnHandleAloMessage) = nullptr;
     void (*pfnSendSoMessage) = nullptr;
     void (*pfnBindAlo) (ALO*) = BindAlo;
-    void (*pfnPostAloLoad) = nullptr;
+    void (*pfnPostAloLoad) (ALO*) = PostAloLoad;
     void (*pfnUpdateSo)(SO*, float) = UpdateSo;
     void (*pfnUpdateSoXfWorld)(SO*) = UpdateSoXfWorld;
     void (*pfnUpdateSoXfWorldHierarchy)(SO*) = UpdateSoXfWorldHierarchy;
@@ -6979,7 +6979,7 @@ struct VTUNK5
     void (*pfnHandleAloMessage) = nullptr;
     void (*pfnSendSoMessage) = nullptr;
     void (*pfnBindAlo) (ALO*) = BindAlo;
-    void (*pfnPostAloLoad) = nullptr;
+    void (*pfnPostAloLoad) (ALO*) = PostAloLoad;
     void (*pfnUpdateSo)(SO*, float) = UpdateSo;
     void (*pfnUpdateSoXfWorld)(SO*) = UpdateSoXfWorld;
     void (*pfnUpdateSoXfWorldHierarchy)(SO*) = UpdateSoXfWorldHierarchy;
@@ -7065,7 +7065,7 @@ struct VTUNK6
     void (*pfnHandleAloMessage) = nullptr;
     void (*pfnSendSoMessage) = nullptr;
     void (*pfnBindAlo) (ALO*) = BindAlo;
-    void (*pfnPostAloLoad) = nullptr;
+    void (*pfnPostAloLoad) (ALO*) = PostAloLoad;
     void (*pfnUpdateSo)(SO*, float) = UpdateSo;
     void (*pfnUpdateSoXfWorld)(SO*) = UpdateSoXfWorld;
     void (*pfnUpdateSoXfWorldHierarchy)(SO*) = UpdateSoXfWorldHierarchy;
@@ -7151,7 +7151,7 @@ struct VTBLIPG
     void (*pfnHandleAloMessage) = nullptr;
     void (*pfnSendLoMessage)(LO*, MSGID, void*) = SendLoMessage;
     void (*pfnBindAlo) (ALO*) = BindAlo;
-    void (*pfnPostAloLoad) = nullptr;
+    void (*pfnPostAloLoad) (ALO*) = PostAloLoad;
     void (*pfnUpdateBlipg) = nullptr;
     void (*pfnUpdateAloXfWorld)(ALO*) = UpdateAloXfWorld;
     void (*pfnUpdateAloXfWorldHierarchy)(ALO*) = UpdateAloXfWorldHierarchy;
@@ -7273,7 +7273,7 @@ struct VTLBONE
     void (*pfnHandleAloMessage) = nullptr;
     void (*pfnSendLoMessage)(LO*, MSGID, void*) = SendLoMessage;
     void (*pfnBindAlo) (ALO*) = BindAlo;
-    void (*pfnPostAloLoad) = nullptr;
+    void (*pfnPostAloLoad) (ALO*) = PostAloLoad;
     void (*pfnUpdateAlo)(ALO*, float) = UpdateAlo;
     void (*pfnUpdateAloXfWorld)(ALO*) = UpdateAloXfWorld;;
     void (*pfnUpdateAloXfWorldHierarchy)(ALO*) = UpdateAloXfWorldHierarchy;
@@ -7395,7 +7395,7 @@ struct VTLIGHT
     void (*pfnHandleAloMessage) = nullptr;
     void (*pfnSendLoMessage)(LO*, MSGID, void*) = SendLoMessage;
     void (*pfnBindAlo) (ALO*) = BindAlo;
-    void (*pfnPostAloLoad) = nullptr;
+    void (*pfnPostAloLoad) (ALO*) = PostAloLoad;
     void (*pfnUpdateAlo)(ALO*, float) = UpdateAlo;
     void (*pfnUpdateAloXfWorld)(ALO*) = UpdateAloXfWorld;;
     void (*pfnUpdateLightXfWorldHierarchy)(LIGHT*) = UpdateLightXfWorldHierarchy;
@@ -7456,7 +7456,7 @@ struct VTSCH
     void (*pfnHandleAloMessage) = nullptr;
     void (*pfnSendLoMessage)(LO*, MSGID, void*) = SendLoMessage;
     void (*pfnBindAlo) (ALO*) = BindAlo;
-    void (*pfnPostAloLoad) = nullptr;
+    void (*pfnPostAloLoad) (ALO*) = PostAloLoad;
     void (*pfnUpdateAlo)(ALO*, float) = UpdateAlo;
     void (*pfnUpdateAloXfWorld)(ALO*) = UpdateAloXfWorld;;
     void (*pfnUpdateAloXfWorldHierarchy)(ALO*) = UpdateAloXfWorldHierarchy;
@@ -7578,7 +7578,7 @@ struct VTPROXY
     void (*pfnHandleAloMessage) = nullptr;
     void (*pfnSendLoMessage)(LO*, MSGID, void*) = SendLoMessage;
     void (*pfnBindAlo) (ALO*) = BindAlo;
-    void (*pfnPostProxyLoad) = nullptr;
+    void (*pfnPostProxyLoad)(PROXY*) = PostProxyLoad;
     void (*pfnUpdateAlo)(ALO*, float) = UpdateAlo;
     void (*pfnUpdateAloXfWorld)(ALO*) = UpdateAloXfWorld;;
     void (*pfnUpdateAloXfWorldHierarchy)(ALO*) = UpdateAloXfWorldHierarchy;
@@ -8381,7 +8381,7 @@ struct VTFLASH
     void (*pfnHandleAloMessage) = nullptr;
     void (*pfnSendLoMessage)(LO*, MSGID, void*) = SendLoMessage;
     void (*pfnBindAlo) (ALO*) = BindAlo;
-    void (*pfnPostAloLoad) = nullptr;
+    void (*pfnPostAloLoad) (ALO*) = PostAloLoad;
     void (*pfnUpdateFlash) = nullptr;
     void (*pfnUpdateAloXfWorld)(ALO*) = UpdateAloXfWorld;;
     void (*pfnUpdateAloXfWorldHierarchy)(ALO*) = UpdateAloXfWorldHierarchy;
@@ -8442,7 +8442,7 @@ struct VTDYSH
     void (*pfnHandleAloMessage) = nullptr;
     void (*pfnSendLoMessage)(LO*, MSGID, void*) = SendLoMessage;
     void (*pfnBindAlo) (ALO*) = BindAlo;
-    void (*pfnPostAloLoad) = nullptr;
+    void (*pfnPostAloLoad) (ALO*) = PostAloLoad;
     void (*pfnUpdateAlo)(ALO*, float) = UpdateAlo;
     void (*pfnUpdateAloXfWorld)(ALO*) = UpdateAloXfWorld;;
     void (*pfnUpdateAloXfWorldHierarchy)(ALO*) = UpdateAloXfWorldHierarchy;
@@ -8686,7 +8686,7 @@ struct VTDIALOG
     void (*pfnHandleDialogMessage) = nullptr;
     void (*pfnSendLoMessage)(LO*, MSGID, void*) = SendLoMessage;
     void (*pfnBindAlo) (ALO*) = BindAlo;
-    void (*pfnPostAloLoad) = nullptr;
+    void (*pfnPostAloLoad) (ALO*) = PostAloLoad;
     void (*pfnUpdateDialog) = nullptr;
     void (*pfnUpdateAloXfWorld)(ALO*) = UpdateAloXfWorld;;
     void (*pfnUpdateAloXfWorldHierarchy)(ALO*) = UpdateAloXfWorldHierarchy;
@@ -8869,7 +8869,7 @@ struct VTUNK8
     void (*pfnHandleAloMessage) = nullptr;
     void (*pfnSendLoMessage)(LO*, MSGID, void*) = SendLoMessage;
     void (*pfnBindAlo) (ALO*) = BindAlo;
-    void (*pfnPostAloLoad) = nullptr;
+    void (*pfnPostAloLoad) (ALO*) = PostAloLoad;
     void (*pfnUpdateAlo)(ALO*, float) = UpdateAlo;
     void (*pfnUpdateAloXfWorld)(ALO*) = UpdateAloXfWorld;
     void (*pfnUpdateAloXfWorldHierarchy)(ALO*) = UpdateAloXfWorldHierarchy;
@@ -8930,7 +8930,7 @@ struct VTUNK9
     void (*pfnHandleAloMessage) = nullptr;
     void (*pfnSendLoMessage)(LO*, MSGID, void*) = SendLoMessage;
     void (*pfnBindAlo) (ALO*) = BindAlo;
-    void (*pfnPostAloLoad) = nullptr;
+    void (*pfnPostAloLoad) (ALO*) = PostAloLoad;
     void (*pfnUpdateAlo)(ALO*, float) = UpdateAlo;
     void (*pfnUpdateAloXfWorld)(ALO*) = UpdateAloXfWorld;
     void (*pfnUpdateAloXfWorldHierarchy)(ALO*) = UpdateAloXfWorldHierarchy;
@@ -8991,7 +8991,7 @@ struct VTUNK10
     void (*pfnHandleAloMessage) = nullptr;
     void (*pfnSendLoMessage)(LO*, MSGID, void*) = SendLoMessage;
     void (*pfnBindAlo) (ALO*) = BindAlo;
-    void (*pfnPostAloLoad) = nullptr;
+    void (*pfnPostAloLoad) (ALO*) = PostAloLoad;
     void (*pfnUpdateAlo)(ALO*, float) = UpdateAlo;
     void (*pfnUpdateAloXfWorld)(ALO*) = UpdateAloXfWorld;
     void (*pfnUpdateAloXfWorldHierarchy)(ALO*) = UpdateAloXfWorldHierarchy;
@@ -9053,7 +9053,7 @@ struct VTUNK11
     void (*pfnHandleAloMessage) = nullptr;
     void (*pfnSendLoMessage)(LO*, MSGID, void*) = SendLoMessage;
     void (*pfnBindAlo) (ALO*) = BindAlo;
-    void (*pfnPostAloLoad) = nullptr;
+    void (*pfnPostAloLoad) (ALO*) = PostAloLoad;
     void (*pfnUpdateAlo)(ALO*, float) = UpdateAlo;
     void (*pfnUpdateAloXfWorld)(ALO*) = UpdateAloXfWorld;
     void (*pfnUpdateAloXfWorldHierarchy)(ALO*) = UpdateAloXfWorldHierarchy;

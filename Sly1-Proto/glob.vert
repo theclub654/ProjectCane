@@ -55,17 +55,16 @@ struct LSM
 
 uniform mat4 matWorldToClip;
 uniform vec3 cameraPos;
-
 uniform mat4 model;
 
 uniform int   fogType;
 uniform float fogNear;
 uniform float fogFar;
 uniform float fogMax;
-
 uniform float uFog;
 
 uniform int rko;
+
 uniform float usSelfIllum;
 uniform int fDynamic;
 uniform vec3 posCenter;
@@ -185,8 +184,8 @@ vec4 AddDirectionLight(LIGHT dirlight)
     float highlight = diffuse * dirlight.ru.z + dirlight.du.z;
 
     // Clamp results
-    shadow    = max(shadow, 0.0);
-    midtone   = max(midtone, 0.0);
+    shadow    = max(shadow,    0.0);
+    midtone   = max(midtone,   0.0);
     highlight = max(highlight, 0.0);
 
     // Accumulate tone contributions
@@ -204,18 +203,17 @@ vec4 AddDynamicLight(vec4 dir, vec4 color, vec4 ru, vec4 du)
     
     // Compute stylized diffuse term
     float diffuse = dot(lightDir, normal);
-    diffuse += diffuse * diffuse * diffuse; // Enhance with stylized curve
+    diffuse += diffuse * diffuse * diffuse;
 
     // Compute lighting components
     float shadow    = diffuse * ru.x + du.x;
     float midtone   = diffuse * ru.y + du.y;
     float highlight = diffuse * ru.z + du.z;
 
-    highlight = max(highlight, 0.0);
-
     // Accumulate lighting contributions
-    objectShadow  += max(shadow, 0.0);
-    objectMidtone += max(midtone, 0.0);
+    objectShadow  += max(shadow,    0.0);
+    objectMidtone += max(midtone,   0.0);
+    highlight      = max(highlight, 0.0);
 
     // Return final color modulated by stylized highlight
     return color * highlight;
@@ -253,7 +251,7 @@ vec4 AddPositionLight(LIGHT pointlight)
     highlight *= attenuation;
 
     // Accumulate shared lighting values
-    objectShadow  += max(shadow, 0.0);
+    objectShadow  += max(shadow,  0.0);
     objectMidtone += max(midtone, 0.0);
 
     // Return final color contribution
@@ -314,7 +312,7 @@ void CalculateFogPS2()
 {
     // Distance to camera
     float z = length(cameraPos - worldPos.xyz);
-    float recipZ = inversesqrt(z * z + 1e-8); // more stable & fast on GPUs
+    float recipZ = inversesqrt(z * z + 1e-8);
 
     float recipNear = 1.0 / fogNear;
     float recipFar  = 1.0 / fogFar;
@@ -322,14 +320,13 @@ void CalculateFogPS2()
     float denom = max(recipNear - recipFar, 1e-6); // avoid divide by 0
     float fog = clamp((recipNear - recipZ) * (1.0 / denom), 0.0, 1.0);
 
-    // Use mix/step to avoid branching on uFog
     float fogMult = mix(fogMax, fogMax * uFog, step(0.001, uFog));
     fogIntensity = fog * fogMult;
 }
 
 void CalculateFogPS3()
 {
-    // Compute squared distance for performance, avoid sqrt unless necessary
+    // Compute squared distance for performance
     vec3  offset = cameraPos - worldPos.xyz;
     float distance2 = dot(offset, offset);
     float distanceToCamera = sqrt(distance2);
@@ -340,7 +337,6 @@ void CalculateFogPS3()
     // Linear fog factor in 0..1 range
     float fog = clamp((distanceToCamera - fogNear) * invFogRange, 0.0, 1.0);
 
-    // Branchless fog intensity scaling
     float fogMult = mix(fogMax, fogMax * uFog, step(0.001, uFog));
     fogIntensity = fog * fogMult;
 }

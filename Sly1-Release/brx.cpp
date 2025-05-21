@@ -13,37 +13,37 @@ LO* PloNew(CID cid, SW* psw, ALO* paloParent, OID oid, int isplice)
 	VTLO *pvtlo = (VTLO*)g_mpcidpvt[cid];
 
 	// Returning a address for the newly made object
-	LO* localObject = (LO*)pvtlo->pfnNewLo();
+	LO *plo = (LO*)pvtlo->pfnNewLo();
 
 	// Storing vtable with object
-	localObject->pvtlo = pvtlo;
+	plo->pvtlo = pvtlo;
 	// Storing the object ID with object
-	localObject->oid = oid;
+	plo->oid = oid;
 
 	if (cid == CID_SW)
 	{
-		InitSwDlHash((SW*)localObject);
-		localObject->paloParent = paloParent;
-		psw = (SW*)localObject;
+		InitSwDlHash((SW*)plo);
+		plo->paloParent = paloParent;
+		psw = (SW*)plo;
 	}
 
 	else
-		localObject->paloParent = paloParent;
+		plo->paloParent = paloParent;
 
 	// Storing pointer to static world object
-	localObject->psw = psw;
+	plo->psw = psw;
 
 	// Appending object to fist parent list
-    AppendDlEntry(PdlFromSwOid(localObject->psw, localObject->oid) , localObject);
+    AppendDlEntry(PdlFromSwOid(plo->psw, plo->oid) , plo);
 	
 	// Initializing local object
-	localObject->pvtlo->pfnInitLo(localObject);
+	plo->pvtlo->pfnInitLo(plo);
 	
 	// Storing pointer to object in global vector
-	allWorldObjs.push_back(localObject);
+	allWorldObjs.push_back(plo);
 
 	// Returining newly made objects
-	return (LO*)localObject;
+	return plo;
 }
 
 int IploFromStockOid(int oid)

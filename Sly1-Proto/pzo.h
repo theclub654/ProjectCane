@@ -32,6 +32,11 @@ class SPRIZE : public SO
 		int fJtDone;
 };
 
+struct CLUECTR : public CTR
+{
+
+};
+
 class CLUE : public SPRIZE
 {
 	public:
@@ -92,6 +97,11 @@ class SCPRIZE : public SPRIZE
 		int ichkCollected;
 };
 
+struct LIFECTR : public CTR
+{
+
+};
+
 class LIFETKN : public SCPRIZE
 {
 	public:
@@ -117,10 +127,14 @@ int  GetScprizeSize();
 void CloneScprize(SCPRIZE* pscprize, SCPRIZE* pscprizeBase);
 void DeleteScprize(SCPRIZE* pscprize);
 
+void StartupLifeCtr(LIFECTR* plifectr);
+
 LIFETKN*NewLifetkn();
 int  GetLifetknSize();
 void CloneLifetkn(LIFETKN *plifetkn, LIFETKN *plifetknBase);
 void DeleteLifetkn(LIFETKN *plifetkn);
+
+void StartupClueCtr(CLUECTR* pcluectr);
 
 CLUE*NewClue();
 void InitClue(CLUE* pclue);
@@ -141,3 +155,6 @@ int  GetLockgSize();
 void LoadLockgFromBrx(LOCKG* plockg, CBinaryInputStream* pbis);
 void CloneLockg(LOCKG* plockg, LOCKG* plockgBase);
 void DeleteLockg(LOCKG* plockg);
+
+extern CLUECTR g_cluectr;
+extern LIFECTR g_lifectr;

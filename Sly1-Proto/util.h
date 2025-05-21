@@ -1,5 +1,7 @@
 #pragma once
 #include <iostream>
+#include "math.h"
+
 //defines a limit
 struct LM
 {

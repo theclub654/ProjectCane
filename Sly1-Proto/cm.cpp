@@ -137,7 +137,7 @@ void RecalcCm(CM* pcm)
 {
 	pcm->rMRDAdjust = pcm->rMRD * (1.0 / g_renderDistance);
 
-	pcm->radFOV = 45.0;
+	//pcm->radFOV = 45.0;
 
 	BuildProjectionMatrix(&pcm->radFOV, &g_gl.width, &g_gl.height, &pcm->sNearClip, &pcm->sFarClip, pcm->matProj);
 	UpdateCmMat4(pcm);
@@ -383,18 +383,6 @@ void UpdateCmMat4(CM* pcm)
 	BuildLookAt(pcm->pos, pcm->direction, pcm->up ,pcm->lookAt);
 
 	pcm->matWorldToClip = pcm->matProj * pcm->lookAt;
-
-	//BuildFrustrum(pcm->lookAt, pcm->xScreenRange, pcm->yScreenRange, pcm->anormalFrustrum);
-
-	//// Transpose the 4x4 matrix manually
-	//for (int i = 0; i < 3; ++i) 
-	//{
-	//	pcm->anormalFrustrumTranspose[i] = glm::vec4(
-	//		pcm->anormalFrustrum[0][i],
-	//		pcm->anormalFrustrum[1][i],
-	//		pcm->anormalFrustrum[2][i],
-	//		pcm->anormalFrustrum[3][i]);
-	//}
 
 	ExtractFrustumPlanes(pcm->matWorldToClip, &pcm->frustum);
 }

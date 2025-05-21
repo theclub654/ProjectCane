@@ -108,6 +108,7 @@ bool SphereInFrustum(const FRUSTUM &frustum, const glm::vec3 &position, float ra
 		if (distance < -radius)
 			return false;
 	}
+
 	return true;
 }
 
@@ -149,7 +150,7 @@ void UpdateCpman(GLFWwindow* window, CPMAN* pcpman, CPDEFI* pcpdefi, float dt)
 			// Clamp pitch to avoid gimbal lock
 			pcpman->pcm->pitch = glm::clamp(pcpman->pcm->pitch, -89.0f, 89.0f);
 
-			// Update the direction vector based on yaw and pitch
+			// Convert yaw/pitch to radians
 			float yawRad = glm::radians(pcpman->pcm->yaw);
 			float pitchRad = glm::radians(pcpman->pcm->pitch);
 
@@ -160,7 +161,7 @@ void UpdateCpman(GLFWwindow* window, CPMAN* pcpman, CPDEFI* pcpdefi, float dt)
 			// Normalize the direction vector
 			pcpman->pcm->direction = glm::normalize(pcpman->pcm->direction);
 
-			// Update the right and up vectors to match the new camera orientation
+			// Update the right and up vectors
 			pcpman->pcm->right = glm::normalize(glm::cross(pcpman->pcm->direction, pcpman->pcm->worldUp));
 			pcpman->pcm->up = glm::normalize(glm::cross(pcpman->pcm->right, pcpman->pcm->direction));
 		}

@@ -2,11 +2,18 @@
 
 void UnloadShaders()
 {
-    for (int i = 0; i < g_ashd.size(); i++)
+    /*for (int i = 0; i < g_ashd.size(); i++)
     {
         glDeleteTextures(1, &g_ashd[i].glShadowMap);
         glDeleteTextures(1, &g_ashd[i].glDiffuseMap);
         glDeleteTextures(1, &g_ashd[i].glSaturateMap);
+    }*/
+
+    for (int i = 0; i < g_cbmp; i++)
+    {
+        glDeleteTextures(1, &g_abmp[i].glShadowMap);
+        glDeleteTextures(1, &g_abmp[i].glDiffuseMap);
+        glDeleteTextures(1, &g_abmp[i].glSaturateMap);
     }
 
 	g_cshd = 0;
@@ -21,14 +28,9 @@ void UnloadShaders()
 	g_cfontBrx = 0;
 	g_afontBrx.clear();
 	g_afontBrx.shrink_to_fit();
-	g_pfont.clear();
-	g_pfont.shrink_to_fit();
-	g_pfontScreenCounters.clear();
-	g_pfontScreenCounters.shrink_to_fit();
-	g_pfontJoy.clear();
-	g_pfontJoy.shrink_to_fit();
-	g_aglyff.clear();
-	g_aglyff.shrink_to_fit();
+    g_pfont = nullptr;
+    g_pfontScreenCounters = nullptr;
+    g_pfontJoy = nullptr;
 	g_grfzonShaders = 0;
 	g_cpsaa = 0;
 	g_apsaa.clear();
@@ -40,7 +42,6 @@ void LoadColorTablesFromBrx(CBinaryInputStream *pbis)
 {
 	// Loads the number of CLUT propertys from binary file
 	g_cclut = pbis->U16Read();
-
 	g_aclut.resize(g_cclut);
 
 	// Loading CLUT propertys from binary file
@@ -57,7 +58,6 @@ void LoadBitmapsFromBrx(CBinaryInputStream *pbis)
 {
 	// Loads number of texture propertys
 	g_cbmp = pbis->U16Read();
-
 	g_abmp.resize(g_cbmp);
 
 	// Loading texture propertys from binary file
@@ -79,13 +79,37 @@ void LoadFontsFromBrx(CBinaryInputStream* pbis)
 	// Loading number of fonts from file
 	g_cfontBrx = pbis->U16Read();
 	g_afontBrx.resize(g_cfontBrx);
-
+    
 	// Loading font property's from binary file
-	for (int i = 0; i < g_cfontBrx ; i++)
-		g_afontBrx[i].LoadFromBrx(pbis);
+    for (int i = 0; i < g_cfontBrx; i++)
+    {
+        g_afontBrx[i].LoadFromBrx(pbis);
+        g_afontBrx[i].m_grffont = 1 << (i & 0x1f);
+    }
+
+    if (g_cfontBrx != 0) 
+    {
+        g_pfont = &g_afontBrx[0];
+
+        if (g_cfontBrx < 2) {
+            g_pfontScreenCounters = &g_afontBrx[0];
+        }
+
+        else {
+            g_pfontScreenCounters = &g_afontBrx[1];
+        }
+
+        if (g_cfontBrx < 3) {
+            g_pfontJoy = &g_afontBrx[0];
+        }
+
+        else {
+            g_pfontJoy = &g_afontBrx[2];
+        }
+    }
 }
 
-void LoadTexFromBrx(TEX *ptex, CBinaryInputStream* pbis)
+void LoadTexFromBrx(TEX* ptex, CBinaryInputStream* pbis)
 {
 	ptex->oid    = (OID)pbis->U16Read();
 	ptex->grftex = pbis->S16Read();
@@ -93,12 +117,26 @@ void LoadTexFromBrx(TEX *ptex, CBinaryInputStream* pbis)
 	ptex->ciclut = pbis->U8Read();
     
 	ptex->bmpIndex.resize(ptex->cibmp);
-	for (int i = 0; i < ptex->cibmp; i++)
-		ptex->bmpIndex[i] = pbis->U16Read();
+    ptex->abmp.resize(ptex->cibmp);
+    for (int i = 0; i < ptex->cibmp; i++)
+    {
+        int bmpIndex = pbis->U16Read();
+
+        ptex->bmpIndex[i] = bmpIndex;
+        if (bmpIndex < g_cbmp)
+            ptex->abmp[i] = &g_abmp[bmpIndex];
+    }
 
 	ptex->clutIndex.resize(ptex->ciclut);
-	for (int i = 0; i < ptex->ciclut; i++)
-		ptex->clutIndex[i] = pbis->U16Read();
+    ptex->aclut.resize(ptex->ciclut);
+    for (int i = 0; i < ptex->ciclut; i++)
+    {
+        int clutIndex = pbis->U16Read();
+
+        ptex->clutIndex[i] = clutIndex;
+        if (clutIndex < g_cclut)
+            ptex->aclut[i] = &g_aclut[clutIndex];
+    }
 }
 
 void ConvertUserHsvToUserRgb(glm::vec3& pvecHSV, glm::vec3& pvecRGB)
@@ -207,18 +245,16 @@ void LoadShadersFromBrx(CBinaryInputStream *pbis)
 		for (int a = 0; a < g_ashd[i].ctex; a++)
 			LoadTexFromBrx(&g_ashd[i].atex[a], pbis);
 	}
-
+    
 	LoadFontsFromBrx(pbis);
+    PostBlotsLoad();
 }
 
 void LoadTexturesFromBrx(CBinaryInputStream* pbis)
 {
-    uint8_t csm1ClutIndices[256];
-
     for (uint16_t i = 0; i < 0x100; i += 0x20) 
     {
-        for (uint16_t j = i; j < i + 8; j++) 
-        {
+        for (uint16_t j = i; j < i + 8; j++) {
             csm1ClutIndices[j + 0x0]  = static_cast <uint8_t>(j) + 0x0;
             csm1ClutIndices[j + 0x8]  = static_cast <uint8_t>(j) + 0x10;
             csm1ClutIndices[j + 0x10] = static_cast <uint8_t>(j) + 0x8;
@@ -228,101 +264,95 @@ void LoadTexturesFromBrx(CBinaryInputStream* pbis)
 
     textureDataStart = pbis->file.tellg();
 
-    for (int i = 0; i < g_ashd.size(); i++)
+    for (int i = 0; i < g_cshd; i++)
     {
         switch (g_ashd[i].shdk)
         {
             case SHDK_ThreeWay:
-            MakeTexture(g_ashd[i].glShadowMap,  g_ashd[i].atex[0].clutIndex[0], g_ashd[i].atex[0].bmpIndex[0], csm1ClutIndices, pbis);
-            MakeTexture(g_ashd[i].glDiffuseMap, g_ashd[i].atex[0].clutIndex[1], g_ashd[i].atex[0].bmpIndex[0], csm1ClutIndices, pbis);
-
-            SHD *pshd;
-            pshd = PshdFindShader(g_ashd[i].oidAltSat);
-
-            if (pshd == nullptr)
-                MakeTexture(g_ashd[i].glSaturateMap, g_ashd[i].atex[0].clutIndex[2], g_ashd[i].atex[0].bmpIndex[0], csm1ClutIndices, pbis);
-            else
-                MakeTexture(pshd->glSaturateMap, pshd->atex[0].clutIndex[2], pshd->atex[0].bmpIndex[0], csm1ClutIndices, pbis);
-
+            MakeTexture(g_ashd[i].atex[0].abmp[0]->glShadowMap,   g_ashd[i].atex[0].abmp[0], g_ashd[i].atex[0].aclut[0], pbis);
+            MakeTexture(g_ashd[i].atex[0].abmp[0]->glDiffuseMap,  g_ashd[i].atex[0].abmp[0], g_ashd[i].atex[0].aclut[1], pbis);
+            MakeTexture(g_ashd[i].atex[0].abmp[0]->glSaturateMap, g_ashd[i].atex[0].abmp[0], g_ashd[i].atex[0].aclut[2], pbis);
             break;
 
             case SHDK_Prelit:
             case SHDK_Background:
             case SHDK_MurkFill:
             case SHDK_Max:
-            MakeTexture(g_ashd[i].glDiffuseMap, g_ashd[i].atex[0].clutIndex[0], g_ashd[i].atex[0].bmpIndex[0], csm1ClutIndices, pbis);
+            MakeTexture(g_ashd[i].atex[0].abmp[0]->glDiffuseMap, g_ashd[i].atex[0].abmp[0], g_ashd[i].atex[0].aclut[0], pbis);
             break;
 
             case SHDK_Shadow:
             case SHDK_SpotLight:
-            MakeTexture(g_ashd[i].glDiffuseMap, g_ashd[i].atex[0].clutIndex[0], g_ashd[i].atex[0].bmpIndex[0], csm1ClutIndices, pbis);
+            MakeTexture(g_ashd[i].atex[0].abmp[0]->glDiffuseMap, g_ashd[i].atex[0].abmp[0], g_ashd[i].atex[0].aclut[0], pbis);
             break;
 
             case SHDK_ProjectedVolume:
-            MakeTexture(g_ashd[i].glDiffuseMap, g_ashd[i].atex[0].clutIndex[0], g_ashd[i].atex[0].bmpIndex[0], csm1ClutIndices, pbis);
+            MakeTexture(g_ashd[i].atex[0].abmp[0]->glDiffuseMap, g_ashd[i].atex[0].abmp[0], g_ashd[i].atex[0].aclut[0], pbis);
             break;
 
             case SHDK_CreateTexture:
-            MakeTexture(g_ashd[i].glDiffuseMap, g_ashd[i].atex[0].clutIndex[0], g_ashd[i].atex[0].bmpIndex[0], csm1ClutIndices, pbis);
+            MakeTexture(g_ashd[i].atex[0].abmp[0]->glDiffuseMap, g_ashd[i].atex[0].abmp[0], g_ashd[i].atex[0].aclut[0], pbis);
             break;
         }
     }
+
+    for (int i = 0; i < g_cfontBrx; i++)
+        MakeTexture(g_afontBrx[i].m_pbmp->glDiffuseMap, g_afontBrx[i].m_pbmp, g_afontBrx[i].m_pclut, pbis);
 }
 
-std::vector <byte> MakeBmp(uint32_t bmpIndex, CBinaryInputStream* pbis)
+std::vector <byte> MakeBmp(BMP *pbmp, CBinaryInputStream* pbis)
 {
-    std::vector <byte> buffer;
+    std::vector <byte> bmpBuffer;
 
-    size_t bufferOff = textureDataStart + g_abmp[bmpIndex].baseOffset;
-    int width  = g_abmp[bmpIndex].bmpWidth;
-    int height = g_abmp[bmpIndex].bmpHeight;
+    size_t bufferOff = textureDataStart + pbmp->baseOffset;
+    int width  = pbmp->bmpWidth;
+    int height = pbmp->bmpHeight;
 
-    buffer.resize(width * height);
+    bmpBuffer.resize(width * height);
     pbis->file.seekg(bufferOff, SEEK_SET);
 
     for (int i = 0; i < width * height; i++)
-        buffer[i] = pbis->U8Read();
+        bmpBuffer[i] = pbis->U8Read();
 
-    return buffer;
+    return bmpBuffer;
 }
 
-std::vector <byte> MakePallete(uint32_t clutIndex, CBinaryInputStream* pbis)
+std::vector <byte> MakePallete(CLUT *pclut, CBinaryInputStream* pbis)
 {
-    std::vector <byte> buffer;
+    std::vector <byte> palleteBuffer;
 
-    size_t paletteBuffer = textureDataStart + g_aclut[clutIndex].baseOffset;
-    int numColors = g_aclut[clutIndex].numColors;
-    int colorSize = g_aclut[clutIndex].colorSize;
+    size_t paletteBuffer = textureDataStart + pclut->baseOffset;
+    int numColors = pclut->numColors;
+    int colorSize = pclut->colorSize;
 
-    buffer.resize(numColors * colorSize * 4);
+    palleteBuffer.resize(numColors * colorSize * 4);
 
     pbis->file.seekg(paletteBuffer, SEEK_SET);
 
     for (int i = 0; i < numColors * colorSize * 4; i++)
-        buffer[i] = pbis->U8Read();
+        palleteBuffer[i] = pbis->U8Read();
 
-    return buffer;
+    return palleteBuffer;
 }
 
-void MakeTexture(GLuint &textureReference, int16_t clutIndex, int16_t bmpIndex, uint8_t *csm1ClutIndices, CBinaryInputStream* pbis)
+void MakeTexture(GLuint &textureReference, BMP *pbmp, CLUT *pclut, CBinaryInputStream *pbis)
 {
-    if (clutIndex >= g_aclut.size() || bmpIndex >= g_abmp.size())
+    if (pbmp == nullptr || pclut == nullptr || textureReference != 0)
         return;
 
     std::vector <byte> image;
     std::vector <byte> pallete;
     std::vector <byte> texture;
 
-    image   = MakeBmp(bmpIndex, pbis);
-    pallete = MakePallete(clutIndex, pbis);
+    image   = MakeBmp(pbmp, pbis);
+    pallete = MakePallete(pclut, pbis);
 
-    short width  = g_abmp[bmpIndex].bmpWidth;
-    short height = g_abmp[bmpIndex].bmpHeight;
+    short width  = pbmp->bmpWidth;
+    short height = pbmp->bmpHeight;
 
     texture.resize(width * height * 4);
 
-    byte alpha;
-    if (g_aclut[clutIndex].numColors > 16)
+    if (pclut->numColors > 16)
     {
         for (int i = 0; i < width * height; i++)
         {
@@ -359,7 +389,7 @@ void MakeTexture(GLuint &textureReference, int16_t clutIndex, int16_t bmpIndex, 
 
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-    
+
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
@@ -371,11 +401,11 @@ int g_cclut;
 std::vector <CLUT> g_aclut;
 int g_grfzonShaders;
 int g_cbmp;
-int g_cshd;
 std::vector <BMP> g_abmp;
+int g_cshd;
 std::vector <SHD> g_ashd;
 int g_cpsaa;
 std::vector <SAA> g_apsaa;
 std::vector <TEX> g_atex;
-// Start of texture data
 size_t textureDataStart;
+uint8_t csm1ClutIndices[256];

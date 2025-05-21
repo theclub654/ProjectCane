@@ -1,5 +1,15 @@
 #include "lgn.h"
 
+void StartupLgnr(LGNR* plgnr)
+{
+	plgnr->pvtlgnr = &g_vtlgnr;
+}
+
+void DrawLgnr(LGNR* plgnr)
+{
+
+}
+
 LGN* NewLgn()
 {
 	return new LGN{};
@@ -163,3 +173,5 @@ void DeleteSwp(SWP *pswp)
 {
 	delete pswp;
 }
+
+LGNR g_lgnr;

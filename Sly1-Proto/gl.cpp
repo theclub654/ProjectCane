@@ -10,7 +10,6 @@ extern "C"
 
 void GL::InitGL()
 {
-
 	glfwInit();
 
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
@@ -94,6 +93,39 @@ void GL::InitGL()
 	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)(2 * sizeof(float)));
 	glEnableVertexAttribArray(1);
 
+	float quadVertices[] = {
+		// x, y,        u, v
+		 0.0f, 0.0f,	0.0f, 0.0f, // top-left
+		 1.0f, 0.0f,	1.0f, 0.0f, // top-right
+		 1.0f, 1.0f,	1.0f, 1.0f, // bottom-right
+		 0.0f, 1.0f,	0.0f, 1.0f  // bottom-left
+	};
+
+	uint16_t indices[] = {
+		0,1,2, 0,2,3
+	};
+
+	glGenVertexArrays(1, &gao);
+	glGenBuffers(1, &gbo);
+
+	glBindVertexArray(gao);
+	glBindBuffer(GL_ARRAY_BUFFER, gbo);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(quadVertices), quadVertices, GL_STATIC_DRAW);
+
+	glGenBuffers(1, &geo);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, geo);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
+
+	glEnableVertexAttribArray(0);
+	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)0);
+
+	glEnableVertexAttribArray(1);
+	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)(2 * sizeof(float)));
+
+	glBindVertexArray(0);
+
+	textProjection = glm::ortho(0.0f, float(g_gl.width), float(g_gl.height), 0.0f, -1.0f, 1.0f);
+
 	glViewport(0, 0, width, height);
 
 	IMGUI_CHECKVERSION();
@@ -113,6 +145,8 @@ void GL::TerminateGL()
 	glDeleteRenderbuffers(1, &rbo);
 	glDeleteVertexArrays(1, &sao);
 	glDeleteBuffers(1, &sbo);
+	glDeleteVertexArrays(1, &gao);
+	glDeleteBuffers(1, &gbo);
 
 	glScreenShader.Delete();
 	glGlobShader.Delete();
@@ -149,6 +183,8 @@ void FrameBufferSizeCallBack(GLFWwindow* window, int width, int height)
 
 	if (g_pcm != nullptr)
 		RecalcCm(g_pcm);
+
+	g_gl.textProjection = glm::ortho(0.0f, float(g_gl.width), float(g_gl.height), 0.0f, -1.0f, 1.0f);
 }
 
 GL g_gl;

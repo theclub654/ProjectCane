@@ -14,12 +14,14 @@
 class GL
 {
 	public:
+
 		// Window Object
 		GLFWwindow* window;
 		// Frame Buffer Object
 		GLuint fbo;
 		// Frame Buffer Color
 		GLuint fbc;
+
 		// Render Buffer Object
 		GLuint rbo;
 
@@ -28,7 +30,15 @@ class GL
 		// Screen Buffer Object
 		GLuint sbo;
 
+		// Glyff Array Object
+		GLuint gao;
+		// Glyff Buffer Object
+		GLuint gbo;
+		GLuint geo;
+		glm::mat4 textProjection;
+		// Window width
 		float width  = 800;
+		// Window height
 		float height = 800;
 
 		void InitGL();

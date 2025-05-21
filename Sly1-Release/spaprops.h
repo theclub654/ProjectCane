@@ -111,7 +111,6 @@ enum CID
     CID_CHARM = 86,
     CID_LIFETKN = 87,
     CID_COIN = 88,
-    //CID_UNK15 = 88,
     CID_KEY = 89,
     CID_GOLD = 90,
     CID_UNK7 = 91,

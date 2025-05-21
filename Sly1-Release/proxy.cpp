@@ -14,6 +14,9 @@ void InitProxy(PROXY *pproxy)
 {
 	InitAlo(pproxy);
 	AppendDlEntry(&pproxy->psw->dlProxy, pproxy);
+	numProxy++;
+	pproxy->numProxy = numProxy;
+	void *addr = &pproxy->dleBusy;
 }
 
 int GetProxySize()
@@ -23,7 +26,9 @@ int GetProxySize()
 
 void LoadProxyFromBrx(PROXY* pproxy, CBinaryInputStream* pbis)
 {
-	numProxy++;
+	//numProxy++;
+	//std::cout << numProxy << "\n";
+
 	// Proxy source objects to keep track of
 	std::vector <LO*> proxyObjs;
 
@@ -149,7 +154,7 @@ void LoadProxyFromBrx(PROXY* pproxy, CBinaryInputStream* pbis)
 	}
 
 	pproxy->pvtlo->pfnRemoveLo(pproxy);
-	pproxy->pvtlo->pfnAddLo(pproxy);
+	//pproxy->pvtlo->pfnAddLo(pproxy);
 }
 
 void CloneProxy(PROXY* pproxy, PROXY* pproxyBase)
@@ -204,6 +209,12 @@ void CloneProxy(PROXY* pproxy, PROXY* pproxyBase)
 			current.pvFirst = current.ploFirst->dleChild.ploNext;
 		}
 	}
+}
+
+void PostProxyLoad(PROXY* pproxy)
+{
+	PostAloLoad(pproxy);
+	pproxy->pvtlo->pfnRemoveLo(pproxy);
 }
 
 void DeleteProxy(PROXY *pproxy)

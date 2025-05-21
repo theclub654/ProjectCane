@@ -94,6 +94,7 @@ void LoadSwFromBrx(SW* psw, CBinaryInputStream* pbis)
 	AllocateLightBlkList();
 	psw->lsmDefault.uShadow  *= 0.003921569;
 	psw->lsmDefault.uMidtone *= 0.003921569;
+	PostUiLoad(&g_ui);
 	SetupCm(g_pcm);
 	std::cout << "World Loaded Successfully\n";
 }
@@ -414,7 +415,36 @@ void UpdateSw(SW* psw, float dt)
 
 void UpdateSwObjects(SW* psw, float dt)
 {
+	// Set up a DLI walker for the busy object list in the current SW (Scene/World)
+	DLI dlBusyWalker;
+	dlBusyWalker.m_pdl = &psw->dlBusy;                // Point to the actual DL list
+	dlBusyWalker.m_ibDle = psw->dlBusy.ibDle;         // Offset to the 'next' pointer inside each object
+	dlBusyWalker.m_pdliNext = s_pdliFirst;            // Link this walker into a global list of DLI walkers
 
+	// Get the first object (LO) in the busy list
+	LO* currentObject = psw->dlBusy.ploFirst;
+
+	// Set up the pointer to the "next" object in the list,
+	// using offset-based pointer arithmetic from current object
+	dlBusyWalker.m_ppv = reinterpret_cast<void**>(reinterpret_cast<uintptr_t>(currentObject) + dlBusyWalker.m_ibDle);
+
+	// Save the current DLI walker globally
+	s_pdliFirst = &dlBusyWalker;
+
+	// Loop over every object in the busy list
+	while (currentObject != nullptr)
+	{
+		// Call the update function on the current object
+		// This updates the object and all of its attached ALO children
+		UpdateAloHierarchy(reinterpret_cast<ALO*>(currentObject), dt);
+
+		// Move to the next object in the list using the stored offset
+		currentObject = reinterpret_cast<LO*>(*dlBusyWalker.m_ppv);
+
+		// If there is a next object, update the walker’s pointer to its next link
+		if (currentObject != nullptr)
+			dlBusyWalker.m_ppv = reinterpret_cast<void**>(reinterpret_cast<uintptr_t>(currentObject) + dlBusyWalker.m_ibDle);
+	}
 }
 
 void DeleteWorld(SW *psw)

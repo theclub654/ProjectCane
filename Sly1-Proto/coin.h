@@ -59,6 +59,11 @@ class CHARM : public DPRIZE
     public:
 };
 
+struct COINCTR : public CTR
+{
+
+};
+
 class COIN : public DPRIZE
 {
     public:
@@ -66,9 +71,19 @@ class COIN : public DPRIZE
         float tLose;
 };
 
+struct KEYCTR : public CTR
+{
+
+};
+
 class KEY : public DPRIZE
 {
     public:
+};
+
+struct GOLDCTR : public CTR
+{
+
 };
 
 class GOLD : public DPRIZE
@@ -95,17 +110,23 @@ int  GetCharmSize();
 void CloneCharm(CHARM* pcharm, CHARM* pcharmBase);
 void DeleteCharm(CHARM* pcharm);
 
+void StartupCoinCtr(COINCTR* pcoinctr);
+
 COIN*NewCoin();
 void InitCoin(COIN* pcoin);
 int  GetCoinSize();
 void CloneCoin(COIN* pcoin, COIN* pcoinBase);
 void DeleteCoin(COIN *pcoin);
 
+void StartupKeyCtr(KEYCTR* pkeyctr);
+
 KEY* NewKey();
 void InitKey(KEY* pkey);
 int  GetKeySize();
 void CloneKey(KEY* pkey, KEY* pkeyBase);
 void DeleteKey(KEY* pkey);
+
+void StartupGoldCtr(GOLDCTR* pgoldctr);
 
 GOLD*NewGold();
 void InitGold(GOLD* pgold);
@@ -114,3 +135,7 @@ void CloneGold(GOLD* pgold, GOLD* pgoldBase);
 void DeleteGold(GOLD* pgold);
 
 extern SNIP s_asnipDprize[5];
+
+extern KEYCTR g_keyctr;
+extern COINCTR g_coinctr;
+extern GOLDCTR g_goldctr;

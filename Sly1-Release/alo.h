@@ -364,12 +364,14 @@ void BindGlobset(GLOBSET* pglobset, ALO* palo);
 void UpdateAloXfWorld(ALO* palo);
 // Updates the ALO objects world transformation hierarchy
 void UpdateAloXfWorldHierarchy(ALO* palo);
-// Moves ALO object to a position, Similar to the glm::translate function
+// Updates Alo and children
+void UpdateAloHierarchy(ALO* palo, float dt);
+// Moves ALO object to a position
 void TranslateAloToPos(ALO* palo, glm::vec3& ppos);
 void ConvertAloPos(ALO* paloFrom, ALO* paloTo, glm::vec3& pposFrom, glm::vec3& pposTo);
 void ConvertAloVec(ALO* paloFrom, ALO* paloTo, glm::vec3* pvecFrom, glm::vec3* pvecTo);
 void RotateAloToMat(ALO* palo, glm::mat3& pmat);
-// Rotate or scale object to a new transformation, similar to the glm::rotate or glm::scale function
+// Rotate or scale object to a new transformation
 void ConvertAloMat(ALO* paloFrom, ALO* paloTo, glm::mat3& pmatFrom, glm::mat3& pmatTo);
 void SetAloInitialVelocity(ALO* palo, glm::vec3* pv);
 void SetAloInitialAngularVelocity(ALO* palo, const glm::vec3* pw);
@@ -485,6 +487,7 @@ void LoadAloFromBrx(ALO* palo, CBinaryInputStream* pbis);
 void LoadAloAloxFromBrx(ALO* palo, CBinaryInputStream* pbis);
 void BindAloAlox(ALO* palo);
 void SnipAloObjects(ALO* palo, int csnip, SNIP* asnip);
+void PostAloLoad(ALO *palo);
 // Updates ALO object
 void UpdateAlo(ALO* palo, float dt);
 void RenderAloAll(ALO* palo, CM* pcm, RO* pro);

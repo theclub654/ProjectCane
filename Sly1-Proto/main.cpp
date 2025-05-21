@@ -23,21 +23,26 @@ int main(int cphzArgs, char* aphzArgs[])
 		// Activate Depth testing
 		glEnable(GL_DEPTH_TEST);
 		
+		//g_joy.Update(g_gl.window);
+
 		RenderMenuGui(g_psw);
-		
+
 		if (g_psw != nullptr)
 		{
+			//UpdateUi(&g_ui);
+
 			SetupCm(g_pcm);
 			MarkClockTick(&g_clock);
 			
 			UpdateCpman(g_gl.window, &g_pcm->cpman, nullptr, g_clock.dt);
-			UpdateSw(g_psw, g_clock.dt);
+			//UpdateSw(g_psw, g_clock.dt);
 
 			if (g_fRenderModels != 0)
 			{
 				RenderSw(g_psw, g_pcm);
 				//RenderSwAloAll(g_psw, g_pcm);
 				DrawSw(g_psw, g_pcm);
+				DrawUi(&g_ui);
 			}
 
 			if (g_fRenderCollision != 0)
@@ -51,7 +56,7 @@ int main(int cphzArgs, char* aphzArgs[])
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 		// Making the default frame buffer black
 		glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
-		////// Clearing the color buffer of the default frame buffer
+		// Clearing the color buffer of the default frame buffer
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 		// Using screen shader
 		glScreenShader.Use();
@@ -82,13 +87,18 @@ void Startup()
 	
 	glScreenShader.Init("screen.vert", NULL ,"screen.frag");
 	glGlobShader.Init("glob.vert", NULL ,"glob.frag");
-
-	// Initialize texture samplers for glob shader
 	glGlobShader.Use();
 	InitGlslUniforms();
 
+	glTextShader.Init("text.vert", NULL, "text.frag");
+	glTextShader.Use();
+	glUniform1i(glGetUniformLocation(glTextShader.ID, "u_fontTex"), 0);
+
 	std::cout << "Sly Cooper 2002 Sony Computer Entertainment America & Sucker Punch Productions\n";
-	StartupClock();
 	SetPhase(PHASE_Startup);
+
+	StartupClock();
 	StartupBrx();
+	StartupScreen();
+	StartupUi();
 }

@@ -466,6 +466,7 @@ void* GetLightHotSpotAngle(LIGHT* plight)
 void SetLightHotSpotAngle(LIGHT* plight, float degHotSpot)
 {
 	plight->degHotSpot = degHotSpot;
+
 	RebuildLightFrustrum(plight);
 	RebuildLight(plight);
 }
@@ -478,6 +479,7 @@ void* GetLightFrustrumUp(LIGHT* plight)
 void SetLightFrustrumUp(LIGHT* plight, glm::vec3& pvecUpLocal)
 {
 	plight->vecUpLocal = pvecUpLocal;
+
 	RebuildLight(plight);
 }
 
@@ -575,11 +577,8 @@ void DeallocateLightBlkList()
 	lightBlk.clear();
 	lightBlk.shrink_to_fit();
 
-	if (g_lightUbo != 0)
-	{
-		glDeleteBuffers(1, &g_lightUbo);
-		g_lightUbo = 0;
-	}
+	glDeleteBuffers(1, &g_lightUbo);
+	g_lightUbo = 0;
 
 	numRl = 0;
 }

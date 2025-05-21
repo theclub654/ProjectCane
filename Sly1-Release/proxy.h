@@ -19,4 +19,5 @@ void InitProxy(PROXY *pproxy);
 int  GetProxySize();
 void LoadProxyFromBrx(PROXY* pproxy, CBinaryInputStream* pbis);
 void CloneProxy(PROXY* pproxy, PROXY* pproxyBase);
+void PostProxyLoad(PROXY *pproxy);
 void DeleteProxy(PROXY *pproxy);

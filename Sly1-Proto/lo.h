@@ -4,16 +4,7 @@
 #include "bis.h"
 #include "glshaders.h"
 #include "splicemap.h"
-#include "util.h"
-#include "clock.h"
-#include <bitset>
-
-typedef unsigned int SYMID;
-
-LO* PloNew(CID cid, SW* psw, ALO* paloParent, OID oid, int isplice);
-DL* PdlFromSwOid(SW* psw, OID oid);
-void LoadSwObjectsFromBrx(SW* psw, ALO* paloParent, CBinaryInputStream* pbis);
-void LoadOptionsFromBrx(void* pvObject, CBinaryInputStream* pbis);
+#include "ctr.h"
 
 enum MSGID
 {
@@ -46,6 +37,7 @@ enum MSGID
     MSGID_param_write = 25,
     MSGID_Max = 26
 };
+
 struct SOP
 {
     LO* plo;
@@ -106,7 +98,7 @@ class LO : public BASIC
 		char *pchzName;
         struct CFrame* pframe;
         std::shared_ptr <PXR> ppxr;
-		uint64_t dtickPerf;
+		TICK dtickPerf;
 };
 
 // Creates a new local object

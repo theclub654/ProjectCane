@@ -142,16 +142,6 @@ void SubmitRpl(RPL *prpl)
 	}
 }
 
-int GetFogType()
-{
-	return g_fogType;
-}
-
-void SetFogType(int fogType)
-{
-	g_fogType = fogType;
-}
-
 void SortRenderRpl()
 {
 	std::sort(renderBuffer.begin(), renderBuffer.begin() + numRo, compareRP);

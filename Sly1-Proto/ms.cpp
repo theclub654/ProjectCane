@@ -98,7 +98,7 @@ void RenderMsGlobset(MS *pms, CM *pcm, RO *pro)
 				rpl.ro.model = baseModelMatrix;
 
 			/*if (glob.rtck != RTCK_None)
-				AdjustAloRtckMat(pms, pcm, glob.rtck, &pms->xf.posWorld, rpl.ro.modelmatrix);*/
+				AdjustAloRtckMat(pms, pcm, glob.rtck, &glob.posCenter, rpl.ro.model);*/
 
 			SubmitRpl(&rpl);
 		}

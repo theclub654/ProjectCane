@@ -485,6 +485,48 @@ void UpdateAloXfWorldHierarchy(ALO* palo)
 	}
 }
 
+void UpdateAloHierarchy(ALO* palo, float dt)
+{
+	if (palo->pvtalo->pfnUpdateAlo != nullptr)
+		palo->pvtalo->pfnUpdateAlo(palo, dt);
+
+	int isInSw = FIsLoInWorld(palo);
+
+	if (isInSw == true)
+	{
+		DLI dlBusyWalker;
+		dlBusyWalker.m_pdl = &palo->dlChild;                // Point to the actual DL list
+		dlBusyWalker.m_ibDle = palo->dlChild.ibDle;         // Offset to the 'next' pointer inside each object
+		dlBusyWalker.m_pdliNext = s_pdliFirst;            // Link this walker into a global list of DLI walkers
+
+		// Get the first object (LO) in the busy list
+		LO* currentObject = palo->dlChild.ploFirst;
+
+		// Set up the pointer to the "next" object in the list,
+		// using offset-based pointer arithmetic from current object
+		dlBusyWalker.m_ppv = reinterpret_cast<void**>(reinterpret_cast<uintptr_t>(currentObject) + dlBusyWalker.m_ibDle);
+
+		// Save the current DLI walker globally
+		s_pdliFirst = &dlBusyWalker;
+
+		// Loop over every object in the busy list
+		while (currentObject != nullptr)
+		{
+			// Call the update function on the current object child
+			// This updates the object and all of its attached ALO children
+			if ((currentObject->pvtalo->grfcid & 1U) != 0)
+				UpdateAloHierarchy(reinterpret_cast<ALO*>(currentObject), dt);
+
+			// Move to the next object in the list using the stored offset
+			currentObject = reinterpret_cast<LO*>(*dlBusyWalker.m_ppv);
+
+			// If there is a next object, update the walker’s pointer to its next link
+			if (currentObject != nullptr)
+				dlBusyWalker.m_ppv = reinterpret_cast<void**>(reinterpret_cast<uintptr_t>(currentObject) + dlBusyWalker.m_ibDle);
+		}
+	}
+}
+
 void TranslateAloToPos(ALO* palo, glm::vec3 &ppos)
 {
 	palo->xf.pos = ppos;
@@ -1553,7 +1595,7 @@ void RenderAloGlobset(ALO* palo, CM* pcm, RO* pro)
 				rpl.ro.model = baseModelMatrix;
 			
 			 /*if (glob.rtck != RTCK_None)
-				 AdjustAloRtckMat(palo, pcm, glob.rtck, &glob.posCenter, baseModelMatrix);*/
+				 AdjustAloRtckMat(palo, pcm, glob.rtck, &glob.posCenter, rpl.ro.model);*/
 			
 			SubmitRpl(&rpl);
 		}
@@ -1577,7 +1619,6 @@ void DrawGlob(RPL *prpl)
 	glUniformMatrix4fv(glslModel, 1, GL_FALSE, glm::value_ptr(prpl->ro.model));
 
 	glUniform1f(glslUFog, prpl->ro.uFog);
-
 	glUniform1f(glslUAlpha, prpl->ro.uAlpha);
 
 	if ((prpl->ro.grfglob & 4U) == 0)
@@ -1594,13 +1635,13 @@ void DrawGlob(RPL *prpl)
 		glUniform3fv(glslPosCenter, 1, glm::value_ptr(prpl->posCenter));
 
 		glActiveTexture(GL_TEXTURE0);
-		glBindTexture(GL_TEXTURE_2D, prpl->ro.pshd->glShadowMap);
+		glBindTexture(GL_TEXTURE_2D, prpl->ro.pshd->atex[0].abmp[0]->glShadowMap);
 
 		glActiveTexture(GL_TEXTURE1);
-		glBindTexture(GL_TEXTURE_2D, prpl->ro.pshd->glDiffuseMap);
+		glBindTexture(GL_TEXTURE_2D, prpl->ro.pshd->atex[0].abmp[0]->glDiffuseMap);
 
 		glActiveTexture(GL_TEXTURE2);
-		glBindTexture(GL_TEXTURE_2D, prpl->ro.pshd->glSaturateMap);
+		glBindTexture(GL_TEXTURE_2D, prpl->ro.pshd->atex[0].abmp[0]->glSaturateMap);
 	}
 	else
 	{
@@ -1610,7 +1651,7 @@ void DrawGlob(RPL *prpl)
 		glBindTexture(GL_TEXTURE_2D, 0);
 
 		glActiveTexture(GL_TEXTURE1);
-		glBindTexture(GL_TEXTURE_2D, prpl->ro.pshd->glDiffuseMap);
+		glBindTexture(GL_TEXTURE_2D, prpl->ro.pshd->atex[0].abmp[0]->glDiffuseMap);
 
 		glActiveTexture(GL_TEXTURE2);
 		glBindTexture(GL_TEXTURE_2D, 0);

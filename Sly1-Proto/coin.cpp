@@ -243,6 +243,11 @@ void DeleteCharm(CHARM* pcharm)
 	delete pcharm;
 }
 
+void StartupCoinCtr(COINCTR* pcoinctr)
+{
+	pcoinctr->pvtcoinctr = &g_vtcoinctr;
+}
+
 COIN* NewCoin()
 {
 	return new COIN{};
@@ -278,6 +283,11 @@ void DeleteCoin(COIN* pcoin)
 	delete pcoin;
 }
 
+void StartupKeyCtr(KEYCTR* pkeyctr)
+{
+	pkeyctr->pvtkeyctr = &g_vtkeyctr;
+}
+
 KEY* NewKey()
 {
 	return new KEY{};
@@ -301,6 +311,11 @@ void CloneKey(KEY* pkey, KEY* pkeyBase)
 void DeleteKey(KEY* pkey)
 {
 	delete pkey;
+}
+
+void StartupGoldCtr(GOLDCTR *pgoldctr)
+{
+	pgoldctr->pvtgoldctr = &g_vtgoldctr;
 }
 
 GOLD* NewGold()
@@ -347,3 +362,7 @@ SNIP s_asnipDprize[5] =
 	{ 2,  OID_xs_dprize_collect,  offsetof(DPRIZE, pexplCollect)},
 	{ 2,  OID_xs_dprize_attract,  offsetof(DPRIZE, pexplAttract)}
 };
+
+KEYCTR g_keyctr;
+COINCTR g_coinctr;
+GOLDCTR g_goldctr;

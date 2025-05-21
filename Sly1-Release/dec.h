@@ -214,6 +214,7 @@ void GetAloInteractBomb(ALO* palo, int* pgrfic);
 void GetAloInteractShock(ALO* palo, int* pgrfic);
 void* GetAlofRealClock(ALO* palo);
 void LoadAloFromBrx(ALO* palo, CBinaryInputStream* pbis);
+void PostAloLoad(ALO* palo);
 void UpdateAlo(ALO* palo, float dt);
 void RenderAloAll(ALO* palo, CM* pcm, RO* pro);
 void RenderAloSelf(ALO* palo, CM* pcm, RO* pro);
@@ -1004,6 +1005,7 @@ void InitProxy(PROXY* pproxy);
 int  GetProxySize();
 void LoadProxyFromBrx(PROXY* pproxy, CBinaryInputStream* pbis);
 void CloneProxy(PROXY* pproxy, PROXY* pproxyBase);
+void PostProxyLoad(PROXY* pproxy);
 void DeleteProxy(PROXY *pproxy);
 
 class SKY;

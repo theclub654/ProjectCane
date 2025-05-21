@@ -1,6 +1,6 @@
 #pragma once
 #include <iostream>
-#include "math.h"
+#include "util.h"
 
 // Forward declarations
 
@@ -10,6 +10,8 @@ typedef int GRFGLOB;
 typedef int GRFIK;
 typedef uint64_t GRFZON;
 typedef uint32_t GRFALOX;
+typedef int GRFLS;
+typedef unsigned int SYMID;
 class CBinaryInputStream;
 class PROXY;
 class ALO;
@@ -24,6 +26,7 @@ enum CID;
 enum OID;
 struct RGBA;
 struct FGFN;
+struct DL;
 struct SOP;
 extern bool loadEmitMesh;
 extern std::vector <RPL> renderBuffer;
@@ -1496,3 +1499,10 @@ void DeleteAsega(LO* plo);
 class SMA;
 int  GetSmaSize();
 void DeleteSma(LO* plo);
+
+void StartupScreen();
+
+LO* PloNew(CID cid, SW* psw, ALO* paloParent, OID oid, int isplice);
+DL* PdlFromSwOid(SW* psw, OID oid);
+void LoadSwObjectsFromBrx(SW* psw, ALO* paloParent, CBinaryInputStream* pbis);
+void LoadOptionsFromBrx(void* pvObject, CBinaryInputStream* pbis);
