@@ -47,6 +47,7 @@ struct MATERIAL
     vec3  light;
 };
 
+// Light Shading Material
 struct LSM
 {
     float uShadow;
@@ -66,10 +67,11 @@ uniform float uFog;
 uniform int rko;
 
 uniform float usSelfIllum;
-uniform int fDynamic;
-uniform vec3 posCenter;
+uniform int   fDynamic;
+uniform vec3  posCenter;
 
 vec4 worldPos;
+vec3 normalWorld;
 
 float objectShadow;
 float objectMidtone;
@@ -77,6 +79,7 @@ vec4  light;
 
 out vec4 vertexColor;
 out vec2 texcoord;
+
 out MATERIAL material;
 out float fogIntensity;
 
@@ -99,7 +102,7 @@ void main()
     vertexColor = color;
     texcoord    = uv;
 
-     worldPos = model * vec4(vertex, 1.0);
+    worldPos = model * vec4(vertex, 1.0);
 
     if (rko == RKO_ThreeWay)
     {
@@ -165,6 +168,8 @@ void InitGlobLighting()
     objectShadow  = lsm.uShadow;
     objectMidtone = lsm.uMidtone + usSelfIllum * 0.000031;
     light = vec4(0.0);
+
+    normalWorld = normalize(mat3(model) * normal);
 }
 
 vec4 AddDirectionLight(LIGHT dirlight)
@@ -221,12 +226,8 @@ vec4 AddDynamicLight(vec4 dir, vec4 color, vec4 ru, vec4 du)
 
 vec4 AddPositionLight(LIGHT pointlight)
 {
-    // World-space position and normal
-    vec3 posWorld    = (model * vec4(vertex, 1.0)).xyz;
-    vec3 normalWorld = normalize(mat3(model) * normal);
-
     // Light vector (non-normalized)
-    vec3 toLight   = vec3(pointlight.pos) - posWorld;
+    vec3  toLight  = vec3(pointlight.pos) - worldPos.xyz;
     float distSqr  = dot(toLight, toLight);
 
     // Approximate inverse sqrt for light direction (normalize)
@@ -260,12 +261,9 @@ vec4 AddPositionLight(LIGHT pointlight)
 
 vec4 AddPositionLightDynamic(LIGHT pointlight)
 {
-    // Transform light center to world space
-    vec3 posCenterWorld = vec3(model * vec4(posCenter, 1.0));
-
     // Compute direction and distance to light
-    vec3 direction = normalize(vec3(pointlight.pos) - posCenterWorld);
-    float distance = length(vec3(pointlight.pos) - posCenterWorld);
+    vec3  direction = normalize(vec3(pointlight.pos) - posCenter);
+    float distance  = length(vec3(pointlight.pos) - posCenter);
 
     // Compute clamped attenuation
     float attenuation = 1.0 / distance * pointlight.falloff.y + pointlight.falloff.x;
@@ -291,28 +289,30 @@ vec4 AddPositionLightDynamic(LIGHT pointlight)
 
 void ProcessGlobLighting()
 {
-    // Find the brightest channel in the light color (used to gauge overall intensity)
+    // Find the brightest RGB channel in the accumulated light color (used to approximate overall brightness)
     float dominantLight = max(max(light.r, light.g), light.b);
-    // Invert brightness to get potential shadow strength (brighter light = less shadow)
+    // Invert brightness to get how much shadow range remains (brighter light = less shadow allowed)
     float shadowModifier = 1.0 - dominantLight;
-    // Clamp the object's midtone value so it doesn't exceed remaining shadow range
+    // Clamp the object's accumulated midtone so it doesn't exceed the remaining light range
     float clampedMidtone = clamp(objectMidtone, 0.0, shadowModifier);
-    // Determine how much of the remaining light can go toward shadows (bounded by objectShadow)
-    float shadowContribution = max(min(shadowModifier - clampedMidtone, objectShadow), 0.0);
-    // Approximate base light intensity from average of vertex color (grayscale luminance)
+    // Compute how much of the leftover brightness budget can be allocated to shadows
+    float shadowContribution = clamp(shadowModifier - clampedMidtone, 0.0, objectShadow);
+    // Estimate the base brightness of the vertex color using equal-weighted luminance (grayscale intensity)
     float baseIntensity = dot(vertexColor.rgb, vec3(0.3333333));
 
-    // Assign lighting output
+    // Set the final ambient term: shadow contribution modulated by base brightness
     material.ambient = shadowContribution * baseIntensity;
-    material.midtone.rgb = clampedMidtone * vertexColor.rgb;
-    material.light   = min(light.rgb, vec3(1.0)) * baseIntensity;
+    // Set the midtone term: clamped midtone scaled by original vertex color (preserving its hue)
+    material.midtone = clampedMidtone * vertexColor.rgb;
+    // Set the light (highlight) term: final light color clamped to avoid overflow, scaled by base brightness
+    material.light = clamp(light.rgb, 0.0, 1.0) * baseIntensity;
 }
 
 void CalculateFogPS2()
 {
     // Distance to camera
     float z = length(cameraPos - worldPos.xyz);
-    float recipZ = inversesqrt(z * z + 1e-8);
+    float recipZ = 1.0 / max(z, 1e-4);
 
     float recipNear = 1.0 / fogNear;
     float recipFar  = 1.0 / fogFar;

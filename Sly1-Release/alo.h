@@ -277,7 +277,8 @@ struct BITFIELD
 
 class ALO : public LO
 {
-public:
+	public:
+
 	DL dlChild;
 	DLE dleBusy;
 	DLE dleMRD;
@@ -324,6 +325,7 @@ public:
 	std::shared_ptr <ASEGD> pasegd;
 	float sRadiusRenderSelf;
 	float sRadiusRenderAll;
+	glm::vec3 posCenter;
 	struct SFX* psfx;
 	FICG ficg;
 	int cposec;

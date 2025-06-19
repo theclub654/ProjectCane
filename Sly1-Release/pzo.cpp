@@ -131,6 +131,11 @@ void DeleteScprize(SCPRIZE *pscprize)
 	delete pscprize;
 }
 
+void StartupClueCtr(CLUECTR* pcluectr)
+{
+	pcluectr->pvtcluectr = &g_vtcluectr;
+}
+
 CLUE* NewClue()
 {
 	return new CLUE{};
@@ -247,3 +252,5 @@ void DeleteLockg(LOCKG* plockg)
 {
 	delete plockg;
 }
+
+CLUECTR g_cluectr;

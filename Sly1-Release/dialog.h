@@ -128,3 +128,7 @@ void LoadDialogFromBrx(DIALOG* pdialog, CBinaryInputStream* pbis);
 void CloneDialog(DIALOG* pdialog, DIALOG* pdialogBase);
 void LoadDialogEventsFromBrx(DIALOG* pdialog, CBinaryInputStream *pbis, int* pcde, DE** pade);
 void DeleteDialog(DIALOG* pdialog);
+
+inline DIALOG* g_pdialogPlaying = nullptr;
+inline DIALOG* g_pdialogCalling = nullptr;
+inline DIALOG* g_pdialogTriggered = nullptr;

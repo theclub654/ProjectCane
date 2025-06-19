@@ -239,6 +239,7 @@ void CloneAloHierarchy(ALO* palo, ALO* paloBase)
 
 void CloneAlo(ALO* palo, ALO* paloBase)
 {
+	
 	palo->dlChild = paloBase->dlChild;
 	//palo->dleBusy = paloBase->dleBusy;
 	//palo->dleMRD = paloBase->dleMRD;
@@ -1210,6 +1211,26 @@ void AddAloHierarchy(ALO* palo)
 	s_pdliFirst = plo.m_pdliNext;
 }
 
+float CalculateRenderRadiusAll(const ALO& alo)
+{
+	float maxRadius = 0.0f;
+
+	for (const auto& glob : alo.globset.aglob)
+	{
+		for (const auto& subglob : glob.asubglob)
+		{
+			const glm::vec3& center = subglob.posCenter;  // local center
+			for (const auto& vertex : subglob.vertices)
+			{
+				float dist = glm::distance(center, vertex.pos);  // local-space
+				maxRadius = std::max(maxRadius, dist);
+			}
+		}
+	}
+
+	return maxRadius;
+}
+
 void LoadAloFromBrx(ALO* palo, CBinaryInputStream* pbis)
 {
 	palo->xf.mat = pbis->ReadMatrix();
@@ -1229,7 +1250,7 @@ void LoadAloFromBrx(ALO* palo, CBinaryInputStream* pbis)
 		palo->sMRD = 1e+10;
 	
 	LoadOptionsFromBrx(palo, pbis);
-	LoadGlobsetFromBrx(&palo->globset, palo->pvtalo->cid ,palo, palo->xf.mat, pbis);
+	LoadGlobsetFromBrx(&palo->globset, palo->pvtalo->cid ,palo, pbis);
 	LoadAloAloxFromBrx(palo, pbis);
 
 	palo->pvtalo->pfnUpdateAloXfWorld(palo);
@@ -1245,6 +1266,9 @@ void LoadAloFromBrx(ALO* palo, CBinaryInputStream* pbis)
 		for (int a = 0; a < palo->globset.cpose; a++)
 			palo->aposec[i].agPoses[a] = pbis->F32Read();
 	}
+	
+	/*if (palo->pvtalo->cid == CID_SMARTGUARD)
+		palo->sRadiusRenderAll = CalculateRenderRadiusAll(*palo);*/
 
 	// Loads ALO children objects
 	LoadSwObjectsFromBrx(palo->psw, palo, pbis);
@@ -1489,7 +1513,7 @@ void RenderAloGlobset(ALO* palo, CM* pcm, RO* pro)
 				continue;
 		}
 
-		auto& glob = palo->globset.aglob[i];
+		auto& glob  = palo->globset.aglob[i];
 		auto& globi = palo->globset.aglobi[i];
 
 		glm::vec3 posCenterWorld = glm::vec3(baseModelMatrix * glm::vec4(glob.posCenter, 1.0f));
@@ -1518,7 +1542,7 @@ void RenderAloGlobset(ALO* palo, CM* pcm, RO* pro)
 				rpl.ro.celVAO = nullptr;
 				rpl.ro.fCelBorder = 0;
 			}
-
+			
 			if (glob.gleam.size() != 0)
 			{
 				glm::vec3 normal = glob.gleam[0].normal;
@@ -1552,14 +1576,12 @@ void RenderAloGlobset(ALO* palo, CM* pcm, RO* pro)
 			}
 			
 			rpl.ro.fDynamic = glob.fDynamic;
-
 			rpl.ro.uFog = glob.uFog;
-			rpl.posCenter = glob.posCenter;
+			rpl.posCenter = posCenterWorld;
 			rpl.ro.grfglob = glob.grfglob;
 			rpl.ro.pshd = subglob.pshd;
 			rpl.ro.unSelfIllum = subglob.unSelfIllum;
 			rpl.ro.cvtx = subglob.cvtx;
-
 			rpl.rp = glob.rp;
 
 			if (rpl.ro.uAlpha != 1.0)
@@ -1584,20 +1606,19 @@ void RenderAloGlobset(ALO* palo, CM* pcm, RO* pro)
 				case RP_Cutout:
 				case RP_CutoutAfterProjVolume:
 				case RP_Translucent:
-				rpl.z = glm::length(pcm->pos - glob.posCenter);
+				rpl.z = glm::length(pcm->pos - posCenterWorld);
 				break;
 			}
-
 
 			if (glob.pdmat != nullptr) 
 				rpl.ro.model = baseModelMatrix * *glob.pdmat;
 			else
 				rpl.ro.model = baseModelMatrix;
 			
-			 /*if (glob.rtck != RTCK_None)
-				 AdjustAloRtckMat(palo, pcm, glob.rtck, &glob.posCenter, rpl.ro.model);*/
-			
-			SubmitRpl(&rpl);
+			 if (glob.rtck != RTCK_None)
+				 AdjustAloRtckMat(palo, pcm, glob.rtck, &glob.posCenter, rpl.ro.model);
+			 
+			 SubmitRpl(&rpl);
 		}
 	}
 }
@@ -1628,7 +1649,7 @@ void DrawGlob(RPL *prpl)
 
 	if (prpl->ro.pshd->shdk == SHDK_ThreeWay)
 	{
-		glUniform1i(glslRko, 1);
+		glUniform1i(glslRko, RKO_ThreeWay);
 		
 		glUniform1f(glslusSelfIllum, prpl->ro.unSelfIllum);
 		glUniform1i(glslFDynamic, prpl->ro.fDynamic);
@@ -1645,7 +1666,7 @@ void DrawGlob(RPL *prpl)
 	}
 	else
 	{
-		glUniform1i(glslRko, 0);
+		glUniform1i(glslRko, RKO_OneWay);
 
 		glActiveTexture(GL_TEXTURE0);
 		glBindTexture(GL_TEXTURE_2D, 0);
@@ -1666,11 +1687,14 @@ void DrawGlob(RPL *prpl)
 		glEnable(GL_BLEND);
 		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
+		glDepthFunc(GL_ALWAYS);
 		glDepthMask(false);
+
 		glUniform1i(glslfAlphaTest, 0);
 		glDrawElements(GL_TRIANGLES, prpl->ro.cvtx, GL_UNSIGNED_SHORT, 0);
 
 		glDisable(GL_BLEND);
+		glDepthFunc(GL_LESS);
 		glDepthMask(true);
 		break;
 
@@ -1720,7 +1744,6 @@ void DrawGlob(RPL *prpl)
 		case RP_Cutout:
 		case RP_CutoutAfterProjVolume:
 		case RP_Translucent:
-
 		glUniform1i(glslfAlphaTest, 1);
 		glDrawElements(GL_TRIANGLES, prpl->ro.cvtx, GL_UNSIGNED_SHORT, 0);
 
@@ -1735,7 +1758,7 @@ void DrawGlob(RPL *prpl)
 		glDepthMask(true);
 		break;
 
-	default:
+		default:
 		if (prpl->ro.fCelBorder == 1)
 		{
 			// === First Pass: Draw main object and write to stencil ===
@@ -1747,14 +1770,16 @@ void DrawGlob(RPL *prpl)
 
 			// === Second Pass: Draw outline where stencil != 1 ===
 			glBindVertexArray(*prpl->ro.celVAO);
-			glUniform1i(glslRko, 2);
+			glUniform1i(glslRko, RKO_CelBorder);
 			glDepthMask(false);
+			//glDepthFunc(GL_LEQUAL);
 			glStencilFunc(GL_NOTEQUAL, 1, 0xFF);
 			glStencilMask(0x00);
-			
 			glDrawElements(GL_TRIANGLES, prpl->ro.celcvtx, GL_UNSIGNED_SHORT, 0);
 
 			// === Restore State ===
+			glDisable(GL_STENCIL_TEST);
+			//glDepthFunc(GL_LESS);
 			glDepthMask(true);
 			glStencilMask(0xFF);
 			glStencilFunc(GL_ALWAYS, 0, 0xFF);

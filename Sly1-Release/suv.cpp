@@ -120,3 +120,22 @@ void DeleteSuv(SUV* psuv)
 {
 	delete psuv;
 }
+
+void StartupLapCtr(LAPCTR* plapctr)
+{
+    plapctr->pvtlapctr = &g_vtlapctr;
+}
+
+void StartupBoostCtr(BOOSTCTR* pboostctr)
+{
+    pboostctr->pvtboostctr = &g_vtboostctr;
+}
+
+void StartupPlaceCtr(PLACECTR* placectr)
+{
+    placectr->pvtplacectr = &g_vtplacectr;
+}
+
+LAPCTR g_lapctr;
+BOOSTCTR g_boostctr;
+PLACECTR g_placectr;

@@ -408,6 +408,144 @@ LO* PloFindSwNearest(SW* psw, OID oid, LO* ploContext)
 	return plo;
 }
 
+int FIsBasicDerivedFrom(BASIC *pbasic, CID cid)
+{
+	if (!pbasic) return 0;
+
+	VT* current = (VT*)pbasic->pvtbasic;
+	while (current) {
+		if (current->cid == cid) {
+			return 1;
+		}
+		current = current->pvtSuper;
+	}
+
+	return 0;
+}
+
+int FIsCidDerivedFrom(CID cid, CID cidAncestor)
+{
+	VT* current = (VT*)g_mpcidpvt[cid];
+	while (current) {
+		if (current->cid == cidAncestor) {
+			return 1;
+		}
+		current = current->pvtSuper;
+	}
+	return 0;
+}
+
+int CploFindSwObjectsByClass(SW* psw, GRFFSO grffso, CID cid, LO* ploContext, int cploMax, LO** aplo)
+{
+	if (cid == CID_Nil) {
+		return 0;
+	}
+
+	uint32_t grffsoMask = grffso & 0xff;
+	if (ploContext == nullptr && (grffso & 5U) == 0) {
+		return 0;
+	}
+
+	int cploMatch = 0;
+	CID cidBase = cid;
+	LO** outputList = aplo;
+
+	if (grffsoMask == 3) {
+		int* baseList = (int*)psw;
+		long listHead = 0;
+
+		if (((*(uint32_t*)(baseList[0] + 8) ^ 1) & 1) != 0) {
+			listHead = (long)baseList[6];
+		}
+
+		if (listHead != 0) {
+			do {
+				LO* current = (LO*)listHead;
+				if (FIsBasicDerivedFrom((BASIC*)current, cidBase)) {
+					if ((grffso & 0x100) != 0 || FIsLoInWorld(current)) {
+						if (cploMatch < cploMax) {
+							outputList[cploMatch] = current;
+						}
+						cploMatch++;
+					}
+				}
+				listHead = (long)(int)current->paloParent;
+			} while (listHead != 0);
+		}
+
+	}
+	else if (grffsoMask == 2 && !(grffso & 0x100)) {
+		if (((ploContext->pvtlo)->grfcid ^ 1U) & 1) {
+			return 0;
+		}
+
+		for (LO* child = (LO*)ploContext[1].pvtbasic; child != nullptr;
+			child = (LO*)(child->dleChild).ploNext) {
+			if (FIsBasicDerivedFrom((BASIC*)child, cidBase)) {
+				if (cploMatch < cploMax) {
+					outputList[cploMatch] = child;
+				}
+				cploMatch++;
+			}
+		}
+
+	}
+	else {
+		ALO* startingAlo = nullptr;
+
+		if ((grffsoMask == 1) || (grffsoMask > 2 && grffsoMask < 5)) {
+			startingAlo = (ALO*)ploContext;
+
+			if (ploContext != nullptr &&
+				((ploContext->pvtlo)->grfcid ^ 1U) & 1) {
+				startingAlo = ploContext->paloParent;
+			}
+
+			if (startingAlo != nullptr) {
+				ALO* current = startingAlo;
+				unsigned long count = 0;
+
+				while (current != nullptr) {
+					count++;
+					*(unsigned long*)&current->bitfield =
+						(*(unsigned long*)&current->bitfield & 0xffffe1ffffffffff) | ((count & 0xf) << 41);
+					current = current->paloParent;
+				}
+			}
+		}
+
+		int cpaloBest = INT32_MAX;
+		LO** cidTable = psw->aploCidHead;
+
+		while ((uint32_t)cid < 0xa2 && FIsCidDerivedFrom(cid, cidBase)) {
+			CID derived = static_cast<CID>(static_cast<int>(cid) + static_cast<int>(CID_LO));
+			LO* entry = cidTable[cid];
+			cid = derived;
+
+			while (entry != nullptr) {
+				MatchSwObject((ALO*)entry, grffsoMask, grffso & 0x100, 0, ploContext, cploMax,
+					&cploMatch, outputList, &cpaloBest);
+				entry = entry->ploCidNext;
+			}
+		}
+
+		if (startingAlo != nullptr) {
+			ALO* current = startingAlo;
+
+			while (current != nullptr) {
+				*(unsigned long*)&current->bitfield&= 0xffffe1ffffffffff;
+				current = current->paloParent;
+			}
+		}
+	}
+
+	if (!(grffso & 0x200) && cploMatch > cploMax) {
+		cploMatch = cploMax;
+	}
+
+	return cploMatch;
+}
+
 void UpdateSw(SW* psw, float dt)
 {
 	UpdateSwObjects(psw, g_clock.dt);
@@ -492,6 +630,7 @@ void DeleteWorld(SW *psw)
 	DeallocateSoVector();
 
 	UnloadShaders();
+	ResetUi(&g_ui);
 
 	g_psw = nullptr;
 	g_pcm = nullptr;

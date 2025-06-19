@@ -308,7 +308,7 @@ struct GLOBSET // NOT DONE
 // Initializes glsl uniform locations
 void InitGlslUniforms();
 // Loads 3D model data from binary file
-void LoadGlobsetFromBrx(GLOBSET* pglobset, short cid, ALO* palo, glm::mat3 modelMatrix,CBinaryInputStream* pbis);
+void LoadGlobsetFromBrx(GLOBSET* pglobset, short cid, ALO* palo ,CBinaryInputStream* pbis);
 // Converts strips to tri lists and stores 3D sub model in VRAM
 void BuildSubGlob(SUBGLOB *psubglob, SHD *pshd, std::vector <glm::vec3> &positions, std::vector <glm::vec3> &normals, std::vector <glm::vec4> &colors, std::vector <glm::vec2> &texcoords, std::vector <VTXFLG> &indexes, SUBPOSEF* subposef, std::vector <glm::vec3>& aposfPoses, std::vector <glm::vec3>& anormalfPoses, std::vector <float>& agWeights);
 void BuildSubcel(GLOBSET *pglobset, SUBCEL *psubcel, int cposf, std::vector <glm::vec3> &aposf, int ctwef, std::vector <TWEF> &atwef, std::vector <SUBPOSEF> &asubposef, std::vector <glm::vec3> &aposfPoses, std::vector <float> &agWeights);

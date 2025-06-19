@@ -531,10 +531,12 @@ void DeleteWorld(SW *psw)
 	allSWAloObjs.shrink_to_fit();
 	allWorldObjs.clear();
 	allWorldObjs.shrink_to_fit();
+
 	DeallocateLightVector();
 	DeallocateSoVector();
 
 	UnloadShaders();
+	ResetUi(&g_ui);
 
 	g_psw = nullptr;
 	g_pcm = nullptr;

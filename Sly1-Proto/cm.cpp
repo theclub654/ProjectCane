@@ -19,9 +19,11 @@ void InitCm(CM* pcm)
 	pcm->uFogMax = 0.5;
 	pcm->rMRD = 1.0;
 	pcm->worldUp = glm::vec3(0.0f, 0.0f, 1.0f);
+	pcm->direction = glm::vec3(0.0f, 0.0f, -1.0f);
 
 	pcm->lookAt = glm::identity <glm::mat4>();
 	pcm->yaw = -90;
+	pcm->pitch = 0.0f;
 	
 	RecalcCm(pcm);
 	pcm->cpman.pvtcpman = &g_vtcpman;
@@ -137,17 +139,17 @@ void RecalcCm(CM* pcm)
 {
 	pcm->rMRDAdjust = pcm->rMRD * (1.0 / g_renderDistance);
 
-	//pcm->radFOV = 45.0;
+	float camAspect = (g_gl.aspectMode == FitToScreen) ? (g_gl.width / g_gl.height) : g_gl.aspectRatio;
 
-	BuildProjectionMatrix(&pcm->radFOV, &g_gl.width, &g_gl.height, &pcm->sNearClip, &pcm->sFarClip, pcm->matProj);
+	BuildProjectionMatrix(pcm->radFOV, camAspect, pcm->sNearClip, pcm->sFarClip, pcm->matProj);
 	UpdateCmMat4(pcm);
 }
 
-void BuildProjectionMatrix(float *fov, float *width, float *height, float *near, float *far, glm::mat4 &pmat)
+void BuildProjectionMatrix(float fov, float aspectRatio, float near, float far, glm::mat4 &pmat)
 {
-	*far = 10000000000.0f;
-	pmat = glm::identity <glm::mat4>();
-	pmat = glm::perspective(*fov, *width / *height, *near , *far);
+	far = 10000000000.0f;
+
+	pmat = glm::perspective(fov, aspectRatio, near, far);
 }
 
 void BuildSimpleProjectionMatrix(float rx, float ry, float dxOffset, float dyOffset, float sNear, float sFar, glm::mat4& pmat)
@@ -316,9 +318,9 @@ void* GetCmRgbaFog(CM* pcm)
 
 void SetCmRgbaFog(CM* pcm, RGBA prgbaFog)
 {
-	float R = prgbaFog.bRed / 255.0;
+	float R = prgbaFog.bRed   / 255.0;
 	float G = prgbaFog.bGreen / 255.0;
-	float B = prgbaFog.bBlue / 255.0;
+	float B = prgbaFog.bBlue  / 255.0;
 	float A = prgbaFog.bAlpha / 255.0;
 
 	pcm->rgbaFog = glm::vec4(R, G, B, A);
@@ -376,6 +378,17 @@ void CombineEyeLookAtProj(const glm::vec3& eyePos, const glm::mat3& lookAt, cons
 
 	// Combine projection and view
 	pmat = proj * viewInv;
+}
+
+void TransposeFrustumNormals(glm::vec3 frustum[4], glm::vec4 transpose[3]) {
+	for (int i = 0; i < 3; ++i) {
+		transpose[i] = glm::vec4(
+			frustum[0][i],
+			frustum[1][i],
+			frustum[2][i],
+			frustum[3][i]
+		);
+	}
 }
 
 void UpdateCmMat4(CM* pcm)

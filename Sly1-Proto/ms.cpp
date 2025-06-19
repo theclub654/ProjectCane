@@ -28,7 +28,7 @@ void RenderMsGlobset(MS *pms, CM *pcm, RO *pro)
 				continue;
 		}
 
-		auto& glob = pms->globset.aglob[i];
+		auto& glob  = pms->globset.aglob[i];
 		auto& globi = pms->globset.aglobi[i];
 
 		glm::vec3 posCenterWorld = glm::vec3(baseModelMatrix * glm::vec4(glob.posCenter, 1.0f));
@@ -58,7 +58,7 @@ void RenderMsGlobset(MS *pms, CM *pcm, RO *pro)
 			rpl.ro.fDynamic = glob.fDynamic;
 
 			rpl.ro.uFog = glob.uFog;
-			rpl.posCenter = glob.posCenter;
+			rpl.posCenter = posCenterWorld;
 			rpl.ro.grfglob = glob.grfglob;
 			rpl.ro.pshd = subglob.pshd;
 			rpl.ro.unSelfIllum = subglob.unSelfIllum;
@@ -88,7 +88,7 @@ void RenderMsGlobset(MS *pms, CM *pcm, RO *pro)
 				case RP_Cutout:
 				case RP_CutoutAfterProjVolume:
 				case RP_Translucent:
-				rpl.z = glm::length(pcm->pos - glob.posCenter);
+				rpl.z = glm::length(pcm->pos - posCenterWorld);
 				break;
 			}
 
@@ -97,8 +97,8 @@ void RenderMsGlobset(MS *pms, CM *pcm, RO *pro)
 			else
 				rpl.ro.model = baseModelMatrix;
 
-			/*if (glob.rtck != RTCK_None)
-				AdjustAloRtckMat(pms, pcm, glob.rtck, &glob.posCenter, rpl.ro.model);*/
+			if (glob.rtck != RTCK_None)
+				AdjustAloRtckMat(pms, pcm, glob.rtck, &glob.posCenter, rpl.ro.model);
 
 			SubmitRpl(&rpl);
 		}

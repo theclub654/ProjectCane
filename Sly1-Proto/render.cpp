@@ -16,7 +16,7 @@ void RenderSw(SW *psw, CM *pcm)
 	dlBusyWalker.m_pdliNext = s_pdliFirst;            // Link this walker into a global list of DLI walkers
 
 	// Get the first object (LO) in the busy list
-	LO* currentObject = psw->dlBusy.ploFirst;
+	ALO* currentObject = psw->dlBusy.paloFirst;
 
 	// Set up the pointer to the "next" object in the list,
 	// using offset-based pointer arithmetic from current object
@@ -30,10 +30,10 @@ void RenderSw(SW *psw, CM *pcm)
 	{
 		// Call the rendering function on the current object
 		// This renders the object and all of its attached ALO children
-		currentObject->pvtalo->pfnRenderAloAll(reinterpret_cast<ALO*>(currentObject), pcm, nullptr);
+		currentObject->pvtalo->pfnRenderAloAll(currentObject, pcm, nullptr);
 
 		// Move to the next object in the list using the stored offset
-		currentObject = reinterpret_cast<LO*>(*dlBusyWalker.m_ppv);
+		currentObject = reinterpret_cast<ALO*>(*dlBusyWalker.m_ppv);
 
 		// If there is a next object, update the walker’s pointer to its next link
 		if (currentObject != nullptr) 
@@ -43,7 +43,7 @@ void RenderSw(SW *psw, CM *pcm)
 
 void RenderSwAloAll(SW* psw, CM* pcm)
 {
-	for (int i = 0; i < allSWAloObjs.size(); i++)
+	for (int i = 0; i < 78; i++)
 	{
 		CID cid = allSWAloObjs[i]->pvtalo->cid;
 		

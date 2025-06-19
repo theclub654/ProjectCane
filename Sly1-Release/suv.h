@@ -63,6 +63,21 @@ struct SVE
     struct EXPL* pexplDust;
 };
 
+struct LAPCTR : public CTR
+{
+
+};
+
+struct BOOSTCTR : public CTR
+{
+
+};
+
+struct PLACECTR : public CTR
+{
+
+};
+
 class SUV : public PO
 {
 	public:
@@ -148,3 +163,11 @@ void UpdateSuvXfWorld(SUV* psuv);
 void RenderSuvSelf(SUV* psuv, CM* pcm, RO* pro);
 void CloneSuv(SUV* psuv, SUV* psuvBase);
 void DeleteSuv(SUV* psuv);
+
+void StartupLapCtr(LAPCTR* plapctr);
+void StartupBoostCtr(BOOSTCTR* pboostctr);
+void StartupPlaceCtr(PLACECTR* placectr);
+
+extern LAPCTR g_lapctr;
+extern BOOSTCTR g_boostctr;
+extern PLACECTR g_placectr;

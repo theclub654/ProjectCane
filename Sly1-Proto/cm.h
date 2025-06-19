@@ -16,7 +16,7 @@ int  GetCmSize();
 void CloneCm(CM* pcm, CM* pcmBase);
 void RecalcCm(CM* pcm);
 void BuildSimpleProjectionMatrix(float rx, float ry, float dxOffset, float dyOffset, float sNear, float sFar, glm::mat4& pmat);
-void BuildProjectionMatrix(float *fov, float *width, float *height, float *near, float *far, glm::mat4 &pmat);
+void BuildProjectionMatrix(float fov, float aspectRatio, float near, float far, glm::mat4 &pmat);
 void SetSwCameraFov(SW* psw, float radFOV);
 void SetSwCameraNearClip(SW* psw, float sNearClip);
 void SetSwCameraFarClip(SW* psw, float sFarClip);

@@ -110,7 +110,7 @@
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>GLFW_STATIC;_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>GLFW_STATIC;_DEBUG;_CONSOLE;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <AdditionalIncludeDirectories>$(SolutionDir)Libraries\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
@@ -130,7 +130,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>GLFW_STATIC;NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>GLFW_STATIC;NDEBUG;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <AdditionalIncludeDirectories>$(SolutionDir)Libraries\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
@@ -161,17 +161,21 @@
     <ClCompile Include="alo.cpp" />
     <ClCompile Include="aseg.cpp" />
     <ClCompile Include="asega.cpp" />
+    <ClCompile Include="attract.cpp" />
     <ClCompile Include="barrier.cpp" />
     <ClCompile Include="basic.cpp" />
     <ClCompile Include="binoc.cpp" />
     <ClCompile Include="bis.cpp" />
     <ClCompile Include="blip.cpp" />
+    <ClCompile Include="blot.cpp" />
     <ClCompile Include="bomb.cpp" />
     <ClCompile Include="bone.cpp" />
+    <ClCompile Include="boss.cpp" />
     <ClCompile Include="break.cpp" />
     <ClCompile Include="brx.cpp" />
     <ClCompile Include="bsp.cpp" />
     <ClCompile Include="button.cpp" />
+    <ClCompile Include="call.cpp" />
     <ClCompile Include="can.cpp" />
     <ClCompile Include="chkpnt.cpp" />
     <ClCompile Include="clock.cpp" />
@@ -179,12 +183,15 @@
     <ClCompile Include="cnvo.cpp" />
     <ClCompile Include="coin.cpp" />
     <ClCompile Include="cplcy.cpp" />
+    <ClCompile Include="credit.cpp" />
     <ClCompile Include="crusher.cpp" />
     <ClCompile Include="crv.cpp" />
+    <ClCompile Include="ctr.cpp" />
     <ClCompile Include="cycle.cpp" />
     <ClCompile Include="dart.cpp" />
     <ClCompile Include="dartgun.cpp" />
     <ClCompile Include="debug.cpp" />
+    <ClCompile Include="debugmenu.cpp" />
     <ClCompile Include="dialog.cpp" />
     <ClCompile Include="difficulty.cpp" />
     <ClCompile Include="dl.cpp" />
@@ -216,9 +223,11 @@
     <ClCompile Include="jump.cpp" />
     <ClCompile Include="keyhole.cpp" />
     <ClCompile Include="landing.cpp" />
+    <ClCompile Include="letterbox.cpp" />
     <ClCompile Include="lgn.cpp" />
     <ClCompile Include="light.cpp" />
     <ClCompile Include="lo.cpp" />
+    <ClCompile Include="logo.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="map2d.cpp" />
     <ClCompile Include="math.cpp" />
@@ -236,7 +245,9 @@
     <ClCompile Include="pipe.cpp" />
     <ClCompile Include="pnt.cpp" />
     <ClCompile Include="po.cpp" />
+    <ClCompile Include="prompt.cpp" />
     <ClCompile Include="proxy.cpp" />
+    <ClCompile Include="puffcharger.cpp" />
     <ClCompile Include="puffer.cpp" />
     <ClCompile Include="pzo.cpp" />
     <ClCompile Include="rail.cpp" />
@@ -248,6 +259,8 @@
     <ClCompile Include="rog.cpp" />
     <ClCompile Include="rope.cpp" />
     <ClCompile Include="rwm.cpp" />
+    <ClCompile Include="scores.cpp" />
+    <ClCompile Include="screen.cpp" />
     <ClCompile Include="sensor.cpp" />
     <ClCompile Include="serialize.cpp" />
     <ClCompile Include="shadow.cpp" />
@@ -273,10 +286,16 @@
     <ClCompile Include="tail.cpp" />
     <ClCompile Include="tank.cpp" />
     <ClCompile Include="target.cpp" />
+    <ClCompile Include="timer.cpp" />
+    <ClCompile Include="title.cpp" />
     <ClCompile Include="tn.cpp" />
+    <ClCompile Include="totals.cpp" />
     <ClCompile Include="transition.cpp" />
+    <ClCompile Include="trunk.cpp" />
     <ClCompile Include="turret.cpp" />
+    <ClCompile Include="tv.cpp" />
     <ClCompile Include="ub.cpp" />
+    <ClCompile Include="ui.cpp" />
     <ClCompile Include="unk0.cpp" />
     <ClCompile Include="unk1.cpp" />
     <ClCompile Include="unk10.cpp" />
@@ -323,17 +342,22 @@
     <ClInclude Include="alo.h" />
     <ClInclude Include="aseg.h" />
     <ClInclude Include="asega.h" />
+    <ClInclude Include="attract.h" />
     <ClInclude Include="barrier.h" />
     <ClInclude Include="basic.h" />
     <ClInclude Include="binoc.h" />
     <ClInclude Include="bis.h" />
     <ClInclude Include="blip.h" />
+    <ClInclude Include="blot.h" />
+    <ClInclude Include="blotdec.h" />
     <ClInclude Include="bomb.h" />
     <ClInclude Include="bone.h" />
+    <ClInclude Include="boss.h" />
     <ClInclude Include="break.h" />
     <ClInclude Include="brx.h" />
     <ClInclude Include="bsp.h" />
     <ClInclude Include="button.h" />
+    <ClInclude Include="call.h" />
     <ClInclude Include="can.h" />
     <ClInclude Include="chkpnt.h" />
     <ClInclude Include="clock.h" />
@@ -341,12 +365,15 @@
     <ClInclude Include="cnvo.h" />
     <ClInclude Include="coin.h" />
     <ClInclude Include="cplcy.h" />
+    <ClInclude Include="credit.h" />
     <ClInclude Include="crusher.h" />
     <ClInclude Include="crv.h" />
+    <ClInclude Include="ctr.h" />
     <ClInclude Include="cycle.h" />
     <ClInclude Include="dart.h" />
     <ClInclude Include="dartgun.h" />
     <ClInclude Include="debug.h" />
+    <ClInclude Include="debugmenu.h" />
     <ClInclude Include="dec.h" />
     <ClInclude Include="dialog.h" />
     <ClInclude Include="difficulty.h" />
@@ -378,9 +405,11 @@
     <ClInclude Include="jump.h" />
     <ClInclude Include="keyhole.h" />
     <ClInclude Include="landing.h" />
+    <ClInclude Include="letterbox.h" />
     <ClInclude Include="lgn.h" />
     <ClInclude Include="light.h" />
     <ClInclude Include="lo.h" />
+    <ClInclude Include="logo.h" />
     <ClInclude Include="main.h" />
     <ClInclude Include="map2d.h" />
     <ClInclude Include="math.h" />
@@ -398,7 +427,9 @@
     <ClInclude Include="pipe.h" />
     <ClInclude Include="pnt.h" />
     <ClInclude Include="po.h" />
+    <ClInclude Include="prompt.h" />
     <ClInclude Include="proxy.h" />
+    <ClInclude Include="puffcharger.h" />
     <ClInclude Include="puffer.h" />
     <ClInclude Include="pzo.h" />
     <ClInclude Include="rail.h" />
@@ -408,10 +439,13 @@
     <ClInclude Include="render.h" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="resource1.h" />
+    <ClInclude Include="resp.h" />
     <ClInclude Include="rip.h" />
     <ClInclude Include="rog.h" />
     <ClInclude Include="rope.h" />
     <ClInclude Include="rwm.h" />
+    <ClInclude Include="scores.h" />
+    <ClInclude Include="screen.h" />
     <ClInclude Include="sensor.h" />
     <ClInclude Include="serialize.h" />
     <ClInclude Include="shadow.h" />
@@ -437,10 +471,16 @@
     <ClInclude Include="tail.h" />
     <ClInclude Include="tank.h" />
     <ClInclude Include="target.h" />
+    <ClInclude Include="timer.h" />
+    <ClInclude Include="title.h" />
     <ClInclude Include="tn.h" />
+    <ClInclude Include="totals.h" />
     <ClInclude Include="transition.h" />
+    <ClInclude Include="trunk.h" />
     <ClInclude Include="turret.h" />
+    <ClInclude Include="tv.h" />
     <ClInclude Include="ub.h" />
+    <ClInclude Include="ui.h" />
     <ClInclude Include="unk0.h" />
     <ClInclude Include="unk1.h" />
     <ClInclude Include="unk10.h" />

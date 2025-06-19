@@ -125,7 +125,7 @@ class CFontBrx : public CFont
 
         // Number of glyffs
         int m_cglyff;
-        std::unordered_map <uint16_t, GLYFF> m_aglyff;
+        std::unordered_map<uint16_t, GLYFF> m_aglyff;
 
         uint32_t m_grffont;
 
@@ -137,11 +137,10 @@ class CFontBrx : public CFont
         // Calculates and returns the total width of a string
         float DxFromPchz(char *pchz);
         float DxFromCh(char ch);
-        void  DxDrawCh(char *text, float x, float y, glm::vec4 rgba);
-        CFont* PFontClone(float rx, float ry);
+        CFontBrx* PfontClone(float rx, float ry);
         void FValid(char ch);
-        void SetupDraw(CTextBox* ptbxClip);
-        void DxDrawCh(char ch, float xChar, float yChar, u32 rgba);
+        void SetupDraw();
+        float DxDrawCh(char ch, float xChar, float yChar, glm::vec4 &rgba);
         void EdgeRect(CTextEdge* pte, CTextBox* ptbx);
         void PushScaling(float rx, float ry);
         void CopyTo(CFontBrx *pfontDst);
@@ -150,33 +149,39 @@ class CFontBrx : public CFont
         int  ClineWrapPchz(char *pchz, float dx);
         float DxMaxLine(char *pchz);
         float DyWrapPchz(char* pchz, float dx);
-        void DrawPart(float x0, float y0, float x1, float y1, float s0, float t0, float s1, float t1, glm::vec4 color);
+        void DrawPart(float x0, float y0, float x1, float y1, float s0, float t0, float s1, float t1, glm::vec4 &color);
         void DrawPchz(char* pchz, CTextBox* ptbx);
+        void CleanUpDraw();
 };
 
 class CRichText
 {
     public:
-    char *m_achz;
-    char *m_pchCur;
-    CFontBrx *m_pfontCur;
-    CFontBrx *m_pfontBase;
-    CFontBrx m_fontOther;
+
+    char* m_achz;
+    char* m_pchCur;
+    CFontBrx* m_pfontCur;
+    CFontBrx* m_pfontBase;
+    CFontBrx  m_fontOther;
     glm::vec4 m_rgbaCur;
     glm::vec4 m_rgbaSet;
     glm::vec4 m_rgbaBase;
     glm::vec4 m_rgbaOther;
 
-    CRichText(char *achz, CFont *pfont);
+    CRichText(char* achz, CFontBrx* pfont);
 
     void  GetExtents(float* pdx, float* pdy, float dxMax);
     int   ClineWrap(float dx);
     float DxMaxLine();
     char  ChNext();
+    void  SetBaseColor(glm::vec4* rgba);
+    int   Cch();
+    void  Trim(int cch);
     void  Reset();
+    void  Draw(CTextBox* ptbx);
 };
 
-void RenderGlyphQuad(float x, float y, float w, float h, float u0, float v0, float u1, float v1);
+void RenderGlyphQuad(float x, float y, float w, float h, float u0, float v0, float u1, float v1, const glm::vec4 &color);
 
 // Number of fonts in binary file
 extern int g_cfontBrx;
@@ -187,10 +192,10 @@ extern CFontBrx *g_pfont;
 extern CFontBrx *g_pfontScreenCounters;
 extern CFontBrx *g_pfontJoy;
 
-extern CTextEdge g_teAttract;
-extern CTextEdge g_teWmc;
-extern CTextEdge g_teLogo;
-extern CTextEdge g_teNote;
-extern CTextEdge g_tePrompt;
-
 extern SFR g_sfrOne;
+
+extern GLuint u_projectionLoc;
+extern GLuint u_modelLoc;
+extern GLuint uvRectLoc;
+extern GLuint blotColorLoc;
+extern GLuint whiteTex;

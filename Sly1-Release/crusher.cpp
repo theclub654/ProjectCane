@@ -1,5 +1,15 @@
 #include "crusher.h"
 
+void StartupCrusherCtr(CRUSHERCTR* pcrusherctr)
+{
+	pcrusherctr->pvtcrusherctr = &g_vtcrusherctr;
+}
+
+float DtVisibleCrusherctr(CRUSHERCTR* pcrusherctr)
+{
+	return 0.0f;
+}
+
 CRFODB* NewCrfodb()
 {
 	return new CRFODB{};
@@ -115,3 +125,5 @@ void DeleteCrbrain(CRBRAIN* pcrbrain)
 {
 	delete pcrbrain;
 }
+
+CRUSHERCTR g_crusherctr;

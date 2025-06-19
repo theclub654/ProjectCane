@@ -1506,3 +1506,10 @@ LO* PloNew(CID cid, SW* psw, ALO* paloParent, OID oid, int isplice);
 DL* PdlFromSwOid(SW* psw, OID oid);
 void LoadSwObjectsFromBrx(SW* psw, ALO* paloParent, CBinaryInputStream* pbis);
 void LoadOptionsFromBrx(void* pvObject, CBinaryInputStream* pbis);
+
+struct BINOC;
+extern BINOC g_binoc;
+
+void RepositionAllBlots();
+void BuildBinocBackGround(BINOC* pbinoc);
+void BuildBinocOutline(BINOC* pbinoc);

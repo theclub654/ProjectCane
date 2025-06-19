@@ -1,6 +1,8 @@
 #pragma once
 #include <iostream>
 #include <algorithm>
+#include <chrono>
+#include <thread>
 
 typedef uint64_t TICK;
 

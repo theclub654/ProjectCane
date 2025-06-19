@@ -1,8 +1,5 @@
 #include "cm.h"
 
-CMLK g_cmlk;
-float g_renderDistance = 1.0;
-
 CM* NewCm()
 {
 	return new CM{};
@@ -22,19 +19,11 @@ void InitCm(CM* pcm)
 	pcm->uFogMax = 0.5;
 	pcm->rMRD = 1.0;
 	pcm->worldUp = glm::vec3(0.0f, 0.0f, 1.0f);
+	pcm->direction = glm::vec3(0.0f, 0.0f, -1.0f);
 
-	pcm->direction = glm::vec3(0.0);
-	pcm->direction.x = cos(glm::radians(-pcm->yaw)) * cos(glm::radians(pcm->pitch));
-	pcm->direction.y = sin(glm::radians(-pcm->yaw)) * cos(glm::radians(pcm->pitch));
-	pcm->direction.z = sin(glm::radians(pcm->pitch));
-	pcm->direction = glm::normalize(pcm->direction);
-	pcm->right = glm::normalize(glm::cross(pcm->direction, pcm->worldUp));
-	pcm->up = glm::normalize(glm::cross(pcm->right, pcm->direction));
-
-	pcm->right = glm::vec3(0.0);
 	pcm->lookAt = glm::identity <glm::mat4>();
 	pcm->yaw = -90;
-	pcm->firstClick = true;
+	pcm->pitch = 0.0f;
 
 	RecalcCm(pcm);
 	pcm->cpman.pvtcpman = &g_vtcpman;
@@ -148,9 +137,12 @@ void CloneCm(CM* pcm, CM* pcmBase)
 
 void RecalcCm(CM* pcm)
 {
-	pcm->rMRDAdjust = pcm->rMRD * (1.0 / pcm->radFOV);
+	pcm->rMRDAdjust = pcm->rMRD * (1.0 / g_renderDistance);
 
-	BuildProjectionMatrix(&pcm->radFOV, &g_gl.width, &g_gl.height, &pcm->sNearClip, &pcm->sFarClip, pcm->matProj);
+	float camAspect = (g_gl.aspectMode == FitToScreen) ? (g_gl.width / g_gl.height) : g_gl.aspectRatio;
+
+	BuildProjectionMatrix(pcm->radFOV, camAspect, pcm->sNearClip, pcm->sFarClip, pcm->matProj);
+	UpdateCmMat4(pcm);
 }
 
 void BuildSimpleProjectionMatrix(float rx, float ry, float dxOffset, float dyOffset, float sNear, float sFar, glm::mat4& pmat)
@@ -166,10 +158,11 @@ void BuildSimpleProjectionMatrix(float rx, float ry, float dxOffset, float dyOff
 	pmat[3][2] = sNear * (1.0f - fVar1);
 }
 
-void BuildProjectionMatrix(float *fov, float *width, float *height, float *near, float *far, glm::mat4 &pmat)
+void BuildProjectionMatrix(float fov, float aspectRatio, float near, float far, glm::mat4& pmat)
 {
-	pmat = glm::identity <glm::mat4>();
-	pmat = glm::perspective(*fov, *width / *height, *near , 10000000000.0f);
+	far = 10000000000.0f;
+
+	pmat = glm::perspective(fov, aspectRatio, near, far);
 }
 
 void SetSwCameraFov(SW* psw, float radFOV)
@@ -328,9 +321,9 @@ void* GetCmRgbaFog(CM* pcm)
 
 void SetCmRgbaFog(CM* pcm, RGBA prgbaFog)
 {
-	float R = prgbaFog.bRed / 255.0;
+	float R = prgbaFog.bRed   / 255.0;
 	float G = prgbaFog.bGreen / 255.0;
-	float B = prgbaFog.bBlue / 255.0;
+	float B = prgbaFog.bBlue  / 255.0;
 	float A = prgbaFog.bAlpha / 255.0;
 
 	pcm->rgbaFog = glm::vec4(R, G, B, A);
@@ -411,7 +404,7 @@ void UpdateCmMat4(CM* pcm)
 
 	pcm->matWorldToClip = pcm->matProj * pcm->lookAt;
 
-	ExtractFrustumPlanes(pcm->matProj * pcm->lookAt, &pcm->frustum);
+	ExtractFrustumPlanes(pcm->matWorldToClip, &pcm->frustum);
 }
 
 bool FInsideCmMrd(const CM* pcm, const glm::vec3& dpos, float sRadius, float sMRD, float& outAlpha)
@@ -463,3 +456,6 @@ void DeleteCm(CM *pcm)
 {
 	delete pcm;
 }
+
+CMLK g_cmlk;
+float g_renderDistance = 1.0;

@@ -28,6 +28,59 @@ float GLimitAbs(float g, float absLimit)
 	return absLimit;
 }
 
+float GSmooth(float gCur, float gTarget, float dt, SMP* psmp, float* pdgNext)
+{
+	float delta = gCur - gTarget;
+	bool isNegative = delta < 0.0f;
+	if (isNegative) delta = -delta;
+
+	float acc = psmp->svFast;
+	float vSlow = psmp->svSlow;
+	float dtFast = psmp->dtFast;
+
+	float accelDist = (vSlow + acc) * dtFast * 0.5f;
+	float velocity = 0.0f;
+	bool finalStepHandled = false;
+
+	if (accelDist <= delta) {
+		float accelTime = (delta - accelDist) / acc;
+		if (dt <= accelTime) {
+			velocity = -acc;
+			delta -= acc * dt;
+			finalStepHandled = true;
+		}
+		else {
+			dt -= accelTime;
+			delta = accelDist;
+		}
+	}
+
+	if (!finalStepHandled) {
+		float tSolutions[2] = { 0.0f, 0.0f };
+		float a = (acc - vSlow) / (2.0f * dtFast);
+		float b = vSlow;
+		float c = -delta;
+
+		if (CSolveQuadratic(a, b, c, &tSolutions[0]) && tSolutions[0] > dt) {
+			float t = tSolutions[0] - dt;
+			float accelRate = (acc - vSlow) / dtFast;
+			float vMid = vSlow + accelRate * t;
+			velocity = -0.5f * (vSlow + vMid);
+			delta = (vSlow * t) + (0.5f * accelRate * t * t);
+		}
+		else {
+			velocity = -vSlow;
+			delta = vSlow * dt;
+		}
+	}
+
+	float result = isNegative ? gTarget - delta : gTarget + delta;
+	if (pdgNext != nullptr) {
+		*pdgNext = isNegative ? -velocity : velocity;
+	}
+	return result;
+}
+
 //TODO: GSmooth
 //TODO: GSmoothA
 //TODO: RadSmooth

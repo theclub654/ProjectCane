@@ -17,6 +17,7 @@ int GetSmartguardSize()
 
 void CloneSmartguard(SMARTGUARD* psmartguard, SMARTGUARD* psmartguardBase)
 {
+    CloneStepguard(psmartguard, psmartguardBase);
     psmartguard->sgf = psmartguardBase->sgf;  // Copy SGF structure (assuming it's trivially copyable)
     psmartguard->sDetectNear = psmartguardBase->sDetectNear;  // Copy the float value
     psmartguard->zDetectNear = psmartguardBase->zDetectNear;  // Copy the float value

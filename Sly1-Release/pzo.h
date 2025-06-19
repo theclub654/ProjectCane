@@ -32,6 +32,11 @@ class SPRIZE : public SO
 		int fJtDone;
 };
 
+struct CLUECTR : public CTR
+{
+
+};
+
 class CLUE : public SPRIZE
 {
 	public:
@@ -111,6 +116,8 @@ int  GetScprizeSize();
 void CloneScprize(SCPRIZE* pscprize, SCPRIZE* pscprizeBase);
 void DeleteScprize(SCPRIZE* pscprize);
 
+void StartupClueCtr(CLUECTR* pcluectr);
+
 CLUE*NewClue();
 void InitClue(CLUE* pclue);
 int  GetClueSize();
@@ -130,3 +137,5 @@ int  GetLockgSize();
 void LoadLockgFromBrx(LOCKG* plockg, CBinaryInputStream* pbis);
 void CloneLockg(LOCKG* plockg, LOCKG* plockgBase);
 void DeleteLockg(LOCKG* plockg);
+
+extern CLUECTR g_cluectr;

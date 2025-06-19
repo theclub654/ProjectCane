@@ -9,7 +9,7 @@
 
 class GLSHADER
 {
-public:
+    public:
 
     GLuint ID;
 
@@ -18,7 +18,7 @@ public:
     void Use();
     void Delete();
 
-private:
+    private:
     void compileErrors(unsigned int shader, const char* type);
 };
 
@@ -26,4 +26,4 @@ std::string get_file_contents(const char* filename);
 
 extern GLSHADER glScreenShader;
 extern GLSHADER glGlobShader;
-extern GLSHADER glTextShader;
+extern GLSHADER glBlotShader;

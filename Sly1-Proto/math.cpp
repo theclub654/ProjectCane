@@ -2,33 +2,26 @@
 
 void LoadMatrixFromPosRot(glm::vec3 &ppos, glm::mat3 &pmat, glm::mat4 &pmatDst)
 {
-	pmatDst = pmat;
+	pmatDst = glm::mat4(1.0f);
 
-	pmatDst[3][0] = ppos[0];
-	pmatDst[3][1] = ppos[1];
-	pmatDst[3][2] = ppos[2];
-	pmatDst[3][3] = 1.0;
+	pmatDst[0] = glm::vec4(pmat[0], 0.0f); // Right (X axis)
+	pmatDst[1] = glm::vec4(pmat[1], 0.0f); // Up (Y axis)
+	pmatDst[2] = glm::vec4(pmat[2], 0.0f); // Forward (Z axis)
+	pmatDst[3] = glm::vec4(ppos, 1.0f);    // Position (translation)
 }
 
 void LoadMatrixFromPosRotScale(glm::vec3 &vecPos, glm::mat3 &matRot, glm::vec3 &vecScale, glm::mat4 &pmat)
 {
-	pmat = glm::mat4(1.0f); // Initialize to identity
+	// Start with identity
+	pmat = glm::mat4(1.0f);
 
-	// Apply scaled rotation
-	pmat[0][0] = matRot[0][0] * vecScale.x;
-	pmat[0][1] = matRot[0][1] * vecScale.x;
-	pmat[0][2] = matRot[0][2] * vecScale.x;
-	pmat[1][0] = matRot[1][0] * vecScale.y;
-	pmat[1][1] = matRot[1][1] * vecScale.y;
-	pmat[1][2] = matRot[1][2] * vecScale.y;
-	pmat[2][0] = matRot[2][0] * vecScale.z;
-	pmat[2][1] = matRot[2][1] * vecScale.z;
-	pmat[2][2] = matRot[2][2] * vecScale.z;
+	// Apply rotation and scaling to each axis
+	pmat[0] = glm::vec4(matRot[0] * vecScale.x, 0.0f); // Right (X)
+	pmat[1] = glm::vec4(matRot[1] * vecScale.y, 0.0f); // Up (Y)
+	pmat[2] = glm::vec4(matRot[2] * vecScale.z, 0.0f); // Forward (Z)
 
-	// Set translation (position)
-	pmat[3][0] = vecPos.x;
-	pmat[3][1] = vecPos.y;
-	pmat[3][2] = vecPos.z;
+	// Apply translation
+	pmat[3] = glm::vec4(vecPos, 1.0f);
 }
 
 void LoadMatrixFromPosRotInverse(glm::vec3 &pposSrc, glm::mat3 &pmatSrc, glm::mat4 &pmatDst)
@@ -105,24 +98,29 @@ void BuildOrthonormalMatrixZ(glm::vec3 &pvecX, glm::vec3 &pvecZ, glm::mat4 &pmat
 
 void BuildRotateVectorsMatrix(const glm::vec3& vec1, const glm::vec3& vec2, glm::mat3& outMatrix)
 {
-	glm::vec3 fwd = glm::normalize(vec1); // Forward direction (toward the camera)
-	glm::vec3 right = glm::cross(vec2, fwd); // Right vector
+	glm::vec3 forward = glm::normalize(vec1);
+	glm::vec3 upRef = glm::normalize(vec2);
 
-	if (glm::length2(right) < 0.0001f) {
-		// If forward and up are nearly parallel, use a fallback right vector
-		right = glm::cross(glm::vec3(1.0f, 0.0f, 0.0f), fwd);
-		if (glm::length2(right) < 0.0001f) {
-			right = glm::cross(glm::vec3(0.0f, 1.0f, 0.0f), fwd);
-		}
+	// If forward and upRef are nearly aligned, fix upRef to avoid swing
+	if (std::abs(glm::dot(forward, upRef)) > 0.999f)
+	{
+		// Choose a stable fallback up vector
+		upRef = glm::abs(forward.z) < 0.99f ? glm::vec3(0, 0, 1) : glm::vec3(0, 1, 0);
 	}
 
-	right = glm::normalize(right); // Normalize the right vector
-	glm::vec3 up = glm::normalize(glm::cross(fwd, right)); // Recalculate up vector to maintain orthogonality
+	// Compute a stable right vector
+	glm::vec3 right = glm::normalize(glm::cross(upRef, forward));
 
-	// Build the rotation matrix (right, up, forward)
+	// Ensure right is not flipped due to cross direction instability
+	if (right.x < 0.0f) right = -right;
+
+	// Recompute up to ensure orthogonality
+	glm::vec3 up = glm::normalize(glm::cross(forward, right));
+
+	// Z-up basis: right (X), forward (Y), up (Z)
 	outMatrix[0] = right;
-	outMatrix[1] = up;
-	outMatrix[2] = -fwd; // Negative because the object should face the camera
+	outMatrix[1] = forward;
+	outMatrix[2] = up;
 }
 
 void LoadRotateMatrixRad(float rad, glm::vec3& pnormal, glm::mat3& pmat)

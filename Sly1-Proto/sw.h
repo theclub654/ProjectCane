@@ -166,6 +166,9 @@ int  CploFindSwObjects(SW* psw, GRFFSO grffso, OID oid, LO* ploContext, int cplo
 // Finds a LO
 LO  *PloFindSwObject(SW* psw, GRFFSO grffso, OID oid, LO* ploContext);
 LO  *PloFindSwNearest(SW* psw, OID oid, LO* ploContext);
+int FIsBasicDerivedFrom(BASIC* pbasic, CID cid);
+int FIsCidDerivedFrom(CID cid, CID cidAncestor);
+int CploFindSwObjectsByClass(SW* psw, GRFFSO grffso, CID cid, LO* ploContext, int cploMax, LO** aplo);
 // Update all objects in SW
 void UpdateSw(SW* psw, float dt); // Gotta come back to this
 void UpdateSwObjects(SW* psw, float dt);

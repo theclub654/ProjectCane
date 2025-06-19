@@ -354,52 +354,52 @@ void LoadGlobsetFromBrx(GLOBSET* pglobset, short cid, ALO* palo, CBinaryInputStr
         }
     }
     
-    if (pglobset->aglob.size() != 0)
+    if (!pglobset->aglob.empty() && fCelBorder != 0)
     {
-        if (fCelBorder != 0)
+        for (int i = 0; i < pglobset->aglob.size(); i++)
         {
-            for (int i = 0; i < pglobset->aglob.size(); i++)
+            const auto& glob = pglobset->aglob[i];
+
+            // Skip excluded render passes
+            if (glob.rp == RP_Cutout || glob.rp == RP_ProjVolume ||
+                glob.rp == RP_CutoutAfterProjVolume || glob.rp == RP_Translucent)
+                continue;
+
+            for (int a = 0; a < glob.asubglob.size(); a++)
             {
-                if (pglobset->aglob[i].rp != RP_Cutout && pglobset->aglob[i].rp != RP_ProjVolume && pglobset->aglob[i].rp != RP_CutoutAfterProjVolume && pglobset->aglob[i].rp != RP_Translucent)
+                auto& subglob = pglobset->aglob[i].asubglob[a];
+                const glm::vec3& center = subglob.posCenter;
+
+                constexpr float thickness = 4.0f;
+
+                for (const auto& vert : subglob.vertices)
                 {
-                    for (int a = 0; a < pglobset->aglob[i].asubglob.size(); a++)
-                    {
-                        for (int b = 0; b < pglobset->aglob[i].asubglob[a].vertices.size(); b++)
-                        {
-                            glm::vec3 newPos{};
+                    const glm::vec3& pos = vert.pos;
 
-                            if (cid == 86) // CHARM
-                                newPos = pglobset->aglob[i].asubglob[a].vertices[b].pos * glm::vec3(1.1);
-                            else if (cid == 88) // COIN
-                                newPos = pglobset->aglob[i].asubglob[a].vertices[b].pos * glm::vec3(1.1);
-                            else if (cid == 89) // KEY
-                                newPos = pglobset->aglob[i].asubglob[a].vertices[b].pos * glm::vec3(1.1);
-                            else
-                                newPos = pglobset->aglob[i].asubglob[a].vertices[b].pos + pglobset->aglob[i].asubglob[a].vertices[b].normal * glm::vec3(3.0);
+                    // Inflate outward from posCenter
+                    glm::vec3 offsetDir = glm::normalize(pos - center);
+                    glm::vec3 newPos = pos + offsetDir * thickness;
 
-                            pglobset->aglob[i].asubglob[a].celPositions.push_back(glm::vec3(newPos));
-                        }
-
-                        pglobset->aglob[i].asubglob[a].celIndices = pglobset->aglob[i].asubglob[a].indices;
-
-                        pglobset->aglob[i].asubglob[a].celcvtx = pglobset->aglob[i].asubglob[a].celIndices.size() * sizeof(INDICE);
-                        pglobset->aglob[i].asubglob[a].fCelBorder = 1;
-
-                        glGenVertexArrays(1, &pglobset->aglob[i].asubglob[a].celVAO);
-                        glBindVertexArray(pglobset->aglob[i].asubglob[a].celVAO);
-
-                        glGenBuffers(1, &pglobset->aglob[i].asubglob[a].celVBO);
-                        glBindBuffer(GL_ARRAY_BUFFER, pglobset->aglob[i].asubglob[a].celVBO);
-                        glBufferData(GL_ARRAY_BUFFER, pglobset->aglob[i].asubglob[a].celPositions.size() * sizeof(glm::vec3), pglobset->aglob[i].asubglob[a].celPositions.data(), GL_STATIC_DRAW);
-
-                        glGenBuffers(1, &pglobset->aglob[i].asubglob[a].EBO);
-                        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, pglobset->aglob[i].asubglob[a].EBO);
-                        glBufferData(GL_ELEMENT_ARRAY_BUFFER, pglobset->aglob[i].asubglob[a].celIndices.size() * sizeof(INDICE), pglobset->aglob[i].asubglob[a].celIndices.data(), GL_STATIC_DRAW);
-
-                        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), (void*)0);
-                        glEnableVertexAttribArray(0);
-                    }
+                    subglob.celPositions.push_back(newPos);
                 }
+
+                subglob.celIndices = subglob.indices;
+                subglob.celcvtx = subglob.celIndices.size() * sizeof(INDICE);
+                subglob.fCelBorder = 1;
+
+                glGenVertexArrays(1, &subglob.celVAO);
+                glBindVertexArray(subglob.celVAO);
+
+                glGenBuffers(1, &subglob.celVBO);
+                glBindBuffer(GL_ARRAY_BUFFER, subglob.celVBO);
+                glBufferData(GL_ARRAY_BUFFER, subglob.celPositions.size() * sizeof(glm::vec3), subglob.celPositions.data(), GL_STATIC_DRAW);
+
+                glGenBuffers(1, &subglob.EBO);
+                glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, subglob.EBO);
+                glBufferData(GL_ELEMENT_ARRAY_BUFFER, subglob.celIndices.size() * sizeof(INDICE), subglob.celIndices.data(), GL_STATIC_DRAW);
+
+                glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), (void*)0);
+                glEnableVertexAttribArray(0);
             }
         }
     }

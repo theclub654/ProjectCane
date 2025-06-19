@@ -42,7 +42,6 @@ void RenderMenuGui(SW* psw)
         {
             if (ImGui::IsItemHovered()) g_fDisableInput = true;
             if (ImGui::MenuItem("Map", "", &g_fRenderModels));
-            if (ImGui::IsItemHovered()) g_fDisableInput = true;
 
             if (ImGui::MenuItem("Collision", "", &g_fRenderCollision));
             if (ImGui::IsItemHovered()) g_fDisableInput = true;
@@ -72,7 +71,44 @@ void RenderMenuGui(SW* psw)
                 if (ImGui::IsItemHovered()) g_fDisableInput = true;
             }
 
-            ImGui::SliderFloat("Draw Distance", &g_renderDistance, 1.0f, 2.5);
+            if (ImGui::BeginMenu("Aspect Ratio"))
+            {
+                if (ImGui::MenuItem("Fit to screen", nullptr, g_gl.aspectMode == FitToScreen)) {
+                    g_gl.aspectMode = FitToScreen;
+                    g_gl.aspectRatio = g_gl.width / g_gl.height;
+                    int width, height;
+                    glfwGetFramebufferSize(g_gl.window, &width, &height);
+                    FrameBufferSizeCallBack(g_gl.window, width, height);
+                }
+
+                if (ImGui::MenuItem("4:3", nullptr, g_gl.aspectMode == Fixed_4_3)) {
+                    g_gl.aspectMode = Fixed_4_3;
+                    g_gl.aspectRatio = 4.0f / 3.0f;
+                    int width, height;
+                    glfwGetFramebufferSize(g_gl.window, &width, &height);
+                    FrameBufferSizeCallBack(g_gl.window, width, height);
+                }
+
+                if (ImGui::MenuItem("16:9", nullptr, g_gl.aspectMode == Fixed_16_9)) {
+                    g_gl.aspectMode = Fixed_16_9;
+                    g_gl.aspectRatio = 16.0f / 9.0f;
+                    int width, height;
+                    glfwGetFramebufferSize(g_gl.window, &width, &height);
+                    FrameBufferSizeCallBack(g_gl.window, width, height);
+                }
+
+                if (ImGui::MenuItem("16:10", nullptr, g_gl.aspectMode == Fixed_16_10)) {
+                    g_gl.aspectMode = Fixed_16_10;
+                    g_gl.aspectRatio = 16.0f / 10.0f;
+                    int width, height;
+                    glfwGetFramebufferSize(g_gl.window, &width, &height);
+                    FrameBufferSizeCallBack(g_gl.window, width, height);
+                }
+
+                ImGui::EndMenu();
+            }
+
+            ImGui::SliderFloat("Draw Distance", &g_renderDistance, 1.0f, 3.0);
 
             if (ImGui::IsItemClicked) g_fDisableInput = true;
 
@@ -208,6 +244,6 @@ void ExportSw()
 }
 
 bool g_fDisableInput = false;
-std::string filePath = "";
 std::string file = "";
+std::string filePath = "";
 std::string levelName = "";

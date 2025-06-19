@@ -8,10 +8,10 @@ enum JOY_BUTTON
     BTN_DOWN,
     BTN_LEFT,
     BTN_RIGHT,
-    BTN_A,
-    BTN_B,
-    BTN_X,
-    BTN_Y,
+    BTN_SQUARE,
+    BTN_CIRCLE,
+    BTN_CROSS,
+    BTN_TRIANGLE,
     BTN_START,
     BTN_SELECT,
     BTN_L1,
@@ -24,8 +24,8 @@ struct JOY
     std::unordered_map <JOY_BUTTON, bool> current;
     std::unordered_map <JOY_BUTTON, bool> previous;
 
-    glm::vec2 stick;      // -1 to 1 for analog simulation
-    glm::vec2 stickLatch; // velocity or acceleration if needed
+    float stick;      // -1 to 1 for analog simulation
+    float stickLatch; // velocity or acceleration if needed
 
     int   dxLatch = 0;
     float tLatchX = 0.0f;

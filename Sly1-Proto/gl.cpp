@@ -4,22 +4,27 @@
 extern "C" 
 {
 	__declspec(dllexport) unsigned long NvOptimusEnablement = 0x00000001;
-	__declspec(dllexport) int AmdPowerXpressRequestHighPerformance = 1;
+	__declspec(dllexport) int NvidiaPowerXpressRequestHighPerformance = 1;
 }
 #endif
 
 void GL::InitGL()
 {
+	// Create GLFW context and window
 	glfwInit();
-
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
-	
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
-	window = glfwCreateWindow(width, height, "Sly 1 Proto", NULL, NULL);
-	
-	if (window == NULL)
+	width  = 800;
+	height = 800;
+
+	aspectRatio = width / height;
+	aspectMode  = FitToScreen;
+
+	window = glfwCreateWindow(width, height, "Sly 1 Proto", nullptr, nullptr);
+
+	if (!window)
 	{
 		std::cout << "Failed to create GLFW window" << std::endl;
 		glfwTerminate();
@@ -31,8 +36,6 @@ void GL::InitGL()
 	glfwSetCursorPosCallback(window, MOUSE::CursorPosCallback);
 	glfwSetMouseButtonCallback(window, MOUSE::MouseButtonCallback);
 	glfwSetScrollCallback(window, MOUSE::MouseWheelCallback);
-	
-	gladLoadGL();
 
 	if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
 	{
@@ -40,37 +43,43 @@ void GL::InitGL()
 		while (true);
 	}
 
-	// Generating a buffer object for the frame
+	// ========== ImGui Setup ==========
+	IMGUI_CHECKVERSION();
+	ImGui::CreateContext();
+	ImGuiIO& io = ImGui::GetIO();
+	ImGui_ImplGlfw_InitForOpenGL(window, true);
+	ImGui_ImplOpenGL3_Init("#version 330");
+	ImGui::StyleColorsDark();
+
+	float imguiOffset = ImGui::GetFrameHeight(); // or use a cached value after rendering ImGui menu
+	
+	// ========== Framebuffer setup ==========
 	glGenFramebuffers(1, &fbo);
 	glBindFramebuffer(GL_FRAMEBUFFER, fbo);
 
-	// Generating the frame texture
 	glGenTextures(1, &fbc);
 	glBindTexture(GL_TEXTURE_2D, fbc);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height - imguiOffset, 0, GL_RGB, GL_UNSIGNED_BYTE, nullptr);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	// Attaching the frame texture to currently binded frame buffer
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, fbc, 0);
 
-	// Generating a render buffer object
 	glGenRenderbuffers(1, &rbo);
 	glBindRenderbuffer(GL_RENDERBUFFER, rbo);
-	glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, width, height);
-	// Attaching the render buffer object to frame buffer
+	glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, width, height - imguiOffset);
 	glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, rbo);
-
-	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
 	if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
 	{
 		std::cout << "ERROR::FRAMEBUFFER::Framebuffer is not complete!" << std::endl;
 		while (true);
 	}
-	
-	float screen[] =
-	{
-		// Coords    // texCoords
+
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+	// ========== Screen Quad ==========
+	float screen[] = {
+		// pos      // tex
 		 1.0f, -1.0f,  1.0f, 0.0f,
 		-1.0f, -1.0f,  0.0f, 0.0f,
 		-1.0f,  1.0f,  0.0f, 1.0f,
@@ -81,17 +90,23 @@ void GL::InitGL()
 	};
 
 	glGenVertexArrays(1, &sao);
-	glBindVertexArray(sao);
-
 	glGenBuffers(1, &sbo);
+
+	glBindVertexArray(sao);
 	glBindBuffer(GL_ARRAY_BUFFER, sbo);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(screen), &screen, GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(screen), screen, GL_STATIC_DRAW);
 
-	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)0);
 	glEnableVertexAttribArray(0);
+	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)0);
 
-	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)(2 * sizeof(float)));
 	glEnableVertexAttribArray(1);
+	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)(2 * sizeof(float)));
+
+	glBindVertexArray(0);
+
+	glViewport(0, 0, width, height - imguiOffset);
+
+	UpdateGLProjections();
 
 	float quadVertices[] = {
 		// x, y,        u, v
@@ -124,18 +139,32 @@ void GL::InitGL()
 
 	glBindVertexArray(0);
 
-	textProjection = glm::ortho(0.0f, float(g_gl.width), float(g_gl.height), 0.0f, -1.0f, 1.0f);
+	blotProjection = glm::ortho(0.0f, float(width), float(height - imguiOffset), 0.0f, -1.0f, 1.0f);
+}
 
-	glViewport(0, 0, width, height);
+void GL::UpdateGLProjections()
+{	
+	float windowAspect = width / height;
 
-	IMGUI_CHECKVERSION();
-	ImGui::CreateContext(); 
-	ImGuiIO& io = ImGui::GetIO();
-	// Setup Platform/Renderer bindings
-	ImGui_ImplGlfw_InitForOpenGL(window, true);
-	ImGui_ImplOpenGL3_Init("#version 330");
-	// Setup Dear ImGui style
-	ImGui::StyleColorsDark();
+	float scaleX = 1.0f;
+	float scaleY = 1.0f;
+
+	if (aspectMode == FitToScreen) 
+	{
+		screenProjection = glm::mat4(1.0f);
+	}
+
+	else if (windowAspect > aspectRatio) {
+		scaleX = aspectRatio / windowAspect;
+		screenProjection = glm::scale(glm::mat4(1.0f), glm::vec3(scaleX, 1.0f, 1.0f));
+	}
+	else {
+		scaleY = windowAspect / aspectRatio;
+		screenProjection = glm::scale(glm::mat4(1.0f), glm::vec3(1.0f, scaleY, 1.0f));
+	}
+
+	// Set screen quad model matrix for aspect ratio scaling
+	glUniformMatrix4fv(screenQuadMatrixLoc, 1, GL_FALSE, glm::value_ptr(g_gl.screenProjection));
 }
 
 void GL::TerminateGL()
@@ -150,6 +179,8 @@ void GL::TerminateGL()
 
 	glScreenShader.Delete();
 	glGlobShader.Delete();
+	glBlotShader.Delete();
+
 	ImGui_ImplOpenGL3_Shutdown();
 	ImGui_ImplGlfw_Shutdown();
 	ImGui::DestroyContext();
@@ -157,34 +188,40 @@ void GL::TerminateGL()
 	glfwTerminate();
 }
 
-GLint GetUniformLocation(GLuint program​, const std::string& name)
-{
-	return glGetUniformLocation(program​, name.c_str());
-}
-
 void FrameBufferSizeCallBack(GLFWwindow* window, int width, int height)
 {
+	float imguiOffset = ImGui::GetFrameHeight();
+
+	g_gl.width  = width;
+	g_gl.height = height - imguiOffset;
+
+	// Resize framebuffer attachments
 	glBindFramebuffer(GL_FRAMEBUFFER, g_gl.fbo);
 
-	// Resize color texture
 	glBindTexture(GL_TEXTURE_2D, g_gl.fbc);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, nullptr);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height - imguiOffset, 0, GL_RGB, GL_UNSIGNED_BYTE, nullptr);
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, g_gl.fbc, 0);
-	
-	// Resize depth/stencil buffer
+
 	glBindRenderbuffer(GL_RENDERBUFFER, g_gl.rbo);
-	glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, width, height);
+	glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, width, height - imguiOffset);
 	glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, g_gl.rbo);
 
-	glViewport(0, 0, width, height);
-	
-	g_gl.width  = width;
-	g_gl.height = height;
+	glViewport(0, 0, width, height - imguiOffset);
+
+	g_gl.UpdateGLProjections();
+
+	g_gl.blotProjection = glm::ortho(0.0f, float(width), float(height - imguiOffset), 0.0f, -1.0f, 1.0f);
+
+	glUniformMatrix4fv(u_projectionLoc, 1, GL_FALSE, glm::value_ptr(g_gl.blotProjection));
 
 	if (g_pcm != nullptr)
 		RecalcCm(g_pcm);
 
-	g_gl.textProjection = glm::ortho(0.0f, float(g_gl.width), float(g_gl.height), 0.0f, -1.0f, 1.0f);
+	BuildBinocBackGround(&g_binoc);
+	BuildBinocOutline(&g_binoc);
+
+	RepositionAllBlots();
 }
 
 GL g_gl;
+GLuint screenQuadMatrixLoc = 0;

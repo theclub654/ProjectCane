@@ -2,19 +2,21 @@
 
 void UnloadShaders()
 {
-    /*for (int i = 0; i < g_ashd.size(); i++)
-    {
-        glDeleteTextures(1, &g_ashd[i].glShadowMap);
-        glDeleteTextures(1, &g_ashd[i].glDiffuseMap);
-        glDeleteTextures(1, &g_ashd[i].glSaturateMap);
-    }*/
-
     for (int i = 0; i < g_cbmp; i++)
     {
         glDeleteTextures(1, &g_abmp[i].glShadowMap);
         glDeleteTextures(1, &g_abmp[i].glDiffuseMap);
         glDeleteTextures(1, &g_abmp[i].glSaturateMap);
     }
+
+    for (int i = 0; i < g_afontBrx.size(); i++)
+    {
+        glDeleteTextures(1, &g_afontBrx[i].m_pbmp->glShadowMap);
+        glDeleteTextures(1, &g_afontBrx[i].m_pbmp->glDiffuseMap);
+        glDeleteTextures(1, &g_afontBrx[i].m_pbmp->glSaturateMap);
+    }
+
+    glDeleteTextures(1, &whiteTex);
 
 	g_cshd = 0;
 	g_ashd.clear();
@@ -107,6 +109,14 @@ void LoadFontsFromBrx(CBinaryInputStream* pbis)
             g_pfontJoy = &g_afontBrx[2];
         }
     }
+
+    whiteTex;
+    glGenTextures(1, &whiteTex);
+    glBindTexture(GL_TEXTURE_2D, whiteTex);
+    uint32_t white = 0xFFFFFFFF;
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 1, 1, 0, GL_RGBA, GL_UNSIGNED_BYTE, &white);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 }
 
 void LoadTexFromBrx(TEX* ptex, CBinaryInputStream* pbis)
@@ -172,12 +182,12 @@ void ConvertUserHsvToUserRgb(glm::vec3& pvecHSV, glm::vec3& pvecRGB)
 
         switch (i)
         {
-            case 0: rgb = glm::vec3(v, t, p); break;
-            case 1: rgb = glm::vec3(q, v, p); break;
-            case 2: rgb = glm::vec3(p, v, t); break;
-            case 3: rgb = glm::vec3(p, q, v); break;
-            case 4: rgb = glm::vec3(t, p, v); break;
-            case 5: rgb = glm::vec3(v, p, q); break;
+            case 0:  rgb = glm::vec3(v, t, p); break;
+            case 1:  rgb = glm::vec3(q, v, p); break;
+            case 2:  rgb = glm::vec3(p, v, t); break;
+            case 3:  rgb = glm::vec3(p, q, v); break;
+            case 4:  rgb = glm::vec3(t, p, v); break;
+            case 5:  rgb = glm::vec3(v, p, q); break;
             default: rgb = glm::vec3(0.0f); break;
         }
     }
@@ -247,6 +257,8 @@ void LoadShadersFromBrx(CBinaryInputStream *pbis)
 	}
     
 	LoadFontsFromBrx(pbis);
+
+
     PostBlotsLoad();
 }
 
@@ -269,35 +281,38 @@ void LoadTexturesFromBrx(CBinaryInputStream* pbis)
         switch (g_ashd[i].shdk)
         {
             case SHDK_ThreeWay:
-            MakeTexture(g_ashd[i].atex[0].abmp[0]->glShadowMap,   g_ashd[i].atex[0].abmp[0], g_ashd[i].atex[0].aclut[0], pbis);
-            MakeTexture(g_ashd[i].atex[0].abmp[0]->glDiffuseMap,  g_ashd[i].atex[0].abmp[0], g_ashd[i].atex[0].aclut[1], pbis);
-            MakeTexture(g_ashd[i].atex[0].abmp[0]->glSaturateMap, g_ashd[i].atex[0].abmp[0], g_ashd[i].atex[0].aclut[2], pbis);
+            MakeTexture(g_ashd[i].atex[0].abmp[0]->glShadowMap,   g_ashd[i].atex[0].abmp[0], g_ashd[i].atex[0].aclut[0], false, pbis);
+            MakeTexture(g_ashd[i].atex[0].abmp[0]->glDiffuseMap,  g_ashd[i].atex[0].abmp[0], g_ashd[i].atex[0].aclut[1], false, pbis);
+            MakeTexture(g_ashd[i].atex[0].abmp[0]->glSaturateMap, g_ashd[i].atex[0].abmp[0], g_ashd[i].atex[0].aclut[2], false, pbis);
             break;
 
             case SHDK_Prelit:
             case SHDK_Background:
             case SHDK_MurkFill:
             case SHDK_Max:
-            MakeTexture(g_ashd[i].atex[0].abmp[0]->glDiffuseMap, g_ashd[i].atex[0].abmp[0], g_ashd[i].atex[0].aclut[0], pbis);
+            MakeTexture(g_ashd[i].atex[0].abmp[0]->glDiffuseMap, g_ashd[i].atex[0].abmp[0], g_ashd[i].atex[0].aclut[0], false, pbis);
             break;
 
             case SHDK_Shadow:
             case SHDK_SpotLight:
-            MakeTexture(g_ashd[i].atex[0].abmp[0]->glDiffuseMap, g_ashd[i].atex[0].abmp[0], g_ashd[i].atex[0].aclut[0], pbis);
+            MakeTexture(g_ashd[i].atex[0].abmp[0]->glDiffuseMap, g_ashd[i].atex[0].abmp[0], g_ashd[i].atex[0].aclut[0], false, pbis);
             break;
 
             case SHDK_ProjectedVolume:
-            MakeTexture(g_ashd[i].atex[0].abmp[0]->glDiffuseMap, g_ashd[i].atex[0].abmp[0], g_ashd[i].atex[0].aclut[0], pbis);
+            MakeTexture(g_ashd[i].atex[0].abmp[0]->glDiffuseMap, g_ashd[i].atex[0].abmp[0], g_ashd[i].atex[0].aclut[0], false, pbis);
             break;
 
             case SHDK_CreateTexture:
-            MakeTexture(g_ashd[i].atex[0].abmp[0]->glDiffuseMap, g_ashd[i].atex[0].abmp[0], g_ashd[i].atex[0].aclut[0], pbis);
+            MakeTexture(g_ashd[i].atex[0].abmp[0]->glDiffuseMap, g_ashd[i].atex[0].abmp[0], g_ashd[i].atex[0].aclut[0], false, pbis);
             break;
         }
     }
 
     for (int i = 0; i < g_cfontBrx; i++)
-        MakeTexture(g_afontBrx[i].m_pbmp->glDiffuseMap, g_afontBrx[i].m_pbmp, g_afontBrx[i].m_pclut, pbis);
+    {
+       MakeTexture(g_afontBrx[i].m_pbmp->glDiffuseMap, g_afontBrx[i].m_pbmp, g_afontBrx[i].m_pclut, true, pbis);
+    }
+        
 }
 
 std::vector <byte> MakeBmp(BMP *pbmp, CBinaryInputStream* pbis)
@@ -335,7 +350,7 @@ std::vector <byte> MakePallete(CLUT *pclut, CBinaryInputStream* pbis)
     return palleteBuffer;
 }
 
-void MakeTexture(GLuint &textureReference, BMP *pbmp, CLUT *pclut, CBinaryInputStream *pbis)
+void MakeTexture(GLuint &textureReference, BMP *pbmp, CLUT *pclut, bool fFlip ,CBinaryInputStream *pbis)
 {
     if (pbmp == nullptr || pclut == nullptr || textureReference != 0)
         return;
@@ -381,6 +396,21 @@ void MakeTexture(GLuint &textureReference, BMP *pbmp, CLUT *pclut, CBinaryInputS
             texture[8 * i + 5] = pallete[4 * index2 + 1];
             texture[8 * i + 6] = pallete[4 * index2 + 2];
             texture[8 * i + 7] = pallete[4 * index2 + 3] * 255 / 128;
+        }
+    }
+
+    if (fFlip == true)
+    {
+        int rowSize = width * 4;
+        std::vector<byte> tempRow(rowSize);
+
+        for (int y = 0; y < height / 2; ++y) {
+            byte* rowTop = &texture[y * rowSize];
+            byte* rowBottom = &texture[(height - 1 - y) * rowSize];
+
+            std::memcpy(tempRow.data(), rowTop, rowSize);
+            std::memcpy(rowTop, rowBottom, rowSize);
+            std::memcpy(rowBottom, tempRow.data(), rowSize);
         }
     }
 

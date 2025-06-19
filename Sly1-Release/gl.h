@@ -11,32 +11,55 @@
 #include "imgui/ImGuiFileDialog.h"
 #include "mouse.h"
 
-class GL
+enum AspectMode
 {
-	public:
-		// Window Object
-		GLFWwindow* window;
-		// Frame Buffer Object
-		GLuint fbo;
-		// Frame Buffer Color
-		GLuint fbc;
-		// Render Buffer Object
-		GLuint rbo;
-
-		// Screen Array Object
-		GLuint sao;
-		// Screen Buffer Object
-		GLuint sbo;
-
-		float width  = 800;
-		float height = 800;
-
-		void InitGL();
-		void TerminateGL();
+	FitToScreen,
+	Fixed_4_3,
+	Fixed_16_9,
+	Fixed_16_10,
 };
 
-// Retrieves the uniform location with string
-GLint GetUniformLocation(GLuint program​, const std::string& name);
-void  FrameBufferSizeCallBack(GLFWwindow* window, int width, int height);
+class GL
+{
+public:
+
+	// Window Object
+	GLFWwindow* window;
+	// Frame Buffer Object
+	GLuint fbo;
+	// Frame Buffer Color
+	GLuint fbc;
+
+	// Render Buffer Object
+	GLuint rbo;
+
+	// Screen Array Object
+	GLuint sao;
+	// Screen Buffer Object
+	GLuint sbo;
+	glm::mat4 screenProjection;
+
+	// Text Array Object
+	GLuint gao;
+	// Text Buffer Object
+	GLuint gbo;
+	GLuint geo;
+	glm::mat4 blotProjection;
+
+	// Window width
+	float width;
+	// Window height
+	float height;
+
+	float aspectRatio;
+	AspectMode aspectMode;
+
+	void InitGL();
+	void UpdateGLProjections();
+	void TerminateGL();
+};
+
+void FrameBufferSizeCallBack(GLFWwindow* window, int width, int height);
 
 extern GL g_gl;
+extern GLuint screenQuadMatrixLoc;

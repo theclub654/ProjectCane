@@ -9,6 +9,8 @@
 #include "shdanim.h"
 #include "font.h"
 
+void PostBlotsLoad();
+
 enum SHDK
 {
     SHDK_Nil = -1,
@@ -62,6 +64,11 @@ struct BMP
     uint32_t cbPixels;
     // Offset to BMP in memory
     uint32_t baseOffset;
+    SHDK shdk;
+
+    GLuint glShadowMap;
+    GLuint glDiffuseMap;
+    GLuint glSaturateMap;
 };
 
 struct TEXF
@@ -92,6 +99,9 @@ struct TEX : public TEXF
     struct SHD* pshd;
     std::vector <uint16_t> bmpIndex;
     std::vector <uint16_t> clutIndex;
+
+    std::vector <BMP*>  abmp;
+    std::vector <CLUT*> aclut;
 };
 
 // Shader property's
@@ -101,10 +111,6 @@ struct SHD : public SHDF
     int cshdp;
     int cframe;
     SAA* psaa;
-
-    GLuint glShadowMap;
-    GLuint glDiffuseMap;
-    GLuint glSaturateMap;
 };
 
 // Delete shader data
@@ -126,11 +132,14 @@ void LoadShadersFromBrx(CBinaryInputStream* pbis);
 // Loads texture data from binary file
 void LoadTexturesFromBrx(CBinaryInputStream* pbis);
 // Make Texture
-std::vector <byte> MakeBmp(uint32_t bmpIndex, CBinaryInputStream* pbis);
+std::vector <byte> MakeBmp(BMP* pbmp, CBinaryInputStream* pbis);
 // Make color pallete
-std::vector <byte> MakePallete(uint32_t clutIndex, CBinaryInputStream* pbis);
+std::vector <byte> MakePallete(CLUT* pclut, CBinaryInputStream* pbis);
 // Make texture
-void MakeTexture(GLuint& textureReference, int16_t clutIndex, int16_t bmpIndex, uint8_t* csm1ClutIndices, CBinaryInputStream* pbis);
+void MakeTexture(GLuint& textureReference, BMP* pbmp, CLUT* pclut, bool fFlip, CBinaryInputStream* pbis);
+
+
+
 
 // Global variable which holds the number of CLUT's in a binary file
 extern int g_cclut;
@@ -153,3 +162,5 @@ extern std::vector <SAA> g_apsaa;
 extern std::vector<TEX> g_atex;
 // Start of texture data
 extern size_t textureDataStart;
+// Unswizzled CLUT indices
+extern uint8_t csm1ClutIndices[256];

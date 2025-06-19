@@ -1,6 +1,8 @@
 #pragma once
 #include "alo.h"
 
+#define MAX_LIGHT 255
+
 // Light type
 enum LIGHTK 
 {

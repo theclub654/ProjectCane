@@ -2,6 +2,7 @@
 #include "lo.h"
 #include "difficulty.h"
 #include "cm.h"
+#include "ui.h"
 
 struct LSM
 {

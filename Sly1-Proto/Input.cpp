@@ -4,18 +4,18 @@ void JOY::Update(GLFWwindow* window)
 {
     previous = current;
 
-    current[BTN_UP]     = glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS;
-    current[BTN_DOWN]   = glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS;
-    current[BTN_LEFT]   = glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS;
-    current[BTN_RIGHT]  = glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS;
-    current[BTN_A]      = glfwGetKey(window, GLFW_KEY_J) == GLFW_PRESS;
-    current[BTN_B]      = glfwGetKey(window, GLFW_KEY_K) == GLFW_PRESS;
-    current[BTN_X]      = glfwGetKey(window, GLFW_KEY_U) == GLFW_PRESS;
-    current[BTN_Y]      = glfwGetKey(window, GLFW_KEY_I) == GLFW_PRESS;
-    current[BTN_START]  = glfwGetKey(window, GLFW_KEY_ENTER) == GLFW_PRESS;
-    current[BTN_SELECT] = glfwGetKey(window, GLFW_KEY_BACKSPACE) == GLFW_PRESS;
-    current[BTN_L1]     = glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS;
-    current[BTN_R1]     = glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS;
+    current[BTN_UP]       = glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS;
+    current[BTN_DOWN]     = glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS;
+    current[BTN_LEFT]     = glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS;
+    current[BTN_RIGHT]    = glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS;
+    current[BTN_SQUARE]   = glfwGetKey(window, GLFW_KEY_J) == GLFW_PRESS;
+    current[BTN_CIRCLE]   = glfwGetKey(window, GLFW_KEY_L) == GLFW_PRESS;
+    current[BTN_CROSS]    = glfwGetKey(window, GLFW_KEY_K) == GLFW_PRESS;
+    current[BTN_TRIANGLE] = glfwGetKey(window, GLFW_KEY_I) == GLFW_PRESS;
+    current[BTN_START]    = glfwGetKey(window, GLFW_KEY_ENTER) == GLFW_PRESS;
+    current[BTN_SELECT]   = glfwGetKey(window, GLFW_KEY_BACKSPACE) == GLFW_PRESS;
+    current[BTN_L1]       = glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS;
+    current[BTN_R1]       = glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS;
 }
 
 bool JOY::IsPressed(JOY_BUTTON button)

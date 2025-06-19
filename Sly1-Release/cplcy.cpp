@@ -24,11 +24,21 @@ void InitCpalign(CPALIGN* pcpalign, CM* pcm)
 
 void BuildCmFgfn(CM* pcm, float uFog, FGFN* pfgfn)
 {
-	FitRecipFunction(1.0, 4080.0, pcm->sFarFog / pcm->sNearFog, (1.0 - pcm->uFogMax * uFog) * 4080.0, &pfgfn->duFogBias, &pfgfn->ruFog);
+	float recipNear = 1.0f / pcm->sNearFog;
+	float recipFar  = 1.0f / pcm->sFarFog;
 
-	pfgfn->duFogBias = pfgfn->duFogBias + 8388608.0;
-	pfgfn->duFogPlusClipBias = (pfgfn->duFogBias + 8388608.0) + 36864.0;
-	pfgfn->sNearFog = pcm->sNearFog;
+	// Base remapping range
+	float ruFog = 1.0f / (recipNear - recipFar);
+
+	// Apply fogMax * uFog to control the final intensity
+	if (uFog != 0.0)
+		ruFog *= pcm->uFogMax * uFog;
+	else
+		ruFog *= pcm->uFogMax;
+
+	pfgfn->duFogBias = recipNear;
+	pfgfn->ruFog = ruFog;
+	pfgfn->sNearFog = pcm->sFarFog;
 }
 
 void BuildFrustrum(const glm::mat3& pmatLookAt, float rx, float ry, glm::vec3* anormalFrustrum)
@@ -105,7 +115,7 @@ bool SphereInFrustum(const FRUSTUM& frustum, const glm::vec3& center, float radi
 
 void UpdateCpman(GLFWwindow* window, CPMAN* pcpman, CPDEFI* pcpdefi, float dt)
 {
-	float speed = 8000.0;
+	float speed = 6000.0;
 	float velocity = dt * speed;
 
 	if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
@@ -138,15 +148,17 @@ void UpdateCpman(GLFWwindow* window, CPMAN* pcpman, CPDEFI* pcpdefi, float dt)
 			pcpman->pcm->yaw += MOUSE::GetDX();
 			pcpman->pcm->pitch += MOUSE::GetDY();
 
-			if (pcpman->pcm->pitch > 89.0f)
-				pcpman->pcm->pitch = 89.0f;
+			// Clamp pitch to avoid gimbal lock
+			pcpman->pcm->pitch = glm::clamp(pcpman->pcm->pitch, -89.0f, 89.0f);
 
-			else if (pcpman->pcm->pitch < -89.0f)
-				pcpman->pcm->pitch = -89.0f;
+			// Convert yaw/pitch to radians
+			float yawRad   = glm::radians(pcpman->pcm->yaw);
+			float pitchRad = glm::radians(pcpman->pcm->pitch);
 
-			pcpman->pcm->direction.x = cos(glm::radians(-pcpman->pcm->yaw)) * cos(glm::radians(pcpman->pcm->pitch));
-			pcpman->pcm->direction.y = sin(glm::radians(-pcpman->pcm->yaw)) * cos(glm::radians(pcpman->pcm->pitch));
-			pcpman->pcm->direction.z = sin(glm::radians(pcpman->pcm->pitch));
+			// Z-up: Z = up/down, Y = forward/back
+			pcpman->pcm->direction.x = cos(pitchRad) * cos(-yawRad);
+			pcpman->pcm->direction.y = cos(pitchRad) * sin(-yawRad);
+			pcpman->pcm->direction.z = sin(pitchRad);
 
 			pcpman->pcm->direction = glm::normalize(pcpman->pcm->direction);
 

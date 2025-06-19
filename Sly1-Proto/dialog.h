@@ -130,3 +130,5 @@ void LoadDialogEventsFromBrx(DIALOG* pdialog, CBinaryInputStream *pbis, int* pcd
 void DeleteDialog(DIALOG* pdialog);
 
 inline DIALOG *g_pdialogPlaying = nullptr;
+inline DIALOG *g_pdialogCalling = nullptr;
+inline DIALOG* g_pdialogTriggered = nullptr;

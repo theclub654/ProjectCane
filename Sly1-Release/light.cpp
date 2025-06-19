@@ -488,17 +488,17 @@ void RemoveLightFromSw(LIGHT* plight)
 
 void AllocateLightBlkList()
 {
-	if (numRl != 0)
-	{
-		lightBlk.resize(numRl);
+	lightBlk.resize(MAX_LIGHT); // CPU-side buffer
 
-		glGenBuffers(1, &g_lightUbo);
-		numRl = 0;
-	}
+	glGenBuffers(1, &g_lightUbo);
+	glBindBuffer(GL_UNIFORM_BUFFER, g_lightUbo);
+	glBufferData(GL_UNIFORM_BUFFER, sizeof(LIGHTBLK) * MAX_LIGHT, nullptr, GL_DYNAMIC_DRAW);
+	glBindBufferBase(GL_UNIFORM_BUFFER, 0, g_lightUbo); // bind once here
 }
 
 void PrepareSwLights(SW* psw, CM* pcm)
 {
+	numRl = 0;
 	LIGHT* plight = psw->dlLight.plightFirst;
 
 	while (plight != nullptr)
@@ -506,34 +506,24 @@ void PrepareSwLights(SW* psw, CM* pcm)
 		switch (plight->lightk)
 		{
 		case LIGHTK_Direction:
-		{
+			if (numRl >= lightBlk.size()) break; // prevent overflow
+
 			lightBlk[numRl].lightk = plight->lightk;
 			lightBlk[numRl].dir = glm::vec4(plight->xf.matWorld[2], 0.0f);
 			lightBlk[numRl].color = glm::vec4(plight->rgbaColor, 0.0f);
 			lightBlk[numRl].ru = glm::vec4(plight->ltfn.ruShadow, plight->ltfn.ruMidtone, plight->ltfn.ruHighlight, 0.0f);
 			lightBlk[numRl].du = glm::vec4(plight->ltfn.duShadow, plight->ltfn.duMidtone, plight->ltfn.duHighlight, 0.0f);
 			numRl++;
-
-			plight = plight->dleLight.plightNext;
 			break;
-		}
 
 		case LIGHTK_Position:
-		{
-			if (g_fBsp != 0)
-			{
-				if ((plight->grfzon & pcm->grfzon) != pcm->grfzon)
-				{
-					plight = plight->dleLight.plightNext;
-					continue;
-				}
-			}
+			if ((g_fBsp != 0) && ((plight->grfzon & pcm->grfzon) != pcm->grfzon))
+				break;
 
-			if (SphereInFrustum(pcm->frustum, plight->xf.posWorld, glm::length(pcm->pos - plight->lmFallOffS.gMax)) == 0)
-			{
-				plight = plight->dleLight.plightNext;
-				continue;
-			}
+			if (!SphereInFrustum(pcm->frustum, plight->xf.posWorld, glm::length(pcm->pos - plight->lmFallOffS.gMax)))
+				break;
+
+			if (numRl >= lightBlk.size()) break;
 
 			lightBlk[numRl].lightk = plight->lightk;
 			lightBlk[numRl].pos = glm::vec4(plight->xf.posWorld, 0.0f);
@@ -542,31 +532,20 @@ void PrepareSwLights(SW* psw, CM* pcm)
 			lightBlk[numRl].ru = glm::vec4(plight->ltfn.ruShadow, plight->ltfn.ruMidtone, plight->ltfn.ruHighlight, 0.0f);
 			lightBlk[numRl].du = glm::vec4(plight->ltfn.duShadow, plight->ltfn.duMidtone, plight->ltfn.duHighlight, 0.0f);
 			numRl++;
+			break;
 
-			plight = plight->dleLight.plightNext;
+		default:
 			break;
 		}
 
-		case LIGHTK_Frustrum:
-		case LIGHTK_Spot:
-			plight = plight->dleLight.plightNext;
-			break;
-		}
+		plight = plight->dleLight.plightNext;
 	}
 
-	if (numRl != 0)
-	{
-		glBindBuffer(GL_UNIFORM_BUFFER, g_lightUbo);
-		glBufferData(GL_UNIFORM_BUFFER, sizeof(LIGHTBLK) * numRl, lightBlk.data(), GL_DYNAMIC_DRAW);
+	// Upload used light data to GPU (only numRl lights)
+	glBindBuffer(GL_UNIFORM_BUFFER, g_lightUbo);
+	glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(LIGHTBLK) * numRl, lightBlk.data());
 
-		// Bind UBO to binding point 0
-		glBindBufferBase(GL_UNIFORM_BUFFER, 0, g_lightUbo);
-	}
-
-	// Send numLights separately (as it's a uniform, not in the UBO)
 	glUniform1i(glslNumLights, numRl);
-	//std::cout << numRl<<"\n";
-	numRl = 0;
 }
 
 void DeallocateLightBlkList()

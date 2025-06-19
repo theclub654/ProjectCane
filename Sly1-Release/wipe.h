@@ -1,7 +1,7 @@
 #pragma once
 #include "transition.h"
 
-enum WIPES 
+enum WIPES
 {
     WIPES_Nil = -1,
     WIPES_Idle = 0,
@@ -30,3 +30,7 @@ struct WIPE
     TRANS transButton;
     WIPEK wipekButton;
 };
+
+void InitWipe(WIPE* pwipe);
+
+extern WIPE g_wipe;

@@ -19,3 +19,5 @@ void DeleteWorld(SW *psw);
 int  main(int cphzArgs, char* aphzArgs[]);
 // Initializing all the things needed for the game to run
 void Startup();
+
+extern bool fQuitGame;

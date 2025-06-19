@@ -1027,10 +1027,10 @@
     <None Include="screen.frag">
       <Filter>Resource Files</Filter>
     </None>
-    <None Include="text.frag">
+    <None Include="blot.frag">
       <Filter>Resource Files</Filter>
     </None>
-    <None Include="text.vert">
+    <None Include="blot.vert">
       <Filter>Resource Files</Filter>
     </None>
   </ItemGroup>

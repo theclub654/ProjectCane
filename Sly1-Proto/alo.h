@@ -82,6 +82,12 @@ enum THROBK
 	THROBK_Bar = 5,
 	THROBK_Max = 6
 };
+enum RKO
+{
+	RKO_OneWay = 0,
+	RKO_ThreeWay = 1,
+	RKO_CelBorder = 2
+};
 
 struct XF
 {

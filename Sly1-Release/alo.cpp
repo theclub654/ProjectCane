@@ -1232,6 +1232,7 @@ void LoadAloFromBrx(ALO* palo, CBinaryInputStream* pbis)
 
 	LoadOptionsFromBrx(palo, pbis);
 	LoadGlobsetFromBrx(&palo->globset, palo->pvtalo->cid, palo, pbis);
+	
 	LoadAloAloxFromBrx(palo, pbis);
 
 	palo->pvtalo->pfnUpdateAloXfWorld(palo);
@@ -1471,7 +1472,7 @@ void RenderAloGlobset(ALO* palo, CM* pcm, RO* pro)
 
 	for (int i = 0; i < palo->globset.aglob.size(); ++i)
 	{
-		auto& glob = palo->globset.aglob[i];
+		auto& glob  = palo->globset.aglob[i];
 		auto& globi = palo->globset.aglobi[i];
 		
 		if (g_fBsp != 0)
@@ -1541,7 +1542,7 @@ void RenderAloGlobset(ALO* palo, CM* pcm, RO* pro)
 			// Common render setup
 			rpl.ro.fDynamic = glob.fDynamic;
 			rpl.ro.uFog = glob.uFog;
-			rpl.posCenter = glob.posCenter;
+			rpl.posCenter = posCenterWorld;
 			rpl.ro.grfglob = glob.grfglob;
 			rpl.ro.pshd = subglob.pshd;
 			rpl.ro.unSelfIllum = subglob.unSelfIllum;
@@ -1575,7 +1576,7 @@ void RenderAloGlobset(ALO* palo, CM* pcm, RO* pro)
 				case RP_Cutout:
 				case RP_CutoutAfterProjVolume:
 				case RP_Translucent:
-				rpl.z = glm::length(pcm->pos - glob.posCenter);
+				rpl.z = glm::length(pcm->pos - posCenterWorld);
 				break;
 			}
 
@@ -1629,13 +1630,13 @@ void DrawGlob(RPL* prpl)
 		glUniform3fv(glslPosCenter, 1, glm::value_ptr(prpl->posCenter));
 
 		glActiveTexture(GL_TEXTURE0);
-		glBindTexture(GL_TEXTURE_2D, prpl->ro.pshd->glShadowMap);
+		glBindTexture(GL_TEXTURE_2D, prpl->ro.pshd->atex[0].abmp[0]->glShadowMap);
 
 		glActiveTexture(GL_TEXTURE1);
-		glBindTexture(GL_TEXTURE_2D, prpl->ro.pshd->glDiffuseMap);
+		glBindTexture(GL_TEXTURE_2D, prpl->ro.pshd->atex[0].abmp[0]->glDiffuseMap);
 
 		glActiveTexture(GL_TEXTURE2);
-		glBindTexture(GL_TEXTURE_2D, prpl->ro.pshd->glSaturateMap);
+		glBindTexture(GL_TEXTURE_2D, prpl->ro.pshd->atex[0].abmp[0]->glSaturateMap);
 	}
 	else
 	{
@@ -1645,7 +1646,7 @@ void DrawGlob(RPL* prpl)
 		glBindTexture(GL_TEXTURE_2D, 0);
 
 		glActiveTexture(GL_TEXTURE1);
-		glBindTexture(GL_TEXTURE_2D, prpl->ro.pshd->glDiffuseMap);
+		glBindTexture(GL_TEXTURE_2D, prpl->ro.pshd->atex[0].abmp[0]->glDiffuseMap);
 
 		glActiveTexture(GL_TEXTURE2);
 		glBindTexture(GL_TEXTURE_2D, 0);
@@ -1660,11 +1661,14 @@ void DrawGlob(RPL* prpl)
 		glEnable(GL_BLEND);
 		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
+		glDepthFunc(GL_ALWAYS);
 		glDepthMask(false);
+
 		glUniform1i(glslfAlphaTest, 0);
 		glDrawElements(GL_TRIANGLES, prpl->ro.cvtx, GL_UNSIGNED_SHORT, 0);
 
 		glDisable(GL_BLEND);
+		glDepthFunc(GL_LESS);
 		glDepthMask(true);
 		break;
 

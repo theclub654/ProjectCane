@@ -86,8 +86,12 @@ void DeleteWm(WM* pwm);
 
 void StartupWmc(WMC* pwmc);
 void PostWmcLoad(WMC* pwmc);
+void HideWm(WM* pwm);
 void OnWmcActive(WMC* pwmc, int fActive);
 void UpdateWmcActive(WMC* pwmc, JOY* pjoy);
 void DrawWmc(WMC* pwmc);
 
 extern WMC g_wmc;
+extern CTextEdge g_teWmc;
+extern glm::vec4 g_rgbaBoC;
+extern glm::vec4 g_rgbaBoE;

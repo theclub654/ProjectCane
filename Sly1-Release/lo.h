@@ -7,11 +7,7 @@
 #include "util.h"
 #include "clock.h"
 #include <bitset>
-
-LO* PloNew(CID cid, SW* psw, ALO* paloParent, OID oid, int isplice);
-DL* PdlFromSwOid(SW* psw, OID oid);
-void LoadSwObjectsFromBrx(SW* psw, ALO* paloParent, CBinaryInputStream* pbis);
-void LoadOptionsFromBrx(void* pvObject, CBinaryInputStream* pbis);
+#include "ctr.h"
 
 enum MSGID
 {

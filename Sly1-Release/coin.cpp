@@ -114,6 +114,11 @@ void DeleteCharm(CHARM* pcharm)
 	delete pcharm;
 }
 
+void StartupCoinCtr(COINCTR* pcoinctr)
+{
+	pcoinctr->pvtcoinctr = &g_vtcoinctr;
+}
+
 COIN* NewCoin()
 {
 	return new COIN{};
@@ -139,6 +144,11 @@ void DeleteCoin(COIN* pcoin)
 	delete pcoin;
 }
 
+void StartupLifeCtr(LIFECTR* plifectr)
+{
+	plifectr->pvtlifectr = &g_vtlifectr;
+}
+
 LIFETKN* NewLifetkn()
 {
 	return new LIFETKN{};
@@ -157,6 +167,11 @@ void CloneLifetkn(LIFETKN* plifetkn, LIFETKN* plifetknBase)
 void DeleteLifetkn(LIFETKN* plifetkn)
 {
 	delete plifetkn;
+}
+
+void StartupKeyCtr(KEYCTR* pkeyctr)
+{
+	pkeyctr->pvtkeyctr = &g_vtkeyctr;
 }
 
 KEY* NewKey()
@@ -184,6 +199,11 @@ void DeleteKey(KEY* pkey)
 	delete pkey;
 }
 
+void StartupGoldCtr(GOLDCTR* pgoldctr)
+{
+	pgoldctr->pvtgoldctr = &g_vtgoldctr;
+}
+
 GOLD* NewGold()
 {
 	return new GOLD{};
@@ -209,3 +229,8 @@ void DeleteGold(GOLD* pgold)
 {
 	delete pgold;
 }
+
+LIFECTR g_lifectr;
+COINCTR g_coinctr;
+GOLDCTR g_goldctr;
+KEYCTR  g_keyctr;

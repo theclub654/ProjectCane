@@ -21,7 +21,7 @@ void RenderMsGlobset(MS* pms, CM* pcm, RO* pro)
 
 	for (int i = 0; i < pms->globset.aglob.size(); ++i)
 	{
-		auto& glob = pms->globset.aglob[i];
+		auto& glob  = pms->globset.aglob[i];
 		auto& globi = pms->globset.aglobi[i];
 
 		if (g_fBsp != 0)
@@ -56,7 +56,7 @@ void RenderMsGlobset(MS* pms, CM* pcm, RO* pro)
 
 			rpl.ro.fDynamic = glob.fDynamic;
 			rpl.ro.uFog = glob.uFog;
-			rpl.posCenter = glob.posCenter;
+			rpl.posCenter = posCenterWorld;
 			rpl.ro.grfglob = glob.grfglob;
 			rpl.ro.pshd = subglob.pshd;
 			rpl.ro.unSelfIllum = subglob.unSelfIllum;
@@ -90,7 +90,7 @@ void RenderMsGlobset(MS* pms, CM* pcm, RO* pro)
 				case RP_Cutout:
 				case RP_CutoutAfterProjVolume:
 				case RP_Translucent:
-				rpl.z = glm::length(pcm->pos - glob.posCenter);
+				rpl.z = glm::length(pcm->pos - posCenterWorld);
 				break;
 			}
 

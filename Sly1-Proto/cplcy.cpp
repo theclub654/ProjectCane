@@ -151,19 +151,18 @@ void UpdateCpman(GLFWwindow* window, CPMAN* pcpman, CPDEFI* pcpdefi, float dt)
 			pcpman->pcm->pitch = glm::clamp(pcpman->pcm->pitch, -89.0f, 89.0f);
 
 			// Convert yaw/pitch to radians
-			float yawRad = glm::radians(pcpman->pcm->yaw);
+			float yawRad   = glm::radians(pcpman->pcm->yaw);
 			float pitchRad = glm::radians(pcpman->pcm->pitch);
 
-			pcpman->pcm->direction.x = cos(-yawRad) * cos(pitchRad);
-			pcpman->pcm->direction.y = sin(-yawRad) * cos(pitchRad);
+			// Z-up: Z = up/down, Y = forward/back
+			pcpman->pcm->direction.x = cos(pitchRad) * cos(-yawRad);
+			pcpman->pcm->direction.y = cos(pitchRad) * sin(-yawRad);
 			pcpman->pcm->direction.z = sin(pitchRad);
 
-			// Normalize the direction vector
 			pcpman->pcm->direction = glm::normalize(pcpman->pcm->direction);
 
-			// Update the right and up vectors
 			pcpman->pcm->right = glm::normalize(glm::cross(pcpman->pcm->direction, pcpman->pcm->worldUp));
-			pcpman->pcm->up = glm::normalize(glm::cross(pcpman->pcm->right, pcpman->pcm->direction));
+			pcpman->pcm->up    = glm::normalize(glm::cross(pcpman->pcm->right, pcpman->pcm->direction));
 		}
 	}
 	
