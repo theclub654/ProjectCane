@@ -30,14 +30,17 @@ Our current focus is to:
 To compile the project, use the instructions below based on your desired target:
 
 ### 🧪 May 19, 2002 Prototype
-1. In **Solution Explorer**, right-click on `Sly1-Proto`
-2. Select **Set as Startup Project**
-3. Click **Build** → **Run**
+1. Put `blot.vert` and `blot.frag` and `glob.vert` and `glob.frag` and `screen.vert` and `screen.frag` in the same folder as the exe of where its gonna be built at
+2. In **Solution Explorer**, right-click on `Sly1-Proto`
+3. Select **Set as Startup Project**
+4. Click **Build** → **Run**
 
 ### 📦 Retail Release
-1. In **Solution Explorer**, right-click on `Sly1-Release`
-2. Select **Set as Startup Project**
-3. Click **Build** → **Run**
+1. Use level extractor to extract level files from NTSC ISO right here https://github.com/theclub654/Sly-1-File-Extractor
+2. Put `blot.vert` and `blot.frag` and `glob.vert` and `glob.frag` and `screen.vert` and `screen.frag` in the same folder as the exe of where its gonna be built at
+3. In **Solution Explorer**, right-click on `Sly1-Release`
+4. Select **Set as Startup Project**
+5. Click **Build** → **Run**
 
 ---
 
