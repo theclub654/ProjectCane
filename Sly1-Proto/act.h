@@ -13,3 +13,5 @@ struct ACT
     int nPriority;
     float tMatch;
 };
+
+void AdaptAct(ACT* pact);

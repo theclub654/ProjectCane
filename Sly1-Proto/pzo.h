@@ -156,5 +156,6 @@ void LoadLockgFromBrx(LOCKG* plockg, CBinaryInputStream* pbis);
 void CloneLockg(LOCKG* plockg, LOCKG* plockgBase);
 void DeleteLockg(LOCKG* plockg);
 
+extern SNIP s_asnip_clue[1];
 extern CLUECTR g_cluectr;
 extern LIFECTR g_lifectr;

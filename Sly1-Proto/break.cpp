@@ -72,6 +72,11 @@ void CloneBreak(BREAK* pbreak, BREAK* pbreakBase)
 	CloneBrk(pbreak, pbreakBase);
 }
 
+void PostBrkLoad(BRK* pbrk)
+{
+	PostAloLoad(pbrk);
+}
+
 void DeleteBreak(BREAK* pbreak)
 {
 	delete pbreak;

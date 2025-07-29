@@ -8,6 +8,12 @@ CHKPNT* NewChkpnt()
 void InitChkpnt(CHKPNT* pchkpnt)
 {
 	InitAlo(pchkpnt);
+
+	//iVar2 = IchkAllocChkmgr(&g_chkmgr);
+	//pchkpnt->ichkTriggered = iVar2;
+	pchkpnt->oidWarp = OID_Nil;
+	pchkpnt->ibitChkpnt = pchkpnt->psw->cchkpntAll;
+	pchkpnt->psw->cchkpntAll = pchkpnt->psw->cchkpntAll + 1;
 }
 
 int GetChkpntSize()
@@ -22,7 +28,7 @@ void LoadChkpntFromBrx(CHKPNT* pchkpnt, CBinaryInputStream* pbis)
 
 void BindChkpnt(CHKPNT* pchkpnt)
 {
-	BindChkpnt(pchkpnt);
+	BindAlo(pchkpnt);
 }
 
 void CloneChkpnt(CHKPNT* pchkpnt, CHKPNT* pchkpntBase)
@@ -48,6 +54,11 @@ void CloneChkpnt(CHKPNT* pchkpnt, CHKPNT* pchkpntBase)
 	pchkpnt->oidWarp = pchkpntBase->oidWarp;
 	pchkpnt->ichkTriggered = pchkpntBase->ichkTriggered;
 	pchkpnt->ibitChkpnt = pchkpntBase->ibitChkpnt;
+}
+
+void PostChkpntLoad(CHKPNT* pchkpnt)
+{
+	PostAloLoad(pchkpnt);
 }
 
 void DeleteChkpnt(CHKPNT *pchkpnt)

@@ -129,7 +129,7 @@ void OnAloAdd(ALO* palo)
 		AddCmFadeObject(g_pcm, palo);*/
 
 	if (palo->pshadow != nullptr) 
-		AppendDlEntry(&psw->dlShadow, palo->pshadow);
+		AppendDlEntry(&psw->dlShadow, &palo->pshadow);
 
 	if (palo->pvtlo->pfnUpdateLoXfWorld != nullptr)
 		palo->pvtalo->pfnUpdateAloXfWorld(palo);
@@ -174,7 +174,7 @@ void OnAloRemove(ALO* palo)
 	}*/
 
 	if (palo->pshadow != nullptr) {
-		RemoveDlEntry(&psw->dlShadow, palo->pshadow);
+		RemoveDlEntry(&psw->dlShadow, &palo->pshadow);
 	}
 
 	// If object is frozen, call the freeze callback if it exists
@@ -189,7 +189,64 @@ void OnAloRemove(ALO* palo)
 
 void UpdateAloOrig(ALO* palo)
 {
+	// Copy current transform matrix and position
+	palo->matOrig = palo->xf.mat;
+	palo->posOrig = palo->xf.pos;
 
+	// Undo rotation adjustment using virtual function
+	palo->pvtalo->pfnUnadjustAloRotation(palo, &palo->matOrig);
+
+	// Convert matrix to Euler angles
+	DecomposeRotateMatrixEuler(palo->matOrig, palo->eulOrig);
+}
+
+void UpdateAloInfluences(ALO* palo, RO* pro)
+{
+	
+}
+
+void AdjustAloRotation(ALO* palo, glm::mat3* pmat, glm::vec3* pw)
+{
+	if (!palo || !palo->palox) return;
+
+	ALOX* palox = palo->palox.get();
+
+	// Apply pre-rotation (bit 0)
+	if ((palox->grfalox & 1) && pmat) {
+		*pmat = (*pmat) * palox->matPreRotation;
+	}
+
+	// Apply post-rotation (bit 1)
+	if ((palox->grfalox & 2)) {
+		if (pmat) {
+			*pmat = palox->matPostRotation * (*pmat);
+		}
+		if (pw) {
+			*pw = palox->matPostRotation * (*pw);
+		}
+	}
+}
+
+void UnadjustAloRotation(ALO* palo, glm::mat3* pmat)
+{
+	ALOX* palox = palo->palox.get(); // unique_ptr
+
+	if (!palox) return;
+
+	if (palox->grfalox & 0x01) {
+		// Pre-rotation is applied: mat = matPre * mat
+		*pmat = palox->matPreRotation * (*pmat);
+	}
+
+	if (palox->grfalox & 0x02) {
+		// Post-rotation is applied: mat = mat * transpose(matPost)
+		*pmat = (*pmat) * glm::transpose(palox->matPostRotation);
+	}
+}
+
+void MatchAloOtherObject(ALO* palo, ALO* paloOther)
+{
+	
 }
 
 void AdjustAloRtckMat(ALO* palo, CM* pcm, RTCK rtck, glm::vec3* pposCenter, glm::mat4 &pmat)
@@ -317,31 +374,125 @@ void SetAloParent(ALO* palo, ALO* paloParent)
 	if (palo->paloParent == paloParent)
 		return;
 
+	// Backup world-space transform
 	glm::vec3 posWorld = palo->xf.posWorld;
 	glm::mat3 matWorld = palo->xf.matWorld;
 
-	palo->pvtalo->pfnRemoveLo(palo);
+	// Backup velocities in world space
+	glm::vec3 vWorld, wWorld;
+	if (palo->paloParent == nullptr) {
+		vWorld = palo->xf.v;
+		wWorld = palo->xf.w;
+	}
+	else {
+		CalculateAloMovement(palo, nullptr, &palo->xf.posWorld, &vWorld, &wWorld, nullptr, nullptr);
+	}
 
+	// Detach from old parent
+	palo->pvtlo->pfnRemoveLo(palo);
+
+	// Convert world-space transform to new parent's local space
 	ConvertAloPos(nullptr, paloParent, posWorld, palo->xf.pos);
 	ConvertAloMat(nullptr, paloParent, matWorld, palo->xf.mat);
 
-	palo->paloParent = paloParent;
+	// Adjust relative velocities if we now have a parent
+	if (paloParent != nullptr) {
+		glm::vec3 vParent, wParent;
+		CalculateAloMovement(paloParent, nullptr, &palo->xf.posWorld, &vParent, &wParent, nullptr, nullptr);
+		vWorld -= vParent;
+		wWorld -= wParent;
+	}
 
+	// Convert world-space velocities to new local-space
+	glm::vec3 vLocal, wLocal;
+	ConvertAloVec(nullptr, paloParent, &vWorld, &vLocal);
+	palo->pvtalo->pfnSetAloVelocityVec(palo, &vLocal);
+
+	ConvertAloVec(nullptr, paloParent, &wWorld, &wLocal);
+	palo->pvtalo->pfnSetAloAngularVelocityVec(palo, &wLocal);
+
+	// Update flags if the parent changed (from null to non-null)
+	if ((paloParent == nullptr) != (palo->paloParent == nullptr)) {
+		uint64_t flags = *(uint64_t*)&palo->bitfield;
+
+		if (paloParent == nullptr) {
+			flags = (flags & 0xFFFFFFFFFCFFFFFFULL) | 0x02000000ULL; // set bit 25
+			if ((flags & 0x0C000000ULL) != 0x04000000ULL)
+				flags = (flags & 0xFFFFFFFFF0FFFFFFULL) | 0x0A000000ULL;
+
+			if ((flags & 0x30000000ULL) != 0x10000000ULL)
+				flags = (flags & 0xFFFFFFFFCFFFFFFFULL) | 0x20000000ULL;
+		}
+		else {
+			flags = (flags & 0xFFFFFFFFFCFFFFFFULL) | 0x01000000ULL; // clear bit 25, set 24
+			if ((flags & 0x0C000000ULL) != 0x04000000ULL)
+				flags = (flags & 0xFFFFFFFFF0FFFFFFULL) | 0x01000000ULL;
+
+			uint64_t mode = flags & 0x30000000ULL;
+			bool keepFlags = (mode == 0x10000000ULL) ||
+				(mode == 0x20000000ULL && palo->sMRD != 1e10f);
+
+			if (!keepFlags)
+				flags = flags & 0xFFFFFFFFCFFFFFFFULL;
+		}
+
+		*(uint64_t*)&palo->bitfield = flags;
+	}
+
+	// Finish reparenting
+	UpdateAloOrig(palo);
+	palo->paloParent = paloParent;
 	palo->pvtlo->pfnAddLo(palo);
 }
 
-void ApplyAloProxy(ALO* palo, PROXY* pproxyApply)
+int FIsZeroV(const glm::vec3* pv)
 {
-	glm::vec3 posWorld{};
-	ConvertAloPos((ALO*)pproxyApply, nullptr, palo->xf.pos, posWorld);
-	palo->pvtalo->pfnTranslateAloToPos(palo, posWorld);
+	if (!pv) return 1;
 
-	glm::mat3 matWorld{};
-	ConvertAloMat((ALO*)pproxyApply, nullptr, palo->xf.mat, matWorld);
-	palo->pvtalo->pfnRotateAloToMat(palo, matWorld);
+	float lenSquared = glm::dot(*pv, *pv);
+	return (lenSquared < 4.0f) ? 1 : 0;
+}
 
-	palo->posOrig = palo->xf.pos;
-	palo->matOrig = palo->xf.mat;
+int FIsZeroW(const glm::vec3* pw)
+{
+	if (!pw) return 1;
+
+	float lenSquared = glm::dot(*pw, *pw);
+	return (lenSquared < 0.0004f) ? 1 : 0;
+}
+
+void SetAloVelocityVec(ALO* palo, glm::vec3* pv)
+{
+	if (!palo || !pv) return;
+
+	// Set velocity vector
+	palo->xf.v = *pv;
+
+	// If there's an ACT attached, adapt it
+	if (palo->pactPos) {
+		AdaptAct(palo->pactPos);
+	}
+
+	// If the velocity is not zero, resolve ALO
+	if (!FIsZeroV(pv)) {
+		ResolveAlo(palo);
+	}
+}
+
+void SetAloAngularVelocityVec(ALO* palo, glm::vec3* pw)
+{
+	// Set angular velocity vector
+	palo->xf.w = *pw;
+
+	// Update associated rotation actuator
+	if (palo->pactRot) {
+		AdaptAct(palo->pactRot);
+	}
+
+	// Trigger resolve if angular velocity is non-zero
+	if (!FIsZeroW(pw)) {
+		ResolveAlo(palo);
+	}
 }
 
 void BindAlo(ALO *palo)
@@ -350,20 +501,115 @@ void BindAlo(ALO *palo)
 	UpdateAloOrig(palo);
 	BindGlobset(&palo->globset, palo);
 
-	LO *plo = palo->dlChild.ploFirst;
+	ALO *plo = palo->dlChild.paloFirst;
 
 	while (plo != nullptr)
 	{
 		if (plo->pvtalo->pfnBindAlo != nullptr)
-			plo->pvtalo->pfnBindAlo((ALO*)plo);
+			plo->pvtalo->pfnBindAlo(plo);
 		
-		plo = plo->dleChild.ploNext;
+		plo = plo->dleChild.paloNext;
 	}
 }
 
-void BindGlobset(GLOBSET* pglobset, ALO* palo)
+void BindGlobset(GLOBSET *pglobset, ALO *palo)
 {
-	
+	if (!pglobset || !palo || pglobset->cbnd <= 0) return;
+
+	for (int i = 0; i < pglobset->cbnd; ++i) {
+		// Pointer to the BND entry we’re updating
+		BND *pbnd = &pglobset->abnd[i];
+
+		// Find closest LO that matches the OID
+		ALO *plo = (ALO*)PloFindSwNearest(palo->psw, pglobset->mpibndoid[i], (LO*)palo);
+		pbnd->palo = plo;
+
+		if (plo != nullptr) {
+			// Compute the transform from the ALO world space to the BND local space
+			glm::mat4 matAlo, matBndInv, matResult;
+
+			LoadMatrixFromPosRot(palo->xf.posWorld, palo->xf.matWorld, matAlo);
+			LoadMatrixFromPosRotInverse(plo->xf.posWorld, plo->xf.matWorld, matBndInv);
+
+			matResult = matBndInv * matAlo;
+
+			pbnd->dmatOrig = matResult;
+		}
+	}
+}
+
+void CalculateAloMovement(ALO* paloLeaf, ALO* paloBasis, const glm::vec3* ppos, glm::vec3* pv, glm::vec3* pw, glm::vec3* pdv, glm::vec3* pdw)
+{
+	if (!paloLeaf || paloLeaf == paloBasis)
+		return;
+
+	constexpr int kMaxHierarchy = 16;
+	ALO* apalo[kMaxHierarchy];
+	int count = 0;
+
+	// Build ALO hierarchy path from leaf to basis
+	ALO* current = paloLeaf;
+	while (current && current != paloBasis && count < kMaxHierarchy) {
+		if (!current->palox || (current->palox->grfalox & 0xC) == 0) {
+			apalo[count++] = current;
+		}
+		current = current->paloParent;
+	}
+
+	glm::vec3 wSum(0.0f), dwSum(0.0f);
+	if (pv) *pv = glm::vec3(0.0f);
+	if (pdv) *pdv = glm::vec3(0.0f);
+
+	const glm::vec3* prevPos = ppos;
+
+	for (int i = count - 1; i >= 0; --i) {
+		ALO* alo = apalo[i];
+		ALO* parent = alo->paloParent;
+
+		// Accumulate angular velocities
+		if (pw || pdw || pv || pdv) {
+			glm::vec3 w;
+			ConvertAloVec(parent, paloBasis, &alo->xf.w, &w);
+			wSum += w;
+		}
+
+		if (pdw) {
+			glm::vec3 dw;
+			ConvertAloVec(parent, paloBasis, &alo->xf.dw, &dw);
+			dwSum += dw;
+		}
+
+		if (pv || pdv) {
+			const glm::vec3* basePos = (i > 0) ? &apalo[i - 1]->xf.posWorld : prevPos;
+			glm::vec3 offset = *basePos - alo->xf.posWorld;
+
+			ConvertAloVec(nullptr, paloBasis, &offset, &offset);
+
+			// Apply vector cross-multiplication: v = w × offset
+			glm::vec3 rotVel = glm::cross(wSum, offset);
+
+			if (pv) {
+				*pv += rotVel;
+
+				glm::vec3 v;
+				ConvertAloVec(parent, paloBasis, &alo->xf.v, &v);
+				*pv += v;
+			}
+
+			if (pdv) {
+				glm::vec3 dv;
+				ConvertAloVec(parent, paloBasis, &alo->xf.dv, &dv);
+
+				glm::vec3 dwCross = glm::cross(dwSum, offset);
+				glm::vec3 wCrossV = glm::cross(wSum, glm::cross(wSum, offset));
+
+				*pdv += dwCross + wCrossV + dv;
+			}
+		}
+	}
+
+	if (pw) *pw = wSum;
+	if (pdw) *pdw = dwSum;
 }
 
 void UpdateAloXfWorld(ALO* palo)
@@ -373,115 +619,92 @@ void UpdateAloXfWorld(ALO* palo)
 
 void UpdateAloXfWorldHierarchy(ALO* palo)
 {
-	if (palo->palox == nullptr)
-	{
-	UpdateTrans:
-		if (palo->paloParent == nullptr)
-		{
-			palo->xf.posWorld = palo->xf.pos;
-			palo->xf.matWorld = palo->xf.mat;
-		}
+	ALOX* palox = palo->palox.get(); // if unique_ptr
+	ALO* parent = nullptr;
 
-		else
-		{
-			glm::vec3 parentPos = palo->paloParent->xf.posWorld;
-			glm::mat3 parentRot = palo->paloParent->xf.matWorld;
-
-			// Transform local position by parent rotation and add parent position
-			palo->xf.posWorld = parentRot * palo->xf.pos + parentPos;
-
-			// Calculate world rotation by combining parent and local rotations (row-major)
-			glm::mat3 localRot = palo->xf.mat;
-			palo->xf.matWorld = parentRot * localRot;
-		}
+	// --- Determine parent based on ALOX flags ---
+	if (!palox || (palox->grfalox & 0xC) == 0) {
+		parent = palo->paloParent;
+	}
+	else {
+		parent = (palox->grfalox & 0x4) ? palox->scj.paloSchRot : palo->paloParent;
 	}
 
-	else
-	{
-		if ((palo->palox->grfalox & 0xCU) == 0)
-		{
-			palo->paloParent = palo->paloParent;
-			goto UpdateTrans;
-		}
-
-		if (palo->paloParent == nullptr)
-		{
-			palo->xf.posWorld = palo->xf.pos;
-		}
-
-		else
-		{
-			// Load parent world rotation (row-major 3x3 matrix)
-			glm::mat3 parentMatWorld = palo->paloParent->xf.matWorld;
-
-			// Load parent world position
-			glm::vec3 parentPosWorld = palo->paloParent->xf.posWorld;
-
-			// Load local position of palo (child)
-			glm::vec3 localPos = palo->xf.pos;
-
-			// Calculate world position: matWorld * pos + posWorld
-			glm::vec3 worldPos = parentMatWorld * localPos + parentPosWorld;
-
-			// Store the result in palo's posWorld
-			palo->xf.posWorld = worldPos;
-		}
-
-		if (palo->paloParent != nullptr)
-		{
-			// Load parent world matrix components (row-major)
-			glm::mat3 parentMatWorld = palo->paloParent->xf.matWorld;
-
-			// Load child local matrix components (row-major)
-			glm::mat3 childMat = palo->xf.mat;
-
-			// Process the first row of the child matrix
-			glm::vec3 row1 = childMat[0];  // This corresponds to the 1st column of the matrix in SIMD
-			glm::vec3 result1 = parentMatWorld * row1;  // Matrix-vector multiplication
-			palo->xf.posWorld = result1;  // Store the result
-
-			// Process the second row of the child matrix
-			glm::vec3 row2 = childMat[1];  // This corresponds to the 2nd column of the matrix in SIMD
-			glm::vec3 result2 = parentMatWorld * row2;
-			palo->xf.posWorld += result2;  // Accumulate the result
-
-			// Process the third row of the child matrix
-			glm::vec3 row3 = childMat[2];  // This corresponds to the 3rd column of the matrix in SIMD
-			glm::vec3 result3 = parentMatWorld * row3;
-			palo->xf.posWorld += result3;  // Accumulate the result
-
-			// Update the matWorld field of palo (store the results in matWorld as in the original code)
-			palo->xf.matWorld[0] = result1;
-			palo->xf.matWorld[1] = result2;
-			palo->xf.matWorld[2] = result3;
-			goto UpdateTrans;
-		}
-
+	// --- Compute world position and matrix ---
+	if (!parent) {
+		palo->xf.posWorld = palo->xf.pos;
 		palo->xf.matWorld = palo->xf.mat;
 	}
-
-	ALO* object = palo->dlChild.paloFirst;
-
-	if (object == nullptr)
-	{
-		
+	else {
+		palo->xf.posWorld = parent->xf.matWorld * palo->xf.pos + parent->xf.posWorld;
+		palo->xf.matWorld = parent->xf.matWorld * palo->xf.mat;
 	}
 
-	else
-	{
-		while (true)
-		{
-			if (object->pvtalo->pfnUpdateAloXfWorldHierarchy == nullptr)
-				object = object->dleChild.paloNext;
+	// --- Optionally override matrix parent ---
+	if (palox) {
+		parent = (palox->grfalox & 0x8) ? palox->scj.paloSchRot : palo->paloParent;
 
-			else
-			{
-				object->pvtalo->pfnUpdateAloXfWorldHierarchy(object);
-				object = object->dleChild.paloNext;
+		if (parent) {
+			palo->xf.matWorld = parent->xf.matWorld * palo->xf.mat;
+		}
+		else if ((palox->grfalox & 0x8) != 0) {
+			palo->xf.matWorld = palo->xf.mat;
+		}
+	}
+
+	// --- Vismap clipping ---
+	/*if (((palo->field_0x2d8 << 8) >> 32 & 3U) == 2) {
+		if (palo->psw && palo->psw->pvismap) {
+			ClipVismapSphereOneHop(palo->psw->pvismap, &palo->xf.posWorld, palo->sRadiusRenderAll, &palo->grfzon);
+		}
+		else {
+			palo->grfzon = 0xFFFFFFF;
+		}
+	}*/
+
+	//// --- Shadow update ---
+	if (palo->pshadow != nullptr) {
+		SetShadowCastPosition(palo->pshadow.get(), palo->xf.posWorld);
+
+		SHD* shd = palo->pshadow->pshd;
+		if (shd && shd->shdk == 0x03) {
+			glm::vec3 normal = -palo->xf.matWorld[2];
+			SetShadowCastNormal(palo->pshadow.get(), normal);
+
+			glm::vec3 up = palo->xf.matWorld[1];
+			SetShadowFrustrumUp(palo->pshadow.get(), &up);
+		}
+	}
+
+	// --- Recurse through children ---
+	for (ALO* child = palo->dlChild.paloFirst; child; child = child->dleChild.paloNext) {
+		if (child->pvtalo->pfnUpdateAloXfWorldHierarchy) {
+			child->pvtalo->pfnUpdateAloXfWorldHierarchy(child);
+		}
+	}
+
+	palox = palo->palox.get();
+
+	if (palox) {
+		// If ALOX has both IKH and SCJ flags set
+		if ((palox->grfalox & 0x8020U) == 0x8020) {
+			palox->ikh.paloShoulder->palox->ikj.fInvalid = true;
+			palox->ikh.paloElbow->palox->ikj.fInvalid = true;
+		}
+
+		// If this is a SCJ controller
+		if ((palox->grfalox & 0x8100U) == 0x8100 && palox->ikh.grfik > 0) {
+			for (int i = 0; i < palox->ikh.grfik; ++i) {
+				ALO* target = palox->sch.apalo[i];
+				ALOX* targetAlox = target->palox.get();
+
+				if (palo == targetAlox->scj.paloSchRot) {
+					targetAlox->scj.fInvalidRot = true;
+				}
+				if (palo == targetAlox->scj.paloSchPos) {
+					targetAlox->scj.fInvalidPos = true;
+				}
 			}
-
-			if (object == nullptr)
-				break;
 		}
 	}
 }
@@ -533,6 +756,11 @@ void TranslateAloToPos(ALO* palo, glm::vec3 &ppos)
 	palo->xf.pos = ppos;
 
 	palo->pvtalo->pfnUpdateAloXfWorld(palo);
+
+	// Update ACT if present
+	if (palo->pactPos) {
+		AdaptAct(palo->pactPos);
+	}
 }
 
 void ConvertAloPos(ALO* paloFrom, ALO* paloTo, glm::vec3 &pposFrom, glm::vec3 &pposTo)
@@ -649,6 +877,23 @@ ASEGD* PasegdEnsureAlo(ALO* palo)
 	return palo->pasegd.get();
 }
 
+SHADOW* PshadowAloEnsure(ALO* palo)
+{
+	if (!palo->pshadow)
+	{
+		palo->pshadow = std::make_shared<SHADOW>();
+		InitShadow(palo->pshadow.get());
+		AppendDlEntry(&palo->psw->dlShadow, &palo->pshadow);
+	}
+
+	return palo->pshadow.get();
+}
+
+SHADOW* PshadowInferAlo(ALO* palo)
+{
+	return nullptr;
+}
+
 void SetAloAsegdOid(ALO* palo, short oid)
 {
 	palo->pasegd->oidAseg = (OID)oid;
@@ -676,7 +921,22 @@ void SetAloFrozen(ALO* palo, bool fFrozen)
 
 void SetAloEuler(ALO* palo, glm::vec3* peul)
 {
+	// Convert degrees to radians
+	glm::vec3 eulerRadians = glm::radians(*peul);
 
+	// Load rotation matrix from Euler angles
+	glm::mat3 mat;
+	LoadRotateMatrixEuler(eulerRadians, &mat);
+
+	// Apply the rotation
+	if (palo && palo->pvtalo) {
+		if (auto fnAdjust = palo->pvtalo->pfnAdjustAloRotation) {
+			fnAdjust(palo, &mat, nullptr);
+		}
+		if (auto pfnRotate = palo->pvtalo->pfnRotateAloToMat) {
+			pfnRotate(palo, mat);
+		}
+	}
 }
 
 void SetAloVelocityLocal(ALO* palo, glm::vec3* pvec)
@@ -700,7 +960,113 @@ void SetAloFastShadowDepth(ALO* palo, float sDepth)
 
 void SetAloCastShadow(ALO* palo, int fCastShadow)
 {
+	if (fCastShadow == 0) {
+		if (palo->pshadow != nullptr) {
+			RemoveDlEntry(&palo->psw->dlShadow, &palo->pshadow);
+			AppendDlEntry(&g_dlShadowPending, &palo->pshadow);
+			palo->pshadow = nullptr;
+		}
+	}
+	else {
+		PshadowAloEnsure(palo);
+	}
+}
 
+void SetAloShadowShader(ALO* palo, OID oidShdShadow)
+{
+	SHADOW* pshadow = PshadowAloEnsure(palo);
+	SetShadowShader(pshadow, oidShdShadow);
+}
+
+void GetAloShadowShader(ALO* palo, OID* poidShdShadow)
+{
+	if (palo && palo->pshadow && palo->pshadow->pshd) {
+		*poidShdShadow = static_cast<OID>(palo->pshadow->pshd->oid);
+	}
+	else {
+		*poidShdShadow = OID_Nil;
+	}
+}
+
+void GetAloShadowNearRadius(ALO* palo, float* psNearRadius)
+{
+	SHADOW* pshadow = PshadowInferAlo(palo);
+	*psNearRadius = pshadow->sNearRadius;
+}
+
+void SetAloShadowNearRadius(ALO* palo, float sNearRadius)
+{
+	SHADOW *pshadow = PshadowAloEnsure(palo);
+	SetShadowNearRadius(pshadow, sNearRadius);
+}
+
+void SetAloShadowFarRadius(ALO* palo, float sFarRadius)
+{
+	SHADOW *pshadow = PshadowAloEnsure(palo);
+	SetShadowFarRadius(pshadow, sFarRadius);
+}
+
+void GetAloShadowFarRadius(ALO* palo, float* psFarRadius)
+{
+	SHADOW *pshadow = PshadowInferAlo(palo);
+	*psFarRadius = pshadow->sFarRadius;
+}
+
+void SetAloShadowNearCast(ALO* palo, float sNearCast)
+{
+	SHADOW *pshadow = PshadowAloEnsure(palo);
+	SetShadowNearCast(pshadow, sNearCast);
+}
+
+void GetAloShadowNearCast(ALO* palo, float* psNearCast)
+{
+	SHADOW *pshadow = PshadowInferAlo(palo);
+	*psNearCast = pshadow->sNearCast;
+}
+
+void SetAloShadowFarCast(ALO* palo, float sFarCast)
+{
+	SHADOW *pshadow = PshadowAloEnsure(palo);
+	SetShadowFarCast(pshadow, sFarCast);
+}
+
+void GetAloShadowFarCast(ALO* palo, float* psFarCast)
+{
+	SHADOW *pshadow = PshadowInferAlo(palo);
+	*psFarCast = pshadow->sFarCast;
+}
+
+void SetAloShadowConeAngle(ALO* palo, float degConeAngle)
+{
+	SHADOW* pshadow = PshadowAloEnsure(palo);
+	SetShadowConeAngle(pshadow, degConeAngle);
+}
+
+void GetAloShadowConeAngle(ALO* palo, float* pdegConeAngle)
+{
+	SHADOW* pshadow = PshadowInferAlo(palo);
+
+	float angleRadians = std::atan2(pshadow->sNearRadius / pshadow->sNearCast, 1.0f);
+	*pdegConeAngle = 2.0f * angleRadians * 57.29578f; 
+}
+
+void SetAloShadowFrustrumUp(ALO* palo, glm::vec3* pvecUp)
+{
+	SHADOW *pshadow = PshadowAloEnsure(palo);
+	SetShadowFrustrumUp(pshadow, pvecUp);
+}
+
+void GetAloShadowFrustrumUp(ALO* palo, glm::vec3* pvecUp)
+{
+	SHADOW* pshadow = PshadowInferAlo(palo);
+
+	*pvecUp = pshadow->vecUp;
+}
+
+void SetAloDynamicShadowObject(ALO* palo, OID oidDysh)
+{
+	SHADOW *pshadow = PshadowAloEnsure(palo);
+	pshadow->oidDysh = oidDysh;
 }
 
 void SetAloNoFreeze(ALO* palo, int fNoFreeze)
@@ -1211,26 +1577,6 @@ void AddAloHierarchy(ALO* palo)
 	s_pdliFirst = plo.m_pdliNext;
 }
 
-float CalculateRenderRadiusAll(const ALO& alo)
-{
-	float maxRadius = 0.0f;
-
-	for (const auto& glob : alo.globset.aglob)
-	{
-		for (const auto& subglob : glob.asubglob)
-		{
-			const glm::vec3& center = subglob.posCenter;  // local center
-			for (const auto& vertex : subglob.vertices)
-			{
-				float dist = glm::distance(center, vertex.pos);  // local-space
-				maxRadius = std::max(maxRadius, dist);
-			}
-		}
-	}
-
-	return maxRadius;
-}
-
 void LoadAloFromBrx(ALO* palo, CBinaryInputStream* pbis)
 {
 	palo->xf.mat = pbis->ReadMatrix();
@@ -1266,9 +1612,6 @@ void LoadAloFromBrx(ALO* palo, CBinaryInputStream* pbis)
 		for (int a = 0; a < palo->globset.cpose; a++)
 			palo->aposec[i].agPoses[a] = pbis->F32Read();
 	}
-	
-	/*if (palo->pvtalo->cid == CID_SMARTGUARD)
-		palo->sRadiusRenderAll = CalculateRenderRadiusAll(*palo);*/
 
 	// Loads ALO children objects
 	LoadSwObjectsFromBrx(palo->psw, palo, pbis);
@@ -1276,82 +1619,172 @@ void LoadAloFromBrx(ALO* palo, CBinaryInputStream* pbis)
 
 void LoadAloAloxFromBrx(ALO* palo, CBinaryInputStream* pbis)
 {
-	GRFALOX grfalox = pbis->U32Read();
+	const uint32_t grfalox = pbis->U32Read();
 
-	if (grfalox != 0)
+	if (grfalox == 0)
+		return;
+
+	palo->palox = std::make_unique<ALOX>();
+
+	palo->palox->grfalox = grfalox;
+	palo->palox->matPreRotation  = glm::mat3(1.0f);
+	palo->palox->matPostRotation = glm::mat3(1.0f);
+
+	if (grfalox & 0x01)
+		palo->palox->matPreRotation = pbis->ReadMatrix();
+
+	if (grfalox & 0x02)
+		palo->palox->matPostRotation = pbis->ReadMatrix();
+
+	if ((grfalox & 0x0C) != 0)
 	{
-		ALOX alox;
-		palo->palox = std::make_shared <ALOX>(alox);
+		int16_t schRotId = pbis->S16Read();
 
-		palo->palox->grfalox = grfalox;
-		palo->palox->matPreRotation = glm::identity <glm::mat3>();
-		palo->palox->matPostRotation = glm::identity <glm::mat3>();
+		if (schRotId != -1)
+			palo->palox->scj.paloSchRot = static_cast<ALO*>(PloFindSwObject(palo->psw, 3, (OID)schRotId, palo));
+	}
 
-		int unk_1;
+	if (grfalox & 0x10)
+		palo->palox->scj.ipaloRot = static_cast<int16_t>(pbis->S16Read());
 
-		if (grfalox & 1)
+	if (grfalox & 0x20)
+	{
+		palo->palox->scj.ipaloPos = static_cast<int16_t>(pbis->S16Read());
+		palo->palox->ikh.posIkh.x = pbis->F32Read();
+		palo->palox->ikh.posIkh.y = pbis->F32Read();
+		palo->palox->ikh.posIkh.z = pbis->F32Read();
+
+		palo->palox->ikh.posWrist.x = pbis->F32Read();
+		palo->palox->ikh.posWrist.y = pbis->F32Read();
+		palo->palox->ikh.posWrist.z = pbis->F32Read();
+		float twist = pbis->F32Read();
+		float normTwist = RadNormalize(twist);
+		palo->palox->ikh.radTwistOrig = normTwist;
+		palo->palox->ikh.grfik = 0;
+		palo->palox->joint.matInfluence[3][0] = normTwist;
+	}
+
+	if (grfalox & 0x80)
+	{
+		palo->palox->sch.posSch = pbis->ReadVector();
+		palo->palox->sch.gStrength = pbis->F32Read();
+
+		if (grfalox & 0x100)
 		{
-			pbis->ReadMatrix();
-		}
-
-		if (grfalox & 2)
-		{
-			palo->palox->matPostRotation = pbis->ReadMatrix();
-		}
-
-		if (((grfalox & 0xc) != 0) && (unk_1 = pbis->S16Read() != -1))
-		{
-
-		}
-
-		if ((grfalox & 0x10) != 0)
-			unk_1 = pbis->S16Read();
-
-		if ((grfalox & 0x20) != 0)
-		{
-			unk_1 = pbis->S16Read();
-			pbis->ReadVector(); // Read Vector
-			pbis->ReadVector(); // Read Vector
-			pbis->F32Read();
-		}
-
-		if ((grfalox & 0x40) != 0)
-		{
-			unk_1 = pbis->S16Read();
-			unk_1 = pbis->S16Read();
-		}
-
-		if ((grfalox & 0x80) != 0)
-		{
-			pbis->ReadVector();
-			pbis->F32Read();
-
-			if ((grfalox & 0x100) != 0)
+			palo->palox->sch.oidScjEnd = (OID)pbis->S16Read();
+			palo->palox->sch.oidScjStart = (OID)pbis->S16Read();
+			palo->palox->sch.oidSchPrev = (OID)pbis->S16Read();
+			palo->palox->sch.paloScjStart = reinterpret_cast<ALO*>(pbis->S16Read());
+			
+			if (palo->palox->sch.scsk == SCSK_Fixed)
 			{
-				pbis->S16Read();
-				pbis->S16Read();
-				pbis->S16Read();
-				pbis->S16Read();
-				pbis->ReadVector();
+				palo->palox->ikh.posWrist.x = pbis->F32Read();
+				palo->palox->ikh.posWrist.y = pbis->F32Read();
+				palo->palox->ikh.posWrist.z = pbis->F32Read();
 			}
 		}
-
-		if ((grfalox & 0x200) != 0)
-		{
-			pbis->S16Read();
-			pbis->S16Read();
-		}
-
-		if ((grfalox & 0x400) != 0)
-		{
-			pbis->U8Read();
-		}
 	}
+
+	if (grfalox & 0x200)
+	{
+		palo->palox->ikj.oidIkh = (OID)pbis->S16Read();
+		palo->palox->ikj.fInvalid = static_cast<int16_t>(pbis->S16Read());
+	}
+
+	if (grfalox & 0x400)
+		palo->palox->joint.fSsc = static_cast<int8_t>(pbis->U8Read());
 }
 
 void BindAloAlox(ALO* palo)
 {
+	if (!palo || !palo->palox)
+		return;
 
+	auto& alox = *palo->palox;
+	alox.grfalox |= 0x8000; // Mark as bound
+
+	if (alox.grfalox & 0x10)
+	{
+		alox.scj.paloSchRot = static_cast<ALO*>(PloFindSwNearest(palo->psw, (OID)alox.scj.ipaloRot, palo));
+		alox.ikj.fInvalid = 1;
+	}
+
+	if (alox.grfalox & 0x20)
+	{
+		alox.ikh.paloElbow = static_cast<ALO*>(PloFindSwNearest(palo->psw, alox.ikh.oidElbow, palo));
+		alox.ikh.paloShoulder = alox.ikh.paloElbow ? alox.ikh.paloElbow->paloParent : nullptr;
+		alox.ikh.paloCommon = PaloFindLoCommonParent(palo, alox.ikh.paloShoulder);
+	}
+
+	/*if ((alox.grfalox & 0x80) && (alox.grfalox & 0x100))
+	{
+		ALO* elbow = static_cast<ALO*>(PloFindSwNearest(palo->psw, alox.ikh.oidElbow, palo));
+		alox.ikh.paloElbow = elbow;
+
+		ALO* common = static_cast<ALO*>(PloFindSwNearest(palo->psw, reinteralox.ikh.paloCommon), palo));
+		alox.ikh.paloCommon = common;
+
+		alox.ikh.radTwistOrig = reinterpret_cast<float>(PloFindSwNearest(palo->psw, static_cast<OID>(alox.ikh.radTwistOrig), palo));
+
+		alox.sch.paloCommon = PaloFindLoCommonParent(palo, elbow);
+		alox.sch.paloCommon = PaloFindLoCommonParent(alox.sch.paloCommon, reinterpret_cast<ALO*>(static_cast<intptr_t>(alox.ikh.radTwistOrig)));
+
+		int boneCount = 0;
+		ALO* current = common;
+
+		SCSK scskType = alox.sch.scsk;
+
+		while (current && current != elbow->paloParent)
+		{
+			if (scskType == SCSK_Fixed)
+			{
+				current->palox->scj.paloSchRot = palo;
+				current->palox->scj.fInvalidRot = 1;
+			}
+			else if (scskType == SCSK_Stretch)
+			{
+				current->palox->scj.paloSchRot = palo;
+				current->palox->scj.fInvalidRot = 1;
+				if (current != elbow)
+				{
+					current->palox->scj.paloSchPos = palo;
+					current->palox->scj.fInvalidPos = 1;
+				}
+			}
+			current = current->paloParent;
+			++boneCount;
+		}
+
+		alox.ikh.grfik = boneCount;
+		alox.sch.apalo.resize(boneCount);
+
+		current = common;
+		for (int i = boneCount - 1; i >= 0 && current; --i)
+		{
+			alox.sch.apalo[i] = current;
+			if (scskType == SCSK_Fixed || (scskType == SCSK_Stretch && current != elbow))
+			{
+				current->palox->ikj.fInvalid = i;
+			}
+			if (scskType == SCSK_Stretch && current != elbow)
+			{
+				current->palox->scj.ipaloPos = i;
+			}
+			current = current->paloParent;
+		}
+	}*/
+
+	if (alox.grfalox & 0x200)
+	{
+		alox.scj.paloSchRot = static_cast<ALO*>(PloFindSwNearest(palo->psw, (OID)alox.scj.ipaloRot, palo));
+		auto* p = PloFindSwNearest(palo->psw, static_cast<OID>(alox.ikj.fInvalid), palo);
+		alox.ikj.fInvalid = reinterpret_cast<int>(p);
+	}
+}
+
+void PostAloLoad(ALO* palo)
+{
+	PostLoLoad(palo);
 }
 
 void SnipAloObjects(ALO* palo, int csnip, SNIP* asnip)
@@ -1373,8 +1806,7 @@ void SnipAloObjects(ALO* palo, int csnip, SNIP* asnip)
 			if ((snip.grfsnip & 0x08) == 0) 
 			{
 				// Store the pointer to the found object at a specific offset
-				// NOTE: Replace this with proper field access if possible.
-				reinterpret_cast<LO**>(reinterpret_cast<char*>(palo->apmrg) + snip.ib - 0x7C)[0] = plo;
+				*(LO**)((char*)palo + snip.ib) = plo;
 			}
 
 			if ((snip.grfsnip & 0x04) == 0)
@@ -1399,8 +1831,6 @@ void RenderAloAll(ALO* palo, CM* pcm, RO* pro)
 			return;
 	}
 
-	RO ro{};
-	RO *proOriginal = &ro;
 	glm::vec3 posWorld{};
 	
 	if (pro != nullptr)
@@ -1415,20 +1845,64 @@ void RenderAloAll(ALO* palo, CM* pcm, RO* pro)
 	if (!FInsideCmMrd(pcm, pcm->pos - palo->xf.posWorld, palo->sRadiusRenderAll, palo->sMRD, alpha))
 		return;
 
-	if (alpha == 1.0)
-		proOriginal = pro;
-	else
-	{
+	RO ro;
+	RO* proRender = &ro;
+	float celBorderMRD = palo->sCelBorderMRD;
+
+	if (alpha == 1.0f) {
+		proRender = pro;
+	}
+	else {
 		DupAloRo(palo, pro, &ro);
-		ro.uAlpha = ro.uAlpha * alpha;
-		proOriginal = &ro;
+		ro.uAlpha *= alpha;
 	}
 
-	palo->pvtalo->pfnRenderAloSelf(palo, pcm, proOriginal);
+	FADER* pfader = palo->pfader;
+	if (pfader) {
+		DupAloRo(palo, proRender, &ro);
+		ro.uAlpha *= pfader->uAlpha;
+		proRender = &ro;
+	}
+
+	/*ACT* pact = palo->pactScale;
+	ALOX* alox = palo->palox;
+
+	if (proRender && alox && (alox->grfalox & 0x400) && alox->joint.fSsc) {
+		ALO* parent = palo->paloParent;
+		if (parent && parent->pactScale && parent->palox && (parent->palox->grfalox & 0x400)) {
+			pact = parent->pactScale;
+			glm::mat4 scaleMat;
+			pact->pvtact->pfnGetActScale(pact, reinterpret_cast<float*>(&scaleMat));
+
+			scaleMat[0][1] = 1.0f / scaleMat[0][1];
+			scaleMat[1][0] = 1.0f / scaleMat[1][0];
+			scaleMat[2][1] = 1.0f / scaleMat[2][1];
+
+			DupAloRo(palo, proRender, &ro);
+			glm::mat4 localScaleMatrix;
+			LoadMatrixFromPosRot(glm::vec3(ro.model[3]), reinterpret_cast<glm::mat3&>(scaleMat), localScaleMatrix);
+
+			ro.model = localScaleMatrix;
+			proRender = &ro;
+			pact = palo->pactScale;
+		}
+	}
+
+	if (pact) {
+		glm::mat4 scaleMat;
+		pact->pvtact->pfnGetActScale(pact, reinterpret_cast<float*>(&scaleMat));
+		glm::mat4 scaledMat;
+		LoadMatrixFromPosRot(glm::vec3(0.0f), reinterpret_cast<glm::mat3&>(scaleMat), scaledMat);
+		DupAloRo(palo, proRender, &ro);
+		ro.model = ro.model * scaledMat;
+		proRender = &ro;
+	}*/
+
+	palo->pvtalo->pfnRenderAloSelf(palo, pcm, proRender);
 
 	ALO* child = palo->dlChild.paloFirst;
 
-	if (proOriginal == nullptr)
+	if (proRender == nullptr)
 	{
 		// No proxy: simple render all children
 		for (; child != nullptr; child = child->dleChild.paloNext) {
@@ -1453,13 +1927,13 @@ void RenderAloAll(ALO* palo, CM* pcm, RO* pro)
 			{
 				glm::mat4 invParentWorld = glm::inverse(palo->xf.matWorld);
 				LoadMatrixFromPosRot(child->xf.posWorld, child->xf.matWorld, childLocalMatrix);
-				glm::mat4 proxyAdjust = invParentWorld * proOriginal->model;
+				glm::mat4 proxyAdjust = invParentWorld * proRender->model;
 				childLocalMatrix = proxyAdjust * childLocalMatrix;
 			}
 
 			// Compute final child world matrix
-			roChild.model = proOriginal->model * childLocalMatrix;
-			roChild.uAlpha = proOriginal->uAlpha;
+			roChild.model = proRender->model * childLocalMatrix;
+			roChild.uAlpha = proRender->uAlpha;
 
 
 			// Render child with adjusted transform
@@ -1470,6 +1944,38 @@ void RenderAloAll(ALO* palo, CM* pcm, RO* pro)
 
 void RenderAloSelf(ALO* palo, CM* pcm, RO* pro)
 {
+	//palo->pvtalo->pfnUpdateAloConstraints();
+
+	/*if (palo->palox && (palo->palox->grfalox & 0x400)) {
+		if (!pro) {
+			palo->palox->joint.fMatInfluence = 0;
+		}
+		else {
+			palo->palox->joint.fMatInfluence = 1;
+			const glm::mat4& mat = pro->model;
+
+			palo->palox->foster.paloParent = reinterpret_cast<ALO*>(glm::value_ptr(mat)[0]);
+			palo->palox->ikj.fInvalid = *reinterpret_cast<const int*>(&glm::value_ptr(mat)[1]);
+			palo->palox->ikh.posIkh.z = glm::value_ptr(mat)[2];
+			palo->palox->ikh.posIkh.w = glm::value_ptr(mat)[3];
+
+			palo->palox->scj.fInvalidRot = *reinterpret_cast<const int*>(&glm::value_ptr(mat)[4]);
+			palo->palox->scj.fInvalidPos = *reinterpret_cast<const int*>(&glm::value_ptr(mat)[5]);
+			palo->palox->ikh.posWrist.z = glm::value_ptr(mat)[6];
+			palo->palox->ikh.posWrist.w = glm::value_ptr(mat)[7];
+
+			palo->palox->ikh.paloShoulder = reinterpret_cast<ALO*>(glm::value_ptr(mat)[8]);
+			palo->palox->ikh.oidElbow = static_cast<OID>(*reinterpret_cast<const uint32_t*>(&glm::value_ptr(mat)[9]));
+			palo->palox->ikh.paloCommon = reinterpret_cast<ALO*>(glm::value_ptr(mat)[10]);
+			palo->palox->ikh.radTwistOrig = glm::value_ptr(mat)[11];
+
+			palo->palox->ikh.radTwist = glm::value_ptr(mat)[12];
+			palo->palox->sch.scsk = reinterpret_cast<SCSK>(*reinterpret_cast<const uint32_t*>(&glm::value_ptr(mat)[13]));
+			palo->palox->ikh.grfik = static_cast<GRFIK>(glm::value_ptr(mat)[14]);
+			palo->palox->sch.apalo = reinterpret_cast<ALO**>(static_cast<uintptr_t>(glm::value_ptr(mat)[15]));
+		}
+	}*/
+
 	palo->pvtalo->pfnRenderAloGlobset(palo, pcm, pro);
 }
 
@@ -1531,13 +2037,13 @@ void RenderAloGlobset(ALO* palo, CM* pcm, RO* pro)
 			rpl.ro.VAO = &subglob.VAO;
 
 			// Handle cel border logic
-			if (g_fRenderCelBorders && subglob.fCelBorder == 1) 
+			if (g_fRenderCelBorders && subglob.fCelBorder == 1)
 			{
 				rpl.ro.celVAO = &subglob.celVAO;
 				rpl.ro.celcvtx = subglob.celcvtx;
 				rpl.ro.fCelBorder = 1;
 			}
-			else 
+			else
 			{
 				rpl.ro.celVAO = nullptr;
 				rpl.ro.fCelBorder = 0;
@@ -1597,40 +2103,70 @@ void RenderAloGlobset(ALO* palo, CM* pcm, RO* pro)
 				}
 			}
 
+			if (glob.pdmat != nullptr)
+				rpl.ro.model = baseModelMatrix * *glob.pdmat;
+			else
+				rpl.ro.model = baseModelMatrix;
+
 			switch (rpl.rp)
 			{
 				case RP_Background:
 				rpl.z = glob.gZOrder;
 				break;
-
 				case RP_Cutout:
 				case RP_CutoutAfterProjVolume:
 				case RP_Translucent:
-				rpl.z = glm::length(pcm->pos - posCenterWorld);
+				rpl.z = glm::length2(pcm->pos - glm::vec3(rpl.ro.model * glm::vec4(glob.posCenter, 1.0f)));
 				break;
 			}
 
-			if (glob.pdmat != nullptr) 
-				rpl.ro.model = baseModelMatrix * *glob.pdmat;
-			else
-				rpl.ro.model = baseModelMatrix;
-			
-			 if (glob.rtck != RTCK_None)
-				 AdjustAloRtckMat(palo, pcm, glob.rtck, &glob.posCenter, rpl.ro.model);
+			if (glob.rtck != RTCK_None)
+				AdjustAloRtckMat(palo, pcm, glob.rtck, &glob.posCenter, rpl.ro.model);
 			 
-			 SubmitRpl(&rpl);
+		    SubmitRpl(&rpl);
+
+			rpl.ro.model = baseModelMatrix;
 		}
 	}
 }
 
 void RenderAloLine(ALO* palo, CM* pcm, glm::vec3* ppos0, glm::vec3* ppos1, float rWidth, float uAlpha)
 {
+	glm::vec3 dir = *ppos1 - *ppos0;
+	float length = glm::length(dir);
 
-}
+	if (length < 0.0001f)
+		return;
 
-void RenderAloAsBone(ALO* palo, CM* pcm, RO* pro)
-{
+	glm::vec3 forward = glm::normalize(dir);
+	glm::vec3 toCamera = *ppos0 - pcm->pos;
+	glm::vec3 right = glm::normalize(glm::cross(forward, toCamera));
 
+	if (glm::length(right) < 0.0001f)
+		return;
+
+	glm::vec3 up = glm::normalize(glm::cross(right, forward));
+
+	// Scale right and up
+	right *= rWidth;
+	up *= 0.01f;  // equivalent of hardcoded `0x3c23d70a` = 0.01f in float
+
+	// Normalize forward after scaling others
+	forward = glm::normalize(forward);
+
+	glm::mat3 rot;
+	rot[0] = right;
+	rot[1] = forward;
+	rot[2] = up;
+
+	glm::mat4 model;
+	LoadMatrixFromPosRot(*ppos0, rot, model);
+
+	RO ro = {};
+	ro.model = model;
+	ro.uAlpha = uAlpha;
+
+	palo->pvtalo->pfnRenderAloGlobset(palo, pcm, &ro);
 }
 
 void DrawGlob(RPL *prpl)
@@ -1681,21 +2217,15 @@ void DrawGlob(RPL *prpl)
 	switch (prpl->rp)
 	{
 		case RP_Background:
-		glUniform1i(glslfAlphaTest, 1);
-		glDrawElements(GL_TRIANGLES, prpl->ro.cvtx, GL_UNSIGNED_SHORT, 0);
-
 		glEnable(GL_BLEND);
 		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
 		glDepthFunc(GL_ALWAYS);
 		glDepthMask(false);
-
-		glUniform1i(glslfAlphaTest, 0);
 		glDrawElements(GL_TRIANGLES, prpl->ro.cvtx, GL_UNSIGNED_SHORT, 0);
 
 		glDisable(GL_BLEND);
-		glDepthFunc(GL_LESS);
 		glDepthMask(true);
+		glDepthFunc(GL_LESS);
 		break;
 
 		case RP_ProjVolume:
@@ -1743,15 +2273,20 @@ void DrawGlob(RPL *prpl)
 
 		case RP_Cutout:
 		case RP_CutoutAfterProjVolume:
+		glUniform1i(glslfAlphaTest, 1);
+		glDrawElements(GL_TRIANGLES, prpl->ro.cvtx, GL_UNSIGNED_SHORT, 0);
+		glUniform1i(glslfAlphaTest, 0);
+		break;
+
 		case RP_Translucent:
 		glUniform1i(glslfAlphaTest, 1);
 		glDrawElements(GL_TRIANGLES, prpl->ro.cvtx, GL_UNSIGNED_SHORT, 0);
 
 		glEnable(GL_BLEND);
 		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
 		glDepthMask(false);
 		glUniform1i(glslfAlphaTest, 0);
+		glUniform1i(glslfCull, 1);
 		glDrawElements(GL_TRIANGLES, prpl->ro.cvtx, GL_UNSIGNED_SHORT, 0);
 
 		glDisable(GL_BLEND);
@@ -1763,24 +2298,32 @@ void DrawGlob(RPL *prpl)
 		{
 			// === First Pass: Draw main object and write to stencil ===
 			glEnable(GL_STENCIL_TEST);
+			glUniform1i(glslfCull, 0);
 			glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
 			glStencilFunc(GL_ALWAYS, 1, 0xFF);
 			glStencilMask(0xFF);
 			glDrawElements(GL_TRIANGLES, prpl->ro.cvtx, GL_UNSIGNED_SHORT, 0);
 
 			// === Second Pass: Draw outline where stencil != 1 ===
+			glUniform1i(glslfCull, 1);
 			glBindVertexArray(*prpl->ro.celVAO);
 			glUniform1i(glslRko, RKO_CelBorder);
-			glDepthMask(false);
-			//glDepthFunc(GL_LEQUAL);
+			/*glEnable(GL_POLYGON_OFFSET_FILL);
+			glPolygonOffset(-1.0f, -1.0f);*/
+			glDepthFunc(GL_LEQUAL);
 			glStencilFunc(GL_NOTEQUAL, 1, 0xFF);
 			glStencilMask(0x00);
+			glEnable(GL_CULL_FACE);
+			glCullFace(GL_BACK);
+			glFrontFace(GL_CW);
 			glDrawElements(GL_TRIANGLES, prpl->ro.celcvtx, GL_UNSIGNED_SHORT, 0);
 
 			// === Restore State ===
+			glDisable(GL_CULL_FACE);
+			glFrontFace(GL_CCW);
 			glDisable(GL_STENCIL_TEST);
-			//glDepthFunc(GL_LESS);
-			glDepthMask(true);
+			glDepthFunc(GL_LESS);
+			//glDisable(GL_POLYGON_OFFSET_FILL);
 			glStencilMask(0xFF);
 			glStencilFunc(GL_ALWAYS, 0, 0xFF);
 		}

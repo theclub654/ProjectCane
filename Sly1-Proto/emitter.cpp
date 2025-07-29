@@ -74,6 +74,17 @@ EMITTER* NewEmitter()
 void InitEmitter(EMITTER* pemitter)
 {
 	InitAlo(pemitter);
+	pemitter->lmSvcParticle.gMin = 10.0;
+	pemitter->tUnpause = -1.0;
+	pemitter->oidGroup = OID_Nil;
+	pemitter->cParticle = -1;
+	pemitter->lmSvcParticle.gMax = 10.0;
+	pemitter->oidReference = OID_Nil;
+	pemitter->oidRender = OID_Nil;
+	pemitter->oidNextRender = OID_Nil;
+	pemitter->oidTouch = OID_Nil;
+	pemitter->oidShape = OID_Nil;
+	pemitter->emitrk = EMITRK_Nil;
 	InitDl(&pemitter->dlGroup, offsetof(EMITTER, dleGroup));
 }
 
@@ -186,6 +197,11 @@ void* GetEmitterEmitok(EMITTER* pemitter)
 	return &pemitter->pemitb->emito.emitok;
 }
 
+void PostEmitterLoad(EMITTER* pemitter)
+{
+	PostAloLoad(pemitter);
+}
+
 void RenderEmitterSelf(EMITTER* pemitter, CM* pcm, RO* pro)
 {
 
@@ -210,6 +226,12 @@ void CloneExpl(EXPL* pexpl, EXPL* pexplBase)
 {
 	CloneXfm(pexpl, pexplBase);
 	pexpl->pexplgParent = pexplBase->pexplgParent;
+}
+
+void PostExplLoad(EXPL* pexpl)
+{
+	PostLoLoad(pexpl);
+	pexpl->pvtlo->pfnRemoveLo(pexpl);
 }
 
 void DeleteExpl(EXPL* pexpl)

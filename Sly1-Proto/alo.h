@@ -2,6 +2,8 @@
 #include "lo.h"
 #include "glob.h"
 #include "act.h"
+#include "fader.h"
+#include "shadow.h"
 
 enum ACK
 {
@@ -140,106 +142,90 @@ struct ASEGD
 	float svtLocal;
 };
 
+struct FOSTER
+{
+	ALO* paloParent;
+};
+
+struct IKJ
+{
+	OID oidIkh;
+	ALO* paloIkh;
+	int fInvalid;
+};
+
+struct IKHALOX
+{
+	glm::vec4 posIkh;
+	glm::vec4 posWrist;
+	ALO* paloShoulder;
+	OID oidElbow;
+	ALO* paloElbow;
+	ALO* paloCommon;
+	float radTwistOrig;
+	float radTwist;
+	float dradTwist;
+	GRFIK grfik;
+};
+
+struct SCJ
+{
+	ALO* paloSchRot;
+	int ipaloRot;
+	ALO* paloSchPos;
+	int ipaloPos;
+	int fInvalidRot;
+	int fInvalidPos;
+
+};
+
+struct SCH
+{
+	glm::vec3 posSch;
+	glm::vec3 posEnd;
+	float gStrength;
+
+	OID oidScjStart;
+	ALO* paloScjStart;
+
+	OID oidScjEnd;
+	ALO* paloScjEnd;
+
+	OID oidSchPrev;
+	ALO* paloSchPrev;
+	ALO* paloCommon;
+	SCSK scsk;
+	int cpalo;
+	std::vector <ALO*> apalo;
+};
+
+struct LOOKERALOX
+{
+	OID oidFocus;
+	PNT* ppntFocus;
+
+	OID oidTarget;
+	PNT* ppntTarget;
+};
+
+struct JOINT
+{
+	glm::mat4 matInfluence;
+	int fSsc;
+	int fMatInfluence;
+};
 
 struct ALOX
 {
 	glm::mat3 matPreRotation;
 	glm::mat3 matPostRotation;
-
-	union
-	{
-		ALO *paloParent;
-	} foster;
-
-	union
-	{
-		OID oidIkh;
-		ALO *paloIkh;
-		int fInvalid;
-	}ikj;
-
-	union
-	{
-		glm::vec3 posIkh;
-		glm::vec3 posWrist;
-		ALO *paloShoulder;
-
-		union
-		{
-			OID oidElbow;
-			ALO *paloElbow;
-
-		};
-
-		ALO* paloCommon;
-		float radTwistOrig;
-		float radTwist;
-		float dradTwist;
-		GRFIK grfik;
-	}ikh;
-
-	union
-	{
-		ALO *paloSchRot;
-		int ipaloRot;
-		ALO *paloSchPos;
-		int ipaloPos;
-		int fInvalidRot;
-		int fInvalidPos;
-
-	}scj;
-
-	union
-	{
-		glm::vec3 posSch;
-		glm::vec3 posEnd;
-		float gStrength;
-		union
-		{
-			OID oidScjStart;
-			ALO* paloScjStart;
-		};
-
-		union
-		{
-			OID oidScjEnd;
-			ALO* paloScjEnd;
-		};
-
-		union
-		{
-			OID oidSchPrev;
-			ALO* paloSchPrev;
-		};
-		ALO* paloCommon;
-		SCSK scsk;
-		int cpalo;
-		ALO** apalo;
-
-	}sch;
-
-	union
-	{
-		union
-		{
-			OID oidFocus;
-			PNT* ppntFocus;
-		};
-
-		union
-		{
-			OID oidTarget;
-			PNT* ppntTarget;
-
-		};
-	}looker;
-
-	union
-	{
-		glm::mat4 matInfluence;
-		int fSsc;
-		int fMatInfluence;
-	}joint;
+	FOSTER foster;
+	IKJ ikj;
+	IKHALOX ikh;
+	SCJ scj;
+	SCH sch;
+	LOOKERALOX looker;
+	JOINT joint;
 	GRFALOX grfalox;
 };
 
@@ -317,10 +303,10 @@ class ALO : public LO
 		struct CLQ* pclqRotDamping;
 		struct SMPA* psmpaPos;
 		struct SMPA* psmpaRot;
-		std::shared_ptr <ALOX> palox;
+		std::unique_ptr <ALOX> palox;
 		int cframeStatic;
 		GLOBSET globset;
-		struct SHADOW *pshadow;
+		std::shared_ptr <SHADOW> pshadow;
 		struct THROB* pthrob;
 		float sFastShadowRadius;
 		float sFastShadowDepth;
@@ -352,7 +338,12 @@ void RemoveAloHierarchy(ALO *palo);
 void OnAloAdd(ALO* palo); // NOT FINISHED
 // Removes ALO from Hierarchy
 void OnAloRemove(ALO* palo);
+// Updates the original transform of an ALO
 void UpdateAloOrig(ALO* palo);
+void UpdateAloInfluences(ALO* palo, RO* pro);
+void AdjustAloRotation(ALO *palo, glm::mat3 *pmat, glm::vec3 *pw);
+void UnadjustAloRotation(ALO *palo, glm::mat3 *pmat);
+void MatchAloOtherObject(ALO* palo, ALO* paloOther);
 // Makes ALO object follow camera rotation
 void AdjustAloRtckMat(ALO* palo, CM* pcm, RTCK rtck, glm::vec3* pposCenter, glm::mat4 &pmat);
 // Makes a copy of ALO and all of its children
@@ -362,10 +353,13 @@ void CloneAlo(ALO* palo, ALO* paloBase);
 void ResolveAlo(ALO *palo);
 // Sets a Alo object to a parent
 void SetAloParent(ALO* palo, ALO* paloParent);
-// Apply transformation to proxy ALO
-void ApplyAloProxy(ALO* palo, PROXY* pproxyApply);
+int  FIsZeroV(const glm::vec3* pv);
+int  FIsZeroW(const glm::vec3* pw);
+void SetAloVelocityVec(ALO* palo, glm::vec3* pv);
+void SetAloAngularVelocityVec(ALO* palo, glm::vec3* pw);
 void BindAlo(ALO* palo);
 void BindGlobset(GLOBSET* pglobset, ALO* palo);
+void CalculateAloMovement(ALO* paloLeaf, ALO* paloBasis, const glm::vec3* ppos, glm::vec3* pv, glm::vec3* pw, glm::vec3* pdv, glm::vec3* pdw);
 // Updates the ALO objects transformations
 void UpdateAloXfWorld(ALO* palo);
 // Updates the ALO objects world transformation hierarchy
@@ -381,7 +375,9 @@ void RotateAloToMat(ALO* palo, glm::mat3& pmat);
 void ConvertAloMat(ALO* paloFrom, ALO* paloTo, glm::mat3 &pmatFrom, glm::mat3 &pmatTo);
 void SetAloInitialVelocity(ALO* palo, glm::vec3* pv);
 void SetAloInitialAngularVelocity(ALO* palo, const glm::vec3* pw);
-ASEGD* PasegdEnsureAlo(ALO* palo);
+ASEGD*  PasegdEnsureAlo(ALO* palo);
+SHADOW* PshadowAloEnsure(ALO* palo);
+SHADOW* PshadowInferAlo(ALO* palo);
 void SetAloAsegdOid(ALO* palo, short oid);
 void SetAloAsegdtLocal(ALO* palo, float tLocal);
 void SetAloAsegdSvtLocal(ALO* palo, float svtLocal);
@@ -392,6 +388,21 @@ void SetAloVelocityLocal(ALO* palo, glm::vec3* pvec);
 void SetAloFastShadowRadius(ALO* palo, float sRadius);
 void SetAloFastShadowDepth(ALO* palo, float sDepth);
 void SetAloCastShadow(ALO* palo, int fCastShadow);
+void SetAloShadowShader(ALO* palo, OID oidShdShadow);
+void GetAloShadowShader(ALO* palo, OID* poidShdShadow);
+void GetAloShadowNearRadius(ALO* palo, float* psNearRadius);
+void SetAloShadowNearRadius(ALO* palo, float sNearRadius);
+void SetAloShadowFarRadius(ALO* palo, float sFarRadius);
+void GetAloShadowFarRadius(ALO* palo, float* psFarRadius);
+void SetAloShadowNearCast(ALO* palo, float sNearCast);
+void GetAloShadowNearCast(ALO* palo, float* psNearCast);
+void SetAloShadowFarCast(ALO* palo, float sFarCast);
+void GetAloShadowFarCast(ALO* palo, float* psFarCast);
+void SetAloShadowConeAngle(ALO* palo, float degConeAngle);
+void GetAloShadowConeAngle(ALO* palo, float* pdegConeAngle);
+void SetAloShadowFrustrumUp(ALO* palo, glm::vec3* pvecUp);
+void GetAloShadowFrustrumUp(ALO* palo, glm::vec3* pvecUp);
+void SetAloDynamicShadowObject(ALO* palo, OID oidDysh);
 void SetAloNoFreeze(ALO* palo, int fNoFreeze);
 void SetAloRestorePosition(ALO* palo, int fRestore);
 void SetAloRestorePositionAck(ALO* palo, ACK ack);
@@ -492,6 +503,7 @@ void LoadAloFromBrx(ALO* palo, CBinaryInputStream* pbis);
 // Loads bone data from binary file
 void LoadAloAloxFromBrx(ALO* palo, CBinaryInputStream* pbis);
 void BindAloAlox(ALO* palo);
+void PostAloLoad(ALO* palo);
 void SnipAloObjects(ALO *palo, int csnip, SNIP *asnip);
 // Updates ALO object
 void UpdateAlo(ALO *palo, float dt);
@@ -500,7 +512,6 @@ void RenderAloSelf(ALO* palo, CM* pcm, RO* pro);
 void DupAloRo(ALO *palo, RO *proOrig, RO *proDup);
 void RenderAloGlobset(ALO* palo, CM* pcm, RO* pro);
 void RenderAloLine(ALO* palo, CM* pcm, glm::vec3* ppos0, glm::vec3* ppos1, float rWidth, float uAlpha);
-void RenderAloAsBone(ALO* palo, CM* pcm, RO* pro);
 // Draw a 3D model submesh
 void DrawGlob(RPL *prpl);
 // Deletes Model from VRAM

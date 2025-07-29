@@ -42,6 +42,7 @@ void RemoveDart(DART* pdart);
 void CloneDart(DART* pdart, DART* pdartBase);
 void SnipDartObjects(DART* pdart);
 void LoadDartFromBrx(DART* pdart, CBinaryInputStream* pbis);
+void PostDartLoad(DART* pdart);
 void DeleteDart(DART *pdart);
 
 extern SNIP s_asnip;

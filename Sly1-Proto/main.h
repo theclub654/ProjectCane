@@ -20,4 +20,7 @@ int  main(int cphzArgs, char* aphzArgs[]);
 // Initializing all the things needed for the game to run
 void Startup();
 
+extern float prevTime;
+extern float accumulator;
+extern unsigned int counter;
 extern bool fQuitGame;

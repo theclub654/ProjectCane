@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <chrono>
 #include <thread>
+#include <GLFW/glfw3.h>
 
 typedef uint64_t TICK;
 

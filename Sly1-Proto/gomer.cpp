@@ -32,6 +32,11 @@ void CloneGomer(GOMER* pgomer, GOMER* pgomerBase)
     pgomer->fAbandonExternal = pgomerBase->fAbandonExternal;
 }
 
+void PostGomerLoad(GOMER* pgomer)
+{
+    PostStepguardLoad(pgomer);
+}
+
 void RenderGomerSelf(GOMER* pgomer, CM* pcm, RO* pro)
 {
 	RenderStepSelf(pgomer, pcm, pro);

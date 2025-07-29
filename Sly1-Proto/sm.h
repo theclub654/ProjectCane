@@ -53,6 +53,7 @@ class SM : public LO
 SM*  NewSm();
 int  GetSmSize();
 void LoadSmFromBrx(SM *psm, CBinaryInputStream *pbis);
+OID  OidFromSmIsms(SM* psm, int isms);
 void CloneSm(SM* psm, SM* psmBase);
 void DeleteSm(SM* psm);
 

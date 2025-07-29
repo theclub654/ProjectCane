@@ -79,6 +79,11 @@ void RenderMsGlobset(MS *pms, CM *pcm, RO *pro)
 				}
 			}
 
+			if (glob.pdmat != nullptr)
+				rpl.ro.model = baseModelMatrix * *glob.pdmat;
+			else
+				rpl.ro.model = baseModelMatrix;
+
 			switch (rpl.rp)
 			{
 				case RP_Background:
@@ -88,19 +93,16 @@ void RenderMsGlobset(MS *pms, CM *pcm, RO *pro)
 				case RP_Cutout:
 				case RP_CutoutAfterProjVolume:
 				case RP_Translucent:
-				rpl.z = glm::length(pcm->pos - posCenterWorld);
+				rpl.z = glm::length2(pcm->pos - glm::vec3(rpl.ro.model * glm::vec4(subglob.posCenter, 1.0f)));
 				break;
 			}
-
-			if (glob.pdmat != nullptr)
-				rpl.ro.model = baseModelMatrix * *glob.pdmat;
-			else
-				rpl.ro.model = baseModelMatrix;
 
 			if (glob.rtck != RTCK_None)
 				AdjustAloRtckMat(pms, pcm, glob.rtck, &glob.posCenter, rpl.ro.model);
 
 			SubmitRpl(&rpl);
+
+			rpl.ro.model = baseModelMatrix;
 		}
 	}
 }

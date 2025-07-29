@@ -18,19 +18,22 @@ layout (location = 0) in vec3 vertex;
 layout (location = 1) in vec3 normal;
 layout (location = 2) in vec4 color;
 layout (location = 3) in vec2 uv;
+layout (location = 4) in uvec4 boneIndices;
+layout (location = 5) in vec4  boneWeights;
 
 struct LIGHT 
 {
-    int  lightk;
-    int  pad1;
-    int  pad2;
-    int  pad3;
-    vec4 pos;
-    vec4 dir;
-    vec4 color;
-    vec4 falloff;
-    vec4 ru;
-    vec4 du;
+    int   lightk;
+    int   pad1;
+    int   pad2;
+    int   pad3;
+    vec4  pos;
+    vec4  dir;
+    vec4  color;
+    vec3  falloff;
+    float maxDst;
+    vec4  ru;
+    vec4  du;
 };
 
 layout(std140) uniform LIGHTBLK
@@ -87,8 +90,8 @@ void StartThreeWay();
 void InitGlobLighting();
 vec4 AddDirectionLight(LIGHT dirlight);
 vec4 AddDynamicLight(vec4 dir, vec4 color, vec4 ru, vec4 du);
-vec4 AddPositionLight(LIGHT pointlight);
-vec4 AddPositionLightDynamic(LIGHT pointlight);
+vec4 AddPositionLight(LIGHT pointlight, vec3 toLight, float dist);
+vec4 AddPositionLightDynamic(LIGHT pointlight, vec3 direction);
 //vec4 AddFrustrumLight(FRUSTUMLIGHT frustumlight);
 //vec4 AddFrustrumLightDynamic(FRUSTUMLIGHT frustumlight);
 void ProcessGlobLighting();
@@ -137,8 +140,16 @@ void StartThreeWay()
                 break;
 
                 case LIGHTK_Position:
-                light += AddPositionLight(lights[i]);
-                break;
+                {
+                    vec3  toLight = lights[i].pos.xyz - worldPos.xyz;
+                    float distSq  = dot(toLight, toLight);
+
+                    if (distSq > lights[i].maxDst)
+                        continue;
+
+                    light += AddPositionLight(lights[i], toLight, distSq);
+                    break;
+                }
             }
         }
     }
@@ -154,8 +165,16 @@ void StartThreeWay()
                 break;
 
                 case LIGHTK_Position:
-                light += AddPositionLightDynamic(lights[i]);
-                break;
+                {
+                    vec3  toLight = lights[i].pos.xyz - posCenter.xyz;
+                    float distSq  = dot(toLight, toLight);
+
+                    if (distSq > lights[i].maxDst)
+                        continue;
+
+                    light += AddPositionLightDynamic(lights[i], toLight);
+                    break;
+                }
             }
         }
      }
@@ -224,18 +243,14 @@ vec4 AddDynamicLight(vec4 dir, vec4 color, vec4 ru, vec4 du)
     return color * highlight;
 }
 
-vec4 AddPositionLight(LIGHT pointlight)
+vec4 AddPositionLight(LIGHT pointlight, vec3 toLight, float dist)
 {
-    // Light vector (non-normalized)
-    vec3  toLight  = vec3(pointlight.pos) - worldPos.xyz;
-    float distSqr  = dot(toLight, toLight);
-
     // Approximate inverse sqrt for light direction (normalize)
-    float invLen   = inversesqrt(distSqr);
-    vec3 lightDir  = toLight * invLen;
+    float invLen   = inversesqrt(dist);
+    vec3  lightDir = toLight * invLen;
 
     // Diffuse
-    float NdotL = max(dot(lightDir, normalWorld), 0.0);
+    float NdotL   = max(dot(lightDir, normalWorld), 0.0);
     float diffuse = NdotL * (1.0 + NdotL * NdotL); // N + N³ ≈ stylized bump
 
     // Custom attenuation
@@ -259,11 +274,9 @@ vec4 AddPositionLight(LIGHT pointlight)
     return pointlight.color * max(highlight, 0.0);
 }
 
-vec4 AddPositionLightDynamic(LIGHT pointlight)
+vec4 AddPositionLightDynamic(LIGHT pointlight, vec3 direction)
 {
-    // Compute direction and distance to light
-    vec3  direction = normalize(vec3(pointlight.pos) - posCenter);
-    float distance  = length(vec3(pointlight.pos) - posCenter);
+    float distance = length(direction);
 
     // Compute clamped attenuation
     float attenuation = 1.0 / distance * pointlight.falloff.y + pointlight.falloff.x;

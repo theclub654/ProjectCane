@@ -110,6 +110,7 @@ BREAK*NewBreak();
 void InitBreak(BREAK* pbreak);
 int  GetBreakSize();
 void CloneBreak(BREAK* pbreak, BREAK* pbreakBase);
+void PostBrkLoad(BRK* pbrk);
 void DeleteBreak(BREAK* pbreak);
 
 FRAGILE*NewFragile();

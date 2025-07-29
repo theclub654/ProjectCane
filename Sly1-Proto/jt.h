@@ -463,6 +463,7 @@ class JT : public STEP
 JT*  NewJt();
 void InitJt(JT *pjt); // NOT FINSHED
 void LoadJtFromBrx(JT *pjt, CBinaryInputStream *pbis); // NOT FINSHED
+void UpdateJtPosWorldPrev(JT* pjt);
 void CloneJt(JT* pjt, JT* pjtBase);
 void RenderJtAll(JT* pjt, CM* pcm, RO* pro);
 void RenderJtSelf(JT* pjt, CM* pcm, RO* pro);

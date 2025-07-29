@@ -12,4 +12,5 @@ class FRZG : public LO
 FRZG*NewFrzg();
 int  GetFrzgSize();
 void CloneFrzg(FRZG* pfrzg, FRZG* pfrzgBase);
+void PostFrzgLoad(FRZG* pfrzg);
 void DeleteFrzg(FRZG* pfrzg);

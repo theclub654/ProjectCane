@@ -76,5 +76,6 @@ int  GetStepSize();
 void UpdateStepXfWorld(STEP* pstep);
 void RenderStepSelf(STEP* pstep, CM* pcm, RO* pro);
 void CloneStep(STEP* pstep, STEP* pstepBase);
+void PostStepLoad(STEP* pstep);
 void RotateStepToMat(STEP* pstep, glm::mat3& pmat);
 void DeleteStep(STEP *pstep);

@@ -146,19 +146,23 @@ void LoadExitFromBrx(EXIT* pexit, CBinaryInputStream* pbis)
 
 	pexit->pvtalo->pfnUpdateAloXfWorld(pexit);
 
+	pexit->exits = EXITS_Blocked;
+
 	LoadTbspFromBrx(pbis);
 
 	LoadOptionsFromBrx(pexit, pbis);
 
-	uint16_t numObjs = pbis->S16Read();
+	pexit->cpaseg = pbis->S16Read();
+	pexit->apaseg.resize(pexit->cpaseg);
 
-	for (int i = 0; i < numObjs; i++)
+	for (int i = 0; i < pexit->cpaseg; i++)
 	{
 		CID cid = (CID)pbis->S16Read();
 		OID oid = (OID)pbis->S16Read();
 		uint16_t isplice = pbis->S16Read();
 
 		LO* plo = PloNew(cid, pexit->psw, pexit->paloParent, oid, isplice);
+		pexit->apaseg[i] = (ASEG*)&plo;
 		plo->pvtlo->pfnLoadLoFromBrx(plo, pbis);
 		plo->pvtlo->pfnRemoveLo(plo);
 	}
@@ -193,12 +197,7 @@ void CloneExit(EXIT* pexit, EXIT* pexitBase)
 	pexit->cpaseg = pexitBase->cpaseg;
 
 	// Clone apaseg (array of void pointers)
-	if (pexit->apaseg != nullptr && pexitBase->apaseg != nullptr) {
-		for (int i = 0; i < pexitBase->cpaseg; i++) {
-			pexit->apaseg[i] = pexitBase->apaseg[i];
-		}
-	}
-
+	pexit->apaseg = pexitBase->apaseg;
 	pexit->wipek = pexitBase->wipek;
 	pexit->tWipe = pexitBase->tWipe;
 	pexit->dtUnblock = pexitBase->dtUnblock;

@@ -82,6 +82,7 @@ int GetLasenSize()
 void LoadLasenFromBrx(LASEN* plasen, CBinaryInputStream* pbis)
 {
 	LoadSoFromBrx(plasen, pbis);
+	SnipAloObjects(plasen, 2, s_asnipLasen);
 }
 
 void CloneLasen(LASEN* plasen, LASEN* plasenBase)
@@ -114,6 +115,59 @@ void CloneLasen(LASEN* plasen, LASEN* plasenBase)
 void BindLasen(LASEN* plasen)
 {
 	BindAlo(plasen);
+}
+
+void PostLasenLoad(LASEN* plasen)
+{
+	PostAloLoad(plasen);
+
+	for (int i = 0; i < plasen->clbeam; ++i) {
+		LBEAM* pbeam = &plasen->albeam[i];
+
+		// Remove the shape's LO
+		if (pbeam->pshape && pbeam->pshape->pvtlo->pfnRemoveLo) {
+			pbeam->pshape->pvtlo->pfnRemoveLo((LO*)pbeam);
+		}
+		
+		if (i == 0) {
+			// Skip cloning damage emitters for beam 0 (used as source template)
+			continue;
+		}
+
+		int clemitDamage = plasen->albeam[0].clemitDamage;
+		pbeam->clemitDamage = clemitDamage;
+
+		if (clemitDamage > 0) {
+			LEMIT *dstEmit = pbeam->alemitDamage;
+			LEMIT *srcEmit = plasen->albeam[0].alemitDamage;
+
+			for (int j = 0; j < clemitDamage; ++j) {
+				EMITTER* pemitter = (EMITTER*)PloCloneLo((LO*)srcEmit->pemitter, plasen->psw, (ALO*)plasen);
+				dstEmit->pemitter = pemitter;
+
+				if (pemitter && pemitter->pvtalo->pfnBindAlo) {
+					pemitter->pvtalo->pfnBindAlo(pemitter);
+				}
+
+				if (pemitter && pemitter->pvtlo->pfnPostLoLoad) {
+					pemitter->pvtlo->pfnPostLoLoad(pemitter);
+				}
+
+				dstEmit->fScorch = srcEmit->fScorch;
+
+				++dstEmit;
+				++srcEmit;
+			}
+		}
+	}
+
+	// Set jtOnlyTriggerObject flag based on g_pjt
+	//plasen->fJtOnlyTriggerObject = FOnlySensorTriggerObject(plasen, g_pjt);
+
+	//// Initialize damage handling
+	//if (plasen->pvtpo && plasen->pvtpo->pfnFTakePoDamage) {
+	//	plasen->pvtpo->pfnFTakePoDamage(plasen, plasen->sensorsInitial);
+	//}
 }
 
 void RenderLasenSelf(LASEN* plasen, CM* pcm, RO* pro)
@@ -217,3 +271,9 @@ void DeletePrsen(PRSEN *ppprsen)
 {
 	delete ppprsen;
 }
+
+SNIP s_asnipLasen[2] =
+{
+	2, OID_laser_sensor_render, offsetof(LASEN, paloRenderSense),
+	2, OID_laser_damage_render, offsetof(LASEN, paloRenderDamage)
+};

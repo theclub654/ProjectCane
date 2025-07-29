@@ -62,6 +62,11 @@ void CloneJack(JACK* pjack, JACK* pjackBase)
     pjack->matPosToUv = pjackBase->matPosToUv;
 }
 
+void PostJackLoad(JACK* pjack)
+{
+    PostAloLoad(pjack);
+}
+
 void DeleteJack(JACK* pjack)
 {
 	delete pjack;
@@ -109,6 +114,11 @@ void CloneJackb(JACKB* pjackb, JACKB* pjackbBase)
     pjackb->jbwsNext = pjackbBase->jbwsNext;
     pjackb->posPlant = pjackbBase->posPlant;
     pjackb->posNextPlant = pjackbBase->posNextPlant;
+}
+
+void PostJackbLoad(JACKB* pjackb)
+{
+    PostAloLoad(pjackb);
 }
 
 void DeleteJackb(JACKB* pjackb)

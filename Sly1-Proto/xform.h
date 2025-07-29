@@ -66,7 +66,7 @@ class EXIT : public ALO
 		WID widAlt;
 		OID oidAlt;
 		int cpaseg;
-		void** apaseg;
+		std::vector <ASEG*> apaseg;
 		WIPEK wipek;
 		float tWipe;
 		float dtUnblock;

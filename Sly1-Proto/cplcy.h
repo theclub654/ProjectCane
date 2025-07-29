@@ -283,7 +283,7 @@ void BuildFrustrum(const glm::mat3 &pmatLookAt, float rx, float ry, glm::vec3 *a
 // Extract frustum planes from proj view matrix
 void ExtractFrustumPlanes(const glm::mat4 &viewProj, FRUSTUM *pfrustum);
 // Checks if a object is in camera frustum
-bool SphereInFrustum(const FRUSTUM &frustum, const glm::vec3 &position, float radius);
+bool SphereInFrustum(const FRUSTUM &frustum, const glm::vec3 &center, float radius);
 // Update manual camera
 void UpdateCpman(GLFWwindow* window, CPMAN *pcpman, CPDEFI *pcpdefi, float dt);
 

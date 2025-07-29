@@ -23,6 +23,7 @@ void OnMissileRemove(MISSILE* pmissile)
 void LoadMissileFromBrx(MISSILE* pmissile, CBinaryInputStream* pbis)
 {
 	LoadBombFromBrx(pmissile, pbis);
+	SnipAloObjects(pmissile, 1, s_asnipMissile);
 }
 
 void CloneMissile(MISSILE* pmissile, MISSILE* pmissileBase)
@@ -158,3 +159,8 @@ void DeleteGroundmiss(GROUNDMISS *pgroundmiss)
 {
 	delete pgroundmiss;
 }
+
+SNIP s_asnipMissile[1] =
+{
+	2, OID_aseg_missile_fire, offsetof(MISSILE, pasegFire)
+};

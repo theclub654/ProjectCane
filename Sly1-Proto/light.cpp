@@ -508,10 +508,13 @@ void PrepareSwLights(SW* psw, CM* pcm)
 		switch (plight->lightk)
 		{
 			case LIGHTK_Direction:
+			if ((g_fBsp != 0) && ((plight->grfzon & pcm->grfzon) != pcm->grfzon))
+				break;
+
 			if (numRl >= lightBlk.size()) break; // prevent overflow
 
 			lightBlk[numRl].lightk = plight->lightk;
-			lightBlk[numRl].dir    = glm::vec4(plight->xf.matWorld[2], 0.0f);
+			lightBlk[numRl].dir    = glm::vec4(plight->xf.matWorld[2], 1.0f);
 			lightBlk[numRl].color  = glm::vec4(plight->rgbaColor, 0.0f);
 			lightBlk[numRl].ru     = glm::vec4(plight->ltfn.ruShadow, plight->ltfn.ruMidtone, plight->ltfn.ruHighlight, 0.0f);
 			lightBlk[numRl].du     = glm::vec4(plight->ltfn.duShadow, plight->ltfn.duMidtone, plight->ltfn.duHighlight, 0.0f);
@@ -528,9 +531,10 @@ void PrepareSwLights(SW* psw, CM* pcm)
 			if (numRl >= lightBlk.size()) break;
 
 			lightBlk[numRl].lightk  = plight->lightk;
-			lightBlk[numRl].pos     = glm::vec4(plight->xf.posWorld, 0.0f);
-			lightBlk[numRl].color   = glm::vec4(plight->rgbaColor, 0.0f);
-			lightBlk[numRl].falloff = glm::vec4(plight->agFallOff, 0.0f);
+			lightBlk[numRl].pos     = glm::vec4(plight->xf.posWorld, 1.0f);
+			lightBlk[numRl].color   = glm::vec4(plight->rgbaColor, 1.0f);
+			lightBlk[numRl].falloff = plight->agFallOff;
+			lightBlk[numRl].maxDst  = plight->lmFallOffS.gMax * plight->lmFallOffS.gMax;
 			lightBlk[numRl].ru      = glm::vec4(plight->ltfn.ruShadow, plight->ltfn.ruMidtone, plight->ltfn.ruHighlight, 0.0f);
 			lightBlk[numRl].du      = glm::vec4(plight->ltfn.duShadow, plight->ltfn.duMidtone, plight->ltfn.duHighlight, 0.0f);
 			numRl++;

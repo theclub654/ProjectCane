@@ -76,6 +76,8 @@ struct VERTICE
 	glm::vec3 normal;
 	glm::vec4 color;
 	glm::vec2 uv;
+	glm::uvec4 boneIndices;
+	glm::vec4 boneWeights;
 };
 
 struct INDICE
@@ -234,7 +236,7 @@ struct SUBGLOB // NOT DONE
 	struct SHD* pshd;
 	struct WRBSG *pwrbsg;
 	int cibnd;
-	int aibnd[4];
+	std::vector <int> aibnd;
 };
 
 struct SUBGLOBI 
@@ -339,4 +341,5 @@ extern GLuint glslusSelfIllum;
 extern GLuint glslFDynamic;
 extern GLuint glslPosCenter;
 extern GLuint glslfAlphaTest;
+extern GLuint glslfCull;
 extern GLuint glslCollisionRgba;

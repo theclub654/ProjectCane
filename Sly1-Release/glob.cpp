@@ -263,7 +263,8 @@ void LoadGlobsetFromBrx(GLOBSET* pglobset, short cid, ALO* palo, CBinaryInputStr
                 }
 
                 // Loading texture property 
-                pglobset->aglob[i].asubglob[a].pshd = &g_ashd[pbis->U16Read()];
+                pglobset->aglob[i].asubglob[a].shdID = pbis->U16Read();
+                pglobset->aglob[i].asubglob[a].pshd = &g_ashd[pglobset->aglob[i].asubglob[a].shdID];
                 pglobset->aglob[i].asubglob[a].unSelfIllum = pbis->U8Read() * 0x7FA6 / 0xFF;
                 pglobset->aglob[i].asubglob[a].cibnd = pbis->U8Read();
                 
@@ -377,7 +378,7 @@ void LoadGlobsetFromBrx(GLOBSET* pglobset, short cid, ALO* palo, CBinaryInputStr
                     const glm::vec3& pos = vert.pos;
 
                     // Inflate outward from posCenter
-                    glm::vec3 offsetDir = glm::normalize(pos - center);
+                    glm::vec3 offsetDir = glm::normalize(pos + vert.normal - center);
                     glm::vec3 newPos = pos + offsetDir * thickness;
 
                     subglob.celPositions.push_back(newPos);

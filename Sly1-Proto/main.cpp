@@ -2,19 +2,19 @@
 
 int main(int cphzArgs, char* aphzArgs[])
 {
-	Startup();
+    Startup();
 
-	while (!glfwWindowShouldClose(g_gl.window) && fQuitGame != true)
-	{
-		if (g_transition.m_fPending != 0)
-			g_transition.Execute(file);
+    while (!glfwWindowShouldClose(g_gl.window) && fQuitGame != true)
+    {
+        if (g_transition.m_fPending != 0)
+            g_transition.Execute(file);
 
         // Render scene to offscreen framebuffer ===
         glBindFramebuffer(GL_FRAMEBUFFER, g_gl.fbo);
         glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
         glEnable(GL_DEPTH_TEST);
-        
+
         g_joy.Update(g_gl.window);
 
         RenderMenuGui(g_psw);
@@ -57,13 +57,13 @@ int main(int cphzArgs, char* aphzArgs[])
         // === Swap ===
         glfwSwapBuffers(g_gl.window);
         glfwPollEvents();
-	}
+    }
 
-	if (g_psw != nullptr)
-		DeleteWorld(g_psw);
+    if (g_psw != nullptr)
+        DeleteWorld(g_psw);
 
-	g_gl.TerminateGL();
-	return 0;
+    g_gl.TerminateGL();
+    return 0;
 }
 
 void Startup()
@@ -99,4 +99,7 @@ void Startup()
 	glfwSwapInterval(1);
 }
 
+float prevTime = 0.0f;
+float accumulator = 0.0f;
+unsigned int counter = 0;
 bool fQuitGame;

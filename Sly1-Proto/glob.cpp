@@ -10,10 +10,10 @@ void InitGlslUniforms()
     glslLsmShadow  = glGetUniformLocation(glGlobShader.ID, "lsm.uShadow");
     glslLsmDiffuse = glGetUniformLocation(glGlobShader.ID, "lsm.uMidtone");
 
-    glslFogType  = glGetUniformLocation(glGlobShader.ID, "fogType");
-    glslFogNear  = glGetUniformLocation(glGlobShader.ID, "fogNear");
-    glslFogFar   = glGetUniformLocation(glGlobShader.ID, "fogFar");
-    glslFogMax   = glGetUniformLocation(glGlobShader.ID, "fogMax");
+    glslFogType = glGetUniformLocation(glGlobShader.ID, "fogType");
+    glslFogNear = glGetUniformLocation(glGlobShader.ID, "fogNear");
+    glslFogFar = glGetUniformLocation(glGlobShader.ID, "fogFar");
+    glslFogMax = glGetUniformLocation(glGlobShader.ID, "fogMax");
     glslFogColor = glGetUniformLocation(glGlobShader.ID, "fogColor");
 
     glslRgbaCel = glGetUniformLocation(glGlobShader.ID, "rgbaCel");
@@ -28,6 +28,7 @@ void InitGlslUniforms()
     glslusSelfIllum = glGetUniformLocation(glGlobShader.ID, "usSelfIllum");
     glslFDynamic = glGetUniformLocation(glGlobShader.ID, "fDynamic");
     glslPosCenter = glGetUniformLocation(glGlobShader.ID, "posCenter");
+    glslfCull = glGetUniformLocation(glGlobShader.ID, "fCull");
     glslfAlphaTest = glGetUniformLocation(glGlobShader.ID, "fAlphaTest");
 
     glslCollisionRgba = glGetUniformLocation(glGlobShader.ID, "collisionRgba");
@@ -44,6 +45,8 @@ void LoadGlobsetFromBrx(GLOBSET *pglobset, short cid ,ALO *palo ,CBinaryInputStr
     byte fRelight = pbis->U8Read();
 
     pglobset->cbnd = pbis->U8Read();
+    pglobset->abnd.resize(pglobset->cbnd);
+
     pglobset->mpibndoid.resize(pglobset->cbnd);
 
     for (int i = 0; i < pglobset->cbnd; i++)
@@ -269,7 +272,10 @@ void LoadGlobsetFromBrx(GLOBSET *pglobset, short cid ,ALO *palo ,CBinaryInputStr
                 pglobset->aglob[i].asubglob[a].unSelfIllum = pbis->U8Read() * 0x7FA6 / 0xFF;
                 pglobset->aglob[i].asubglob[a].cibnd = pbis->U8Read();
 
-                pbis->file.seekg(pglobset->aglob[i].asubglob[a].cibnd, SEEK_CUR);
+                pglobset->aglob[i].asubglob[a].aibnd.resize(pglobset->aglob[i].asubglob[a].cibnd);
+
+                for (int g = 0; g < pglobset->aglob[i].asubglob[a].cibnd; g++)
+                    pglobset->aglob[i].asubglob[a].aibnd[g] = pbis->U8Read();
 
                 int weightCount = vertexCount * pglobset->aglob[i].asubglob[a].cibnd;
 
@@ -381,7 +387,7 @@ void LoadGlobsetFromBrx(GLOBSET *pglobset, short cid ,ALO *palo ,CBinaryInputStr
                 
                 //BuildSubcel(pglobset, &subcel, aposfCount, aposf, ctwef, atwef, subposef, aposfPoses, weightsCel);
 
-                pglobset->aglob[0].asubcel.push_back(subcel);
+                //pglobset->aglob[0].asubcel.push_back(subcel);
             }
         }
         else
@@ -416,7 +422,7 @@ void LoadGlobsetFromBrx(GLOBSET *pglobset, short cid ,ALO *palo ,CBinaryInputStr
                     const glm::vec3& pos = vert.pos;
 
                     // Inflate outward from posCenter
-                    glm::vec3 offsetDir = glm::normalize(pos - center);
+                    glm::vec3 offsetDir = glm::normalize(pos + glm::normalize(vert.normal) - center);
                     glm::vec3 newPos = pos + offsetDir * thickness;
 
                     subglob.celPositions.push_back(newPos);
@@ -466,6 +472,40 @@ void BuildSubGlob(SUBGLOB *psubglob, SHD *pshd, std::vector <glm::vec3> &positio
             psubglob->vertices[i].uv = glm::vec2{0.0};
         else
             psubglob->vertices[i].uv = texcoords[indexes[i].iuv];
+    }
+
+    const int maxInfluences = 4; // Assume 4 for GPU skinning
+    const int cibnd = psubglob->cibnd; // number of influences per vertex
+    const std::vector<int>& aibnd = psubglob->aibnd;
+    const int vertexCount = indexes.size();
+
+    for (int i = 0; i < vertexCount; i++)
+    {
+        int ipos = indexes[i].ipos;
+        glm::uvec4 boneIDs(0);
+        glm::vec4 weights(0.0f);
+
+        for (int j = 0; j < cibnd && j < maxInfluences; j++)
+        {
+            int weightIndex = ipos * cibnd + j;
+
+            if (weightIndex < agWeights.size())
+            {
+                weights[j] = agWeights[weightIndex];
+
+                // aibnd maps influence slot j to real bone ID
+                if (j < aibnd.size())
+                    boneIDs[j] = aibnd[j];
+            }
+        }
+
+        // Normalize weights
+        float totalWeight = glm::compAdd(weights);
+        if (totalWeight > 0.0f)
+            weights /= totalWeight;
+
+        psubglob->vertices[i].boneIndices = boneIDs;
+        psubglob->vertices[i].boneWeights = weights;
     }
 
     uint32_t idx = 0;
@@ -521,6 +561,12 @@ void BuildSubGlob(SUBGLOB *psubglob, SHD *pshd, std::vector <glm::vec3> &positio
 
     glVertexAttribPointer(3, 2, GL_FLOAT, GL_FALSE, sizeof(VERTICE), (void*)offsetof(VERTICE, uv));
     glEnableVertexAttribArray(3);
+
+    glVertexAttribIPointer(4, 4, GL_UNSIGNED_INT, sizeof(VERTICE), (void*)offsetof(VERTICE, boneIndices));
+    glEnableVertexAttribArray(4);
+
+    glVertexAttribPointer(5, 4, GL_FLOAT, GL_FALSE, sizeof(VERTICE), (void*)offsetof(VERTICE, boneWeights));
+    glEnableVertexAttribArray(5);
 }
 
 void BuildSubcel(GLOBSET *pglobset, SUBCEL *psubcel, int cposf, std::vector <glm::vec3> &aposf, int ctwef, std::vector <TWEF> &atwef, std::vector <SUBPOSEF> &asubposef, std::vector <glm::vec3> &aposfPoses, std::vector <float> &agWeights)
@@ -586,4 +632,5 @@ GLuint glslusSelfIllum = 0;
 GLuint glslFDynamic = 0;
 GLuint glslPosCenter = 0;
 GLuint glslfAlphaTest = 0;
+GLuint glslfCull = 0;
 GLuint glslCollisionRgba = 0;

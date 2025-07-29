@@ -1,6 +1,7 @@
 #pragma once
 #include "alo.h"
 #include "bsp.h"
+#include "aseg.h"
 
 enum ZPK
 {
@@ -157,13 +158,15 @@ void OnSoRemove(SO* pso);
 void CloneSo(SO* pso, SO* psoBase);
 // Sets a parent to a SO
 void SetSoParent(SO* pso, ALO* paloParent);
-// Apply transformtion to a proxy object
-void ApplySoProxy(SO* pso, PROXY* pproxyApply);
+void SetSoVelocityVec(SO* pso, glm::vec3* pv);
+void SetSoAngularVelocityVec(SO *pso, glm::vec3 *pw);
+void SetSoConstraints(SO* pso, CT ctForce, const glm::vec3* pnormalForce, CT ctTorque, const glm::vec3* pnormalTorque);
 // Updates the SO hierarchy transformations
 void UpdateSoXfWorldHierarchy(SO* pso);
 void UpdateSoXfWorld(SO* pso);
 // Loads SO from binary file
 void LoadSoFromBrx(SO* pso, CBinaryInputStream* pbis); // NOT FINISHED
+void UpdateSoPosWorldPrev(SO* pso);
 void TranslateSoToPos(SO* pso, glm::vec3& ppos);
 void RotateSoToMat(SO* pso, glm::mat3& pmat);
 void UpdateSo(SO *pso, float dt); // NOT FINISHED

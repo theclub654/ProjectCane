@@ -75,3 +75,5 @@ void InitGroundmiss(GROUNDMISS* pgroundmiss);
 int  GetGroundmissSize();
 void CloneGroundmiss(GROUNDMISS* pgroundmiss, GROUNDMISS* pgroundmissBase);
 void DeleteGroundmiss(GROUNDMISS *pgroundmiss);
+
+extern SNIP s_asnipMissile[1];

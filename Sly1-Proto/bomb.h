@@ -47,4 +47,5 @@ int  GetBombSize();
 void OnBombAdd(BOMB* pbomb);
 void CloneBomb(BOMB* pbomb, BOMB* pbombBase);
 void LoadBombFromBrx(BOMB* pbomb, CBinaryInputStream* pbis);
+void PostBombLoad(BOMB* pbomb);
 void DeleteBomb(BOMB* pbomb);

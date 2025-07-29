@@ -24,3 +24,19 @@ class SHADOW
 };
 
 void InitSwShadowDl(SW* psw);
+void InitShadow(SHADOW* pshadow);
+void SetShadowShader(SHADOW *pshadow, OID oidShdShadow);
+void SetShadowNearRadius(SHADOW* pshadow, float sNearRadius);
+void SetShadowFarRadius(SHADOW* pshadow, float sFarRadius);
+void SetShadowNearCast(SHADOW* pshadow, float sNearCast);
+void SetShadowFarCast(SHADOW* pshadow, float sFarCast);
+void SetShadowConeAngle(SHADOW* pshadow, float degConeAngle);
+void SetShadowFrustrumUp(SHADOW* pshadow, glm::vec3* pvecUp);
+void SetShadowCastPosition(SHADOW* pshadow, const glm::vec3& posCast);
+void SetShadowCastNormal(SHADOW* pshadow, const glm::vec3& normalCast);
+int  FShadowValid(SHADOW* pshadow, GRFGLOB grfglob);
+// Checks if a given sphere (e.g. a model's bounding sphere) intersects with a shadow's effective area.
+int  FShadowIntersectsSphere(SHADOW* pshadow, const glm::vec3& pos, float sRadius);
+void RebuildShadowRegion(SHADOW* pshadow);
+
+extern DL g_dlShadowPending;

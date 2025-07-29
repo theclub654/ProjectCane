@@ -1,6 +1,15 @@
 #pragma once
 #include "so.h"
+#include "shape.h"
+#include "emitter.h"
 
+enum LASK 
+{
+    LASK_Nil = -1,
+    LASK_Dynamic = 0,
+    LASK_Static = 1,
+    LASK_Max = 2
+};
 enum SENSM
 {
     SENSM_Nil = -1,
@@ -82,17 +91,21 @@ class SENSOR : public SO
 class LASEN : public SENSOR
 {
 	public:
-        LBEAM albeam[16];
+
+        LASK lask;
+        int clbeam;
+        struct LBEAM albeam[16];
         int cposBeamShapeMax;
         struct ALO* paloRenderSense;
         struct ALO* paloRenderDamage;
         float dtDamageDisabling;
-        DLE dleBusyLasen;
+        struct DLE dleBusyLasen;
         int fBusyLasen;
         float tSenseNext;
         int fJtOnlyTriggerObject;
         float uDrawMax;
         float svuDrawMax;
+
 };
 
 class CAMSEN : public SENSOR
@@ -144,6 +157,7 @@ int  GetLasenSize();
 void LoadLasenFromBrx(LASEN* plasen, CBinaryInputStream* pbis);
 void CloneLasen(LASEN* plasen, LASEN* plasenBase);
 void BindLasen(LASEN* plasen);
+void PostLasenLoad(LASEN* plasen);
 void RenderLasenSelf(LASEN* plasen, CM* pcm, RO* pro);
 void DeleteLasen(LASEN *plasen);
 
@@ -159,3 +173,5 @@ void InitPrsen(PRSEN* pprsen);
 int  GetPrsenSize();
 void ClonePrsen(PRSEN* pprsen, PRSEN* pprsenBase);
 void DeletePrsen(PRSEN* ppprsen);
+
+extern SNIP s_asnipLasen[2];

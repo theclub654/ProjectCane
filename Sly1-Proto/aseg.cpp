@@ -327,6 +327,36 @@ void CloneAseg(ASEG* paseg, ASEG* pasegBase)
     paseg->aoidSearchRoot = pasegBase->aoidSearchRoot;
 }
 
+void PostAsegLoad(ASEG* paseg)
+{
+
+}
+
+void StripAsegAlo(ASEG* paseg, ALO* palo)
+{
+    CHN* pchn;
+
+    if ((paseg->pchnStrip == nullptr) && (pchn = PchnFindAseg(paseg, palo), pchn != nullptr)) {
+        StripAsegChn(paseg, pchn);
+    }
+}
+
+CHN* PchnFindAseg(ASEG* paseg, ALO* palo)
+{
+    for (int i = 0; i < paseg->cchn; ++i) {
+        CHN* pchn = &paseg->achn[i];
+        if (FMatchesLoName(palo, pchn->oid)) {
+            return pchn;
+        }
+    }
+    return nullptr;
+}
+
+void StripAsegChn(ASEG* paseg, CHN* pchn)
+{
+
+}
+
 void ApplyAseg(ASEG* paseg, ALO* paloAsegRoot, float tLocal, float svtLocal, int grfapl, ASEGA** ppasega)
 {
 

@@ -87,13 +87,30 @@ void LoadSwFromBrx(SW* psw, CBinaryInputStream* pbis)
 	LoadSwObjectsFromBrx(psw, nullptr, pbis);
 	// Aligns binary stream to texture data
 	pbis->Align(0x10);
-	std::cout << "Loading Textures...\n";
 	// Loads textures from binary file
 	LoadTexturesFromBrx(pbis);
 	AllocateRpl();
 	AllocateLightBlkList();
 	psw->lsmDefault.uShadow  *= 0.003921569;
 	psw->lsmDefault.uMidtone *= 0.003921569;
+
+	if (psw->dlChild.ploFirst != nullptr)
+	{
+		ALO* currentLo = psw->dlChild.paloFirst;
+
+		while (currentLo != nullptr)
+		{
+			ALO* lo = currentLo;
+
+			if (lo->pvtlo && lo->pvtlo->pfnBindLo)
+			{
+				lo->pvtalo->pfnBindAlo(currentLo);
+			}
+
+			currentLo = currentLo->dleChild.paloNext;
+		}
+	}
+
 	PostUiLoad(&g_ui);
 	SetupCm(g_pcm);
 	std::cout << "World Loaded Successfully\n";
@@ -403,9 +420,38 @@ LO* PloFindSwObject(SW* psw, GRFFSO grffso, OID oid, LO* ploContext)
 
 LO* PloFindSwNearest(SW* psw, OID oid, LO* ploContext)
 {
-	LO* plo = nullptr;
+	LO *plo = nullptr;
 	CploFindSwObjects(psw, 0x204, oid, ploContext, 1, &plo);
 	return plo;
+}
+
+LO* PloFindSwObjectByClass(SW* psw, GRFFSO grffso, CID cid, LO* ploContext)
+{
+	LO* result = nullptr;
+
+	// Search for the first matching object in the scene world (SW) with specified class ID and context
+	CploFindSwObjectsByClass(psw, grffso | 0x200, cid, ploContext, 1, &result);
+
+	return result;
+}
+
+ALO* PaloFindLoCommonParent(LO* plo, LO* ploOther)
+{
+	while (plo)
+	{
+		ALO* candidate = static_cast<ALO*>(ploOther);
+		while (candidate)
+		{
+			if (candidate == static_cast<ALO*>(plo))
+				return candidate;
+
+			candidate = candidate->paloParent;
+		}
+
+		plo = static_cast<ALO*>(plo)->paloParent;
+	}
+
+	return nullptr;
 }
 
 int FIsBasicDerivedFrom(BASIC *pbasic, CID cid)

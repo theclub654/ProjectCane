@@ -29,4 +29,5 @@ BARRIER*NewBarrier();
 void InitBarrier(BARRIER* pbarrier);
 int  GetBarrierSize();
 void CloneBarrier(BARRIER* pbarrier, BARRIER* pbarrierBase);
+void PostBarrierLoad(BARRIER* pbarrier);
 void DeleteBarrier(BARRIER* pbarrier);

@@ -28,6 +28,7 @@ uniform float rDarken;
 
 uniform int rko;
 
+uniform int fCull;
 uniform int fAlphaTest;
 
 uniform vec4 collisionRgba;
@@ -46,23 +47,19 @@ void ApplyFog();
 
 void main()
 {
-    CullGlob();
+    if (fCull != 0)
+        CullGlob();
 
     FragColor = vec4(0.0);
+
     switch (rko)
     {
         case RKO_OneWay:
         DrawOneWay();
-
-        if (fogType != 0)
-            ApplyFog();
         break;
 
         case RKO_ThreeWay:
         DrawThreeWay();
-
-        if (fogType != 0)
-            ApplyFog();
         break;
 
         case RKO_CelBorder:
@@ -73,6 +70,9 @@ void main()
         DrawCollision();
         break;
     }
+
+    if (fogType != 0)
+        ApplyFog();
 }
 
 void CullGlob()
@@ -114,6 +114,8 @@ void DrawThreeWay()
 void DrawCelBorder()
 {
     FragColor = rgbaCel;
+
+    FragColor.a = clamp(FragColor.a * uAlpha, 0.0, 1.0);
 }
 
 void DrawCollision()

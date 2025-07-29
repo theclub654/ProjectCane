@@ -50,6 +50,11 @@ void LoadSmFromBrx(SM* psm, CBinaryInputStream* pbis)
 	}
 }
 
+OID OidFromSmIsms(SM* psm, int isms)
+{
+	return psm->asms[isms].oid;
+}
+
 void CloneSm(SM* psm, SM* psmBase)
 {
 	CloneLo(psm, psmBase);

@@ -99,11 +99,11 @@ void ExtractFrustumPlanes(const glm::mat4 &viewProj, FRUSTUM *pfrustum)
 	}
 }
 
-bool SphereInFrustum(const FRUSTUM &frustum, const glm::vec3 &position, float radius)
+bool SphereInFrustum(const FRUSTUM &frustum, const glm::vec3 &center, float radius)
 {
 	for (int i = 0; i < 6; i++)
 	{
-		float distance = glm::dot(glm::vec3(frustum.planes[i]), position) + frustum.planes[i].w;
+		float distance = glm::dot(glm::vec3(frustum.planes[i]), center) + frustum.planes[i].w;
 
 		if (distance < -radius)
 			return false;
@@ -114,7 +114,7 @@ bool SphereInFrustum(const FRUSTUM &frustum, const glm::vec3 &position, float ra
 
 void UpdateCpman(GLFWwindow* window, CPMAN* pcpman, CPDEFI* pcpdefi, float dt)
 {
-	float speed = 6000.0;
+	float speed = 3500.0f;
 	float velocity = dt * speed;
 
 	if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)

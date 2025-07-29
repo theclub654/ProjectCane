@@ -34,6 +34,11 @@ void ApplyPntProxy(PNT* ppnt, PROXY* pproxyApply)
 	ConvertAloPos((ALO*)pproxyApply, nullptr, ppnt->posLocal, ppnt->posLocal);
 }
 
+void GetPntPos(PNT* ppnt, glm::vec3* ppos)
+{
+	ConvertAloPos(ppnt->paloParent, nullptr, ppnt->posLocal, *ppos);
+}
+
 void DeletePnt(PNT* ppnt)
 {
 	delete ppnt;

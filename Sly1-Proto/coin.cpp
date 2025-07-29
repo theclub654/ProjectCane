@@ -30,114 +30,11 @@ int GetDprizeSize()
 	return sizeof(DPRIZE);
 }
 
-void SnipDprizeObject(DPRIZE* pdprize)
-{
-	SNIP &snip = s_asnipDprize[0];
-	uint32_t grffso = (snip.grfsnip & 0x1) ? 0x105 : 0x101;
-
-	if ((snip.grfsnip & 0x20) == 0)
-		grffso &= ~0x100; // Remove 0x100 if bit 0x20 is not set
-
-	LO* plo = PloFindSwObject(pdprize->psw, grffso, snip.oid, pdprize);
-
-	if (plo != nullptr)
-	{
-		if ((snip.grfsnip & 0x08) == 0)
-			pdprize->psm = (SM*)plo;
-
-		if ((snip.grfsnip & 0x04) == 0)
-			SnipLo(plo);
-
-		if ((snip.grfsnip & 0x10) != 0)
-			SubscribeLoObject(plo, pdprize);
-	}
-
-	snip = s_asnipDprize[1];
-	grffso = (snip.grfsnip & 0x1) ? 0x105 : 0x101;
-
-	if ((snip.grfsnip & 0x20) == 0)
-		grffso &= ~0x100; // Remove 0x100 if bit 0x20 is not set
-
-	plo = PloFindSwObject(pdprize->psw, grffso, snip.oid, pdprize);
-
-	if (plo != nullptr)
-	{
-		if ((snip.grfsnip & 0x08) == 0)
-			pdprize->ppntFrontGlint = (PNT*)plo;
-
-		if ((snip.grfsnip & 0x04) == 0)
-			SnipLo(plo);
-
-		if ((snip.grfsnip & 0x10) != 0)
-			SubscribeLoObject(plo, pdprize);
-	}
-
-	snip = s_asnipDprize[2];
-	grffso = (snip.grfsnip & 0x1) ? 0x105 : 0x101;
-
-	if ((snip.grfsnip & 0x20) == 0)
-		grffso &= ~0x100; // Remove 0x100 if bit 0x20 is not set
-
-	plo = PloFindSwObject(pdprize->psw, grffso, snip.oid, pdprize);
-
-	if (plo != nullptr)
-	{
-		if ((snip.grfsnip & 0x08) == 0)
-			pdprize->ppntBackGlint = (PNT*)plo;
-
-		if ((snip.grfsnip & 0x04) == 0)
-			SnipLo(plo);
-
-		if ((snip.grfsnip & 0x10) != 0)
-			SubscribeLoObject(plo, pdprize);
-	}
-
-	snip = s_asnipDprize[3];
-	grffso = (snip.grfsnip & 0x1) ? 0x105 : 0x101;
-
-	if ((snip.grfsnip & 0x20) == 0)
-		grffso &= ~0x100; // Remove 0x100 if bit 0x20 is not set
-
-	plo = PloFindSwObject(pdprize->psw, grffso, snip.oid, pdprize);
-
-	if (plo != nullptr)
-	{
-		if ((snip.grfsnip & 0x08) == 0)
-			pdprize->pexplCollect = (EXPL*)plo;
-
-		if ((snip.grfsnip & 0x04) == 0)
-			SnipLo(plo);
-
-		if ((snip.grfsnip & 0x10) != 0)
-			SubscribeLoObject(plo, pdprize);
-	}
-
-	snip = s_asnipDprize[4];
-	grffso = (snip.grfsnip & 0x1) ? 0x105 : 0x101;
-
-	if ((snip.grfsnip & 0x20) == 0)
-		grffso &= ~0x100; // Remove 0x100 if bit 0x20 is not set
-
-	plo = PloFindSwObject(pdprize->psw, grffso, snip.oid, pdprize);
-
-	if (plo != nullptr)
-	{
-		if ((snip.grfsnip & 0x08) == 0)
-			pdprize->pexplAttract = (EXPL*)plo;
-
-		if ((snip.grfsnip & 0x04) == 0)
-			SnipLo(plo);
-
-		if ((snip.grfsnip & 0x10) != 0)
-			SubscribeLoObject(plo, pdprize);
-	}
-}
-
 void LoadDprizeFromBrx(DPRIZE* pdprize, CBinaryInputStream* pbis)
 {
 	SetAloTargetHitTest(pdprize, 1);
 	LoadAloFromBrx(pdprize, pbis);
-	SnipDprizeObject(pdprize);
+	SnipAloObjects(pdprize, 5, s_asnipDprize);
 }
 
 void CloneDprize(DPRIZE* pdprize, DPRIZE* pdprizeBase)
@@ -196,6 +93,11 @@ void* GetDprize(DPRIZE* pdprize)
 void* GetTdprizes(DPRIZE* pdprize)
 {
 	return &pdprize->tDprizes;
+}
+
+void PostDprizeLoad(DPRIZE* pdprize)
+{
+	PostAloLoad(pdprize);
 }
 
 void RenderDprizeAll(DPRIZE* pdprize, CM* pcm, RO* pro)
@@ -356,11 +258,11 @@ void DeleteGold(GOLD* pgold)
 
 SNIP s_asnipDprize[5] = 
 {
-	{ 0,  OID_sm_dprize,          offsetof(DPRIZE, psm)},
-	{ 2,  OID_dprize_front_glint, offsetof(DPRIZE, ppntFrontGlint)},
-	{ 2,  OID_dprize_back_glint,  offsetof(DPRIZE, ppntBackGlint)},
-	{ 2,  OID_xs_dprize_collect,  offsetof(DPRIZE, pexplCollect)},
-	{ 2,  OID_xs_dprize_attract,  offsetof(DPRIZE, pexplAttract)}
+	{ 0, OID_sm_dprize,          offsetof(DPRIZE, psm)},
+	{ 2, OID_dprize_front_glint, offsetof(DPRIZE, ppntFrontGlint)},
+	{ 2, OID_dprize_back_glint,  offsetof(DPRIZE, ppntBackGlint)},
+	{ 2, OID_xs_dprize_collect,  offsetof(DPRIZE, pexplCollect)},
+	{ 2, OID_xs_dprize_attract,  offsetof(DPRIZE, pexplAttract)}
 };
 
 KEYCTR g_keyctr;

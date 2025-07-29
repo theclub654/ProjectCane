@@ -125,6 +125,7 @@ void GetLoInWorld(LO* plo, int* pfInWorld);
 OID  GetLoOid(LO *plo);
 OID  OidProxyLo(LO *plo);
 void GetLoOidProxy(LO *plo, OID *poid);
+int  FMatchesLoName(LO* plo, OID oid);
 void PostLoLoad(LO *plo); // GOTTA COMEB BACK
 void SetLoParent(LO *plo, ALO *paloParent);
 void SubscribeLoObject(LO* plo, LO* ploTarget);

@@ -1,5 +1,7 @@
 #pragma once
 #include "button.h"
+#include "sm.h"
+#include "pnt.h"
 
 enum JLOS 
 {
@@ -27,60 +29,70 @@ enum JLOMK
     JLOMK_Max = 3
 };
 
-class JLO : public SO
-{
-	public:
-        struct SM* psm;
-        struct SMA* psma;
-        struct JLOVOL* pjlovolCur;
-        DL dlJlovol;
-        struct PNT* ppntFeet;
-        float dzFeet;
-        struct RWM* prwm;
-        float tFireNext;
-        OID oidJlovolStart;
-        struct ALO* paloReticle;
-        struct ALO* paloTracer;
-        struct PNT* ppntTracerStart;
-        struct ASEG* pasegReticlePop;
-        struct ASEG* pasegReticleConverge;
-        struct XFM* pxfmTarget;
-        struct XFM* pxfmStatic;
-        JLOS jlos;
-        float tJlos;
-        float radTarget;
-        float dtLand;
-        float tLand;
-        float tStick;
-        SMP smpSpin;
-        struct EXC* pexc;
-};
-
 class JLOC : public ALO
 {
 	public:
-        struct XFM* apxfm[16];
-        int cpxfm;
-        JLOCK jlock;
-        JLOMK jlomk;
-        float dtFire;
-        float dtMissile;
-        float rAccelTime;
-        float rMissileSpeed;
-        float radTilt;
-        float svLaunch;
-        float svTarget;
+    struct XFM* apxfm[16];
+    int cpxfm;
+    JLOCK jlock;
+    JLOMK jlomk;
+    float dtFire;
+    float dtMissile;
+    float rAccelTime;
+    float rMissileSpeed;
+    float radTilt;
+    float svLaunch;
+    float svTarget;
 };
 
 class JLOVOL : public VOLBTN
 {
 	public:
-        OID oidLand;
-        struct PNT* ppntLand;
-        OID oidJloc;
-        struct JLOC* pjloc;
-        DLE dleJlo;
+    OID oidLand;
+    struct PNT* ppntLand;
+    OID oidJloc;
+    struct JLOC* pjloc;
+    DLE dleJlo;
 };
+
+class JLO : public SO
+{
+    public:
+
+    struct SM* psm;
+    struct SMA* psma;
+    struct JLOVOL* pjlovolCur;
+    DL dlJlovol;
+    struct PNT* ppntFeet;
+    float dzFeet;
+    struct RWM* prwm;
+    float tFireNext;
+    OID oidJlovolStart;
+    struct ALO* paloReticle;
+    struct ALO* paloTracer;
+    struct PNT* ppntTracerStart;
+    struct ASEG* pasegReticlePop;
+    struct ASEG* pasegReticleConverge;
+    struct XFM* pxfmTarget;
+    struct XFM* pxfmStatic;
+    JLOS jlos;
+    float tJlos;
+    float radTarget;
+    float dtLand;
+    float tLand;
+    float tStick;
+    SMP smpSpin;
+    struct EXC* pexc;
+};
+
+JLO* NewJlo();
+void InitJlo(JLO* pjlo);
+int  GetJloSize();
+void LoadJloFromBrx(JLO* pjlo, CBinaryInputStream* pbis);
+void CloneJlo(JLO* pjlo, JLO* pjloBase);
+void PostJloLoad(JLO* pjlo);
+void UpdateJlo(JLO* pjlo, float dt);
+void DeleteJlo(JLO* pjlo);
 
 JLOVOL*NewJlovol();
 void InitJlovol(JLOVOL* pjlovol);
@@ -89,16 +101,13 @@ void CloneJlovol(JLOVOL* pjlovol, JLOVOL* pjlovolBase);
 void BindJlovol(JLOVOL* pjlovol);
 void DeleteJlovol(JLOVOL* pjlovol);
 
-JLO* NewJlo();
-void InitJlo(JLO* pjlo);
-int  GetJloSize();
-void LoadJloFromBrx(JLO* pjlo, CBinaryInputStream* pbis);
-void CloneJlo(JLO* pjlo, JLO* pjloBase);
-void DeleteJlo(JLO *pjlo);
-
 JLOC*NewJloc();
 void InitJloc(JLOC* pjloc);
 int  GetJlocSize();
 void LoadJlocFromBrx(JLOC* pjloc, CBinaryInputStream* pbis);
 void CloneJloc(JLOC* pjloc, JLOC* pjlocBase);
 void DeleteJloc(JLOC* pjloc);
+
+extern SNIP s_asnipLoadJlo[5];
+extern SNIP s_asnipPostJloLoad[2];
+extern JLO *g_pjloCur;

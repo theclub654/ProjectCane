@@ -26,7 +26,6 @@ LO* PloNew(CID cid, SW* psw, ALO* paloParent, OID oid, int isplice)
 		localObject->paloParent = paloParent;
 		psw = (SW*)localObject;
 	}
-
 	else
 		localObject->paloParent = paloParent;
 

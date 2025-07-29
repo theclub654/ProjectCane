@@ -283,8 +283,8 @@ class EMITTER : public ALO
     float sBoxRadius;
     float uParticle;
     float tUnpause;
-    struct RIPG* pripg;
-    struct BLIPG* pblipg;
+    struct RIPG *pripg;
+    struct BLIPG *pblipg;
     int fValuesChanged;
 };
 
@@ -306,13 +306,15 @@ void LoadEmitterFromBrx(EMITTER* pemitter, CBinaryInputStream* pbis);
 void BindEmitter(EMITTER* pemitter);
 void CloneEmitter(EMITTER* pemitter, EMITTER* pemitterBase);
 EMITB* PemitbEnsureEmitter(EMITTER* pemitter, ENSK ensk);
-void* GetEmitterEmitok(EMITTER* pemitter);
+void*GetEmitterEmitok(EMITTER* pemitter);
+void PostEmitterLoad(EMITTER* pemitter);
 void RenderEmitterSelf(EMITTER* pemitter, CM* pcm, RO* pro);
 void DeleteEmitter(EMITTER *pemitter);
 
 EXPL*NewExpl();
 int  GetExplSize();
 void CloneExpl(EXPL* pexpl, EXPL* pexplBase);
+void PostExplLoad(EXPL* pexpl);
 void DeleteExpl(EXPL* pexpl);
 
 EXPLS*NewExpls();

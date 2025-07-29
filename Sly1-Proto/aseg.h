@@ -53,7 +53,8 @@ class ASEG : public LO
 
 class ASEGBL : public ASEG
 {
-public:
+    public:
+
     int cbBl;
     int cbl;
     struct BL* abl;
@@ -61,14 +62,18 @@ public:
     struct MRSGC* amrsgc;
 };
 
-ASEG* NewAseg();
+ASEG*NewAseg();
 void InitAseg(ASEG* paseg);
 int  GetAsegSize();
 void LoadAsegFromBrx(ASEG* paseg, CBinaryInputStream* pbis);
 void LoadAsegEventsFromBrx(CBinaryInputStream* pbis, int fFrame);
 void CloneAseg(ASEG *paseg, ASEG *pasegBase);
+void PostAsegLoad(ASEG* paseg);
+void StripAsegAlo(ASEG* paseg, ALO* palo);
+CHN* PchnFindAseg(ASEG* paseg, ALO* palo);
+void StripAsegChn(ASEG* paseg, CHN* pchn);
 void ApplyAseg(ASEG *paseg, ALO *paloAsegRoot, float tLocal, float svtLocal, int grfapl, ASEGA **ppasega);
 void DeleteAseg(ASEG *paseg);
 
-void* NewAsegbl();
+void*NewAsegbl();
 void DeleteAsegbl(LO* plo);

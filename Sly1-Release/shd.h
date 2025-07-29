@@ -66,8 +66,13 @@ struct BMP
     uint32_t baseOffset;
     SHDK shdk;
 
+    std::vector <byte> shadowTexture;
     GLuint glShadowMap;
+
+    std::vector <byte> diffuseTexture;
     GLuint glDiffuseMap;
+
+    std::vector <byte> saturateTexture;
     GLuint glSaturateMap;
 };
 
@@ -136,7 +141,7 @@ std::vector <byte> MakeBmp(BMP* pbmp, CBinaryInputStream* pbis);
 // Make color pallete
 std::vector <byte> MakePallete(CLUT* pclut, CBinaryInputStream* pbis);
 // Make texture
-void MakeTexture(GLuint& textureReference, BMP* pbmp, CLUT* pclut, bool fFlip, CBinaryInputStream* pbis);
+void MakeTexture(GLuint& textureReference, BMP* pbmp, std::vector <byte> &texture ,CLUT* pclut, bool fFlip, CBinaryInputStream* pbis);
 
 
 

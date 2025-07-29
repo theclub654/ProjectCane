@@ -191,25 +191,42 @@ void BuildEopids()
 
 	g_aeopid[44].otyp = OTYP_Oid;
 	g_aeopid[44].grfeopid = 0x124;
+	g_aeopid[44].optdat.pfnget = (PFNGET)GetAloShadowShader;
+	g_aeopid[44].optdat.pfnset = (PFNSET)SetAloShadowShader;
 
 	g_aeopid[45].otyp = OTYP_Float;
 	g_aeopid[45].grfeopid = 0x124;
+	g_aeopid[45].optdat.pfnget = (PFNGET)GetAloShadowNearRadius;
+	g_aeopid[45].optdat.pfnset = (PFNSET)SetAloShadowNearRadius;
 
 	g_aeopid[46].otyp = OTYP_Float;
 	g_aeopid[46].grfeopid = 0x124;
+	g_aeopid[46].optdat.pfnget = (PFNGET)GetAloShadowFarRadius;
+	g_aeopid[46].optdat.pfnset = (PFNSET)SetAloShadowFarRadius;
 
 	g_aeopid[47].otyp = OTYP_Float;
 	g_aeopid[47].grfeopid = 0x124;
+	g_aeopid[47].optdat.pfnget = (PFNGET)GetAloShadowNearCast;
+	g_aeopid[47].optdat.pfnset = (PFNSET)SetAloShadowNearCast;
 
 	g_aeopid[48].otyp = OTYP_Float;
 	g_aeopid[48].grfeopid = 0x124;
+	g_aeopid[48].optdat.pfnget = (PFNGET)GetAloShadowFarCast;
+	g_aeopid[48].optdat.pfnset = (PFNSET)SetAloShadowFarCast;
 
 	g_aeopid[49].otyp = OTYP_Float;
 	g_aeopid[49].grfeopid = 0x124;
+	g_aeopid[49].optdat.pfnget = (PFNGET)GetAloShadowConeAngle;
+	g_aeopid[49].optdat.pfnset = (PFNSET)SetAloShadowConeAngle;
+
 	g_aeopid[50].otyp = OTYP_Vector;
 	g_aeopid[50].grfeopid = 0x124;
+	g_aeopid[50].optdat.pfnset = (PFNSET)SetAloShadowFrustrumUp;
+	g_aeopid[50].optdat.pfnget = (PFNGET)GetAloShadowFrustrumUp;
+
 	g_aeopid[51].otyp = OTYP_Oid;
 	g_aeopid[51].grfeopid = 0x100;
+	g_aeopid[51].optdat.pfnset = (PFNSET)SetAloDynamicShadowObject;
  
 	g_aeopid[52].otyp = OTYP_Bool;
 	g_aeopid[52].grfeopid = 0x100;

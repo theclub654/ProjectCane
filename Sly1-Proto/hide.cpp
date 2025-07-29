@@ -55,6 +55,10 @@ HSHAPE* NewHshape()
 void InitHshape(HSHAPE* phshape)
 {
 	InitShape(phshape);
+
+	phshape->oidTnHide = OID_Nil;
+	phshape->grfhp = 3;
+	phshape->fTunnel = 1;
 }
 
 int GetHshapeSize()
@@ -147,7 +151,8 @@ void BindHpnt(HPNT* phpnt)
 	{
 		TN *ptn = (TN*)PloFindSwNearest(phpnt->psw, phpnt->oidTnHide, (LO*)phpnt->paloParent);
 		phpnt->ptnHide = ptn;
-		ptn->fUseVolume = 0;
+		if (ptn != nullptr)
+			ptn->fUseVolume = 0;
 	}
 }
 

@@ -53,6 +53,11 @@ void BindDartgun(DARTGUN* pdartgun)
     BindAlo(pdartgun);
 }
 
+void PostDartgunLoad(DARTGUN* pdartgun)
+{
+    PostBrkLoad(pdartgun);
+}
+
 void DeleteDartgun(DARTGUN* pdartgun)
 {
 	delete pdartgun;

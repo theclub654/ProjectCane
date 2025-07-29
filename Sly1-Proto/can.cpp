@@ -46,6 +46,11 @@ void CloneCan(CAN* pcan, CAN* pcanBase)
     pcan->cFired = pcanBase->cFired;
 }
 
+void PostCanLoad(CAN* pcan)
+{
+    PostBrkLoad(pcan);
+}
+
 void DeleteCan(CAN *pcan)
 {
 	delete pcan;

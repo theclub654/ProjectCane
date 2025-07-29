@@ -31,6 +31,11 @@ void CloneCnvo(CNVO* pcnvo, CNVO* pcnvoBase)
 	pcnvo->svvAvg = pcnvo->svvAvg;
 }
 
+void PostCnvoLoad(CNVO* pcnvo)
+{
+	PostAloLoad(pcnvo);
+}
+
 void DeleteCnvo(CNVO *pcnvo)
 {
 	delete pcnvo;

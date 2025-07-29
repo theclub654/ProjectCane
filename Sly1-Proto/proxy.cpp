@@ -205,6 +205,62 @@ void CloneProxy(PROXY* pproxy, PROXY* pproxyBase)
 	}
 }
 
+void ApplyAloProxy(ALO* palo, PROXY* pproxyApply)
+{
+	if (!palo || !pproxyApply) return;
+
+	// Convert position from proxy to world space
+	glm::vec3 posWorld;
+	ConvertAloPos(pproxyApply, nullptr, palo->xf.pos, posWorld);
+	palo->pvtalo->pfnTranslateAloToPos(palo, posWorld);
+
+	// Convert rotation matrix from proxy to world space
+	glm::mat3 matWorld;
+	ConvertAloMat(pproxyApply, nullptr, palo->xf.mat, matWorld);
+	palo->pvtalo->pfnRotateAloToMat(palo, matWorld);
+
+	// Calculate parent movement
+	glm::vec3 vParent, wParent;
+	CalculateAloMovement(pproxyApply->paloParent, nullptr, &posWorld, &vParent, &wParent, nullptr, nullptr);
+
+	// Convert local velocity and angular velocity to world space
+	glm::vec3 vPalo, wPalo;
+	ConvertAloVec(pproxyApply, nullptr, &palo->xf.v, &vPalo);
+	ConvertAloVec(pproxyApply, nullptr, &palo->xf.w, &wPalo);
+
+	// Final world velocity = parent velocity + local velocity (transformed)
+	glm::vec3 v = vParent + vPalo;
+	glm::vec3 w = wParent + wPalo;
+
+	palo->pvtalo->pfnSetAloVelocityVec(palo, &v);
+	palo->pvtalo->pfnSetAloAngularVelocityVec(palo, &w);
+
+	// Store original position
+	palo->posOrig = palo->xf.pos;
+
+	// Store original matrix (flattened copy)
+	palo->matOrig = palo->xf.mat;
+
+}
+
+void ApplySoProxy(SO* pso, PROXY* pproxyApply)
+{
+	if (!pso || !pproxyApply) return;
+
+	// Apply transform and velocity from proxy via base ALO logic
+	ApplyAloProxy(pso, pproxyApply);
+
+	// Load rotation matrix from proxy
+	const glm::mat3& proxyMat = pproxyApply->xf.mat;
+
+	// Transform normal force and torque vectors into proxy's orientation
+	glm::vec3 normalForce  = proxyMat * pso->constrForce.normal;
+	glm::vec3 normalTorque = proxyMat * pso->constrTorque.normal;
+
+	// Apply transformed constraint directions
+	SetSoConstraints(pso, pso->constrForce.ct, &normalForce, pso->constrTorque.ct, &normalTorque);
+}
+
 void DeleteProxy(PROXY *pproxy)
 {
 	delete pproxy;

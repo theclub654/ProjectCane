@@ -52,7 +52,6 @@ void LoadShapeFromBrx(SHAPE* pshape, CBinaryInputStream* pbis)
     byte crvk = pbis->U8Read();
 
     pshape->pcrv = PcrvNew((CRVK)crvk);
-    
     pshape->pcrv->pvtcrvl->pfnLoadCrvlFromBrx(std::static_pointer_cast <CRVL> (pshape->pcrv), pbis);
 
     LoadOptionsFromBrx(pshape, pbis);

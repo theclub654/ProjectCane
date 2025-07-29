@@ -73,6 +73,11 @@ void LoadFlyFromBrx(FLY* pfly, CBinaryInputStream* pbis)
 	LoadSoFromBrx(pfly, pbis);
 }
 
+void PostFlyLoad(FLY* pfly)
+{
+    PostAloLoad(pfly);
+}
+
 void RenderFlySelf(FLY* pfly, CM* pcm, RO* pro)
 {
 	RenderSoSelf(pfly, pcm, pro);

@@ -267,8 +267,8 @@ void LoadTexturesFromBrx(CBinaryInputStream* pbis)
     for (uint16_t i = 0; i < 0x100; i += 0x20)
     {
         for (uint16_t j = i; j < i + 8; j++) {
-            csm1ClutIndices[j + 0x0] = static_cast <uint8_t>(j) + 0x0;
-            csm1ClutIndices[j + 0x8] = static_cast <uint8_t>(j) + 0x10;
+            csm1ClutIndices[j + 0x0]  = static_cast <uint8_t>(j) + 0x0;
+            csm1ClutIndices[j + 0x8]  = static_cast <uint8_t>(j) + 0x10;
             csm1ClutIndices[j + 0x10] = static_cast <uint8_t>(j) + 0x8;
             csm1ClutIndices[j + 0x18] = static_cast <uint8_t>(j) + 0x18;
         }
@@ -280,39 +280,38 @@ void LoadTexturesFromBrx(CBinaryInputStream* pbis)
     {
         switch (g_ashd[i].shdk)
         {
-        case SHDK_ThreeWay:
-            MakeTexture(g_ashd[i].atex[0].abmp[0]->glShadowMap, g_ashd[i].atex[0].abmp[0], g_ashd[i].atex[0].aclut[0], false, pbis);
-            MakeTexture(g_ashd[i].atex[0].abmp[0]->glDiffuseMap, g_ashd[i].atex[0].abmp[0], g_ashd[i].atex[0].aclut[1], false, pbis);
-            MakeTexture(g_ashd[i].atex[0].abmp[0]->glSaturateMap, g_ashd[i].atex[0].abmp[0], g_ashd[i].atex[0].aclut[2], false, pbis);
+            case SHDK_ThreeWay:
+            MakeTexture(g_ashd[i].atex[0].abmp[0]->glShadowMap,   g_ashd[i].atex[0].abmp[0], g_ashd[i].atex[0].abmp[0]->shadowTexture  ,g_ashd[i].atex[0].aclut[0], false, pbis);
+            MakeTexture(g_ashd[i].atex[0].abmp[0]->glDiffuseMap,  g_ashd[i].atex[0].abmp[0], g_ashd[i].atex[0].abmp[0]->diffuseTexture ,g_ashd[i].atex[0].aclut[1], false, pbis);
+            MakeTexture(g_ashd[i].atex[0].abmp[0]->glSaturateMap, g_ashd[i].atex[0].abmp[0], g_ashd[i].atex[0].abmp[0]->shadowTexture  ,g_ashd[i].atex[0].aclut[2], false, pbis);
             break;
 
-        case SHDK_Prelit:
-        case SHDK_Background:
-        case SHDK_MurkFill:
-        case SHDK_Max:
-            MakeTexture(g_ashd[i].atex[0].abmp[0]->glDiffuseMap, g_ashd[i].atex[0].abmp[0], g_ashd[i].atex[0].aclut[0], false, pbis);
+            case SHDK_Prelit:
+            case SHDK_Background:
+            case SHDK_MurkFill:
+            case SHDK_Max:
+            MakeTexture(g_ashd[i].atex[0].abmp[0]->glDiffuseMap, g_ashd[i].atex[0].abmp[0], g_ashd[i].atex[0].abmp[0]->diffuseTexture ,g_ashd[i].atex[0].aclut[0], false, pbis);
             break;
 
-        case SHDK_Shadow:
-        case SHDK_SpotLight:
-            MakeTexture(g_ashd[i].atex[0].abmp[0]->glDiffuseMap, g_ashd[i].atex[0].abmp[0], g_ashd[i].atex[0].aclut[0], false, pbis);
+            case SHDK_Shadow:
+            case SHDK_SpotLight:
+            MakeTexture(g_ashd[i].atex[0].abmp[0]->glDiffuseMap, g_ashd[i].atex[0].abmp[0], g_ashd[i].atex[0].abmp[0]->diffuseTexture ,g_ashd[i].atex[0].aclut[0], false, pbis);
             break;
 
-        case SHDK_ProjectedVolume:
-            MakeTexture(g_ashd[i].atex[0].abmp[0]->glDiffuseMap, g_ashd[i].atex[0].abmp[0], g_ashd[i].atex[0].aclut[0], false, pbis);
+            case SHDK_ProjectedVolume:
+            MakeTexture(g_ashd[i].atex[0].abmp[0]->glDiffuseMap, g_ashd[i].atex[0].abmp[0], g_ashd[i].atex[0].abmp[0]->diffuseTexture ,g_ashd[i].atex[0].aclut[0], false, pbis);
             break;
 
-        case SHDK_CreateTexture:
-            MakeTexture(g_ashd[i].atex[0].abmp[0]->glDiffuseMap, g_ashd[i].atex[0].abmp[0], g_ashd[i].atex[0].aclut[0], false, pbis);
+            case SHDK_CreateTexture:
+            MakeTexture(g_ashd[i].atex[0].abmp[0]->glDiffuseMap, g_ashd[i].atex[0].abmp[0], g_ashd[i].atex[0].abmp[0]->diffuseTexture ,g_ashd[i].atex[0].aclut[0], false, pbis);
             break;
         }
     }
 
     for (int i = 0; i < g_cfontBrx; i++)
     {
-        MakeTexture(g_afontBrx[i].m_pbmp->glDiffuseMap, g_afontBrx[i].m_pbmp, g_afontBrx[i].m_pclut, true, pbis);
+        MakeTexture(g_afontBrx[i].m_pbmp->glDiffuseMap, g_afontBrx[i].m_pbmp, g_afontBrx[i].m_pbmp->diffuseTexture ,g_afontBrx[i].m_pclut, true, pbis);
     }
-
 }
 
 std::vector <byte> MakeBmp(BMP* pbmp, CBinaryInputStream* pbis)
@@ -350,19 +349,18 @@ std::vector <byte> MakePallete(CLUT* pclut, CBinaryInputStream* pbis)
     return palleteBuffer;
 }
 
-void MakeTexture(GLuint& textureReference, BMP* pbmp, CLUT* pclut, bool fFlip, CBinaryInputStream* pbis)
+void MakeTexture(GLuint& textureReference, BMP* pbmp, std::vector <byte> &texture, CLUT* pclut, bool fFlip, CBinaryInputStream* pbis)
 {
     if (pbmp == nullptr || pclut == nullptr || textureReference != 0)
         return;
 
     std::vector <byte> image;
     std::vector <byte> pallete;
-    std::vector <byte> texture;
 
-    image = MakeBmp(pbmp, pbis);
+    image   = MakeBmp(pbmp, pbis);
     pallete = MakePallete(pclut, pbis);
 
-    short width = pbmp->bmpWidth;
+    short width  = pbmp->bmpWidth;
     short height = pbmp->bmpHeight;
 
     texture.resize(width * height * 4);

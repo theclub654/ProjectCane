@@ -1472,14 +1472,14 @@ void RenderAloGlobset(ALO* palo, CM* pcm, RO* pro)
 
 	for (int i = 0; i < palo->globset.aglob.size(); ++i)
 	{
-		auto& glob  = palo->globset.aglob[i];
-		auto& globi = palo->globset.aglobi[i];
-		
 		if (g_fBsp != 0)
 		{
-			if ((globi.grfzon & pcm->grfzon) != pcm->grfzon)
+			if ((palo->globset.aglobi[i].grfzon & pcm->grfzon) != pcm->grfzon)
 				continue;
 		}
+
+		auto& glob  = palo->globset.aglob[i];
+		auto& globi = palo->globset.aglobi[i];
 
 		glm::vec3 posCenterWorld = glm::vec3(baseModelMatrix * glm::vec4(glob.posCenter, 1.0f));
 
@@ -1539,7 +1539,7 @@ void RenderAloGlobset(ALO* palo, CM* pcm, RO* pro)
 
 				rpl.ro.uAlpha *= gain;
 			}
-			// Common render setup
+
 			rpl.ro.fDynamic = glob.fDynamic;
 			rpl.ro.uFog = glob.uFog;
 			rpl.posCenter = posCenterWorld;
@@ -1547,7 +1547,6 @@ void RenderAloGlobset(ALO* palo, CM* pcm, RO* pro)
 			rpl.ro.pshd = subglob.pshd;
 			rpl.ro.unSelfIllum = subglob.unSelfIllum;
 			rpl.ro.cvtx = subglob.cvtx;
-
 			rpl.rp = glob.rp;
 
 			if (rpl.ro.uAlpha != 1.0)
@@ -1560,48 +1559,37 @@ void RenderAloGlobset(ALO* palo, CM* pcm, RO* pro)
 					case RP_CutoutAfterProjVolume:
 					rpl.rp = RP_Translucent;
 					break;
-					case RP_CelBorder:
-					case RP_CelBorderAfterProjVolume:
-					rpl.rp = RP_TranslucentCelBorder;
-					break;
 				}
 			}
 
+			if (glob.pdmat != nullptr)
+				rpl.ro.model = baseModelMatrix * *glob.pdmat;
+			else
+				rpl.ro.model = baseModelMatrix;
+
 			switch (rpl.rp)
 			{
-				case RP_Background:
+			case RP_Background:
 				rpl.z = glob.gZOrder;
 				break;
-
 				case RP_Cutout:
 				case RP_CutoutAfterProjVolume:
 				case RP_Translucent:
-				rpl.z = glm::length(pcm->pos - posCenterWorld);
+				rpl.z = glm::length2(pcm->pos - glm::vec3(rpl.ro.model * glm::vec4(glob.posCenter, 1.0f)));
 				break;
 			}
 
-			// Handle dynamic matrix override
-			if (glob.pdmat != nullptr) {
-				rpl.ro.model = baseModelMatrix * *glob.pdmat;
-			}
-			else {
-				rpl.ro.model = baseModelMatrix;
-			}
-
-			/*if (glob.rtck != RTCK_None)
-				AdjustAloRtckMat(palo, pcm, glob.rtck, &glob.posCenter, baseModelMatrix);*/
+			if (glob.rtck != RTCK_None)
+				AdjustAloRtckMat(palo, pcm, glob.rtck, &glob.posCenter, rpl.ro.model);
 
 			SubmitRpl(&rpl);
+
+			rpl.ro.model = baseModelMatrix;
 		}
 	}
 }
 
 void RenderAloLine(ALO* palo, CM* pcm, glm::vec3* ppos0, glm::vec3* ppos1, float rWidth, float uAlpha)
-{
-
-}
-
-void RenderAloAsBone(ALO* palo, CM* pcm, RO* pro)
 {
 
 }
@@ -1719,6 +1707,11 @@ void DrawGlob(RPL* prpl)
 
 		case RP_Cutout:
 		case RP_CutoutAfterProjVolume:
+		//glDepthMask(false);
+		glUniform1i(glslfAlphaTest, 1);
+		glDrawElements(GL_TRIANGLES, prpl->ro.cvtx, GL_UNSIGNED_SHORT, 0);
+		//glDepthMask(true);
+		break;
 		case RP_Translucent:
 		glUniform1i(glslfAlphaTest, 1);
 		glDrawElements(GL_TRIANGLES, prpl->ro.cvtx, GL_UNSIGNED_SHORT, 0);
@@ -1745,6 +1738,7 @@ void DrawGlob(RPL* prpl)
 			glDrawElements(GL_TRIANGLES, prpl->ro.cvtx, GL_UNSIGNED_SHORT, 0);
 
 			// === Second Pass: Draw outline where stencil != 1 ===
+			
 			glBindVertexArray(*prpl->ro.celVAO);
 			glUniform1i(glslRko, 2);
 			glDepthMask(false);
@@ -1752,7 +1746,6 @@ void DrawGlob(RPL* prpl)
 			glStencilMask(0x00);
 
 			glDrawElements(GL_TRIANGLES, prpl->ro.celcvtx, GL_UNSIGNED_SHORT, 0);
-
 			// === Restore State ===
 			glDepthMask(true);
 			glStencilMask(0xFF);

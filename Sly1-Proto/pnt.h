@@ -13,4 +13,5 @@ void LoadPntFromBrx(PNT *pnt, CBinaryInputStream *pbis);
 void ClonePnt(PNT* pnt, PNT* pntBase);
 void SetPntParent(PNT* ppnt, ALO* paloParent);
 void ApplyPntProxy(PNT* ppnt, PROXY* pproxyApply);
-void DeletePnt(PNT* ppnt);
+void GetPntPos(PNT *ppnt, glm::vec3 *ppos);
+void DeletePnt(PNT *ppnt);

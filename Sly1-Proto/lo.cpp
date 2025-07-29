@@ -55,10 +55,22 @@ void RemoveLoHierarchy(LO* plo)
 
 void SnipLo(LO* plo)
 {
-	if (FIsLoInWorld(plo) != 0)
-	{
-		if (plo->pvtalo->pfnBindAlo != nullptr)
-			plo->pvtalo->pfnBindAlo((ALO*)plo);
+	if (!FIsLoInWorld(plo)) {
+		return;
+	}
+
+	VTALO* pvtlo = plo->pvtalo;
+
+	if (pvtlo->pfnBindAlo != nullptr) {
+		pvtlo->pfnBindAlo((ALO*)plo);
+	}
+
+	if (pvtlo->pfnPostAloLoad) {
+		//pvtlo->pfnPostAloLoad((ALO*)plo);
+	}
+
+	if (pvtlo->pfnRemoveLo) {
+		pvtlo->pfnRemoveLo(plo);
 	}
 }
 
@@ -185,6 +197,23 @@ void GetLoOidProxy(LO* plo, OID* poid)
 {
 	OID prooxyOid = OidProxyLo(plo);
 	*poid = prooxyOid;
+}
+
+int FMatchesLoName(LO* plo, OID oid)
+{
+	if (oid == OID_Nil) {
+		return 0;
+	}
+
+	if (plo->oid == oid) {
+		return 1;
+	}
+
+	if (plo->ppxr && plo->ppxr->oidProxyRoot == oid) {
+		return 1;
+	}
+
+	return 0;
 }
 
 void PostLoLoad(LO* plo)

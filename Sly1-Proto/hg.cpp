@@ -37,6 +37,11 @@ void CloneHg(HG* phg, HG* phgBase)
     phg->pasegGlide = phgBase->pasegGlide;
 }
 
+void PostHgLoad(HG* phg)
+{
+    PostStepLoad(phg);
+}
+
 void RenderHgSelf(HG* phg, CM* pcm, RO* pro)
 {
 	RenderStepSelf(phg, pcm, pro);

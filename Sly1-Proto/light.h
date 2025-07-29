@@ -36,7 +36,8 @@ struct LIGHTBLK
 	glm::vec4 pos;
 	glm::vec4 dir;
 	glm::vec4 color;
-	glm::vec4 falloff;
+	glm::vec3 falloff;
+	float maxDst;
 	glm::vec4 ru;
 	glm::vec4 du;
 };

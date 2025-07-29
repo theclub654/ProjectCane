@@ -93,6 +93,11 @@ void CloneStep(STEP* pstep, STEP* pstepBase)
     pstep->paloRightBall = pstepBase->paloRightBall;
 }
 
+void PostStepLoad(STEP* pstep)
+{
+    PostAloLoad(pstep);
+}
+
 void RotateStepToMat(STEP* pstep, glm::mat3& pmat)
 {
 	RotateSoToMat(pstep, pmat);

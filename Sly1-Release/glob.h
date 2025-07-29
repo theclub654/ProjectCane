@@ -212,6 +212,8 @@ struct SUBGLOB // NOT DONE
 
 	// Object brightness
 	float unSelfIllum;
+	// Shader ID
+	int shdID;
 	// Object shader property
 	struct SHD* pshd;
 	struct WRBSG *pwrbsg;

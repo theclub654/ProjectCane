@@ -193,6 +193,7 @@ void CloneClue(CLUE* pclue, CLUE* pclueBase)
 void LoadClueFromBrx(CLUE* pclue, CBinaryInputStream* pbis)
 {
 	LoadSprizeFromBrx(pclue, pbis);
+	SnipAloObjects(pclue, 1, s_asnip_clue);
 }
 
 void RenderClueAll(CLUE *pclue, CM *pcm, RO *pro)
@@ -276,5 +277,9 @@ void DeleteLockg(LOCKG* plockg)
 	delete plockg;
 }
 
+SNIP s_asnip_clue[1] =
+{
+	0 , OID_clue_smack_render, offsetof(CLUE, paloSmack)
+};
 CLUECTR g_cluectr;
 LIFECTR g_lifectr;

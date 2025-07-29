@@ -497,7 +497,6 @@ void RenderAloSelf(ALO* palo, CM* pcm, RO* pro);
 void DupAloRo(ALO* palo, RO* proOrig, RO* proDup);
 void RenderAloGlobset(ALO* palo, CM* pcm, RO* pro);
 void RenderAloLine(ALO* palo, CM* pcm, glm::vec3* ppos0, glm::vec3* ppos1, float rWidth, float uAlpha);
-void RenderAloAsBone(ALO* palo, CM* pcm, RO* pro);
 // Draw a 3D model submesh
 void DrawGlob(RPL* prpl);
 // Deletes Model from VRAM

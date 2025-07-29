@@ -58,6 +58,11 @@ void LoadBombFromBrx(BOMB* pbomb, CBinaryInputStream* pbis)
 	LoadSoFromBrx(pbomb, pbis);
 }
 
+void PostBombLoad(BOMB* pbomb)
+{
+    PostAloLoad(pbomb);
+}
+
 void DeleteBomb(BOMB *pbomb)
 {
 	delete pbomb;

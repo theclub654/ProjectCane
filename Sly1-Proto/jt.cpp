@@ -22,6 +22,12 @@ void LoadJtFromBrx(JT* pjt, CBinaryInputStream* pbis)
 	g_pjt = pjt;
 }
 
+void UpdateJtPosWorldPrev(JT* pjt)
+{
+    UpdateSoPosWorldPrev(pjt);
+    pjt->cposHook = 0;
+}
+
 void CloneJt(JT* pjt, JT* pjtBase)
 {
     CloneStep(pjt, pjtBase);

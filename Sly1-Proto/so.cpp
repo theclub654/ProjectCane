@@ -133,15 +133,97 @@ void CloneSo(SO* pso, SO* psoBase)
 
 void SetSoParent(SO* pso, ALO* paloParent)
 {
-	if (pso->paloParent != paloParent)
-	{
-		SetAloParent(pso, paloParent);
+	if (pso->paloParent == paloParent)
+		return;
+
+	// Backup original root for later comparison
+	SO* previousRoot = static_cast<SO*>(pso->paloRoot);
+
+	// Convert constraint force and torque vectors to world space
+	glm::vec3 normalForceWorld, normalTorqueWorld;
+	ConvertAloVec(pso->paloParent, nullptr, &pso->constrForce.normal, &normalForceWorld);
+	ConvertAloVec(pso->paloParent, nullptr, &pso->constrTorque.normal, &normalTorqueWorld);
+
+	// Perform the reparenting
+	SetAloParent(static_cast<ALO*>(pso), paloParent);
+
+	// Convert world-space force/torque back into new parent's local space
+	ConvertAloVec(nullptr, paloParent, &normalForceWorld, &pso->constrForce.normal);
+	ConvertAloVec(nullptr, paloParent, &normalTorqueWorld, &pso->constrTorque.normal);
+
+	// Handle post-reparent updates
+	if (pso->paloRoot != nullptr) {
+		// If the old root had flag 0x20000000000000 set, update it
+		if ((reinterpret_cast<uint64_t&>(pso->bspcCamera.absp) & 0x20000000000000ULL) != 0 &&
+			previousRoot != nullptr) {
+			//RecalcSoLocked(previousRoot);
+		}
+
+		// Check whether the new root wants self or root update
+		if ((reinterpret_cast<uint64_t&>(
+			static_cast<SO*>(pso->paloRoot)->bspcCamera.absp) & 0x40000000000000ULL) == 0) {
+			//RecalcSoLocked(pso);
+		}
+		else {
+			//RecalcSoLocked(static_cast<SO*>(pso->paloRoot));
+		}
 	}
+
+	// Always rebuild physics hook
+	//RebuildSoPhysHook(pso);
 }
 
-void ApplySoProxy(SO* pso, PROXY* pproxyApply)
+void SetSoVelocityVec(SO* pso, glm::vec3* pv)
 {
-	ApplyAloProxy(pso, pproxyApply);
+	if (!pso || !pv) return;
+
+	// Apply velocity using base ALO logic
+	SetAloVelocityVec(pso, pv);
+
+	// Compute velocity delta
+	glm::vec3 newV = *pv;
+	glm::vec3 oldV = pso->xf.v;
+	glm::vec3 delta = newV - oldV;
+
+	// Threshold check
+	constexpr float velocityEpsilon = 2.0f;
+	bool withinThreshold =
+		glm::abs(delta.x) < velocityEpsilon &&
+		glm::abs(delta.y) < velocityEpsilon &&
+		glm::abs(delta.z) < velocityEpsilon;
+
+	/*if (!withinThreshold) {
+		InvalidateSwXpForObject(pso->psw, pso, 2);
+	}*/
+}
+
+void SetSoAngularVelocityVec(SO* pso, glm::vec3* pw)
+{
+	if (!pso || !pw) return;
+
+	// Set angular velocity using ALO-level logic
+	SetAloAngularVelocityVec(pso, pw);
+
+	// Compare new vs. existing angular velocity
+	glm::vec3 newW = *pw;
+	glm::vec3 oldW = pso->xf.w;
+	glm::vec3 delta = newW - oldW;
+
+	// Threshold comparison
+	constexpr float epsilon = 0.02f;
+	bool withinThreshold =
+		glm::abs(delta.x) < epsilon &&
+		glm::abs(delta.y) < epsilon &&
+		glm::abs(delta.z) < epsilon;
+
+	/*if (!withinThreshold) {
+		InvalidateSwXpForObject(pso->psw, pso, 2);
+	}*/
+}
+
+void SetSoConstraints(SO* pso, CT ctForce, const glm::vec3* pnormalForce, CT ctTorque, const glm::vec3* pnormalTorque)
+{
+	
 }
 
 void UpdateSoXfWorldHierarchy(SO* pso)
@@ -192,6 +274,12 @@ void LoadSoFromBrx(SO* pso, CBinaryInputStream* pbis)
 	ReadBspc(&pso->geomCameraWorld, &pso->bspcCamera, pbis);
 
 	LoadAloFromBrx(pso, pbis);
+	pso->pvtso->pfnUpdateSoPosWorldPrev(pso);
+}
+
+void UpdateSoPosWorldPrev(SO* pso)
+{
+	pso->posWorldPrev = pso->xf.posWorld;
 }
 
 void TranslateSoToPos(SO* pso, glm::vec3& ppos)
