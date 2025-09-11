@@ -17,18 +17,19 @@ void RenderMsGlobset(MS* pms, CM* pcm, RO* pro)
 
 	glm::mat4 baseModelMatrix{};
 	LoadMatrixFromPosRot(pms->xf.posWorld, pms->xf.matWorld, baseModelMatrix);
+
 	rpl.ro.model = baseModelMatrix;
 
 	for (int i = 0; i < pms->globset.aglob.size(); ++i)
 	{
-		auto& glob  = pms->globset.aglob[i];
-		auto& globi = pms->globset.aglobi[i];
-
 		if (g_fBsp != 0)
 		{
 			if ((pms->globset.aglobi[i].grfzon & pcm->grfzon) != pcm->grfzon)
 				continue;
 		}
+
+		auto& glob  = pms->globset.aglob[i];
+		auto& globi = pms->globset.aglobi[i];
 
 		glm::vec3 posCenterWorld = glm::vec3(baseModelMatrix * glm::vec4(glob.posCenter, 1.0f));
 
@@ -57,11 +58,11 @@ void RenderMsGlobset(MS* pms, CM* pcm, RO* pro)
 			rpl.ro.fDynamic = glob.fDynamic;
 			rpl.ro.uFog = glob.uFog;
 			rpl.posCenter = posCenterWorld;
+			rpl.sRadius = glob.sRadius;
 			rpl.ro.grfglob = glob.grfglob;
 			rpl.ro.pshd = subglob.pshd;
 			rpl.ro.unSelfIllum = subglob.unSelfIllum;
 			rpl.ro.cvtx = subglob.cvtx;
-
 			rpl.rp = glob.rp;
 
 			if (rpl.ro.uAlpha != 1.0)
@@ -74,24 +75,7 @@ void RenderMsGlobset(MS* pms, CM* pcm, RO* pro)
 					case RP_CutoutAfterProjVolume:
 					rpl.rp = RP_Translucent;
 					break;
-					case RP_CelBorder:
-					case RP_CelBorderAfterProjVolume:
-					rpl.rp = RP_TranslucentCelBorder;
 				}
-
-			}
-
-			switch (rpl.rp)
-			{
-				case RP_Background:
-				rpl.z = glob.gZOrder;
-				break;
-
-				case RP_Cutout:
-				case RP_CutoutAfterProjVolume:
-				case RP_Translucent:
-				rpl.z = glm::length(pcm->pos - posCenterWorld);
-				break;
 			}
 
 			if (glob.pdmat != nullptr)
@@ -99,10 +83,24 @@ void RenderMsGlobset(MS* pms, CM* pcm, RO* pro)
 			else
 				rpl.ro.model = baseModelMatrix;
 
-			/*if (glob.rtck != RTCK_None)
-				AdjustAloRtckMat(pms, pcm, glob.rtck, &pms->xf.posWorld, rpl.ro.modelmatrix);*/
+			switch (rpl.rp)
+			{
+				case RP_Background:
+				rpl.z = glob.gZOrder;
+				break;
+				case RP_Cutout:
+				case RP_CutoutAfterProjVolume:
+				case RP_Translucent:
+				rpl.z = glm::length2(pcm->pos - glm::vec3(rpl.ro.model * glm::vec4(subglob.posCenter, 1.0f)));
+				break;
+			}
+
+			if (glob.rtck != RTCK_None)
+				AdjustAloRtckMat(pms, pcm, glob.rtck, &glob.posCenter, rpl.ro.model);
 
 			SubmitRpl(&rpl);
+
+			rpl.ro.model = baseModelMatrix;
 		}
 	}
 }

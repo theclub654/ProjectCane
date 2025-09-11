@@ -59,7 +59,34 @@ public:
 	void TerminateGL();
 };
 
+// Initializes glsl uniform locations
+void InitGlslUniforms();
 void FrameBufferSizeCallBack(GLFWwindow* window, int width, int height);
 
 extern GL g_gl;
 extern GLuint screenQuadMatrixLoc;
+extern GLuint glslNumLights;
+extern GLuint glslLightIndices;
+extern GLuint glslmatWorldToClip;
+extern GLuint glslCameraPos;
+extern GLuint glslFogType;
+extern GLuint glslFogNear;
+extern GLuint glslFogFar;
+extern GLuint glslFogMax;
+extern GLuint glslFogColor;
+extern GLuint glslLsmShadow;
+extern GLuint glslLsmDiffuse;
+extern GLuint glslRgbaCel;
+extern GLuint glslModel;
+extern GLuint glslinvModel;
+extern GLuint glslUFog;
+extern GLuint glslUAlpha;
+extern GLuint glslRDarken;
+extern GLuint glslRko;
+extern GLuint glslusSelfIllum;
+extern GLuint glslFDynamic;
+extern GLuint glslPosCenter;
+extern GLuint glslfAlphaTest;
+extern GLuint glslAlphaThresHold;
+extern GLuint glslfCull;
+extern GLuint glslCollisionRgba;

@@ -1100,6 +1100,9 @@
     <ClInclude Include="tv.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="upscale.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Sly1-Release.rc">

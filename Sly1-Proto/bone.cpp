@@ -17,7 +17,7 @@ void CloneBone(BONE* pbone, BONE* pboneBase)
 
 void RenderBoneSelf(BONE* pbone, CM* pcm, RO* pro)
 {
-	RenderSoSelf(pbone, pcm, pro);
+ 	RenderSoSelf(pbone, pcm, pro);
     RenderAloAsBone(pbone, pcm, pro);
 }
 

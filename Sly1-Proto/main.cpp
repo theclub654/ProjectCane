@@ -25,6 +25,7 @@ int main(int cphzArgs, char* aphzArgs[])
 
             SetupCm(g_pcm);
             MarkClockTick(&g_clock);
+            //UpdateSw(g_psw, g_clock.dt);
             UpdateCpman(g_gl.window, &g_pcm->cpman, nullptr, g_clock.dt);
 
             if (g_fRenderModels) {

@@ -983,7 +983,6 @@ void SetLightHotSpotAngle(LIGHT* plight, float degHotSpot);
 void*GetLightFrustrumUp(LIGHT* plight);
 void SetLightFrustrumUp(LIGHT* plight, glm::vec3& pvecUpLocal);
 void DeleteLight(LIGHT *plight);
-void DeallocateLightVector();
 
 class LIKH;
 LIKH*NewLikh();
@@ -1596,6 +1595,8 @@ void DeleteAsega(LO* plo);
 class SMA;
 int  GetSmaSize();
 void DeleteSma(LO* plo);
+
+void FindSwLights(SW* psw, CM* pcm, glm::vec3 posCenter, float sRadius);
 
 void StartupScreen();
 

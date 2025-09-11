@@ -28,6 +28,31 @@ enum SHDK
     SHDK_Max = 11
 };
 
+// Render Priority
+enum RP
+{
+    RP_Nil = -1,
+    RP_DynamicTexture = 0,
+    RP_Background = 1,
+    RP_BlotContext = 2,
+    RP_Opaque = 3,
+    RP_Cutout = 4,
+    RP_CelBorder = 5,
+    RP_ProjVolume = 6,
+    RP_OpaqueAfterProjVolume = 7,
+    RP_CutoutAfterProjVolume = 8,
+    RP_CelBorderAfterProjVolume = 9,
+    RP_MurkClear = 10,
+    RP_MurkOpaque = 11,
+    RP_MurkFill = 12,
+    RP_Translucent = 13,
+    RP_TranslucentCelBorder = 14,
+    RP_Blip = 15,
+    RP_Foreground = 16,
+    RP_WorldMap = 17,
+    RP_Max = 18
+};
+
 // Color property's
 struct RGBA
 {
@@ -64,7 +89,6 @@ struct BMP
     uint32_t cbPixels;
     // Offset to BMP in memory
     uint32_t baseOffset;
-    SHDK shdk;
 
     std::vector <byte> shadowTexture;
     GLuint glShadowMap;
@@ -95,7 +119,7 @@ struct SHDF
     glm::vec4 rgbaVolume;
     uint32_t grfzon;
     OID oidAltSat;
-    byte rp;
+    RP rp;
     byte ctex;
 };
 
@@ -115,7 +139,7 @@ struct SHD : public SHDF
     std::vector <TEX> atex;
     int cshdp;
     int cframe;
-    SAA* psaa;
+    SAA *psaa;
 };
 
 // Delete shader data
@@ -141,10 +165,7 @@ std::vector <byte> MakeBmp(BMP* pbmp, CBinaryInputStream* pbis);
 // Make color pallete
 std::vector <byte> MakePallete(CLUT* pclut, CBinaryInputStream* pbis);
 // Make texture
-void MakeTexture(GLuint& textureReference, BMP* pbmp, std::vector <byte> &texture ,CLUT* pclut, bool fFlip, CBinaryInputStream* pbis);
-
-
-
+void MakeTexture(GLuint& textureReference, TEX *ptex ,BMP* pbmp, std::vector <byte> &texture ,CLUT* pclut, bool fFlip ,CBinaryInputStream* pbis);
 
 // Global variable which holds the number of CLUT's in a binary file
 extern int g_cclut;

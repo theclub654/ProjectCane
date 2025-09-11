@@ -1,9 +1,10 @@
 #version 330 core
 
-#define RKO_OneWay 0
-#define RKO_ThreeWay 1
-#define RKO_CelBorder 2
-#define RKO_Collision 3
+#define RKO_OneWay     0
+#define RKO_ThreeWay   1
+#define RKO_CelBorder  2
+#define RKO_Collision  3
+#define RKO_MurkFill   4
 
 uniform sampler2D shadowMap;
 uniform sampler2D diffuseMap;
@@ -28,7 +29,10 @@ uniform float rDarken;
 
 uniform int rko;
 
-uniform int fAlphaTest;
+uniform int   fAlphaTest;
+uniform float alphaThresHold;
+
+uniform int fCull;
 
 uniform vec4 collisionRgba;
 
@@ -40,28 +44,26 @@ out vec4 FragColor;
 void CullGlob();
 void DrawOneWay();
 void DrawThreeWay();
+void DrawMurkFill();
 void DrawCelBorder();
 void DrawCollision();
 void ApplyFog();
 
 void main()
 {
-    CullGlob();
+    if (fCull == 1)
+        CullGlob();
 
     FragColor = vec4(0.0);
+
     switch (rko)
     {
         case RKO_OneWay:
         DrawOneWay();
-
-        if (fogType != 0)
-            ApplyFog();
         break;
 
         case RKO_ThreeWay:
         DrawThreeWay();
-        if (fogType != 0)
-            ApplyFog();
         break;
 
         case RKO_CelBorder:
@@ -71,7 +73,14 @@ void main()
         case RKO_Collision:
         DrawCollision();
         break;
+
+        case RKO_MurkFill:
+        DrawMurkFill();
+        break;
     }
+
+    if (fogType != 0)
+        ApplyFog();
 }
 
 void CullGlob()
@@ -84,11 +93,10 @@ void DrawOneWay()
 {
     vec4 diffuse = texture(diffuseMap, texcoord);
 
-    FragColor = diffuse * vertexColor;
+    FragColor = vertexColor * diffuse;
+    FragColor.a = clamp(FragColor.a, 0.0, 1.0);
 
-    FragColor.a = clamp(FragColor.a * uAlpha, 0.0, 1.0);
-
-    if (fAlphaTest == 1 && FragColor.a < 0.9)
+    if (fAlphaTest == 1 && FragColor.a < alphaThresHold)
         discard;
 }
 
@@ -98,21 +106,29 @@ void DrawThreeWay()
     vec4 diffuse  = texture(diffuseMap,  texcoord);
     vec4 saturate = texture(saturateMap, texcoord);
 
-    FragColor.rgb += shadow.rgb   * material.ambient * rDarken;
+    FragColor.rgb += shadow.rgb   * material.ambient     * rDarken;
     FragColor.rgb += diffuse.rgb  * material.midtone.rgb * rDarken;
     FragColor.rgb += saturate.rgb * material.light.rgb;
 
-    float finalAlpha = vertexColor.a * shadow.a * diffuse.a * saturate.a;
-   
+    float finalAlpha = clamp(vertexColor.a * diffuse.a, 0.0, 1.0);
     FragColor.a = clamp(finalAlpha * uAlpha, 0.0, 1.0);
 
-    if (fAlphaTest == 1 && FragColor.a < 0.9)
+    if (fAlphaTest == 1 && FragColor.a < alphaThresHold)
         discard;
+}
+
+void DrawMurkFill()
+{
+    vec4 diffuse = texture(diffuseMap, texcoord);
+
+    FragColor = vertexColor * diffuse;
+    FragColor.a = clamp(FragColor.a, 0.0, 1.0);
 }
 
 void DrawCelBorder()
 {
     FragColor = rgbaCel;
+    FragColor.a = clamp(FragColor.a * uAlpha, 0.0, 1.0);
 }
 
 void DrawCollision()

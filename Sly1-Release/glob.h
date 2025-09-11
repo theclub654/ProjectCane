@@ -12,16 +12,6 @@ enum TWPS
 	TWPS_ShadowMidtone = 1,
 	TWPS_ShadowMidtoneSaturate = 2
 };
-enum TRLK 
-{
-	TRLK_Nil = -1,
-	TRLK_Download = 0,
-	TRLK_DownloadRelight = 1,
-	TRLK_Relight = 2,
-	TRLK_RelightCache = 3,
-	TRLK_Quick = 4,
-	TRLK_Max = 5
-};
 enum RTCK
 {
 	RTCK_Nil = -1,
@@ -45,30 +35,6 @@ enum WEK
 	WEK_Z = 6,
 	WEK_Max = 7
 };
-// Render Priority
-enum RP 
-{
-	RP_Nil = -1,
-	RP_DynamicTexture = 0,
-	RP_Background = 1,
-	RP_BlotContext = 2,
-	RP_Opaque = 3,
-	RP_Cutout = 4,
-	RP_CelBorder = 5,
-	RP_ProjVolume = 6,
-	RP_OpaqueAfterProjVolume = 7,
-	RP_CutoutAfterProjVolume = 8,
-	RP_CelBorderAfterProjVolume = 9,
-	RP_MurkClear = 10,
-	RP_MurkOpaque = 11,
-	RP_MurkFill = 12,
-	RP_Translucent = 13,
-	RP_TranslucentCelBorder = 14,
-	RP_Blip = 15,
-	RP_Foreground = 16,
-	RP_WorldMap = 17,
-	RP_Max = 18
-};
 
 struct VERTICE
 {
@@ -87,14 +53,14 @@ struct INDICE
 
 struct RO
 {
-	GLuint* VAO;
-	GLuint* VBO;
-	GLuint* EBO;
+	GLuint *VAO;
+	GLuint *VBO;
+	GLuint *EBO;
 	int cvtx;
 
-	GLuint* celVAO;
-	GLuint* celVBO;
-	GLuint* celEBO;
+	GLuint *celVAO;
+	GLuint *celVBO;
+	GLuint *celEBO;
 	int celcvtx;
 
 	GRFGLOB grfglob;
@@ -117,6 +83,7 @@ struct RPL
 	RO ro;
 	float z;
 	glm::vec3 posCenter;
+	float sRadius;
 };
 
 // Vertex Flag
@@ -139,8 +106,8 @@ struct SUBCEL
 	GLuint EBO;
 
 	std::vector <glm::vec3> positions;
-	std::vector <uint16_t> indices;
-	std::vector <float> weights;
+	std::vector <uint16_t>  indices;
+	std::vector <float>     weights;
 
 	int cvtx;
 };
@@ -183,33 +150,25 @@ struct FGFN
 	float duFogPlusClipBias;
 };
 
-struct SUBGLOB // NOT DONE
+struct SUBGLOB
 {
 	GLuint VAO;
 	GLuint VBO;
 	GLuint EBO;
-
 	std::vector <VERTICE> vertices;
-	std::vector <INDICE> indices;
-
+	std::vector <INDICE>  indices;
 	int cvtx;
 
 	GLuint celVAO;
 	GLuint celVBO;
 	GLuint celEBO;
-
 	std::vector <glm::vec3> celPositions;
-	std::vector <INDICE> celIndices;
-
+	std::vector <INDICE>    celIndices;
 	int celcvtx;
-
 	int fCelBorder;
-
-	int fThreeWay;
 
 	glm::vec3 posCenter; // Submodel orgin
 	float sRadius;
-
 	// Object brightness
 	float unSelfIllum;
 	// Shader ID
@@ -290,8 +249,6 @@ struct GLOBSET // NOT DONE
 	struct SAA** apsaa;
 };
 
-// Initializes glsl uniform locations
-void InitGlslUniforms();
 // Loads 3D model data from binary file
 void LoadGlobsetFromBrx(GLOBSET* pglobset, short cid, ALO* palo, CBinaryInputStream* pbis);
 // Converts strips to tri lists and stores 3D sub model in VRAM
@@ -302,26 +259,3 @@ extern bool g_fRenderModels;
 extern bool g_fRenderCollision;
 extern bool g_fRenderCelBorders;
 extern bool g_fBsp;
-
-extern GLuint glslNumLights;
-extern GLuint glslmatWorldToClip;
-extern GLuint glslCameraPos;
-extern GLuint glslFogType;
-extern GLuint glslFogNear;
-extern GLuint glslFogFar;
-extern GLuint glslFogMax;
-extern GLuint glslFogColor;
-extern GLuint glslLsmShadow;
-extern GLuint glslLsmDiffuse;
-extern GLuint glslRgbaCel;
-extern GLuint glslModel;
-extern GLuint glslinvModel;
-extern GLuint glslUFog;
-extern GLuint glslUAlpha;
-extern GLuint glslRDarken;
-extern GLuint glslRko;
-extern GLuint glslusSelfIllum;
-extern GLuint glslFDynamic;
-extern GLuint glslPosCenter;
-extern GLuint glslfAlphaTest;
-extern GLuint glslCollisionRgba;

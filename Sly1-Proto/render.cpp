@@ -222,6 +222,8 @@ void DrawSw(SW *psw, CM *pcm)
 	glUniform1f(glslLsmShadow,  g_psw->lsmDefault.uShadow);
 	glUniform1f(glslLsmDiffuse, g_psw->lsmDefault.uMidtone);
 
+	glUniform1i(glslfCull, 1);
+
 	glUniform1i(glslFogType, g_fogType);
 	glUniform1f(glslFogNear, pcm->sNearFog);
 	glUniform1f(glslFogFar,  pcm->sFarFog);

@@ -288,23 +288,7 @@ void LoadTexturesFromBrx(CBinaryInputStream* pbis)
             MakeTexture(g_ashd[i].atex[0].abmp[0]->glSaturateMap, g_ashd[i].atex[0].abmp[0], g_ashd[i].atex[0].aclut[2], false, pbis);
             break;
 
-            case SHDK_Prelit:
-            case SHDK_Background:
-            case SHDK_MurkFill:
-            case SHDK_Max:
-            MakeTexture(g_ashd[i].atex[0].abmp[0]->glDiffuseMap, g_ashd[i].atex[0].abmp[0], g_ashd[i].atex[0].aclut[0], false, pbis);
-            break;
-
-            case SHDK_Shadow:
-            case SHDK_SpotLight:
-            MakeTexture(g_ashd[i].atex[0].abmp[0]->glDiffuseMap, g_ashd[i].atex[0].abmp[0], g_ashd[i].atex[0].aclut[0], false, pbis);
-            break;
-
-            case SHDK_ProjectedVolume:
-            MakeTexture(g_ashd[i].atex[0].abmp[0]->glDiffuseMap, g_ashd[i].atex[0].abmp[0], g_ashd[i].atex[0].aclut[0], false, pbis);
-            break;
-
-            case SHDK_CreateTexture:
+            default:
             MakeTexture(g_ashd[i].atex[0].abmp[0]->glDiffuseMap, g_ashd[i].atex[0].abmp[0], g_ashd[i].atex[0].aclut[0], false, pbis);
             break;
         }

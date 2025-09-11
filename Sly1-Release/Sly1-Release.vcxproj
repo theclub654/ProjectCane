@@ -498,6 +498,7 @@
     <ClInclude Include="unk7.h" />
     <ClInclude Include="unk8.h" />
     <ClInclude Include="unk9.h" />
+    <ClInclude Include="upscale.h" />
     <ClInclude Include="util.h" />
     <ClInclude Include="vec.h" />
     <ClInclude Include="vis.h" />

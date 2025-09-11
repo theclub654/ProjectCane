@@ -28,9 +28,8 @@ void InitGlslUniforms()
     glslusSelfIllum = glGetUniformLocation(glGlobShader.ID, "usSelfIllum");
     glslFDynamic = glGetUniformLocation(glGlobShader.ID, "fDynamic");
     glslPosCenter = glGetUniformLocation(glGlobShader.ID, "posCenter");
-    glslfCull = glGetUniformLocation(glGlobShader.ID, "fCull");
     glslfAlphaTest = glGetUniformLocation(glGlobShader.ID, "fAlphaTest");
-
+    glslfCull = glGetUniformLocation(glGlobShader.ID, "fCull");
     glslCollisionRgba = glGetUniformLocation(glGlobShader.ID, "collisionRgba");
 
     glUniform1i(glGetUniformLocation(glGlobShader.ID, "shadowMap"),   0);

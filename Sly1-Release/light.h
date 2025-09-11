@@ -1,8 +1,6 @@
 #pragma once
 #include "alo.h"
 
-#define MAX_LIGHT 255
-
 // Light type
 enum LIGHTK 
 {
@@ -29,13 +27,19 @@ struct LTFN
 struct LIGHTBLK
 {
 	int  lightk;
-	glm::ivec3 pad;
+	int  pad1;
+	int  pad2;
+	int  pad3;
 	glm::vec4 pos;
 	glm::vec4 dir;
 	glm::vec4 color;
-	glm::vec4 falloff;
+	glm::vec3 falloff;
+	float maxDst;
 	glm::vec4 ru;
 	glm::vec4 du;
+	glm::mat4 matFrustrum;
+	glm::vec4 falloffScale;
+	glm::vec4 falloffBias;
 };
 
 
@@ -50,8 +54,8 @@ class LIGHT : public ALO
 	glm::vec3 rgbaColor;
 	LTFN ltfn;
 	glm::vec3 agFallOff;
-	glm::vec3 falloff0Frustum;
-	glm::vec3 falloff1Frustum;
+	glm::vec4 falloffScale;
+	glm::vec4 falloffBias;
 	glm::mat4 frustum;
 	float gMidtone;
 	float gShadow;
@@ -121,6 +125,8 @@ void SetLightFrustrumUp(LIGHT* plight, glm::vec3 &pvecUpLocal);
 void RemoveLightFromSw(LIGHT* plight);
 void AllocateLightBlkList();
 void PrepareSwLights(SW* psw, CM* pcm);
+// Doing lights per object
+void FindSwLights(SW* psw, CM* pcm, glm::vec3 posCenter, float sRadius);
 void DeallocateLightBlkList();
 void DeleteLight(LIGHT *plight);
 void DeallocateLightVector();
@@ -130,3 +136,4 @@ extern std::vector<LIGHT*> allSwLights;
 extern GLuint g_lightUbo;
 extern int numRl;
 extern std::vector <LIGHTBLK> lightBlk;
+extern std::vector <int> lightIndices;

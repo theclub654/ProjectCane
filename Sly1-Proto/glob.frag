@@ -85,11 +85,10 @@ void DrawOneWay()
 {
     vec4 diffuse = texture(diffuseMap, texcoord);
 
-    FragColor = diffuse * vertexColor;
-
+    FragColor = vertexColor * diffuse;
     FragColor.a = clamp(FragColor.a * uAlpha, 0.0, 1.0);
 
-    if (fAlphaTest == 1 && FragColor.a < 0.9)
+    if (fAlphaTest == 1 && FragColor.a < 0.495f)
         discard;
 }
 
@@ -99,15 +98,15 @@ void DrawThreeWay()
     vec4 diffuse  = texture(diffuseMap,  texcoord);
     vec4 saturate = texture(saturateMap, texcoord);
 
-    FragColor.rgb += shadow.rgb   * material.ambient * rDarken;
+    FragColor.rgb += shadow.rgb   * material.ambient     * rDarken;
     FragColor.rgb += diffuse.rgb  * material.midtone.rgb * rDarken;
     FragColor.rgb += saturate.rgb * material.light.rgb;
 
-    float finalAlpha = vertexColor.a * shadow.a * diffuse.a * saturate.a;
-   
+    float finalAlpha = clamp(vertexColor.a * diffuse.a, 0.0, 1.0);
+    
     FragColor.a = clamp(finalAlpha * uAlpha, 0.0, 1.0);
 
-    if (fAlphaTest == 1 && FragColor.a < 0.9)
+    if (fAlphaTest == 1 && FragColor.a < 0.495f)
         discard;
 }
 

@@ -64,79 +64,79 @@ void SubmitRpl(RPL* prpl)
 
 	switch (prpl->rp)
 	{
-	case RP_DynamicTexture:
+		case RP_DynamicTexture:
 		g_dynamicTextureCount++;
 		break;
 
-	case RP_Background:
+		case RP_Background:
 		g_backGroundCount++;
 		break;
 
-	case RP_BlotContext:
+		case RP_BlotContext:
 		g_blotContextCount++;
 		break;
 
-	case RP_Opaque:
+		case RP_Opaque:
 		g_opaqueCount++;
 		break;
 
-	case RP_Cutout:
+		case RP_Cutout:
 		g_cutOutCount++;
 		break;
 
-	case RP_CelBorder:
+		case RP_CelBorder:
 		g_celBorderCount++;
 		break;
 
-	case RP_ProjVolume:
+		case RP_ProjVolume:
 		g_projVolumeCount++;
 		break;
 
-	case RP_OpaqueAfterProjVolume:
+		case RP_OpaqueAfterProjVolume:
 		g_opaqueAfterProjVolumeCount++;
 		break;
 
-	case RP_CutoutAfterProjVolume:
+		case RP_CutoutAfterProjVolume:
 		g_cutoutAfterProjVolumeCount++;
 		break;
 
-	case RP_CelBorderAfterProjVolume:
+		case RP_CelBorderAfterProjVolume:
 		g_celBorderAfterProjVolumeCount++;
 		break;
 
-	case RP_MurkClear:
+		case RP_MurkClear:
 		g_murkClearCount++;
 		break;
 
-	case RP_MurkOpaque:
+		case RP_MurkOpaque:
 		g_murkOpaqueCount++;
 		break;
 
-	case RP_MurkFill:
+		case RP_MurkFill:
 		g_murkFillCount++;
 		break;
 
-	case RP_Translucent:
+		case RP_Translucent:
 		g_translucentCount++;
 		break;
 
-	case RP_TranslucentCelBorder:
+		case RP_TranslucentCelBorder:
 		g_translucentCelBorderCount++;
 		break;
 
-	case RP_Blip:
+		case RP_Blip:
 		g_blipCount++;
 		break;
 
-	case RP_Foreground:
+		case RP_Foreground:
 		g_foreGroundCount++;
 		break;
 
-	case RP_WorldMap:
+		case RP_WorldMap:
 		g_worldMapCount++;
 		break;
 
-	case RP_Max:
+		case RP_Max:
 		g_maxCount++;
 		break;
 	}
@@ -152,7 +152,6 @@ void SortRenderRpl()
 		std::sort(renderBuffer.begin() + offset, renderBuffer.begin() + offset + g_backGroundCount, compareZ);
 
 	offset += g_backGroundCount;
-
 	offset += g_blotContextCount;
 	offset += g_opaqueCount;
 
@@ -219,8 +218,10 @@ void DrawSw(SW* psw, CM* pcm)
 	glUniformMatrix4fv(glslmatWorldToClip, 1, GL_FALSE, glm::value_ptr(pcm->matWorldToClip));
 	glUniform3fv(glslCameraPos, 1, glm::value_ptr(pcm->pos));
 
-	glUniform1f(glslLsmShadow, g_psw->lsmDefault.uShadow);
+	glUniform1f(glslLsmShadow,  g_psw->lsmDefault.uShadow);
 	glUniform1f(glslLsmDiffuse, g_psw->lsmDefault.uMidtone);
+
+	glUniform1i(glslfCull, 1);
 
 	glUniform1i(glslFogType, g_fogType);
 	glUniform1f(glslFogNear, pcm->sNearFog);
@@ -229,6 +230,8 @@ void DrawSw(SW* psw, CM* pcm)
 	glUniform4fv(glslFogColor, 1, glm::value_ptr(pcm->rgbaFog));
 
 	glUniform4fv(glslRgbaCel, 1, glm::value_ptr(g_rgbaCel));
+
+	glBindBufferBase(GL_UNIFORM_BUFFER, 1, g_lightUbo);
 
 	for (int i = 0; i < numRo; i++)
 		renderBuffer[i].PFNDRAW(&renderBuffer[i]);

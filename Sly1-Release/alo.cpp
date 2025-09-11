@@ -1543,6 +1543,7 @@ void RenderAloGlobset(ALO* palo, CM* pcm, RO* pro)
 			rpl.ro.fDynamic = glob.fDynamic;
 			rpl.ro.uFog = glob.uFog;
 			rpl.posCenter = posCenterWorld;
+			rpl.sRadius = glob.sRadius;
 			rpl.ro.grfglob = glob.grfglob;
 			rpl.ro.pshd = subglob.pshd;
 			rpl.ro.unSelfIllum = subglob.unSelfIllum;
@@ -1569,13 +1570,13 @@ void RenderAloGlobset(ALO* palo, CM* pcm, RO* pro)
 
 			switch (rpl.rp)
 			{
-			case RP_Background:
+				case RP_Background:
 				rpl.z = glob.gZOrder;
 				break;
 				case RP_Cutout:
 				case RP_CutoutAfterProjVolume:
 				case RP_Translucent:
-				rpl.z = glm::length2(pcm->pos - glm::vec3(rpl.ro.model * glm::vec4(glob.posCenter, 1.0f)));
+				rpl.z = glm::length2(pcm->pos - glm::vec3(rpl.ro.model * glm::vec4(subglob.posCenter, 1.0f)));
 				break;
 			}
 
@@ -1597,7 +1598,6 @@ void RenderAloLine(ALO* palo, CM* pcm, glm::vec3* ppos0, glm::vec3* ppos1, float
 void DrawGlob(RPL* prpl)
 {
 	glBindVertexArray(*prpl->ro.VAO);
-
 	glUniformMatrix4fv(glslModel, 1, GL_FALSE, glm::value_ptr(prpl->ro.model));
 
 	glUniform1f(glslUFog, prpl->ro.uFog);
@@ -1609,8 +1609,11 @@ void DrawGlob(RPL* prpl)
 	else
 		glUniform1f(glslRDarken, 1.0);
 
-	if (prpl->ro.pshd->shdk == SHDK_ThreeWay)
+	switch (prpl->ro.pshd->shdk)
 	{
+		case SHDK_ThreeWay:
+		//FindSwLights(g_psw, g_pcm, prpl->posCenter, prpl->sRadius);
+
 		glUniform1i(glslRko, 1);
 
 		glUniform1f(glslusSelfIllum, prpl->ro.unSelfIllum);
@@ -1625,9 +1628,9 @@ void DrawGlob(RPL* prpl)
 
 		glActiveTexture(GL_TEXTURE2);
 		glBindTexture(GL_TEXTURE_2D, prpl->ro.pshd->atex[0].abmp[0]->glSaturateMap);
-	}
-	else
-	{
+		break;
+
+		default:
 		glUniform1i(glslRko, 0);
 
 		glActiveTexture(GL_TEXTURE0);
@@ -1638,39 +1641,48 @@ void DrawGlob(RPL* prpl)
 
 		glActiveTexture(GL_TEXTURE2);
 		glBindTexture(GL_TEXTURE_2D, 0);
+		break;
 	}
-
+	
 	switch (prpl->rp)
 	{
 		case RP_Background:
-		glUniform1i(glslfAlphaTest, 1);
-		glDrawElements(GL_TRIANGLES, prpl->ro.cvtx, GL_UNSIGNED_SHORT, 0);
-
-		glEnable(GL_BLEND);
-		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
 		glDepthFunc(GL_ALWAYS);
 		glDepthMask(false);
 
-		glUniform1i(glslfAlphaTest, 0);
-		glDrawElements(GL_TRIANGLES, prpl->ro.cvtx, GL_UNSIGNED_SHORT, 0);
+		if (prpl->ro.pshd->grfshd == 2)
+		{
+			glEnable(GL_BLEND);
+			glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+			glDrawElements(GL_TRIANGLES, prpl->ro.cvtx, GL_UNSIGNED_SHORT, 0);
 
-		glDisable(GL_BLEND);
-		glDepthFunc(GL_LESS);
+			glDisable(GL_BLEND);
+		}
+		else
+		{
+			glDrawElements(GL_TRIANGLES, prpl->ro.cvtx, GL_UNSIGNED_SHORT, 0);
+		}
+
 		glDepthMask(true);
+		glDepthFunc(GL_LESS);
 		break;
 
 		case RP_ProjVolume:
 		glEnable(GL_BLEND);
-
-		if ((prpl->ro.pshd->grfshd & 2) == 0)
-			glBlendFunc(GL_NONE, GL_ONE);
-		else
+		switch (prpl->ro.pshd->grfshd)
+		{
+			case 2:
+			case 3:
 			glBlendFunc(GL_SRC_ALPHA, GL_ONE);
+			break;
 
+			default:
+			glBlendFunc(GL_NONE, GL_ONE);
+			break;
+		}
 		glDepthMask(false);
 		glEnable(GL_STENCIL_TEST);
-		glStencilFunc(GL_ALWAYS, 255, 255);
+		glStencilFunc(GL_ALWAYS, 128, 128);
 		glStencilOp(GL_NONE, GL_REPLACE, GL_NONE);
 		glColorMask(0, 0, 0, 0);
 		glFrontFace(GL_CW);
@@ -1681,56 +1693,145 @@ void DrawGlob(RPL* prpl)
 		glFrontFace(GL_CCW);
 		glDrawElements(GL_TRIANGLES, prpl->ro.cvtx, GL_UNSIGNED_SHORT, 0);
 
-		glDepthMask(true);
-		glDepthFunc(GL_GREATER);
-		glStencilFunc(GL_EQUAL, 255, 255);
+		glDepthFunc(GL_ALWAYS);
+		glStencilFunc(GL_EQUAL, 128, 128);
 		glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP);
-		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-		glFrontFace(GL_CW);
-		if ((prpl->ro.pshd->grfshd & 2) == 0)
-	    {
-			glUniform1i(glslfAlphaTest, 0);
-			glDrawElements(GL_TRIANGLES, prpl->ro.cvtx, GL_UNSIGNED_SHORT, 0);
-		}
-		else
+		switch (prpl->ro.pshd->grfshd)
 		{
-			glUniform1i(glslfAlphaTest, 1);
-			glDrawElements(GL_TRIANGLES, prpl->ro.cvtx, GL_UNSIGNED_SHORT, 0);
-			glUniform1i(glslfAlphaTest, 0);
+			case 0:
+			case 2:
+			glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+			break;
+
+			case 1:
+			case 3:
+			glBlendFunc(GL_SRC_ALPHA, GL_ONE);
+			break;
 		}
+		glFrontFace(GL_CW);
+		glDrawElements(GL_TRIANGLES, prpl->ro.cvtx, GL_UNSIGNED_SHORT, 0);
+
+		glDepthMask(true);
 		glDisable(GL_BLEND);
 		glDisable(GL_STENCIL_TEST);
 		glDepthFunc(GL_LESS);
 		glFrontFace(GL_CCW);
-		glDepthMask(true);
 		break;
 
-		case RP_Cutout:
-		case RP_CutoutAfterProjVolume:
-		//glDepthMask(false);
-		glUniform1i(glslfAlphaTest, 1);
-		glDrawElements(GL_TRIANGLES, prpl->ro.cvtx, GL_UNSIGNED_SHORT, 0);
-		//glDepthMask(true);
-		break;
-		case RP_Translucent:
-		glUniform1i(glslfAlphaTest, 1);
+		case RP_MurkClear:
+		/*glEnable(GL_BLEND);
+		glDepthMask(GL_FALSE);
+		glDepthFunc(GL_LEQUAL);
+		glBlendFuncSeparate(GL_ONE_MINUS_DST_ALPHA, GL_DST_ALPHA, GL_ONE, GL_ZERO);
+		glBlendColor(0.0, 0.0, 0.0, 0.0);
 		glDrawElements(GL_TRIANGLES, prpl->ro.cvtx, GL_UNSIGNED_SHORT, 0);
 
+		glDisable(GL_BLEND);
+		glDepthMask(GL_TRUE);
+		glDepthFunc(GL_LESS);*/
+		break;
+
+		case RP_MurkFill:
+		glUniform1i(glslRko, 4);
 		glEnable(GL_BLEND);
-		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
 		glDepthMask(false);
-		glUniform1i(glslfAlphaTest, 0);
+		glDepthFunc(GL_LEQUAL);
+		glBlendFuncSeparate(GL_ONE_MINUS_DST_ALPHA, GL_DST_ALPHA, GL_ONE, GL_ZERO);
 		glDrawElements(GL_TRIANGLES, prpl->ro.cvtx, GL_UNSIGNED_SHORT, 0);
+
+		glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ZERO);
+		glDrawElements(GL_TRIANGLES, prpl->ro.cvtx, GL_UNSIGNED_SHORT, 0);
+
+		
+		glDisable(GL_BLEND);
+		glDepthMask(true);
+		glDepthFunc(GL_LESS);
+		break;
+		
+		case RP_CutoutAfterProjVolume:
+		case RP_Cutout:
+		glEnable(GL_BLEND);
+
+		switch (prpl->ro.pshd->grfshd)
+		{
+			case 2:
+			case 6:
+			glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+			glUniform1i(glslfAlphaTest, 1);
+			glUniform1f(glslAlphaThresHold, 0.9);
+			glDrawElements(GL_TRIANGLES, prpl->ro.cvtx, GL_UNSIGNED_SHORT, 0);
+			glUniform1i(glslfAlphaTest, 0);
+
+			glDepthMask(false);
+			glDrawElements(GL_TRIANGLES, prpl->ro.cvtx, GL_UNSIGNED_SHORT, 0);
+			break;
+
+			case 3:
+			glBlendFunc(GL_SRC_ALPHA, GL_ONE);
+			glDepthMask(false);
+			glDrawElements(GL_TRIANGLES, prpl->ro.cvtx, GL_UNSIGNED_SHORT, 0);
+			break;
+
+			default:
+			std::cout << (uint32_t)prpl->ro.pshd->grfshd << "\n";
+			//glDrawElements(GL_LINES, prpl->ro.cvtx, GL_UNSIGNED_SHORT, 0);
+			break;
+		}
 
 		glDisable(GL_BLEND);
 		glDepthMask(true);
 		break;
 
-	default:
+		case RP_Translucent:
+		glEnable(GL_BLEND);
+
+		switch (prpl->ro.pshd->grfshd)
+		{
+			case 2:
+			case 6:
+			glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+			glUniform1i(glslfAlphaTest, 1);
+			glUniform1f(glslAlphaThresHold, 0.5);
+			glDrawElements(GL_TRIANGLES, prpl->ro.cvtx, GL_UNSIGNED_SHORT, 0);
+			glUniform1i(glslfAlphaTest, 0);
+			
+			glDepthMask(false);
+			glDrawElements(GL_TRIANGLES, prpl->ro.cvtx, GL_UNSIGNED_SHORT, 0);
+			break;
+
+			case 3:
+			glBlendFunc(GL_SRC_ALPHA, GL_ONE);
+			//glDrawElements(GL_TRIANGLES, prpl->ro.cvtx, GL_UNSIGNED_SHORT, 0);
+
+			glDepthMask(false);
+			glDrawElements(GL_TRIANGLES, prpl->ro.cvtx, GL_UNSIGNED_SHORT, 0);
+			break;
+
+			default:
+			std::cout << (uint32_t)prpl->ro.pshd->grfshd<<"\n";
+			//glDrawElements(GL_LINES, prpl->ro.cvtx, GL_UNSIGNED_SHORT, 0);
+			break;
+		}
+		
+		glDisable(GL_BLEND);
+		glDepthMask(true);
+		break;
+
+		case RP_WorldMap:
+		glEnable(GL_BLEND);
+		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+		//glDepthFunc(GL_ALWAYS);
+		glDrawElements(GL_TRIANGLES, prpl->ro.cvtx, GL_UNSIGNED_SHORT, 0);
+
+		//glDepthFunc(GL_LESS);
+		glDisable(GL_BLEND);
+		break;
+
+		default:
 		if (prpl->ro.fCelBorder == 1)
 		{
 			// === First Pass: Draw main object and write to stencil ===
+			glUniform1i(glslfCull, 0);
 			glEnable(GL_STENCIL_TEST);
 			glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
 			glStencilFunc(GL_ALWAYS, 1, 0xFF);
@@ -1738,25 +1839,29 @@ void DrawGlob(RPL* prpl)
 			glDrawElements(GL_TRIANGLES, prpl->ro.cvtx, GL_UNSIGNED_SHORT, 0);
 
 			// === Second Pass: Draw outline where stencil != 1 ===
-			
+			glEnable(GL_BLEND);
+			glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 			glBindVertexArray(*prpl->ro.celVAO);
+			glUniform1i(glslfCull, 1);
 			glUniform1i(glslRko, 2);
-			glDepthMask(false);
 			glStencilFunc(GL_NOTEQUAL, 1, 0xFF);
 			glStencilMask(0x00);
-
+			glFrontFace(GL_CW);
 			glDrawElements(GL_TRIANGLES, prpl->ro.celcvtx, GL_UNSIGNED_SHORT, 0);
+
 			// === Restore State ===
-			glDepthMask(true);
+			glDisable(GL_BLEND);
+			glFrontFace(GL_CCW);
+			glDisable(GL_STENCIL_TEST);
 			glStencilMask(0xFF);
 			glStencilFunc(GL_ALWAYS, 0, 0xFF);
 		}
 		else
+		{
 			glDrawElements(GL_TRIANGLES, prpl->ro.cvtx, GL_UNSIGNED_SHORT, 0);
+		}
 		break;
 	}
-
-	glActiveTexture(GL_TEXTURE0);
 }
 
 void DeleteModel(ALO* palo)

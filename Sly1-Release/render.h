@@ -44,4 +44,4 @@ void DrawSw(SW* psw, CM* pcm);
 // Draws all collision models in SW
 void DrawSwCollisionAll(CM* pcm);
 
-glm::vec4 g_rgbaCel = glm::vec4(0.16, 0.16, 0.16, 1.0);
+glm::vec4 g_rgbaCel = glm::vec4(16.0f / 255.0f, 16.0f / 255.0f, 16.0f / 255.0f, 1.0);

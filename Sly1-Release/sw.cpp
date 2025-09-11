@@ -532,7 +532,6 @@ void DeleteWorld(SW *psw)
 	allWorldObjs.clear();
 	allWorldObjs.shrink_to_fit();
 
-	DeallocateLightVector();
 	DeallocateSoVector();
 
 	UnloadShaders();

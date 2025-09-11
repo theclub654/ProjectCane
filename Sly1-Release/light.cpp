@@ -97,8 +97,8 @@ void CloneLight(LIGHT* plight, LIGHT* plightBase)
 
 	// Clone the falloff vectors
 	plight->agFallOff = plightBase->agFallOff;
-	plight->falloff0Frustum = plightBase->falloff0Frustum;
-	plight->falloff1Frustum = plightBase->falloff1Frustum;
+	//plight->falloff0Frustum = plightBase->falloff0Frustum;
+	//plight->falloff1Frustum = plightBase->falloff1Frustum;
 
 	// Clone the matrix values (frustum and matLookAt)
 	plight->frustum = plightBase->frustum;
@@ -276,59 +276,102 @@ void RebuildLight(LIGHT* plight)
 
 	else if (plight->lightk == LIGHTK_Frustrum || plight->lightk == LIGHTK_Spot)
 	{
-		// Compute falloff vector in local space
-		glm::vec3 agFallOff;
+		// aliases to match your original names
+		glm::mat4* pmat = &plight->matLookAt;
+		glm::vec4* anormalFrustrum = plight->avecFrustrum;
+		glm::vec3  agFallOff; // from normalLocal (forward hint)
+		glm::vec3  vecUp;     // up hint
+
+		// Convert forward / up from local to world
 		ConvertAloVec(plight, nullptr, &plight->normalLocal, &agFallOff);
-
-		agFallOff *= -1.0f;
-
-		// Compute local up vector
-		glm::vec3 vecUp;
 		ConvertAloVec(plight, nullptr, &plight->vecUpLocal, &vecUp);
 
-		BuildOrthonormalMatrixZ(agFallOff, vecUp, plight->matLookAt);
-		BuildFrustrum(plight->matLookAt, plight->rx, plight->ry, (glm::vec3*)plight->avecFrustrum);
+		// --- match first VU broadcast -1 multiply (uniform flip)
+		agFallOff = -agFallOff;
 
-		// Add the distance component to the frustum planes
-		for (int i = 0; i < 4; ++i)
-		{
-			glm::vec4 plane = plight->avecFrustrum[i];
-			float d = glm::dot(plight->xf.posWorld, glm::vec3(plane));
-			plight->avecFrustrum[i].w = -d;
+		// --- BuildOrthonormalMatrixZ via GLM (Z = forward, X = right, Y = up)
+		glm::vec3 f = glm::normalize(agFallOff);
+		glm::vec3 r = glm::normalize(glm::cross(vecUp, f));
+		if (!glm::all(glm::isfinite(r)) || glm::length2(r) < 1e-10f) {
+			glm::vec3 alt = (std::abs(f.z) < 0.99f) ? glm::vec3(0, 0, 1) : glm::vec3(0, 1, 0);
+			r = glm::normalize(glm::cross(alt, f));
+		}
+		glm::vec3 u = glm::normalize(glm::cross(f, r));
+		*pmat = glm::mat4(1.0f);
+		(*pmat)[0] = glm::vec4(r, 0.0f);  // X (right)
+		(*pmat)[1] = glm::vec4(u, 0.0f);  // Y (up)
+		(*pmat)[2] = glm::vec4(f, 0.0f);  // Z (forward)
+
+		// --- BuildFrustrum via GLM (side plane normals)
+		const glm::vec3 X = glm::vec3((*pmat)[0]);
+		const glm::vec3 Y = glm::vec3((*pmat)[1]);
+		const glm::vec3 Z = glm::vec3((*pmat)[2]);
+
+		anormalFrustrum[0] = glm::vec4(glm::normalize(Z + plight->rx * X), 0.0f); // Left
+		anormalFrustrum[1] = glm::vec4(glm::normalize(Z - plight->rx * X), 0.0f); // Right
+		anormalFrustrum[2] = glm::vec4(glm::normalize(Z + plight->ry * Y), 0.0f); // Top
+		anormalFrustrum[3] = glm::vec4(glm::normalize(Z - plight->ry * Y), 0.0f); // Bottom
+
+		// Add distance term: w = -dot(posWorld, N)
+		const glm::vec3 eye = plight->xf.posWorld;
+		for (int i = 0; i < 4; ++i) {
+			const glm::vec3 N = glm::vec3(anormalFrustrum[i]);
+			anormalFrustrum[i].w = -glm::dot(eye, N);
 		}
 
-		float falloffMax = plight->lmFallOffS.gMax;
-		glm::vec4 nearPlane = glm::vec4(plight->matLookAt[0]);
-		float nearDist = glm::dot(plight->xf.posWorld, glm::vec3(nearPlane));
-		plight->avecFrustrum[4] = nearPlane;
-		plight->avecFrustrum[4].w = -falloffMax - nearDist;
+		// --- Near / far planes
+		const float gMax = plight->lmFallOffS.gMax;
+		glm::vec4 nearN = (*pmat)[2]; // forward
+		float nearDot = glm::dot(eye, glm::vec3(nearN));
+		plight->avecFrustrum[4] = nearN;
+		plight->avecFrustrum[4].w = -(gMax + nearDot);
 
-		glm::vec4 flippedNear = nearPlane * glm::vec4(-1, -1, -1, 1);
-		float farDist = glm::dot(plight->xf.posWorld, glm::vec3(flippedNear));
-		plight->avecFrustrum[5] = flippedNear;
-		plight->avecFrustrum[5].w = 50.0f - farDist;
+		glm::vec4 farN = nearN * glm::vec4(-1, -1, -1, 1);
+		float farDot = glm::dot(eye, glm::vec3(farN));
+		plight->avecFrustrum[5] = farN;
+		plight->avecFrustrum[5].w = 50.0f - farDot;
 
-		glm::mat4 matProj;
-		BuildSimpleProjectionMatrix(1.0f / plight->rx, 1.0f / plight->ry, 0.0f, 0.0f, 50.0f, falloffMax, matProj);
-		CombineEyeLookAtProj(plight->xf.posWorld, plight->matLookAt, matProj, plight->frustum);
+		// --- Projection via GLM (equivalent to scales 1/rx, 1/ry)
+		const float fovy = 2.0f * std::atan(plight->ry);
+		const float aspect = plight->rx / plight->ry;
+		const float zNear = 50.0f;
+		const float zFar = gMax;
 
-		agFallOff *= glm::vec3(-1.0f, 1.0f, 1.0f);
+		glm::mat4 matProj = glm::perspectiveRH_ZO(fovy, aspect, zNear, zFar);
 
-		if (plight->lightk == LIGHTK_Frustrum)
-		{
-			ConvertFallOff(&plight->lmFallOffAbsX, &plight->falloff0Frustum.x, &plight->falloff1Frustum.x);
-			ConvertFallOff(&plight->lmFallOffAbsY, &plight->falloff0Frustum.y, &plight->falloff1Frustum.y);
-			plight->falloff0Frustum.z = 1.0;
-			plight->falloff1Frustum.z = 1.0;
+		// --- CombineEyeLookAtProj via GLM
+		glm::mat4 matView = glm::lookAtRH(eye, eye + Z, u);
+		glm::mat4 matFrustrum = matProj * matView;
+
+		// --- restore agFallOff sign (VU does a second -1 broadcast before upload)
+		agFallOff = -agFallOff;
+
+		// --- Write directly into LIGHT::falloffBias / falloffScale (no aqwFallOff temp)
+		// Mapping follows the original: bias from the “0” slot, scale from the “1” slot.
+		// Channels: X=|x/w|, Y=|y/w|, Z=r^2 (or disabled), W=w
+
+		if (plight->lightk == LIGHTK_Frustrum) {
+			float bx, sx; ConvertFallOff(&plight->lmFallOffAbsX, &bx, &sx);
+			float by, sy; ConvertFallOff(&plight->lmFallOffAbsY, &by, &sy);
+			float bs, ss; ConvertFallOff(&plight->lmFallOffS, &bs, &ss);
+
+			plight->falloffBias = glm::vec4(bx, by, 1.0f, bs); // Z channel forced to 1.0
+			plight->falloffScale = glm::vec4(sx, sy, 0.0f, ss); // Z channel disabled (0.0)
 		}
-		else
-		{
-			plight->falloff0Frustum.x = 1.0;
-			plight->falloff0Frustum.y = 1.0;
-			plight->falloff1Frustum.x = 0.0;
-			plight->falloff1Frustum.y = 0.0;
-			ConvertFallOff(&plight->lmFallOffPenumbra, &plight->falloff0Frustum.z, &plight->falloff1Frustum.z);
+		else {
+			// Spotlight-like path: X/Y disabled, Penumbra mapped to Z, S to W
+			float bp, sp; ConvertFallOff(&plight->lmFallOffPenumbra, &bp, &sp);
+			float bs, ss; ConvertFallOff(&plight->lmFallOffS, &bs, &ss);
+
+			plight->falloffBias  = glm::vec4(1.0f, 1.0f, bp, bs);
+			plight->falloffScale = glm::vec4(0.0f, 0.0f, sp, ss);
 		}
+
+		// --- store frustum matrix for GLSL
+		plight->frustum = matFrustrum;
+
+		// (optional) if your GLSL uses light direction from LIGHT.dir, set it here, too:
+		plight->agFallOff = agFallOff;
 	}
 }
 
@@ -488,53 +531,50 @@ void RemoveLightFromSw(LIGHT* plight)
 
 void AllocateLightBlkList()
 {
-	lightBlk.resize(MAX_LIGHT); // CPU-side buffer
+	lightBlk.resize(numRl);
+	lightIndices.resize(numRl);
 
 	glGenBuffers(1, &g_lightUbo);
 	glBindBuffer(GL_UNIFORM_BUFFER, g_lightUbo);
-	glBufferData(GL_UNIFORM_BUFFER, sizeof(LIGHTBLK) * MAX_LIGHT, nullptr, GL_DYNAMIC_DRAW);
-	glBindBufferBase(GL_UNIFORM_BUFFER, 0, g_lightUbo); // bind once here
-}
+	glBufferData(GL_UNIFORM_BUFFER, sizeof(LIGHTBLK) * numRl, nullptr, GL_DYNAMIC_DRAW);
+	glBindBufferBase(GL_UNIFORM_BUFFER, 0, g_lightUbo);
 
-void PrepareSwLights(SW* psw, CM* pcm)
-{
 	numRl = 0;
-	LIGHT* plight = psw->dlLight.plightFirst;
+	LIGHT* plight = g_psw->dlLight.plightFirst;
 
 	while (plight != nullptr)
 	{
 		switch (plight->lightk)
 		{
-		case LIGHTK_Direction:
-			if (numRl >= lightBlk.size()) break; // prevent overflow
-
+			case LIGHTK_Direction:
 			lightBlk[numRl].lightk = plight->lightk;
-			lightBlk[numRl].dir = glm::vec4(plight->xf.matWorld[2], 0.0f);
-			lightBlk[numRl].color = glm::vec4(plight->rgbaColor, 0.0f);
-			lightBlk[numRl].ru = glm::vec4(plight->ltfn.ruShadow, plight->ltfn.ruMidtone, plight->ltfn.ruHighlight, 0.0f);
-			lightBlk[numRl].du = glm::vec4(plight->ltfn.duShadow, plight->ltfn.duMidtone, plight->ltfn.duHighlight, 0.0f);
+			lightBlk[numRl].dir    = glm::vec4(plight->xf.matWorld[2], 0.0f);
+			lightBlk[numRl].color  = glm::vec4(plight->rgbaColor, 0.0f);
+			lightBlk[numRl].ru     = glm::vec4(plight->ltfn.ruShadow, plight->ltfn.ruMidtone, plight->ltfn.ruHighlight, 0.0f);
+			lightBlk[numRl].du     = glm::vec4(plight->ltfn.duShadow, plight->ltfn.duMidtone, plight->ltfn.duHighlight, 0.0f);
 			numRl++;
 			break;
 
-		case LIGHTK_Position:
-			if ((g_fBsp != 0) && ((plight->grfzon & pcm->grfzon) != pcm->grfzon))
-				break;
-
-			if (!SphereInFrustum(pcm->frustum, plight->xf.posWorld, glm::length(pcm->pos - plight->lmFallOffS.gMax)))
-				break;
-
-			if (numRl >= lightBlk.size()) break;
-
-			lightBlk[numRl].lightk = plight->lightk;
-			lightBlk[numRl].pos = glm::vec4(plight->xf.posWorld, 0.0f);
-			lightBlk[numRl].color = glm::vec4(plight->rgbaColor, 0.0f);
-			lightBlk[numRl].falloff = glm::vec4(plight->agFallOff, 0.0f);
-			lightBlk[numRl].ru = glm::vec4(plight->ltfn.ruShadow, plight->ltfn.ruMidtone, plight->ltfn.ruHighlight, 0.0f);
-			lightBlk[numRl].du = glm::vec4(plight->ltfn.duShadow, plight->ltfn.duMidtone, plight->ltfn.duHighlight, 0.0f);
+			case LIGHTK_Position:
+			lightBlk[numRl].lightk  = plight->lightk;
+			lightBlk[numRl].pos     = glm::vec4(plight->xf.posWorld, 1.0f);
+			lightBlk[numRl].color   = glm::vec4(plight->rgbaColor, 1.0f);
+			lightBlk[numRl].falloff = plight->agFallOff;
+			lightBlk[numRl].maxDst  = plight->lmFallOffS.gMax * plight->lmFallOffS.gMax;
+			lightBlk[numRl].ru	    = glm::vec4(plight->ltfn.ruShadow, plight->ltfn.ruMidtone, plight->ltfn.ruHighlight, 0.0f);
+			lightBlk[numRl].du	    = glm::vec4(plight->ltfn.duShadow, plight->ltfn.duMidtone, plight->ltfn.duHighlight, 0.0f);
 			numRl++;
 			break;
 
-		default:
+			case LIGHTK_Frustrum:
+			case LIGHTK_Spot:
+			lightBlk[numRl].lightk       = plight->lightk;
+			lightBlk[numRl].color        = glm::vec4(plight->rgbaColor, 1.0f);
+			lightBlk[numRl].matFrustrum  = plight->frustum;
+			lightBlk[numRl].falloffScale = plight->falloffScale;
+			lightBlk[numRl].falloffBias  = plight->falloffBias;
+			lightBlk[numRl].ru           = glm::vec4(plight->ltfn.ruShadow, plight->ltfn.ruMidtone, plight->ltfn.ruHighlight, 0.0f);
+			lightBlk[numRl].du           = glm::vec4(plight->ltfn.duShadow, plight->ltfn.duMidtone, plight->ltfn.duHighlight, 0.0f);
 			break;
 		}
 
@@ -542,16 +582,112 @@ void PrepareSwLights(SW* psw, CM* pcm)
 	}
 
 	// Upload used light data to GPU (only numRl lights)
+	//std::cout << numRl << "\n";
 	glBindBuffer(GL_UNIFORM_BUFFER, g_lightUbo);
 	glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(LIGHTBLK) * numRl, lightBlk.data());
+}
 
+void PrepareSwLights(SW* psw, CM* pcm)
+{
+	numRl = 0;
+	int idx = 0;
+	const bool useZones = (g_fBsp != 0);
+	bool include = false;
+
+	for (LIGHT* plight = psw->dlLight.plightFirst; plight && numRl < 255; plight = plight->dleLight.plightNext, ++idx)
+	{
+		if (useZones && ((plight->grfzon & pcm->grfzon) != pcm->grfzon))
+			continue;
+
+		switch (plight->lightk)
+		{
+			case LIGHTK_Direction:
+			lightIndices[numRl] = idx;
+			numRl++;
+			break;
+
+			case LIGHTK_Position:
+			if (!SphereInFrustum(pcm->frustum, plight->xf.posWorld, plight->lmFallOffS.gMax * 3.0))
+				break;
+
+			lightIndices[numRl] = idx;
+			numRl++;
+			break;
+
+			case LIGHTK_Frustrum:
+			case LIGHTK_Spot:
+			lightIndices[numRl] = idx;
+			numRl++;
+			break;
+		}
+	}
+
+	// Upload only the used indices
+	//std::cout << numRl << "\n";
 	glUniform1i(glslNumLights, numRl);
+
+	if (numRl > 0)
+		glUniform1iv(glslLightIndices, numRl, lightIndices.data());
+}
+
+void FindSwLights(SW *psw, CM *pcm, glm::vec3 posCenter, float sRadius)
+{
+	numRl = 0;
+	int idx = 0;
+	const bool useZones = (g_fBsp != 0);
+	bool include = false;
+
+	for (LIGHT* plight = psw->dlLight.plightFirst; plight && numRl < 255; plight = plight->dleLight.plightNext, ++idx)
+	{
+		if (useZones && ((plight->grfzon & pcm->grfzon) != pcm->grfzon))
+			continue;
+
+		switch (plight->lightk)
+		{
+			case LIGHTK_Direction:
+			lightIndices[numRl] = idx;
+			numRl++;
+			break;
+
+			case LIGHTK_Position:
+			{
+				// Sphere–sphere test: |Lp - C|^2 <= (r + R)^2
+				const glm::vec3 Lpos = *(glm::vec3*)&plight->xf.posWorld;
+				const float r = plight->lmFallOffS.gMax;
+				const glm::vec3 d = Lpos - posCenter;
+				const float Rsum = r + sRadius;
+
+				if (glm::dot(d, d) > Rsum * Rsum)
+					break;
+
+				lightIndices[numRl] = idx;
+				numRl++;
+				break;
+			}
+
+			case LIGHTK_Frustrum:
+			case LIGHTK_Spot:
+			lightIndices[numRl] = idx;
+			numRl++;
+			break;
+		}
+	}
+
+	// Upload only the used indices
+	//std::cout << numRl << "\n";
+	glUniform1i(glslNumLights, numRl);
+
+	if (numRl > 0)
+		glUniform1iv(glslLightIndices, numRl, lightIndices.data());
 }
 
 void DeallocateLightBlkList()
 {
 	lightBlk.clear();
 	lightBlk.shrink_to_fit();
+
+	lightIndices.clear();
+	lightIndices.shrink_to_fit();
 
 	glDeleteBuffers(1, &g_lightUbo);
 	g_lightUbo = 0;
@@ -575,3 +711,4 @@ std::vector <LIGHT*> allSwLights;
 GLuint g_lightUbo;
 int numRl;
 std::vector <LIGHTBLK> lightBlk;
+std::vector <int> lightIndices;
