@@ -1,6 +1,7 @@
 #include "prompt.h"
 #include "ui.h"
 #include "dialog.h"
+#include "wm.h"
 
 void StartupPrompt(PROMPT* pprompt)
 {
@@ -18,11 +19,8 @@ void PostPromptLoad(PROMPT* pprompt)
 {
     PostBlotLoad(pprompt);
 
-    if (g_pfontScreenCounters != nullptr) 
-    {
-        pprompt->pte = &g_tePrompt;
-        g_tePrompt.m_pfont = g_pfontScreenCounters;
-    }
+    pprompt->pte = &g_tePrompt;
+    g_tePrompt.m_pfont = &g_afontBrx[2];
 
     pprompt->prk = PRK_Nil;
 
@@ -84,7 +82,7 @@ void SetPromptPrk(PROMPT* pprompt, PRK prk)
     float widthText = 0.0f;
     float heightText = 0.0f;
 
-    if (prk == PRK_PauseMenu) 
+    if (prk == PRK_PauseMenu)
     {
         s_mpprkprd[0].crespk = 0;
         for (uint32_t i = 0; i < 6; ++i) {
@@ -95,8 +93,7 @@ void SetPromptPrk(PROMPT* pprompt, PRK prk)
                 include = true;
             }
             else if (rspk == RESPK_Map) {
-                //include = g_wmc.pwm != nullptr;
-                include = false;
+                include = g_wmc.pwm != nullptr;
             }
             else if (rspk == RESPK_Save) {
                 include = false;
@@ -113,7 +110,7 @@ void SetPromptPrk(PROMPT* pprompt, PRK prk)
         }
     }
 
-    CFont* font = pprompt->pfont;
+    CFontBrx* font = pprompt->pfont;
 
     float dxPrompt = 0.0f;
     float dyPrompt = 0.0f;
@@ -150,7 +147,7 @@ void SetPromptPrk(PROMPT* pprompt, PRK prk)
         }
         else {
             if (i > 0)
-            totalOptionWidth += pprompt->pfont->m_dxSpaceUnscaled * pprompt->pfont->m_rxScale;
+                totalOptionWidth += pprompt->pfont->m_dxSpaceUnscaled * pprompt->pfont->m_rxScale;
             totalOptionWidth += dx;
             totalOptionHeight = std::max(totalOptionHeight, dy);
         }
@@ -162,7 +159,7 @@ void SetPromptPrk(PROMPT* pprompt, PRK prk)
     float kPaddingX = 10.0f;
     float kPaddingY = 6.0f;
     // Add padding to final dimensions
-    finalWidth  += kPaddingX * 5.0f;
+    finalWidth += kPaddingX * 5.0f;
     //finalHeight += kPaddingY * 2.0f;
 
     ResizeBlot(pprompt, finalWidth, finalHeight);
@@ -576,9 +573,9 @@ void DrawPrompt(PROMPT* pprompt)
             textY += lineHeight;
         }
     }
-    
+
     pprompt->pfont->PopScaling();
 }
-
 PROMPT g_prompt;
 CTextEdge g_tePrompt;
+float g_promptFade;

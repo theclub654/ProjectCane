@@ -317,23 +317,23 @@ void RepositionBlot(BLOT* pblot)
 
     // Apply edge anchoring offset
     switch (bloti->blote) {
-    case BLOTE_Left:
+        case BLOTE_Left:
         pblot->xOff = -pblot->dx;
         pblot->yOff = pblot->yOn;
         break;
-    case BLOTE_Right:
+        case BLOTE_Right:
         pblot->xOff = g_gl.width;
         pblot->yOff = pblot->yOn;
         break;
-    case BLOTE_Top:
+        case BLOTE_Top:
         pblot->xOff = pblot->xOn;
         pblot->yOff = -pblot->dy;
         break;
-    case BLOTE_Bottom:
+        case BLOTE_Bottom:
         pblot->xOff = pblot->xOn;
         pblot->yOff = g_gl.height;
         break;
-    default:
+        default:
         pblot->xOff = pblot->xOn;
         pblot->yOff = pblot->yOn;
         break;

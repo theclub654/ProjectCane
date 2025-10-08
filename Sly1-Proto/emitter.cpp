@@ -153,7 +153,7 @@ void BindEmitter(EMITTER* pemitter)
 {
 	BindAlo(pemitter);
 }
-
+ 
 void CloneEmitter(EMITTER* pemitter, EMITTER* pemitterBase)
 {
 	CloneAlo(pemitter, pemitterBase);
@@ -190,6 +190,11 @@ void CloneEmitter(EMITTER* pemitter, EMITTER* pemitterBase)
 EMITB* PemitbEnsureEmitter(EMITTER* pemitter, ENSK ensk)
 {
 	return pemitter->pemitb.get();
+}
+
+void PauseEmitterIndefinite(EMITTER *pemitter)
+{
+	pemitter->tUnpause = 3.402823e+38;
 }
 
 void* GetEmitterEmitok(EMITTER* pemitter)

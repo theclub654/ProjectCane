@@ -9424,7 +9424,7 @@ struct VTWM
     void (*pfnHandleWmMessage) = nullptr;
     void (*pfnSendLoMessage)(LO*, MSGID, void*) = SendLoMessage;
     void (*pfnBindWm)(WM*) = BindWm;
-    void (*pfnPostWmLoad) = nullptr;
+    void (*pfnPostWmLoad)(WM*) = PostWmLoad;
     void (*pfnUpdateWm) = nullptr;
     void (*pfnUpdateAloXfWorld)(ALO*) = UpdateAloXfWorld;;
     void (*pfnUpdateAloXfWorldHierarchy)(ALO*) = UpdateAloXfWorldHierarchy;

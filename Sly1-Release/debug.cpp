@@ -278,7 +278,9 @@ void ExportTextures()
         char filename[256];
         snprintf(filename, sizeof(filename), "%s/shader_%03zu_diffuse.png", textureDir.c_str(), i);
 
+        stbi_flip_vertically_on_write(1);
         stbi_write_png(filename, bmp->bmpWidth, bmp->bmpHeight, 4, bmp->diffuseTexture.data(), bmp->bmpWidth * 4);
+        stbi_flip_vertically_on_write(0);
     }
 
     for (size_t i = 0; i < g_afontBrx.size(); ++i)

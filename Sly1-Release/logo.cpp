@@ -17,14 +17,11 @@ void PostLogoLoad(LOGO* plogo)
     }
 
     // Set up text edge font if available
-    if (g_pfontScreenCounters)
-    {
-        plogo->pte = &g_teLogo;
-        g_teLogo.m_pfont = g_pfontScreenCounters;
-    }
+    plogo->pte = &g_teLogo;
+    g_teLogo.m_pfont = &g_afontBrx[2];
 
     // Try to find the shader for the attract logo
-    plogo->pshd = PshdFindShader(OID_shd_attract_logo);
+    plogo->pshd = PshdFindShader((OID)1171);
 
     if (plogo->pshd == nullptr)
     {

@@ -338,7 +338,10 @@ void CloneAlo(ALO* palo, ALO* paloBase)
 	palo->cframeStatic = paloBase->cframeStatic;
 	palo->globset = paloBase->globset;
 	for (int i = 0; i < palo->globset.aglob.size(); i++)
+	{
 		numRo += palo->globset.aglob[i].csubglob;
+		numRo += palo->globset.aglob[i].csubcel;
+	}
 	palo->pshadow = paloBase->pshadow;
 	palo->pthrob = paloBase->pthrob;
 	palo->sFastShadowRadius = paloBase->sFastShadowRadius;
@@ -1596,7 +1599,7 @@ void LoadAloFromBrx(ALO* palo, CBinaryInputStream* pbis)
 		palo->sMRD = 1e+10;
 	
 	LoadOptionsFromBrx(palo, pbis);
-	LoadGlobsetFromBrx(&palo->globset, palo->pvtalo->cid ,palo, pbis);
+	LoadGlobsetFromBrx(&palo->globset, palo, pbis);
 	LoadAloAloxFromBrx(palo, pbis);
 
 	palo->pvtalo->pfnUpdateAloXfWorld(palo);
@@ -1831,10 +1834,12 @@ void RenderAloAll(ALO* palo, CM* pcm, RO* pro)
 			return;
 	}
 
+	RO ro{};
+	RO* proOriginal = &ro;
 	glm::vec3 posWorld{};
-	
+
 	if (pro != nullptr)
-		posWorld = glm::vec3(pro->model[3]);
+		posWorld = pro->model[3];
 	else
 		posWorld = palo->xf.posWorld;
 
@@ -1845,69 +1850,59 @@ void RenderAloAll(ALO* palo, CM* pcm, RO* pro)
 	if (!FInsideCmMrd(pcm, pcm->pos - palo->xf.posWorld, palo->sRadiusRenderAll, palo->sMRD, alpha))
 		return;
 
-	RO ro;
-	RO* proRender = &ro;
-	float celBorderMRD = palo->sCelBorderMRD;
-
-	if (alpha == 1.0f) {
-		proRender = pro;
-	}
-	else {
+	if (alpha == 1.0)
+		proOriginal = pro;
+	else
+	{
 		DupAloRo(palo, pro, &ro);
-		ro.uAlpha *= alpha;
+		ro.uAlpha = ro.uAlpha * alpha;
+		proOriginal = &ro;
 	}
 
-	FADER* pfader = palo->pfader;
-	if (pfader) {
-		DupAloRo(palo, proRender, &ro);
-		ro.uAlpha *= pfader->uAlpha;
-		proRender = &ro;
-	}
+	// ---- Cel-border MRD handling (matches original structure) ----
+	// If cel-border MRD is tighter than main MRD, test and scale uAlphaCelBorder
+	if (palo->sCelBorderMRD < palo->sMRD)
+	{
+		// In the original decomp, dpos_00 came from ro.mat.* (current RO).
+		// Here we use the current render origin (proOriginal if set, otherwise ALO pos)
+		glm::vec3 testPos = (proOriginal != nullptr) ? glm::vec3(proOriginal->model[3]) : palo->xf.posWorld;
 
-	/*ACT* pact = palo->pactScale;
-	ALOX* alox = palo->palox;
+		float alphaCB = 1.0f;
+		if (!FInsideCmMrd(pcm, pcm->pos - testPos, palo->sRadiusRenderAll, palo->sCelBorderMRD, alphaCB))
+			alphaCB = 0.0f; // original sets uAlpha to 0 when outside cel-border MRD
 
-	if (proRender && alox && (alox->grfalox & 0x400) && alox->joint.fSsc) {
-		ALO* parent = palo->paloParent;
-		if (parent && parent->pactScale && parent->palox && (parent->palox->grfalox & 0x400)) {
-			pact = parent->pactScale;
-			glm::mat4 scaleMat;
-			pact->pvtact->pfnGetActScale(pact, reinterpret_cast<float*>(&scaleMat));
-
-			scaleMat[0][1] = 1.0f / scaleMat[0][1];
-			scaleMat[1][0] = 1.0f / scaleMat[1][0];
-			scaleMat[2][1] = 1.0f / scaleMat[2][1];
-
-			DupAloRo(palo, proRender, &ro);
-			glm::mat4 localScaleMatrix;
-			LoadMatrixFromPosRot(glm::vec3(ro.model[3]), reinterpret_cast<glm::mat3&>(scaleMat), localScaleMatrix);
-
-			ro.model = localScaleMatrix;
-			proRender = &ro;
-			pact = palo->pactScale;
+		if (alphaCB != 1.0f)
+		{
+			// In the original, when uAlpha != 1, it duped RO and scaled uAlphaCelBorder
+			DupAloRo(palo, proOriginal, &ro);
+			ro.uAlphaCelBorder = ro.uAlphaCelBorder * alphaCB;
+			proOriginal = &ro;
 		}
+		// If alphaCB == 1.0f, keep current proOriginal as-is (same as original goto path)
 	}
 
-	if (pact) {
-		glm::mat4 scaleMat;
-		pact->pvtact->pfnGetActScale(pact, reinterpret_cast<float*>(&scaleMat));
-		glm::mat4 scaledMat;
-		LoadMatrixFromPosRot(glm::vec3(0.0f), reinterpret_cast<glm::mat3&>(scaleMat), scaledMat);
-		DupAloRo(palo, proRender, &ro);
-		ro.model = ro.model * scaledMat;
-		proRender = &ro;
-	}*/
+	// ---- Optional fader (post adjustments), multiplies base uAlpha ----
+	if (palo->pfader != nullptr)
+	{
+		DupAloRo(palo, proOriginal, &ro);
+		//ro.uAlpha = ro.uAlpha * palo->pfader->uAlpha;
+		proOriginal = &ro;
+	}
 
-	palo->pvtalo->pfnRenderAloSelf(palo, pcm, proRender);
+	palo->pvtalo->pfnRenderAloSelf(palo, pcm, proOriginal);
 
 	ALO* child = palo->dlChild.paloFirst;
+	float fastShadowRadius = palo->sFastShadowRadius;
 
-	if (proRender == nullptr)
+	if (proOriginal == nullptr)
 	{
 		// No proxy: simple render all children
 		for (; child != nullptr; child = child->dleChild.paloNext) {
 			if (child->pvtlo->grfcid & 1U)
+			{
 				child->pvtalo->pfnRenderAloAll(child, pcm, nullptr);
+
+			}
 		}
 	}
 	else {
@@ -1927,17 +1922,17 @@ void RenderAloAll(ALO* palo, CM* pcm, RO* pro)
 			{
 				glm::mat4 invParentWorld = glm::inverse(palo->xf.matWorld);
 				LoadMatrixFromPosRot(child->xf.posWorld, child->xf.matWorld, childLocalMatrix);
-				glm::mat4 proxyAdjust = invParentWorld * proRender->model;
+				glm::mat4 proxyAdjust = invParentWorld * proOriginal->model;
 				childLocalMatrix = proxyAdjust * childLocalMatrix;
 			}
 
 			// Compute final child world matrix
-			roChild.model = proRender->model * childLocalMatrix;
-			roChild.uAlpha = proRender->uAlpha;
-
+			roChild.model = proOriginal->model * childLocalMatrix;
+			roChild.uAlpha = proOriginal->uAlpha;
+			roChild.uAlphaCelBorder = proOriginal->uAlphaCelBorder;
 
 			// Render child with adjusted transform
- 			child->pvtalo->pfnRenderAloAll(child, pcm, &roChild);
+			child->pvtalo->pfnRenderAloAll(child, pcm, &roChild);
 		}
 	}
 }
@@ -1986,6 +1981,7 @@ void DupAloRo(ALO* palo, RO* proOrig, RO* proDup)
 		glm::vec3 vecScale = glm::vec3(1.0);
 		LoadMatrixFromPosRotScale(palo->xf.posWorld, palo->xf.matWorld, vecScale, proDup->model);
 		proDup->uAlpha = 1.0;
+		proDup->uAlphaCelBorder = 1.0;
 	}
 	else
 	{
@@ -1993,6 +1989,7 @@ void DupAloRo(ALO* palo, RO* proOrig, RO* proDup)
 		{
 			proDup->model = proOrig->model;
 			proDup->uAlpha = proOrig->uAlpha;
+			proDup->uAlphaCelBorder = proOrig->uAlphaCelBorder;
 		}
 	}
 }
@@ -2001,7 +1998,6 @@ void RenderAloGlobset(ALO* palo, CM* pcm, RO* pro)
 {
 	RPL rpl{};
 	RO* proDup;
-	rpl.PFNDRAW = DrawGlob;
 
 	proDup = &rpl.ro;
 	// Duplicate rendering object from original
@@ -2010,7 +2006,8 @@ void RenderAloGlobset(ALO* palo, CM* pcm, RO* pro)
 	glm::mat4 baseModelMatrix = rpl.ro.model;
 
 	float baseAlpha = rpl.ro.uAlpha;
-	
+	float baseAlphaCel = rpl.ro.uAlphaCelBorder;
+
 	for (int i = 0; i < palo->globset.aglob.size(); ++i)
 	{
 		if (g_fBsp != 0)
@@ -2019,7 +2016,7 @@ void RenderAloGlobset(ALO* palo, CM* pcm, RO* pro)
 				continue;
 		}
 
-		auto& glob  = palo->globset.aglob[i];
+		auto& glob = palo->globset.aglob[i];
 		auto& globi = palo->globset.aglobi[i];
 
 		glm::vec3 posCenterWorld = glm::vec3(baseModelMatrix * glm::vec4(glob.posCenter, 1.0f));
@@ -2030,25 +2027,12 @@ void RenderAloGlobset(ALO* palo, CM* pcm, RO* pro)
 		if (!FInsideCmMrd(pcm, pcm->pos - posCenterWorld, glob.sRadius, glob.sMRD, rpl.ro.uAlpha))
 			continue;
 
-		for (auto& subglob : glob.asubglob) 
+		for (auto& subglob : glob.asubglob)
 		{
 			rpl.ro.uAlpha *= baseAlpha;
 
 			rpl.ro.VAO = &subglob.VAO;
 
-			// Handle cel border logic
-			if (g_fRenderCelBorders && subglob.fCelBorder == 1)
-			{
-				rpl.ro.celVAO = &subglob.celVAO;
-				rpl.ro.celcvtx = subglob.celcvtx;
-				rpl.ro.fCelBorder = 1;
-			}
-			else
-			{
-				rpl.ro.celVAO = nullptr;
-				rpl.ro.fCelBorder = 0;
-			}
-			
 			if (glob.gleam.size() != 0)
 			{
 				glm::vec3 normal = glob.gleam[0].normal;
@@ -2075,20 +2059,31 @@ void RenderAloGlobset(ALO* palo, CM* pcm, RO* pro)
 				// Polynomial light modulation
 				const auto& clqc = glob.gleam[0].clqc;
 				LM lm{ 0.0f, 1.0f };
-				float gain = GLimitLm(&lm,
-					clqc.g0 + intensity * (clqc.g1 + intensity * (clqc.g2 + intensity * clqc.g3)));
+				float gain = GLimitLm(&lm, clqc.g0 + intensity * (clqc.g1 + intensity * (clqc.g2 + intensity * clqc.g3)));
 
 				rpl.ro.uAlpha *= gain;
 			}
-			
+
+			if (rpl.ro.uAlpha == 0.0)
+				continue;
+
 			rpl.ro.fDynamic = glob.fDynamic;
 			rpl.ro.uFog = glob.uFog;
-			rpl.posCenter = posCenterWorld;
-			rpl.ro.grfglob = glob.grfglob;
+			rpl.ro.posCenter = posCenterWorld;
+			rpl.sRadius = glob.sRadius;
+
+			if ((glob.grfglob & 4U) == 0)
+				rpl.ro.darken = g_psw->rDarken;
+			else
+				rpl.ro.darken = 1.0;
+
+			//rpl.ro.grfglob = glob.grfglob;
 			rpl.ro.pshd = subglob.pshd;
+			rpl.grfshd = subglob.pshd->grfshd;
 			rpl.ro.unSelfIllum = subglob.unSelfIllum;
 			rpl.ro.cvtx = subglob.cvtx;
 			rpl.rp = glob.rp;
+			rpl.ro.uAlpha = rpl.ro.uAlpha * g_uAlpha;
 
 			if (rpl.ro.uAlpha != 1.0)
 			{
@@ -2122,10 +2117,59 @@ void RenderAloGlobset(ALO* palo, CM* pcm, RO* pro)
 
 			if (glob.rtck != RTCK_None)
 				AdjustAloRtckMat(palo, pcm, glob.rtck, &glob.posCenter, rpl.ro.model);
-			 
-		    SubmitRpl(&rpl);
+
+			SubmitRpl(&rpl);
 
 			rpl.ro.model = baseModelMatrix;
+		}
+
+		if (glob.csubcel > 0)
+		{
+			if (g_fRenderCelBorders > 0)
+			{
+				// compute these once, OUTSIDE the subglob loop, like the original:
+				const float alphaMRD = rpl.ro.uAlpha;            // written by first FInsideCmMrd
+				const float mainBase = baseAlpha * alphaMRD;     // fVar33 * uAlpha
+				float       mainAlpha = mainBase;
+
+				//mainAlpha *= gleamGain;              // if any
+				mainAlpha *= g_uAlpha;       // like the original
+
+				// cel-base from MRD only (no gleam)
+				float celBase = 0.0f;
+
+				if (glob.sCelBorderMRD < glob.sMRD) {
+					float dummy = 1.0f;
+					const bool insideCB = FInsideCmMrd(pcm, pcm->pos - posCenterWorld, glob.sRadius, glob.sCelBorderMRD, dummy);
+					celBase = insideCB ? (baseAlphaCel * alphaMRD) : 0.0f; // fVar21 * uAlpha
+				}
+				else {
+					celBase = baseAlphaCel * alphaMRD;
+				}
+
+				// late multiply (PS2 did: uAlphaCelBorder *= final rpl.ro.uAlpha)
+				const float celAlphaFinal = celBase * mainAlpha;
+
+				// --- when submitting CELs ---
+				for (int a = 0; a < glob.asubcel.size(); ++a) {
+					rpl.rp = glob.rp;
+
+					if (mainAlpha != 1.0f)
+					{
+						if (rpl.rp == RP_CelBorder || rpl.rp == RP_CelBorderAfterProjVolume)
+							rpl.rp = RP_TranslucentCelBorder;
+					}
+
+					rpl.ro.edgeBuf   = glob.asubcel[a].edgeBuf;
+					rpl.ro.edgeTex   = glob.asubcel[a].edgeTex;
+					rpl.ro.edgeCount = glob.asubcel[a].edgeCount;
+					rpl.ro.model     = (glob.pdmat ? baseModelMatrix * *glob.pdmat : baseModelMatrix);
+
+					rpl.ro.uAlphaCelBorder = celAlphaFinal;   //  matches original intent
+
+					SubmitRpl(&rpl);
+				}
+			}
 		}
 	}
 }
@@ -2166,258 +2210,24 @@ void RenderAloLine(ALO* palo, CM* pcm, glm::vec3* ppos0, glm::vec3* ppos1, float
 	ro.model = model;
 	ro.uAlpha = uAlpha;
 
-	palo->pvtalo->pfnRenderAloGlobset(palo, pcm, &ro);
-}
-
-void DrawGlob(RPL *prpl)
-{
-	glBindVertexArray(*prpl->ro.VAO);
-
-	glUniformMatrix4fv(glslModel, 1, GL_FALSE, glm::value_ptr(prpl->ro.model));
-
-	glUniform1f(glslUFog, prpl->ro.uFog);
-
-	glUniform1f(glslUAlpha, prpl->ro.uAlpha);
-
-	if ((prpl->ro.grfglob & 4U) == 0)
-		glUniform1f(glslRDarken, g_psw->rDarken);
-	else
-		glUniform1f(glslRDarken, 1.0);
-
-	switch (prpl->ro.pshd->shdk)
-	{
-	case SHDK_ThreeWay:
-		glUniform1i(glslRko, 1);
-
-		glUniform1f(glslusSelfIllum, prpl->ro.unSelfIllum);
-		glUniform1i(glslFDynamic, prpl->ro.fDynamic);
-		glUniform3fv(glslPosCenter, 1, glm::value_ptr(prpl->posCenter));
-
-		glActiveTexture(GL_TEXTURE0);
-		glBindTexture(GL_TEXTURE_2D, prpl->ro.pshd->atex[0].abmp[0]->glShadowMap);
-
-		glActiveTexture(GL_TEXTURE1);
-		glBindTexture(GL_TEXTURE_2D, prpl->ro.pshd->atex[0].abmp[0]->glDiffuseMap);
-
-		glActiveTexture(GL_TEXTURE2);
-		glBindTexture(GL_TEXTURE_2D, prpl->ro.pshd->atex[0].abmp[0]->glSaturateMap);
-		break;
-
-	default:
-		glUniform1i(glslRko, 0);
-
-		glActiveTexture(GL_TEXTURE0);
-		glBindTexture(GL_TEXTURE_2D, 0);
-
-		glActiveTexture(GL_TEXTURE1);
-		glBindTexture(GL_TEXTURE_2D, prpl->ro.pshd->atex[0].abmp[0]->glDiffuseMap);
-
-		glActiveTexture(GL_TEXTURE2);
-		glBindTexture(GL_TEXTURE_2D, 0);
-		break;
-	}
-
-	switch (prpl->rp)
-	{
-	case RP_Background:
-		glDepthFunc(GL_ALWAYS);
-		glDepthMask(false);
-
-		if (prpl->ro.pshd->grfshd == 2)
-		{
-			glEnable(GL_BLEND);
-			glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-			glDrawElements(GL_TRIANGLES, prpl->ro.cvtx, GL_UNSIGNED_SHORT, 0);
-
-			glDisable(GL_BLEND);
-		}
-		else
-		{
-			glDrawElements(GL_TRIANGLES, prpl->ro.cvtx, GL_UNSIGNED_SHORT, 0);
-		}
-
-		glDepthMask(true);
-		glDepthFunc(GL_LESS);
-		break;
-
-	case RP_ProjVolume:
-		glEnable(GL_BLEND);
-		switch (prpl->ro.pshd->grfshd)
-		{
-		case 2:
-		case 3:
-			glBlendFunc(GL_SRC_ALPHA, GL_ONE);
-			break;
-
-		default:
-			glBlendFunc(GL_NONE, GL_ONE);
-			break;
-		}
-		glDepthMask(false);
-		glEnable(GL_STENCIL_TEST);
-		glStencilFunc(GL_ALWAYS, 128, 128);
-		glStencilOp(GL_NONE, GL_REPLACE, GL_NONE);
-		glColorMask(0, 0, 0, 0);
-		glFrontFace(GL_CW);
-		glDrawElements(GL_TRIANGLES, prpl->ro.cvtx, GL_UNSIGNED_SHORT, 0);
-
-		glColorMask(1, 1, 1, 1);
-		glStencilOp(GL_KEEP, GL_NONE, GL_KEEP);
-		glFrontFace(GL_CCW);
-		glDrawElements(GL_TRIANGLES, prpl->ro.cvtx, GL_UNSIGNED_SHORT, 0);
-
-		glDepthFunc(GL_ALWAYS);
-		glStencilFunc(GL_EQUAL, 128, 128);
-		glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP);
-		switch (prpl->ro.pshd->grfshd)
-		{
-		case 0:
-		case 2:
-			glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-			break;
-
-		case 1:
-		case 3:
-			glBlendFunc(GL_SRC_ALPHA, GL_ONE);
-			break;
-		}
-		glFrontFace(GL_CW);
-		glDrawElements(GL_TRIANGLES, prpl->ro.cvtx, GL_UNSIGNED_SHORT, 0);
-
-		glDepthMask(true);
-		glDisable(GL_BLEND);
-		glDisable(GL_STENCIL_TEST);
-		glDepthFunc(GL_LESS);
-		glFrontFace(GL_CCW);
-		break;
-
-	case RP_MurkClear:
-		glEnable(GL_BLEND);
-		glDepthMask(GL_FALSE);
-		glDepthFunc(GL_LEQUAL);
-		glBlendFunc(GL_ONE_MINUS_DST_ALPHA, GL_DST_ALPHA);
-
-		glDrawElements(GL_TRIANGLES, prpl->ro.cvtx, GL_UNSIGNED_SHORT, 0);
-
-		glDisable(GL_BLEND);
-		glDepthMask(GL_TRUE);
-		glDepthFunc(GL_LESS);
-		break;
-
-		/*case RP_MurkOpaque:
-		glDrawElements(GL_TRIANGLES, prpl->ro.cvtx, GL_UNSIGNED_SHORT, 0);
-		break;*/
-
-	case RP_MurkFill:
-		glEnable(GL_BLEND);
-		glDepthMask(GL_FALSE);
-		glDepthFunc(GL_LEQUAL);
-		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
-		glDrawElements(GL_TRIANGLES, prpl->ro.cvtx, GL_UNSIGNED_SHORT, 0);
-
-		glDisable(GL_BLEND);
-		glDepthMask(GL_TRUE);
-		glDepthFunc(GL_LESS);
-		break;
-
-
-	case RP_CutoutAfterProjVolume:
-	case RP_Cutout:
-	case RP_Translucent:
-		switch (prpl->ro.pshd->grfshd)
-		{
-		case 2:
-		case 6:
-			glEnable(GL_BLEND);
-			glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
-			//glUniform1i(glslfAlphaTest, 1);
-			glDrawElements(GL_TRIANGLES, prpl->ro.cvtx, GL_UNSIGNED_SHORT, 0);
-			//glUniform1i(glslfAlphaTest, 0);
-
-			glDepthMask(false);
-			glDrawElements(GL_TRIANGLES, prpl->ro.cvtx, GL_UNSIGNED_SHORT, 0);
-			break;
-
-		case 3:
-			glEnable(GL_BLEND);
-			glBlendFunc(GL_SRC_ALPHA, GL_ONE);
-
-			glDepthMask(false);
-			glDrawElements(GL_TRIANGLES, prpl->ro.cvtx, GL_UNSIGNED_SHORT, 0);
-			break;
-
-		default:
-			std::cout << (uint32_t)prpl->ro.pshd->grfshd << "\n";
-			//glDrawElements(GL_LINES, prpl->ro.cvtx, GL_UNSIGNED_SHORT, 0);
-			break;
-		}
-
-		glDisable(GL_BLEND);
-		glDepthMask(true);
-		break;
-
-	case RP_WorldMap:
-		glEnable(GL_BLEND);
-		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-		//glDepthFunc(GL_ALWAYS);
-		glDrawElements(GL_TRIANGLES, prpl->ro.cvtx, GL_UNSIGNED_SHORT, 0);
-
-		//glDepthFunc(GL_LESS);
-		glDisable(GL_BLEND);
-		break;
-
-	default:
-		if (prpl->ro.fCelBorder == 1)
-		{
-			// === First Pass: Draw main object and write to stencil ===
-			glUniform1i(glslfCull, 0);
-			glEnable(GL_STENCIL_TEST);
-			glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
-			glStencilFunc(GL_ALWAYS, 1, 0xFF);
-			glStencilMask(0xFF);
-			glDrawElements(GL_TRIANGLES, prpl->ro.cvtx, GL_UNSIGNED_SHORT, 0);
-
-			// === Second Pass: Draw outline where stencil != 1 ===
-			glEnable(GL_BLEND);
-			glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-			glBindVertexArray(*prpl->ro.celVAO);
-			glUniform1i(glslfCull, 1);
-			glUniform1i(glslRko, 2);
-			glStencilFunc(GL_NOTEQUAL, 1, 0xFF);
-			glStencilMask(0x00);
-			glFrontFace(GL_CW);
-			glDrawElements(GL_TRIANGLES, prpl->ro.celcvtx, GL_UNSIGNED_SHORT, 0);
-
-			// === Restore State ===
-			glDisable(GL_BLEND);
-			glFrontFace(GL_CCW);
-			glDisable(GL_STENCIL_TEST);
-			glStencilMask(0xFF);
-			glStencilFunc(GL_ALWAYS, 0, 0xFF);
-		}
-		else
-		{
-			glDrawElements(GL_TRIANGLES, prpl->ro.cvtx, GL_UNSIGNED_SHORT, 0);
-		}
-		break;
-	}
+	//palo->pvtalo->pfnRenderAloGlobset(palo, pcm, &ro);
 }
 
 void DeleteModel(ALO *palo)
 {
 	for (int i = 0; i < palo->globset.aglob.size(); i++)
-	{	
+	{
 		for (int a = 0; a < palo->globset.aglob[i].asubglob.size(); a++)
 		{
 			glDeleteVertexArrays(1, &palo->globset.aglob[i].asubglob[a].VAO);
 			glDeleteBuffers(1, &palo->globset.aglob[i].asubglob[a].VBO);
 			glDeleteBuffers(1, &palo->globset.aglob[i].asubglob[a].EBO);
+		}
 
-			glDeleteVertexArrays(1, &palo->globset.aglob[i].asubglob[a].celVAO);
-			glDeleteBuffers(1, &palo->globset.aglob[i].asubglob[a].celVBO);
-			glDeleteBuffers(1, &palo->globset.aglob[i].asubglob[a].celEBO);
+		for (int b = 0; b < palo->globset.aglob[i].asubcel.size(); b++)
+		{
+			glDeleteBuffers(1, &palo->globset.aglob[i].asubcel[b].edgeBuf);
+			glDeleteTextures(1, &palo->globset.aglob[i].asubcel[b].edgeTex);
 		}
 	}
 }

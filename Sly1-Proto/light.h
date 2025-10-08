@@ -40,45 +40,48 @@ struct LIGHTBLK
 	float maxDst;
 	glm::vec4 ru;
 	glm::vec4 du;
+	glm::mat4 matFrustrum;
+	glm::vec4 falloffScale;
+	glm::vec4 falloffBias;
 };
 
 
 class LIGHT : public ALO
 {
-		public:
-		LIGHTK lightk;
-		TWPS twps;
-		// Light color (HSV)
-		glm::vec3 vecHighlight;
-		// Light color (RGBA)
-		glm::vec3 rgbaColor;
-		LTFN ltfn;
-		glm::vec3 agFallOff;
-		glm::vec3 falloff0Frustum;
-		glm::vec3 falloff1Frustum;
-		glm::mat4 frustum;
-		float gMidtone;
-		float gShadow;
-		float degHighlight;
-		float degMidtone;
-		float degShadow;
-		int fDynamic;
-		int fExcludeDynamicObjects;
-		glm::vec3 vecDirectionOrig;
-		glm::vec3 normalLocal;
-		LM lmFallOffS;
-		float degCone;
-		float degHotSpot;
-		glm::vec3 vecUpLocal;
-		float rx;
-		float ry;
-		LM lmFallOffPenumbra;
-		LM lmFallOffAbsX;
-		LM lmFallOffAbsY;
-		glm::vec4 avecFrustrum[6];
-		int grfzonBeam;
-		glm::mat4 matLookAt;
-		DLE dleLight;
+public:
+	LIGHTK lightk;
+	TWPS twps;
+	// Light color (HSV)
+	glm::vec3 vecHighlight;
+	// Light color (RGBA)
+	glm::vec3 rgbaColor;
+	LTFN ltfn;
+	glm::vec3 agFallOff;
+	glm::vec4 falloffScale;
+	glm::vec4 falloffBias;
+	glm::mat4 frustum;
+	float gMidtone;
+	float gShadow;
+	float degHighlight;
+	float degMidtone;
+	float degShadow;
+	int fDynamic;
+	int fExcludeDynamicObjects;
+	glm::vec3 vecDirectionOrig;
+	glm::vec3 normalLocal;
+	LM lmFallOffS;
+	float degCone;
+	float degHotSpot;
+	glm::vec3 vecUpLocal;
+	float rx;
+	float ry;
+	LM lmFallOffPenumbra;
+	LM lmFallOffAbsX;
+	LM lmFallOffAbsY;
+	glm::vec4 avecFrustrum[6];
+	int grfzonBeam;
+	glm::mat4 matLookAt;
+	DLE dleLight;
 };
 
 LIGHT*NewLight();
@@ -134,3 +137,4 @@ extern std::vector <LIGHT*> allSwLights;
 extern GLuint g_lightUbo;
 extern int numRl;
 extern std::vector <LIGHTBLK> lightBlk;
+extern std::vector <int> lightIndices;

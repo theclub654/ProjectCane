@@ -15,6 +15,35 @@ int GetAlarmSize()
 	return sizeof(ALARM);
 }
 
+void AddAlarmAlbrk(ALARM* palarm, OID oid)
+{
+    uint32_t calbrk = palarm->calbrks;
+
+    if (calbrk < 4) {
+        palarm->aoidAlbrks[calbrk] = oid;
+        palarm->calbrks = calbrk++;
+    }
+}
+
+void AddAlarmSensor(ALARM* palarm, OID oid)
+{
+    uint32_t coidSensors = palarm->coidSensors;
+
+    if (coidSensors < 16) {
+        palarm->aoidSensors[coidSensors] = oid;
+        palarm->coidSensors = coidSensors++;
+    }
+}
+
+void AddAlarmStepguard(ALARM* palarm, OID oid)
+{
+    uint32_t coidStepguards = palarm->coidStepguards;
+    if (coidStepguards < 6) {
+        palarm->aoidStepguards[coidStepguards] = oid;
+        palarm->coidStepguards = coidStepguards++;
+    }
+}
+
 void CloneAlarm(ALARM* palarm, ALARM* palarmBase)
 {
 	int ichkDisabled = palarm->ichkDisabled;

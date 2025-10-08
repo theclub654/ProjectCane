@@ -34,11 +34,8 @@ void PostBinocLoad(BINOC* pbinoc)
     pbinoc->pfont = pbinoc->pfont->PfontClone(0.75f, 0.8f);
 
     // Setup edge font if available
-    if (g_pfontScreenCounters)
-    {
-        pbinoc->pte = &g_teBinoc;
-        g_teBinoc.m_pfont = g_pfontScreenCounters;
-    }
+    pbinoc->pte = &g_teBinoc;
+    g_teBinoc.m_pfont = &g_afontBrx[2];
 
     //Calculate max width of point labels
     g_dxPointsMax = pbinoc->pfontCompass->DxFromPchz((char*)g_aachzPoints[0]);

@@ -306,6 +306,7 @@ void LoadEmitterFromBrx(EMITTER* pemitter, CBinaryInputStream* pbis);
 void BindEmitter(EMITTER* pemitter);
 void CloneEmitter(EMITTER* pemitter, EMITTER* pemitterBase);
 EMITB* PemitbEnsureEmitter(EMITTER* pemitter, ENSK ensk);
+void PauseEmitterIndefinite(EMITTER *pemitter);
 void*GetEmitterEmitok(EMITTER* pemitter);
 void PostEmitterLoad(EMITTER* pemitter);
 void RenderEmitterSelf(EMITTER* pemitter, CM* pcm, RO* pro);

@@ -10,17 +10,16 @@ void PostTotalsLoad(TOTALS* ptotals)
     PostBlotLoad(ptotals);
 
     // Clone the screen font at 1:1 scale
-    //ptotals->pfont = g_pfontScreenCounters->PfontClone(1.0f, 1.0f);
+    ptotals->pfont = g_afontBrx[2].PfontClone(1.0, 1.0);
+;    // Set RGBA color (0x5f, 0x5f, 0x5f, 0xbf)
+    ptotals->rgba = glm::vec4(0.3725f, 0.3725f, 0.3725f, 0.749f);
 
-    //// Set RGBA color (0x5f, 0x5f, 0x5f, 0xbf)
-    //ptotals->rgba = glm::vec4(0.3725f, 0.3725f, 0.3725f, 0.749f);
+    // Sample text for measuring width
+    const char* sampleText = "KJH";
+    float dx = ptotals->pfont->DxFromPchz((char*)sampleText);
+    float dy = ptotals->pfont->m_dyUnscaled * ptotals->pfont->m_ryScale;
 
-    //// Sample text for measuring width
-    //const char* sampleText = "KJH";
-    //float dx = ptotals->pfont->DxFromPchz((char*)sampleText);
-    //float dy = ptotals->pfont->m_dyUnscaled * ptotals->pfont->m_ryScale;
-
-    //ResizeBlot(ptotals, dx, dy);
+    ResizeBlot(ptotals, dx, dy);
 }
 
 void SetTotalsBlots(TOTALS* ptotals, BLOTS blots)

@@ -325,7 +325,7 @@ void RenderSoSelf(SO* pso, CM* pcm, RO* pro)
 	}*/
 }
 
-void DrawCollision(CM* pcm, SO* pso)
+void DrawCollision(SO* pso)
 {
 	if (pso->geomLocal.VAO != 0 || pso->geomCameraLocal.VAO != 0)
 	{

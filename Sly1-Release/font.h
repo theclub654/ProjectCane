@@ -192,6 +192,8 @@ extern CFontBrx *g_pfont;
 extern CFontBrx *g_pfontScreenCounters;
 extern CFontBrx *g_pfontJoy;
 
+extern std::vector <CFontBrx*> g_testFontBrx;
+
 extern SFR g_sfrOne;
 
 extern GLuint u_projectionLoc;

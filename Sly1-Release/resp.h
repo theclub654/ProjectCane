@@ -67,6 +67,7 @@ struct PRD
 inline const char* errorcreatingFileStr = "An error occurred while creating the Sly Cooper Save File on the Memory Card (PS2) in Memory Card Slot 1\n\nYou will not be able to save your progress\n";
 inline const char* creatingSaveFileStr = "Creating the Sly Cooper Save File on the Memory Card (PS2) in Memory Card Slot 1";
 inline const char* noSaveFileStr = "No Sly Cooper Save File on the Memory Card(PS2) inserted in Memory Card Slot 1\n\nIf you do not create a Sly Cooper Save File then you will not be able to save your progress\n\nWould you like to create a Sly Cooper Save File ? ";
+inline const char* pauseStr = "Paused";
 
 inline RESPK s_arespkOptionsMenu[2] =
 {
@@ -106,7 +107,7 @@ inline RESPK s_arespkPauseMenuAll[6] =
 
 inline const char* s_mprespkachz[13] =
 {
-    "Yes", "No", "Continue", "Map",
+    "Yes", "No", "Return to Game", "View Map",
     "Options", "Save", "Exit Level",
     "Quit Game", "Game 1", "Game 2",
     "Game 3", "Game Options", "Sound Options"

@@ -105,6 +105,7 @@ struct BLOT
         struct VTWMC* pvtwmc;
 
     };
+
     CFontBrx* pfont;          // Font to draw with
     char achzDraw[512];       // Text or formatted string to draw
     glm::vec4 rgba;           // Text color (or overlay color)

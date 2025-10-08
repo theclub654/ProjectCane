@@ -59,7 +59,7 @@ void GL::InitGL()
 
 	glGenTextures(1, &fbc);
 	glBindTexture(GL_TEXTURE_2D, fbc);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height - imguiOffset, 0, GL_RGB, GL_UNSIGNED_BYTE, nullptr);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height - imguiOffset, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, fbc, 0);
@@ -139,6 +139,8 @@ void GL::InitGL()
 
 	glBindVertexArray(0);
 
+	RescaleLineWidth();
+
 	blotProjection = glm::ortho(0.0f, float(width), float(height - imguiOffset), 0.0f, -1.0f, 1.0f);
 }
 
@@ -210,7 +212,7 @@ void InitGlslUniforms()
 	glslModel = glGetUniformLocation(glGlobShader.ID, "model");
 	glslUFog = glGetUniformLocation(glGlobShader.ID, "uFog");
 	glslUAlpha = glGetUniformLocation(glGlobShader.ID, "uAlpha");
-
+	glsluAlphaCelBorder = glGetUniformLocation(glGlobShader.ID, "uAlphaCelBorder");
 	glslRDarken = glGetUniformLocation(glGlobShader.ID, "rDarken");
 	glslRko = glGetUniformLocation(glGlobShader.ID, "rko");
 	glslusSelfIllum = glGetUniformLocation(glGlobShader.ID, "usSelfIllum");
@@ -223,8 +225,8 @@ void InitGlslUniforms()
 	glslfCull = glGetUniformLocation(glGlobShader.ID, "fCull");
 	glslCollisionRgba = glGetUniformLocation(glGlobShader.ID, "collisionRgba");
 
-	glUniform1i(glGetUniformLocation(glGlobShader.ID, "shadowMap"), 0);
-	glUniform1i(glGetUniformLocation(glGlobShader.ID, "diffuseMap"), 1);
+	glUniform1i(glGetUniformLocation(glGlobShader.ID, "shadowMap"),   0);
+	glUniform1i(glGetUniformLocation(glGlobShader.ID, "diffuseMap"),  1);
 	glUniform1i(glGetUniformLocation(glGlobShader.ID, "saturateMap"), 2);
 }
 
@@ -239,7 +241,7 @@ void FrameBufferSizeCallBack(GLFWwindow* window, int width, int height)
 	glBindFramebuffer(GL_FRAMEBUFFER, g_gl.fbo);
 
 	glBindTexture(GL_TEXTURE_2D, g_gl.fbc);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height - imguiOffset, 0, GL_RGB, GL_UNSIGNED_BYTE, nullptr);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height - imguiOffset, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, g_gl.fbc, 0);
 
 	glBindRenderbuffer(GL_RENDERBUFFER, g_gl.rbo);
@@ -247,6 +249,8 @@ void FrameBufferSizeCallBack(GLFWwindow* window, int width, int height)
 	glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, g_gl.rbo);
 
 	glViewport(0, 0, width, height - imguiOffset);
+
+	RescaleLineWidth();
 
 	g_gl.UpdateGLProjections();
 
@@ -261,6 +265,20 @@ void FrameBufferSizeCallBack(GLFWwindow* window, int width, int height)
 	BuildBinocOutline(&g_binoc);
 
 	RepositionAllBlots();
+}
+
+void RescaleLineWidth()
+{
+	GLint vp[4];
+	glGetIntegerv(GL_VIEWPORT, vp);
+
+	float resScale = float(vp[3]) / (g_gl.height / 896.0);     // PS2-ish reference height
+	float target = glm::clamp(2.0f * resScale, 1.5f, 6.0f);
+
+	GLfloat range[2];
+	glGetFloatv(GL_ALIASED_LINE_WIDTH_RANGE, range); // range[0]=min, range[1]=max
+
+	glLineWidth(glm::clamp(target, range[0], range[1]));
 }
 
 GL g_gl;
@@ -280,6 +298,7 @@ GLuint glslRgbaCel = 0;
 GLuint glslModel = 0;
 GLuint glslUFog = 0;
 GLuint glslUAlpha = 0;
+GLuint glsluAlphaCelBorder = 0;
 GLuint glslRDarken = 0;
 GLuint glslRko = 0;
 GLuint glslusSelfIllum = 0;

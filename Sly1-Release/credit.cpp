@@ -26,7 +26,7 @@ void PostNoteLoad(NOTE* pnote)
     // Step 3: Apply shared CTextEdge if the counter font exists
     if (g_pfontScreenCounters) {
         pnote->pte = &g_teNote;
-        g_teNote.m_pfont = g_pfontScreenCounters;
+        g_teNote.m_pfont = &g_afontBrx[2];
     }
 }
 

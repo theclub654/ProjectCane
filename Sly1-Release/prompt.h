@@ -27,3 +27,4 @@ void DrawPrompt(PROMPT* pprompt);
 
 extern PROMPT g_prompt;
 extern CTextEdge g_tePrompt;
+extern float g_promptFade;

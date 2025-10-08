@@ -94,31 +94,30 @@ struct RO
 	GLuint* EBO;
 	int cvtx;
 
-	GLuint* celVAO;
-	GLuint* celVBO;
-	GLuint* celEBO;
-	int celcvtx;
-
-	GRFGLOB grfglob;
+	GLuint  edgeBuf;
+	GLuint  edgeTex;
+	GLsizei edgeCount;
 
 	SHD* pshd;
-	float unSelfIllum;
 
+	float unSelfIllum;
 	glm::mat4 model;
-	float uFog;
-	float uAlpha;
+	glm::vec3 posCenter;
 	int fDynamic;
-	int fCelBorder;
+	float uFog;
+	float darken;
+	float uAlpha;
+	float uAlphaCelBorder;
 };
 
 // Render Priority List
 struct RPL
 {
-	void (*PFNDRAW)(RPL*);
 	RP rp;
 	RO ro;
 	float z;
-	glm::vec3 posCenter;
+	byte grfshd;
+	float sRadius;
 };
 
 // Vertex Flag
@@ -142,15 +141,14 @@ struct SUBPOSEF
 
 struct SUBCEL
 {
-	GLuint VAO;
-	GLuint VBO;
-	GLuint EBO;
+	// Edge data as a texture buffer (4 vec4 per edge)
+	GLuint  edgeBuf = 0; // GL_TEXTURE_BUFFER's storage
+	GLuint  edgeTex = 0; // GL texture handle bound to edgeBuf
+	GLsizei edgeCount = 0; // number of edges (== ctwef)
 
 	std::vector <glm::vec3> positions;
-	std::vector <uint16_t> indices;
-	std::vector <float> weights;
-
-	int cvtx;
+	std::vector <uint16_t>  indices;
+	std::vector <float>     weights;
 };
 
 struct TWEF
@@ -206,35 +204,24 @@ struct FGFN
 	float duFogPlusClipBias;
 };
 
-struct SUBGLOB // NOT DONE
+struct SUBGLOB
 {
 	GLuint VAO;
 	GLuint VBO;
 	GLuint EBO;
-
 	std::vector <VERTICE> vertices;
-	std::vector <INDICE> indices;
-
+	std::vector <INDICE>  indices;
 	int cvtx;
-
-	GLuint celVAO;
-	GLuint celVBO;
-	GLuint celEBO;
-
-	std::vector <glm::vec3> celPositions;
-	std::vector <INDICE> celIndices;
-
-	int celcvtx;
-	int fCelBorder;
 
 	glm::vec3 posCenter; // Submodel orgin
 	float sRadius;
-
 	// Object brightness
 	float unSelfIllum;
+	// Shader ID
+	int shdID;
 	// Object shader property
 	struct SHD* pshd;
-	struct WRBSG *pwrbsg;
+	struct WRBSG* pwrbsg;
 	int cibnd;
 	std::vector <int> aibnd;
 };
@@ -307,10 +294,8 @@ struct GLOBSET // NOT DONE
 	struct SAA** apsaa;
 };
 
-// Initializes glsl uniform locations
-void InitGlslUniforms();
 // Loads 3D model data from binary file
-void LoadGlobsetFromBrx(GLOBSET* pglobset, short cid, ALO* palo ,CBinaryInputStream* pbis);
+void LoadGlobsetFromBrx(GLOBSET* pglobset, ALO* palo, CBinaryInputStream* pbis);
 // Converts strips to tri lists and stores 3D sub model in VRAM
 void BuildSubGlob(SUBGLOB *psubglob, SHD *pshd, std::vector <glm::vec3> &positions, std::vector <glm::vec3> &normals, std::vector <glm::vec4> &colors, std::vector <glm::vec2> &texcoords, std::vector <VTXFLG> &indexes, SUBPOSEF* subposef, std::vector <glm::vec3>& aposfPoses, std::vector <glm::vec3>& anormalfPoses, std::vector <float>& agWeights);
 void BuildSubcel(GLOBSET *pglobset, SUBCEL *psubcel, int cposf, std::vector <glm::vec3> &aposf, int ctwef, std::vector <TWEF> &atwef, std::vector <SUBPOSEF> &asubposef, std::vector <glm::vec3> &aposfPoses, std::vector <float> &agWeights);
@@ -320,26 +305,5 @@ extern bool g_fRenderModels;
 extern bool g_fRenderCollision;
 extern bool g_fRenderCelBorders;
 extern bool g_fBsp;
-
-extern GLuint glslNumLights;
-extern GLuint glslmatWorldToClip;
-extern GLuint glslCameraPos;
-extern GLuint glslFogType;
-extern GLuint glslFogNear;
-extern GLuint glslFogFar;
-extern GLuint glslFogMax;
-extern GLuint glslFogColor;
-extern GLuint glslLsmShadow;
-extern GLuint glslLsmDiffuse;
-extern GLuint glslRgbaCel;
-extern GLuint glslModel;
-extern GLuint glslUFog;
-extern GLuint glslUAlpha;
-extern GLuint glslRDarken;
-extern GLuint glslRko;
-extern GLuint glslusSelfIllum;
-extern GLuint glslFDynamic;
-extern GLuint glslPosCenter;
-extern GLuint glslfAlphaTest;
-extern GLuint glslfCull;
-extern GLuint glslCollisionRgba;
+extern float g_uAlpha;
+extern GLuint gEmptyVAO;

@@ -1,12 +1,14 @@
 #include "glob.h"
 
-void LoadGlobsetFromBrx(GLOBSET* pglobset, short cid, ALO* palo, CBinaryInputStream* pbis)
+void LoadGlobsetFromBrx(GLOBSET *pglobset, ALO *palo, CBinaryInputStream *pbis)
 {
     pglobset->cpsaa = 0;
 
     byte fRelight = pbis->U8Read();
     pbis->U8Read();
     pglobset->cbnd = pbis->U8Read();
+    //pglobset->abnd.resize(pglobset->cbnd);
+
     pglobset->mpibndoid.resize(pglobset->cbnd);
 
     for (int i = 0; i < pglobset->cbnd; i++)
@@ -25,7 +27,6 @@ void LoadGlobsetFromBrx(GLOBSET* pglobset, short cid, ALO* palo, CBinaryInputStr
     pglobset->aglobi.resize(pglobset->cglob);
 
     int fCloneSubGlob = 0;
-    int fCelBorder = 0;
     int instanceIndex = 0;
 
     // Loading each submodel for a model
@@ -89,7 +90,7 @@ void LoadGlobsetFromBrx(GLOBSET* pglobset, short cid, ALO* palo, CBinaryInputStr
         if ((unk_5 & 0x10) != 0)
         {
             pglobset->aglob[i].sMRD = pbis->F32Read();
-
+            
             if (pglobset->aglob[i].sMRD == 3.402823e+38)
                 pglobset->aglob[i].sMRD = 10000000000.000000;
         }
@@ -160,7 +161,6 @@ void LoadGlobsetFromBrx(GLOBSET* pglobset, short cid, ALO* palo, CBinaryInputStr
             // std::cout << "Model Start: " << std::hex << file.tellg()<<"\n";
             pglobset->aglob[i].csubglob = pbis->U16Read();
             pglobset->aglob[i].asubglob.resize(pglobset->aglob[i].csubglob);
-
             numRo += pglobset->aglob[i].csubglob;
 
             for (int a = 0; a < pglobset->aglob[i].csubglob; a++)
@@ -241,23 +241,23 @@ void LoadGlobsetFromBrx(GLOBSET* pglobset, short cid, ALO* palo, CBinaryInputStr
                 {
                     uint16_t vertexCount1 = pbis->U16Read();
 
-                    for (int i = 0; i < vertexCount1; i++)
+                    for (int g = 0; g < vertexCount1; g++)
                         pbis->ReadVector();
 
                     uint16_t normalCount = pbis->U16Read();
 
-                    for (int i = 0; i < normalCount; i++)
+                    for (int h = 0; h < normalCount; h++)
                         pbis->ReadVector();
 
-                    for (int i = 0; i < pglobset->cpose; i++)
+                    for (int j = 0; j < pglobset->cpose; j++)
                     {
-                        for (int i = 0; i < indexCount; i++)
+                        for (int a = 0; a < indexCount; a++)
                         {
                             pbis->U8Read();
                             pbis->U8Read();
                         }
 
-                        for (int i = 0; i < indexCount; i++)
+                        for (int b = 0; b < indexCount; b++)
                         {
                             pbis->U8Read();
                             pbis->U8Read();
@@ -268,48 +268,76 @@ void LoadGlobsetFromBrx(GLOBSET* pglobset, short cid, ALO* palo, CBinaryInputStr
                 BuildSubGlob(&pglobset->aglob[i].asubglob[a], pglobset->aglob[i].asubglob[a].pshd, vertexes, normals, vertexColors, texcoords, indexes);
             }
 
-            uint16_t numSubMesh1 = pbis->U16Read();
+            pglobset->aglob[i].csubcel = pbis->U16Read();
+            pglobset->aglob[i].asubcel.resize(pglobset->aglob[i].csubcel);
 
-            for (int i = 0; i < numSubMesh1; i++)
+            numRo += pglobset->aglob[i].csubcel;
+
+            for (int k = 0; k < pglobset->aglob[i].csubcel; k++)
             {
-                fCelBorder = 1;
-                byte vertexCount2 = pbis->U8Read();
+                SUBCEL subcel;
 
-                for (int i = 0; i < vertexCount2; i++)
-                    pbis->ReadVector();
+                byte aposfCount = pbis->U8Read();
 
-                byte indexCount = pbis->U8Read();
+                std::vector <glm::vec3> aposf;
+                aposf.resize(aposfCount);
 
-                for (int i = 0; i < indexCount; i++)
+                for (int a = 0; a < aposfCount; a++)
+                    aposf[a] = pbis->ReadVector();
+
+                byte ctwef = pbis->U8Read();
+
+                std::vector <TWEF> atwef;
+                atwef.resize(ctwef);
+
+                for (int b = 0; b < ctwef; b++)
                 {
-                    pbis->U8Read();
-                    pbis->U8Read();
-                    pbis->U8Read();
-                    pbis->U8Read();
+                    atwef[b].aipos0 = (uint32_t)pbis->U8Read();
+                    atwef[b].aipos1 = (uint32_t)pbis->U8Read();
+                    atwef[b].aipos2 = (uint32_t)pbis->U8Read();
+                    atwef[b].aipos3 = (uint32_t)pbis->U8Read();
                 }
 
-                byte unk_26 = pbis->U8Read();
+                int cibnd = pbis->U8Read();
 
-                for (int i = 0; i < unk_26; i++)
-                    pbis->U8Read();
+                std::vector <int> aibnd;
+                aibnd.resize(cibnd);
 
-                pbis->file.seekg(unk_26 * vertexCount2 * 4, SEEK_CUR);
+                for (int c = 0; c < cibnd; c++)
+                    aibnd[c] = pbis->U8Read();
+
+                int weightsCelCount = cibnd * aposfCount;
+
+                std::vector <float> weightsCel;
+                weightsCel.resize(weightsCelCount);
+
+                for (int d = 0; d < weightsCelCount; d++)
+                    weightsCel[d] = pbis->F32Read();
+
+                std::vector <SUBPOSEF> subposef;
+                std::vector <glm::vec3> aposfPoses;
 
                 if (pglobset->cpose != 0)
                 {
-                    uint16_t vertexCount3 = pbis->U16Read();
+                    uint16_t aposfPosesCount = pbis->U16Read();
+                    aposfPoses.resize(aposfPosesCount);
 
-                    for (int i = 0; i < vertexCount3; i++)
-                        pbis->ReadVector();
+                    for (int e = 0; e < aposfPosesCount; e++)
+                        aposfPoses[e] = pbis->ReadVector();
 
-                    for (int i = 0; i < pglobset->cpose; i++)
+                    subposef.resize(pglobset->cpose);
+
+                    for (int f = 0; f < pglobset->cpose; f++)
                     {
-                        for (int i = 0; i < vertexCount2; i++)
-                        {
-                            pbis->U16Read();
-                        }
+                        subposef[f].aiposf.resize(aposfCount);
+
+                        for (int a = 0; a < aposfCount; a++)
+                            subposef[f].aiposf[a] = pbis->U16Read();
                     }
                 }
+
+                BuildSubcel(pglobset, &subcel, aposfCount, aposf, ctwef, atwef, subposef, aposfPoses, weightsCel);
+                pglobset->aglob[i].asubcel[k] = subcel;
             }
         }
         else
@@ -318,56 +346,6 @@ void LoadGlobsetFromBrx(GLOBSET* pglobset, short cid, ALO* palo, CBinaryInputStr
             pglobset->aglob[i].asubglob = pglobset->aglob[pglobset->aglob[i].instanceIndex].asubglob;
 
             numRo += pglobset->aglob[instanceIndex].csubglob;
-        }
-    }
-    
-    if (!pglobset->aglob.empty() && fCelBorder != 0)
-    {
-        for (int i = 0; i < pglobset->aglob.size(); i++)
-        {
-            const auto& glob = pglobset->aglob[i];
-
-            // Skip excluded render passes
-            if (glob.rp == RP_Cutout || glob.rp == RP_ProjVolume ||
-                glob.rp == RP_CutoutAfterProjVolume || glob.rp == RP_Translucent)
-                continue;
-
-            for (int a = 0; a < glob.asubglob.size(); a++)
-            {
-                auto& subglob = pglobset->aglob[i].asubglob[a];
-                const glm::vec3& center = subglob.posCenter;
-
-                constexpr float thickness = 4.0f;
-
-                for (const auto& vert : subglob.vertices)
-                {
-                    const glm::vec3& pos = vert.pos;
-
-                    // Inflate outward from posCenter
-                    glm::vec3 offsetDir = glm::normalize(pos + vert.normal - center);
-                    glm::vec3 newPos = pos + offsetDir * thickness;
-
-                    subglob.celPositions.push_back(newPos);
-                }
-
-                subglob.celIndices = subglob.indices;
-                subglob.celcvtx = subglob.celIndices.size() * sizeof(INDICE);
-                subglob.fCelBorder = 1;
-
-                glGenVertexArrays(1, &subglob.celVAO);
-                glBindVertexArray(subglob.celVAO);
-
-                glGenBuffers(1, &subglob.celVBO);
-                glBindBuffer(GL_ARRAY_BUFFER, subglob.celVBO);
-                glBufferData(GL_ARRAY_BUFFER, subglob.celPositions.size() * sizeof(glm::vec3), subglob.celPositions.data(), GL_STATIC_DRAW);
-
-                glGenBuffers(1, &subglob.EBO);
-                glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, subglob.EBO);
-                glBufferData(GL_ELEMENT_ARRAY_BUFFER, subglob.celIndices.size() * sizeof(INDICE), subglob.celIndices.data(), GL_STATIC_DRAW);
-
-                glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), (void*)0);
-                glEnableVertexAttribArray(0);
-            }
         }
     }
 }
@@ -418,7 +396,7 @@ void BuildSubGlob(SUBGLOB *psubglob, SHD *pshd, std::vector <glm::vec3> &positio
                 indice.v1 = idx + 0;
                 indice.v2 = idx + 2;
                 indice.v3 = idx + 1;
-
+                
                 psubglob->indices.push_back(indice);
             }
         }
@@ -437,7 +415,7 @@ void BuildSubGlob(SUBGLOB *psubglob, SHD *pshd, std::vector <glm::vec3> &positio
 
     glGenBuffers(1, &psubglob->EBO);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, psubglob->EBO);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, psubglob->indices.size() * sizeof(INDICE), psubglob->indices.data(), GL_STATIC_DRAW);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, psubglob->cvtx, psubglob->indices.data(), GL_STATIC_DRAW);
     
     // Vertex Position's 
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(VERTICE), (void*)offsetof(VERTICE, pos));
@@ -456,8 +434,55 @@ void BuildSubGlob(SUBGLOB *psubglob, SHD *pshd, std::vector <glm::vec3> &positio
     glEnableVertexAttribArray(3);
 }
 
+void BuildSubcel(GLOBSET* pglobset, SUBCEL* psubcel, int cposf, std::vector <glm::vec3>& aposf, int ctwef, std::vector <TWEF>& atwef, std::vector <SUBPOSEF>& asubposef, std::vector <glm::vec3>& aposfPoses, std::vector <float>& agWeights)
+{
+    psubcel->positions = aposf;
+    psubcel->edgeCount = static_cast<GLsizei>(ctwef);
+
+    if (psubcel->edgeCount == 0) return;
+
+    std::vector<glm::vec4> edgeTexels;
+    edgeTexels.reserve(psubcel->edgeCount * 4);
+
+    auto getP = [&](uint32_t idx)->const glm::vec3& {
+        // (Optional) add asserts in debug builds
+        return psubcel->positions[idx];
+        };
+
+    for (int i = 0; i < ctwef; ++i)
+    {
+        const uint32_t iOppA = atwef[i].aipos0; // opposite A
+        const uint32_t iE0   = atwef[i].aipos1; // edge endpoint 0
+        const uint32_t iE1   = atwef[i].aipos2; // edge endpoint 1
+        const uint32_t iOppB = atwef[i].aipos3; // opposite B (may degenerate)
+
+        const glm::vec3 e0   = getP(iE0);
+        const glm::vec3 e1   = getP(iE1);
+        const glm::vec3 oppA = getP(iOppA);
+        const glm::vec3 oppB = getP(iOppB);
+
+        // Pack 4 texels per edge, OBJECT-SPACE positions (w unused except kept as 1.0)
+        edgeTexels.emplace_back(e0,   1.0f); // texel 0: E0
+        edgeTexels.emplace_back(e1,   1.0f); // texel 1: E1
+        edgeTexels.emplace_back(oppA, 1.0f); // texel 2: OppA
+        edgeTexels.emplace_back(oppB, 1.0f); // texel 3: OppB
+    }
+
+    // Upload once (static)
+    glGenBuffers(1, &psubcel->edgeBuf);
+    glBindBuffer(GL_TEXTURE_BUFFER, psubcel->edgeBuf);
+    glBufferData(GL_TEXTURE_BUFFER, edgeTexels.size() * sizeof(glm::vec4), edgeTexels.data(), GL_STATIC_DRAW);
+
+    glGenTextures(1, &psubcel->edgeTex);
+    glBindTexture(GL_TEXTURE_BUFFER, psubcel->edgeTex);
+    glTexBuffer(GL_TEXTURE_BUFFER, GL_RGBA32F, psubcel->edgeBuf);
+}
+
 int  g_fogType = 1;
 bool g_fRenderModels = true;
 bool g_fRenderCollision = false;
 bool g_fRenderCelBorders = true;
 bool g_fBsp = false;
+float g_uAlpha = 1.0;
+GLuint gEmptyVAO = 0;
+glm::vec4 g_rgbaCel = glm::vec4(16.0f / 255.0f, 16.0f / 255.0f, 16.0f / 255.0f, 1.0);

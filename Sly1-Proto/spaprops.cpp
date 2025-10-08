@@ -1125,10 +1125,13 @@ void BuildEopids()
 	g_aeopid[266].optdat.ibSetUser = 0x588;
 	g_aeopid[267].otyp = OTYP_Oid;
 	g_aeopid[267].grfeopid = 0x100;
+	g_aeopid[267].optdat.pfnset = (PFNSET)AddAlarmAlbrk;
 	g_aeopid[268].otyp = OTYP_Oid;
 	g_aeopid[268].grfeopid = 0x100;
+	g_aeopid[268].optdat.pfnset = (PFNSET)AddAlarmSensor;
 	g_aeopid[269].otyp = OTYP_Oid;
 	g_aeopid[269].grfeopid = 0x100;
+	g_aeopid[269].optdat.pfnset = (PFNSET)AddAlarmStepguard;
 	g_aeopid[270].grfeopid = 0x892;
 	g_aeopid[270].optdat.ibGet = 0x658;
 	g_aeopid[270].otyp = OTYP_Bool;

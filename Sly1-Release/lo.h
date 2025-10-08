@@ -8,6 +8,7 @@
 #include "clock.h"
 #include <bitset>
 #include "ctr.h"
+#include "game.h"
 
 enum MSGID
 {

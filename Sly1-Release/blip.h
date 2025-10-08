@@ -6,20 +6,61 @@ struct BLIPGM
     EMITDV emitdv;
 };
 
+struct BLIPP 
+{
+    float x;
+    float y;
+    float z;
+    float tCreated;
+};
+
+struct BLIPV 
+{
+    float x;
+    float y;
+    float z;
+    float tDestroy;
+};
+
+struct BLIPX 
+{
+    u32 irgba;
+    u32 itex0;
+    float swRoll;
+    float radRoll;
+};
+
+struct BLIPF 
+{
+    BLIPP ablipp[44];
+    BLIPV ablipv[44];
+    BLIPX ablipx[44];
+};
+
+struct BLIP 
+{
+    struct BLIPF ablipf[2];
+    int iblipfLatest;
+    int cblipe;
+    struct BLIPSP *pblipsp;
+    struct BLIPG *pblipg;
+    DLE dle;
+};
+
+
 class BLIPG : public ALO
 {
 	public:
-        struct EMITTER* pemitter;
+        struct EMITTER *pemitter;
         CLQ clqScale;
         CLQ clqAlpha;
         CLQ clqTexture;
         CLQ clqColor;
         BLIPMK blipmk;
         BLIPGM blipgm;
-        struct SHD* pshd;
-        int cqwTexture;
+        SHD* pshd;
         int crgba;
-        RGBA argba[32];
+        glm::vec4 argba[32];
         int fColorRanges;
         BLIPOK blipok;
         float rSFlying;
@@ -29,11 +70,13 @@ class BLIPG : public ALO
 };
 
 BLIPG*NewBlipg();
-void InitSwBlipgDl(SW* psw);
-void InitSwBlipgFreeDl(SW* psw);
-void InitBlipg(BLIPG* pblipg);
+void InitSwBlipgDl(SW *psw);
+void InitSwBlipgFreeDl(SW *psw);
+void InitBlipg(BLIPG *pblipg);
 int  GetBlipgSize();
-void CloneBlipg(BLIPG* pblipg, BLIPG* pblipgBase);
-void OnBlipgAdd(BLIPG* pblipg);
-void RenderBlipgSelf(BLIPG* pblipg, CM* pcm, RO* pro);
-void DeleteBlipg(BLIPG* pblipg);
+void CloneBlipg(BLIPG *pblipg, BLIPG *pblipgBase);
+void OnBlipgAdd(BLIPG *pblipg);
+void OnBlipgRemove(BLIPG* pblipg);
+void SetBlipgShader(BLIPG *pblipg, OID oid);
+void RenderBlipgSelf(BLIPG *pblipg, CM *pcm, RO *pro);
+void DeleteBlipg(BLIPG *pblipg);

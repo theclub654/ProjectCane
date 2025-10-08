@@ -7142,7 +7142,7 @@ struct VTBLIPG
     void (*pfnAddAloHierarchy)(ALO*) = AddAloHierarchy;
     void (*pfnRemoveAloHierarchy)(ALO*) = RemoveAloHierarchy;
     void (*pfnOnBlipgAdd)(BLIPG*) = OnBlipgAdd;
-    void (*pfnOnBlipgRemove) = nullptr;
+    void (*pfnOnBlipgRemove)(BLIPG*) = OnBlipgRemove;
     void (*pfnCloneAloHierarchy)(ALO*, ALO*) = CloneAloHierarchy;
     void (*pfnCloneBlipg)(BLIPG*, BLIPG*) = CloneBlipg;
     void (*pfnLoadAloFromBrx)(ALO*, CBinaryInputStream*) = LoadAloFromBrx;
@@ -8808,7 +8808,7 @@ struct VTWM
     void (*pfnHandleWmMessage) = nullptr;
     void (*pfnSendLoMessage)(LO*, MSGID, void*) = SendLoMessage;
     void (*pfnBindWm)(WM*) = BindWm;
-    void (*pfnPostWmLoad) = nullptr;
+    void (*pfnPostWmLoad)(WM*) = PostWmLoad;
     void (*pfnUpdateWm) = nullptr;
     void (*pfnUpdateAloXfWorld)(ALO*) = UpdateAloXfWorld;;
     void (*pfnUpdateAloXfWorldHierarchy)(ALO*) = UpdateAloXfWorldHierarchy;

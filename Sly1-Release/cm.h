@@ -50,9 +50,6 @@ void SetCmMrdRatio(CM* pcm, float rMRD);
 void BuildLookAt(glm::vec3 &posEye, glm::vec3 &directionEye, glm::vec3 &upEye, glm::mat4 &pmatLookAt);
 void UnlockCm(int nParam);
 void SetupCm(CM *pcm);
-// Combines a LookAt Matrix and Projection Matrix
-void CombineEyeLookAtProj(const glm::vec3& eyePos, const glm::mat3& lookAt, const glm::mat4& proj, glm::mat4& pmat);
-void TransposeFrustrumNormals(const glm::vec3* anormalFrustrum, glm::vec4* outTransposed);
 // Updates a camera matrix
 void UpdateCmMat4(CM* pcm);
 bool FInsideCmMrd(const CM* pcm, const glm::vec3& dpos, float sRadius, float sMRD, float& outAlpha);

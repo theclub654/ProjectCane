@@ -1,43 +1,6 @@
 #include "glob.h"
 
-void InitGlslUniforms()
-{
-    glslNumLights = glGetUniformLocation(glGlobShader.ID, "numLights");
-
-    glslmatWorldToClip = glGetUniformLocation(glGlobShader.ID, "matWorldToClip");
-    glslCameraPos = glGetUniformLocation(glGlobShader.ID, "cameraPos");
-
-    glslLsmShadow  = glGetUniformLocation(glGlobShader.ID, "lsm.uShadow");
-    glslLsmDiffuse = glGetUniformLocation(glGlobShader.ID, "lsm.uMidtone");
-
-    glslFogType = glGetUniformLocation(glGlobShader.ID, "fogType");
-    glslFogNear = glGetUniformLocation(glGlobShader.ID, "fogNear");
-    glslFogFar = glGetUniformLocation(glGlobShader.ID, "fogFar");
-    glslFogMax = glGetUniformLocation(glGlobShader.ID, "fogMax");
-    glslFogColor = glGetUniformLocation(glGlobShader.ID, "fogColor");
-
-    glslRgbaCel = glGetUniformLocation(glGlobShader.ID, "rgbaCel");
-
-    glslModel = glGetUniformLocation(glGlobShader.ID, "model");
-
-    glslUFog = glGetUniformLocation(glGlobShader.ID, "uFog");
-    glslUAlpha = glGetUniformLocation(glGlobShader.ID, "uAlpha");
-
-    glslRDarken = glGetUniformLocation(glGlobShader.ID, "rDarken");
-    glslRko = glGetUniformLocation(glGlobShader.ID, "rko");
-    glslusSelfIllum = glGetUniformLocation(glGlobShader.ID, "usSelfIllum");
-    glslFDynamic = glGetUniformLocation(glGlobShader.ID, "fDynamic");
-    glslPosCenter = glGetUniformLocation(glGlobShader.ID, "posCenter");
-    glslfAlphaTest = glGetUniformLocation(glGlobShader.ID, "fAlphaTest");
-    glslfCull = glGetUniformLocation(glGlobShader.ID, "fCull");
-    glslCollisionRgba = glGetUniformLocation(glGlobShader.ID, "collisionRgba");
-
-    glUniform1i(glGetUniformLocation(glGlobShader.ID, "shadowMap"),   0);
-    glUniform1i(glGetUniformLocation(glGlobShader.ID, "diffuseMap"),  1);
-    glUniform1i(glGetUniformLocation(glGlobShader.ID, "saturateMap"), 2);
-}
-
-void LoadGlobsetFromBrx(GLOBSET *pglobset, short cid ,ALO *palo ,CBinaryInputStream *pbis)
+void LoadGlobsetFromBrx(GLOBSET *pglobset, ALO *palo, CBinaryInputStream *pbis)
 {
     pglobset->cpsaa = 0;
 
@@ -64,7 +27,6 @@ void LoadGlobsetFromBrx(GLOBSET *pglobset, short cid ,ALO *palo ,CBinaryInputStr
     pglobset->aglobi.resize(pglobset->cglob);
 
     int fCloneSubGlob = 0;
-    int fCelBorder = 0;
     int instanceIndex = 0;
 
     // Loading each submodel for a model
@@ -266,8 +228,9 @@ void LoadGlobsetFromBrx(GLOBSET *pglobset, short cid ,ALO *palo ,CBinaryInputStr
                     indexes[f].bMisc   = (uint32_t)pbis->U8Read();
                 }
 
+                pglobset->aglob[i].asubglob[a].shdID = pbis->U16Read();
                 // Loading texture property 
-                pglobset->aglob[i].asubglob[a].pshd = &g_ashd[pbis->U16Read()];
+                pglobset->aglob[i].asubglob[a].pshd = &g_ashd[pglobset->aglob[i].asubglob[a].shdID];
                 pglobset->aglob[i].asubglob[a].unSelfIllum = pbis->U8Read() * 0x7FA6 / 0xFF;
                 pglobset->aglob[i].asubglob[a].cibnd = pbis->U8Read();
 
@@ -293,37 +256,39 @@ void LoadGlobsetFromBrx(GLOBSET *pglobset, short cid ,ALO *palo ,CBinaryInputStr
                     uint16_t posfPosesCount = pbis->U16Read();
                     posfPose.resize(posfPosesCount);
 
-                    for (int i = 0; i < posfPosesCount; i++)
-                        posfPose[i] = pbis->ReadVector();
+                    for (int g = 0; g < posfPosesCount; g++)
+                        posfPose[g] = pbis->ReadVector();
 
                     uint16_t normalfPoseCount = pbis->U16Read();
                     normalfPose.resize(normalfPoseCount);
 
-                    for (int i = 0; i < normalfPoseCount; i++)
-                        normalfPose[i] = pbis->ReadVector();
+                    for (int h = 0; h < normalfPoseCount; h++)
+                        normalfPose[h] = pbis->ReadVector();
 
                     subposef.aiposf.resize(indexCount);
                     subposef.ainormalf.resize(indexCount);
 
-                    for (int i = 0; i < pglobset->cpose; i++)
+                    for (int j = 0; j < pglobset->cpose; j++)
                     {
-                        for (int i = 0; i < indexCount; i++)
-                            subposef.aiposf[i] = pbis->U16Read();
+                        for (int a = 0; a < indexCount; a++)
+                            subposef.aiposf[a] = pbis->U16Read();
 
-                        for (int i = 0; i < indexCount; i++)
-                            subposef.ainormalf[i] = pbis->U16Read();
+                        for (int b = 0; b < indexCount; b++)
+                            subposef.ainormalf[b] = pbis->U16Read();
                     }
                 }
 
                 BuildSubGlob(&pglobset->aglob[i].asubglob[a] ,pglobset->aglob[i].asubglob[a].pshd, vertexes, normals, vertexColors, texcoords, indexes, &subposef, posfPose, normalfPose, agWeights);
             }
 
-            pglobset->aglob[0].csubcel = pbis->U16Read();
+            pglobset->aglob[i].csubcel = pbis->U16Read();
+            pglobset->aglob[i].asubcel.resize(pglobset->aglob[i].csubcel);
 
-            for (int i = 0; i < pglobset->aglob[0].csubcel; i++)
+            numRo += pglobset->aglob[i].csubcel;
+
+            for (int k = 0; k < pglobset->aglob[i].csubcel; k++)
             {
                 SUBCEL subcel;
-                fCelBorder = 1;
 
                 byte aposfCount = pbis->U8Read();
 
@@ -370,23 +335,22 @@ void LoadGlobsetFromBrx(GLOBSET *pglobset, short cid ,ALO *palo ,CBinaryInputStr
                     uint16_t aposfPosesCount = pbis->U16Read();
                     aposfPoses.resize(aposfPosesCount);
 
-                    for (int i = 0; i < aposfPosesCount; i++)
-                        aposfPoses[i] = pbis->ReadVector();
+                    for (int e = 0; e < aposfPosesCount; e++)
+                        aposfPoses[e] = pbis->ReadVector();
 
                     subposef.resize(pglobset->cpose);
-                    
-                    for (int i = 0; i < pglobset->cpose; i++)
+
+                    for (int f = 0; f < pglobset->cpose; f++)
                     {
-                        subposef[i].aiposf.resize(aposfCount);
+                        subposef[f].aiposf.resize(aposfCount);
 
                         for (int a = 0; a < aposfCount; a++)
-                            subposef[i].aiposf[a] = pbis->U16Read();
+                            subposef[f].aiposf[a] = pbis->U16Read();
                     }
                 }
-                
-                //BuildSubcel(pglobset, &subcel, aposfCount, aposf, ctwef, atwef, subposef, aposfPoses, weightsCel);
 
-                //pglobset->aglob[0].asubcel.push_back(subcel);
+                BuildSubcel(pglobset, &subcel, aposfCount, aposf, ctwef, atwef, subposef, aposfPoses, weightsCel);
+                pglobset->aglob[i].asubcel[k] = subcel;
             }
         }
         else
@@ -395,56 +359,6 @@ void LoadGlobsetFromBrx(GLOBSET *pglobset, short cid ,ALO *palo ,CBinaryInputStr
             pglobset->aglob[i].asubglob = pglobset->aglob[instanceIndex].asubglob;
 
             numRo += pglobset->aglob[instanceIndex].csubglob;
-        }
-    }
-
-    if (!pglobset->aglob.empty() && fCelBorder != 0)
-    {
-        for (int i = 0; i < pglobset->aglob.size(); i++)
-        {
-            const auto& glob = pglobset->aglob[i];
-
-            // Skip excluded render passes
-            if (glob.rp == RP_Cutout || glob.rp == RP_ProjVolume ||
-                glob.rp == RP_CutoutAfterProjVolume || glob.rp == RP_Translucent)
-                continue;
-
-            for (int a = 0; a < glob.asubglob.size(); a++)
-            {
-                auto& subglob = pglobset->aglob[i].asubglob[a];
-                const glm::vec3& center = subglob.posCenter;
-
-                constexpr float thickness = 4.0f;
-
-                for (const auto& vert : subglob.vertices)
-                {
-                    const glm::vec3& pos = vert.pos;
-
-                    // Inflate outward from posCenter
-                    glm::vec3 offsetDir = glm::normalize(pos + glm::normalize(vert.normal) - center);
-                    glm::vec3 newPos = pos + offsetDir * thickness;
-
-                    subglob.celPositions.push_back(newPos);
-                }
-
-                subglob.celIndices = subglob.indices;
-                subglob.celcvtx = subglob.celIndices.size() * sizeof(INDICE);
-                subglob.fCelBorder = 1;
-
-                glGenVertexArrays(1, &subglob.celVAO);
-                glBindVertexArray(subglob.celVAO);
-
-                glGenBuffers(1, &subglob.celVBO);
-                glBindBuffer(GL_ARRAY_BUFFER, subglob.celVBO);
-                glBufferData(GL_ARRAY_BUFFER, subglob.celPositions.size() * sizeof(glm::vec3), subglob.celPositions.data(), GL_STATIC_DRAW);
-
-                glGenBuffers(1, &subglob.EBO);
-                glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, subglob.EBO);
-                glBufferData(GL_ELEMENT_ARRAY_BUFFER, subglob.celIndices.size() * sizeof(INDICE), subglob.celIndices.data(), GL_STATIC_DRAW);
-
-                glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), (void*)0);
-                glEnableVertexAttribArray(0);
-            }
         }
     }
 }
@@ -568,41 +482,48 @@ void BuildSubGlob(SUBGLOB *psubglob, SHD *pshd, std::vector <glm::vec3> &positio
     glEnableVertexAttribArray(5);
 }
 
-void BuildSubcel(GLOBSET *pglobset, SUBCEL *psubcel, int cposf, std::vector <glm::vec3> &aposf, int ctwef, std::vector <TWEF> &atwef, std::vector <SUBPOSEF> &asubposef, std::vector <glm::vec3> &aposfPoses, std::vector <float> &agWeights)
+void BuildSubcel(GLOBSET* pglobset, SUBCEL* psubcel, int cposf, std::vector <glm::vec3>& aposf, int ctwef, std::vector <TWEF>& atwef, std::vector <SUBPOSEF>& asubposef, std::vector <glm::vec3>& aposfPoses, std::vector <float>& agWeights)
 {
-    psubcel->weights = agWeights;
     psubcel->positions = aposf;
+    psubcel->edgeCount = static_cast<GLsizei>(ctwef);
 
-    for (int i = 0; i < ctwef; i++)
+    if (psubcel->edgeCount == 0) return;
+
+    std::vector<glm::vec4> edgeTexels;
+    edgeTexels.reserve(psubcel->edgeCount * 4);
+
+    auto getP = [&](uint32_t idx)->const glm::vec3& {
+        // (Optional) add asserts in debug builds
+        return psubcel->positions[idx];
+        };
+
+    for (int i = 0; i < ctwef; ++i)
     {
-        psubcel->indices.push_back(atwef[i].aipos0);
-        psubcel->indices.push_back(atwef[i].aipos1);
-        psubcel->indices.push_back(atwef[i].aipos2);
-        psubcel->indices.push_back(atwef[i].aipos3);
+        const uint32_t iOppA = atwef[i].aipos0; // opposite A
+        const uint32_t iE0 = atwef[i].aipos1; // edge endpoint 0
+        const uint32_t iE1 = atwef[i].aipos2; // edge endpoint 1
+        const uint32_t iOppB = atwef[i].aipos3; // opposite B (may degenerate)
+
+        const glm::vec3 e0 = getP(iE0);
+        const glm::vec3 e1 = getP(iE1);
+        const glm::vec3 oppA = getP(iOppA);
+        const glm::vec3 oppB = getP(iOppB);
+
+        // Pack 4 texels per edge, OBJECT-SPACE positions (w unused except kept as 1.0)
+        edgeTexels.emplace_back(e0, 1.0f); // texel 0: E0
+        edgeTexels.emplace_back(e1, 1.0f); // texel 1: E1
+        edgeTexels.emplace_back(oppA, 1.0f); // texel 2: OppA
+        edgeTexels.emplace_back(oppB, 1.0f); // texel 3: OppB
     }
-    
-    std::vector <glm::vec3> unkVector;
-    for (int i = 0; i < pglobset->cpose; i++)
-    {
-        for (int a = 0; a < cposf; a++)
-            unkVector.push_back(aposfPoses[asubposef[i].aiposf[i]] - aposf[a]);
-    }
 
-    psubcel->cvtx = psubcel->indices.size() * sizeof(uint16_t);
+    // Upload once (static)
+    glGenBuffers(1, &psubcel->edgeBuf);
+    glBindBuffer(GL_TEXTURE_BUFFER, psubcel->edgeBuf);
+    glBufferData(GL_TEXTURE_BUFFER, edgeTexels.size() * sizeof(glm::vec4), edgeTexels.data(), GL_STATIC_DRAW);
 
-    glGenVertexArrays(1, &psubcel->VAO);
-    glBindVertexArray(psubcel->VAO);
-
-    glGenBuffers(1, &psubcel->VBO);
-    glBindBuffer(GL_ARRAY_BUFFER, psubcel->VBO);
-    glBufferData(GL_ARRAY_BUFFER, psubcel->positions.size() * sizeof(glm::vec3), psubcel->positions.data(), GL_STATIC_DRAW);
-
-    glGenBuffers(1, &psubcel->EBO);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, psubcel->EBO);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, psubcel->indices.size() * sizeof(uint16_t), psubcel->indices.data(), GL_STATIC_DRAW);
-
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), (void*)0);
-    glEnableVertexAttribArray(0);
+    glGenTextures(1, &psubcel->edgeTex);
+    glBindTexture(GL_TEXTURE_BUFFER, psubcel->edgeTex);
+    glTexBuffer(GL_TEXTURE_BUFFER, GL_RGBA32F, psubcel->edgeBuf);
 }
 
 int  g_fogType = 1;
@@ -610,26 +531,5 @@ bool g_fRenderModels = true;
 bool g_fRenderCollision = false;
 bool g_fRenderCelBorders = true;
 bool g_fBsp = false;
-
-GLuint glslNumLights = 0;
-GLuint glslmatWorldToClip = 0;
-GLuint glslCameraPos = 0;
-GLuint glslFogType = 0;
-GLuint glslFogNear = 0;
-GLuint glslFogFar = 0;
-GLuint glslFogMax = 0;
-GLuint glslFogColor = 0;
-GLuint glslLsmShadow = 0;
-GLuint glslLsmDiffuse = 0;
-GLuint glslRgbaCel = 0;
-GLuint glslModel = 0;
-GLuint glslUFog = 0;
-GLuint glslUAlpha = 0;
-GLuint glslRDarken = 0;
-GLuint glslRko = 0;
-GLuint glslusSelfIllum = 0;
-GLuint glslFDynamic = 0;
-GLuint glslPosCenter = 0;
-GLuint glslfAlphaTest = 0;
-GLuint glslfCull = 0;
-GLuint glslCollisionRgba = 0;
+float g_uAlpha = 1.0;
+GLuint gEmptyVAO = 0;

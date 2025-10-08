@@ -21,7 +21,7 @@ int main(int cphzArgs, char* aphzArgs[])
 
         if (g_psw != nullptr)
         {
-            //UpdateUi(&g_ui);
+            UpdateUi(&g_ui);
 
             SetupCm(g_pcm);
             MarkClockTick(&g_clock);
@@ -37,11 +37,12 @@ int main(int cphzArgs, char* aphzArgs[])
             if (g_fRenderCollision)
                 DrawSwCollisionAll(g_pcm);
 
-            //DrawUi(&g_ui);
+            DrawUi(&g_ui);
         }
 
         // Render framebuffer to screen with black bars ===
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
         glScreenShader.Use();
@@ -80,6 +81,7 @@ void Startup()
     glGlobShader.Init("glob.vert", NULL, "glob.frag");
     glGlobShader.Use();
     InitGlslUniforms();
+    glGenVertexArrays(1, &gEmptyVAO);
 
     glBlotShader.Init("blot.vert", NULL, "blot.frag");
     glBlotShader.Use();

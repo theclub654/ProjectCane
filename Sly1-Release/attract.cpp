@@ -27,7 +27,7 @@ void PostAttractLoad(ATTRACT* pattract)
     if (g_pfontScreenCounters)
     {
         pattract->pte = &g_teAttract;
-        g_teAttract.m_pfont = g_pfontScreenCounters;
+        g_teAttract.m_pfont = &g_afontBrx[2];
     }
 
     // Check if joypad is valid

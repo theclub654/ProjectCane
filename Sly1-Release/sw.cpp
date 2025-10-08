@@ -78,6 +78,13 @@ void LoadSwFromBrx(SW* psw, CBinaryInputStream* pbis)
 	pbis->U32Read();
 	// Making new camera object for world
 	g_pcm = (CM*)PloNew(CID_CM, psw, nullptr, OID__CAMERA, -1);
+
+	for (int i = 0; i < 39; i++)
+	{
+		LO *blipg = PloNew(CID_BLIPG, psw, nullptr, OID_blip_group, -1);
+		blipg->pvtlo->pfnRemoveLo(blipg);
+	}
+
 	// Loads all splice script events from binary file
 	LoadSwSpliceFromBrx(psw, pbis);
 	//LoadOptionFromBrx(psw, pbis);
@@ -496,28 +503,33 @@ void DeleteWorld(SW *psw)
 	renderBuffer.clear();
 	renderBuffer.shrink_to_fit();
 
-	DeallocateLightBlkList();
-
 	numRo = 0;
 	g_dynamicTextureCount = 0;
 	g_backGroundCount = 0;
+	g_backGroundBlendCount = 0;
 	g_blotContextCount = 0;
 	g_opaqueCount = 0;
 	g_cutOutCount = 0;
+	g_cutOutBlendAddCount = 0;
 	g_celBorderCount = 0;
 	g_projVolumeCount = 0;
 	g_opaqueAfterProjVolumeCount = 0;
-	g_cutoutAfterProjVolumeCount = 0;
+	g_cutOutAfterProjVolumeCount = 0;
+	g_cutOutAfterProjVolumeAddCount = 0;
 	g_celBorderAfterProjVolumeCount = 0;
 	g_murkClearCount = 0;
 	g_murkOpaqueCount = 0;
 	g_murkFillCount = 0;
 	g_translucentCount = 0;
+	g_translucentAddCount = 0;
+	g_transluscentOnScreen = 0;
 	g_translucentCelBorderCount = 0;
 	g_blipCount = 0;
 	g_foreGroundCount = 0;
 	g_worldMapCount = 0;
 	g_maxCount = 0;
+
+	DeallocateLightBlkList();
 
 	for (int i = 0; i < allSWAloObjs.size(); i++)
 		DeleteModel(allSWAloObjs[i]);

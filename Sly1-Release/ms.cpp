@@ -13,7 +13,6 @@ int GetMsSize()
 void RenderMsGlobset(MS* pms, CM* pcm, RO* pro)
 {
 	RPL rpl{};
-	rpl.PFNDRAW = DrawGlob;
 
 	glm::mat4 baseModelMatrix{};
 	LoadMatrixFromPosRot(pms->xf.posWorld, pms->xf.matWorld, baseModelMatrix);
@@ -42,28 +41,22 @@ void RenderMsGlobset(MS* pms, CM* pcm, RO* pro)
 		for (auto& subglob : glob.asubglob)
 		{
 			rpl.ro.VAO = &subglob.VAO;
-
-			if (g_fRenderCelBorders && subglob.fCelBorder == 1)
-			{
-				rpl.ro.celVAO = &subglob.celVAO;
-				rpl.ro.celcvtx = subglob.celcvtx;
-				rpl.ro.fCelBorder = 1;
-			}
-			else
-			{
-				rpl.ro.celVAO = nullptr;
-				rpl.ro.fCelBorder = 0;
-			}
-
 			rpl.ro.fDynamic = glob.fDynamic;
 			rpl.ro.uFog = glob.uFog;
-			rpl.posCenter = posCenterWorld;
+			rpl.ro.posCenter = posCenterWorld;
 			rpl.sRadius = glob.sRadius;
-			rpl.ro.grfglob = glob.grfglob;
+
+			if ((glob.grfglob & 4U) == 0)
+				rpl.ro.darken = g_psw->rDarken;
+			else
+				rpl.ro.darken = 1.0;
+			
 			rpl.ro.pshd = subglob.pshd;
+			rpl.grfshd = subglob.pshd->grfshd;
 			rpl.ro.unSelfIllum = subglob.unSelfIllum;
 			rpl.ro.cvtx = subglob.cvtx;
 			rpl.rp = glob.rp;
+			rpl.ro.uAlpha = rpl.ro.uAlpha * g_uAlpha;
 
 			if (rpl.ro.uAlpha != 1.0)
 			{

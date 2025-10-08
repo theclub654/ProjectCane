@@ -111,6 +111,36 @@ void LoadSwFromBrx(SW* psw, CBinaryInputStream* pbis)
 		}
 	}
 
+	// Set up a DLI walker for the busy object list in the current SW (Scene/World)
+	DLI dlBusyWalker;
+
+	dlBusyWalker.m_pdl = &psw->dlChild;                // Point to the actual DL list
+	dlBusyWalker.m_ibDle = psw->dlChild.ibDle;         // Offset to the 'next' pointer inside each object
+	dlBusyWalker.m_pdliNext = s_pdliFirst;            // Link this walker into a global list of DLI walkers
+
+	// Get the first object (LO) in the busy list
+	ALO* currentObject = psw->dlChild.paloFirst;
+
+	// Set up the pointer to the "next" object in the list,
+	// using offset-based pointer arithmetic from current object
+	dlBusyWalker.m_ppv = reinterpret_cast<void**>(reinterpret_cast<uintptr_t>(currentObject) + dlBusyWalker.m_ibDle);
+
+	// Save the current DLI walker globally
+	s_pdliFirst = &dlBusyWalker;
+	//int num = 0;
+	// Loop over every object in the busy list
+	while (currentObject != nullptr)
+	{
+		if (currentObject->pvtalo->pfnPostAloLoad != nullptr)
+			currentObject->pvtalo->pfnPostAloLoad(currentObject);
+
+		// Move to the next object in the list using the stored offset
+		currentObject = reinterpret_cast<ALO*>(*dlBusyWalker.m_ppv);
+
+		// If there is a next object, update the walker’s pointer to its next link
+		dlBusyWalker.m_ppv = reinterpret_cast<void**>(reinterpret_cast<uintptr_t>(currentObject) + dlBusyWalker.m_ibDle);
+	}
+
 	PostUiLoad(&g_ui);
 	SetupCm(g_pcm);
 	std::cout << "World Loaded Successfully\n";
@@ -641,18 +671,23 @@ void DeleteWorld(SW *psw)
 	numRo = 0;
 	g_dynamicTextureCount = 0;
 	g_backGroundCount = 0;
+	g_backGroundBlendCount = 0;
 	g_blotContextCount = 0;
 	g_opaqueCount = 0;
 	g_cutOutCount = 0;
+	g_cutOutBlendAddCount = 0;
 	g_celBorderCount = 0;
 	g_projVolumeCount = 0;
 	g_opaqueAfterProjVolumeCount = 0;
-	g_cutoutAfterProjVolumeCount = 0;
+	g_cutOutAfterProjVolumeCount = 0;
+	g_cutOutAfterProjVolumeAddCount = 0;
 	g_celBorderAfterProjVolumeCount = 0;
 	g_murkClearCount = 0;
 	g_murkOpaqueCount = 0;
 	g_murkFillCount = 0;
 	g_translucentCount = 0;
+	g_translucentAddCount = 0;
+	g_transluscentOnScreen = 0;
 	g_translucentCelBorderCount = 0;
 	g_blipCount = 0;
 	g_foreGroundCount = 0;

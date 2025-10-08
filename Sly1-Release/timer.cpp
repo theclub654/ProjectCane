@@ -9,7 +9,7 @@ void PostTimerLoad(TIMER* ptimer)
 {
     PostBlotLoad(ptimer);
 
-    ptimer->pfont = g_pfontScreenCounters;
+    ptimer->pfont = &g_afontBrx[2];
     ptimer->nTenthsLast = -1;
     ptimer->dtThreshold = 3.402823e+38;
     ptimer->fStopped = 1;

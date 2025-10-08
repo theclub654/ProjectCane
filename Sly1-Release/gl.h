@@ -62,6 +62,7 @@ public:
 // Initializes glsl uniform locations
 void InitGlslUniforms();
 void FrameBufferSizeCallBack(GLFWwindow* window, int width, int height);
+void RescaleLineWidth();
 
 extern GL g_gl;
 extern GLuint screenQuadMatrixLoc;
@@ -78,9 +79,9 @@ extern GLuint glslLsmShadow;
 extern GLuint glslLsmDiffuse;
 extern GLuint glslRgbaCel;
 extern GLuint glslModel;
-extern GLuint glslinvModel;
 extern GLuint glslUFog;
 extern GLuint glslUAlpha;
+extern GLuint glsluAlphaCelBorder;
 extern GLuint glslRDarken;
 extern GLuint glslRko;
 extern GLuint glslusSelfIllum;

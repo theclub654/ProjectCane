@@ -4,6 +4,7 @@
 
 void RenderMenuGui(SW* psw);
 void ExportSw();
+void ExportTextures();
 
 extern std::string file;
 extern std::string levelName;

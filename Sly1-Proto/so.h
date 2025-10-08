@@ -172,7 +172,7 @@ void RotateSoToMat(SO* pso, glm::mat3& pmat);
 void UpdateSo(SO *pso, float dt); // NOT FINISHED
 void RenderSoSelf(SO* pso, CM* pcm, RO* pro);
 // Draws static object collision
-void DrawCollision(CM* pcm, SO* pso);
+void DrawCollision(SO* pso);
 // Delete SO from memory
 void DeleteSo(SO *pso);
 // Delete all collision data from VRAM

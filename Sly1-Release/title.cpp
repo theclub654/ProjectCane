@@ -31,14 +31,11 @@ void PostTitleLoad(TITLE* ptitle)
     );
 
     // Assign edge font if available
-    if (g_pfontScreenCounters)
-    {
-        ptitle->pte = &g_teTitle;
-        g_teTitle.m_pfont = g_pfontScreenCounters;
-    }
+    ptitle->pte = &g_teTitle;
+    g_teTitle.m_pfont = &g_afontBrx[2];
 
     // Used for testing
-    //ptitle->pvtblot->pfnSetBlotAchzDraw(ptitle, (char*)"A Sucker Punch Production");
+    ptitle->pvtblot->pfnSetBlotAchzDraw(ptitle, (char*)"A Sucker Punch Production");
 }
 
 int FIncludeTitleForPeg(TITLE* ptitle, BLOT* pblotOther)

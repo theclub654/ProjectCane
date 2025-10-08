@@ -59,7 +59,7 @@ void GL::InitGL()
 
 	glGenTextures(1, &fbc);
 	glBindTexture(GL_TEXTURE_2D, fbc);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height - imguiOffset, 0, GL_RGB, GL_UNSIGNED_BYTE, nullptr);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height - imguiOffset, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, fbc, 0);
@@ -139,6 +139,8 @@ void GL::InitGL()
 
 	glBindVertexArray(0);
 
+	RescaleLineWidth();
+
 	blotProjection = glm::ortho(0.0f, float(width), float(height - imguiOffset), 0.0f, -1.0f, 1.0f);
 }
 
@@ -188,6 +190,46 @@ void GL::TerminateGL()
 	glfwTerminate();
 }
 
+void InitGlslUniforms()
+{
+	glslNumLights = glGetUniformLocation(glGlobShader.ID, "numLights");
+	glslLightIndices = glGetUniformLocation(glGlobShader.ID, "lightIndices");
+
+	glslmatWorldToClip = glGetUniformLocation(glGlobShader.ID, "matWorldToClip");
+	glslCameraPos = glGetUniformLocation(glGlobShader.ID, "cameraPos");
+
+	glslLsmShadow = glGetUniformLocation(glGlobShader.ID, "lsm.uShadow");
+	glslLsmDiffuse = glGetUniformLocation(glGlobShader.ID, "lsm.uMidtone");
+
+	glslFogType = glGetUniformLocation(glGlobShader.ID, "fogType");
+	glslFogNear = glGetUniformLocation(glGlobShader.ID, "fogNear");
+	glslFogFar = glGetUniformLocation(glGlobShader.ID, "fogFar");
+	glslFogMax = glGetUniformLocation(glGlobShader.ID, "fogMax");
+	glslFogColor = glGetUniformLocation(glGlobShader.ID, "fogColor");
+
+	glslRgbaCel = glGetUniformLocation(glGlobShader.ID, "rgbaCel");
+
+	glslModel = glGetUniformLocation(glGlobShader.ID, "model");
+	glslUFog = glGetUniformLocation(glGlobShader.ID, "uFog");
+	glslUAlpha = glGetUniformLocation(glGlobShader.ID, "uAlpha");
+	glsluAlphaCelBorder = glGetUniformLocation(glGlobShader.ID, "uAlphaCelBorder");
+	glslRDarken = glGetUniformLocation(glGlobShader.ID, "rDarken");
+	glslRko = glGetUniformLocation(glGlobShader.ID, "rko");
+	glslusSelfIllum = glGetUniformLocation(glGlobShader.ID, "usSelfIllum");
+	glslFDynamic = glGetUniformLocation(glGlobShader.ID, "fDynamic");
+	glslPosCenter = glGetUniformLocation(glGlobShader.ID, "posCenter");
+
+	glslfAlphaTest = glGetUniformLocation(glGlobShader.ID, "fAlphaTest");
+	glslAlphaThresHold = glGetUniformLocation(glGlobShader.ID, "alphaThresHold");
+
+	glslfCull = glGetUniformLocation(glGlobShader.ID, "fCull");
+	glslCollisionRgba = glGetUniformLocation(glGlobShader.ID, "collisionRgba");
+
+	glUniform1i(glGetUniformLocation(glGlobShader.ID, "shadowMap"), 0);
+	glUniform1i(glGetUniformLocation(glGlobShader.ID, "diffuseMap"), 1);
+	glUniform1i(glGetUniformLocation(glGlobShader.ID, "saturateMap"), 2);
+}
+
 void FrameBufferSizeCallBack(GLFWwindow* window, int width, int height)
 {
 	float imguiOffset = ImGui::GetFrameHeight();
@@ -199,7 +241,7 @@ void FrameBufferSizeCallBack(GLFWwindow* window, int width, int height)
 	glBindFramebuffer(GL_FRAMEBUFFER, g_gl.fbo);
 
 	glBindTexture(GL_TEXTURE_2D, g_gl.fbc);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height - imguiOffset, 0, GL_RGB, GL_UNSIGNED_BYTE, nullptr);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height - imguiOffset, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, g_gl.fbc, 0);
 
 	glBindRenderbuffer(GL_RENDERBUFFER, g_gl.rbo);
@@ -207,6 +249,8 @@ void FrameBufferSizeCallBack(GLFWwindow* window, int width, int height)
 	glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, g_gl.rbo);
 
 	glViewport(0, 0, width, height - imguiOffset);
+
+	RescaleLineWidth();
 
 	g_gl.UpdateGLProjections();
 
@@ -223,5 +267,44 @@ void FrameBufferSizeCallBack(GLFWwindow* window, int width, int height)
 	RepositionAllBlots();
 }
 
+void RescaleLineWidth()
+{
+	GLint vp[4];
+	glGetIntegerv(GL_VIEWPORT, vp);
+
+	float resScale = float(vp[3]) / (g_gl.height / 448.0f);     // PS2-ish reference height
+	float target = glm::clamp(2.0f * resScale, 1.5f, 6.0f);
+
+	GLfloat range[2];
+	glGetFloatv(GL_ALIASED_LINE_WIDTH_RANGE, range); // range[0]=min, range[1]=max
+
+	glLineWidth(glm::clamp(target, range[0], range[1]));
+}
+
 GL g_gl;
 GLuint screenQuadMatrixLoc = 0;
+GLuint glslNumLights = 0;
+GLuint glslLightIndices = 0;
+GLuint glslmatWorldToClip = 0;
+GLuint glslCameraPos = 0;
+GLuint glslFogType = 0;
+GLuint glslFogNear = 0;
+GLuint glslFogFar = 0;
+GLuint glslFogMax = 0;
+GLuint glslFogColor = 0;
+GLuint glslLsmShadow = 0;
+GLuint glslLsmDiffuse = 0;
+GLuint glslRgbaCel = 0;
+GLuint glslModel = 0;
+GLuint glslUFog = 0;
+GLuint glslUAlpha = 0;
+GLuint glsluAlphaCelBorder = 0;
+GLuint glslRDarken = 0;
+GLuint glslRko = 0;
+GLuint glslusSelfIllum = 0;
+GLuint glslFDynamic = 0;
+GLuint glslPosCenter = 0;
+GLuint glslfAlphaTest = 0;
+GLuint glslAlphaThresHold = 0;
+GLuint glslfCull = 0;
+GLuint glslCollisionRgba = 0;

@@ -91,8 +91,6 @@ void RenderPathzone(PATHZONE* ppathzone, CM* pcm)
 {
     RPL rpl{};
 
-    rpl.PFNDRAW = DrawPathzone;
-
     rpl.ro.model = glm::identity <glm::mat4>();
 
     rpl.ro.VAO = &ppathzone->VAO;

@@ -538,7 +538,7 @@ void AllocateLightBlkList()
 	glBindBuffer(GL_UNIFORM_BUFFER, g_lightUbo);
 	glBufferData(GL_UNIFORM_BUFFER, sizeof(LIGHTBLK) * numRl, nullptr, GL_DYNAMIC_DRAW);
 	glBindBufferBase(GL_UNIFORM_BUFFER, 0, g_lightUbo);
-
+	
 	numRl = 0;
 	LIGHT* plight = g_psw->dlLight.plightFirst;
 
@@ -581,8 +581,6 @@ void AllocateLightBlkList()
 		plight = plight->dleLight.plightNext;
 	}
 
-	// Upload used light data to GPU (only numRl lights)
-	//std::cout << numRl << "\n";
 	glBindBuffer(GL_UNIFORM_BUFFER, g_lightUbo);
 	glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(LIGHTBLK) * numRl, lightBlk.data());
 }

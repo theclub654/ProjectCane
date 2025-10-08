@@ -44,6 +44,9 @@ class ALBRK : public BRK
 ALARM*NewAlarm();
 void InitAlarm(ALARM* palarm);
 int  GetAlarmSize();
+void AddAlarmAlbrk(ALARM* palarm, OID oid);
+void AddAlarmSensor(ALARM* palarm, OID oid);
+void AddAlarmStepguard(ALARM* palarm, OID oid);
 void CloneAlarm(ALARM* palarm, ALARM* palarmBase);
 void DeleteAlarm(ALARM* plo);
 

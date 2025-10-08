@@ -205,6 +205,7 @@
     <ClCompile Include="font.cpp" />
     <ClCompile Include="freeze.cpp" />
     <ClCompile Include="frzg.cpp" />
+    <ClCompile Include="game.cpp" />
     <ClCompile Include="geom.cpp" />
     <ClCompile Include="gl.cpp" />
     <ClCompile Include="glad.c" />
@@ -388,6 +389,7 @@
     <ClInclude Include="font.h" />
     <ClInclude Include="freeze.h" />
     <ClInclude Include="frzg.h" />
+    <ClInclude Include="game.h" />
     <ClInclude Include="geom.h" />
     <ClInclude Include="gl.h" />
     <ClInclude Include="glob.h" />
@@ -514,6 +516,8 @@
     <ResourceCompile Include="Sly1-Release.rc" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="blot.frag" />
+    <None Include="blot.vert" />
     <None Include="glob.frag" />
     <None Include="glob.vert" />
     <None Include="screen.frag" />

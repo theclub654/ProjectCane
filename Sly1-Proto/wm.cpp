@@ -42,6 +42,13 @@ void BindWm(WM* pwm)
     BindAlo(pwm);
 }
 
+void PostWmLoad(WM* pwm)
+{
+    PostAloLoad(pwm);
+    *(unsigned long*)&pwm->bitfield = *(unsigned long*)&pwm->bitfield | 0x10000000000;
+    g_wmc.pwm = pwm;
+}
+
 void RenderWmAll(WM* pwm, CM* pcm, RO* pro)
 {
 	RenderAloAll(pwm, pcm, pro);

@@ -173,6 +173,10 @@ void UpdateUi(UI *pui)
                 currentUis = pui->uis;
             }
 
+            //if (pjoy->IsPressed(BTN_SELECT)) { // e.g. map 0x800 to BTN_START
+            //    DrawUiSplash(&g_ui);
+            //}
+
             //else if (pjoy->IsPressed(BTN_A)) { // map 0x100 to BTN_A
             //    //g_lifectr.pvtblot->pfnShowBlot(0x2828b8, currentUis);
             //    //g_cluectr.pvtblot->pfnShowBlot(0x282b38);
@@ -241,81 +245,74 @@ void DrawUiSelf(UI* pui)
 
 void DrawUiSplash(UI* pui)
 {
-    constexpr float kVirtualWidth = 640.0f;
-    constexpr float kVirtualHeight = 480.0f;
-
-    float scaleX = g_gl.width / kVirtualWidth;
-    float scaleY = g_gl.height / kVirtualHeight;
-
-    float timeSinceSplash = g_clock.tReal - pui->tUis;
-
+    float t = g_clock.tReal - pui->tUis;
+    
     BLOT* ptitle = (BLOT*)&g_title;
-    if ((timeSinceSplash >= 6.0f) && (timeSinceSplash - g_clock.dtReal < 6.0f)) {
+    // Show title after 6 seconds
+    if (t >= 6.0f && t - g_clock.dtReal < 6.0f) {
         ptitle->pvtblot->pfnSetBlotAchzDraw(ptitle, (char*)suckerPunchProd);
         SetBlotDtAppear(ptitle, 1.0f);
         SetBlotDtVisible(ptitle, 0.0f);
         ptitle->pvtblot->pfnShowBlot(ptitle);
     }
 
-    CFontBrx* font = g_pfont;
-    if ((timeSinceSplash <= 4.0f) && font) {
-        float fadeAlpha = 0.0f;
+    if (t <= 4.0f && g_pfont) {
+        // Fade in/out alpha
+        float alphaFactor;
+        if (t < 0.5f) {
+            alphaFactor = t * 2.0f;        // fade in
+        }
+        else if (t < 3.5f) {
+            alphaFactor = 1.0f;            // full visible
+        }
+        else if (t < 4.0f) {
+            float fade = t - 3.5f;
+            alphaFactor = 1.0f - fade * 2.0f; // fade out
+        }
+        else {
+            alphaFactor = 0.0f;
+        }
 
-        if (timeSinceSplash < 0.5f)
-            fadeAlpha = timeSinceSplash * 2.0f;
-        else if (timeSinceSplash < 3.5f)
-            fadeAlpha = 1.0f;
-        else if (timeSinceSplash < 4.0f)
-            fadeAlpha = 1.0f - ((timeSinceSplash - 3.5f) * 2.0f);
+        glm::vec4 color(1.0f, 1.0f, 1.0f, alphaFactor); // gray with alpha
+        if (color.a > 0.0f) {
+            CTextBox tbx{};
 
-        glm::vec4 fadeColor(0.5f, 0.5f, 0.5f, fadeAlpha);
+            // --- "Legal" text ---
+            g_pfont->PushScaling(RX_UiLegal, RY_UiLegal);
+            
+            float lineHeight = (float)g_pfont->m_dyUnscaled * g_pfont->m_ryScale * 2.0f;
+            float y = g_gl.height - (lineHeight + 22.0f);
 
-        if (((int)(fadeAlpha * 255.0f)) & 0xFF) {
-            CTextBox tbx;
-
-            // LEGAL TEXT
-            font->PushScaling(RX_UiLegal * scaleX, RY_UiLegal * scaleY);
-
-            float lineHeight = font->m_dyUnscaled * font->m_ryScale * scaleY;
-            float legalStartY = 22.0f * scaleY;
-
-            for (int i = 0; i < 2; ++i) {
-                const char* textLine = g_aachzLegal[i];
-
-                tbx.SetPos(0.0f, legalStartY);
-                tbx.SetSize(g_gl.width, lineHeight);
-                tbx.SetTextColor(&fadeColor);
+            for (int i = 0; i < 2; i++) {
+                const char* text = g_aachzLegal[i];
+                tbx.SetPos( 0.0f, y);
+                tbx.SetSize(g_gl.width, g_pfont->m_dyUnscaled * g_pfont->m_ryScale);
+                tbx.SetTextColor(&color);
                 tbx.SetHorizontalJust(JH_Center);
                 tbx.SetVerticalJust(JV_Top);
-
-                font->DrawPchz((char*)textLine, &tbx);
-                legalStartY += lineHeight;
+                g_pfont->DrawPchz((char*)text, &tbx);
+                y += (float)g_pfont->m_dyUnscaled * g_pfont->m_ryScale;
             }
 
-            font->PopScaling();
+            g_pfont->PopScaling();
 
-            // PRESENTS TEXT
-            font->PushScaling(R_UiPresents * scaleX, R_UiPresents * scaleY);
+            // --- "Presents" text ---
+            g_pfont->PushScaling(R_UiPresents, R_UiPresents);
+            float presentsHeight = (float)g_pfont->m_dyUnscaled * g_pfont->m_ryScale;
+            float startY = (g_gl.height - (lineHeight + presentsHeight * 2 + 44.0f)) * 0.5f + 22.0f;
 
-            float presentsLineHeight = font->m_dyUnscaled * font->m_ryScale * scaleY;
-
-            float totalTextHeight = lineHeight + presentsLineHeight * 2.0f + 44.0f * scaleY;
-            float presentsStartY = (g_gl.height - totalTextHeight) * 0.5f + 22.0f * scaleY;
-
-            for (int i = 0; i < 2; ++i) {
-                const char* textLine = g_aachzPresents[i];
-
-                tbx.SetPos(0.0f, presentsStartY);
-                tbx.SetSize(g_gl.width, presentsLineHeight);
-                tbx.SetTextColor(&fadeColor);
+            for (int i = 0; i < 2; i++) {
+                const char* text = g_aachzPresents[i];
+                tbx.SetPos(0.0f, startY);
+                tbx.SetSize(g_gl.width, presentsHeight);
+                tbx.SetTextColor(&color);
                 tbx.SetHorizontalJust(JH_Center);
                 tbx.SetVerticalJust(JV_Top);
-
-                font->DrawPchz((char*)textLine, &tbx);
-                presentsStartY += presentsLineHeight;
+                g_pfont->DrawPchz((char*)text, &tbx);
+                startY += presentsHeight;
             }
 
-            font->PopScaling();
+            g_pfont->PopScaling();
         }
     }
 }

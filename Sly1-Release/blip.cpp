@@ -17,7 +17,11 @@ void InitSwBlipgFreeDl(SW* psw)
 
 void InitBlipg(BLIPG* pblipg)
 {
-	InitAlo(pblipg);
+    AppendDlEntry(&pblipg->psw->dlBlipgFree, pblipg);
+    InitAlo(pblipg);
+    InitDl(&pblipg->dlBlip, offsetof(BLIP, dle));
+    pblipg->sMRD = 1e+10;
+    *(unsigned long*)&pblipg->bitfield = *(unsigned long*)&pblipg->bitfield & 0xffffffffcfffffff | 0x10020000000;
 }
 
 int GetBlipgSize()
@@ -37,7 +41,6 @@ void CloneBlipg(BLIPG* pblipg, BLIPG* pblipgBase)
     pblipg->blipmk = pblipgBase->blipmk;
     pblipg->blipgm = pblipgBase->blipgm;
     pblipg->pshd = pblipgBase->pshd;
-    pblipg->cqwTexture = pblipgBase->cqwTexture;
     pblipg->crgba = pblipgBase->crgba;
     for (int i = 0; i < 32; ++i)
         pblipg->argba[i] = pblipgBase->argba[i];
@@ -51,8 +54,28 @@ void CloneBlipg(BLIPG* pblipg, BLIPG* pblipgBase)
 
 void OnBlipgAdd(BLIPG* pblipg)
 {
-	AppendDlEntry(&pblipg->psw->dlBlipg, pblipg);
-	OnAloAdd(pblipg);
+    RemoveDlEntry(&pblipg->psw->dlBlipgFree, pblipg);
+    AppendDlEntry(&pblipg->psw->dlBlipg, pblipg);
+    OnAloAdd(pblipg);
+}
+
+void OnBlipgRemove(BLIPG* pblipg)
+{
+    OnAloRemove(pblipg);
+}
+
+void SetBlipgShader(BLIPG *pblipg, OID oid)
+{
+    pblipg->pshd = PshdFindShader(oid);
+
+    if (pblipg->pshd == nullptr) {
+        pblipg->pshd = &g_ashd[0];
+    }
+
+    if (pblipg->crgba == 0)
+        pblipg->argba[0] = pblipg->pshd->rgba;
+
+    //PropagateBlipgShader(pblipg);
 }
 
 void RenderBlipgSelf(BLIPG* pblipg, CM* pcm, RO* pro)

@@ -3,7 +3,7 @@
 int main(int cphzArgs, char* aphzArgs[])
 {
     Startup();
-
+    
     while (!glfwWindowShouldClose(g_gl.window) && fQuitGame != true)
     {
         if (g_transition.m_fPending != 0)
@@ -80,6 +80,7 @@ void Startup()
 	glGlobShader.Init("glob.vert", NULL, "glob.frag");
 	glGlobShader.Use();
 	InitGlslUniforms();
+    glGenVertexArrays(1, &gEmptyVAO);
 
     glBlotShader.Init("blot.vert", NULL, "blot.frag");
     glBlotShader.Use();

@@ -145,27 +145,27 @@ struct SHD : public SHDF
 // Delete shader data
 void UnloadShaders();
 // Loads CLUT entry data from binary file
-void LoadColorTablesFromBrx(CBinaryInputStream* pbis);
+void LoadColorTablesFromBrx(CBinaryInputStream *pbis);
 // Loads texture entry data from binary file
-void LoadBitmapsFromBrx(CBinaryInputStream* pbis);
+void LoadBitmapsFromBrx(CBinaryInputStream *pbis);
 // Loads font property's from binary file
-void LoadFontsFromBrx(CBinaryInputStream* pbis); // GOTTA COME BACK TO THIS
+void LoadFontsFromBrx(CBinaryInputStream *pbis); // GOTTA COME BACK TO THIS
 // Loads texture tables from binary file
-void LoadTexFromBrx(TEX* ptex, CBinaryInputStream* pbis);
+void LoadTexFromBrx(TEX* ptex, CBinaryInputStream *pbis);
 // Converts Custom Hue Saturation Value to RGBA Color
-void ConvertUserHsvToUserRgb(glm::vec3& pvecHSV, glm::vec3& pvecRGB);
+void ConvertUserHsvToUserRgb(glm::vec3 &pvecHSV, glm::vec3& pvecRGB);
 // Returns a shader property from global shader vector
 SHD* PshdFindShader(OID oid);
 // Loads texture and shader property's from binary file
-void LoadShadersFromBrx(CBinaryInputStream* pbis);
+void LoadShadersFromBrx(CBinaryInputStream *pbis);
 // Loads texture data from binary file
-void LoadTexturesFromBrx(CBinaryInputStream* pbis);
+void LoadTexturesFromBrx(CBinaryInputStream *pbis);
 // Make Texture
-std::vector <byte> MakeBmp(BMP* pbmp, CBinaryInputStream* pbis);
+std::vector <byte> MakeBmp(BMP *pbmp, CBinaryInputStream* pbis);
 // Make color pallete
-std::vector <byte> MakePallete(CLUT* pclut, CBinaryInputStream* pbis);
+std::vector <byte> MakePallete(CLUT *pclut, CBinaryInputStream* pbis);
 // Make texture
-void MakeTexture(GLuint& textureReference, TEX *ptex ,BMP* pbmp, std::vector <byte> &texture ,CLUT* pclut, bool fFlip ,CBinaryInputStream* pbis);
+void MakeTexture(GLuint &textureReference, TEX *ptex ,BMP *pbmp, std::vector <byte> &texture ,CLUT *pclut, bool fFlip , bool fMipMap, CBinaryInputStream *pbis);
 
 // Global variable which holds the number of CLUT's in a binary file
 extern int g_cclut;

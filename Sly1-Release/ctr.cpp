@@ -4,7 +4,7 @@ void PostCtrLoad(CTR* pctr)
 {
     PostBlotLoad(pctr);
 
-    pctr->pfont = g_pfontScreenCounters;
+    pctr->pfont = &g_afontBrx[2];
     pctr->nDisplay = -1;
     pctr->dgDisplayMax = 6000.0;
 
@@ -14,15 +14,29 @@ void PostCtrLoad(CTR* pctr)
         case BLOTK_Clue:
         pctr->pnTotal = &g_psw->cclueAll;
         break;
+
         case BLOTK_Trunk:
+        break;
+
         case BLOTK_Crusher:
+        break;
+
         case BLOTK_Lap:
+        break;
+
         case BLOTK_Boost:
+        break;
+
         case BLOTK_Place:
+        break;
+
         case BLOTK_Boss:
+        break;
+
         case BLOTK_PuffCharge:
         pctr->pnActual = &pctr->nDisplay;
         break;
+
         default:
         pctr->pnActual = nullptr;
         break;
@@ -31,13 +45,11 @@ void PostCtrLoad(CTR* pctr)
 
 float DtVisibleCtr(CTR* pctr)
 {
-    float fVar1;
-
-    fVar1 = 0.0;
+    float dt = 0.0;
     if (g_clock.fEnabled != 0) {
-        fVar1 = 5.0;
+        dt = 2.5;
     }
-    return fVar1;
+    return dt;
 }
 
 void UpdateCtr(CTR* pctr)
@@ -92,7 +104,8 @@ void UpdateCtr(CTR* pctr)
         }
         else {
             pctr->pfont->PushScaling(pctr->rFontScale, pctr->rFontScale);
-            
+            CRichText rtxt(pctr->achzDraw, pctr->pfont);
+
             float dx = pctr->pfont->DxFromPchz(pctr->achzDraw);
             float dy = pctr->pfont->m_dyUnscaled * pctr->pfont->m_ryScale;
             ResizeBlot(pctr, dx, dy);
@@ -110,6 +123,7 @@ void RebuildCtrAchzDraw(CTR *pctr)
         pctr->achzDraw[1] = '0';
 
         break;
+
         case BLOTK_Clue:
         if (*pctr->pnTotal == 0) {
             pctr->achzDraw[0] = '\0';
@@ -134,41 +148,60 @@ void RebuildCtrAchzDraw(CTR *pctr)
             pctr->achzDraw[2 + idxDraw] = '?';
         }
         break;
+
         case BLOTK_Key:
-        pctr->achzDraw[0] = '0';
-        pctr->achzDraw[1] = 'K';
+        pctr->achzDraw[0] = '&';   // start font switch
+        pctr->achzDraw[1] = '3';   // font index (switch to font 3)
+        pctr->achzDraw[2] = 'K';   // glyph 'K' drawn with font #3
+        pctr->achzDraw[3] = '&';   // start restore
+        pctr->achzDraw[4] = '.';   // restore to base font
+        pctr->achzDraw[5] = '0';   // glyph '3' drawn with base font
         break;
+
         case BLOTK_Gold:
-        
+
         break;
+
         case BLOTK_Coin:
-        pctr->achzDraw[0] = 'C';
-        pctr->achzDraw[1] = '0';
-        
+        pctr->achzDraw[0] = '&';   // start font switch
+        pctr->achzDraw[1] = '3';   // font index (switch to font 3)
+        pctr->achzDraw[2] = 'C';   // glyph 'C' drawn with font #3
+        pctr->achzDraw[3] = '&';   // start restore
+        pctr->achzDraw[4] = '.';   // restore to base font
+        pctr->achzDraw[5] = '0';   // glyph '3' drawn with base font
         break;
+
         case BLOTK_Trunk:
+
+        break;
+
         case BLOTK_Crusher:
         
         break;
+
         case BLOTK_Lap:
-            pctr->achzDraw[0] = '3';
-            pctr->achzDraw[1] = '0';
-            pctr->achzDraw[2] = '2';
-            pctr->achzDraw[3] = 'F';
-            pctr->achzDraw[4] = '3';
-            pctr->achzDraw[5] = '0';
-            pctr->achzDraw[6] = '4';
-            pctr->achzDraw[7] = '8';
+        pctr->achzDraw[0] = '3';
+        pctr->achzDraw[1] = '0';
+        pctr->achzDraw[2] = '2';
+        pctr->achzDraw[3] = 'F';
+        pctr->achzDraw[4] = '3';
+        pctr->achzDraw[5] = '0';
+        pctr->achzDraw[6] = '4';
+        pctr->achzDraw[7] = '8';
         break;
+
         case BLOTK_Boost:
         
         break;
+
         case BLOTK_Place:
         
         break;
+
         case BLOTK_Boss:
         
         break;
+
         case BLOTK_PuffCharge:
         
         break;
@@ -177,16 +210,15 @@ void RebuildCtrAchzDraw(CTR *pctr)
 
 void DrawCtr(CTR* pctr)
 {
-    if (!pctr || pctr->achzDraw[0] == '\0')
-        return;
+    if (!pctr || pctr->achzDraw[0] == '\0') return;
 
-    // If it's just a standard blot (no counter), draw normally
-    if (!pctr->pnTotal) {
-        DrawBlot(pctr);
-        return;
-    }
+    // Pause overlay fade: only apply when pause UI is visible
+    float fade = 1.0f;
+    /*if (g_prompt.blots != BLOTS_Hidden) {
+        fade = g_promptFade;
+    }*/
 
-    // === Setup textbox ===
+    // Text box
     CTextBox tbx;
     tbx.SetPos(pctr->x, pctr->y);
     tbx.SetSize(pctr->dx, pctr->dy);
@@ -194,80 +226,21 @@ void DrawCtr(CTR* pctr)
     tbx.SetHorizontalJust(JH_Left);
     tbx.SetVerticalJust(JV_Top);
 
-    // === Parse achzDraw into num / denom / after ===
-    char achzNum[10]{};
-    char achzSlash[2] = "/";
-    char achzDenom[10]{};
-    char achzAfter[10]{};
+    // Color with pause alpha modulation
+    glm::vec4 mod = pctr->rgba;
 
-    const char* fullText = pctr->achzDraw;
-    const char* slash = strchr(fullText, '/');
+    // multiply alpha by fade (clamped to 0–1)
+    mod.a *= fade;
+    if (mod.a > 1.0f) mod.a = 1.0f;
+    if (mod.a < 0.0f) mod.a = 0.0f;
 
-    if (!slash) {
-        strncpy_s(achzNum, sizeof(achzNum), fullText, _TRUNCATE);
-    }
-    else {
-        size_t numLen = slash - fullText;
-        strncpy_s(achzNum, sizeof(achzNum), fullText, numLen);
+    tbx.SetTextColor(&mod);
 
-        const char* denomStart = slash + 1;
-        size_t denomLen = 0;
-        while (isdigit((unsigned char)*denomStart)) {
-            if (denomLen < sizeof(achzDenom) - 1)
-                achzDenom[denomLen++] = *denomStart;
-            denomStart++;
-        }
-        achzDenom[denomLen] = '\0';
+    // Scale & draw rich text
+    pctr->pfont->PushScaling(pctr->rFontScale, pctr->rFontScale);
+    
+    CRichText rtxt(pctr->achzDraw, pctr->pfont);
+    rtxt.Draw(&tbx);
 
-        strncpy_s(achzAfter, sizeof(achzAfter), denomStart, _TRUNCATE);
-    }
-
-    // === Measure widths ===
-    float dxNum = pctr->pfont->DxFromPchz(achzNum);
-    float dxSlash = pctr->pfont->DxFromPchz(achzSlash);
-    float dxDenom = pctr->pfont->DxFromPchz(achzDenom);
-
-    // === Offset for left-anchored layout ===
-    float xOffset = (pctr->pbloti && pctr->pbloti->x < 0.0f) ? dxDenom * 0.5f : 0.0f;
-
-    // === Optional edge ===
-    if (pctr->pte && pctr->pte->m_pfont)
-        pctr->pte->m_pfont->EdgeRect(pctr->pte, &tbx);
-
-    float scale = pctr->rFontScale;
-    float smallScale = 0.5f;
-
-    // === Draw numerator ===
-    pctr->pfont->PushScaling(scale, scale);
-    tbx.m_x = pctr->x + xOffset;
-    tbx.m_y = pctr->y;
-    pctr->pfont->DrawPchz(achzNum, &tbx);
     pctr->pfont->PopScaling();
-
-    // === Draw slash (same scale and color as numerator) ===
-    pctr->pfont->PushScaling(scale, scale);
-    tbx.m_x += dxNum;
-    tbx.SetTextColor(&pctr->rgba);  // restore original color
-    pctr->pfont->DrawPchz(achzSlash, &tbx);
-    pctr->pfont->PopScaling();
-
-    // === Draw denominator (smaller and tinted) ===
-    tbx.m_x += dxSlash;
-    tbx.m_y = pctr->y + 5.0f;
-    glm::vec4 denomColor = glm::vec4(0.7f, 0.66f, 0.24f, 0.5f);  // yellow, 50% alpha
-    tbx.SetTextColor(&denomColor);
-    pctr->pfont->PushScaling(0.5f, 0.5f);
-    pctr->pfont->DrawPchz(achzDenom, &tbx);
-    float dxDenomText = pctr->pfont->DxFromPchz(achzDenom);
-    pctr->pfont->PopScaling();
-
-    // === Restore original text color ===
-    tbx.SetTextColor(&pctr->rgba);
-
-    // === Draw trailing suffix (e.g. %) ===
-    if (achzAfter[0] != '\0') {
-        tbx.m_x += dxDenomText + 1.0f;
-        tbx.m_y = pctr->y;
-        pctr->pfont->DrawPchz(achzAfter, &tbx);
-    }
 }

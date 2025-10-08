@@ -11,7 +11,7 @@ void PostCallLoad(CALL* pcall)
     PostBlotLoad(pcall);
 
     // Clone font at 1:1 scale
-    pcall->pfont = g_pfontScreenCounters->PfontClone(1.0f, 1.0f);
+    pcall->pfont = &g_afontBrx[2];
 
     // Set default string (e.g. "B")
     SetBlotAchzDraw(pcall, (char*)"B");

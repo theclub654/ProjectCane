@@ -10,17 +10,16 @@ int GetMsSize()
     return sizeof(MS);
 }
 
-void RenderMsGlobset(MS *pms, CM *pcm, RO *pro)
+void RenderMsGlobset(MS* pms, CM* pcm, RO* pro)
 {
 	RPL rpl{};
-	rpl.PFNDRAW = DrawGlob;
 
 	glm::mat4 baseModelMatrix{};
 	LoadMatrixFromPosRot(pms->xf.posWorld, pms->xf.matWorld, baseModelMatrix);
 
 	rpl.ro.model = baseModelMatrix;
 
-	for (int i = 0; i < pms->globset.aglob.size(); ++i) 
+	for (int i = 0; i < pms->globset.aglob.size(); ++i)
 	{
 		if (g_fBsp != 0)
 		{
@@ -28,7 +27,7 @@ void RenderMsGlobset(MS *pms, CM *pcm, RO *pro)
 				continue;
 		}
 
-		auto& glob  = pms->globset.aglob[i];
+		auto& glob = pms->globset.aglob[i];
 		auto& globi = pms->globset.aglobi[i];
 
 		glm::vec3 posCenterWorld = glm::vec3(baseModelMatrix * glm::vec4(glob.posCenter, 1.0f));
@@ -39,32 +38,25 @@ void RenderMsGlobset(MS *pms, CM *pcm, RO *pro)
 		if (!FInsideCmMrd(pcm, pcm->pos - posCenterWorld, glob.sRadius, glob.sMRD, rpl.ro.uAlpha))
 			continue;
 
-		for (auto& subglob : glob.asubglob) 
+		for (auto& subglob : glob.asubglob)
 		{
 			rpl.ro.VAO = &subglob.VAO;
-
-			if (g_fRenderCelBorders && subglob.fCelBorder == 1) 
-			{
-				rpl.ro.celVAO = &subglob.celVAO;
-				rpl.ro.celcvtx = subglob.celcvtx;
-				rpl.ro.fCelBorder = 1;
-			}
-			else 
-			{
-				rpl.ro.celVAO = nullptr;
-				rpl.ro.fCelBorder = 0;
-			}
-
 			rpl.ro.fDynamic = glob.fDynamic;
-
 			rpl.ro.uFog = glob.uFog;
-			rpl.posCenter = posCenterWorld;
-			rpl.ro.grfglob = glob.grfglob;
+			rpl.ro.posCenter = posCenterWorld;
+			rpl.sRadius = glob.sRadius;
+
+			if ((glob.grfglob & 4U) == 0)
+				rpl.ro.darken = g_psw->rDarken;
+			else
+				rpl.ro.darken = 1.0;
+
 			rpl.ro.pshd = subglob.pshd;
+			rpl.grfshd = subglob.pshd->grfshd;
 			rpl.ro.unSelfIllum = subglob.unSelfIllum;
 			rpl.ro.cvtx = subglob.cvtx;
-
 			rpl.rp = glob.rp;
+			rpl.ro.uAlpha = rpl.ro.uAlpha * g_uAlpha;
 
 			if (rpl.ro.uAlpha != 1.0)
 			{
@@ -89,7 +81,6 @@ void RenderMsGlobset(MS *pms, CM *pcm, RO *pro)
 				case RP_Background:
 				rpl.z = glob.gZOrder;
 				break;
-
 				case RP_Cutout:
 				case RP_CutoutAfterProjVolume:
 				case RP_Translucent:

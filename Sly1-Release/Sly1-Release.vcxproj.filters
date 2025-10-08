@@ -549,6 +549,9 @@
     <ClCompile Include="tv.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="game.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="basic.h">
@@ -1103,6 +1106,9 @@
     <ClInclude Include="upscale.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="game.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Sly1-Release.rc">
@@ -1120,6 +1126,12 @@
       <Filter>Resource Files</Filter>
     </None>
     <None Include="screen.frag">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="blot.frag">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="blot.vert">
       <Filter>Resource Files</Filter>
     </None>
   </ItemGroup>

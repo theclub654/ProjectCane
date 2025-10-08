@@ -1,12 +1,13 @@
 #include "prompt.h"
 #include "ui.h"
 #include "dialog.h"
+#include "wm.h"
 
 void StartupPrompt(PROMPT* pprompt)
 {
     g_tePrompt.m_ch = 45;
     g_tePrompt.m_rgba = { 0.0f, 0.294117659, 0.490196079, 1.0f };
-    
+
     g_tePrompt.m_dxExtra = 15.0;
     g_tePrompt.m_ryScaling = 0.6;
     g_tePrompt.m_rxScaling = 0.6;
@@ -18,7 +19,7 @@ void PostPromptLoad(PROMPT* pprompt)
 {
     PostBlotLoad(pprompt);
 
-    if (g_pfontScreenCounters != nullptr) 
+    if (g_pfontScreenCounters != nullptr)
     {
         pprompt->pte = &g_tePrompt;
         g_tePrompt.m_pfont = g_pfontScreenCounters;
@@ -46,14 +47,14 @@ void SetPrompt(PROMPT* pprompt, PRP prp, PRK prk)
     // Handle based on blot state
     BLOTS state = pprompt->blots;
 
-    if (state == BLOTS_Hidden) 
+    if (state == BLOTS_Hidden)
     {
         SetPromptPrk(pprompt, resolvedPrk);
         if (resolvedPrk != PRK_Nil && !pprompt->fActive) {
             PushUiActiveBlot(&g_ui, pprompt);
         }
     }
-    else if (state > BLOTS_Nil && state < BLOTS_Max && pprompt->prk != resolvedPrk) 
+    else if (state > BLOTS_Nil && state < BLOTS_Max && pprompt->prk != resolvedPrk)
     {
         if (resolvedPrk == PRK_Nil) {
             if (pprompt->fActive) {
@@ -84,7 +85,7 @@ void SetPromptPrk(PROMPT* pprompt, PRK prk)
     float widthText = 0.0f;
     float heightText = 0.0f;
 
-    if (prk == PRK_PauseMenu) 
+    if (prk == PRK_PauseMenu)
     {
         s_mpprkprd[0].crespk = 0;
         for (uint32_t i = 0; i < 6; ++i) {
@@ -95,8 +96,7 @@ void SetPromptPrk(PROMPT* pprompt, PRK prk)
                 include = true;
             }
             else if (rspk == RESPK_Map) {
-                //include = g_wmc.pwm != nullptr;
-                include = false;
+                include = g_wmc.pwm != nullptr;
             }
             else if (rspk == RESPK_Save) {
                 include = false;
@@ -113,7 +113,7 @@ void SetPromptPrk(PROMPT* pprompt, PRK prk)
         }
     }
 
-    CFont* font = pprompt->pfont;
+    CFontBrx* font = pprompt->pfont;
 
     float dxPrompt = 0.0f;
     float dyPrompt = 0.0f;
@@ -150,7 +150,7 @@ void SetPromptPrk(PROMPT* pprompt, PRK prk)
         }
         else {
             if (i > 0)
-            totalOptionWidth += pprompt->pfont->m_dxSpaceUnscaled * pprompt->pfont->m_rxScale;
+                totalOptionWidth += pprompt->pfont->m_dxSpaceUnscaled * pprompt->pfont->m_rxScale;
             totalOptionWidth += dx;
             totalOptionHeight = std::max(totalOptionHeight, dy);
         }
@@ -162,7 +162,7 @@ void SetPromptPrk(PROMPT* pprompt, PRK prk)
     float kPaddingX = 10.0f;
     float kPaddingY = 6.0f;
     // Add padding to final dimensions
-    finalWidth  += kPaddingX * 5.0f;
+    finalWidth += kPaddingX * 5.0f;
     //finalHeight += kPaddingY * 2.0f;
 
     ResizeBlot(pprompt, finalWidth, finalHeight);
@@ -217,12 +217,12 @@ void ExecutePrompt(PROMPT* pprompt)
         switch (respk)
         {
             // If the response is "Continue", reset the prompt (exit the pause menu).
-            case RESPK_Continue:
+        case RESPK_Continue:
             SetPrompt(pprompt, PRP_Basic, PRK_Nil);
             break;
 
             // If the response is "Map", handle the map option logic.
-            case RESPK_Map:
+        case RESPK_Map:
             // If no map is available, play an unavailable sound.
             //if (g_wmc.pwm == nullptr)
             //{
@@ -237,18 +237,18 @@ void ExecutePrompt(PROMPT* pprompt)
             break;
 
             // If the response is "Exit", exit the game and trigger the wipe effect.
-            case RESPK_Exit:
+        case RESPK_Exit:
             SetPrompt(pprompt, PRP_Basic, PRK_Nil);
             //TriggerDefaultExit(1, WIPEK_Fade);
             break;
 
             // If the response is "Quit", show the quit confirmation prompt.
-            case RESPK_Quit:
+        case RESPK_Quit:
             SetPrompt(pprompt, PRP_Basic, PRK_QuitConfirm);
             break;
 
             // Default case (no action needed).
-            default:
+        default:
             break;
         }
         break;
@@ -377,7 +377,7 @@ void OnPromptActive(PROMPT* pprompt, int fActive)
         pprompt->irespk = 0;
         pprompt->pvtblot->pfnShowBlot(pprompt);
         g_joy.StartJoySelection();
-        
+
         pprompt->fActive = fActive;
     }
 }
@@ -411,11 +411,11 @@ void UpdatePromptActive(PROMPT* pprompt, JOY* pjoy)
 
     // Special case: Attract menu using BTN_A (Cross)
     if (pjoy->IsPressed(BTN_CROSS) && prk == PRK_AttractMenu) {
-        
+
         SetPrompt(pprompt, PRP_Basic, PRK_MemcardEraseConfirm);
         return;
     }
-    
+
     if (pjoy->IsPressed(BTN_CROSS)) {
         ExecutePrompt(pprompt);
         return;
@@ -431,21 +431,21 @@ void CancelPrompt(PROMPT* pprompt)
     }
 
     switch (pprompt->prk) {
-        case PRK_PauseMenu:
-        case PRK_MemcardEraseConfirm:
-        case PRK_AttractMenu:
+    case PRK_PauseMenu:
+    case PRK_MemcardEraseConfirm:
+    case PRK_AttractMenu:
         // These prompts can only be cancelled if the timer condition is met
         if (!allowCancel) {
             return;
         }
         break;
 
-        case PRK_QuitConfirm:
+    case PRK_QuitConfirm:
         // Quit confirm always returns to Pause menu
         SetPrompt(pprompt, PRP_Basic, PRK_PauseMenu);
         return;
 
-        case PRK_OptionsMenu:
+    case PRK_OptionsMenu:
         // Options menu can only be cancelled if the timer allows
         if (!allowCancel) {
             return;
@@ -460,7 +460,7 @@ void CancelPrompt(PROMPT* pprompt)
         return;
         break;
 
-        default:
+    default:
         // For all other prompt kinds, fall through to generic cancel
         break;
     }
@@ -576,7 +576,7 @@ void DrawPrompt(PROMPT* pprompt)
             textY += lineHeight;
         }
     }
-    
+
     pprompt->pfont->PopScaling();
 }
 

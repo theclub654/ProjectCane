@@ -1,8 +1,9 @@
 ﻿#version 330 core
 
-#define RKO_OneWay     0
-#define RKO_ThreeWay   1
-#define RKO_CelBorder  2
+#define RKO_OneWay    0
+#define RKO_ThreeWay  1
+#define RKO_CelBorder 2
+#define RKO_Collision 3
 
 #define LIGHTK_Direction 0
 #define LIGHTK_Position  1
@@ -18,6 +19,8 @@ layout (location = 0) in vec3 vertex;
 layout (location = 1) in vec3 normal;
 layout (location = 2) in vec4 color;
 layout (location = 3) in vec2 uv;
+
+uniform samplerBuffer uEdges; // 4 texels per edge: [E0, E1, OppA, OppB]
 
 struct LIGHT 
 {
@@ -60,13 +63,14 @@ struct LSM
 
 uniform mat4 matWorldToClip;
 uniform vec3 cameraPos;
-uniform mat4 model;
 
 uniform int   fogType;
 uniform float fogNear;
 uniform float fogFar;
 uniform float fogMax;
 uniform float uFog;
+
+uniform mat4 model;
 
 uniform int rko;
 
@@ -85,6 +89,7 @@ out vec4 vertexColor;
 out vec2 texcoord;
 out MATERIAL material;
 out float fogIntensity;
+flat out int fNonCelBorder;
 
 void StartThreeWay();
 void InitGlobLighting();
@@ -95,6 +100,7 @@ vec4 AddPositionLightDynamic(LIGHT pointlight, vec3 direction);
 vec4 AddFrustrumLight(LIGHT frustumlight);
 //vec4 AddFrustrumLightDynamic(FRUSTUMLIGHT frustumlight);
 void ProcessGlobLighting();
+void ProcessCelBorders();
 // This uses the PS2 Style fog
 void CalculateFogPS2();
 // This uses the PS3 style fog
@@ -102,16 +108,34 @@ void CalculateFogPS3();
 
 void main()
 {
-    worldPos    = model * vec4(vertex, 1.0);
-    vertexColor = color;
-    texcoord    = uv;
-
-    if (rko == RKO_ThreeWay)
+    switch (rko)
     {
+        case RKO_OneWay:
+        worldPos    = model * vec4(vertex, 1.0);
+        vertexColor = color;
+        texcoord    = uv;
+        gl_Position = matWorldToClip * worldPos;
+        break;
+
+        case RKO_ThreeWay:
+        worldPos    = model * vec4(vertex, 1.0);
+        vertexColor = color;
+        texcoord    = uv;
         InitGlobLighting();
         StartThreeWay();
-    }
+        gl_Position = matWorldToClip * worldPos;
+        break;
 
+        case RKO_CelBorder:
+        ProcessCelBorders();
+        break;
+
+        case RKO_Collision:
+        worldPos    = model * vec4(vertex, 1.0);
+        gl_Position = matWorldToClip * worldPos;
+        break;
+    }
+    
     switch (fogType)
     {
         case FOG_PS2:
@@ -122,8 +146,6 @@ void main()
         CalculateFogPS3();
         break;
     }
-
-    gl_Position = matWorldToClip * worldPos;
 }
 
 void StartThreeWay()
@@ -257,7 +279,7 @@ vec4 AddPositionLight(LIGHT pointlight, vec3 toLight, float dist)
 
     // Diffuse
     float NdotL   = max(dot(lightDir, normalWorld), 0.0);
-    float diffuse = NdotL * (1.0 + NdotL * NdotL); // N + N³ ≈ stylized bump
+    float diffuse = NdotL * (1.0 + NdotL * NdotL);
 
     float attenuation = clamp(pointlight.falloff.x + pointlight.falloff.y * invLen, 0.0, 1.0);
 
@@ -359,6 +381,74 @@ void ProcessGlobLighting()
     material.ambient = shadowContribution * baseIntensity;
     material.midtone.rgb = clampedMidtone * vertexColor.rgb;
     material.light   = min(light.rgb, vec3(1.0)) * baseIntensity;
+}
+
+void ProcessCelBorders()
+{
+    // Which edge are we on? (2 vertices per edge)
+    int  edgeID = gl_VertexID >> 1;
+    bool first  = (gl_VertexID & 1) == 0;
+
+    // Fetch edge block (object space)
+    vec3 E0 = texelFetch(uEdges, edgeID * 4 + 0).xyz;
+    vec3 E1 = texelFetch(uEdges, edgeID * 4 + 1).xyz;
+    vec3 OA = texelFetch(uEdges, edgeID * 4 + 2).xyz;
+    vec3 OB = texelFetch(uEdges, edgeID * 4 + 3).xyz;
+
+    // World → Clip
+    vec4 A = matWorldToClip * (model * vec4(E0, 1.0));
+    vec4 B = matWorldToClip * (model * vec4(E1, 1.0));
+    vec4 C = matWorldToClip * (model * vec4(OA, 1.0));
+    vec4 D = matWorldToClip * (model * vec4(OB, 1.0));
+
+    // Keep the original validity rule
+    bool valid = (A.w > 0.0 && B.w > 0.0 && C.w > 0.0 && D.w > 0.0);
+
+    // --- Homogeneous (pre-divide) orientation tests ---
+    float sAC = A.x*(B.y*C.w - B.w*C.y)
+              - A.y*(B.x*C.w - B.w*C.x)
+              + A.w*(B.x*C.y - B.y*C.x);
+
+    float sBD = A.x*(B.y*D.w - B.w*D.y)
+              - A.y*(B.x*D.w - B.w*D.x)
+              + A.w*(B.x*D.y - B.y*D.x);
+
+    // Border or opposite-facing neighbor means "draw"
+    const float kEPS = 1e-6;
+    bool isBorder = (abs(sAC) <= kEPS) || (abs(sBD) <= kEPS);
+    bool opposite = (sAC * sBD < 0.0);
+    
+    fNonCelBorder = int(valid && (isBorder || opposite));
+
+    // Emit one endpoint of the line for this VS invocation
+    vec4 P = first ? A : B;
+
+    // Depth for the line (no reversed-Z, no uniform bias)
+    float dA = (A.z / A.w) * 0.5 + 0.5;
+    float dB = (B.z / B.w) * 0.5 + 0.5;
+    float dC = (C.z / C.w) * 0.5 + 0.5;
+    float dD = (D.z / D.w) * 0.5 + 0.5;
+
+    // Place the line at the *farthest* edge endpoint,
+    // but never closer than the nearer opposite vertex
+    float zEdgeMax = max(dA, dB);
+    float zOppNear = min(dC, dD);
+    float zLine01  = max(zEdgeMax, zOppNear);
+
+    // Tiny fixed forward bias so it wins against its own surface,
+    // but won't jump in front of unrelated, nearer geometry.
+    const float kBias01 = 1e-5;   // tune: try 1e-5..2e-4
+    float zBiased = clamp(zLine01 - kBias01, 0.0, 1.0);
+
+    // back to clip-space
+    float zNDC = zBiased * 2.0 - 1.0;
+    P.z        = zNDC * P.w;
+
+    // Fog (use edge midpoint)
+    vec3 midWorld = ((model * vec4(E0,1.0)).xyz + (model * vec4(E1,1.0)).xyz) * 0.5;
+    worldPos = vec4(midWorld, 1.0);
+
+    gl_Position = P;
 }
 
 void CalculateFogPS2()

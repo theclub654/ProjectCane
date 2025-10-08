@@ -20,20 +20,7 @@ enum WMD
     WMD_Right = 3,
     WMD_Max = 4
 };
-enum WORLDLEVEL 
-{
-    WORLDLEVEL_Nil = -1,
-    WORLDLEVEL_Approach = 0,
-    WORLDLEVEL_Hub = 1,
-    WORLDLEVEL_1 = 2,
-    WORLDLEVEL_2 = 3,
-    WORLDLEVEL_3 = 4,
-    WORLDLEVEL_4 = 5,
-    WORLDLEVEL_5 = 6,
-    WORLDLEVEL_6 = 7,
-    WORLDLEVEL_Boss = 8,
-    WORLDLEVEL_Max = 9
-};
+
 struct WMW 
 {
     struct ASEG* pasegWarp;
@@ -80,6 +67,7 @@ WM*  NewWm();
 int  GetWmSize();
 void CloneWm(WM* pwm, WM* pwmBase);
 void BindWm(WM* pwm);
+void PostWmLoad(WM *pwm);
 void RenderWmAll(WM* pwm, CM* pcm, RO* pro);
 void DeleteWm(WM* pwm);
 

@@ -173,6 +173,10 @@ void UpdateUi(UI *pui)
                 currentUis = pui->uis;
             }
 
+            if (pjoy->IsPressed(BTN_SELECT)) { // e.g. map 0x800 to BTN_START
+                
+            }
+
             //else if (pjoy->IsPressed(BTN_A)) { // map 0x100 to BTN_A
             //    //g_lifectr.pvtblot->pfnShowBlot(0x2828b8, currentUis);
             //    //g_cluectr.pvtblot->pfnShowBlot(0x282b38);
