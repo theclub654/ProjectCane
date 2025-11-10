@@ -71,10 +71,6 @@ void LoadSwFromBrx(SW* psw, CBinaryInputStream* pbis)
 	pbis->U8Read();
 	// Loading index sound bank from file
 	psw->ibnk = pbis->S16Read();
-	// Loads world table from file
-	//LoadWorldTableFromBrx(pbis);
-	//// Loads level filenames from file
-	//LoadNameTableFromBrx(pbis);
 	pbis->U32Read();
 	// Making new camera object for world
 	g_pcm = (CM*)PloNew(CID_CM, psw, nullptr, OID__CAMERA, -1);
@@ -85,9 +81,8 @@ void LoadSwFromBrx(SW* psw, CBinaryInputStream* pbis)
 		blipg->pvtlo->pfnRemoveLo(blipg);
 	}
 
-	// Loads all splice script events from binary file
+	// Loads all splice events from binary file
 	LoadSwSpliceFromBrx(psw, pbis);
-	//LoadOptionFromBrx(psw, pbis);
 	LoadOptionsFromBrx(psw, pbis);
 	pbis->file.seekg(0x20, SEEK_CUR);
 	pbis->file.seekg(pbis->S16Read(), SEEK_CUR);
@@ -106,6 +101,23 @@ void LoadSwFromBrx(SW* psw, CBinaryInputStream* pbis)
 	LoadTexturesFromBrx(pbis);
 	psw->lsmDefault.uShadow  *= 0.003921569;
 	psw->lsmDefault.uMidtone *= 0.003921569;
+
+	if (psw->dlChild.ploFirst != nullptr)
+	{
+		ALO* currentLo = psw->dlChild.paloFirst;
+
+		while (currentLo != nullptr)
+		{
+			ALO* lo = currentLo;
+
+			if (lo->pvtlo && lo->pvtlo->pfnBindLo)
+			{
+				lo->pvtalo->pfnBindAlo(currentLo);
+			}
+
+			currentLo = currentLo->dleChild.paloNext;
+		}
+	}
 
 	// Set up a DLI walker for the busy object list in the current SW (Scene/World)
 	DLI dlBusyWalker;
@@ -138,6 +150,22 @@ void LoadSwFromBrx(SW* psw, CBinaryInputStream* pbis)
 	}
 
 	SetupCm(g_pcm);
+
+	glGlobShader.Use();
+
+	glUniform1f(glslLsmShadow,  psw->lsmDefault.uShadow);
+	glUniform1f(glslLsmDiffuse, psw->lsmDefault.uMidtone);
+	glUniform1f(glslLsmShadow,  psw->lsmDefault.uShadow);
+	glUniform1f(glslLsmDiffuse, psw->lsmDefault.uMidtone);
+
+	glUniform1i(glslFogType, g_fogType);
+	glUniform1f(glslFogNear, g_pcm->sNearFog);
+	glUniform1f(glslFogFar,  g_pcm->sFarFog);
+	glUniform1f(glslFogMax,  g_pcm->uFogMax);
+	glUniform4fv(glslFogColor, 1, glm::value_ptr(g_pcm->rgbaFog));
+
+	glUniform4fv(glslRgbaCel, 1, glm::value_ptr(g_rgbaCel));
+
 	std::cout << "World Loaded Successfully\n";
 }
 
@@ -500,34 +528,105 @@ void UpdateSwObjects(SW* psw, float dt)
 
 void DeleteWorld(SW *psw)
 {
-	renderBuffer.clear();
-	renderBuffer.shrink_to_fit();
-
-	numRo = 0;
 	g_dynamicTextureCount = 0;
+	g_dynamicTexturePrpl.clear();
+	g_dynamicTexturePrpl.shrink_to_fit();
+
 	g_backGroundCount = 0;
+	g_backGroundPrpl.clear();
+	g_backGroundPrpl.shrink_to_fit();
+
 	g_backGroundBlendCount = 0;
+	g_backGroundBlendPrpl.clear();
+	g_backGroundBlendPrpl.shrink_to_fit();
+
 	g_blotContextCount = 0;
+	g_blotContextPrpl.clear();
+	g_blotContextPrpl.shrink_to_fit();
+
 	g_opaqueCount = 0;
+	g_opaquePrpl.clear();
+	g_opaquePrpl.shrink_to_fit();
+
 	g_cutOutCount = 0;
+	g_cutOutPrpl.clear();
+	g_cutOutPrpl.shrink_to_fit();
+
 	g_cutOutBlendAddCount = 0;
+	g_cutOutBlendAddPrpl.clear();
+	g_cutOutBlendAddPrpl.shrink_to_fit();
+
 	g_celBorderCount = 0;
+	g_celBorderPrpl.clear();
+	g_celBorderPrpl.shrink_to_fit();
+
 	g_projVolumeCount = 0;
+	g_projVolumePrpl.clear();
+	g_projVolumePrpl.shrink_to_fit();
+
+	g_projVolumeAlphaAddCount = 0;
+	g_projVolumeAlphaAddPrpl.clear();
+	g_projVolumeAlphaAddPrpl.shrink_to_fit();
+
+	g_projVolumeAddCount = 0;
+	g_projVolumeAddPrpl.clear();
+	g_projVolumeAddPrpl.shrink_to_fit();
+
 	g_opaqueAfterProjVolumeCount = 0;
+	g_opaqueAfterProjVolumePrpl.clear();
+	g_opaqueAfterProjVolumePrpl.shrink_to_fit();
+
 	g_cutOutAfterProjVolumeCount = 0;
+	g_cutOutAfterProjVolumePrpl.clear();
+	g_cutOutAfterProjVolumePrpl.shrink_to_fit();
+
 	g_cutOutAfterProjVolumeAddCount = 0;
+	g_cutOutAfterProjVolumeAddPrpl.clear();
+	g_cutOutAfterProjVolumeAddPrpl.shrink_to_fit();
+
 	g_celBorderAfterProjVolumeCount = 0;
+	g_celBorderAfterProjVolumePrpl.clear();
+	g_celBorderAfterProjVolumePrpl.shrink_to_fit();
+
 	g_murkClearCount = 0;
+	g_murkClearPrpl.clear();
+	g_murkClearPrpl.shrink_to_fit();
+
 	g_murkOpaqueCount = 0;
+	g_murkOpaquePrpl.clear();
+	g_murkOpaquePrpl.shrink_to_fit();
+
 	g_murkFillCount = 0;
+	g_murkFillPrpl.clear();
+	g_murkFillPrpl.shrink_to_fit();
+
 	g_translucentCount = 0;
+	g_translucentPrpl.clear();
+	g_translucentPrpl.shrink_to_fit();
+
 	g_translucentAddCount = 0;
-	g_transluscentOnScreen = 0;
+	g_translucentAddPrpl.clear();
+	g_translucentAddPrpl.shrink_to_fit();
+
 	g_translucentCelBorderCount = 0;
+	g_translucentCelBorderPrpl.clear();
+	g_translucentCelBorderPrpl.shrink_to_fit();
+
 	g_blipCount = 0;
+	g_blipPrpl.clear();
+	g_blipPrpl.shrink_to_fit();
+
 	g_foreGroundCount = 0;
+	g_foreGroundPrpl.clear();
+	g_foreGroundPrpl.shrink_to_fit();
+
 	g_worldMapCount = 0;
+	g_worldMapPrpl.clear();
+	g_worldMapPrpl.shrink_to_fit();
+
 	g_maxCount = 0;
+	g_maxPrpl.clear();
+	g_maxPrpl.shrink_to_fit();
 
 	DeallocateLightBlkList();
 

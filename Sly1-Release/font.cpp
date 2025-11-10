@@ -521,8 +521,6 @@ void CFontBrx::FValid(char ch)
 
 void CFontBrx::SetupDraw()
 {
-	glBlotShader.Use();
-
 	glUniformMatrix4fv(u_projectionLoc, 1, GL_FALSE, glm::value_ptr(g_gl.blotProjection));
 
 	glBindTexture(GL_TEXTURE_2D, m_pbmp->glDiffuseMap);
@@ -536,7 +534,7 @@ void CFontBrx::SetupDraw()
 
 float CFontBrx::DxDrawCh(char ch, float xChar, float yChar, glm::vec4 &rgba)
 {
-	GLYFF* glyph = PglyffFromCh(ch);
+	GLYFF *glyph = PglyffFromCh(ch);
 
 	if (!glyph)
 		return static_cast<float>(m_dxSpaceUnscaled) * m_rxScale;

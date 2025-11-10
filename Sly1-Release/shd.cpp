@@ -283,19 +283,19 @@ void LoadTexturesFromBrx(CBinaryInputStream* pbis)
         switch (g_ashd[i].shdk)
         {
             case SHDK_ThreeWay:
-            MakeTexture(g_ashd[i].atex[0].abmp[0]->glShadowMap,   &g_ashd[i].atex[0], g_ashd[i].atex[0].abmp[0], g_ashd[i].atex[0].abmp[0]->shadowTexture   ,g_ashd[i].atex[0].aclut[0], false, true, pbis);
-            MakeTexture(g_ashd[i].atex[0].abmp[0]->glDiffuseMap,  &g_ashd[i].atex[0], g_ashd[i].atex[0].abmp[0], g_ashd[i].atex[0].abmp[0]->diffuseTexture  ,g_ashd[i].atex[0].aclut[1], false, true, pbis);
-            MakeTexture(g_ashd[i].atex[0].abmp[0]->glSaturateMap, &g_ashd[i].atex[0], g_ashd[i].atex[0].abmp[0], g_ashd[i].atex[0].abmp[0]->saturateTexture ,g_ashd[i].atex[0].aclut[2], false, true, pbis);
+            MakeTexture(g_ashd[i].atex[0].abmp[0]->glShadowMap,   &g_ashd[i].atex[0], g_ashd[i].atex[0].abmp[0], g_ashd[i].atex[0].abmp[0]->shadowTexture   ,g_ashd[i].atex[0].aclut[0], false, true, g_ashd[i].shdk, g_ashd[i].rp, pbis);
+            MakeTexture(g_ashd[i].atex[0].abmp[0]->glDiffuseMap,  &g_ashd[i].atex[0], g_ashd[i].atex[0].abmp[0], g_ashd[i].atex[0].abmp[0]->diffuseTexture  ,g_ashd[i].atex[0].aclut[1], false, true, g_ashd[i].shdk, g_ashd[i].rp, pbis);
+            MakeTexture(g_ashd[i].atex[0].abmp[0]->glSaturateMap, &g_ashd[i].atex[0], g_ashd[i].atex[0].abmp[0], g_ashd[i].atex[0].abmp[0]->saturateTexture ,g_ashd[i].atex[0].aclut[2], false, true, g_ashd[i].shdk, g_ashd[i].rp, pbis);
             break;
 
             default:
-            MakeTexture(g_ashd[i].atex[0].abmp[0]->glDiffuseMap, &g_ashd[i].atex[0], g_ashd[i].atex[0].abmp[0], g_ashd[i].atex[0].abmp[0]->diffuseTexture, g_ashd[i].atex[0].aclut[0], false, true, pbis);
+            MakeTexture(g_ashd[i].atex[0].abmp[0]->glDiffuseMap, &g_ashd[i].atex[0], g_ashd[i].atex[0].abmp[0], g_ashd[i].atex[0].abmp[0]->diffuseTexture, g_ashd[i].atex[0].aclut[0], false, true, g_ashd[i].shdk, g_ashd[i].rp, pbis);
             break;
         }
     }
 
     for (int i = 0; i < g_cfontBrx; i++)
-        MakeTexture(g_afontBrx[i].m_pbmp->glDiffuseMap, &g_ashd[i].atex[0], g_afontBrx[i].m_pbmp, g_afontBrx[i].m_pbmp->diffuseTexture, g_afontBrx[i].m_pclut, true, false ,pbis);
+        MakeTexture(g_afontBrx[i].m_pbmp->glDiffuseMap, &g_ashd[i].atex[0], g_afontBrx[i].m_pbmp, g_afontBrx[i].m_pbmp->diffuseTexture, g_afontBrx[i].m_pclut, true, false, g_ashd[i].shdk, g_ashd[i].rp, pbis);
 }
 
 std::vector <byte> MakeBmp(BMP *pbmp, CBinaryInputStream *pbis)
@@ -331,7 +331,7 @@ std::vector <byte> MakePallete(CLUT *pclut, CBinaryInputStream *pbis)
     return palleteBuffer;
 }
 
-void MakeTexture(GLuint &textureReference, TEX *ptex, BMP *pbmp, std::vector <byte> &texture, CLUT *pclut, bool fFlip, bool fMipMap, CBinaryInputStream *pbis)
+void MakeTexture(GLuint &textureReference, TEX *ptex, BMP *pbmp, std::vector <byte> &texture, CLUT *pclut, bool fFlip, bool fMipMap, SHDK shdk, RP rp, CBinaryInputStream *pbis)
 {
     if (pbmp == nullptr || pclut == nullptr || textureReference != 0)
         return;
@@ -438,7 +438,6 @@ void MakeTexture(GLuint &textureReference, TEX *ptex, BMP *pbmp, std::vector <by
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, texture.data());
-        
         glGenerateMipmap(GL_TEXTURE_2D);
     }
     else

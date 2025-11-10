@@ -48,10 +48,11 @@ int main(int cphzArgs, char* aphzArgs[])
         glScreenShader.Use();
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, g_gl.fbc);
+
         glBindVertexArray(g_gl.sao);
         glDisable(GL_DEPTH_TEST);
         glDrawArrays(GL_TRIANGLES, 0, 6);
-
+        
         // Render ImGui directly to screen (after scaled scene is drawn) ===
         ImGui::Render();
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
@@ -71,26 +72,6 @@ int main(int cphzArgs, char* aphzArgs[])
 void Startup()
 {
     g_gl.InitGL();
-
-    glScreenShader.Init("screen.vert", NULL, "screen.frag");
-    glScreenShader.Use();
-    screenQuadMatrixLoc = glGetUniformLocation(glScreenShader.ID, "u_model");
-    glUniformMatrix4fv(screenQuadMatrixLoc, 1, GL_FALSE, glm::value_ptr(g_gl.screenProjection));
-    glUniform1i(glGetUniformLocation(glScreenShader.ID, "screenTexture"), 0);
-
-    glGlobShader.Init("glob.vert", NULL, "glob.frag");
-    glGlobShader.Use();
-    InitGlslUniforms();
-    glGenVertexArrays(1, &gEmptyVAO);
-
-    glBlotShader.Init("blot.vert", NULL, "blot.frag");
-    glBlotShader.Use();
-    glUniform1i(glGetUniformLocation(glBlotShader.ID, "u_fontTex"), 0);
-
-    u_projectionLoc = glGetUniformLocation(glBlotShader.ID, "u_projection");
-    u_modelLoc      = glGetUniformLocation(glBlotShader.ID, "u_model");
-    uvRectLoc       = glGetUniformLocation(glBlotShader.ID, "u_uvRect");
-    blotColorLoc    = glGetUniformLocation(glBlotShader.ID, "blotColor");
 
     std::cout << "Sly Cooper 2002 Sony Computer Entertainment America & Sucker Punch Productions\n";
     SetPhase(PHASE_Startup);

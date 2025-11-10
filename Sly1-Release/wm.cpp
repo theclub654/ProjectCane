@@ -51,11 +51,10 @@ void PostWmLoad(WM* pwm)
 
 void RenderWmAll(WM* pwm, CM* pcm, RO* pro)
 {
-    //RO ro{};
-    /*DupAloRo(pwm, pro, &ro);
-    glm::mat3 test = pcm->lookAt;
-    LoadMatrixFromPosRot(pcm->pos, test, ro.model);*/
-	//RenderAloAll(pwm, pcm, &ro);
+    /*RO ro{};
+    DupAloRo(pwm, pro, &ro);
+    LoadMatrixFromPosRot(pcm->pos, pcm->mat, ro.model);
+	RenderAloAll(pwm, pcm, &ro);*/
     RenderAloAll(pwm, pcm, pro);
 }
 

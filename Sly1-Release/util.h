@@ -60,3 +60,5 @@ float GLimitLm(LM *plm, float g);
 int SgnCompareG(float *a, float *b);
 void Force(void *);
 //TODO: MinimizeRange
+
+extern LM g_lmZeroOne;

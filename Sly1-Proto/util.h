@@ -60,7 +60,6 @@ float GRandGaussian(float param_1, float param_2, float param_3);
 bool FFloatsNear(float param_1, float param_2, float param_3);
 int CSolveQuadratic(float a, float b, float c, float *solutions);
 //TODO: PrescaleClq
-void CalculateSinCos(float angle, float *sin, float *cos);
 double GTrunc(double param_1);
 float GTrunc(float param_1);
 float GModPositive(float param_1, float param_2);

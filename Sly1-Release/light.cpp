@@ -532,7 +532,6 @@ void RemoveLightFromSw(LIGHT* plight)
 void AllocateLightBlkList()
 {
 	lightBlk.resize(numRl);
-	lightIndices.resize(numRl);
 
 	glGenBuffers(1, &g_lightUbo);
 	glBindBuffer(GL_UNIFORM_BUFFER, g_lightUbo);
@@ -560,7 +559,7 @@ void AllocateLightBlkList()
 			lightBlk[numRl].pos     = glm::vec4(plight->xf.posWorld, 1.0f);
 			lightBlk[numRl].color   = glm::vec4(plight->rgbaColor, 1.0f);
 			lightBlk[numRl].falloff = plight->agFallOff;
-			lightBlk[numRl].maxDst  = plight->lmFallOffS.gMax * plight->lmFallOffS.gMax;
+			lightBlk[numRl].dst		= plight->lmFallOffS.gMax;
 			lightBlk[numRl].ru	    = glm::vec4(plight->ltfn.ruShadow, plight->ltfn.ruMidtone, plight->ltfn.ruHighlight, 0.0f);
 			lightBlk[numRl].du	    = glm::vec4(plight->ltfn.duShadow, plight->ltfn.duMidtone, plight->ltfn.duHighlight, 0.0f);
 			numRl++;
@@ -575,57 +574,84 @@ void AllocateLightBlkList()
 			lightBlk[numRl].falloffBias  = plight->falloffBias;
 			lightBlk[numRl].ru           = glm::vec4(plight->ltfn.ruShadow, plight->ltfn.ruMidtone, plight->ltfn.ruHighlight, 0.0f);
 			lightBlk[numRl].du           = glm::vec4(plight->ltfn.duShadow, plight->ltfn.duMidtone, plight->ltfn.duHighlight, 0.0f);
+			numRl++;
 			break;
 		}
 
 		plight = plight->dleLight.plightNext;
 	}
 
+	cLights = numRl;
+
 	glBindBuffer(GL_UNIFORM_BUFFER, g_lightUbo);
 	glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(LIGHTBLK) * numRl, lightBlk.data());
+
+	// Active Lights
+	int activeCapacity = std::min(numRl, MAX_LIGHTS);
+	const GLsizeiptr headerSize = 16;              // numLights + padding
+	const GLsizeiptr slotSize = 16;              // each int has 16B stride
+	GLsizeiptr bytesActive = headerSize + slotSize * activeCapacity;
+
+	glBindBuffer(GL_UNIFORM_BUFFER, alUbo);
+	glBufferData(GL_UNIFORM_BUFFER, bytesActive, nullptr, GL_DYNAMIC_DRAW);
 }
 
 void PrepareSwLights(SW* psw, CM* pcm)
 {
 	numRl = 0;
-	int idx = 0;
 	const bool useZones = (g_fBsp != 0);
-	bool include = false;
+	int idx = 0;
 
-	for (LIGHT* plight = psw->dlLight.plightFirst; plight && numRl < 255; plight = plight->dleLight.plightNext, ++idx)
+	for (LIGHT* Light = psw->dlLight.plightFirst; Light && numRl < MAX_LIGHTS; Light = Light->dleLight.plightNext, ++idx)
 	{
-		if (useZones && ((plight->grfzon & pcm->grfzon) != pcm->grfzon))
+		if (useZones && ((Light->grfzon & pcm->grfzon) != pcm->grfzon))
 			continue;
 
-		switch (plight->lightk)
+		switch (Light->lightk)
 		{
 			case LIGHTK_Direction:
-			lightIndices[numRl] = idx;
-			numRl++;
+			activeLights.lightIndices[numRl].value = idx;
+			++numRl;
 			break;
 
 			case LIGHTK_Position:
-			if (!SphereInFrustum(pcm->frustum, plight->xf.posWorld, plight->lmFallOffS.gMax * 3.0))
+			if (!SphereInFrustum(pcm->frustum, Light->xf.posWorld, Light->lmFallOffS.gMax * 3.0f))
 				break;
-
-			lightIndices[numRl] = idx;
-			numRl++;
+			activeLights.lightIndices[numRl].value = idx;
+			++numRl;
 			break;
 
 			case LIGHTK_Frustrum:
 			case LIGHTK_Spot:
-			lightIndices[numRl] = idx;
-			numRl++;
+			activeLights.lightIndices[numRl].value = idx;
+			++numRl;
 			break;
 		}
 	}
 
-	// Upload only the used indices
-	//std::cout << numRl << "\n";
-	glUniform1i(glslNumLights, numRl);
+	activeLights.numLights = numRl;
 
+	// 2) std140 sizes
+	const GLsizeiptr headerSize = 16; // numLights + 12B pad
+	const GLsizeiptr slotSize = 16; // one IndexSlot
+	const GLsizeiptr totalBytes = headerSize + slotSize * numRl;
+
+	// 3) Upload only what we need this frame
+	glBindBuffer(GL_UNIFORM_BUFFER, alUbo);
+	glBufferData(GL_UNIFORM_BUFFER, totalBytes, nullptr, GL_STREAM_DRAW); // orphan to exact size
+
+	void* p = glMapBufferRange(GL_UNIFORM_BUFFER, 0, totalBytes, GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
+
+	if (!p) return;
+
+	// header
+	*reinterpret_cast<int*>((char*)p + 0) = numRl;
+
+	// indices: contiguous 16B slots starting at 16
 	if (numRl > 0)
-		glUniform1iv(glslLightIndices, numRl, lightIndices.data());
+		memcpy((char*)p + headerSize, activeLights.lightIndices, slotSize * numRl);
+
+	glUnmapBuffer(GL_UNIFORM_BUFFER);
 }
 
 void FindSwLights(SW *psw, CM *pcm, glm::vec3 posCenter, float sRadius)
@@ -643,7 +669,7 @@ void FindSwLights(SW *psw, CM *pcm, glm::vec3 posCenter, float sRadius)
 		switch (plight->lightk)
 		{
 			case LIGHTK_Direction:
-			lightIndices[numRl] = idx;
+			activeLights.lightIndices[numRl].value = idx;
 			numRl++;
 			break;
 
@@ -658,25 +684,42 @@ void FindSwLights(SW *psw, CM *pcm, glm::vec3 posCenter, float sRadius)
 				if (glm::dot(d, d) > Rsum * Rsum)
 					break;
 
-				lightIndices[numRl] = idx;
+				activeLights.lightIndices[numRl].value = idx;
 				numRl++;
 				break;
 			}
 
 			case LIGHTK_Frustrum:
 			case LIGHTK_Spot:
-			lightIndices[numRl] = idx;
+			activeLights.lightIndices[numRl].value = idx;
 			numRl++;
 			break;
 		}
 	}
 
-	// Upload only the used indices
-	//std::cout << numRl << "\n";
-	glUniform1i(glslNumLights, numRl);
+	// 2) std140 sizes
+	const GLsizeiptr headerSize = 16; // numLights + 12B pad
+	const GLsizeiptr slotSize = 16; // one IndexSlot
+	const GLsizeiptr totalBytes = headerSize + slotSize * numRl;
 
+	// 3) Upload only what we need this frame
+	glBindBuffer(GL_UNIFORM_BUFFER, alUbo);
+	glBufferData(GL_UNIFORM_BUFFER, totalBytes, nullptr, GL_STREAM_DRAW); // orphan to exact size
+
+	void* p = glMapBufferRange(GL_UNIFORM_BUFFER, 0, totalBytes, GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
+
+	if (!p) return;
+
+	// header
+	*reinterpret_cast<int*>((char*)p + 0) = numRl;
+
+	// indices: contiguous 16B slots starting at 16
 	if (numRl > 0)
-		glUniform1iv(glslLightIndices, numRl, lightIndices.data());
+		memcpy((char*)p + headerSize, activeLights.lightIndices, slotSize * numRl);
+
+	glUnmapBuffer(GL_UNIFORM_BUFFER);
+
+	glBindBuffer(GL_UNIFORM_BUFFER, ropUBO);
 }
 
 void DeallocateLightBlkList()
@@ -684,13 +727,19 @@ void DeallocateLightBlkList()
 	lightBlk.clear();
 	lightBlk.shrink_to_fit();
 
-	lightIndices.clear();
-	lightIndices.shrink_to_fit();
-
 	glDeleteBuffers(1, &g_lightUbo);
 	g_lightUbo = 0;
 
 	numRl = 0;
+
+	// ACTIVELIGHTS
+	if (alUbo) { glDeleteBuffers(1, &alUbo);     alUbo = 0; }
+	glGenBuffers(1, &alUbo);
+	const int activeCapacity = std::min(cLights, MAX_LIGHTS);
+	const GLsizeiptr bytesActive = 16 + 16 * activeCapacity;
+	glBindBuffer(GL_UNIFORM_BUFFER, alUbo);
+	glBufferData(GL_UNIFORM_BUFFER, bytesActive, nullptr, GL_DYNAMIC_DRAW);
+	glBindBufferBase(GL_UNIFORM_BUFFER, 3, alUbo);
 }
 
 void DeleteLight(LIGHT *plight)
@@ -705,8 +754,8 @@ void DeallocateLightVector()
 }
 
 std::vector <LIGHT*> allSwLights;
-
+ACTIVELIGHTS activeLights;
 GLuint g_lightUbo;
 int numRl;
+int cLights = 0;
 std::vector <LIGHTBLK> lightBlk;
-std::vector <int> lightIndices;

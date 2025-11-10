@@ -1,6 +1,6 @@
 #include "glob.h"
 
-void LoadGlobsetFromBrx(GLOBSET *pglobset, ALO *palo, CBinaryInputStream *pbis)
+void LoadGlobsetFromBrx(GLOBSET* pglobset, ALO* palo, CBinaryInputStream* pbis)
 {
     pglobset->cpsaa = 0;
 
@@ -16,7 +16,7 @@ void LoadGlobsetFromBrx(GLOBSET *pglobset, ALO *palo, CBinaryInputStream *pbis)
 
     pglobset->cpose = pbis->U8Read();
     pglobset->agPoses.resize(pglobset->cpose);
-    
+
     for (int i = 0; i < pglobset->cpose; i++)
         pglobset->agPoses[i] = pbis->F32Read();
 
@@ -32,15 +32,15 @@ void LoadGlobsetFromBrx(GLOBSET *pglobset, ALO *palo, CBinaryInputStream *pbis)
     // Loading each submodel for a model
     for (int i = 0; i < pglobset->cglob; i++)
     {
-        uint16_t unk_5 = pbis->U16Read();
-        
-        if ((unk_5 & 1) == 0)
+        uint16_t globPropertys = pbis->U16Read();
+
+        if ((globPropertys & 0x0001) == 0)
         {
             fCloneSubGlob = 0;
 
-            pglobset->aglob[i].sMRD = 10000000000.000000;
+            pglobset->aglob[i].sMRD = 1.0e10f;
             pglobset->aglob[i].sCelBorderMRD = 2000.0;
-            pglobset->aglob[i].gZOrder = 0xFFFF7F7F;
+            pglobset->aglob[i].gZOrder = std::numeric_limits<float>::max();
             pglobset->aglob[i].uFog = 1.0;
             pglobset->aglob[i].rSubglobRadius = 1.0;
             pglobset->aglob[i].fDynamic = fRelight;
@@ -49,15 +49,20 @@ void LoadGlobsetFromBrx(GLOBSET *pglobset, ALO *palo, CBinaryInputStream *pbis)
 
         else
         {
-            fCloneSubGlob = unk_5 & 1;
+            fCloneSubGlob = globPropertys & 1;
 
             instanceIndex = pbis->S16Read();
             pglobset->aglob[i].instanceIndex = instanceIndex;
+
             pglobset->aglob[i].posCenter = pglobset->aglob[instanceIndex].posCenter;
             pglobset->aglob[i].sRadius = pglobset->aglob[instanceIndex].sRadius;
             pglobset->aglob[i].rp = pglobset->aglob[instanceIndex].rp;
             pglobset->aglob[i].fThreeWay = pglobset->aglob[instanceIndex].fThreeWay;
             pglobset->aglob[i].sMRD = pglobset->aglob[instanceIndex].sMRD;
+            pglobset->aglob[i].sCelBorderMRD = pglobset->aglob[instanceIndex].sCelBorderMRD;
+            pglobset->aglob[i].gZOrder = pglobset->aglob[instanceIndex].gZOrder;
+            pglobset->aglob[i].uFog = pglobset->aglob[instanceIndex].uFog;
+            pglobset->aglob[i].fDynamic = pglobset->aglob[instanceIndex].fDynamic;
             pglobset->aglobi[i] = pglobset->aglobi[instanceIndex];
 
             glm::mat4 instanceModelMatrix = pbis->ReadMatrix4();
@@ -66,52 +71,50 @@ void LoadGlobsetFromBrx(GLOBSET *pglobset, ALO *palo, CBinaryInputStream *pbis)
             pglobset->aglob[i].pdmat = mat;
         }
 
-        if ((unk_5 & 2) != 0)
+        if ((globPropertys & 2) != 0)
             pglobset->aglobi[i].grfzon = pbis->U32Read();
         else
             pglobset->aglobi[i].grfzon = -1;
 
-        if ((unk_5 & 0x200) != 0)
+        if ((globPropertys & 0x200) != 0)
             pglobset->aglob[i].rSubglobRadius = pbis->F32Read();
 
-        if ((unk_5 & 4) != 0)
+        if (globPropertys & 0x04)
         {
             float gZOrder = pbis->F32Read();
 
-            if (gZOrder == 0x7F7FFFFF)
+            if (gZOrder == std::numeric_limits<float>::max())
                 pglobset->aglob[i].gZOrder = gZOrder;
             else
-                pglobset->aglob[i].gZOrder = gZOrder * abs(gZOrder);
+                pglobset->aglob[i].gZOrder = gZOrder * std::abs(gZOrder);
         }
-        
-        if ((unk_5 & 8) != 0)
+
+        if ((globPropertys & 8) != 0)
             pglobset->aglob[i].uFog = pbis->F32Read();
 
-        if ((unk_5 & 0x10) != 0)
+        if (globPropertys & 0x10)
         {
-            pglobset->aglob[i].sMRD = pbis->F32Read();
-            
-            if (pglobset->aglob[i].sMRD == 3.402823e+38)
-                pglobset->aglob[i].sMRD = 10000000000.000000;
+            const float v = pbis->F32Read();
+            // PS2 treats FLT_MAX as a sentinel, replace with 1e10
+            pglobset->aglob[i].sMRD = (v == std::numeric_limits<float>::max()) ? 1.0e10f : v;
         }
-        
-        if ((unk_5 & 0x20) != 0)
+
+        if (globPropertys & 0x20)
         {
             float sCelBorderMRD = pbis->F32Read();
-
-            if (sCelBorderMRD == 3.402823e+38)
-                pglobset->aglob[i].sCelBorderMRD = 2000.0;
-            else
-                pglobset->aglob[i].sCelBorderMRD = sCelBorderMRD;
+            pglobset->aglob[i].sCelBorderMRD = (sCelBorderMRD == std::numeric_limits<float>::max()) ? 2000.0f : sCelBorderMRD;
         }
 
-        if ((unk_5 & 0x40) != 0)
+        // Clamp afterward
+        pglobset->aglob[i].sCelBorderMRD = std::min(pglobset->aglob[i].sCelBorderMRD, pglobset->aglob[i].sMRD);
+
+        if ((globPropertys & 0x40) != 0)
             PsaaLoadFromBrx(pbis);
 
-        if ((unk_5 & 0x80) != 0)
+        if ((globPropertys & 0x80) != 0)
         {
             GLEAM gleam{};
-            gleam.normal  = pbis->ReadVector();
+            gleam.normal = pbis->ReadVector();
 
             gleam.clqc.g0 = pbis->F32Read();
             gleam.clqc.g1 = pbis->F32Read();
@@ -121,10 +124,10 @@ void LoadGlobsetFromBrx(GLOBSET *pglobset, ALO *palo, CBinaryInputStream *pbis)
             pglobset->aglob[i].gleam.push_back(gleam);
         }
 
-        if ((unk_5 & 0x100) != 0)
+        if ((globPropertys & 0x100) != 0)
         {
             WRBG wrbg{};
-            
+
             wrbg.palo = palo;
             wrbg.pglob = &pglobset->aglob[i];
 
@@ -137,23 +140,23 @@ void LoadGlobsetFromBrx(GLOBSET *pglobset, ALO *palo, CBinaryInputStream *pbis)
                 wrbg.weki.uInner = pbis->F32Read();
                 wrbg.weki.sOuter = pbis->F32Read();
                 wrbg.weki.uOuter = pbis->F32Read();
-                wrbg.weki.dmat   = pbis->ReadMatrix4();
+                wrbg.weki.dmat = pbis->ReadMatrix4();
             }
 
-            wrbg.cmat  = pbis->U8Read();
+            wrbg.cmat = pbis->U8Read();
             wrbg.fDpos = pbis->U8Read();
-            wrbg.fDuv  = pbis->U8Read();
+            wrbg.fDuv = pbis->U8Read();
             wrbg.pwrbgNextGlobset = pglobset->pwrbgFirst;
             pglobset->aglob[i].wrbg.push_back(wrbg);
             pglobset->pwrbgFirst = &pglobset->aglob[i].wrbg[0];
         }
-         
+
         pglobset->aglob[i].posCenter = pbis->ReadVector();
-        pglobset->aglob[i].sRadius   = pbis->F32Read();
-        pglobset->aglob[i].oid       = (OID)pbis->S16Read();
-        pglobset->aglob[i].rtck      = (RTCK)pbis->U8Read();
-        pglobset->aglob[i].rp        = (RP)pbis->U8Read();
-        pglobset->aglob[i].grfglob   = pbis->U8Read();
+        pglobset->aglob[i].sRadius = pbis->F32Read();
+        pglobset->aglob[i].oid = (OID)pbis->S16Read();
+        pglobset->aglob[i].rtck = (RTCK)pbis->U8Read();
+        pglobset->aglob[i].rp = (RP)pbis->U8Read();
+        pglobset->aglob[i].grfglob = pbis->U8Read();
 
         if (fCloneSubGlob == 0)
         {
@@ -161,13 +164,12 @@ void LoadGlobsetFromBrx(GLOBSET *pglobset, ALO *palo, CBinaryInputStream *pbis)
             // std::cout << "Model Start: " << std::hex << file.tellg()<<"\n";
             pglobset->aglob[i].csubglob = pbis->U16Read();
             pglobset->aglob[i].asubglob.resize(pglobset->aglob[i].csubglob);
-            numRo += pglobset->aglob[i].csubglob;
 
             for (int a = 0; a < pglobset->aglob[i].csubglob; a++)
             {
                 // Loading submodel origin
                 pglobset->aglob[i].asubglob[a].posCenter = pbis->ReadVector();
-                pglobset->aglob[i].asubglob[a].sRadius   = pbis->F32Read();
+                pglobset->aglob[i].asubglob[a].sRadius = pbis->F32Read();
 
                 //std::cout << std::dec << "Vertex Count: " << (uint32_t)vertexCount << "\n";
                 uint32_t vertexCount = pbis->U8Read();
@@ -179,7 +181,7 @@ void LoadGlobsetFromBrx(GLOBSET *pglobset, ALO *palo, CBinaryInputStream *pbis)
                 uint32_t texcoordCount = pbis->U8Read();
                 //std::cout << std::dec << "Index Count: " << (uint32_t)indexCount << "\n";
                 uint32_t indexCount = pbis->U8Read();
-                
+
                 std::vector <glm::vec3> vertexes;
                 vertexes.resize(vertexCount);
 
@@ -221,19 +223,19 @@ void LoadGlobsetFromBrx(GLOBSET *pglobset, ALO *palo, CBinaryInputStream *pbis)
                 //std::cout << "Indexes: " << std::hex << pbis->file.tellg() << "\n\n";
                 for (int f = 0; f < indexCount; f++)
                 {
-                    indexes[f].ipos    = pbis->U8Read();
+                    indexes[f].ipos = pbis->U8Read();
                     indexes[f].inormal = pbis->U8Read();
-                    indexes[f].iuv     = pbis->U8Read();
-                    indexes[f].bMisc   = pbis->U8Read();
+                    indexes[f].iuv = pbis->U8Read();
+                    indexes[f].bMisc = pbis->U8Read();
                 }
 
                 // Loading texture property 
                 pglobset->aglob[i].asubglob[a].shdID = pbis->U16Read();
                 pglobset->aglob[i].asubglob[a].pshd = &g_ashd[pglobset->aglob[i].asubglob[a].shdID];
 
-                pglobset->aglob[i].asubglob[a].unSelfIllum = pbis->U8Read() * 0x7FA6 / 0xFF;
+                pglobset->aglob[i].asubglob[a].unSelfIllum = static_cast<uint16_t>((pbis->U8Read() * 0x7FA6) / 0xFF);
                 pglobset->aglob[i].asubglob[a].cibnd = pbis->U8Read();
-                
+
                 pbis->file.seekg(pglobset->aglob[i].asubglob[a].cibnd, SEEK_CUR);
                 pbis->file.seekg(vertexCount * pglobset->aglob[i].asubglob[a].cibnd * 4, SEEK_CUR);
 
@@ -264,14 +266,32 @@ void LoadGlobsetFromBrx(GLOBSET *pglobset, ALO *palo, CBinaryInputStream *pbis)
                         }
                     }
                 }
-                
+
                 BuildSubGlob(&pglobset->aglob[i].asubglob[a], pglobset->aglob[i].asubglob[a].pshd, vertexes, normals, vertexColors, texcoords, indexes);
+
+                SetRpCount(pglobset->aglob[i].rp, pglobset->aglob[i].asubglob[a].pshd->grfshd);
+
+                pglobset->aglob[i].asubglob[a].rpl.ro.fDynamic = fRelight;
+                pglobset->aglob[i].asubglob[a].rpl.ro.uFog = pglobset->aglob[i].uFog;
+                pglobset->aglob[i].asubglob[a].rpl.ro.sRadius = pglobset->aglob[i].sRadius;
+                pglobset->aglob[i].asubglob[a].rpl.pshd = pglobset->aglob[i].asubglob[a].pshd;
+                pglobset->aglob[i].asubglob[a].rpl.grfshd = pglobset->aglob[i].asubglob[a].pshd->grfshd;
+                pglobset->aglob[i].asubglob[a].rpl.ro.unSelfIllum = pglobset->aglob[i].asubglob[a].unSelfIllum;
+
+                if (pglobset->aglob[i].asubglob[a].rpl.pshd->shdk == SHDK_ThreeWay)
+                {
+                    pglobset->aglob[i].asubglob[a].rpl.ro.rko = SHDK_ThreeWay;
+                    pglobset->aglob[i].asubglob[a].rpl.PFNBIND = BindThreeWay;
+                }
+                else
+                {
+                    pglobset->aglob[i].asubglob[a].rpl.ro.rko = 1;
+                    pglobset->aglob[i].asubglob[a].rpl.PFNBIND = BindOneWay;
+                }
             }
 
             pglobset->aglob[i].csubcel = pbis->U16Read();
             pglobset->aglob[i].asubcel.resize(pglobset->aglob[i].csubcel);
-
-            numRo += pglobset->aglob[i].csubcel;
 
             for (int k = 0; k < pglobset->aglob[i].csubcel; k++)
             {
@@ -338,6 +358,8 @@ void LoadGlobsetFromBrx(GLOBSET *pglobset, ALO *palo, CBinaryInputStream *pbis)
 
                 BuildSubcel(pglobset, &subcel, aposfCount, aposf, ctwef, atwef, subposef, aposfPoses, weightsCel);
                 pglobset->aglob[i].asubcel[k] = subcel;
+
+                SetRpCount(pglobset->aglob[i].rp, 0);
             }
         }
         else
@@ -345,12 +367,19 @@ void LoadGlobsetFromBrx(GLOBSET *pglobset, ALO *palo, CBinaryInputStream *pbis)
             pglobset->aglob[i].csubglob = pglobset->aglob[pglobset->aglob[i].instanceIndex].csubglob;
             pglobset->aglob[i].asubglob = pglobset->aglob[pglobset->aglob[i].instanceIndex].asubglob;
 
-            numRo += pglobset->aglob[instanceIndex].csubglob;
+            pglobset->aglob[i].csubcel = pglobset->aglob[pglobset->aglob[i].instanceIndex].csubcel;
+            pglobset->aglob[i].asubcel = pglobset->aglob[pglobset->aglob[i].instanceIndex].asubcel;
+
+            for (int a = 0; a < pglobset->aglob[i].csubglob; a++)
+                SetRpCount(pglobset->aglob[i].rp, pglobset->aglob[i].asubglob[a].pshd->grfshd);
+
+            for (int a = 0; a < pglobset->aglob[i].csubcel; a++)
+                SetRpCount(pglobset->aglob[i].rp, 0);
         }
     }
 }
 
-void BuildSubGlob(SUBGLOB *psubglob, SHD *pshd, std::vector <glm::vec3> &positions, std::vector <glm::vec3> &normals, std::vector <glm::vec4> &colors, std::vector <glm::vec2> &texcoords, std::vector <VTXFLG> &indexes)
+void BuildSubGlob(SUBGLOB* psubglob, SHD* pshd, std::vector <glm::vec3>& positions, std::vector <glm::vec3>& normals, std::vector <glm::vec4>& colors, std::vector <glm::vec2>& texcoords, std::vector <VTXFLG>& indexes)
 {
     psubglob->vertices.resize(indexes.size());
 
@@ -369,11 +398,11 @@ void BuildSubGlob(SUBGLOB *psubglob, SHD *pshd, std::vector <glm::vec3> &positio
             psubglob->vertices[i].color = colors[indexes[i].bMisc & 0x7F] * pshd->rgba;
 
         if (indexes[i].iuv == 0xFF)
-            psubglob->vertices[i].uv = glm::vec2{0.0};
+            psubglob->vertices[i].uv = glm::vec2{ 0.0 };
         else
             psubglob->vertices[i].uv = texcoords[indexes[i].iuv];
     }
-    
+
     uint32_t idx = 0;
     for (int i = 2; i < indexes.size(); i++)
     {
@@ -396,7 +425,7 @@ void BuildSubGlob(SUBGLOB *psubglob, SHD *pshd, std::vector <glm::vec3> &positio
                 indice.v1 = idx + 0;
                 indice.v2 = idx + 2;
                 indice.v3 = idx + 1;
-                
+
                 psubglob->indices.push_back(indice);
             }
         }
@@ -405,7 +434,7 @@ void BuildSubGlob(SUBGLOB *psubglob, SHD *pshd, std::vector <glm::vec3> &positio
     }
 
     psubglob->cvtx = psubglob->indices.size() * sizeof(INDICE);
-    
+
     glGenVertexArrays(1, &psubglob->VAO);
     glBindVertexArray(psubglob->VAO);
 
@@ -416,7 +445,7 @@ void BuildSubGlob(SUBGLOB *psubglob, SHD *pshd, std::vector <glm::vec3> &positio
     glGenBuffers(1, &psubglob->EBO);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, psubglob->EBO);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, psubglob->cvtx, psubglob->indices.data(), GL_STATIC_DRAW);
-    
+
     // Vertex Position's 
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(VERTICE), (void*)offsetof(VERTICE, pos));
     glEnableVertexAttribArray(0);
@@ -432,6 +461,9 @@ void BuildSubGlob(SUBGLOB *psubglob, SHD *pshd, std::vector <glm::vec3> &positio
     // Uv's
     glVertexAttribPointer(3, 2, GL_FLOAT, GL_FALSE, sizeof(VERTICE), (void*)offsetof(VERTICE, uv));
     glEnableVertexAttribArray(3);
+
+    psubglob->rpl.VAO = psubglob->VAO;
+    psubglob->rpl.cvtx = psubglob->cvtx;
 }
 
 void BuildSubcel(GLOBSET* pglobset, SUBCEL* psubcel, int cposf, std::vector <glm::vec3>& aposf, int ctwef, std::vector <TWEF>& atwef, std::vector <SUBPOSEF>& asubposef, std::vector <glm::vec3>& aposfPoses, std::vector <float>& agWeights)
@@ -439,31 +471,29 @@ void BuildSubcel(GLOBSET* pglobset, SUBCEL* psubcel, int cposf, std::vector <glm
     psubcel->positions = aposf;
     psubcel->edgeCount = static_cast<GLsizei>(ctwef);
 
-    if (psubcel->edgeCount == 0) return;
-
     std::vector<glm::vec4> edgeTexels;
     edgeTexels.reserve(psubcel->edgeCount * 4);
 
     auto getP = [&](uint32_t idx)->const glm::vec3& {
-        // (Optional) add asserts in debug builds
+
         return psubcel->positions[idx];
         };
 
     for (int i = 0; i < ctwef; ++i)
     {
         const uint32_t iOppA = atwef[i].aipos0; // opposite A
-        const uint32_t iE0   = atwef[i].aipos1; // edge endpoint 0
-        const uint32_t iE1   = atwef[i].aipos2; // edge endpoint 1
+        const uint32_t iE0 = atwef[i].aipos1; // edge endpoint 0
+        const uint32_t iE1 = atwef[i].aipos2; // edge endpoint 1
         const uint32_t iOppB = atwef[i].aipos3; // opposite B (may degenerate)
 
-        const glm::vec3 e0   = getP(iE0);
-        const glm::vec3 e1   = getP(iE1);
+        const glm::vec3 e0 = getP(iE0);
+        const glm::vec3 e1 = getP(iE1);
         const glm::vec3 oppA = getP(iOppA);
         const glm::vec3 oppB = getP(iOppB);
 
         // Pack 4 texels per edge, OBJECT-SPACE positions (w unused except kept as 1.0)
-        edgeTexels.emplace_back(e0,   1.0f); // texel 0: E0
-        edgeTexels.emplace_back(e1,   1.0f); // texel 1: E1
+        edgeTexels.emplace_back(e0, 1.0f); // texel 0: E0
+        edgeTexels.emplace_back(e1, 1.0f); // texel 1: E1
         edgeTexels.emplace_back(oppA, 1.0f); // texel 2: OppA
         edgeTexels.emplace_back(oppB, 1.0f); // texel 3: OppB
     }
@@ -476,6 +506,12 @@ void BuildSubcel(GLOBSET* pglobset, SUBCEL* psubcel, int cposf, std::vector <glm
     glGenTextures(1, &psubcel->edgeTex);
     glBindTexture(GL_TEXTURE_BUFFER, psubcel->edgeTex);
     glTexBuffer(GL_TEXTURE_BUFFER, GL_RGBA32F, psubcel->edgeBuf);
+
+    psubcel->rplCel.ro.rko = 2;
+
+    psubcel->rplCel.edgeBuf = psubcel->edgeBuf;
+    psubcel->rplCel.edgeTex = psubcel->edgeTex;
+    psubcel->rplCel.edgeCount = psubcel->edgeCount;
 }
 
 int  g_fogType = 1;
@@ -484,5 +520,4 @@ bool g_fRenderCollision = false;
 bool g_fRenderCelBorders = true;
 bool g_fBsp = false;
 float g_uAlpha = 1.0;
-GLuint gEmptyVAO = 0;
 glm::vec4 g_rgbaCel = glm::vec4(16.0f / 255.0f, 16.0f / 255.0f, 16.0f / 255.0f, 1.0);

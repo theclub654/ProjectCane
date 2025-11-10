@@ -853,12 +853,12 @@ void DrawProjVolume(RPL* prpl)
 {
 	switch (prpl->ro.pshd->grfshd)
 	{
-	case 2:
-	case 3:
+		case 2:
+		case 3:
 		glBlendFunc(GL_SRC_ALPHA, GL_ONE);
 		break;
 
-	default:
+		default:
 		glBlendFunc(GL_ZERO, GL_ONE);
 		break;
 	}
@@ -880,13 +880,13 @@ void DrawProjVolume(RPL* prpl)
 	glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP);
 	switch (prpl->ro.pshd->grfshd)
 	{
-	case 0:
-	case 2:
+		case 0:
+		case 2:
 		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 		break;
 
-	case 1:
-	case 3:
+		case 1:
+		case 3:
 		glBlendFunc(GL_SRC_ALPHA, GL_ONE);
 		break;
 	}

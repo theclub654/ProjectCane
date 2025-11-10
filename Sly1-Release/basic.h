@@ -10863,3 +10863,4 @@ static std::unordered_map <CID, void*> g_mpcidpvt =
 };
 
 void GetBasicCid(BASIC* pbasic, CID* pcid);
+bool FIsBasicDerivedFrom(const BASIC* basic, CID cid);

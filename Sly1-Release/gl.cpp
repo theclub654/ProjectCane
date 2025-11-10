@@ -12,7 +12,7 @@ void GL::InitGL()
 {
 	// Create GLFW context and window
 	glfwInit();
-	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
@@ -48,7 +48,7 @@ void GL::InitGL()
 	ImGui::CreateContext();
 	ImGuiIO& io = ImGui::GetIO();
 	ImGui_ImplGlfw_InitForOpenGL(window, true);
-	ImGui_ImplOpenGL3_Init("#version 330");
+	ImGui_ImplOpenGL3_Init("#version 430");
 	ImGui::StyleColorsDark();
 
 	float imguiOffset = ImGui::GetFrameHeight(); // or use a cached value after rendering ImGui menu
@@ -139,9 +139,76 @@ void GL::InitGL()
 
 	glBindVertexArray(0);
 
-	RescaleLineWidth();
-
 	blotProjection = glm::ortho(0.0f, float(width), float(height - imguiOffset), 0.0f, -1.0f, 1.0f);
+
+	glScreenShader.Init("screen.vert", NULL, "screen.frag");
+	glScreenShader.Use();
+	screenQuadMatrixLoc = glGetUniformLocation(glScreenShader.ID, "u_model");
+	glUniformMatrix4fv(screenQuadMatrixLoc, 1, GL_FALSE, glm::value_ptr(g_gl.screenProjection));
+	glUniform1i(glGetUniformLocation(glScreenShader.ID, "screenTexture"), 0);
+
+	glGlobShader.Init("glob.vert", NULL, "glob.frag");
+	glGlobShader.Use();
+
+	GLuint blockIndex;
+
+	// Camera UBO
+	glGenBuffers(1, &cmUBO);
+	glBindBuffer(GL_UNIFORM_BUFFER, cmUBO);
+	glBufferData(GL_UNIFORM_BUFFER, sizeof(CMGL), nullptr, GL_DYNAMIC_DRAW);
+
+	blockIndex = glGetUniformBlockIndex(glGlobShader.ID, "CMGL");
+	glUniformBlockBinding(glGlobShader.ID, blockIndex, 1);
+	glBindBufferBase(GL_UNIFORM_BUFFER, 1, cmUBO);
+
+	// Render Object UBO
+	glGenBuffers(1, &ropUBO);
+	glBindBuffer(GL_UNIFORM_BUFFER, ropUBO);
+	glBufferData(GL_UNIFORM_BUFFER, roSize, nullptr, GL_DYNAMIC_DRAW);
+
+	blockIndex = glGetUniformBlockIndex(glGlobShader.ID, "RO");
+	glUniformBlockBinding(glGlobShader.ID, blockIndex, 2);
+	glBindBufferBase(GL_UNIFORM_BUFFER, 2, ropUBO);
+	
+	// Active Lights
+	GLuint idxActive = glGetUniformBlockIndex(glGlobShader.ID, "ACTIVELIGHTS");
+	glUniformBlockBinding(glGlobShader.ID, idxActive, 3);
+
+	glGenBuffers(1, &alUbo);
+	glBindBufferBase(GL_UNIFORM_BUFFER, 3, alUbo);
+
+	glslLsmShadow  = glGetUniformLocation(glGlobShader.ID, "swp.uShadow");
+	glslLsmDiffuse = glGetUniformLocation(glGlobShader.ID, "swp.uMidtone");
+	glslFogType    = glGetUniformLocation(glGlobShader.ID, "swp.fogType");
+	glslFogNear    = glGetUniformLocation(glGlobShader.ID, "swp.fogNear");
+	glslFogFar     = glGetUniformLocation(glGlobShader.ID, "swp.fogFar");
+	glslFogMax     = glGetUniformLocation(glGlobShader.ID, "swp.fogMax");
+	glslFogColor   = glGetUniformLocation(glGlobShader.ID, "swp.fogColor");
+
+	glslRgbaCel		  = glGetUniformLocation(glGlobShader.ID, "rgbaCel");
+	glslfAlphaTest    = glGetUniformLocation(glGlobShader.ID, "fAlphaTest");
+	glslCollisionRgba = glGetUniformLocation(glGlobShader.ID, "collisionRgba");
+	glUniform4fv(glslCollisionRgba, 1, glm::value_ptr(glm::vec4(0.76, 0.76, 0.76, 1.0)));
+
+	glUniform1i(glGetUniformLocation(glGlobShader.ID, "shadowMap"),   0);
+	glUniform1i(glGetUniformLocation(glGlobShader.ID, "diffuseMap"),  1);
+	glUniform1i(glGetUniformLocation(glGlobShader.ID, "saturateMap"), 2);
+
+	glGenVertexArrays(1, &gEmptyVAO);
+
+	glBlotShader.Init("blot.vert", NULL, "blot.frag");
+	glBlotShader.Use();
+	glUniform1i(glGetUniformLocation(glBlotShader.ID, "u_fontTex"), 0);
+	glUniformMatrix4fv(u_projectionLoc, 1, GL_FALSE, glm::value_ptr(g_gl.blotProjection));
+
+	u_projectionLoc = glGetUniformLocation(glBlotShader.ID, "u_projection");
+	u_modelLoc      = glGetUniformLocation(glBlotShader.ID, "u_model");
+	uvRectLoc       = glGetUniformLocation(glBlotShader.ID, "u_uvRect");
+	blotColorLoc    = glGetUniformLocation(glBlotShader.ID, "blotColor");
+
+	glDepthMask(GL_TRUE);
+	glCullFace(GL_BACK);
+	glFrontFace(GL_CCW);
 }
 
 void GL::UpdateGLProjections()
@@ -178,6 +245,10 @@ void GL::TerminateGL()
 	glDeleteBuffers(1, &sbo);
 	glDeleteVertexArrays(1, &gao);
 	glDeleteBuffers(1, &gbo);
+	glDeleteVertexArrays(1, &gEmptyVAO);
+	glDeleteBuffers(1, &ropUBO);
+	glDeleteBuffers(1, &cmUBO);
+	glDeleteBuffers(1, &alUbo);
 
 	glScreenShader.Delete();
 	glGlobShader.Delete();
@@ -190,51 +261,11 @@ void GL::TerminateGL()
 	glfwTerminate();
 }
 
-void InitGlslUniforms()
-{
-	glslNumLights = glGetUniformLocation(glGlobShader.ID, "numLights");
-	glslLightIndices = glGetUniformLocation(glGlobShader.ID, "lightIndices");
-
-	glslmatWorldToClip = glGetUniformLocation(glGlobShader.ID, "matWorldToClip");
-	glslCameraPos = glGetUniformLocation(glGlobShader.ID, "cameraPos");
-
-	glslLsmShadow = glGetUniformLocation(glGlobShader.ID, "lsm.uShadow");
-	glslLsmDiffuse = glGetUniformLocation(glGlobShader.ID, "lsm.uMidtone");
-
-	glslFogType = glGetUniformLocation(glGlobShader.ID, "fogType");
-	glslFogNear = glGetUniformLocation(glGlobShader.ID, "fogNear");
-	glslFogFar = glGetUniformLocation(glGlobShader.ID, "fogFar");
-	glslFogMax = glGetUniformLocation(glGlobShader.ID, "fogMax");
-	glslFogColor = glGetUniformLocation(glGlobShader.ID, "fogColor");
-
-	glslRgbaCel = glGetUniformLocation(glGlobShader.ID, "rgbaCel");
-
-	glslModel = glGetUniformLocation(glGlobShader.ID, "model");
-	glslUFog = glGetUniformLocation(glGlobShader.ID, "uFog");
-	glslUAlpha = glGetUniformLocation(glGlobShader.ID, "uAlpha");
-	glsluAlphaCelBorder = glGetUniformLocation(glGlobShader.ID, "uAlphaCelBorder");
-	glslRDarken = glGetUniformLocation(glGlobShader.ID, "rDarken");
-	glslRko = glGetUniformLocation(glGlobShader.ID, "rko");
-	glslusSelfIllum = glGetUniformLocation(glGlobShader.ID, "usSelfIllum");
-	glslFDynamic = glGetUniformLocation(glGlobShader.ID, "fDynamic");
-	glslPosCenter = glGetUniformLocation(glGlobShader.ID, "posCenter");
-
-	glslfAlphaTest = glGetUniformLocation(glGlobShader.ID, "fAlphaTest");
-	glslAlphaThresHold = glGetUniformLocation(glGlobShader.ID, "alphaThresHold");
-
-	glslfCull = glGetUniformLocation(glGlobShader.ID, "fCull");
-	glslCollisionRgba = glGetUniformLocation(glGlobShader.ID, "collisionRgba");
-
-	glUniform1i(glGetUniformLocation(glGlobShader.ID, "shadowMap"),   0);
-	glUniform1i(glGetUniformLocation(glGlobShader.ID, "diffuseMap"),  1);
-	glUniform1i(glGetUniformLocation(glGlobShader.ID, "saturateMap"), 2);
-}
-
-void FrameBufferSizeCallBack(GLFWwindow* window, int width, int height)
+void FrameBufferSizeCallBack(GLFWwindow *window, int width, int height)
 {
 	float imguiOffset = ImGui::GetFrameHeight();
 
-	g_gl.width  = width;
+	g_gl.width = width;
 	g_gl.height = height - imguiOffset;
 
 	// Resize framebuffer attachments
@@ -249,8 +280,6 @@ void FrameBufferSizeCallBack(GLFWwindow* window, int width, int height)
 	glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, g_gl.rbo);
 
 	glViewport(0, 0, width, height - imguiOffset);
-
-	RescaleLineWidth();
 
 	g_gl.UpdateGLProjections();
 
@@ -267,44 +296,23 @@ void FrameBufferSizeCallBack(GLFWwindow* window, int width, int height)
 	RepositionAllBlots();
 }
 
-void RescaleLineWidth()
-{
-	GLint vp[4];
-	glGetIntegerv(GL_VIEWPORT, vp);
-
-	float resScale = float(vp[3]) / (g_gl.height / 896.0);     // PS2-ish reference height
-	float target = glm::clamp(2.0f * resScale, 1.5f, 6.0f);
-
-	GLfloat range[2];
-	glGetFloatv(GL_ALIASED_LINE_WIDTH_RANGE, range); // range[0]=min, range[1]=max
-
-	glLineWidth(glm::clamp(target, range[0], range[1]));
-}
-
 GL g_gl;
+GLuint cmUBO = 0;
+GLuint ropUBO = 0;
+GLuint alUbo = 0;
+GLuint roSize = sizeof(RO) - 16;
+GLuint roCelSize = sizeof(RO) - 56;
+GLuint roCollisionSize = sizeof(RO) - 60;
 GLuint screenQuadMatrixLoc = 0;
-GLuint glslNumLights = 0;
-GLuint glslLightIndices = 0;
-GLuint glslmatWorldToClip = 0;
-GLuint glslCameraPos = 0;
+GLuint glslLsmShadow = 0;
+GLuint glslLsmDiffuse = 0;
 GLuint glslFogType = 0;
 GLuint glslFogNear = 0;
 GLuint glslFogFar = 0;
 GLuint glslFogMax = 0;
 GLuint glslFogColor = 0;
-GLuint glslLsmShadow = 0;
-GLuint glslLsmDiffuse = 0;
 GLuint glslRgbaCel = 0;
-GLuint glslModel = 0;
-GLuint glslUFog = 0;
-GLuint glslUAlpha = 0;
-GLuint glsluAlphaCelBorder = 0;
-GLuint glslRDarken = 0;
-GLuint glslRko = 0;
-GLuint glslusSelfIllum = 0;
-GLuint glslFDynamic = 0;
-GLuint glslPosCenter = 0;
 GLuint glslfAlphaTest = 0;
-GLuint glslAlphaThresHold = 0;
 GLuint glslfCull = 0;
 GLuint glslCollisionRgba = 0;
+GLuint gEmptyVAO = 0;

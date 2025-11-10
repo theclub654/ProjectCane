@@ -1,6 +1,8 @@
 #pragma once
 #include "alo.h"
 
+#define MAX_LIGHTS 255
+
 // Light type
 enum LIGHTK 
 {
@@ -11,6 +13,7 @@ enum LIGHTK
 	LIGHTK_Spot = 3,
 	LIGHTK_Max = 4
 };
+
 struct LTFN
 {
 	float ruShadow;
@@ -34,7 +37,7 @@ struct LIGHTBLK
 	glm::vec4 dir;
 	glm::vec4 color;
 	glm::vec3 falloff;
-	float maxDst;
+	float dst;
 	glm::vec4 ru;
 	glm::vec4 du;
 	glm::mat4 matFrustrum;
@@ -42,6 +45,20 @@ struct LIGHTBLK
 	glm::vec4 falloffBias;
 };
 
+struct IndexSlot 
+{
+	int value;      // the index
+	int pad[3];     // pad to 16 bytes
+};
+
+struct ACTIVELIGHTS
+{
+	int numLights;
+	int _pad0;
+	int _pad1;
+	int _pad2;           
+	IndexSlot lightIndices[MAX_LIGHTS]; // each element 16B (std140 stride)
+};
 
 class LIGHT : public ALO
 {
@@ -132,8 +149,8 @@ void DeleteLight(LIGHT *plight);
 void DeallocateLightVector();
 
 extern std::vector<LIGHT*> allSwLights;
-
+extern ACTIVELIGHTS activeLights;
 extern GLuint g_lightUbo;
 extern int numRl;
+extern int cLights;
 extern std::vector <LIGHTBLK> lightBlk;
-extern std::vector <int> lightIndices;

@@ -22,6 +22,14 @@ enum SENSORS
     SENSORS_Disabled = 8,
     SENSORS_Max = 9
 };
+enum LASK 
+{
+    LASK_Nil = -1,
+    LASK_Dynamic = 0,
+    LASK_Static = 1,
+    LASK_Max = 2
+};
+
 struct LEMIT 
 {
     struct EMITTER* pemitter;
@@ -82,10 +90,12 @@ class SENSOR : public SO
 class LASEN : public SENSOR
 {
 	public:
+        LASK lask;
+        int clbeam;
         LBEAM albeam[16];
         int cposBeamShapeMax;
-        struct ALO* paloRenderSense;
-        struct ALO* paloRenderDamage;
+        struct ALO *paloRenderSense;
+        struct ALO *paloRenderDamage;
         float dtDamageDisabling;
         DLE dleBusyLasen;
         int fBusyLasen;
@@ -159,3 +169,5 @@ void InitPrsen(PRSEN* pprsen);
 int  GetPrsenSize();
 void ClonePrsen(PRSEN* pprsen, PRSEN* pprsenBase);
 void DeletePrsen(PRSEN* ppprsen);
+
+extern SNIP s_asnipLasen[2];

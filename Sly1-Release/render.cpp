@@ -1,11 +1,195 @@
 ﻿#include "render.h"
 #include "main.h"
 
+void SetRpCount(RP rp, byte grfshd)
+{
+	switch (rp)
+	{
+		case RP_DynamicTexture:
+		g_dynamicTextureCount++;
+		break;
+
+		case RP_Background:
+		if (grfshd != 2)
+			g_backGroundCount++;
+		else
+			g_backGroundBlendCount++;
+		break;
+
+		case RP_BlotContext:
+		g_blotContextCount++;
+		break;
+
+		case RP_Opaque:
+		g_opaqueCount++;
+		g_translucentCount++;
+		break;
+
+		case RP_Cutout:
+		switch (grfshd)
+		{
+			case 2:
+			case 6:
+			g_cutOutCount++;
+			g_translucentCount++;
+			break;
+
+			case 3:
+			g_cutOutBlendAddCount++;
+			g_translucentCount++;
+			break;
+		}
+		break;
+
+		case RP_CelBorder:
+		g_celBorderCount++;
+		g_translucentCelBorderCount++;
+		break;
+
+		case RP_ProjVolume:
+		switch (grfshd)
+		{
+			case 0:
+			g_projVolumeCount++;
+			break;
+
+			case 2:
+			g_projVolumeAlphaAddCount++;
+			break;
+
+			case 1:
+			case 3:
+			g_projVolumeAddCount++;
+			break;
+		}
+		break;
+
+		case RP_OpaqueAfterProjVolume:
+		g_opaqueAfterProjVolumeCount++;
+		g_translucentCount++;
+		break;
+
+		case RP_CutoutAfterProjVolume:
+		switch (grfshd)
+		{
+			case 2:
+			case 6:
+			g_cutOutAfterProjVolumeCount++;
+			g_translucentCount++;
+			break;
+
+			case 3:
+			g_cutOutAfterProjVolumeAddCount++;
+			g_translucentCount++;
+			break;
+		}
+		break;
+
+		case RP_CelBorderAfterProjVolume:
+		g_celBorderAfterProjVolumeCount++;
+		g_translucentCelBorderCount++;
+		break;
+
+		case RP_MurkClear:
+		g_murkClearCount++;
+		break;
+
+		case RP_MurkOpaque:
+		g_murkOpaqueCount++;
+		break;
+
+		case RP_MurkFill:
+		g_murkFillCount++;
+		break;
+
+		case RP_Translucent:
+		switch (grfshd)
+		{
+			case 2:
+			case 6:
+			g_translucentCount++;
+			break;
+
+			case 3:
+			g_translucentAddCount++;
+			break;
+		}
+		break;
+
+		case RP_TranslucentCelBorder:
+		g_translucentCelBorderCount++;
+		break;
+
+		case RP_Blip:
+		g_blipCount++;
+		break;
+
+		case RP_Foreground:
+		g_foreGroundCount++;
+		break;
+
+		case RP_WorldMap:
+		g_worldMapCount++;
+		break;
+
+		case RP_Max:
+		g_maxCount++;
+		break;
+	}
+}
+
 void AllocateRpl()
 {
-	renderBuffer.resize(numRo);
+	g_dynamicTexturePrpl.resize(g_dynamicTextureCount);
+	g_backGroundPrpl.resize(g_backGroundCount);
+	g_backGroundBlendPrpl.resize(g_backGroundBlendCount);
+	g_blotContextPrpl.resize(g_blotContextCount);
+	g_opaquePrpl.resize(g_opaqueCount);
+	g_cutOutPrpl.resize(g_cutOutCount);
+	g_cutOutBlendAddPrpl.resize(g_cutOutBlendAddCount);
+	g_celBorderPrpl.resize(g_celBorderCount);
+	g_projVolumePrpl.resize(g_projVolumeCount);
+	g_projVolumeAlphaAddPrpl.resize(g_projVolumeAlphaAddCount);
+	g_projVolumeAddPrpl.resize(g_projVolumeAddCount);
+	g_opaqueAfterProjVolumePrpl.resize(g_opaqueAfterProjVolumeCount);
+	g_cutOutAfterProjVolumePrpl.resize(g_cutOutAfterProjVolumeCount);
+	g_cutOutAfterProjVolumeAddPrpl.resize(g_cutOutAfterProjVolumeAddCount);
+	g_celBorderAfterProjVolumePrpl.resize(g_celBorderAfterProjVolumeCount);
+	g_murkClearPrpl.resize(g_murkClearCount);
+	g_murkOpaquePrpl.resize(g_murkOpaqueCount);
+	g_murkFillPrpl.resize(g_murkFillCount);
+	g_translucentPrpl.resize(g_translucentCount);
+	g_translucentAddPrpl.resize(g_translucentAddCount);
+	g_translucentCelBorderPrpl.resize(g_translucentCelBorderCount);
+	g_blipPrpl.resize(g_blipCount);
+	g_foreGroundPrpl.resize(g_foreGroundCount);
+	g_worldMapPrpl.resize(g_worldMapCount);
+	g_maxPrpl.resize(g_maxCount);
 
-	numRo = 0;
+	g_dynamicTextureCount = 0;
+	g_backGroundCount = 0;
+	g_backGroundBlendCount = 0;
+	g_blotContextCount = 0;
+	g_opaqueCount = 0;
+	g_cutOutCount = 0;
+	g_cutOutBlendAddCount = 0;
+	g_celBorderCount = 0;
+	g_projVolumeCount = 0;
+	g_projVolumeAlphaAddCount = 0;
+	g_projVolumeAddCount = 0;
+	g_opaqueAfterProjVolumeCount = 0;
+	g_cutOutAfterProjVolumeCount = 0;
+	g_cutOutAfterProjVolumeCount = 0;
+	g_celBorderAfterProjVolumeCount = 0;
+	g_murkClearCount = 0;
+	g_murkOpaqueCount = 0;
+	g_murkFillCount = 0;
+	g_translucentCount = 0;
+	g_translucentAddCount = 0;
+	g_translucentCelBorderCount = 0;
+	g_blipCount = 0;
+	g_foreGroundCount = 0;
+	g_worldMapCount = 0;
 }
 
 void RenderSw(SW* psw, CM* pcm)
@@ -63,6 +247,7 @@ void SubmitRpl(RPL* prpl)
 	switch (prpl->rp)
 	{
 		case RP_DynamicTexture:
+		g_dynamicTexturePrpl[g_dynamicTextureCount] = prpl;
 		g_dynamicTextureCount++;
 		break;
 
@@ -70,17 +255,23 @@ void SubmitRpl(RPL* prpl)
 		if (prpl->grfshd != 2)
 		{
 			prpl->grfshd = 0;
+			g_backGroundPrpl[g_backGroundCount] = prpl;
 			g_backGroundCount++;
 		}
 		else
+		{
+			g_backGroundBlendPrpl[g_backGroundBlendCount] = prpl;
 			g_backGroundBlendCount++;
+		}
 		break;
 
 		case RP_BlotContext:
+		g_blotContextPrpl[g_blotContextCount] = prpl;;
 		g_blotContextCount++;
 		break;
 
 		case RP_Opaque:
+		g_opaquePrpl[g_opaqueCount] = prpl;;
 		g_opaqueCount++;
 		break;
 
@@ -91,24 +282,45 @@ void SubmitRpl(RPL* prpl)
 			case 6:
 			if (prpl->grfshd == 6)
 				prpl->grfshd = 2;
+			g_cutOutPrpl[g_cutOutCount] = prpl;
 			g_cutOutCount++;
 			break;
 
 			case 3:
+			g_cutOutBlendAddPrpl[g_cutOutBlendAddCount] = prpl;
 			g_cutOutBlendAddCount++;
 			break;
 		}
 		break;
 
 		case RP_CelBorder:
+		g_celBorderPrpl[g_celBorderCount] = prpl;
 		g_celBorderCount++;
 		break;
 
 		case RP_ProjVolume:
-		g_projVolumeCount++;
+		switch (prpl->grfshd)
+		{
+			case 0:
+			g_projVolumePrpl[g_projVolumeCount] = prpl;
+			g_projVolumeCount++;
+			break;
+
+			case 2:
+			g_projVolumeAlphaAddPrpl[g_projVolumeAlphaAddCount] = prpl;
+			g_projVolumeAlphaAddCount++;
+			break;
+
+			case 1:
+			case 3:
+			g_projVolumeAddPrpl[g_projVolumeAddCount] = prpl;
+			g_projVolumeAddCount++;
+			break;
+		}
 		break;
 
 		case RP_OpaqueAfterProjVolume:
+		g_opaqueAfterProjVolumePrpl[g_opaqueAfterProjVolumeCount] = prpl;
 		g_opaqueAfterProjVolumeCount++;
 		break;
 
@@ -119,28 +331,34 @@ void SubmitRpl(RPL* prpl)
 			case 6:
 			if (prpl->grfshd == 6)
 				prpl->grfshd = 2;
+			g_cutOutAfterProjVolumePrpl[g_cutOutAfterProjVolumeCount] = prpl;
 			g_cutOutAfterProjVolumeCount++;
 			break;
 
 			case 3:
+			g_cutOutAfterProjVolumePrpl[g_cutOutAfterProjVolumeAddCount] = prpl;
 			g_cutOutAfterProjVolumeAddCount++;
 			break;
 		}
 		break;
 
 		case RP_CelBorderAfterProjVolume:
+		g_celBorderAfterProjVolumePrpl[g_celBorderAfterProjVolumeCount] = prpl;
 		g_celBorderAfterProjVolumeCount++;
 		break;
 
 		case RP_MurkClear:
+		g_murkClearPrpl[g_murkClearCount] = prpl;
 		g_murkClearCount++;
 		break;
 
 		case RP_MurkOpaque:
+		g_murkOpaquePrpl[g_murkOpaqueCount] = prpl;
 		g_murkOpaqueCount++;
 		break;
 
 		case RP_MurkFill:
+		g_murkFillPrpl[g_murkFillCount] = prpl;
 		g_murkFillCount++;
 		break;
 
@@ -151,185 +369,65 @@ void SubmitRpl(RPL* prpl)
 			case 6:
 			if (prpl->grfshd == 6)
 				prpl->grfshd = 2;
+			g_translucentPrpl[g_translucentCount] = prpl;
 			g_translucentCount++;
 			break;
 
 			case 3:
+			g_translucentAddPrpl[g_translucentAddCount] = prpl;
 			g_translucentAddCount++;
 			break;
 		}
 		break;
 
 		case RP_TranslucentCelBorder:
+		g_translucentCelBorderPrpl[g_translucentCelBorderCount] = prpl;
 		g_translucentCelBorderCount++;
 		break;
 
 		case RP_Blip:
+		g_blipPrpl[g_blipCount] = prpl;
 		g_blipCount++;
 		break;
 
 		case RP_Foreground:
+		g_foreGroundPrpl[g_foreGroundCount] = prpl;
 		g_foreGroundCount++;
 		break;
 
 		case RP_WorldMap:
+		g_worldMapPrpl[g_worldMapCount] = prpl;
 		g_worldMapCount++;
 		break;
 
 		case RP_Max:
+		g_maxPrpl[g_maxCount] = prpl;
 		g_maxCount++;
 		break;
 	}
-
-	renderBuffer[numRo] = *prpl;
-	numRo++;
 }
 
 void SortRenderRpl()
 {
-	std::sort(renderBuffer.begin(), renderBuffer.begin() + numRo, compareRP);
+	if (g_backGroundBlendCount > 1)
+		std::sort(g_backGroundBlendPrpl.begin(), g_backGroundBlendPrpl.begin() + g_backGroundBlendCount, compareZ);
 
-	int offset = g_dynamicTextureCount;
+	if (g_cutOutCount > 1)
+		std::sort(g_cutOutPrpl.begin(), g_cutOutPrpl.begin() + g_cutOutCount, compareZ);
 
-	// Background: [plain][blend], Z-sort blend subgroup
-	if (g_backGroundCount + g_backGroundBlendCount > 1)
-	{
-		std::sort(renderBuffer.begin() + offset,
-			renderBuffer.begin() + offset + g_backGroundCount + g_backGroundBlendCount,
-			compareGrfShd);
+	if (g_cutOutAfterProjVolumeCount > 1)
+		std::sort(g_cutOutAfterProjVolumePrpl.begin(), g_cutOutAfterProjVolumePrpl.begin() + g_cutOutAfterProjVolumeCount, compareZ);
 
-		// move to start of BLEND subgroup
-		offset += g_backGroundCount;
-
-		if (g_backGroundBlendCount > 1) {
-			std::sort(renderBuffer.begin() + offset,
-				renderBuffer.begin() + offset + g_backGroundBlendCount,
-				compareZ); // back-to-front
-		}
-
-		// IMPORTANT: advance past the BLEND subgroup too
-		offset += g_backGroundBlendCount;   //add this line
-	}
-	else
-	{
-		offset += g_backGroundCount + g_backGroundBlendCount;
-	}
-
-	offset += g_blotContextCount;
-	offset += g_opaqueCount;
-
-	// Cutout: [alpha][add]
-	if (g_cutOutCount + g_cutOutBlendAddCount > 1)
-	{
-		std::sort(renderBuffer.begin() + offset,
-			renderBuffer.begin() + offset + g_cutOutCount + g_cutOutBlendAddCount,
-			compareGrfShd);
-
-		// Optional: Z-sort alpha subgroup if truly blended
-		// if (g_cutOutCount > 1)
-		//     std::sort(renderBuffer.begin() + offset,
-		//               renderBuffer.begin() + offset + g_cutOutCount, compareZ);
-
-		int addStart = offset + g_cutOutCount;
-		if (g_cutOutBlendAddCount > 1) {
-			std::sort(renderBuffer.begin() + addStart,
-				renderBuffer.begin() + addStart + g_cutOutBlendAddCount,
-				compareZ); // or your front-to-back variant
-		}
-
-		offset += g_cutOutCount + g_cutOutBlendAddCount;
-	}
-	else
-	{
-		offset += g_cutOutCount + g_cutOutBlendAddCount;
-	}
-
-	offset += g_celBorderCount;
-
-	// ProjVolume: group only
-	/*if (g_projVolumeCount + g_projVolumeBlendAddCount + g_projVolumeBlendCount > 1) {
-		std::sort(renderBuffer.begin() + offset,
-			renderBuffer.begin() + offset + g_projVolumeCount + g_projVolumeBlendAddCount + g_projVolumeBlendCount,
-			compareGrfShd);
-	}*/
-	offset += g_projVolumeCount /*+ g_projVolumeBlendAddCount + g_projVolumeBlendCount*/; // (only once)
-
-	offset += g_opaqueAfterProjVolumeCount;
-
-	// CutoutAfterProjVolume: [alpha][add]
-	if (g_cutOutAfterProjVolumeCount + g_cutOutAfterProjVolumeAddCount > 1)
-	{
-		std::sort(renderBuffer.begin() + offset,
-			renderBuffer.begin() + offset + g_cutOutAfterProjVolumeCount + g_cutOutAfterProjVolumeAddCount,
-			compareGrfShd);
-
-		// Optional alpha Z-sort:
-		// if (g_cutOutAfterProjVolumeCount > 1)
-		//     std::sort(renderBuffer.begin() + offset,
-		//               renderBuffer.begin() + offset + g_cutOutAfterProjVolumeCount, compareZ);
-
-		int addStart = offset + g_cutOutAfterProjVolumeCount;
-		if (g_cutOutAfterProjVolumeAddCount > 1) {
-			std::sort(renderBuffer.begin() + addStart,
-				renderBuffer.begin() + addStart + g_cutOutAfterProjVolumeAddCount,
-				compareZ);
-		}
-
-		offset += g_cutOutAfterProjVolumeCount + g_cutOutAfterProjVolumeAddCount;
-	}
-	else
-	{
-		offset += g_cutOutAfterProjVolumeCount + g_cutOutAfterProjVolumeAddCount;
-	}
-
-	offset += g_celBorderAfterProjVolumeCount;
-	offset += g_murkClearCount;
-	offset += g_murkOpaqueCount;
-	offset += g_murkFillCount;
-
-	// Translucent: [alpha][add]
-	if (g_translucentCount + g_translucentAddCount > 1)
-	{
-		std::sort(renderBuffer.begin() + offset,
-			renderBuffer.begin() + offset + g_translucentCount + g_translucentAddCount,
-			compareGrfShd);
-
-		// Alpha must be back-to-front
-		if (g_translucentCount > 1) {
-			std::sort(renderBuffer.begin() + offset,
-				renderBuffer.begin() + offset + g_translucentCount,
-				compareZ);
-		}
-
-		// Optional: additive front-to-back for overdraw
-		// int addStart = offset + g_translucentCount;
-		// if (g_translucentAddCount > 1) {
-		//     std::sort(renderBuffer.begin() + addStart,
-		//               renderBuffer.begin() + addStart + g_translucentAddCount,
-		//               Z_FrontToBack);
-		// }
-	}
-
-	// If you have more buckets after translucent (TranslucentCelBorder, Blip, Foreground, WorldMap)
-	// either advance `offset` accordingly or leave them as-is if no subgroup sort is needed.
+	if (g_translucentCount > 1)
+		std::sort(g_translucentPrpl.begin(), g_translucentPrpl.begin() + g_translucentCount, compareZ);
 }
 
-inline bool compareRP(RPL& prpl0, RPL& prpl1)
+inline bool compareZ(RPL* prpl0, RPL* prpl1)
 {
-	return prpl0.rp < prpl1.rp;
+	return prpl0->z > prpl1->z;
 }
 
-inline bool compareGrfShd(RPL& prpl0, RPL& prpl1)
-{
-	return prpl0.grfshd < prpl1.grfshd;
-}
-
-inline bool compareZ(RPL& prpl0, RPL& prpl1)
-{
-	return prpl0.z > prpl1.z;
-}
-
-void DrawSw(SW* psw, CM* pcm)
+void DrawSw(SW *psw, CM *pcm)
 {
 	glGlobShader.Use();
 
@@ -338,39 +436,22 @@ void DrawSw(SW* psw, CM* pcm)
 
 	PrepareSwLights(psw, pcm);
 
-	glUniformMatrix4fv(glslmatWorldToClip, 1, GL_FALSE, glm::value_ptr(pcm->matWorldToClip));
-	glUniform3fv(glslCameraPos, 1, glm::value_ptr(pcm->pos));
+	glBindBuffer(GL_UNIFORM_BUFFER, cmUBO);
 
-	glUniform1f(glslLsmShadow, g_psw->lsmDefault.uShadow);
-	glUniform1f(glslLsmDiffuse, g_psw->lsmDefault.uMidtone);
+	glBufferData(GL_UNIFORM_BUFFER, sizeof(CMGL), nullptr, GL_STREAM_DRAW);
+	glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(CMGL), &pcm->matWorldToClip);
 
-	glUniform1i(glslFogType, g_fogType);
-	glUniform1f(glslFogNear, pcm->sNearFog);
-	glUniform1f(glslFogFar, pcm->sFarFog);
-	glUniform1f(glslFogMax, pcm->uFogMax);
-	glUniform4fv(glslFogColor, 1, glm::value_ptr(pcm->rgbaFog));
+	glBindBuffer(GL_UNIFORM_BUFFER, ropUBO);
 
-	glUniform4fv(glslRgbaCel, 1, glm::value_ptr(g_rgbaCel));
-	
-	RescaleLineWidth();
-	glDisable(GL_BLEND);
-	glDisable(GL_STENCIL_TEST);
-	glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
-	glDepthMask(GL_TRUE);
-	glDepthFunc(GL_LESS);
+	glLineWidth(6.0);
 	glEnable(GL_CULL_FACE);
-	glCullFace(GL_BACK);
-	glFrontFace(GL_CCW);
-
-	int idx = 0;
 
 	if (g_dynamicTextureCount > 0)
 	{
 		for (int i = 0; i < g_dynamicTextureCount; i++)
 		{
-			BindRenderObject(&renderBuffer[idx]);
-			DrawGlob(&renderBuffer[idx]);
-			idx++;
+			BindRenderObject(g_dynamicTexturePrpl[i]);
+			DrawGlob(g_dynamicTexturePrpl[i]);
 		}
 	}
 
@@ -381,9 +462,8 @@ void DrawSw(SW* psw, CM* pcm)
 
 		for (int i = 0; i < g_backGroundCount; i++)
 		{
-			BindRenderObject(&renderBuffer[idx]);
-			DrawGlob(&renderBuffer[idx]);
-			idx++;
+			BindRenderObject(g_backGroundPrpl[i]);
+			DrawGlob(g_backGroundPrpl[i]);
 		}
 
 		glDepthFunc(GL_LESS);
@@ -393,15 +473,14 @@ void DrawSw(SW* psw, CM* pcm)
 	if (g_backGroundBlendCount > 0)
 	{
 		glEnable(GL_BLEND);
-		glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ZERO);
+		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 		glDepthFunc(GL_ALWAYS);
 		glDepthMask(false);
 
 		for (int i = 0; i < g_backGroundBlendCount; i++)
 		{
-			BindRenderObject(&renderBuffer[idx]);
-			DrawGlob(&renderBuffer[idx]);
-			idx++;
+			BindRenderObject(g_backGroundBlendPrpl[i]);
+			DrawGlob(g_backGroundBlendPrpl[i]);
 		}
 
 		glDisable(GL_BLEND);
@@ -413,9 +492,8 @@ void DrawSw(SW* psw, CM* pcm)
 	{
 		for (int i = 0; i < g_blotContextCount; i++)
 		{
-			BindRenderObject(&renderBuffer[idx]);
-			DrawGlob(&renderBuffer[idx]);
-			idx++;
+			BindRenderObject(g_blotContextPrpl[i]);
+			DrawGlob(g_blotContextPrpl[i]);
 		}
 	}
 
@@ -423,26 +501,22 @@ void DrawSw(SW* psw, CM* pcm)
 	{
 		for (int i = 0; i < g_opaqueCount; i++)
 		{
-			BindRenderObject(&renderBuffer[idx]);
-			DrawGlob(&renderBuffer[idx]);
-			idx++;
+			BindRenderObject(g_opaquePrpl[i]);
+			DrawGlob(g_opaquePrpl[i]);
 		}
 	}
 
 	if (g_cutOutCount > 0)
 	{
 		glEnable(GL_BLEND);
-		glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ZERO);
-		glUniform1i(glslfAlphaTest, 1);
+		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
 		for (int i = 0; i < g_cutOutCount; i++)
 		{
-			BindRenderObject(&renderBuffer[idx]);
-			DrawCutout(&renderBuffer[idx]);
-			idx++;
+			BindRenderObject(g_cutOutPrpl[i]);
+			DrawTranslucent(g_cutOutPrpl[i]);
 		}
 
-		glUniform1i(glslfAlphaTest, 0);
 		glDepthMask(true);
 		glDisable(GL_BLEND);
 	}
@@ -450,17 +524,14 @@ void DrawSw(SW* psw, CM* pcm)
 	if (g_cutOutBlendAddCount > 0)
 	{
 		glEnable(GL_BLEND);
-		glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE, GL_ONE, GL_ZERO);
-		glUniform1i(glslfAlphaTest, 1);
+		glBlendFunc(GL_SRC_ALPHA, GL_ONE);
 
 		for (int i = 0; i < g_cutOutBlendAddCount; i++)
 		{
-			BindRenderObject(&renderBuffer[idx]);
-			DrawCutout(&renderBuffer[idx]);
-			idx++;
+			BindRenderObject(g_cutOutBlendAddPrpl[i]);
+			DrawTranslucent(g_cutOutBlendAddPrpl[i]);
 		}
 
-		glUniform1i(glslfAlphaTest, 0);
 		glDepthMask(true);
 		glDisable(GL_BLEND);
 	}
@@ -469,8 +540,6 @@ void DrawSw(SW* psw, CM* pcm)
 	{
 		glEnable(GL_BLEND);
 		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
-		glUniform1i(glslRko, 2);
 
 		glDepthFunc(GL_LEQUAL);
 
@@ -486,12 +555,8 @@ void DrawSw(SW* psw, CM* pcm)
 
 		for (int i = 0; i < g_celBorderCount; i++)
 		{
-			if (renderBuffer[idx].ro.uAlphaCelBorder * g_rgbaCel.a != 0.0)
-			{
-				BindRenderObjectCel(&renderBuffer[idx]);
-				DrawCelBorder(&renderBuffer[idx]);
-			}
-			idx++;
+			BindRenderObjectCel(g_celBorderPrpl[i]);
+			DrawCelBorder(g_celBorderPrpl[i]);
 		}
 
 		glDisable(GL_BLEND);
@@ -503,15 +568,52 @@ void DrawSw(SW* psw, CM* pcm)
 		glEnable(GL_BLEND);
 		glEnable(GL_STENCIL_TEST);
 		glDepthMask(GL_FALSE);
-		glStencilMask(0xFF);
-		glClearStencil(0);
-		glClear(GL_STENCIL_BUFFER_BIT);
+		glStencilMask(128);
 
 		for (int i = 0; i < g_projVolumeCount; i++)
 		{
-			BindRenderObject(&renderBuffer[idx]);
-			DrawProjVolume(&renderBuffer[idx]);
-			idx++;
+			BindRenderObject(g_projVolumePrpl[i]);
+			DrawProjVolume(g_projVolumePrpl[i]);
+		}
+
+		glDepthMask(true);
+		glDisable(GL_BLEND);
+		glDisable(GL_STENCIL_TEST);
+		glDepthFunc(GL_LESS);
+		glFrontFace(GL_CCW);
+	}
+
+	if (g_projVolumeAlphaAddCount > 0)
+	{
+		glEnable(GL_BLEND);
+		glEnable(GL_STENCIL_TEST);
+		glDepthMask(GL_FALSE);
+		glStencilMask(128);
+
+		for (int i = 0; i < g_projVolumeAlphaAddCount; i++)
+		{
+			BindRenderObject(g_projVolumeAlphaAddPrpl[i]);
+			DrawProjVolumeAlphaAdd(g_projVolumeAlphaAddPrpl[i]);
+		}
+
+		glDepthMask(true);
+		glDisable(GL_BLEND);
+		glDisable(GL_STENCIL_TEST);
+		glDepthFunc(GL_LESS);
+		glFrontFace(GL_CCW);
+	}
+
+	if (g_projVolumeAddCount > 0)
+	{
+		glEnable(GL_BLEND);
+		glEnable(GL_STENCIL_TEST);
+		glDepthMask(GL_FALSE);
+		glStencilMask(128);
+
+		for (int i = 0; i < g_projVolumeAddCount; i++)
+		{
+			BindRenderObject(g_projVolumeAddPrpl[i]);
+			DrawProjVolumeAdd(g_projVolumeAddPrpl[i]);
 		}
 
 		glDepthMask(true);
@@ -525,9 +627,8 @@ void DrawSw(SW* psw, CM* pcm)
 	{
 		for (int i = 0; i < g_opaqueAfterProjVolumeCount; i++)
 		{
-			BindRenderObject(&renderBuffer[idx]);
-			DrawGlob(&renderBuffer[idx]);
-			idx++;
+			BindRenderObject(g_opaqueAfterProjVolumePrpl[i]);
+			DrawGlob(g_opaqueAfterProjVolumePrpl[i]);
 		}
 	}
 
@@ -535,16 +636,13 @@ void DrawSw(SW* psw, CM* pcm)
 	{
 		glEnable(GL_BLEND);
 		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-		glUniform1i(glslfAlphaTest, 1);
 
 		for (int i = 0; i < g_cutOutAfterProjVolumeCount; i++)
 		{
-			BindRenderObject(&renderBuffer[idx]);
-			DrawCutout(&renderBuffer[idx]);
-			idx++;
+			BindRenderObject(g_cutOutAfterProjVolumePrpl[i]);
+			DrawTranslucent(g_cutOutAfterProjVolumePrpl[i]);
 		}
 
-		glUniform1i(glslfAlphaTest, 0);
 		glDepthMask(true);
 		glDisable(GL_BLEND);
 
@@ -554,16 +652,13 @@ void DrawSw(SW* psw, CM* pcm)
 	{
 		glEnable(GL_BLEND);
 		glBlendFunc(GL_SRC_ALPHA, GL_ONE);
-		glUniform1i(glslfAlphaTest, 1);
 
 		for (int i = 0; i < g_cutOutAfterProjVolumeAddCount; i++)
 		{
-			BindRenderObject(&renderBuffer[idx]);
-			DrawCutout(&renderBuffer[idx]);
-			idx++;
+			BindRenderObject(g_cutOutAfterProjVolumeAddPrpl[i]);
+			DrawTranslucent(g_cutOutAfterProjVolumeAddPrpl[i]);
 		}
 
-		glUniform1i(glslfAlphaTest, 0);
 		glDepthMask(true);
 		glDisable(GL_BLEND);
 	}
@@ -572,7 +667,6 @@ void DrawSw(SW* psw, CM* pcm)
 	{
 		glEnable(GL_BLEND);
 		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-		glUniform1i(glslRko, 2);
 
 		glDepthFunc(GL_LEQUAL);
 
@@ -588,12 +682,8 @@ void DrawSw(SW* psw, CM* pcm)
 
 		for (int i = 0; i < g_celBorderAfterProjVolumeCount; i++)
 		{
-			if (renderBuffer[idx].ro.uAlphaCelBorder * g_rgbaCel.a != 0.0)
-			{
-				BindRenderObjectCel(&renderBuffer[idx]);
-				DrawCelBorder(&renderBuffer[idx]);
-			}
-			idx++;
+			BindRenderObjectCel(g_celBorderAfterProjVolumePrpl[i]);
+			DrawCelBorder(g_celBorderAfterProjVolumePrpl[i]);
 		}
 
 		glDepthFunc(GL_LESS);
@@ -605,13 +695,11 @@ void DrawSw(SW* psw, CM* pcm)
 		glEnable(GL_BLEND);
 		glDepthMask(GL_FALSE);
 		glDepthFunc(GL_LEQUAL);
-		glBlendColor(0, 0, 0, 0);
 
 		for (int i = 0; i < g_murkClearCount; i++)
 		{
-			BindRenderObject(&renderBuffer[idx]);
-			DrawMurkClear(&renderBuffer[idx]);
-			idx++;
+			BindRenderObject(g_murkClearPrpl[i]);
+			DrawMurkClear(g_murkClearPrpl[i]);
 		}
 
 		glDepthMask(GL_TRUE);
@@ -623,9 +711,8 @@ void DrawSw(SW* psw, CM* pcm)
 	{
 		for (int i = 0; i < g_murkOpaqueCount; i++)
 		{
-			BindRenderObject(&renderBuffer[idx]);
-			DrawGlob(&renderBuffer[idx]);
-			idx++;
+			BindRenderObject(g_murkOpaquePrpl[i]);
+			DrawGlob(g_murkOpaquePrpl[i]);
 		}
 	}
 
@@ -637,26 +724,24 @@ void DrawSw(SW* psw, CM* pcm)
 
 		for (int i = 0; i < g_murkFillCount; i++)
 		{
-			BindRenderObject(&renderBuffer[idx]);
-			DrawMurkFill(&renderBuffer[idx]);
-			idx++;
+			BindRenderObject(g_murkFillPrpl[i]);
+			DrawMurkFill(g_murkFillPrpl[i]);
 		}
 
 		glDisable(GL_BLEND);
-		glDepthMask(true);  
+		glDepthMask(true);
 		glDepthFunc(GL_LESS);
 	}
 
 	if (g_translucentCount > 0)
 	{
 		glEnable(GL_BLEND);
-		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+		glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ZERO);
 
 		for (int i = 0; i < g_translucentCount; i++)
 		{
-			BindRenderObject(&renderBuffer[idx]);
-			DrawTranslucent(&renderBuffer[idx]);
-			idx++;
+			BindRenderObject(g_translucentPrpl[i]);
+			DrawTranslucent(g_translucentPrpl[i]);
 		}
 
 		glDepthMask(true);
@@ -666,13 +751,12 @@ void DrawSw(SW* psw, CM* pcm)
 	if (g_translucentAddCount > 0)
 	{
 		glEnable(GL_BLEND);
-		glBlendFunc(GL_SRC_ALPHA, GL_ONE);
+		glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE, GL_ONE, GL_ZERO);
 
 		for (int i = 0; i < g_translucentAddCount; i++)
 		{
-			BindRenderObject(&renderBuffer[idx]);
-			DrawTranslucent(&renderBuffer[idx]);
-			idx++;
+			BindRenderObject(g_translucentAddPrpl[i]);
+			DrawTranslucent(g_translucentAddPrpl[i]);
 		}
 
 		glDepthMask(true);
@@ -683,7 +767,6 @@ void DrawSw(SW* psw, CM* pcm)
 	{
 		glEnable(GL_BLEND);
 		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-		glUniform1i(glslRko, 2);
 
 		glActiveTexture(GL_TEXTURE1);
 		glBindTexture(GL_TEXTURE_BUFFER, 0);
@@ -699,12 +782,8 @@ void DrawSw(SW* psw, CM* pcm)
 
 		for (int i = 0; i < g_translucentCelBorderCount; i++)
 		{
-			if (renderBuffer[idx].ro.uAlphaCelBorder * g_rgbaCel.a != 0.0)
-			{
-				BindRenderObjectCel(&renderBuffer[idx]);
-				DrawCelBorder(&renderBuffer[idx]);
-			}
-			idx++;
+			BindRenderObjectCel(g_translucentCelBorderPrpl[i]);
+			DrawCelBorder(g_translucentCelBorderPrpl[i]);
 		}
 
 		glDepthFunc(GL_LESS);
@@ -715,9 +794,8 @@ void DrawSw(SW* psw, CM* pcm)
 	{
 		for (int i = 0; i < g_blipCount; i++)
 		{
-			BindRenderObject(&renderBuffer[idx]);
-			DrawGlob(&renderBuffer[idx]);
-			idx++;
+			BindRenderObject(g_blipPrpl[i]);
+			DrawGlob(g_blipPrpl[i]);
 		}
 	}
 
@@ -725,9 +803,8 @@ void DrawSw(SW* psw, CM* pcm)
 	{
 		for (int i = 0; i < g_foreGroundCount; i++)
 		{
-			BindRenderObject(&renderBuffer[idx]);
-			DrawGlob(&renderBuffer[idx]);
-			idx++;
+			BindRenderObject(g_foreGroundPrpl[i]);
+			DrawGlob(g_foreGroundPrpl[i]);
 		}
 	}
 
@@ -735,20 +812,20 @@ void DrawSw(SW* psw, CM* pcm)
 	{
 		glEnable(GL_BLEND);
 		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+		glUniform1i(glslfAlphaTest, 1);
 		//glDepthFunc(GL_ALWAYS);
 
 		for (int i = 0; i < g_worldMapCount; i++)
 		{
-			BindRenderObject(&renderBuffer[idx]);
-			DrawGlob(&renderBuffer[idx]);
-			idx++;
+			BindRenderObject(g_worldMapPrpl[i]);
+			DrawGlob(g_worldMapPrpl[i]);
 		}
 
+		glUniform1i(glslfAlphaTest, 0);
 		//glDepthFunc(GL_LESS);
 		glDisable(GL_BLEND);
 	}
-	
-	numRo = 0;
+
 	g_dynamicTextureCount = 0;
 	g_backGroundCount = 0;
 	g_backGroundBlendCount = 0;
@@ -758,8 +835,8 @@ void DrawSw(SW* psw, CM* pcm)
 	g_cutOutBlendAddCount = 0;
 	g_celBorderCount = 0;
 	g_projVolumeCount = 0;
+	g_projVolumeAddCount = 0;
 	g_opaqueAfterProjVolumeCount = 0;
-	g_cutOutAfterProjVolumeCount = 0;
 	g_cutOutAfterProjVolumeCount = 0;
 	g_celBorderAfterProjVolumeCount = 0;
 	g_murkClearCount = 0;
@@ -767,7 +844,6 @@ void DrawSw(SW* psw, CM* pcm)
 	g_murkFillCount = 0;
 	g_translucentCount = 0;
 	g_translucentAddCount = 0;
-	g_transluscentOnScreen = 0;
 	g_translucentCelBorderCount = 0;
 	g_blipCount = 0;
 	g_foreGroundCount = 0;
@@ -775,199 +851,295 @@ void DrawSw(SW* psw, CM* pcm)
 
 	glActiveTexture(GL_TEXTURE0);
 	glDisable(GL_CULL_FACE);
+	glClearStencil(0x00);
 }
 
 void BindRenderObject(RPL* prpl)
 {
-	glBindVertexArray(*prpl->ro.VAO);
+	glBindVertexArray(prpl->VAO);
 
-	glUniformMatrix4fv(glslModel, 1, GL_FALSE, glm::value_ptr(prpl->ro.model));
-	glUniform1f(glslUFog, prpl->ro.uFog);
-	glUniform1f(glslUAlpha, prpl->ro.uAlpha);
-	glUniform1f(glslRDarken, prpl->ro.darken);
+	glBufferData(GL_UNIFORM_BUFFER, roSize, nullptr, GL_STREAM_DRAW);
+	glBufferSubData(GL_UNIFORM_BUFFER, 0, roSize, &prpl->ro);
 
-	switch (prpl->ro.pshd->shdk)
-	{
-		case SHDK_ThreeWay:
-		//FindSwLights(g_psw, g_pcm, prpl->posCenter, prpl->sRadius);
-
-		glUniform1i(glslRko, 1);
-
-		glUniform1f(glslusSelfIllum, prpl->ro.unSelfIllum);
-		glUniform1i(glslFDynamic, prpl->ro.fDynamic);
-		glUniform3fv(glslPosCenter, 1, glm::value_ptr(prpl->ro.posCenter));
-
-		glActiveTexture(GL_TEXTURE0);
-		glBindTexture(GL_TEXTURE_2D, prpl->ro.pshd->atex[0].abmp[0]->glShadowMap);
-
-		glActiveTexture(GL_TEXTURE1);
-		glBindTexture(GL_TEXTURE_2D, prpl->ro.pshd->atex[0].abmp[0]->glDiffuseMap);
-
-		glActiveTexture(GL_TEXTURE2);
-		glBindTexture(GL_TEXTURE_2D, prpl->ro.pshd->atex[0].abmp[0]->glSaturateMap);
-		break;
-
-		default:
-		glUniform1i(glslRko, 0);
-
-		glActiveTexture(GL_TEXTURE0);
-		glBindTexture(GL_TEXTURE_2D, 0);
-
-		glActiveTexture(GL_TEXTURE1);
-		glBindTexture(GL_TEXTURE_2D, prpl->ro.pshd->atex[0].abmp[0]->glDiffuseMap);
-
-		glActiveTexture(GL_TEXTURE2);
-		glBindTexture(GL_TEXTURE_2D, 0);
-		break;
-	}
+	prpl->PFNBIND(prpl);
 }
 
-void BindRenderObjectCel(RPL* prpl)
+void BindOneWay(RPL* prpl)
 {
-	glUniformMatrix4fv(glslModel, 1, GL_FALSE, glm::value_ptr(prpl->ro.model));
-
-	glBindTexture(GL_TEXTURE_BUFFER, prpl->ro.edgeTex);
+	glActiveTexture(GL_TEXTURE1);
+	glBindTexture(GL_TEXTURE_2D, prpl->pshd->atex[0].abmp[0]->glDiffuseMap);
 }
 
-void DrawGlob(RPL* prpl)
+void BindThreeWay(RPL *prpl)
 {
-	glDrawElements(GL_TRIANGLES, prpl->ro.cvtx, GL_UNSIGNED_SHORT, 0);
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, prpl->pshd->atex[0].abmp[0]->glShadowMap);
+
+	glActiveTexture(GL_TEXTURE1);
+	glBindTexture(GL_TEXTURE_2D, prpl->pshd->atex[0].abmp[0]->glDiffuseMap);
+
+	glActiveTexture(GL_TEXTURE2);
+	glBindTexture(GL_TEXTURE_2D, prpl->pshd->atex[0].abmp[0]->glSaturateMap);
+
+	/*if (prpl->ro.rko == SHDK_ThreeWay)
+		FindSwLights(g_psw, g_pcm, prpl->ro.posCenter, prpl->ro.sRadius);*/
 }
 
-void DrawCutout(RPL* prpl)
+void BindRenderObjectCel(RPL *prpl)
 {
-	glDepthMask(true);
-	glDrawElements(GL_TRIANGLES, prpl->ro.cvtx, GL_UNSIGNED_SHORT, 0);
+	glBufferData(GL_UNIFORM_BUFFER, roCelSize, nullptr, GL_STREAM_DRAW);
+	glBufferSubData(GL_UNIFORM_BUFFER, 0, roCelSize, &prpl->ro);
 
-	glDepthMask(false);
-	glDrawElements(GL_TRIANGLES, prpl->ro.cvtx, GL_UNSIGNED_SHORT, 0);
+	glBindTexture(GL_TEXTURE_BUFFER, prpl->edgeTex);
 }
 
-void DrawCelBorder(RPL* prpl)
+void DrawGlob(RPL *prpl)
 {
-	glUniform1f(glsluAlphaCelBorder, prpl->ro.uAlphaCelBorder);
-	glDrawArrays(GL_LINES, 0, prpl->ro.edgeCount * 2);
+	glDrawElements(GL_TRIANGLES, prpl->cvtx, GL_UNSIGNED_SHORT, 0);
 }
 
-void DrawProjVolume(RPL* prpl)
+void DrawCelBorder(RPL *prpl)
 {
-	switch (prpl->ro.pshd->grfshd)
-	{
-		case 2:
-		case 3:
-		glBlendFunc(GL_SRC_ALPHA, GL_ONE);
-		break;
+	glDrawArrays(GL_LINES, 0, prpl->edgeCount * 2);
+}
 
-		default:
-		glBlendFunc(GL_ZERO, GL_ONE);
-		break;
-	}
-
+void DrawProjVolume(RPL *prpl)
+{
+	glBlendFunc(GL_ZERO, GL_ONE);
 	glDepthFunc(GL_LESS);
 	glStencilFunc(GL_ALWAYS, 128, 128);
 	glStencilOp(GL_NONE, GL_REPLACE, GL_NONE);
 	glColorMask(0, 0, 0, 0);
 	glFrontFace(GL_CW);
-	glDrawElements(GL_TRIANGLES, prpl->ro.cvtx, GL_UNSIGNED_SHORT, 0);
+	glDrawElements(GL_TRIANGLES, prpl->cvtx, GL_UNSIGNED_SHORT, 0);
 
 	glColorMask(1, 1, 1, 1);
 	glStencilOp(GL_KEEP, GL_NONE, GL_KEEP);
 	glFrontFace(GL_CCW);
-	glDrawElements(GL_TRIANGLES, prpl->ro.cvtx, GL_UNSIGNED_SHORT, 0);
+	glDrawElements(GL_TRIANGLES, prpl->cvtx, GL_UNSIGNED_SHORT, 0);
 
 	glDepthFunc(GL_ALWAYS);
 	glStencilFunc(GL_EQUAL, 128, 128);
 	glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP);
-	switch (prpl->ro.pshd->grfshd)
-	{
-		case 0:
-		case 2:
-		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-		break;
-
-		case 1:
-		case 3:
-		glBlendFunc(GL_SRC_ALPHA, GL_ONE);
-		break;
-	}
 	glFrontFace(GL_CW);
-	glDrawElements(GL_TRIANGLES, prpl->ro.cvtx, GL_UNSIGNED_SHORT, 0);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+	glDrawElements(GL_TRIANGLES, prpl->cvtx, GL_UNSIGNED_SHORT, 0);
 }
 
-void DrawMurkClear(RPL* prpl)
+void DrawProjVolumeAlphaAdd(RPL* prpl)
 {
-	glBlendFuncSeparate(GL_ZERO, GL_ONE, GL_ONE, GL_ZERO);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE);
+	glDepthFunc(GL_LESS);
+	glStencilFunc(GL_ALWAYS, 128, 128);
+	glStencilOp(GL_NONE, GL_REPLACE, GL_NONE);
+	glColorMask(0, 0, 0, 0);
 	glFrontFace(GL_CW);
-	glDrawElements(GL_TRIANGLES, prpl->ro.cvtx, GL_UNSIGNED_SHORT, 0);
+	glDrawElements(GL_TRIANGLES, prpl->cvtx, GL_UNSIGNED_SHORT, 0);
+
+	glColorMask(1, 1, 1, 1);
+	glStencilOp(GL_KEEP, GL_NONE, GL_KEEP);
+	glFrontFace(GL_CCW);
+	glDrawElements(GL_TRIANGLES, prpl->cvtx, GL_UNSIGNED_SHORT, 0);
+
+	glDepthFunc(GL_ALWAYS);
+	glStencilFunc(GL_EQUAL, 128, 128);
+	glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP);
+	glFrontFace(GL_CW);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+	glDrawElements(GL_TRIANGLES, prpl->cvtx, GL_UNSIGNED_SHORT, 0);
+}
+
+void DrawProjVolumeAdd(RPL* prpl)
+{
+	// Expect grfshd in {1, 3}. If not, early-out or clamp.
+	switch (prpl->grfshd)
+	{
+		case 1: // edge pass uses (ZERO, ONE)
+		glBlendFunc(GL_ZERO, GL_ONE);
+		break;
+
+		case 3: // edge pass uses (SRC_ALPHA, ONE)
+		glBlendFunc(GL_SRC_ALPHA, GL_ONE);
+		break;
+
+		default:
+		// Not an additive type; route elsewhere (alpha path) or early-out.
+		return;
+	}
+	glDepthFunc(GL_LESS);
+	glStencilFunc(GL_ALWAYS, 128, 128);
+	glStencilOp(GL_NONE, GL_REPLACE, GL_NONE);
+	glColorMask(0, 0, 0, 0);
+	glFrontFace(GL_CW);
+	glDrawElements(GL_TRIANGLES, prpl->cvtx, GL_UNSIGNED_SHORT, 0);
+
+	glColorMask(1, 1, 1, 1);
+	glStencilOp(GL_KEEP, GL_NONE, GL_KEEP);
+	glFrontFace(GL_CCW);
+	glDrawElements(GL_TRIANGLES, prpl->cvtx, GL_UNSIGNED_SHORT, 0);
+
+	glDepthFunc(GL_ALWAYS);
+	glStencilFunc(GL_EQUAL, 128, 128);
+	glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP);
+	glFrontFace(GL_CW);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE);
+
+	glDrawElements(GL_TRIANGLES, prpl->cvtx, GL_UNSIGNED_SHORT, 0);
+}
+
+void DrawMurkClear(RPL *prpl)
+{
+	glBlendFunc(GL_ZERO, GL_ONE);
+	glFrontFace(GL_CW);
+	glDrawElements(GL_TRIANGLES, prpl->cvtx, GL_UNSIGNED_SHORT, 0);
 
 	glFrontFace(GL_CCW);
 	glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ZERO);
-	glDrawElements(GL_TRIANGLES, prpl->ro.cvtx, GL_UNSIGNED_SHORT, 0);
+	glDrawElements(GL_TRIANGLES, prpl->cvtx, GL_UNSIGNED_SHORT, 0);
 }
 
-void DrawMurkFill(RPL* prpl)
+void DrawMurkFill(RPL *prpl)
 {
-	glBlendFuncSeparate(GL_ONE_MINUS_DST_ALPHA, GL_DST_ALPHA, GL_ONE, GL_ZERO);
-	glDrawElements(GL_TRIANGLES, prpl->ro.cvtx, GL_UNSIGNED_SHORT, 0);
+	glBlendFunc(GL_ONE_MINUS_DST_ALPHA, GL_DST_ALPHA);
+	glDrawElements(GL_TRIANGLES, prpl->cvtx, GL_UNSIGNED_SHORT, 0);
 
 	glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ZERO);
-	glDrawElements(GL_TRIANGLES, prpl->ro.cvtx, GL_UNSIGNED_SHORT, 0);
+	glDrawElements(GL_TRIANGLES, prpl->cvtx, GL_UNSIGNED_SHORT, 0);
 }
 
-void DrawTranslucent(RPL* prpl)
+void DrawTranslucent(RPL *prpl)
 {
 	glUniform1i(glslfAlphaTest, 1);
 	glDepthMask(true);
-	glDrawElements(GL_TRIANGLES, prpl->ro.cvtx, GL_UNSIGNED_SHORT, 0);
+	glDrawElements(GL_TRIANGLES, prpl->cvtx, GL_UNSIGNED_SHORT, 0);
 	glUniform1i(glslfAlphaTest, 0);
 
 	glDepthMask(false);
-	glDrawElements(GL_TRIANGLES, prpl->ro.cvtx, GL_UNSIGNED_SHORT, 0);
+	glDrawElements(GL_TRIANGLES, prpl->cvtx, GL_UNSIGNED_SHORT, 0);
 }
 
-void DrawSwCollisionAll(CM* pcm)
+void DrawSwCollisionAll(CM *pcm)
 {
+	glGlobShader.Use();
+
 	glLineWidth(2.0);
 	glEnable(GL_CULL_FACE);
-	glUniform1i(glslRko, 3);
+
+	RPL rpl{};
+	rpl.ro.rko = 3;
 
 	for (int i = 0; i < allSWSoObjs.size(); i++)
 	{
 		if ((SphereInFrustum(pcm->frustum, allSWSoObjs[i]->xf.posWorld, allSWSoObjs[i]->geomLocal.sRadius)) == 0)
 			continue;
 
-		DrawCollision(allSWSoObjs[i]);
+		SO* pso = allSWSoObjs[i];
+
+		if (pso->geomLocal.VAO != 0 || pso->geomCameraLocal.VAO != 0)
+		{
+			glm::mat4 model = pso->xf.matWorld;
+
+			model[3][0] = pso->xf.posWorld[0];
+			model[3][1] = pso->xf.posWorld[1];
+			model[3][2] = pso->xf.posWorld[2];
+			model[3][3] = 1.0;
+
+			rpl.ro.model = model;
+
+			glBindVertexArray(pso->geomLocal.VAO);
+
+			glBufferData(GL_UNIFORM_BUFFER, roCollisionSize, nullptr, GL_STREAM_DRAW);
+			glBufferSubData(GL_UNIFORM_BUFFER, 0, roCollisionSize, &rpl.ro);
+
+			glDrawElements(GL_LINES, pso->geomLocal.indices.size() * sizeof(uint16_t), GL_UNSIGNED_SHORT, 0);
+
+			if (pso->geomCameraLocal.VAO != 0)
+			{
+				glBindVertexArray(pso->geomCameraLocal.VAO);
+				glDrawElements(GL_LINES, pso->geomCameraLocal.indices.size() * sizeof(uint16_t), GL_UNSIGNED_SHORT, 0);
+			}
+		}
 	}
 
+	glBindVertexArray(0);
 	glDisable(GL_CULL_FACE);
 }
 
-std::vector <RPL> renderBuffer;
-int numRo;
+int numRo = 0;
 
 int g_dynamicTextureCount = 0;
+std::vector <RPL*> g_dynamicTexturePrpl;
+
 int g_backGroundCount = 0;
+std::vector <RPL*> g_backGroundPrpl;
+
 int g_backGroundBlendCount = 0;
+std::vector <RPL*> g_backGroundBlendPrpl;
+
 int g_blotContextCount = 0;
+std::vector <RPL*> g_blotContextPrpl;
+
 int g_opaqueCount = 0;
+std::vector <RPL*> g_opaquePrpl;
+
 int g_cutOutCount = 0;
+std::vector <RPL*> g_cutOutPrpl;
+
 int g_cutOutBlendAddCount = 0;
+std::vector <RPL*> g_cutOutBlendAddPrpl;
+
 int g_celBorderCount = 0;
+std::vector <RPL*> g_celBorderPrpl;
+
 int g_projVolumeCount = 0;
-int g_projVolumeBlendAddCount = 0;
-int g_projVolumeBlendCount = 0;
+std::vector <RPL*> g_projVolumePrpl;
+
+int g_projVolumeAlphaAddCount = 0;
+std::vector <RPL*> g_projVolumeAlphaAddPrpl;
+
+int g_projVolumeAddCount = 0;
+std::vector <RPL*> g_projVolumeAddPrpl;
+
 int g_opaqueAfterProjVolumeCount = 0;
+std::vector <RPL*> g_opaqueAfterProjVolumePrpl;
+
 int g_cutOutAfterProjVolumeCount = 0;
+std::vector <RPL*> g_cutOutAfterProjVolumePrpl;
+
 int g_cutOutAfterProjVolumeAddCount = 0;
+std::vector <RPL*> g_cutOutAfterProjVolumeAddPrpl;
+
 int g_celBorderAfterProjVolumeCount = 0;
+std::vector <RPL*> g_celBorderAfterProjVolumePrpl;
+
 int g_murkClearCount = 0;
+std::vector <RPL*> g_murkClearPrpl;
+
 int g_murkOpaqueCount = 0;
+std::vector <RPL*> g_murkOpaquePrpl;
+
 int g_murkFillCount = 0;
+std::vector <RPL*> g_murkFillPrpl;
+
 int g_translucentCount = 0;
+std::vector <RPL*> g_translucentPrpl;
+
 int g_translucentAddCount = 0;
-int g_transluscentOnScreen = 0;
+std::vector <RPL*> g_translucentAddPrpl;
+
 int g_translucentCelBorderCount = 0;
+std::vector <RPL*> g_translucentCelBorderPrpl;
+
 int g_blipCount = 0;
+std::vector <RPL*> g_blipPrpl;
+
 int g_foreGroundCount = 0;
+std::vector <RPL*> g_foreGroundPrpl;
+
 int g_worldMapCount = 0;
+std::vector <RPL*> g_worldMapPrpl;
+
 int g_maxCount = 0;
+std::vector <RPL*> g_maxPrpl;

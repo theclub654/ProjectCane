@@ -94,6 +94,7 @@ void ExtractFrustumPlanes(const glm::mat4& viewProj, FRUSTUM* pfrustum)
 	for (int i = 0; i < 6; i++)
 	{
 		float length = glm::length(glm::vec3(pfrustum->planes[i]));
+
 		if (length != 0.0f)
 			pfrustum->planes[i] /= length;
 	}
@@ -104,68 +105,97 @@ bool SphereInFrustum(const FRUSTUM& frustum, const glm::vec3& center, float radi
 	for (int i = 0; i < 6; i++)
 	{
 		float distance = glm::dot(glm::vec3(frustum.planes[i]), center) + frustum.planes[i].w;
+
 		if (distance < -radius)
-		{
-			// Outside this plane
 			return false;
-		}
 	}
+
 	return true;
 }
 
 void UpdateCpman(GLFWwindow* window, CPMAN* pcpman, CPDEFI* pcpdefi, float dt)
 {
-	float speed = 6000.0;
-	float velocity = dt * speed;
+	CM* pcm = pcpman->pcm;
 
-	if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
-		pcpman->pcm->pos += pcpman->pcm->direction * velocity;
+	// -------- movement (camera space) --------
+	glm::vec3 dcam(0.0f);
+	if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) dcam.z -= 1.0f; // +F
+	if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) dcam.z += 1.0f; // -F
+	if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) dcam.x += 1.0f; // +R
+	if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) dcam.x -= 1.0f; // -R
+	if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS) dcam.y += 1.0f; // +U
+	if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS) dcam.y -= 1.0f; // -U
+	if (glfwGetKey(window, GLFW_KEY_R) == GLFW_PRESS) pcm->pos = glm::vec3(0.0);
 
-	if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
-		pcpman->pcm->pos -= pcpman->pcm->direction * velocity;
+	float speed = 5000;
 
-	if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
-		pcpman->pcm->pos += pcpman->pcm->right * velocity;
+	if (glm::length2(dcam) > 0.0f) {
+		dcam = glm::normalize(dcam) * (speed * dt);
 
-	if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
-		pcpman->pcm->pos -= pcpman->pcm->right * velocity;
+		// columns: [0]=R, [1]=U, [2]=F
+		const glm::vec3 R = pcm->mat[0];
+		const glm::vec3 U = pcm->mat[1];
+		const glm::vec3 F = pcm->mat[2];
 
-	if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS)
-		pcpman->pcm->pos += pcpman->pcm->up * velocity;
-
-	if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS)
-		pcpman->pcm->pos -= pcpman->pcm->up * velocity;
-
-	if (glfwGetKey(window, GLFW_KEY_R) == GLFW_PRESS)
-		pcpman->pcm->pos = glm::vec3{ 0.0 };
+		pcm->pos += R * dcam.x + U * dcam.y + F * dcam.z;
+	}
 
 	if (g_fDisableInput != true)
 	{
-		if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS)
-		{
+		// -------- mouse -> yaw/pitch (Z-up: yaw about +Z, pitch about +X) --------
+		if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS) {
 			glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_HIDDEN);
 
-			pcpman->pcm->yaw += MOUSE::GetDX();
-			pcpman->pcm->pitch += MOUSE::GetDY();
+			// --- mouse deltas (pixels) ---
+			float dx = (float)MOUSE::GetDX();
+			float dy = (float)MOUSE::GetDY();
 
-			// Clamp pitch to avoid gimbal lock
+			// sensitivity in *degrees* per pixel (since yaw/pitch are degrees)
+			const float sensDeg = 0.15f;
+
+			// intuitive controls (Z-up, RH):
+			//  - move right -> yaw right
+			//  - move up    -> look up
+			pcpman->pcm->yaw   -= dx;
+			pcpman->pcm->pitch += dy;
+
+			// clamp pitch (avoid flip)
 			pcpman->pcm->pitch = glm::clamp(pcpman->pcm->pitch, -89.0f, 89.0f);
 
-			// Convert yaw/pitch to radians
-			float yawRad   = glm::radians(pcpman->pcm->yaw);
-			float pitchRad = glm::radians(pcpman->pcm->pitch);
+			// radians once
+			float yaw   = glm::radians(pcpman->pcm->yaw);
+			float pitch = glm::radians(pcpman->pcm->pitch);
 
-			// Z-up: Z = up/down, Y = forward/back
-			pcpman->pcm->direction.x = cos(pitchRad) * cos(-yawRad);
-			pcpman->pcm->direction.y = cos(pitchRad) * sin(-yawRad);
-			pcpman->pcm->direction.z = sin(pitchRad);
+			// precompute trig
+			float cy = cosf(yaw);
+			float sy = sinf(yaw);
 
-			pcpman->pcm->direction = glm::normalize(pcpman->pcm->direction);
+			float cp = cosf(pitch);
+			float sp = sinf(pitch);
 
-			pcpman->pcm->right = glm::normalize(glm::cross(pcpman->pcm->direction, pcpman->pcm->worldUp));
-			pcpman->pcm->up = glm::normalize(glm::cross(pcpman->pcm->right, pcpman->pcm->direction));
+			// --- build orthonormal basis (Z-up, zero roll) ---
+			// Right in XY plane from yaw
+			glm::vec3 R = glm::vec3(cy, sy, 0.0f);
+
+			// Forward (direction)
+			glm::vec3 F = glm::vec3(-sy * cp, cy * cp, sp);
+
+			// Up from cross (keeps it orthonormal and RH)
+			glm::vec3 U = glm::normalize(glm::cross(R, F));
+
+			// normalize R/F just in case
+			R = glm::normalize(R);
+			F = -glm::normalize(F);
+
+			// --- store into pcm->mat (columns = [R, U, F]) ---
+			pcpman->pcm->mat[0] = glm::vec4(R,  0.0f);
+			pcpman->pcm->mat[1] = glm::vec4(U,  0.0f);
+			pcpman->pcm->mat[2] = glm::vec4(F,  0.0f);
+		}
+		else {
+			glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
 		}
 	}
 
-	UpdateCmMat4(pcpman->pcm);
+	UpdateCmMat4(pcm);
 }

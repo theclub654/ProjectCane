@@ -165,7 +165,7 @@ std::vector <byte> MakeBmp(BMP *pbmp, CBinaryInputStream* pbis);
 // Make color pallete
 std::vector <byte> MakePallete(CLUT *pclut, CBinaryInputStream* pbis);
 // Make texture
-void MakeTexture(GLuint &textureReference, TEX *ptex ,BMP *pbmp, std::vector <byte> &texture ,CLUT *pclut, bool fFlip , bool fMipMap, CBinaryInputStream *pbis);
+void MakeTexture(GLuint& textureReference, TEX* ptex, BMP* pbmp, std::vector <byte>& texture, CLUT* pclut, bool fFlip, bool fMipMap, SHDK shdk, RP rp, CBinaryInputStream* pbis);
 
 // Global variable which holds the number of CLUT's in a binary file
 extern int g_cclut;

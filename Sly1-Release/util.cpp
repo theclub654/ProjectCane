@@ -2,7 +2,6 @@
 #include <math.h>
 
 static constexpr float PI = 3.141593f;
-static constexpr LM g_lmZeroOne(0, 1);
 
 float RadNormalize(float angle)
 {
@@ -173,39 +172,6 @@ int CSolveQuadratic(float a, float b, float c, float *solutions)
 
 //TODO: PrescaleClq
 
-//return the sine and cosine of the given angle
-void CalculateSinCos(float angle, float *sin, float *cos)
-{
-	uint32_t uVar1;
-	float fVar2;
-	float fVar3;
-	float fVar4;
-	float fVar5;
-
-	fVar2 = (angle + PI/2) * 0.3183099;
-	uVar1 = (uint32_t)fVar2;
-	if (fVar2 < 0.0)
-		uVar1 = uVar1 - 1;
-	fVar2 = angle - (float)uVar1 * PI;
-	if ((uVar1 & 1) != 0)
-		fVar2 = -fVar2;
-	fVar3 = fVar2 * fVar2;
-	fVar4 = fVar2 * fVar3 * fVar3;
-	fVar5 = fVar4 * fVar3;
-	fVar3 = fVar2 +
-		fVar2 * fVar3 * -0.1666666 +
-		fVar4 * 0.008333026 +
-		fVar5 * -0.0001980741 +
-		fVar5 * fVar3 * 2.601887e-06;
-
-	fVar2 = sqrtf(1.0 - fVar3 * fVar3);
-	if ((uVar1 & 1) != 0)
-		fVar2 = -fVar2;
-
-	*cos = fVar2;
-	*sin = fVar3;
-}
-
 double GTrunc(double param_1)
 {
 	uint64_t uVar1;
@@ -316,3 +282,5 @@ void Force(void *)
 }
 
 //TODO: MinimizeRange
+
+LM g_lmZeroOne = { 0.0, 1.0 };

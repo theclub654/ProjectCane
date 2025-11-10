@@ -303,6 +303,7 @@ void LoadEmitblipColorsFromBrx(int crgba, CBinaryInputStream* pbis);
 void LoadEmitterFromBrx(EMITTER* pemitter, CBinaryInputStream* pbis);
 void CloneEmitter(EMITTER* pemitter, EMITTER* pemitterBase);
 EMITB* PemitbEnsureEmitter(EMITTER* pemitter, ENSK ensk);
+void PauseEmitterIndefinite(EMITTER* pemitter);
 void RenderEmitterSelf(EMITTER* pemitter, CM* pcm, RO* pro);
 void BindEmitter(EMITTER* pemitter);
 void DeleteEmitter(EMITTER *pemitter);

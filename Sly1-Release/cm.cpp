@@ -6,11 +6,11 @@ CM* NewCm()
 }
 
 void InitCm(CM* pcm)
-{
+{ 
 	InitLo(pcm);
 
 	pcm->rgbaFog = glm::vec4(0.0);
-	pcm->radFOV = 1.0;
+	pcm->radFOV  = 1.0;
 	pcm->rAspect = 1.298701;
 	pcm->sNearClip = 100.0;
 	pcm->sFarClip = 20000.0;
@@ -18,12 +18,8 @@ void InitCm(CM* pcm)
 	pcm->sFarFog = 20000.0;
 	pcm->uFogMax = 0.5;
 	pcm->rMRD = 1.0;
-	pcm->worldUp = glm::vec3(0.0f, 0.0f, 1.0f);
-	pcm->direction = glm::vec3(0.0f, 0.0f, -1.0f);
 
-	pcm->lookAt = glm::identity <glm::mat4>();
-	pcm->yaw = -90;
-	pcm->pitch = 0.0f;
+	pcm->mat = glm::identity <glm::mat4>();
 
 	RecalcCm(pcm);
 	pcm->cpman.pvtcpman = &g_vtcpman;
@@ -48,19 +44,14 @@ void CloneCm(CM* pcm, CM* pcmBase)
 	CloneLo(pcm, pcmBase);
 
 	pcm->pos = pcmBase->pos;
-	pcm->direction = pcmBase->direction;
-	pcm->up = pcmBase->up;
-	pcm->right = pcmBase->right;
-	pcm->worldUp = pcmBase->worldUp;
 	pcm->yaw = pcmBase->yaw;
 	pcm->pitch = pcmBase->pitch;
-	pcm->firstClick = pcmBase->firstClick;
 
 	for (int i = 0; i < 3; ++i)
 		pcm->anormalFrustrumTranspose[i] = pcmBase->anormalFrustrumTranspose[i];
 
 	pcm->frustum = pcmBase->frustum;
-	pcm->lookAt = pcmBase->lookAt;
+	pcm->mat = pcmBase->mat;
 	pcm->rMRDAdjust = pcmBase->rMRDAdjust;
 	pcm->matProj = pcmBase->matProj;
 	pcm->matWorldToClip = pcmBase->matWorldToClip;
@@ -137,7 +128,7 @@ void CloneCm(CM* pcm, CM* pcmBase)
 
 void RecalcCm(CM* pcm)
 {
-	pcm->rMRDAdjust = pcm->rMRD * (1.0 / g_renderDistance);
+	pcm->rMRDAdjust = pcm->rMRD * (1.0 / pcm->radFOV);
 
 	float camAspect = (g_gl.aspectMode == FitToScreen) ? (g_gl.width / g_gl.height) : g_gl.aspectRatio;
 
@@ -145,23 +136,10 @@ void RecalcCm(CM* pcm)
 	UpdateCmMat4(pcm);
 }
 
-void BuildSimpleProjectionMatrix(float rx, float ry, float dxOffset, float dyOffset, float sNear, float sFar, glm::mat4& pmat)
-{
-	float fVar1 = (sNear + sFar) / (sNear - sFar);
-
-	pmat[0][0] = rx;
-	pmat[1][1] = ry;
-	pmat[2][0] = dxOffset;
-	pmat[2][1] = dyOffset;
-	pmat[2][2] = fVar1;
-	pmat[2][3] = 1.0f;
-	pmat[3][2] = sNear * (1.0f - fVar1);
-}
-
 void BuildProjectionMatrix(float fov, float aspectRatio, float near, float far, glm::mat4& pmat)
 {
 	far = 10000000000.0f;
-
+	
 	pmat = glm::perspective(fov, aspectRatio, near, far);
 }
 
@@ -221,7 +199,7 @@ void SetCmPosMat(CM* pcm, glm::vec3* ppos, glm::mat3* pmat)
 		pcm->pos = *ppos;
 
 	if (pmat != nullptr)
-		pcm->lookAt = *pmat;
+		pcm->mat = *pmat;
 
 	UpdateCmMat4(pcm);
 
@@ -240,7 +218,7 @@ void SetCmPosMat(CM* pcm, glm::vec3* ppos, glm::mat3* pmat)
 
 void* GetCmMat(CM* pcm)
 {
-	return &pcm->lookAt;
+	return &pcm->mat;
 }
 
 void SetCmMat(CM* pcm, glm::mat3* pmat)
@@ -364,12 +342,28 @@ void SetupCm(CM *pcm)
 	}
 }
 
+void CombineEyeLookAtProj(const glm::vec3 &pposEye, const glm::mat3 &pmatLookAt, const glm::mat4 &pmatProj, glm::mat4 &pmatOut)
+{
+	// Build camera->world (eye) directly from basis, no PS2 swizzles.
+	glm::mat4 eye(1.0f);
+	eye[0] = glm::vec4(pmatLookAt[0], 0.0f); // R
+	eye[1] = glm::vec4(pmatLookAt[1], 0.0f); // U
+	eye[2] = glm::vec4(pmatLookAt[2], 0.0f); // F
+	eye[3] = glm::vec4(pposEye, 1.0f); // pos
+	
+	glm::mat4 view = glm::inverse(eye);      // world -> view
+	pmatOut = pmatProj * view;               // world -> clip
+}
+
 void UpdateCmMat4(CM* pcm)
 {
-	BuildLookAt(pcm->pos, pcm->direction, pcm->up ,pcm->lookAt);
+	// No jolt: use current eye and projection
+	CombineEyeLookAtProj(pcm->pos, pcm->mat, pcm->matProj, pcm->matWorldToClip);
 
-	pcm->matWorldToClip = pcm->matProj * pcm->lookAt;
+	// Optional: also keep clip->world (PS2 does this)
+	//pcm->matClipToWorld = glm::inverse(pcm->matWorldToClip);
 
+	// Frustum from worldToClip (your existing extractor)
 	ExtractFrustumPlanes(pcm->matWorldToClip, &pcm->frustum);
 }
 
@@ -380,7 +374,7 @@ bool FInsideCmMrd(const CM* pcm, const glm::vec3& dpos, float sRadius, float sMR
 	}
 
 	// Calculate outer radius
-	float outerRadius = sMRD * pcm->rMRDAdjust * g_renderDistance + sRadius;
+	float outerRadius = sMRD * pcm->rMRDAdjust + sRadius;
 	float outerRadiusSq = outerRadius * outerRadius;
 
 	// Calculate position of point to test
@@ -424,4 +418,3 @@ void DeleteCm(CM *pcm)
 }
 
 CMLK g_cmlk;
-float g_renderDistance = 1.0;

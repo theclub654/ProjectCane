@@ -22,3 +22,8 @@ int  GetLBoneSize();
 void CloneLBone(LBONE* plbone, LBONE* plboneBase);
 void RenderLboneSelf(LBONE* plbone, CM* pcm, RO* pro);
 void DeleteLBone(LBONE* plbone);
+
+void RenderAloAsBone(ALO* palo, CM* pcm, RO* pro);
+
+extern int g_fShowBones;
+extern glm::vec3 s_posDefaultBone;

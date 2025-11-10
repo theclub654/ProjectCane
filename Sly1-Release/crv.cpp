@@ -27,7 +27,7 @@ std::shared_ptr <CRV> PcrvNew(CRVK crvk)
 	return pcrv;
 }
 
-void LoadCrvlFromBrx(std::shared_ptr <CRVL> pcrvl, CBinaryInputStream* pbis)
+void LoadCrvlFromBrx(std::shared_ptr <CRVL> pcrvl, CBinaryInputStream *pbis)
 {
 	pcrvl->fClosed = pbis->U8Read();
 	pcrvl->ccv = pbis->U8Read();
@@ -43,7 +43,7 @@ void LoadCrvlFromBrx(std::shared_ptr <CRVL> pcrvl, CBinaryInputStream* pbis)
 	}
 }
 
-void LoadCrvcFromBrx(std::shared_ptr <CRVC> pcrvc, CBinaryInputStream* pbis)
+void LoadCrvcFromBrx(std::shared_ptr <CRVC> pcrvc, CBinaryInputStream *pbis)
 {
 	pcrvc->fClosed = pbis->U8Read();
 	pcrvc->ccv = pbis->U8Read();

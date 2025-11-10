@@ -15,7 +15,6 @@ void InitCm(CM* pcm); // NOT FINISHED
 int  GetCmSize();
 void CloneCm(CM* pcm, CM* pcmBase);
 void RecalcCm(CM* pcm);
-void BuildSimpleProjectionMatrix(float rx, float ry, float dxOffset, float dyOffset, float sNear, float sFar, glm::mat4& pmat);
 void BuildProjectionMatrix(float fov, float aspectRatio, float near, float far, glm::mat4& pmat);
 void SetSwCameraFov(SW* psw, float radFOV);
 void SetSwCameraNearClip(SW* psw, float sNearClip);
@@ -50,10 +49,10 @@ void SetCmMrdRatio(CM* pcm, float rMRD);
 void BuildLookAt(glm::vec3 &posEye, glm::vec3 &directionEye, glm::vec3 &upEye, glm::mat4 &pmatLookAt);
 void UnlockCm(int nParam);
 void SetupCm(CM *pcm);
+void CombineEyeLookAtProj(const glm::vec3 &pposEye, const glm::mat3 &pmatLookAt, const glm::mat4 &pmatProj, glm::mat4 &pmatOut);
 // Updates a camera matrix
 void UpdateCmMat4(CM* pcm);
 bool FInsideCmMrd(const CM* pcm, const glm::vec3& dpos, float sRadius, float sMRD, float& outAlpha);
 void DeleteCm(CM *pcm);
 
 extern CMLK g_cmlk;
-extern float g_renderDistance;

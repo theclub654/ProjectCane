@@ -174,7 +174,7 @@ void UpdateUi(UI *pui)
             }
 
             if (pjoy->IsPressed(BTN_SELECT)) { // e.g. map 0x800 to BTN_START
-                
+                ShowBlot(&g_binoc);
             }
 
             //else if (pjoy->IsPressed(BTN_A)) { // map 0x100 to BTN_A
@@ -326,6 +326,9 @@ void DrawUiSplash(UI* pui)
 
 void DrawUi(UI* pui)
 {
+    glClearStencil(0);
+    glBlotShader.Use();
+
     DrawUiSelf(pui);
     DrawBlots();
 }

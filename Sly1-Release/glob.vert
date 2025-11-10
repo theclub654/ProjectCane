@@ -1,7 +1,7 @@
-﻿#version 330 core
+﻿#version 430 core
 
-#define RKO_OneWay    0
-#define RKO_ThreeWay  1
+#define RKO_ThreeWay  0
+#define RKO_OneWay    1
 #define RKO_CelBorder 2
 #define RKO_Collision 3
 
@@ -20,7 +20,16 @@ layout (location = 1) in vec3 normal;
 layout (location = 2) in vec4 color;
 layout (location = 3) in vec2 uv;
 
-uniform samplerBuffer uEdges; // 4 texels per edge: [E0, E1, OppA, OppB]
+struct SWP // Scene world properties
+{
+    float uShadow;
+    float uMidtone;
+    int   fogType;
+    float fogNear;
+    float fogFar;
+    float fogMax;
+    vec4  fogColor;
+}; uniform SWP swp;
 
 struct LIGHT 
 {
@@ -32,7 +41,7 @@ struct LIGHT
     vec4  dir;
     vec4  color;
     vec3  falloff;
-    float maxDst;
+    float dst;
     vec4  ru;
     vec4  du;
     mat4  matFrustrum;
@@ -40,13 +49,43 @@ struct LIGHT
     vec4  falloffBias;
 };
 
+layout(std140) uniform ACTIVELIGHTS
+{
+    int numLights;
+     // pad header to 16 bytes
+    int _pad0; 
+    int _pad1; 
+    int _pad2;
+
+    // Each element has 16B stride in std140
+    int lightIndices[MAX_LIGHTS];
+}; 
+
 layout(std140) uniform LIGHTBLK
 {
     LIGHT lights[MAX_LIGHTS];
 };
 
-uniform int numLights;
-uniform int lightIndices[MAX_LIGHTS];
+layout(std140) uniform CMGL
+{
+    mat4 matWorldToClip;
+    vec4 cameraPos;
+} cm;
+
+layout(std140) uniform RO // Render object properties
+{
+    mat4  model;
+	int   rko;
+    float uAlpha;
+	float uFog;
+	float darken;
+	int   fDynamic;
+	float unSelfIllum;
+    float sRadius;
+	vec4  posCenter;
+}op;
+
+uniform samplerBuffer uEdges;
 
 struct MATERIAL
 {
@@ -55,41 +94,17 @@ struct MATERIAL
     vec3  light;
 };
 
-struct LSM
-{
-    float uShadow;
-    float uMidtone;
-}; uniform LSM lsm;
-
-uniform mat4 matWorldToClip;
-uniform vec3 cameraPos;
-
-uniform int   fogType;
-uniform float fogNear;
-uniform float fogFar;
-uniform float fogMax;
-uniform float uFog;
-
-uniform mat4 model;
-
-uniform int rko;
-
-uniform float usSelfIllum;
-uniform int   fDynamic;
-uniform vec3  posCenter;
-
 vec4 worldPos;
 vec3 normalWorld;
 
 float objectShadow;
 float objectMidtone;
-vec4  light;
+vec3  light;
 
 out vec4 vertexColor;
 out vec2 texcoord;
 out MATERIAL material;
 out float fogIntensity;
-flat out int fNonCelBorder;
 
 void StartThreeWay();
 void InitGlobLighting();
@@ -101,6 +116,7 @@ vec4 AddFrustrumLight(LIGHT frustumlight);
 //vec4 AddFrustrumLightDynamic(FRUSTUMLIGHT frustumlight);
 void ProcessGlobLighting();
 void ProcessCelBorders();
+void CalculateFog();
 // This uses the PS2 Style fog
 void CalculateFogPS2();
 // This uses the PS3 style fog
@@ -108,49 +124,40 @@ void CalculateFogPS3();
 
 void main()
 {
-    switch (rko)
+    switch (op.rko)
     {
         case RKO_OneWay:
-        worldPos    = model * vec4(vertex, 1.0);
+        worldPos    = op.model * vec4(vertex, 1.0);
         vertexColor = color;
         texcoord    = uv;
-        gl_Position = matWorldToClip * worldPos;
+        CalculateFog();
         break;
 
         case RKO_ThreeWay:
-        worldPos    = model * vec4(vertex, 1.0);
+        worldPos    = op.model * vec4(vertex, 1.0);
         vertexColor = color;
         texcoord    = uv;
-        InitGlobLighting();
         StartThreeWay();
-        gl_Position = matWorldToClip * worldPos;
+        CalculateFog();
         break;
 
         case RKO_CelBorder:
         ProcessCelBorders();
-        break;
+        return;
 
         case RKO_Collision:
-        worldPos    = model * vec4(vertex, 1.0);
-        gl_Position = matWorldToClip * worldPos;
+        worldPos    = op.model * vec4(vertex, 1.0);
         break;
     }
     
-    switch (fogType)
-    {
-        case FOG_PS2:
-        CalculateFogPS2();
-        break;
-
-        case FOG_PS3:
-        CalculateFogPS3();
-        break;
-    }
+    gl_Position = cm.matWorldToClip * worldPos;
 }
 
 void StartThreeWay()
 {
-    if (fDynamic != 1)
+    InitGlobLighting();
+
+    if (op.fDynamic != 1)
     {
         for (int i = 0; i < numLights; ++i)
         {
@@ -160,24 +167,31 @@ void StartThreeWay()
             switch (L.lightk)
             {
                 case LIGHTK_Direction:
-                light += AddDirectionLight(L);
+                light.rgb += AddDirectionLight(L).rgb;
                 break;
 
                 case LIGHTK_Position:
                 {
-                    vec3  toLight = L.pos.xyz - worldPos.xyz;
+                    // Per-object cull (bound center vs light sphere)
+                    vec3  dBound    = L.pos.xyz - op.posCenter.xyz;  // bound center (world)
+                    float distSqB   = dot(dBound, dBound);
+                    float maxDist   = L.dst + op.sRadius;            // linear units
+                    float maxDistSq = maxDist * maxDist;
+
+                    if (distSqB > maxDistSq)
+                        continue;
+ 
+                    // Per vertex lighting from the actual shaded point
+                    vec3  toLight = L.pos.xyz - worldPos.xyz;      // shaded point (world)
                     float distSq  = dot(toLight, toLight);
 
-                    if (distSq > L.maxDst) 
-                        continue;
-
-                    light += AddPositionLight(L, toLight, distSq);
+                    light.rgb += AddPositionLight(L, toLight, distSq).rgb;
                     break;
                 }
 
                 case LIGHTK_Frustrum:
                 case LIGHTK_Spot:
-                light += AddFrustrumLight(L);
+                light.rgb += AddFrustrumLight(L).rgb;
                 break;
             }
         }
@@ -192,18 +206,19 @@ void StartThreeWay()
             switch (L.lightk)
             {
                 case LIGHTK_Direction:
-                light += AddDynamicLight(L.dir, L.color, L.ru, L.du);
+                light.rgb += AddDynamicLight(L.dir, L.color, L.ru, L.du).rgb;
                 break;
 
                 case LIGHTK_Position:
                 {
-                    vec3  toLight = L.pos.xyz - posCenter.xyz;
+                    vec3  toLight = L.pos.xyz - op.posCenter.xyz; // center of the object’s bound
                     float distSq  = dot(toLight, toLight);
+                    float maxDist = L.dst + op.sRadius;   // L.radius is linear (not squared)
 
-                    if (distSq > L.maxDst)
+                    if (distSq > maxDist * maxDist)
                         continue;
 
-                    light += AddPositionLightDynamic(L, toLight);
+                    light.rgb += AddPositionLightDynamic(L, toLight).rgb;
                     break;
                 }
             }
@@ -215,11 +230,11 @@ void StartThreeWay()
 
 void InitGlobLighting()
 {
-    objectShadow  = lsm.uShadow;
-    objectMidtone = lsm.uMidtone + usSelfIllum * 0.000031;
-    light = vec4(0.0);
+    objectShadow  = swp.uShadow;
+    objectMidtone = swp.uMidtone + op.unSelfIllum * 0.000031;
+    light = vec3(0.0);
 
-    normalWorld = normalize(mat3(model) * normal);
+    normalWorld = normalize(mat3(op.model) * normal);
 }
 
 vec4 AddDirectionLight(LIGHT dirlight)
@@ -251,7 +266,7 @@ vec4 AddDirectionLight(LIGHT dirlight)
 vec4 AddDynamicLight(vec4 dir, vec4 color, vec4 ru, vec4 du)
 {
     // Transform light direction into model space
-    vec3 lightDir = normalize(mat3(transpose(model)) * vec3(dir));
+    vec3 lightDir = normalize(mat3(transpose(op.model)) * vec3(dir));
     
     // Compute stylized diffuse term
     float diffuse = dot(lightDir, normal);
@@ -273,32 +288,37 @@ vec4 AddDynamicLight(vec4 dir, vec4 color, vec4 ru, vec4 du)
 
 vec4 AddPositionLight(LIGHT pointlight, vec3 toLight, float dist)
 {
-    // Approximate inverse sqrt for light direction (normalize)
-    float invLen   = inversesqrt(dist);
-    vec3  lightDir = toLight * invLen;
+    // Normalize light direction with a zero-length guard (use toLight directly for accuracy)
+    float d2 = dot(toLight, toLight);
+    float invLen = (d2 > 1e-12) ? inversesqrt(d2) : 0.0; // 1/|d|
+    vec3  L = toLight * invLen;
 
-    // Diffuse
-    float NdotL   = max(dot(lightDir, normalWorld), 0.0);
-    float diffuse = NdotL * (1.0 + NdotL * NdotL);
+    // Normalize the normal (VU1 guards this too)
+    vec3 N = normalWorld;
+    float n2 = dot(N, N);
+    if (n2 > 1e-12) N *= inversesqrt(n2); else N = vec3(0.0);
 
+    // Raw dot — do NOT clamp before stylized term
+    float ndotl = dot(N, L);
+
+    // Stylized boost: n + n^3 (== n * (1 + n^2))
+    float diffuse = ndotl + ndotl * ndotl * ndotl;
+
+    // Attenuation: du + ru * (1/|d|), then clamp to [0,1]
+    // falloff.x = duAtt, falloff.y = ruAtt  (match your struct)
     float attenuation = clamp(pointlight.falloff.x + pointlight.falloff.y * invLen, 0.0, 1.0);
 
-    // Ramp contributions
-    float shadow    = diffuse * pointlight.ru.x + pointlight.du.x;
-    float midtone   = diffuse * pointlight.ru.y + pointlight.du.y;
-    float highlight = diffuse * pointlight.ru.z + pointlight.du.z;
+    // Ramps (clamp each ≥ 0, then apply attenuation)
+    float shadow    = max(diffuse * pointlight.ru.x + pointlight.du.x, 0.0) * attenuation;
+    float midtone   = max(diffuse * pointlight.ru.y + pointlight.du.y, 0.0) * attenuation;
+    float highlight = max(diffuse * pointlight.ru.z + pointlight.du.z, 0.0) * attenuation;
 
-    // Multiply all by attenuation
-    shadow    *= attenuation;
-    midtone   *= attenuation;
-    highlight *= attenuation;
+    // Accumulate (VU1 adds to running totals)
+    objectShadow  += shadow;
+    objectMidtone += midtone;
 
-    // Accumulate shared lighting values
-    objectShadow  += max(shadow,  0.0);
-    objectMidtone += max(midtone, 0.0);
-
-    // Return final color contribution
-    return pointlight.color * max(highlight, 0.0);
+    // Final highlight-scaled light color
+    return vec4(pointlight.color * highlight);
 }
 
 vec4 AddPositionLightDynamic(LIGHT pointlight, vec3 direction)
@@ -310,7 +330,7 @@ vec4 AddPositionLightDynamic(LIGHT pointlight, vec3 direction)
     attenuation = clamp(attenuation, 0.0, 1.0);
 
     // Apply dynamic lighting
-    vec4 color = AddDynamicLight(vec4(direction, 0.0), pointlight.color, pointlight.ru * attenuation, pointlight.du * attenuation) * attenuation;
+    vec4 color = AddDynamicLight(vec4(direction, 0.0), pointlight.color * attenuation, pointlight.ru * attenuation, pointlight.du * attenuation) * attenuation;
 
     return color;
 }
@@ -396,10 +416,10 @@ void ProcessCelBorders()
     vec3 OB = texelFetch(uEdges, edgeID * 4 + 3).xyz;
 
     // World → Clip
-    vec4 A = matWorldToClip * (model * vec4(E0, 1.0));
-    vec4 B = matWorldToClip * (model * vec4(E1, 1.0));
-    vec4 C = matWorldToClip * (model * vec4(OA, 1.0));
-    vec4 D = matWorldToClip * (model * vec4(OB, 1.0));
+    vec4 A = cm.matWorldToClip * (op.model * vec4(E0, 1.0));
+    vec4 B = cm.matWorldToClip * (op.model * vec4(E1, 1.0));
+    vec4 C = cm.matWorldToClip * (op.model * vec4(OA, 1.0));
+    vec4 D = cm.matWorldToClip * (op.model * vec4(OB, 1.0));
 
     // Keep the original validity rule
     bool valid = (A.w > 0.0 && B.w > 0.0 && C.w > 0.0 && D.w > 0.0);
@@ -418,7 +438,14 @@ void ProcessCelBorders()
     bool isBorder = (abs(sAC) <= kEPS) || (abs(sBD) <= kEPS);
     bool opposite = (sAC * sBD < 0.0);
     
-    fNonCelBorder = int(valid && (isBorder || opposite));
+    int fNonCelBorder = int(valid && (isBorder || opposite));
+
+    if (fNonCelBorder == 1)
+    {
+        // Pushing celborder to clip space so hardware clips it and fragment shader doesnt run
+        gl_Position = vec4(0.0, 0.0, 2.0, 1.0);
+        return;
+    }
 
     // Emit one endpoint of the line for this VS invocation
     vec4 P = first ? A : B;
@@ -444,42 +471,57 @@ void ProcessCelBorders()
     float zNDC = zBiased * 2.0 - 1.0;
     P.z        = zNDC * P.w;
 
-    // Fog (use edge midpoint)
-    vec3 midWorld = ((model * vec4(E0,1.0)).xyz + (model * vec4(E1,1.0)).xyz) * 0.5;
-    worldPos = vec4(midWorld, 1.0);
-
     gl_Position = P;
+}
+
+void CalculateFog()
+{
+    if (swp.fogType == 0)
+        return;
+
+    switch(swp.fogType)
+    {
+        case FOG_PS2:
+        CalculateFogPS2();
+        break;
+
+        case FOG_PS3:
+        CalculateFogPS3();
+        break;
+    }
 }
 
 void CalculateFogPS2()
 {
     // Distance to camera
-    float z = length(cameraPos - worldPos.xyz);
+    float z = length(cm.cameraPos.xyz - worldPos.xyz);
     float recipZ = 1.0 / max(z, 1e-4);
 
-    float recipNear = 1.0 / fogNear;
-    float recipFar  = 1.0 / fogFar;
+    float recipNear = 1.0 / swp.fogNear;
+    float recipFar  = 1.0 / swp.fogFar;
 
     float denom = max(recipNear - recipFar, 1e-6); // avoid divide by 0
     float fog = clamp((recipNear - recipZ) * (1.0 / denom), 0.0, 1.0);
 
-    float fogMult = mix(fogMax, fogMax * uFog, step(0.001, uFog));
+    float fogMult = mix(swp.fogMax, swp.fogMax * op.uFog, step(0.001, op.uFog));
+
     fogIntensity = fog * fogMult;
 }
 
 void CalculateFogPS3()
 {
     // Compute squared distance for performance
-    vec3  offset = cameraPos - worldPos.xyz;
+    vec3  offset = cm.cameraPos.xyz - worldPos.xyz;
     float distance2 = dot(offset, offset);
     float distanceToCamera = sqrt(distance2);
 
     // Precompute inverse range for fog mapping
-    float invFogRange = 1.0 / max(fogFar - fogNear, 1e-6);
+    float invFogRange = 1.0 / max(swp.fogFar - swp.fogNear, 1e-6);
 
     // Linear fog factor in 0..1 range
-    float fog = clamp((distanceToCamera - fogNear) * invFogRange, 0.0, 1.0);
+    float fog = clamp((distanceToCamera - swp.fogNear) * invFogRange, 0.0, 1.0);
 
-    float fogMult = mix(fogMax, fogMax * uFog, step(0.001, uFog));
+    float fogMult = mix(swp.fogMax, swp.fogMax * op.uFog, step(0.001, op.uFog));
+
     fogIntensity = fog * fogMult;
 }

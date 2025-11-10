@@ -552,6 +552,9 @@
     <ClCompile Include="game.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="rostream.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="basic.h">
@@ -1107,6 +1110,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="game.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="rostream.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

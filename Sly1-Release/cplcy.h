@@ -196,24 +196,18 @@ struct FRUSTUM {
 class CM : public LO
 {
     public:
+    // Projection and lookAt matrix combined
+    glm::mat4 matWorldToClip;
     // Camera psoition
     glm::vec3 pos;
-    glm::vec3 direction;
-    glm::vec3 up;
-    glm::vec3 right;
-    glm::vec3 worldUp;
     float yaw;
     float pitch;
-    bool firstClick;
     glm::vec4 anormalFrustrumTranspose[3];
     FRUSTUM frustum;
-    // Camera lookAt
-    glm::mat4 lookAt;
+    glm::mat3 mat;
     float rMRDAdjust;
     // Camera projection 
     glm::mat4 matProj;
-    // Projection and lookAt matrix combined
-    glm::mat4 matWorldToClip;
     glm::mat4 matClipToWorld;
     glm::vec3 anormalFrustrum[4];
     float rMRD;

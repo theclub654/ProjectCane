@@ -1792,7 +1792,7 @@ void PostAloLoad(ALO* palo)
 
 void SnipAloObjects(ALO* palo, int csnip, SNIP* asnip)
 {
-	SW* psw = palo->psw;
+	SW *psw = palo->psw;
 
 	for (int i = 0; i < csnip; ++i) 
 	{
@@ -1802,7 +1802,7 @@ void SnipAloObjects(ALO* palo, int csnip, SNIP* asnip)
 		if ((snip.grfsnip & 0x20) == 0)
 			grffso &= ~0x100; // Remove 0x100 if bit 0x20 is not set
 
-		LO* plo = PloFindSwObject(psw, grffso, snip.oid, palo);
+		LO *plo = PloFindSwObject(psw, grffso, snip.oid, palo);
 
 		if (plo != nullptr) 
 		{

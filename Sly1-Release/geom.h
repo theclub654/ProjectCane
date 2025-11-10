@@ -33,6 +33,7 @@ struct GEOM
     float sRadius;
     int cpos;
     std::vector <glm::vec3> apos;
+    int cindices;
     std::vector <uint16_t> indices;
     int csurf;
     std::vector <SURF> asurf;

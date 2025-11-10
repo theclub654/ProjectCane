@@ -134,106 +134,90 @@ struct ASEGD
 	float svtLocal;
 };
 
+struct FOSTER
+{
+	ALO* paloParent;
+};
+
+struct IKJ
+{
+	OID oidIkh;
+	ALO* paloIkh;
+	int fInvalid;
+};
+
+struct IKHALOX
+{
+	glm::vec4 posIkh;
+	glm::vec4 posWrist;
+	ALO* paloShoulder;
+	OID oidElbow;
+	ALO* paloElbow;
+	ALO* paloCommon;
+	float radTwistOrig;
+	float radTwist;
+	float dradTwist;
+	GRFIK grfik;
+};
+
+struct SCJ
+{
+	ALO* paloSchRot;
+	int ipaloRot;
+	ALO* paloSchPos;
+	int ipaloPos;
+	int fInvalidRot;
+	int fInvalidPos;
+
+};
+
+struct SCH
+{
+	glm::vec3 posSch;
+	glm::vec3 posEnd;
+	float gStrength;
+
+	OID oidScjStart;
+	ALO* paloScjStart;
+
+	OID oidScjEnd;
+	ALO* paloScjEnd;
+
+	OID oidSchPrev;
+	ALO* paloSchPrev;
+	ALO* paloCommon;
+	SCSK scsk;
+	int cpalo;
+	std::vector <ALO*> apalo;
+};
+
+struct LOOKERALOX
+{
+	OID oidFocus;
+	PNT* ppntFocus;
+
+	OID oidTarget;
+	PNT* ppntTarget;
+};
+
+struct JOINT
+{
+	glm::mat4 matInfluence;
+	int fSsc;
+	int fMatInfluence;
+};
 
 struct ALOX
 {
 	glm::mat3 matPreRotation;
 	glm::mat3 matPostRotation;
-
-	union
-	{
-		ALO* paloParent;
-	} foster;
-
-	union
-	{
-		OID oidIkh;
-		ALO* paloIkh;
-		int fInvalid;
-	}ikj;
-
-	union
-	{
-		glm::vec3 posIkh;
-		glm::vec3 posWrist;
-		ALO* paloShoulder;
-
-		union
-		{
-			OID oidElbow;
-			ALO* paloElbow;
-
-		};
-
-		ALO* paloCommon;
-		float radTwistOrig;
-		float radTwist;
-		float dradTwist;
-		GRFIK grfik;
-	}ikh;
-
-	union
-	{
-		ALO* paloSchRot;
-		int ipaloRot;
-		ALO* paloSchPos;
-		int ipaloPos;
-		int fInvalidRot;
-		int fInvalidPos;
-
-	}scj;
-
-	union
-	{
-		glm::vec3 posSch;
-		glm::vec3 posEnd;
-		float gStrength;
-		union
-		{
-			OID oidScjStart;
-			ALO* paloScjStart;
-		};
-
-		union
-		{
-			OID oidScjEnd;
-			ALO* paloScjEnd;
-		};
-
-		union
-		{
-			OID oidSchPrev;
-			ALO* paloSchPrev;
-		};
-		ALO* paloCommon;
-		SCSK scsk;
-		int cpalo;
-		ALO** apalo;
-
-	}sch;
-
-	union
-	{
-		union
-		{
-			OID oidFocus;
-			PNT* ppntFocus;
-		};
-
-		union
-		{
-			OID oidTarget;
-			PNT* ppntTarget;
-
-		};
-	}looker;
-
-	union
-	{
-		glm::mat4 matInfluence;
-		int fSsc;
-		int fMatInfluence;
-	}joint;
+	FOSTER foster;
+	IKJ ikj;
+	IKHALOX ikh;
+	SCJ scj;
+	SCH sch;
+	LOOKERALOX looker;
+	JOINT joint;
 	GRFALOX grfalox;
 };
 
@@ -278,12 +262,11 @@ struct BITFIELD
 class ALO : public LO
 {
 	public:
-
 	DL dlChild;
 	DLE dleBusy;
 	DLE dleMRD;
-	ALO* paloRoot;
-	ALO* paloFreezeRoot;
+	ALO *paloRoot;
+	ALO *paloFreezeRoot;
 	DLE dleFreeze;
 	DL dlFreeze;
 	int cpmrg;
@@ -298,25 +281,25 @@ class ALO : public LO
 	glm::mat3 matOrig;
 	glm::vec3 eulOrig;
 	DL dlAct;
-	struct ACT* pactPos;
-	struct ACT* pactRot;
-	struct ACT* pactScale;
-	struct ACT** apactPose;
-	struct ACT* pactRestore;
-	struct ACTLA* pactla;
-	struct ACTBANK* pactbank;
-	struct IKH* pikh;
-	struct CLQ* pclqPosSpring;
-	struct CLQ* pclqPosDamping;
-	struct CLQ* pclqRotSpring;
-	struct CLQ* pclqRotDamping;
-	struct SMPA* psmpaPos;
-	struct SMPA* psmpaRot;
+	struct ACT *pactPos;
+	struct ACT *pactRot;
+	struct ACT *pactScale;
+	struct ACT **apactPose;
+	struct ACT *pactRestore;
+	struct ACTLA *pactla;
+	struct ACTBANK *pactbank;
+	struct IKH *pikh;
+	struct CLQ *pclqPosSpring;
+	struct CLQ *pclqPosDamping;
+	struct CLQ *pclqRotSpring;
+	struct CLQ *pclqRotDamping;
+	struct SMPA *psmpaPos;
+	struct SMPA *psmpaRot;
 	std::shared_ptr <ALOX> palox;
 	int cframeStatic;
 	GLOBSET globset;
-	struct SHADOW* pshadow;
-	struct THROB* pthrob;
+	struct SHADOW *pshadow;
+	struct THROB *pthrob;
 	float sFastShadowRadius;
 	float sFastShadowDepth;
 	int fRealClock;
@@ -326,12 +309,12 @@ class ALO : public LO
 	float sRadiusRenderSelf;
 	float sRadiusRenderAll;
 	glm::vec3 posCenter;
-	struct SFX* psfx;
+	struct SFX *psfx;
 	FICG ficg;
 	int cposec;
 	std::vector <POSEC> aposec;
-	struct ACTREF* pactrefCombo;
-	struct DLR* pdlrFirst;
+	struct ACTREF *pactrefCombo;
+	struct DLR *pdlrFirst;
 	BITFIELD bitfield;
 	ACK ackRot;
 };

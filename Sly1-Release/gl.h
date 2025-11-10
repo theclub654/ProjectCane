@@ -19,17 +19,40 @@ enum AspectMode
 	Fixed_16_10,
 };
 
+struct CMGL
+{
+	glm::mat4 matWorldToClip;
+	glm::vec4 cameraPos;
+};
+
+struct alignas(16) RO
+{
+	glm::mat4 model;           // 0..63
+	int       rko;             // 64
+	float     uAlpha;          // 68
+	float     uFog;            // 72
+	float     darken;          // 76
+	int       fDynamic;        // 80
+	float     unSelfIllum;	   // 84
+	float	  sRadius;		   // 88
+	int       trlk;            // 92
+	glm::vec4 posCenter;	   // 96..111
+	float     uAlphaCelBorder; // 112
+	uint32_t  _pad2;		   // 116
+	uint32_t  _pad3;           // 120
+	uint32_t  _pad4;           // 124  -> struct size 128 (rounded to 16)
+};
+
 class GL
 {
-public:
+	public:
 
 	// Window Object
-	GLFWwindow* window;
+	GLFWwindow *window;
 	// Frame Buffer Object
 	GLuint fbo;
 	// Frame Buffer Color
 	GLuint fbc;
-
 	// Render Buffer Object
 	GLuint rbo;
 
@@ -59,35 +82,25 @@ public:
 	void TerminateGL();
 };
 
-// Initializes glsl uniform locations
-void InitGlslUniforms();
 void FrameBufferSizeCallBack(GLFWwindow* window, int width, int height);
-void RescaleLineWidth();
 
 extern GL g_gl;
+extern GLuint cmUBO;
+extern GLuint ropUBO;
+extern GLuint alUbo;
+extern GLuint roSize;
+extern GLuint roCelSize;
+extern GLuint roCollisionSize;
 extern GLuint screenQuadMatrixLoc;
-extern GLuint glslNumLights;
-extern GLuint glslLightIndices;
-extern GLuint glslmatWorldToClip;
-extern GLuint glslCameraPos;
+extern GLuint glslLsmShadow;
+extern GLuint glslLsmDiffuse;
 extern GLuint glslFogType;
 extern GLuint glslFogNear;
 extern GLuint glslFogFar;
 extern GLuint glslFogMax;
 extern GLuint glslFogColor;
-extern GLuint glslLsmShadow;
-extern GLuint glslLsmDiffuse;
 extern GLuint glslRgbaCel;
-extern GLuint glslModel;
-extern GLuint glslUFog;
-extern GLuint glslUAlpha;
-extern GLuint glsluAlphaCelBorder;
-extern GLuint glslRDarken;
-extern GLuint glslRko;
-extern GLuint glslusSelfIllum;
-extern GLuint glslFDynamic;
-extern GLuint glslPosCenter;
 extern GLuint glslfAlphaTest;
-extern GLuint glslAlphaThresHold;
 extern GLuint glslfCull;
 extern GLuint glslCollisionRgba;
+extern GLuint gEmptyVAO;

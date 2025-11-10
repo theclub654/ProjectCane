@@ -165,6 +165,11 @@ EMITB* PemitbEnsureEmitter(EMITTER* pemitter, ENSK ensk)
 	return pemitter->pemitb;
 }
 
+void PauseEmitterIndefinite(EMITTER* pemitter)
+{
+	pemitter->tUnpause = 3.402823e+38;
+}
+
 void RenderEmitterSelf(EMITTER* pemitter, CM* pcm, RO* pro)
 {
 

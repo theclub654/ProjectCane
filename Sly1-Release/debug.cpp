@@ -10,7 +10,7 @@ void RenderMenuGui(SW* psw)
     ImGui::NewFrame();
 
     g_fDisableInput = false; // Reset hover flag
-
+    
     // Main menu bar
     if (ImGui::BeginMainMenuBar())
     {
@@ -57,15 +57,30 @@ void RenderMenuGui(SW* psw)
             if (ImGui::BeginMenu("Fog"))
             {
                 if (ImGui::MenuItem("Off", nullptr, g_fogType == 0))
+                {
+                    glGlobShader.Use();
                     g_fogType = 0;
+                    glUniform1i(glslFogType, g_fogType);
+                }
+               
                 if (ImGui::IsItemHovered()) g_fDisableInput = true;
 
                 if (ImGui::MenuItem("PS2 Style", nullptr, g_fogType == 1))
-                    g_fogType = 1;
+                {
+                    glGlobShader.Use();
+                    g_fogType = 1; 
+                    glUniform1i(glslFogType, g_fogType);
+                }
+                   
                 if (ImGui::IsItemHovered()) g_fDisableInput = true;
 
                 if (ImGui::MenuItem("PS3 Style", nullptr, g_fogType == 2))
-                    g_fogType = 2;
+                {
+                    glGlobShader.Use();
+                    g_fogType = 2; 
+                    glUniform1i(glslFogType, g_fogType);
+                }
+
                 if (ImGui::IsItemHovered()) g_fDisableInput = true;
 
                 ImGui::EndMenu();
@@ -109,8 +124,9 @@ void RenderMenuGui(SW* psw)
 
                 ImGui::EndMenu();
             }
-
-            ImGui::SliderFloat("Draw Distance", &g_renderDistance, 1.0f, 3.0);
+           
+            if (g_pcm != nullptr)
+                ImGui::SliderFloat("Draw Distance", &g_pcm->rMRDAdjust, 1.0f, 3.0f);
 
             if (ImGui::IsItemClicked) g_fDisableInput = true;
 
@@ -121,12 +137,12 @@ void RenderMenuGui(SW* psw)
         {
             if (psw != nullptr)
             {
-                /*if (ImGui::MenuItem("Export Textures"))
+                if (ImGui::MenuItem("Export Textures"))
                 {
                     std::cout << "Exporting Textures..." << "\n";
                     ExportTextures();
                     std::cout << "Export Complete" << "\n";
-                }*/
+                }
                 if (ImGui::MenuItem("Export Map"))
                 {
                     std::cout << "Exporting Map..." << "\n";

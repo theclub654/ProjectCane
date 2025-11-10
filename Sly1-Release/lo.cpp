@@ -55,10 +55,22 @@ void RemoveLoHierarchy(LO* plo)
 
 void SnipLo(LO* plo)
 {
-	if (FIsLoInWorld(plo) != 0)
-	{
-		if (plo->pvtalo->pfnBindAlo != nullptr)
-			plo->pvtalo->pfnBindAlo((ALO*)plo);
+	if (!FIsLoInWorld(plo)) {
+		return;
+	}
+
+	VTALO* pvtlo = plo->pvtalo;
+
+	if (pvtlo->pfnBindAlo != nullptr) {
+		pvtlo->pfnBindAlo((ALO*)plo);
+	}
+
+	if (pvtlo->pfnPostAloLoad) {
+		//pvtlo->pfnPostAloLoad((ALO*)plo);
+	}
+
+	if (pvtlo->pfnRemoveLo) {
+		pvtlo->pfnRemoveLo(plo);
 	}
 }
 

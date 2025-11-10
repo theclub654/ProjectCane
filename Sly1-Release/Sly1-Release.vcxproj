@@ -260,6 +260,7 @@
     <ClCompile Include="rip.cpp" />
     <ClCompile Include="rog.cpp" />
     <ClCompile Include="rope.cpp" />
+    <ClCompile Include="rostream.cpp" />
     <ClCompile Include="rwm.cpp" />
     <ClCompile Include="scores.cpp" />
     <ClCompile Include="screen.cpp" />
@@ -446,6 +447,7 @@
     <ClInclude Include="rip.h" />
     <ClInclude Include="rog.h" />
     <ClInclude Include="rope.h" />
+    <ClInclude Include="rostream.h" />
     <ClInclude Include="rwm.h" />
     <ClInclude Include="scores.h" />
     <ClInclude Include="screen.h" />

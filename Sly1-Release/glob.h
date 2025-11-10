@@ -51,12 +51,15 @@ struct INDICE
 	uint16_t v3;
 };
 
-struct RO
+// Render Priority List
+struct RPL
 {
-	GLuint *VAO;
-	GLuint *VBO;
-	GLuint *EBO;
-	int cvtx;
+	RP rp;
+
+	void (*PFNBIND)(RPL*);
+
+	GLuint VAO;
+	GLsizei cvtx;
 
 	GLuint  edgeBuf;
 	GLuint  edgeTex;
@@ -64,24 +67,10 @@ struct RO
 
 	SHD *pshd;
 
-	float unSelfIllum;
-	glm::mat4 model;
-	glm::vec3 posCenter;
-	int fDynamic;
-	float uFog;
-	float darken;
-	float uAlpha;
-	float uAlphaCelBorder;
-};
-
-// Render Priority List
-struct RPL
-{
-	RP rp;
-	RO ro;
 	float z;
-	byte grfshd;
-	float sRadius;
+	byte  grfshd;
+
+	RO ro;
 };
 
 // Vertex Flag
@@ -107,6 +96,8 @@ struct SUBCEL
 	std::vector <glm::vec3> positions;
 	std::vector <uint16_t>  indices;
 	std::vector <float>     weights;
+
+	RPL rplCel;
 };
 
 struct SUBPOSEF
@@ -177,10 +168,12 @@ struct SUBGLOB
 	// Shader ID
 	int shdID;
 	// Object shader property
-	struct SHD* pshd;
+	struct SHD *pshd;
 	struct WRBSG *pwrbsg;
 	int cibnd;
 	int aibnd[4];
+
+	RPL rpl;
 };
 
 struct SUBGLOBI 
@@ -205,7 +198,7 @@ struct GLOB // NOT DONE
 	GRFGLOB grfglob;
 	std::vector <GLEAM> gleam;
 	RTCK rtck;
-	struct SAA* psaa;
+	struct SAA *psaa;
 	// Object fog intensity
 	float uFog;
 	FGFN fgfn;
@@ -219,9 +212,9 @@ struct GLOB // NOT DONE
 	// Ptr to instance model matrix
 	std::shared_ptr <glm::mat4> pdmat;
 	short instanceIndex;
-	struct BLOT* pblot;
+	struct BLOT *pblot;
 	OID oid;
-	char* pchzName;
+	char *pchzName;
 };
 
 struct GLOBI
@@ -264,5 +257,4 @@ extern bool g_fRenderCollision;
 extern bool g_fRenderCelBorders;
 extern bool g_fBsp;
 extern float g_uAlpha;
-extern GLuint gEmptyVAO;
 extern glm::vec4 g_rgbaCel;
