@@ -453,6 +453,8 @@ void DrawSw(SW *psw, CM *pcm)
 			BindRenderObject(g_dynamicTexturePrpl[i]);
 			DrawGlob(g_dynamicTexturePrpl[i]);
 		}
+
+		g_dynamicTextureCount = 0;
 	}
 
 	if (g_backGroundCount > 0)
@@ -468,6 +470,8 @@ void DrawSw(SW *psw, CM *pcm)
 
 		glDepthFunc(GL_LESS);
 		glDepthMask(true);
+
+		g_backGroundCount = 0;
 	}
 
 	if (g_backGroundBlendCount > 0)
@@ -486,6 +490,8 @@ void DrawSw(SW *psw, CM *pcm)
 		glDisable(GL_BLEND);
 		glDepthFunc(GL_LESS);
 		glDepthMask(true);
+
+		g_backGroundBlendCount = 0;
 	}
 
 	if (g_blotContextCount > 0)
@@ -495,6 +501,8 @@ void DrawSw(SW *psw, CM *pcm)
 			BindRenderObject(g_blotContextPrpl[i]);
 			DrawGlob(g_blotContextPrpl[i]);
 		}
+
+		g_blotContextCount = 0;
 	}
 
 	if (g_opaqueCount > 0)
@@ -504,6 +512,8 @@ void DrawSw(SW *psw, CM *pcm)
 			BindRenderObject(g_opaquePrpl[i]);
 			DrawGlob(g_opaquePrpl[i]);
 		}
+
+		g_opaqueCount = 0;
 	}
 
 	if (g_cutOutCount > 0)
@@ -519,6 +529,8 @@ void DrawSw(SW *psw, CM *pcm)
 
 		glDepthMask(true);
 		glDisable(GL_BLEND);
+
+		g_cutOutCount = 0;
 	}
 
 	if (g_cutOutBlendAddCount > 0)
@@ -534,6 +546,8 @@ void DrawSw(SW *psw, CM *pcm)
 
 		glDepthMask(true);
 		glDisable(GL_BLEND);
+
+		g_cutOutBlendAddCount = 0;
 	}
 
 	if (g_celBorderCount > 0)
@@ -561,6 +575,8 @@ void DrawSw(SW *psw, CM *pcm)
 
 		glDisable(GL_BLEND);
 		glDepthFunc(GL_LESS);
+
+		g_celBorderCount = 0;
 	}
 
 	if (g_projVolumeCount > 0)
@@ -581,6 +597,8 @@ void DrawSw(SW *psw, CM *pcm)
 		glDisable(GL_STENCIL_TEST);
 		glDepthFunc(GL_LESS);
 		glFrontFace(GL_CCW);
+
+		g_projVolumeCount = 0;
 	}
 
 	if (g_projVolumeAlphaAddCount > 0)
@@ -601,6 +619,8 @@ void DrawSw(SW *psw, CM *pcm)
 		glDisable(GL_STENCIL_TEST);
 		glDepthFunc(GL_LESS);
 		glFrontFace(GL_CCW);
+
+		g_projVolumeAlphaAddCount = 0;
 	}
 
 	if (g_projVolumeAddCount > 0)
@@ -621,6 +641,8 @@ void DrawSw(SW *psw, CM *pcm)
 		glDisable(GL_STENCIL_TEST);
 		glDepthFunc(GL_LESS);
 		glFrontFace(GL_CCW);
+
+		g_projVolumeAddCount = 0;
 	}
 
 	if (g_opaqueAfterProjVolumeCount > 0)
@@ -630,6 +652,8 @@ void DrawSw(SW *psw, CM *pcm)
 			BindRenderObject(g_opaqueAfterProjVolumePrpl[i]);
 			DrawGlob(g_opaqueAfterProjVolumePrpl[i]);
 		}
+
+		g_opaqueAfterProjVolumeCount = 0;
 	}
 
 	if (g_cutOutAfterProjVolumeCount > 0)
@@ -646,6 +670,7 @@ void DrawSw(SW *psw, CM *pcm)
 		glDepthMask(true);
 		glDisable(GL_BLEND);
 
+		g_cutOutAfterProjVolumeCount = 0;
 	}
 
 	if (g_cutOutAfterProjVolumeAddCount > 0)
@@ -661,6 +686,8 @@ void DrawSw(SW *psw, CM *pcm)
 
 		glDepthMask(true);
 		glDisable(GL_BLEND);
+
+		g_cutOutAfterProjVolumeAddCount = 0;
 	}
 
 	if (g_celBorderAfterProjVolumeCount > 0)
@@ -688,6 +715,8 @@ void DrawSw(SW *psw, CM *pcm)
 
 		glDepthFunc(GL_LESS);
 		glDisable(GL_BLEND);
+
+		g_celBorderAfterProjVolumeCount = 0;
 	}
 
 	if (g_murkClearCount > 0)
@@ -705,6 +734,8 @@ void DrawSw(SW *psw, CM *pcm)
 		glDepthMask(GL_TRUE);
 		glDisable(GL_BLEND);
 		glDepthFunc(GL_LESS);
+
+		g_murkClearCount = 0;
 	}
 
 	if (g_murkOpaqueCount > 0)
@@ -714,6 +745,8 @@ void DrawSw(SW *psw, CM *pcm)
 			BindRenderObject(g_murkOpaquePrpl[i]);
 			DrawGlob(g_murkOpaquePrpl[i]);
 		}
+
+		g_murkOpaqueCount = 0;
 	}
 
 	if (g_murkFillCount > 0)
@@ -731,6 +764,8 @@ void DrawSw(SW *psw, CM *pcm)
 		glDisable(GL_BLEND);
 		glDepthMask(true);
 		glDepthFunc(GL_LESS);
+
+		g_murkFillCount = 0;
 	}
 
 	if (g_translucentCount > 0)
@@ -746,6 +781,8 @@ void DrawSw(SW *psw, CM *pcm)
 
 		glDepthMask(true);
 		glDisable(GL_BLEND);
+
+		g_translucentCount = 0;
 	}
 
 	if (g_translucentAddCount > 0)
@@ -761,6 +798,8 @@ void DrawSw(SW *psw, CM *pcm)
 
 		glDepthMask(true);
 		glDisable(GL_BLEND);
+
+		g_translucentAddCount = 0;
 	}
 
 	if (g_translucentCelBorderCount > 0)
@@ -788,6 +827,8 @@ void DrawSw(SW *psw, CM *pcm)
 
 		glDepthFunc(GL_LESS);
 		glDisable(GL_BLEND);
+
+		g_translucentCelBorderCount = 0;
 	}
 
 	if (g_blipCount > 0)
@@ -797,6 +838,8 @@ void DrawSw(SW *psw, CM *pcm)
 			BindRenderObject(g_blipPrpl[i]);
 			DrawGlob(g_blipPrpl[i]);
 		}
+
+		g_blipCount = 0;
 	}
 
 	if (g_foreGroundCount > 0)
@@ -806,6 +849,8 @@ void DrawSw(SW *psw, CM *pcm)
 			BindRenderObject(g_foreGroundPrpl[i]);
 			DrawGlob(g_foreGroundPrpl[i]);
 		}
+
+		g_foreGroundCount = 0;
 	}
 
 	if (g_worldMapCount > 0)
@@ -824,30 +869,9 @@ void DrawSw(SW *psw, CM *pcm)
 		glUniform1i(glslfAlphaTest, 0);
 		//glDepthFunc(GL_LESS);
 		glDisable(GL_BLEND);
-	}
 
-	g_dynamicTextureCount = 0;
-	g_backGroundCount = 0;
-	g_backGroundBlendCount = 0;
-	g_blotContextCount = 0;
-	g_opaqueCount = 0;
-	g_cutOutCount = 0;
-	g_cutOutBlendAddCount = 0;
-	g_celBorderCount = 0;
-	g_projVolumeCount = 0;
-	g_projVolumeAddCount = 0;
-	g_opaqueAfterProjVolumeCount = 0;
-	g_cutOutAfterProjVolumeCount = 0;
-	g_celBorderAfterProjVolumeCount = 0;
-	g_murkClearCount = 0;
-	g_murkOpaqueCount = 0;
-	g_murkFillCount = 0;
-	g_translucentCount = 0;
-	g_translucentAddCount = 0;
-	g_translucentCelBorderCount = 0;
-	g_blipCount = 0;
-	g_foreGroundCount = 0;
-	g_worldMapCount = 0;
+		g_worldMapCount = 0;
+	}
 
 	glActiveTexture(GL_TEXTURE0);
 	glDisable(GL_CULL_FACE);
