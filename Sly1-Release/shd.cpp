@@ -385,8 +385,8 @@ void MakeTexture(GLuint &textureReference, TEX *ptex, BMP *pbmp, std::vector <by
         std::vector<byte> tempRow(rowSize);
 
         for (int y = 0; y < height / 2; ++y) {
-            byte* rowTop = &texture[y * rowSize];
-            byte* rowBottom = &texture[(height - 1 - y) * rowSize];
+            byte *rowTop = &texture[y * rowSize];
+            byte *rowBottom = &texture[(height - 1 - y) * rowSize];
 
             std::memcpy(tempRow.data(), rowTop, rowSize);
             std::memcpy(rowTop, rowBottom, rowSize);
@@ -419,7 +419,7 @@ void MakeTexture(GLuint &textureReference, TEX *ptex, BMP *pbmp, std::vector <by
     
     glGenTextures(1, &textureReference);
     glBindTexture(GL_TEXTURE_2D, textureReference);
-    
+
     glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);

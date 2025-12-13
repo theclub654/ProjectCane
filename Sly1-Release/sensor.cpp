@@ -55,6 +55,42 @@ void CloneSensor(SENSOR* psensor, SENSOR* psensorBase)
 	psensor->ccidNoTrigger = psensorBase->ccidNoTrigger;
 }
 
+void SetSensorSensors(SENSOR* psensor, SENSORS sensors)
+{
+	// No change needed
+	if (psensor->sensors == sensors) {
+		return;
+	}
+
+	// Special case: SenseEnabled -> SenseTriggered
+	if (psensor->sensors == SENSORS_SenseEnabled &&
+		sensors == SENSORS_SenseTriggered)
+	{
+		SENSORS SVar1 = SENSORS_SenseTriggered;
+
+		if (psensor->palarm != NULL) {
+			// Trigger alarm; this may change psensor->sensors
+			//TriggerAlarm(psensor->palarm, ALTK_Trigger);
+
+			// If alarm changed the state away from SenseEnabled, respect that
+			if (psensor->sensors != SENSORS_SenseEnabled) {
+				SVar1 = psensor->sensors;
+			}
+		}
+
+		// Notify splice event
+		//HandleLoSpliceEvent((LO*)psensor, 2, 0, NULL);
+
+		psensor->sensors = SVar1;
+		psensor->tSensors = g_clock.t;
+		return;
+	}
+
+	// All other transitions: just set the new state
+	psensor->sensors = sensors;
+	psensor->tSensors = g_clock.t;
+}
+
 void DeleteSensor(SENSOR *psensor)
 {
 	delete psensor;
@@ -212,6 +248,64 @@ void BindLasen(LASEN* plasen)
 	}
 
 	s_pdliFirst = dli.m_pdliNext;
+}
+
+void PostLasenLoad(LASEN* plasen)
+{
+	PostAloLoad(plasen);
+
+	//for (int i = 0; i < plasen->clbeam; ++i) {
+	//	LBEAM* pbeam = &plasen->albeam[i];
+
+	//	// Remove the shape's LO
+	//	if (pbeam->pshape && pbeam->pshape->pvtlo->pfnRemoveLo) {
+	//		pbeam->pshape->pvtlo->pfnRemoveLo((LO*)pbeam);
+	//	}
+
+	//	if (i == 0) {
+	//		// Skip cloning damage emitters for beam 0 (used as source template)
+	//		continue;
+	//	}
+
+	//	int clemitDamage = plasen->albeam[0].clemitDamage;
+	//	pbeam->clemitDamage = clemitDamage;
+
+	//	if (clemitDamage > 0) {
+	//		LEMIT* dstEmit = pbeam->alemitDamage;
+	//		LEMIT* srcEmit = plasen->albeam[0].alemitDamage;
+
+	//		for (int j = 0; j < clemitDamage; ++j) {
+	//			EMITTER* pemitter = (EMITTER*)PloCloneLo((LO*)srcEmit->pemitter, plasen->psw, (ALO*)plasen);
+	//			dstEmit->pemitter = pemitter;
+
+	//			if (pemitter && pemitter->pvtalo->pfnBindAlo) {
+	//				pemitter->pvtalo->pfnBindAlo(pemitter);
+	//			}
+
+	//			if (pemitter && pemitter->pvtlo->pfnPostLoLoad) {
+	//				pemitter->pvtlo->pfnPostLoLoad(pemitter);
+	//			}
+
+	//			dstEmit->fScorch = srcEmit->fScorch;
+
+	//			++dstEmit;
+	//			++srcEmit;
+	//		}
+	//	}
+	//}
+
+	// Set jtOnlyTriggerObject flag based on g_pjt
+	//plasen->fJtOnlyTriggerObject = FOnlySensorTriggerObject(plasen, g_pjt);
+
+	plasen->pvtlasen->pfnSetLasenSensors(plasen, plasen->sensorsInitial);
+}
+
+void SetLasenSensors(LASEN* plasen, SENSORS sensors)
+{
+	if (plasen->sensors == sensors)
+		return;
+
+	SetSensorSensors(plasen, sensors);
 }
 
 void RenderLasenSelf(LASEN* plasen, CM* pcm, RO* pro)
@@ -411,6 +505,96 @@ void ClonePrsen(PRSEN* pprsen, PRSEN* pprsenBase)
 void DeletePrsen(PRSEN *ppprsen)
 {
 	delete ppprsen;
+}
+
+float SCalcLasenShapeExtent(LASEN* plasen, LBEAM* plbeam)
+{
+	const float now = g_clock.t;
+	const float shape = plbeam->sShape;
+	const float shapeLast = plbeam->sShapeLast;
+	const float drawMax = plasen->uDrawMax;
+
+	float extentFactor = 0.0f;
+
+	switch (plasen->sensors)
+	{
+		// --- Enabling (ramping up) ---
+	case SENSORS_SenseEnabling:
+	case SENSORS_DamageEnabling:
+		if (plasen->dtEnabling == 0.0f)
+		{
+			// Instant on if no enable duration
+			extentFactor = drawMax;
+			break;
+		}
+		else
+		{
+			const float t = (now - plasen->tSensors) / plasen->dtEnabling;
+			const float max = drawMax;
+
+			if (t < 0.0f)
+			{
+				// Not started yet
+				extentFactor = 0.0f;
+			}
+			else if (t <= max)
+			{
+				// In ramp-up phase: directly use t as factor
+				return shape * t;
+			}
+			else
+			{
+				// Past ramp: clamp to max
+				extentFactor = max;
+			}
+		}
+		break;
+
+		// --- Fully off ---
+	case SENSORS_Disabled:
+		extentFactor = 0.0f;
+		break;
+
+		// --- Fully on / triggered ---
+	case SENSORS_SenseEnabled:
+	case SENSORS_SenseTriggered:
+	case SENSORS_DamageEnabled:
+	case SENSORS_DamageTriggered:
+		extentFactor = drawMax;
+		break;
+
+		// --- Disabling (ramping down) ---
+	case SENSORS_SenseDisabling:
+	case SENSORS_DamageDisabling:
+	{
+		float dt = (plasen->sensm == SENSM_SenseOnly)
+			? plasen->dtDisabling
+			: plasen->dtDamageDisabling;
+
+		float factor = 0.0f;
+
+		if (dt != 0.0f)
+		{
+			factor = 1.0f - (now - plasen->tSensors) / dt;
+
+			if (factor < 0.0f)
+				factor = 0.0f;
+			else if (factor > drawMax)
+				factor = drawMax;
+		}
+
+		// During disabling we use the *previous* shape value
+		return shapeLast * factor;
+	}
+
+	default:
+		// Unknown state: treat as off
+		extentFactor = 0.0f;
+		break;
+	}
+
+	// All non-disabling paths use the current shape
+	return shape * extentFactor;
 }
 
 SNIP s_asnipLasen[2] =

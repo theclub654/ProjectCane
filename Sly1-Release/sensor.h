@@ -145,6 +145,7 @@ SENSOR*NewSensor();
 void InitSensor(SENSOR* psensor);
 int  GetSensorSize();
 void CloneSensor(SENSOR* psensor, SENSOR* psensorBase);
+void SetSensorSensors(SENSOR* psensor, SENSORS sensors);
 void DeleteSensor(SENSOR* psensor);
 
 LASEN*NewLasen();
@@ -154,6 +155,8 @@ int  GetLasenSize();
 void LoadLasenFromBrx(LASEN* plasen, CBinaryInputStream* pbis);
 void CloneLasen(LASEN* plasen, LASEN* plasenBase);
 void BindLasen(LASEN* plasen);
+void PostLasenLoad(LASEN* plasen);
+void SetLasenSensors(LASEN* plasen, SENSORS sensors);
 void RenderLasenSelf(LASEN* plasen, CM* pcm, RO* pro);
 void DeleteLasen(LASEN *plasen);
 
@@ -169,5 +172,7 @@ void InitPrsen(PRSEN* pprsen);
 int  GetPrsenSize();
 void ClonePrsen(PRSEN* pprsen, PRSEN* pprsenBase);
 void DeletePrsen(PRSEN* ppprsen);
+
+float SCalcLasenShapeExtent(LASEN* plasen, LBEAM* plbeam);
 
 extern SNIP s_asnipLasen[2];

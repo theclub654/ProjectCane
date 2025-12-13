@@ -33,9 +33,9 @@ void InitVismap(VISMAP* pvismap);
 int  GetVismapSize();
 // Loading visibility data from binary file
 void LoadVismapFromBrx(VISMAP* pvismap, CBinaryInputStream* pbis);
-// Traverse BSP tree to check collision
 void ClipVismapSphereOneHop(VISMAP* pvismap, glm::vec3* ppos, float sRadius, GRFZON* pgrfzon);
-void ClipVbspSphereOneHop(VISMAP* pvismap, VBSP* pvbsp, float sRadius, glm::vec3* ppos); // NOT DONE
+GRFZON GrfzonOneHop(VISMAP* pvismap, GRFZON leafMask);
+void ClipVbspSphereOneHop(VISMAP* pvismap, VBSP* pvbsp, const glm::vec3& pos, float sRadius, GRFZON* pgrfzon);
 // Checks to see which zone the position is at in the BSP tree
 void ClipVismapPointNoHop(VISMAP* pvismap, glm::vec3* ppos, GRFZON* pgrfzon);
 void DeleteVismap(VISMAP* pvismap);

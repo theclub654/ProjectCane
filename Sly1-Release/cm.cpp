@@ -126,17 +126,15 @@ void CloneCm(CM* pcm, CM* pcmBase)
 	pcm->cptn = pcmBase->cptn;
 }
 
-void RecalcCm(CM* pcm)
+void RecalcCm(CM *pcm)
 {
-	pcm->rMRDAdjust = pcm->rMRD * (1.0 / pcm->radFOV);
-
 	float camAspect = (g_gl.aspectMode == FitToScreen) ? (g_gl.width / g_gl.height) : g_gl.aspectRatio;
 
 	BuildProjectionMatrix(pcm->radFOV, camAspect, pcm->sNearClip, pcm->sFarClip, pcm->matProj);
 	UpdateCmMat4(pcm);
 }
 
-void BuildProjectionMatrix(float fov, float aspectRatio, float near, float far, glm::mat4& pmat)
+void BuildProjectionMatrix(float fov, float aspectRatio, float near, float far, glm::mat4 &pmat)
 {
 	far = 10000000000.0f;
 	
@@ -369,44 +367,33 @@ void UpdateCmMat4(CM* pcm)
 
 bool FInsideCmMrd(const CM* pcm, const glm::vec3& dpos, float sRadius, float sMRD, float& outAlpha)
 {
-	if (g_cmlk == CMLK_Grfzon) {
-		sMRD = 1e10f; // basically disables render distance fade
-	}
+	if (g_cmlk == CMLK_Grfzon)
+		sMRD = 1e10f;
 
-	// Calculate outer radius
-	float outerRadius = sMRD * pcm->rMRDAdjust + sRadius;
-	float outerRadiusSq = outerRadius * outerRadius;
+	float outer = sMRD * pcm->rMRDAdjust + sRadius;
+	float outerSq = outer * outer;
 
-	// Calculate position of point to test
-	glm::vec3 targetPos;
+	float distSq;
 	if (g_cmlk == CMLK_Mrd) {
-		targetPos = pcm->pos + glm::vec3(dpos);
+		glm::vec3 worldPos = pcm->pos + dpos;      // NOTE: dpos is cam-relative
+		glm::vec3 delta = worldPos - glm::vec3(0.0);  // lock point
+		distSq = glm::dot(delta, delta);
 	}
 	else {
-		targetPos = glm::vec3(dpos); // dpos is already world space
+		distSq = glm::dot(dpos, dpos);             // plain camera-relative distance
 	}
 
-	// Squared distance to CM lock position
-	glm::vec3 delta = targetPos - glm::vec3(0.0);
-	float distanceSq = glm::dot(delta, delta);
-
-	// Outside the outer boundary
-	if (distanceSq > outerRadiusSq) {
+	if (distSq > outerSq)
 		return false;
-	}
 
-	// Fade zone calculation
-	float innerRadius = outerRadius - pcm->rMRDAdjust * 400.0f;
-	float innerRadiusSq = innerRadius * innerRadius;
+	float inner = outer - pcm->rMRDAdjust * 400.0f;
+	float innerSq = inner * inner;
 
-	// If in fade zone, calculate alpha
-	if (distanceSq > innerRadiusSq) {
-		float alpha = (outerRadiusSq - distanceSq) / (outerRadiusSq - innerRadiusSq);
-		alpha = std::clamp(alpha, 0.0f, 1.0f);
-		outAlpha = alpha * alpha * (3.0f - 2.0f * alpha);
+	if (distSq > innerSq) {
+		outAlpha = (outerSq - distSq) / (outerSq - innerSq);
 	}
 	else {
-		outAlpha = 1.0f; // fully visible
+		outAlpha = 1.0f;
 	}
 
 	return true;

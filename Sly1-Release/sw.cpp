@@ -1,4 +1,5 @@
 #include "sw.h"
+#include "debug.h"
 
 SW* NewSw()
 {
@@ -80,7 +81,7 @@ void LoadSwFromBrx(SW* psw, CBinaryInputStream* pbis)
 		LO *blipg = PloNew(CID_BLIPG, psw, nullptr, OID_blip_group, -1);
 		blipg->pvtlo->pfnRemoveLo(blipg);
 	}
-
+	
 	// Loads all splice events from binary file
 	LoadSwSpliceFromBrx(psw, pbis);
 	LoadOptionsFromBrx(psw, pbis);
@@ -89,11 +90,12 @@ void LoadSwFromBrx(SW* psw, CBinaryInputStream* pbis)
 	pbis->file.seekg(0x20, SEEK_CUR);
 	// Loads all textures and shader data from file
 	LoadShadersFromBrx(pbis);
-	//std::cout << std::hex << pbis->file.tellg();
-	// Loads all the static world objects from the binary file
+	// Loads all the scene world objects from the binary file
 	LoadSwObjectsFromBrx(psw, nullptr, pbis);
-	AllocateRpl();
-	AllocateLightBlkList();
+
+	if (FIsDlEmpty(&psw->dlLight) == true)
+		CreateSwDefaultLights(psw);
+
 	// Aligns binary stream to texture data
 	pbis->Align(0x10);
 	std::cout << "Loading Textures...\n";
@@ -111,9 +113,7 @@ void LoadSwFromBrx(SW* psw, CBinaryInputStream* pbis)
 			ALO* lo = currentLo;
 
 			if (lo->pvtlo && lo->pvtlo->pfnBindLo)
-			{
 				lo->pvtalo->pfnBindAlo(currentLo);
-			}
 
 			currentLo = currentLo->dleChild.paloNext;
 		}
@@ -135,7 +135,7 @@ void LoadSwFromBrx(SW* psw, CBinaryInputStream* pbis)
 
 	// Save the current DLI walker globally
 	s_pdliFirst = &dlBusyWalker;
-	//int num = 0;
+
 	// Loop over every object in the busy list
 	while (currentObject != nullptr)
 	{
@@ -151,10 +151,13 @@ void LoadSwFromBrx(SW* psw, CBinaryInputStream* pbis)
 
 	SetupCm(g_pcm);
 
+	g_pcm->rMRDAdjust = g_pcm->rMRD * (1.0 / g_pcm->radFOV);
+	baseRenderDistance = g_pcm->rMRDAdjust;
+
+	AllocateRpl();
+
 	glGlobShader.Use();
 
-	glUniform1f(glslLsmShadow,  psw->lsmDefault.uShadow);
-	glUniform1f(glslLsmDiffuse, psw->lsmDefault.uMidtone);
 	glUniform1f(glslLsmShadow,  psw->lsmDefault.uShadow);
 	glUniform1f(glslLsmDiffuse, psw->lsmDefault.uMidtone);
 
@@ -164,7 +167,14 @@ void LoadSwFromBrx(SW* psw, CBinaryInputStream* pbis)
 	glUniform1f(glslFogMax,  g_pcm->uFogMax);
 	glUniform4fv(glslFogColor, 1, glm::value_ptr(g_pcm->rgbaFog));
 
-	glUniform4fv(glslRgbaCel, 1, glm::value_ptr(g_rgbaCel));
+	InitCameraSbo();
+	InitRopUbo();
+
+	AllocateLightBlkList();
+
+	glCelBorderShader.Use();
+	InitRcbUbo();
+	InitGeomUbo();
 
 	std::cout << "World Loaded Successfully\n";
 }
@@ -528,6 +538,9 @@ void UpdateSwObjects(SW* psw, float dt)
 
 void DeleteWorld(SW *psw)
 {
+	numRo = 0;
+	numRoCel = 0;
+
 	g_dynamicTextureCount = 0;
 	g_dynamicTexturePrpl.clear();
 	g_dynamicTexturePrpl.shrink_to_fit();
@@ -650,6 +663,13 @@ void DeleteWorld(SW *psw)
 
 	g_psw = nullptr;
 	g_pcm = nullptr;
+
+	baseRenderDistance = 0.0;
+
+	glDeleteBuffers(1, &cmSSBO);
+	glDeleteBuffers(1, &ropUBO);
+	glDeleteBuffers(1, &rcbUBO);
+	glDeleteBuffers(1, &geomUBO);
 
 	std::cout << "World Deleted\n";
 }

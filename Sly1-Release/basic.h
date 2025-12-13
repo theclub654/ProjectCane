@@ -4807,7 +4807,7 @@ struct VTLASEN
     void (*pfnHandleAloMessage) = nullptr;
     void (*pfnSendSoMessage) = nullptr;
     void (*pfnBindLasen)(LASEN*) = BindLasen;
-    void (*pfnPostLasenLoad) = nullptr;
+    void (*pfnPostLasenLoad)(LASEN*) = PostLasenLoad;
     void (*pfnUpdateLasen) = nullptr;
     void (*pfnUpdateSoXfWorld)(SO*) = UpdateSoXfWorld;
     void (*pfnUpdateSoXfWorldHierarchy)(SO*) = UpdateSoXfWorldHierarchy;
@@ -4871,7 +4871,7 @@ struct VTLASEN
     void (*pfnDisableLasen) = nullptr;
     void (*pfnOnLasenAlarmTriggered) = nullptr;
     void (*pfnSetSensorAlarm) = nullptr;
-    void (*pfnSetLasenSensors) = nullptr;
+    void (*pfnSetLasenSensors)(LASEN*, SENSORS) = SetLasenSensors;
 };
 
 static VTLASEN g_vtlasen;

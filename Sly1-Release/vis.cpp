@@ -58,18 +58,115 @@ void LoadVismapFromBrx(VISMAP* pvismap, CBinaryInputStream* pbis)
 
 void ClipVismapSphereOneHop(VISMAP* pvismap, glm::vec3* ppos, float sRadius, GRFZON* pgrfzon)
 {
-	if (pvismap == nullptr || pvismap->avbsp.size() == 0)
-		*pgrfzon = 0xfffffff;
-	else
+	constexpr GRFZON kFallback = 0x0FFFFFFF;
+
+	if (!pgrfzon)
+		return;
+
+	// Match original behavior: if vismap/tree missing -> fallback
+	if (!pvismap || pvismap->avbsp.empty() || !ppos)
 	{
-		*pgrfzon = 0;
-		ClipVbspSphereOneHop(pvismap, &pvismap->avbsp[0], sRadius, ppos);
+		*pgrfzon = kFallback;
+		return;
 	}
+
+	// Original sets output to 0 before accumulating ORs
+	*pgrfzon = 0;
+
+	// Root is first node
+	VBSP* root = &pvismap->avbsp[0];
+
+	// Walk/accumulate sphere visibility
+	ClipVbspSphereOneHop(pvismap, root, *ppos, sRadius, pgrfzon);
 }
 
-void ClipVbspSphereOneHop(VISMAP* pvismap, VBSP* pvbsp, float sRadius, glm::vec3* ppos)
+GRFZON GrfzonOneHop(VISMAP* pvismap, GRFZON leafMask)
 {
+	if (!pvismap) return 0;
 
+	const uint32_t uVar2 = (uint32_t)leafMask; // already low-31 in your loader
+	if (uVar2 == 0)
+		return 0;
+
+	uint32_t acc = 0xFFFFFFFFu;
+
+	// Original loops up to cgrfzon
+	const int count = pvismap->cgrfzon;
+	for (int i = 0; i < count; ++i)
+	{
+		if ((uVar2 >> (i & 31)) & 1u)
+			acc &= (uint32_t)pvismap->agrfzonOneHop[i];
+	}
+
+	return (GRFZON)(acc | uVar2);
+}
+
+void ClipVbspSphereOneHop(VISMAP* pvismap, VBSP* pvbsp, const glm::vec3& pos, float sRadius, GRFZON* pgrfzon)
+{
+	if (!pgrfzon) return;
+	if (!pvismap || !pvbsp) return;
+
+	// Matches original behavior: OR results into *pgrfzon (caller can init to 0)
+	for (;;)
+	{
+		const float d = glm::dot(pos, pvbsp->normal) - pvbsp->gDot;
+
+		// Equivalent to: if (-sRadius <= d)
+		if (d >= -sRadius)
+		{
+			// Sphere intersects plane band: d <= +radius
+			if (d <= sRadius)
+			{
+				// --- Process POS side first (recursive or leaf), OR result ---
+				if (pvbsp->bPosIsLeaf)
+				{
+					*pgrfzon |= GrfzonOneHop(pvismap, pvbsp->grfzonPos);
+				}
+				else
+				{
+					if (pvbsp->pvbspPos)
+						ClipVbspSphereOneHop(pvismap, pvbsp->pvbspPos, pos, sRadius, pgrfzon);
+					else
+						return; // bad data / missing link
+				}
+
+				// --- Then continue down NEG side iteratively ---
+				if (pvbsp->bNegIsLeaf)
+				{
+					*pgrfzon |= GrfzonOneHop(pvismap, pvbsp->grfzonNeg);
+					return;
+				}
+
+				if (!pvbsp->pvbspNeg) return;
+				pvbsp = pvbsp->pvbspNeg;
+				continue;
+			}
+
+			// Fully on POS side (d > radius)
+			if (pvbsp->bPosIsLeaf)
+			{
+				*pgrfzon |= GrfzonOneHop(pvismap, pvbsp->grfzonPos);
+				return;
+			}
+
+			if (!pvbsp->pvbspPos) return;
+			pvbsp = pvbsp->pvbspPos;
+			continue;
+		}
+		else
+		{
+			// Fully on NEG side (d < -radius)
+			if (pvbsp->bNegIsLeaf)
+			{
+				*pgrfzon |= GrfzonOneHop(pvismap, pvbsp->grfzonNeg);
+				return;
+			}
+
+			if (!pvbsp->pvbspNeg) return;
+			pvbsp = pvbsp->pvbspNeg;
+			continue;
+		}
+	}
 }
 
 void ClipVismapPointNoHop(VISMAP* pvismap, glm::vec3* ppos, GRFZON* pgrfzon)

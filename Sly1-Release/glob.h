@@ -6,7 +6,7 @@
 
 extern class CM* g_pcm;
 
-enum TWPS 
+enum TWPS
 {
 	TWPS_Shadow = 0,
 	TWPS_ShadowMidtone = 1,
@@ -51,6 +51,21 @@ struct INDICE
 	uint16_t v3;
 };
 
+struct alignas(16) RO
+{
+	glm::mat4 model;           // 0..63
+	int       rko;             // 64
+	float     uAlpha;          // 68
+	float     uFog;            // 72
+	float     darken;          // 76
+	int       fDynamic;        // 80
+	float     unSelfIllum;	   // 84
+	float	  sRadius;		   // 88
+	int       pad;             // 92
+	glm::vec4 posCenter;	   // 96..111
+	float     uAlphaCelBorder; // 112
+};
+
 // Render Priority List
 struct RPL
 {
@@ -58,14 +73,10 @@ struct RPL
 
 	void (*PFNBIND)(RPL*);
 
-	GLuint VAO;
+	GLuint  VAO;
 	GLsizei cvtx;
 
-	GLuint  edgeBuf;
-	GLuint  edgeTex;
-	GLsizei edgeCount;
-
-	SHD *pshd;
+	SHD* pshd;
 
 	float z;
 	byte  grfshd;
@@ -73,11 +84,20 @@ struct RPL
 	RO ro;
 };
 
+struct RPLCEL
+{
+	RP rp;
+	GLuint  edgeSSBO;
+	GLsizei edgeCount;
+
+	ROCEL rocel;
+};
+
 // Vertex Flag
 struct VTXFLG
 {
 	// Vertex Index
-	byte ipos;  
+	byte ipos;
 	// Normal Index
 	byte inormal;
 	// UV Index
@@ -88,16 +108,13 @@ struct VTXFLG
 
 struct SUBCEL
 {
-	// Edge data as a texture buffer (4 vec4 per edge)
-	GLuint  edgeBuf   = 0; // GL_TEXTURE_BUFFER's storage
-	GLuint  edgeTex   = 0; // GL texture handle bound to edgeBuf
-	GLsizei edgeCount = 0; // number of edges (== ctwef)
+	// SSBO: 4 vec4 per edge (E0, E1, OA, OB)
+	GLuint  edgeSSBO;  // GL_SHADER_STORAGE_BUFFER
+	GLsizei edgeCount; // number of edges (== ctwef)
 
 	std::vector <glm::vec3> positions;
 	std::vector <uint16_t>  indices;
 	std::vector <float>     weights;
-
-	RPL rplCel;
 };
 
 struct SUBPOSEF
@@ -126,16 +143,16 @@ struct WEKI
 
 struct WRBG
 {
-	struct ALO *palo;
-	struct GLOB *pglob;
+	struct ALO* palo;
+	struct GLOB* pglob;
 	OID oid;
-	struct WR *pwr;
+	struct WR* pwr;
 	int cmat;
 	int fDpos;
 	int fDuv;
 	WEKI weki;
-	struct WRBG *pwrbgNextGlobset;
-	struct WRBG *pwrbgNextWr;
+	struct WRBG* pwrbgNextGlobset;
+	struct WRBG* pwrbgNextWr;
 };
 
 struct GLEAM
@@ -168,15 +185,13 @@ struct SUBGLOB
 	// Shader ID
 	int shdID;
 	// Object shader property
-	struct SHD *pshd;
-	struct WRBSG *pwrbsg;
+	struct SHD* pshd;
+	struct WRBSG* pwrbsg;
 	int cibnd;
 	int aibnd[4];
-
-	RPL rpl;
 };
 
-struct SUBGLOBI 
+struct SUBGLOBI
 {
 	float tShadowsValid;
 	int cpshadow;
@@ -190,7 +205,6 @@ struct GLOB // NOT DONE
 	glm::vec3 posCenter;
 	float sRadius;
 	RP rp;
-	int fThreeWay;
 	float sMRD;
 	float sCelBorderMRD;
 	float gZOrder;
@@ -198,7 +212,7 @@ struct GLOB // NOT DONE
 	GRFGLOB grfglob;
 	std::vector <GLEAM> gleam;
 	RTCK rtck;
-	struct SAA *psaa;
+	struct SAA* psaa;
 	// Object fog intensity
 	float uFog;
 	FGFN fgfn;
@@ -211,10 +225,9 @@ struct GLOB // NOT DONE
 	std::vector <SUBCEL> asubcel;
 	// Ptr to instance model matrix
 	std::shared_ptr <glm::mat4> pdmat;
-	short instanceIndex;
-	struct BLOT *pblot;
+	struct BLOT* pblot;
 	OID oid;
-	char *pchzName;
+	char* pchzName;
 };
 
 struct GLOBI
@@ -225,7 +238,7 @@ struct GLOBI
 	TWPS twps;
 	float uAlpha;
 	float tUnfade;
-}; 
+};
 
 struct GLOBSET
 {
@@ -246,10 +259,10 @@ struct GLOBSET
 };
 
 // Loads 3D model data from binary file
-void LoadGlobsetFromBrx(GLOBSET *pglobset, ALO *palo, CBinaryInputStream *pbis);
+void LoadGlobsetFromBrx(GLOBSET* pglobset, ALO* palo, CBinaryInputStream* pbis);
 // Converts strips to tri lists and stores 3D sub model in VRAM
-void BuildSubGlob(SUBGLOB *psubglob, SHD *pshd, std::vector <glm::vec3> &positions, std::vector <glm::vec3> &normals, std::vector <glm::vec4> &colors, std::vector <glm::vec2> &texcoords, std::vector <VTXFLG> &indexes);
-void BuildSubcel(GLOBSET *pglobset, SUBCEL *psubcel, int cposf, std::vector <glm::vec3> &aposf, int ctwef, std::vector <TWEF> &atwef, std::vector <SUBPOSEF> &asubposef, std::vector <glm::vec3> &aposfPoses, std::vector <float> &agWeights);
+void BuildSubGlob(SUBGLOB* psubglob, SHD* pshd, std::vector <glm::vec3>& positions, std::vector <glm::vec3>& normals, std::vector <glm::vec4>& colors, std::vector <glm::vec2>& texcoords, std::vector <VTXFLG>& indexes);
+void BuildSubcel(GLOBSET* pglobset, SUBCEL* psubcel, int cposf, std::vector <glm::vec3>& aposf, int ctwef, std::vector <TWEF>& atwef, std::vector <SUBPOSEF>& asubposef, std::vector <glm::vec3>& aposfPoses, std::vector <float>& agWeights);
 
 extern int  g_fogType;
 extern bool g_fRenderModels;
@@ -257,4 +270,6 @@ extern bool g_fRenderCollision;
 extern bool g_fRenderCelBorders;
 extern bool g_fBsp;
 extern float g_uAlpha;
+extern SMP s_smpFade;
+extern SMP g_smpAlphaFade;
 extern glm::vec4 g_rgbaCel;

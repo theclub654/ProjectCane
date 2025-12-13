@@ -25,7 +25,16 @@ struct CMGL
 	glm::vec4 cameraPos;
 };
 
-struct alignas(16) RO
+struct ROONEWAY
+{
+	glm::mat4 model;           // 0..63
+	int       rko;             // 64
+	float     uAlpha;          // 68
+	float     uFog;            // 72
+	float     darken;          // 76
+};
+
+struct alignas(16) ROTHREEWAY
 {
 	glm::mat4 model;           // 0..63
 	int       rko;             // 64
@@ -35,12 +44,20 @@ struct alignas(16) RO
 	int       fDynamic;        // 80
 	float     unSelfIllum;	   // 84
 	float	  sRadius;		   // 88
-	int       trlk;            // 92
+	int       pad;             // 92
 	glm::vec4 posCenter;	   // 96..111
-	float     uAlphaCelBorder; // 112
-	uint32_t  _pad2;		   // 116
-	uint32_t  _pad3;           // 120
-	uint32_t  _pad4;           // 124  -> struct size 128 (rounded to 16)
+};
+
+struct alignas(16) ROCEL
+{
+	glm::mat4 model;           // 0..63
+	glm::vec4 celRgba;         // 68
+	float     uAlphaCelBorder; // 72
+};
+
+struct ROGEOM
+{
+	glm::mat4 model;
 };
 
 class GL
@@ -82,15 +99,18 @@ class GL
 	void TerminateGL();
 };
 
+void InitCameraSbo();
+void InitRopUbo();
+void InitRcbUbo();
+void InitGeomUbo();
 void FrameBufferSizeCallBack(GLFWwindow* window, int width, int height);
 
 extern GL g_gl;
-extern GLuint cmUBO;
+extern GLuint cmSSBO;
 extern GLuint ropUBO;
-extern GLuint alUbo;
-extern GLuint roSize;
-extern GLuint roCelSize;
-extern GLuint roCollisionSize;
+extern GLuint rcbUBO;
+extern GLuint geomUBO;
+extern GLuint activeLightsSbo;
 extern GLuint screenQuadMatrixLoc;
 extern GLuint glslLsmShadow;
 extern GLuint glslLsmDiffuse;
@@ -99,8 +119,5 @@ extern GLuint glslFogNear;
 extern GLuint glslFogFar;
 extern GLuint glslFogMax;
 extern GLuint glslFogColor;
-extern GLuint glslRgbaCel;
 extern GLuint glslfAlphaTest;
 extern GLuint glslfCull;
-extern GLuint glslCollisionRgba;
-extern GLuint gEmptyVAO;

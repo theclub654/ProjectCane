@@ -10,6 +10,7 @@ typedef int GRFCID;
 typedef int GRFGLOB;
 typedef int GRFIK;
 typedef int GRFLS;
+typedef int GRFDFL;
 typedef unsigned int SYMID;
 typedef uint64_t GRFZON;
 typedef uint32_t GRFALOX;
@@ -19,8 +20,10 @@ class ALO;
 class SO;
 class MS;
 class CM;
+class SW;
 struct RO;
 struct RPL;
+struct RPLCEL;
 enum LIGHTK;
 struct LM;
 enum CID;
@@ -33,56 +36,84 @@ extern bool loadEmitMesh;
 enum RP;
 typedef unsigned char byte;
 void SetRpCount(RP rp, byte grfshd);
+extern int numRo;
+extern int numRoCel;
+
 extern int g_dynamicTextureCount;
-extern std::vector <RPL*> g_dynamicTexturePrpl;
+extern std::vector <RPL> g_dynamicTexturePrpl;
+
 extern int g_backGroundCount;
-extern std::vector <RPL*> g_backGroundPrpl;
+extern std::vector <RPL> g_backGroundPrpl;
+
 extern int g_backGroundBlendCount;
-extern std::vector <RPL*> g_backGroundBlendPrpl;
+extern std::vector <RPL> g_backGroundBlendPrpl;
+
 extern int g_blotContextCount;
-extern std::vector <RPL*> g_blotContextPrpl;
+extern std::vector <RPL> g_blotContextPrpl;
+
 extern int g_opaqueCount;
-extern std::vector <RPL*> g_opaquePrpl;
+extern std::vector <RPL> g_opaquePrpl;
+
 extern int g_cutOutCount;
-extern std::vector <RPL*> g_cutOutPrpl;
+extern std::vector <RPL> g_cutOutPrpl;
+
 extern int g_cutOutBlendAddCount;
-extern std::vector <RPL*> g_cutOutBlendAddPrpl;
+extern std::vector <RPL> g_cutOutBlendAddPrpl;
+
 extern int g_celBorderCount;
-extern std::vector <RPL*> g_celBorderPrpl;
+extern std::vector <RPLCEL> g_celBorderPrpl;
+
 extern int g_projVolumeCount;
-extern std::vector <RPL*> g_projVolumePrpl;
+extern std::vector <RPL> g_projVolumePrpl;
+
 extern int g_projVolumeAddCount;
+extern std::vector <RPL> g_projVolumeAddPrpl;
+
 extern int g_projVolumeAlphaAddCount;
-extern std::vector <RPL*> g_projVolumeAlphaAddPrpl;
-extern std::vector <RPL*> g_projVolumeAddPrpl;
+extern std::vector <RPL> g_projVolumeAlphaAddPrpl;
+
 extern int g_opaqueAfterProjVolumeCount;
-extern std::vector <RPL*> g_opaqueAfterProjVolumePrpl;
+extern std::vector <RPL> g_opaqueAfterProjVolumePrpl;
+
 extern int g_cutOutAfterProjVolumeCount;
-extern std::vector <RPL*> g_cutOutAfterProjVolumePrpl;
+extern std::vector <RPL> g_cutOutAfterProjVolumePrpl;
+
 extern int g_cutOutAfterProjVolumeAddCount;
-extern std::vector <RPL*> g_cutOutAfterProjVolumeAddPrpl;
+extern std::vector <RPL> g_cutOutAfterProjVolumeAddPrpl;
+
 extern int g_celBorderAfterProjVolumeCount;
-extern std::vector <RPL*> g_celBorderAfterProjVolumePrpl;
+extern std::vector <RPLCEL> g_celBorderAfterProjVolumePrpl;
+
 extern int g_murkClearCount;
-extern std::vector <RPL*> g_murkClearPrpl;
+extern std::vector <RPL> g_murkClearPrpl;
+
 extern int g_murkOpaqueCount;
-extern std::vector <RPL*> g_murkOpaquePrpl;
+extern std::vector <RPL> g_murkOpaquePrpl;
+
 extern int g_murkFillCount;
-extern std::vector <RPL*> g_murkFillPrpl;
+extern std::vector <RPL> g_murkFillPrpl;
+
 extern int g_translucentCount;
-extern std::vector <RPL*> g_translucentPrpl;
+extern std::vector <RPL> g_translucentPrpl;
+
 extern int g_translucentAddCount;
-extern std::vector <RPL*> g_translucentAddPrpl;
+extern std::vector <RPL> g_translucentAddPrpl;
+
 extern int g_translucentCelBorderCount;
-extern std::vector <RPL*> g_translucentCelBorderPrpl;
+extern std::vector <RPLCEL> g_translucentCelBorderPrpl;
+
 extern int g_blipCount;
-extern std::vector <RPL*> g_blipPrpl;
+extern std::vector <RPL> g_blipPrpl;
+
 extern int g_foreGroundCount;
-extern std::vector <RPL*> g_foreGroundPrpl;
+extern std::vector <RPL> g_foreGroundPrpl;
+
 extern int g_worldMapCount;
-extern std::vector <RPL*> g_worldMapPrpl;
+extern std::vector <RPL> g_worldMapPrpl;
+
 extern int g_maxCount;
-extern std::vector <RPL*> g_maxPrpl;
+extern std::vector <RPL> g_maxPrpl;
+
 void AllocateLightBlkList();
 void DeallocateLightBlkList();
 struct BASIC;
@@ -94,9 +125,10 @@ enum SFXID;
 struct ASEGD;
 void AllocateRpl();
 void SubmitRpl(RPL* prpl);
+void SubmitRplCel(RPLCEL* prplcel);
 void BindOneWay(RPL* prpl);
 void BindThreeWay(RPL* prpl);
-void BindRenderObjectCel(RPL* prpl);
+void BindRenderCelObject(RPLCEL* prpl);
 
 // Local Obeject
 class LO;
@@ -208,6 +240,7 @@ void SetAloInteractBomb(ALO* palo, int grfic);
 void SetAloInteractShock(ALO* palo, int grfic);
 void SetAloPoseCombo(ALO* palo, OID oidCombo);
 void SetAloForceCameraFade(ALO* palo, int fFade);
+void SetAloCelRgba(ALO* palo, RGBA prgba);
 void* GetAloFrozen(ALO* palo);
 void* GetAloXfPos(ALO* palo);
 void* GetAloXfPosOrig(ALO* palo);
@@ -692,6 +725,7 @@ void CloneAlarm(ALARM* palarm, ALARM* palarmBase);
 void DeleteAlarm(ALARM* palarm);
 
 class SENSOR;
+enum SENSORS;
 SENSOR*NewSensor();
 void InitSensor(SENSOR *psensor);
 int  GetSensorSize();
@@ -706,6 +740,8 @@ int  GetLasenSize();
 void LoadLasenFromBrx(LASEN* plasen, CBinaryInputStream* pbis);
 void CloneLasen(LASEN* plasen, LASEN* plasenBase);
 void BindLasen(LASEN* plasen);
+void PostLasenLoad(LASEN* plasen);
+void SetLasenSensors(LASEN* plasen, SENSORS sensors);
 void RenderLasenSelf(LASEN* plasen, CM* pcm, RO* pro);
 void DeleteLasen(LASEN *plasen);
 
@@ -1018,6 +1054,7 @@ void*GetLightHotSpotAngle(LIGHT* plight);
 void SetLightHotSpotAngle(LIGHT* plight, float degHotSpot);
 void*GetLightFrustrumUp(LIGHT* plight);
 void SetLightFrustrumUp(LIGHT* plight, glm::vec3& pvecUpLocal);
+void CreateSwDefaultLights(SW* psw);
 void DeleteLight(LIGHT *plight);
 
 class LIKH;
@@ -1282,7 +1319,6 @@ void RenderJackfSelf(JACKF* pjackf, CM* pcm, RO* pro);
 void DeleteJackf(JACKF* pjackf);
 
 // Static World
-class SW;
 SW*  NewSw();
 void InitSw(SW* psw);
 int  GetSwSize();
@@ -1546,6 +1582,7 @@ VISMAP*NewVismap();
 void InitVismap(VISMAP* pvismap);
 int  GetVismapSize();
 void LoadVismapFromBrx(VISMAP *pvismap, CBinaryInputStream *pbis);
+void ClipVismapSphereOneHop(VISMAP* pvismap, glm::vec3* ppos, float sRadius, GRFZON* pgrfzon);
 void ClipVismapPointNoHop(VISMAP *pvismap, glm::vec3 *ppos, GRFZON *pgrfzon);
 void DeleteVismap(VISMAP* pvismap);
 

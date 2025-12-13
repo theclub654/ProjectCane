@@ -520,8 +520,14 @@
   <ItemGroup>
     <None Include="blot.frag" />
     <None Include="blot.vert" />
+    <None Include="celborder.frag" />
+    <None Include="celborder.vert" />
+    <None Include="geom.frag" />
+    <None Include="geom.vert" />
     <None Include="glob.frag" />
     <None Include="glob.vert" />
+    <None Include="glob_perpixel.frag" />
+    <None Include="glob_perpixel.vert" />
     <None Include="screen.frag" />
     <None Include="screen.vert" />
   </ItemGroup>

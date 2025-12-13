@@ -1,9 +1,7 @@
 #version 430 core
 
-#define RKO_ThreeWay  0
-#define RKO_OneWay    1
-#define RKO_CelBorder 2
-#define RKO_Collision 3
+#define RKO_ThreeWay 0
+#define RKO_OneWay   1
 
 uniform sampler2D shadowMap;
 uniform sampler2D diffuseMap;
@@ -28,15 +26,16 @@ layout(std140) uniform CMGL
 
 layout(std140) uniform RO // Render object properties
 {
-    mat4  model;
-	int   rko;
-    float uAlpha;
-	float uFog;
-	float darken;
-	int   fDynamic;
-	float unSelfIllum;
-    float sRadius;
-	vec4  posCenter;
+    mat4  model;       // 0..63
+	int   rko;         // 64
+	float uAlpha;      // 68
+	float uFog;        // 72
+	float darken;      // 76
+	int   fDynamic;    // 80
+	float unSelfIllum; // 84
+	float sRadius;	   // 88
+	int   pad;         // 92
+	vec4  posCenter;   // 96..111
 }op;
 
 struct MATERIAL
@@ -46,9 +45,7 @@ struct MATERIAL
     vec3  light;
 };
 
-uniform int  fAlphaTest;
-uniform vec4 rgbaCel;
-uniform vec4 collisionRgba;
+uniform int fAlphaTest;
 
 in vec4 vertexColor;
 in vec2 texcoord;
@@ -59,8 +56,6 @@ out vec4 FragColor;
 
 void DrawOneWay();
 void DrawThreeWay();
-void DrawCelBorder();
-void DrawCollision();
 void ApplyFog();
 
 void main()
@@ -71,22 +66,15 @@ void main()
     {
         case RKO_OneWay:
         DrawOneWay();
-        ApplyFog();
         break;
 
         case RKO_ThreeWay:
         DrawThreeWay();
-        ApplyFog();
-        break;
-
-        case RKO_CelBorder:
-        DrawCelBorder();
-        break;
-
-        case RKO_Collision:
-        DrawCollision();
         break;
     }
+
+    if (swp.fogType != 0) 
+        ApplyFog();
 }
 
 void DrawOneWay()
@@ -111,6 +99,7 @@ void DrawThreeWay()
 
     // Alpha test first
     float alphaIn = clamp(vertexColor.a * diffuse.a, 0.0, 1.0);
+
     if (fAlphaTest == 1 && alphaIn < 0.9)
         discard;
 
@@ -123,21 +112,7 @@ void DrawThreeWay()
     FragColor.a = clamp(finalAlpha * op.uAlpha, 0.0, 1.0);
 }
 
-void DrawCelBorder()
-{
-    FragColor = rgbaCel;
-    FragColor.a = clamp(FragColor.a * op.uAlpha, 0.0, 1.0);
-}
-
-void DrawCollision()
-{
-    FragColor = collisionRgba;
-}
-
 void ApplyFog()
 {
-    if (swp.fogType == 0)
-        return;
-
     FragColor.rgb = mix(FragColor.rgb, swp.fogColor.rgb, fogIntensity);
 }

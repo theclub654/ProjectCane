@@ -423,6 +423,7 @@ void SetAloInteractBomb(ALO* palo, int grfic);
 void SetAloInteractShock(ALO* palo, int grfic);
 void SetAloPoseCombo(ALO* palo, OID oidCombo);
 void SetAloForceCameraFade(ALO* palo, int fFade);
+void SetAloCelRgba(ALO* palo, RGBA prgba);
 //GOTTA COME BACK TO THIS
 void*GetAloFrozen(ALO* palo);
 void*GetAloXfPos(ALO* palo);

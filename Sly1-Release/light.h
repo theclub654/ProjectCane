@@ -36,7 +36,9 @@ struct LIGHTBLK
 	glm::vec4 pos;
 	glm::vec4 dir;
 	glm::vec4 color;
-	glm::vec3 falloff;
+	float constant;
+	float invDistance;
+	float pad4;
 	float dst;
 	glm::vec4 ru;
 	glm::vec4 du;
@@ -45,19 +47,10 @@ struct LIGHTBLK
 	glm::vec4 falloffBias;
 };
 
-struct IndexSlot 
-{
-	int value;      // the index
-	int pad[3];     // pad to 16 bytes
-};
-
 struct ACTIVELIGHTS
 {
 	int numLights;
-	int _pad0;
-	int _pad1;
-	int _pad2;           
-	IndexSlot lightIndices[MAX_LIGHTS]; // each element 16B (std140 stride)
+	int lightIndices[MAX_LIGHTS];
 };
 
 class LIGHT : public ALO
@@ -140,6 +133,7 @@ void SetLightHotSpotAngle(LIGHT* plight, float degHotSpot);
 void*GetLightFrustrumUp(LIGHT*plight);
 void SetLightFrustrumUp(LIGHT* plight, glm::vec3 &pvecUpLocal);
 void RemoveLightFromSw(LIGHT* plight);
+void CreateSwDefaultLights(SW* psw);
 void AllocateLightBlkList();
 void PrepareSwLights(SW* psw, CM* pcm);
 // Doing lights per object
@@ -150,7 +144,18 @@ void DeallocateLightVector();
 
 extern std::vector<LIGHT*> allSwLights;
 extern ACTIVELIGHTS activeLights;
-extern GLuint g_lightUbo;
+extern std::vector <int> dynamicLightsIndices;
+extern GLuint g_lightSsbo;
 extern int numRl;
 extern int cLights;
 extern std::vector <LIGHTBLK> lightBlk;
+extern glm::vec3 g_vecHighlight;
+extern float g_degHighlight;
+extern float g_gMidtone;
+extern float g_degMidtone;
+extern float g_gShadow;
+extern float g_degShadow;
+extern glm::vec3 s_vecDirectionDefault;
+extern LM s_lmFallOffDefault;
+extern glm::vec3 s_posDefault;
+extern GRFDFL g_grfdfl;

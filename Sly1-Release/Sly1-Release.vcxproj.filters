@@ -1140,5 +1140,23 @@
     <None Include="blot.vert">
       <Filter>Resource Files</Filter>
     </None>
+    <None Include="celborder.vert">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="celborder.frag">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="geom.vert">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="geom.frag">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="glob_perpixel.vert">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="glob_perpixel.frag">
+      <Filter>Resource Files</Filter>
+    </None>
   </ItemGroup>
 </Project>

@@ -150,33 +150,6 @@ void GL::InitGL()
 	glGlobShader.Init("glob.vert", NULL, "glob.frag");
 	glGlobShader.Use();
 
-	GLuint blockIndex;
-
-	// Camera UBO
-	glGenBuffers(1, &cmUBO);
-	glBindBuffer(GL_UNIFORM_BUFFER, cmUBO);
-	glBufferData(GL_UNIFORM_BUFFER, sizeof(CMGL), nullptr, GL_DYNAMIC_DRAW);
-
-	blockIndex = glGetUniformBlockIndex(glGlobShader.ID, "CMGL");
-	glUniformBlockBinding(glGlobShader.ID, blockIndex, 1);
-	glBindBufferBase(GL_UNIFORM_BUFFER, 1, cmUBO);
-
-	// Render Object UBO
-	glGenBuffers(1, &ropUBO);
-	glBindBuffer(GL_UNIFORM_BUFFER, ropUBO);
-	glBufferData(GL_UNIFORM_BUFFER, roSize, nullptr, GL_DYNAMIC_DRAW);
-
-	blockIndex = glGetUniformBlockIndex(glGlobShader.ID, "RO");
-	glUniformBlockBinding(glGlobShader.ID, blockIndex, 2);
-	glBindBufferBase(GL_UNIFORM_BUFFER, 2, ropUBO);
-	
-	// Active Lights
-	GLuint idxActive = glGetUniformBlockIndex(glGlobShader.ID, "ACTIVELIGHTS");
-	glUniformBlockBinding(glGlobShader.ID, idxActive, 3);
-
-	glGenBuffers(1, &alUbo);
-	glBindBufferBase(GL_UNIFORM_BUFFER, 3, alUbo);
-
 	glslLsmShadow  = glGetUniformLocation(glGlobShader.ID, "swp.uShadow");
 	glslLsmDiffuse = glGetUniformLocation(glGlobShader.ID, "swp.uMidtone");
 	glslFogType    = glGetUniformLocation(glGlobShader.ID, "swp.fogType");
@@ -185,16 +158,14 @@ void GL::InitGL()
 	glslFogMax     = glGetUniformLocation(glGlobShader.ID, "swp.fogMax");
 	glslFogColor   = glGetUniformLocation(glGlobShader.ID, "swp.fogColor");
 
-	glslRgbaCel		  = glGetUniformLocation(glGlobShader.ID, "rgbaCel");
 	glslfAlphaTest    = glGetUniformLocation(glGlobShader.ID, "fAlphaTest");
-	glslCollisionRgba = glGetUniformLocation(glGlobShader.ID, "collisionRgba");
-	glUniform4fv(glslCollisionRgba, 1, glm::value_ptr(glm::vec4(0.76, 0.76, 0.76, 1.0)));
 
 	glUniform1i(glGetUniformLocation(glGlobShader.ID, "shadowMap"),   0);
 	glUniform1i(glGetUniformLocation(glGlobShader.ID, "diffuseMap"),  1);
 	glUniform1i(glGetUniformLocation(glGlobShader.ID, "saturateMap"), 2);
 
-	glGenVertexArrays(1, &gEmptyVAO);
+	glCelBorderShader.Init("celborder.vert", NULL, "celborder.frag");
+	glGeomShader.Init("geom.vert", NULL, "geom.frag");
 
 	glBlotShader.Init("blot.vert", NULL, "blot.frag");
 	glBlotShader.Use();
@@ -245,13 +216,16 @@ void GL::TerminateGL()
 	glDeleteBuffers(1, &sbo);
 	glDeleteVertexArrays(1, &gao);
 	glDeleteBuffers(1, &gbo);
-	glDeleteVertexArrays(1, &gEmptyVAO);
 	glDeleteBuffers(1, &ropUBO);
-	glDeleteBuffers(1, &cmUBO);
-	glDeleteBuffers(1, &alUbo);
+	glDeleteBuffers(1, &rcbUBO);
+	glDeleteBuffers(1, &geomUBO);
+	glDeleteBuffers(1, &cmSSBO);
+	glDeleteBuffers(1, &activeLightsSbo);
 
 	glScreenShader.Delete();
 	glGlobShader.Delete();
+	glCelBorderShader.Delete();
+	glGeomShader.Delete();
 	glBlotShader.Delete();
 
 	ImGui_ImplOpenGL3_Shutdown();
@@ -261,11 +235,57 @@ void GL::TerminateGL()
 	glfwTerminate();
 }
 
+void InitCameraSbo()
+{
+	// Camera SBO
+	glGenBuffers(1, &cmSSBO);
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, cmSSBO);
+	glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(CMGL), nullptr, GL_DYNAMIC_DRAW);
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, cmSSBO);
+}
+
+void InitRopUbo()
+{
+	// Render Object UBO
+	glGenBuffers(1, &ropUBO);
+	glBindBuffer(GL_UNIFORM_BUFFER, ropUBO);
+	glBufferData(GL_UNIFORM_BUFFER, sizeof(ROTHREEWAY), nullptr, GL_DYNAMIC_DRAW);
+
+	GLuint RoblockIndex = glGetUniformBlockIndex(glGlobShader.ID, "RO");
+	glUniformBlockBinding(glGlobShader.ID, RoblockIndex, 1);
+	glBindBufferBase(GL_UNIFORM_BUFFER, 1, ropUBO);
+}
+
+void InitRcbUbo()
+{
+	// Render Cel Object UBO
+	glGenBuffers(1, &rcbUBO);
+	glBindBuffer(GL_UNIFORM_BUFFER, rcbUBO);
+	glBufferData(GL_UNIFORM_BUFFER, sizeof(ROCEL), nullptr, GL_DYNAMIC_DRAW);
+
+	GLuint RCBblockIndex = glGetUniformBlockIndex(glCelBorderShader.ID, "ROCEL");
+	glUniformBlockBinding(glCelBorderShader.ID, RCBblockIndex, 1);
+	glBindBufferBase(GL_UNIFORM_BUFFER, 1, rcbUBO);
+}
+
+void InitGeomUbo()
+{
+	// Render GEOM object UBO
+	glGeomShader.Use();
+	glGenBuffers(1, &geomUBO);
+	glBindBuffer(GL_UNIFORM_BUFFER, geomUBO);
+	glBufferData(GL_UNIFORM_BUFFER, sizeof(ROGEOM), nullptr, GL_DYNAMIC_DRAW);
+
+	GLuint ROGeomblockIndex = glGetUniformBlockIndex(glGeomShader.ID, "ROGEOM");
+	glUniformBlockBinding(glGeomShader.ID, ROGeomblockIndex, 1);
+	glBindBufferBase(GL_UNIFORM_BUFFER, 1, geomUBO);
+}
+
 void FrameBufferSizeCallBack(GLFWwindow *window, int width, int height)
 {
 	float imguiOffset = ImGui::GetFrameHeight();
 
-	g_gl.width = width;
+	g_gl.width  = width;
 	g_gl.height = height - imguiOffset;
 
 	// Resize framebuffer attachments
@@ -297,12 +317,11 @@ void FrameBufferSizeCallBack(GLFWwindow *window, int width, int height)
 }
 
 GL g_gl;
-GLuint cmUBO = 0;
+GLuint cmSSBO = 0;
 GLuint ropUBO = 0;
-GLuint alUbo = 0;
-GLuint roSize = sizeof(RO) - 16;
-GLuint roCelSize = sizeof(RO) - 56;
-GLuint roCollisionSize = sizeof(RO) - 60;
+GLuint rcbUBO = 0;
+GLuint geomUBO = 0; 
+GLuint activeLightsSbo = 0;
 GLuint screenQuadMatrixLoc = 0;
 GLuint glslLsmShadow = 0;
 GLuint glslLsmDiffuse = 0;
@@ -311,8 +330,5 @@ GLuint glslFogNear = 0;
 GLuint glslFogFar = 0;
 GLuint glslFogMax = 0;
 GLuint glslFogColor = 0;
-GLuint glslRgbaCel = 0;
 GLuint glslfAlphaTest = 0;
 GLuint glslfCull = 0;
-GLuint glslCollisionRgba = 0;
-GLuint gEmptyVAO = 0;

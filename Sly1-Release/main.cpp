@@ -28,13 +28,13 @@ int main(int cphzArgs, char* aphzArgs[])
             UpdateSw(g_psw, g_clock.dt);
             UpdateCpman(g_gl.window, &g_pcm->cpman, nullptr, g_clock.dt);
 
-            if (g_fRenderModels) {
+            if (g_fRenderModels == true)
+            {
                 RenderSw(g_psw, g_pcm);
-                //RenderSwAloAll(g_psw, g_pcm);
                 DrawSw(g_psw, g_pcm);
             }
 
-            if (g_fRenderCollision)
+            if (g_fRenderCollision == true)
                 DrawSwCollisionAll(g_pcm);
 
             DrawUi(&g_ui);

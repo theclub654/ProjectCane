@@ -1,16 +1,12 @@
 ﻿#version 430 core
 
-#define RKO_ThreeWay  0
-#define RKO_OneWay    1
-#define RKO_CelBorder 2
-#define RKO_Collision 3
+#define RKO_ThreeWay 0
+#define RKO_OneWay   1
 
 #define LIGHTK_Direction 0
 #define LIGHTK_Position  1
 #define LIGHTK_Frustrum  2
 #define LIGHTK_Spot      3
-
-#define MAX_LIGHTS 255
 
 #define FOG_PS2 1
 #define FOG_PS3 2
@@ -40,7 +36,9 @@ struct LIGHT
     vec4  pos;
     vec4  dir;
     vec4  color;
-    vec3  falloff;
+    float constant;
+    float invDistance;
+    float pad4;
     float dst;
     vec4  ru;
     vec4  du;
@@ -49,43 +47,36 @@ struct LIGHT
     vec4  falloffBias;
 };
 
-layout(std140) uniform ACTIVELIGHTS
-{
-    int numLights;
-     // pad header to 16 bytes
-    int _pad0; 
-    int _pad1; 
-    int _pad2;
-
-    // Each element has 16B stride in std140
-    int lightIndices[MAX_LIGHTS];
-}; 
-
-layout(std140) uniform LIGHTBLK
-{
-    LIGHT lights[MAX_LIGHTS];
-};
-
-layout(std140) uniform CMGL
+layout(std430, binding = 0) readonly buffer CMGL
 {
     mat4 matWorldToClip;
     vec4 cameraPos;
 } cm;
 
-layout(std140) uniform RO // Render object properties
+layout(std140, binding = 1) uniform RO // Render object properties
 {
-    mat4  model;
-	int   rko;
-    float uAlpha;
-	float uFog;
-	float darken;
-	int   fDynamic;
-	float unSelfIllum;
-    float sRadius;
-	vec4  posCenter;
+    mat4  model;           // 0..63
+	int   rko;             // 64
+	float uAlpha;          // 68
+	float uFog;            // 72
+	float darken;          // 76
+	int   fDynamic;        // 80
+	float unSelfIllum;	   // 84
+	float sRadius;		   // 88
+	int   pad;             // 92
+	vec4  posCenter;	   // 96..111
 }op;
 
-uniform samplerBuffer uEdges;
+layout(std430, binding = 2) buffer LIGHTBLK 
+{
+    LIGHT lights[];
+};
+
+layout(std430, binding = 3) buffer ACTIVELIGHTS 
+{
+    int numLights;
+    int lightIndices[];
+};
 
 struct MATERIAL
 {
@@ -110,12 +101,13 @@ void StartThreeWay();
 void InitGlobLighting();
 vec4 AddDirectionLight(LIGHT dirlight);
 vec4 AddDynamicLight(vec4 dir, vec4 color, vec4 ru, vec4 du);
+bool SphereIntersectsPositionLight(LIGHT L, vec3 center, float radius);
 vec4 AddPositionLight(LIGHT pointlight, vec3 toLight, float dist);
 vec4 AddPositionLightDynamic(LIGHT pointlight, vec3 direction);
+bool SphereIntersectsFrustum(LIGHT L, vec3 center, float radius);
 vec4 AddFrustrumLight(LIGHT frustumlight);
-//vec4 AddFrustrumLightDynamic(FRUSTUMLIGHT frustumlight);
+vec4 AddFrustrumLightDynamic(LIGHT frustumlight);
 void ProcessGlobLighting();
-void ProcessCelBorders();
 void CalculateFog();
 // This uses the PS2 Style fog
 void CalculateFogPS2();
@@ -130,7 +122,6 @@ void main()
         worldPos    = op.model * vec4(vertex, 1.0);
         vertexColor = color;
         texcoord    = uv;
-        CalculateFog();
         break;
 
         case RKO_ThreeWay:
@@ -138,18 +129,12 @@ void main()
         vertexColor = color;
         texcoord    = uv;
         StartThreeWay();
-        CalculateFog();
-        break;
-
-        case RKO_CelBorder:
-        ProcessCelBorders();
-        return;
-
-        case RKO_Collision:
-        worldPos    = op.model * vec4(vertex, 1.0);
         break;
     }
     
+    if (swp.fogType != 0)
+        CalculateFog();
+
     gl_Position = cm.matWorldToClip * worldPos;
 }
 
@@ -172,25 +157,19 @@ void StartThreeWay()
 
                 case LIGHTK_Position:
                 {
-                    // Per-object cull (bound center vs light sphere)
-                    vec3  dBound    = L.pos.xyz - op.posCenter.xyz;  // bound center (world)
-                    float distSqB   = dot(dBound, dBound);
-                    float maxDist   = L.dst + op.sRadius;            // linear units
-                    float maxDistSq = maxDist * maxDist;
-
-                    if (distSqB > maxDistSq)
+                    if (!SphereIntersectsPositionLight(L, op.posCenter.xyz, op.sRadius))
                         continue;
- 
-                    // Per vertex lighting from the actual shaded point
-                    vec3  toLight = L.pos.xyz - worldPos.xyz;      // shaded point (world)
-                    float distSq  = dot(toLight, toLight);
 
-                    light.rgb += AddPositionLight(L, toLight, distSq).rgb;
+                    vec3 toLight = L.pos.xyz - worldPos.xyz; // shaded point
+                    light.rgb += AddPositionLight(L, toLight, dot(toLight,toLight)).rgb;
                     break;
                 }
 
                 case LIGHTK_Frustrum:
                 case LIGHTK_Spot:
+                if (!SphereIntersectsFrustum(L, op.posCenter.xyz, op.sRadius))
+                    continue;
+
                 light.rgb += AddFrustrumLight(L).rgb;
                 break;
             }
@@ -211,16 +190,21 @@ void StartThreeWay()
 
                 case LIGHTK_Position:
                 {
-                    vec3  toLight = L.pos.xyz - op.posCenter.xyz; // center of the object’s bound
-                    float distSq  = dot(toLight, toLight);
-                    float maxDist = L.dst + op.sRadius;   // L.radius is linear (not squared)
-
-                    if (distSq > maxDist * maxDist)
+                    if (!SphereIntersectsPositionLight(L, op.posCenter.xyz, op.sRadius))
                         continue;
 
+                    vec3 toLight = L.pos.xyz - op.posCenter.xyz;
                     light.rgb += AddPositionLightDynamic(L, toLight).rgb;
                     break;
                 }
+
+                case LIGHTK_Frustrum:
+                case LIGHTK_Spot:
+                if (!SphereIntersectsFrustum(L, op.posCenter.xyz, op.sRadius))
+                    continue;
+
+                light.rgb += AddFrustrumLightDynamic(L).rgb;
+                break;
             }
         }
     }
@@ -286,6 +270,22 @@ vec4 AddDynamicLight(vec4 dir, vec4 color, vec4 ru, vec4 du)
     return color * highlight;
 }
 
+bool SphereIntersectsPositionLight(LIGHT L, vec3 center, float radius)
+{
+    // Vector from light to object center
+    vec3  toLight = L.pos.xyz - center;
+
+    // Squared distance between centers
+    float distSq  = dot(toLight, toLight);
+
+    // Position-light influence radius:
+    // L.dst = light falloff (gMax), same as PS2 lmFallOffS.gMax
+    float maxDist = L.dst + radius;   // linear units
+
+    // Compare using squared distance
+    return distSq <= maxDist * maxDist;
+}
+
 vec4 AddPositionLight(LIGHT pointlight, vec3 toLight, float dist)
 {
     // Normalize light direction with a zero-length guard (use toLight directly for accuracy)
@@ -306,7 +306,7 @@ vec4 AddPositionLight(LIGHT pointlight, vec3 toLight, float dist)
 
     // Attenuation: du + ru * (1/|d|), then clamp to [0,1]
     // falloff.x = duAtt, falloff.y = ruAtt  (match your struct)
-    float attenuation = clamp(pointlight.falloff.x + pointlight.falloff.y * invLen, 0.0, 1.0);
+    float attenuation = clamp(pointlight.constant + pointlight.invDistance * invLen, 0.0, 1.0);
 
     // Ramps (clamp each ≥ 0, then apply attenuation)
     float shadow    = max(diffuse * pointlight.ru.x + pointlight.du.x, 0.0) * attenuation;
@@ -326,7 +326,7 @@ vec4 AddPositionLightDynamic(LIGHT pointlight, vec3 direction)
     float distance = length(direction);
 
     // Compute clamped attenuation
-    float attenuation = 1.0 / distance * pointlight.falloff.y + pointlight.falloff.x;
+    float attenuation = 1.0 / distance * pointlight.invDistance + pointlight.constant;
     attenuation = clamp(attenuation, 0.0, 1.0);
 
     // Apply dynamic lighting
@@ -335,21 +335,62 @@ vec4 AddPositionLightDynamic(LIGHT pointlight, vec3 direction)
     return color;
 }
 
+bool SphereIntersectsFrustum(LIGHT L, vec3 center, float radius)
+{
+    // Extract frustum planes from clip matrix (RH, Z in [0,1])
+    // M maps world -> clip, planes in world space:
+    mat4 M = L.matFrustrum;
+
+    // Standard extraction (row-major GLSL: M[column]):
+    vec4 planes[6];
+    planes[0] = M[3] + M[0]; // left
+    planes[1] = M[3] - M[0]; // right
+    planes[2] = M[3] + M[1]; // bottom
+    planes[3] = M[3] - M[1]; // top
+    planes[4] = M[3] + M[2]; // near
+    planes[5] = M[3] - M[2]; // far
+
+    for (int i = 0; i < 6; ++i)
+    {
+        vec3 n = planes[i].xyz;
+        float len = length(n);
+
+        if (len < 1e-6) continue; // degenerate (shouldn’t happen but be safe)
+
+        // Normalize plane so |n|==1
+        n /= len;
+        float d = planes[i].w / len;
+
+        // Signed distance from sphere center to plane
+        float dist = dot(n, center) + d;
+
+        // If sphere is fully outside this plane, no intersection
+        if (dist < -radius)
+            return false;
+    }
+
+    return true; // sphere intersects or is inside all planes
+}
+
 vec4 AddFrustrumLight(LIGHT frustumlight)
 {
     vec4 clipL = frustumlight.matFrustrum * vec4(worldPos.xyz, 1.0);
 
     // Homogeneous clip (RH, Z in [0,1]) to mirror EmulateClip’s reject
-    if (clipL.w <= 0.0) return vec4(0.0);
-    if (abs(clipL.x) > clipL.w) return vec4(0.0);
-    if (abs(clipL.y) > clipL.w) return vec4(0.0);
-    if (clipL.z < 0.0 || clipL.z > clipL.w) return vec4(0.0);
+    if (clipL.w <= 0.0) 
+        return vec4(0.0);
+    if (abs(clipL.x) > clipL.w) 
+        return vec4(0.0);
+    if (abs(clipL.y) > clipL.w) 
+        return vec4(0.0);
+    if (clipL.z < 0.0 || clipL.z > clipL.w) 
+        return vec4(0.0);
 
     float invW = 1.0 / clipL.w;
 
     float u  = abs(clipL.x * invW);
     float v  = abs(clipL.y * invW);
-    float r2 = u*u + v*v;
+    float r2 = u * u + v * v;
     float wv = clipL.w;
 
     float fx = clamp(frustumlight.falloffScale.x * u  + frustumlight.falloffBias.x, 0.0, 1.0);
@@ -358,7 +399,9 @@ vec4 AddFrustrumLight(LIGHT frustumlight)
     float fw = clamp(frustumlight.falloffScale.w * wv + frustumlight.falloffBias.w, 0.0, 1.0);
 
     float mask = fx * fy * fr * fw;
-    if (mask <= 0.0) return vec4(0.0);
+
+    if (mask <= 0.0) 
+        return vec4(0.0);
 
     vec3 Ldir = frustumlight.dir.xyz;
     float len2 = dot(Ldir, Ldir);
@@ -377,12 +420,47 @@ vec4 AddFrustrumLight(LIGHT frustumlight)
     return frustumlight.color * (highlight * mask);
 }
 
-//
-//vec4 AddFrustrumLightDynamic(FRUSTUMLIGHT frustumlight)
-//{
-//    
-//    return vec4(0.0);
-//}
+vec4 AddFrustrumLightDynamic(LIGHT frustumlight)
+{
+    // 1) Transform sample point into light clip space
+    vec4 clipL = frustumlight.matFrustrum * vec4(op.posCenter.xyz, 1.0);
+
+    // EmulateClip-style frustum test (RH, Z in [0,1])
+    if (clipL.w <= 0.0) 
+        return vec4(0.0);
+    if (abs(clipL.x) > clipL.w) 
+        return vec4(0.0);
+    if (abs(clipL.y) > clipL.w) 
+        return vec4(0.0);
+    if (clipL.z < 0.0 || clipL.z > clipL.w) 
+        return vec4(0.0);
+
+    // 2) Build falloff coordinates at this single sample
+    float invW = 1.0 / clipL.w;
+
+    float u  = abs(clipL.x * invW);   // |x/w|
+    float v  = abs(clipL.y * invW);   // |y/w|
+    float r2 = u * u + v * v;         // radial^2 in projected space
+    float wv = clipL.w;               // S/distance param
+
+    float fx = clamp(frustumlight.falloffScale.x * u  + frustumlight.falloffBias.x, 0.0, 1.0);
+    float fy = clamp(frustumlight.falloffScale.y * v  + frustumlight.falloffBias.y, 0.0, 1.0);
+    float fr = clamp(frustumlight.falloffScale.z * r2 + frustumlight.falloffBias.z, 0.0, 1.0);
+    float fw = clamp(frustumlight.falloffScale.w * wv + frustumlight.falloffBias.w, 0.0, 1.0);
+
+    float mask = fx * fy * fr * fw;
+
+    // If sample is outside effective falloff, light contributes nothing
+    if (mask <= 0.0) 
+        return vec4(0.0);
+
+    // 3) Scale angle ramps by mask (this is what VU1 does with ru/du)
+    vec4 ruScaled = frustumlight.ru * mask;
+    vec4 duScaled = frustumlight.du * mask;
+
+    // 4) Call the quick/dynamic light path
+    return AddDynamicLight(frustumlight.dir, frustumlight.color, ruScaled, duScaled);
+}
 
 void ProcessGlobLighting()
 {
@@ -403,82 +481,8 @@ void ProcessGlobLighting()
     material.light   = min(light.rgb, vec3(1.0)) * baseIntensity;
 }
 
-void ProcessCelBorders()
-{
-    // Which edge are we on? (2 vertices per edge)
-    int  edgeID = gl_VertexID >> 1;
-    bool first  = (gl_VertexID & 1) == 0;
-
-    // Fetch edge block (object space)
-    vec3 E0 = texelFetch(uEdges, edgeID * 4 + 0).xyz;
-    vec3 E1 = texelFetch(uEdges, edgeID * 4 + 1).xyz;
-    vec3 OA = texelFetch(uEdges, edgeID * 4 + 2).xyz;
-    vec3 OB = texelFetch(uEdges, edgeID * 4 + 3).xyz;
-
-    // World → Clip
-    vec4 A = cm.matWorldToClip * (op.model * vec4(E0, 1.0));
-    vec4 B = cm.matWorldToClip * (op.model * vec4(E1, 1.0));
-    vec4 C = cm.matWorldToClip * (op.model * vec4(OA, 1.0));
-    vec4 D = cm.matWorldToClip * (op.model * vec4(OB, 1.0));
-
-    // Keep the original validity rule
-    bool valid = (A.w > 0.0 && B.w > 0.0 && C.w > 0.0 && D.w > 0.0);
-
-    // --- Homogeneous (pre-divide) orientation tests ---
-    float sAC = A.x*(B.y*C.w - B.w*C.y)
-              - A.y*(B.x*C.w - B.w*C.x)
-              + A.w*(B.x*C.y - B.y*C.x);
-
-    float sBD = A.x*(B.y*D.w - B.w*D.y)
-              - A.y*(B.x*D.w - B.w*D.x)
-              + A.w*(B.x*D.y - B.y*D.x);
-
-    // Border or opposite-facing neighbor means "draw"
-    const float kEPS = 1e-6;
-    bool isBorder = (abs(sAC) <= kEPS) || (abs(sBD) <= kEPS);
-    bool opposite = (sAC * sBD < 0.0);
-    
-    int fNonCelBorder = int(valid && (isBorder || opposite));
-
-    if (fNonCelBorder == 1)
-    {
-        // Pushing celborder to clip space so hardware clips it and fragment shader doesnt run
-        gl_Position = vec4(0.0, 0.0, 2.0, 1.0);
-        return;
-    }
-
-    // Emit one endpoint of the line for this VS invocation
-    vec4 P = first ? A : B;
-
-    // Depth for the line (no reversed-Z, no uniform bias)
-    float dA = (A.z / A.w) * 0.5 + 0.5;
-    float dB = (B.z / B.w) * 0.5 + 0.5;
-    float dC = (C.z / C.w) * 0.5 + 0.5;
-    float dD = (D.z / D.w) * 0.5 + 0.5;
-
-    // Place the line at the *farthest* edge endpoint,
-    // but never closer than the nearer opposite vertex
-    float zEdgeMax = max(dA, dB);
-    float zOppNear = min(dC, dD);
-    float zLine01  = max(zEdgeMax, zOppNear);
-
-    // Tiny fixed forward bias so it wins against its own surface,
-    // but won't jump in front of unrelated, nearer geometry.
-    const float kBias01 = 1e-5;   // tune: try 1e-5..2e-4
-    float zBiased = clamp(zLine01 - kBias01, 0.0, 1.0);
-
-    // back to clip-space
-    float zNDC = zBiased * 2.0 - 1.0;
-    P.z        = zNDC * P.w;
-
-    gl_Position = P;
-}
-
 void CalculateFog()
 {
-    if (swp.fogType == 0)
-        return;
-
     switch(swp.fogType)
     {
         case FOG_PS2:

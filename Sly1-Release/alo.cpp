@@ -7,7 +7,7 @@ ALO* NewAlo()
 
 void InitAlo(ALO* palo)
 {
-	InitDl(&palo->dlChild,  offsetof(LO, dleChild));
+	InitDl(&palo->dlChild, offsetof(LO, dleChild));
 	InitDl(&palo->dlFreeze, offsetof(ALO, dleFreeze));
 
 	if (palo->paloParent == nullptr)
@@ -19,8 +19,8 @@ void InitAlo(ALO* palo)
 
 	byte value = 0xFF;
 	byte value1 = 0x0;
-	memcpy((char*)&palo->bitfield + 1, &value,  sizeof(byte));
-	memcpy((char*)&palo->bitfield + 2, &value,  sizeof(byte));
+	memcpy((char*)&palo->bitfield + 1, &value, sizeof(byte));
+	memcpy((char*)&palo->bitfield + 2, &value, sizeof(byte));
 	memcpy((char*)&palo->bitfield + 0, &value1, sizeof(byte));
 
 	palo->sCelBorderMRD = FLT_MAX;
@@ -195,11 +195,11 @@ void UpdateAloOrig(ALO* palo)
 	/*if (palo->pvtalo && palo->pvtalo->pfnUnadjustAloRotation)
 		palo->pvtalo->pfnUnadjustAloRotation(palo, &palo->matOrig);*/
 
-	// Decompose to Euler (radians), PS2 logic
+		// Decompose to Euler (radians), PS2 logic
 	palo->eulOrig = DecomposeRotateMatrixEuler(palo->matOrig);
 }
 
-void AdjustAloRtckMat(ALO *palo, CM *pcm, RTCK rtck, glm::vec3 *pposCenter, glm::mat4 &pmat)
+void AdjustAloRtckMat(ALO* palo, CM* pcm, RTCK rtck, glm::vec3* pposCenter, glm::mat4& pmat)
 {
 	// 1) dpos = -camera X
 	glm::vec3 camX = glm::vec3(pcm->mat[1]);
@@ -327,9 +327,11 @@ void CloneAlo(ALO* palo, ALO* paloBase)
 
 	for (int i = 0; i < palo->globset.aglob.size(); i++)
 	{
+		numRo += palo->globset.aglob[i].csubglob;
 		for (int a = 0; a < palo->globset.aglob[i].asubglob.size(); a++)
 			SetRpCount(palo->globset.aglob[i].rp, palo->globset.aglob[i].asubglob[a].pshd->grfshd);
 
+		numRoCel += palo->globset.aglob[i].csubcel;
 		for (int b = 0; b < palo->globset.aglob[i].asubcel.size(); b++)
 			SetRpCount(palo->globset.aglob[i].rp, 0);
 	}
@@ -426,117 +428,138 @@ void UpdateAloXfWorld(ALO* palo)
 
 void UpdateAloXfWorldHierarchy(ALO* palo)
 {
-	if (palo->palox == nullptr)
+	if (!palo) return;
+
+	ALOX* palox = palo->palox.get();
+
+	// ------------------------------------------------------------
+	// 1) Compute posWorld / matWorld
+	// ------------------------------------------------------------
+
+	// Choose parent for POSITION
+	ALO* parentPos = palo->paloParent;
+
+	if (palox)
 	{
-	UpdateTrans:
-		if (palo->paloParent == nullptr)
+		const uint32_t f = palox->grfalox;
+
+		if ((f & 0xCU) != 0)
 		{
-			palo->xf.posWorld = palo->xf.pos;
-			palo->xf.matWorld = palo->xf.mat;
-		}
-
-		else
-		{
-			glm::vec3 parentPos = palo->paloParent->xf.posWorld;
-			glm::mat3 parentRot = palo->paloParent->xf.matWorld;
-
-			// Transform local position by parent rotation and add parent position
-			palo->xf.posWorld = parentRot * palo->xf.pos + parentPos;
-
-			// Calculate world rotation by combining parent and local rotations (row-major)
-			glm::mat3 localRot = palo->xf.mat;
-			palo->xf.matWorld = parentRot * localRot;
+			if ((f & 4U) != 0)
+				parentPos = palox->scj.paloSchRot;
 		}
 	}
 
+	// posWorld
+	if (!parentPos)
+		palo->xf.posWorld = palo->xf.pos;
+	else
+		palo->xf.posWorld = parentPos->xf.matWorld * palo->xf.pos + parentPos->xf.posWorld;
+
+	// Choose parent for ROTATION
+	ALO* parentRot = nullptr;
+
+	if (!palox)
+	{
+		parentRot = palo->paloParent;
+	}
 	else
 	{
-		if ((palo->palox->grfalox & 0xCU) == 0)
-		{
-			palo->paloParent = palo->paloParent;
-			goto UpdateTrans;
-		}
+		const uint32_t f = palox->grfalox;
+		parentRot = ((f & 8U) == 0) ? palo->paloParent : palox->scj.paloSchRot;
+	}
 
-		if (palo->paloParent == nullptr)
-		{
-			palo->xf.posWorld = palo->xf.pos;
-		}
-
-		else
-		{
-			// Load parent world rotation (row-major 3x3 matrix)
-			glm::mat3 parentMatWorld = palo->paloParent->xf.matWorld;
-
-			// Load parent world position
-			glm::vec3 parentPosWorld = palo->paloParent->xf.posWorld;
-
-			// Load local position of palo (child)
-			glm::vec3 localPos = palo->xf.pos;
-
-			// Calculate world position: matWorld * pos + posWorld
-			glm::vec3 worldPos = parentMatWorld * localPos + parentPosWorld;
-
-			// Store the result in palo's posWorld
-			palo->xf.posWorld = worldPos;
-		}
-
-		if (palo->paloParent != nullptr)
-		{
-			// Load parent world matrix components (row-major)
-			glm::mat3 parentMatWorld = palo->paloParent->xf.matWorld;
-
-			// Load child local matrix components (row-major)
-			glm::mat3 childMat = palo->xf.mat;
-
-			// Process the first row of the child matrix
-			glm::vec3 row1 = childMat[0];  // This corresponds to the 1st column of the matrix in SIMD
-			glm::vec3 result1 = parentMatWorld * row1;  // Matrix-vector multiplication
-			palo->xf.posWorld = result1;  // Store the result
-
-			// Process the second row of the child matrix
-			glm::vec3 row2 = childMat[1];  // This corresponds to the 2nd column of the matrix in SIMD
-			glm::vec3 result2 = parentMatWorld * row2;
-			palo->xf.posWorld += result2;  // Accumulate the result
-
-			// Process the third row of the child matrix
-			glm::vec3 row3 = childMat[2];  // This corresponds to the 3rd column of the matrix in SIMD
-			glm::vec3 result3 = parentMatWorld * row3;
-			palo->xf.posWorld += result3;  // Accumulate the result
-
-			// Update the matWorld field of palo (store the results in matWorld as in the original code)
-			palo->xf.matWorld[0] = result1;
-			palo->xf.matWorld[1] = result2;
-			palo->xf.matWorld[2] = result3;
-			goto UpdateTrans;
-		}
-
+	// matWorld
+	if (!parentRot)
 		palo->xf.matWorld = palo->xf.mat;
-	}
-
-	ALO* object = palo->dlChild.paloFirst;
-
-	if (object == nullptr)
-	{
-
-	}
-
 	else
+		palo->xf.matWorld = parentRot->xf.matWorld * palo->xf.mat;
+
+	// ------------------------------------------------------------
+	// 2) VISMAP / grfzon update (replace with your real flag check)
+	// ------------------------------------------------------------
+
+	const bool needsVismapClip = (((*(long*)&palo->bitfield << 8) >> 0x20 & 3U) == 2);
+	
+	if (needsVismapClip)
 	{
-		while (true)
-		{
-			if (object->pvtalo->pfnUpdateAloXfWorldHierarchy == nullptr)
-				object = object->dleChild.paloNext;
+		VISMAP* pvismap = palo->psw ? palo->psw->pvismap : nullptr;
 
-			else
-			{
-				object->pvtalo->pfnUpdateAloXfWorldHierarchy(object);
-				object = object->dleChild.paloNext;
-			}
-
-			if (object == nullptr)
-				break;
-		}
+		if (!pvismap)
+			palo->grfzon = 0x0FFFFFFF;
+		else
+			ClipVismapSphereOneHop(pvismap, &palo->xf.posWorld, palo->sRadiusRenderAll, &palo->grfzon);
 	}
+
+	// ------------------------------------------------------------
+	// 3) Shadow update
+	// ------------------------------------------------------------
+	if (palo->pshadow)
+	{
+		/*SetShadowCastPosition(palo->pshadow, &palo->xf.posWorld);
+
+		SHD* pshd = palo->pshadow->pshd;
+		if (pshd && pshd->shdk == 3)
+		{
+			glm::vec3 normalCast = -palo->xf.matWorld[2];
+			SetShadowCastNormal(palo->pshadow, &normalCast);
+
+			glm::vec3 up = palo->xf.matWorld[1];
+			SetShadowFrustrumUp(palo->pshadow, &up);
+		}*/
+	}
+
+	// ------------------------------------------------------------
+	// 4) Recurse children (LO vtable function pointer)
+	// ------------------------------------------------------------
+	for (ALO* child = palo->dlChild.paloFirst; child; child = child->dleChild.paloNext)
+	{
+		auto* vt = child->pvtalo;
+		if (vt && vt->pfnUpdateAloXfWorldHierarchy)
+			vt->pfnUpdateAloXfWorldHierarchy(child);
+	}
+
+	// ------------------------------------------------------------
+	// 5) IK / scheduler invalidation
+	// ------------------------------------------------------------
+	/*palox = palo->palox.get();
+	if (palox)
+	{
+		const uint32_t f = palox->grfalox;
+
+		if ((f & 0x8020U) == 0x8020U)
+		{
+			ALO* shoulder = palox->ikh.paloShoulder;
+			ALO* elbow = palox->ikh.paloElbow;
+
+			if (shoulder && shoulder->palox)
+				shoulder->palox->ikj.fInvalid = 1;
+
+			if (elbow && elbow->palox)
+				elbow->palox->ikj.fInvalid = 1;
+		}
+
+		if ((f & 0x8100U) == 0x8100U && palox->ikh.grfik > 0)
+		{
+			const int count = palox->ikh.grfik;
+			ALO** apalo = palox->sch.apalo;
+
+			for (int i = 0; i < count; ++i)
+			{
+				ALO* a = apalo ? apalo[i] : nullptr;
+				if (!a) continue;
+
+				ALOX* ax = a->palox.get();
+				if (!ax) continue;
+
+				if (palo == ax->scj.paloSchRot)
+					ax->scj.fInvalidRot = 1;
+
+				if (palo == ax->scj.paloSchPos)
+					ax->scj.fInvalidPos = 1;
+			}
+		}
+	}*/
 }
 
 void UpdateAloHierarchy(ALO* palo, float dt)
@@ -1016,6 +1039,16 @@ void SetAloForceCameraFade(ALO* palo, int fFade)
 
 }
 
+void SetAloCelRgba(ALO* palo, RGBA prgba)
+{
+	palo->globset.rgbaCel.r = prgba.bRed   / 255.0;
+	palo->globset.rgbaCel.g = prgba.bGreen / 255.0;
+	palo->globset.rgbaCel.b = prgba.bBlue  / 255.0;
+	palo->globset.rgbaCel.a = prgba.bAlpha / 255.0;
+
+	palo->globset.grfglobset = palo->globset.grfglobset | 2;
+}
+
 void* GetAloFrozen(ALO* palo)
 {
 	return nullptr;
@@ -1291,7 +1324,6 @@ void LoadAloFromBrx(ALO* palo, CBinaryInputStream* pbis)
 
 	LoadOptionsFromBrx(palo, pbis);
 	LoadGlobsetFromBrx(&palo->globset, palo, pbis);
-	
 	LoadAloAloxFromBrx(palo, pbis);
 
 	if (palo->pvtalo && palo->pvtalo->pfnUpdateAloXfWorld)
@@ -1315,53 +1347,52 @@ void LoadAloFromBrx(ALO* palo, CBinaryInputStream* pbis)
 
 void LoadAloAloxFromBrx(ALO* palo, CBinaryInputStream* pbis)
 {
-	GRFALOX grfalox = pbis->U32Read();
+	const uint32_t grfalox = pbis->U32Read();
 
-	if (grfalox != 0)
+	if (grfalox == 0)
+		return;
+
+	ALOX alox;
+	palo->palox = std::make_shared <ALOX>(alox);
+
+	palo->palox->grfalox = grfalox;
+
+	int unk_1;
+
+	if (grfalox & 0x01)
+		palo->palox->matPreRotation = pbis->ReadMatrix();
+
+	if (grfalox & 0x02)
+		palo->palox->matPostRotation = pbis->ReadMatrix();
+
+	if ((grfalox & 0x0C) != 0)
 	{
-		ALOX alox;
-		palo->palox = std::make_shared <ALOX>(alox);
+		int16_t schRotId = pbis->S16Read();
 
-		palo->palox->grfalox = grfalox;
+		if (schRotId != -1)
+			palo->palox->scj.paloSchRot = static_cast<ALO*>(PloFindSwObject(palo->psw, 3, (OID)schRotId, palo));
+	}
 
-		int unk_1;
+	if (grfalox & 0x10)
+		palo->palox->scj.ipaloRot = static_cast<int16_t>(pbis->S16Read());
 
-		if (grfalox & 1)
-		{
-			pbis->ReadMatrix();
-		}
+	if ((grfalox & 0x20) != 0)
+	{
+		unk_1 = pbis->S16Read();
+		pbis->ReadVector(); // Read Vector
+		pbis->ReadVector(); // Read Vector
+		pbis->F32Read();
+	}
 
-		if (grfalox & 2)
-		{
-			pbis->ReadMatrix();
-		}
+	if ((grfalox & 0x40) != 0)
+	{
+		unk_1 = pbis->S16Read();
+		unk_1 = pbis->S16Read();
+	}
 
-		if (((grfalox & 0xc) != 0) && (unk_1 = pbis->S16Read() != -1))
-		{
-
-		}
-
-		if ((grfalox & 0x10) != 0)
-			unk_1 = pbis->S16Read();
-
-		if ((grfalox & 0x20) != 0)
-		{
-			unk_1 = pbis->S16Read();
-			pbis->ReadVector(); // Read Vector
-			pbis->ReadVector(); // Read Vector
-			pbis->F32Read();
-		}
-
-		if ((grfalox & 0x40) != 0)
-		{
-			unk_1 = pbis->S16Read();
-			unk_1 = pbis->S16Read();
-		}
-
-		if ((grfalox & 0x80) != 0)
-		{
-			pbis->U8Read();
-		}
+	if ((grfalox & 0x80) != 0)
+	{
+		pbis->U8Read();
 	}
 }
 
@@ -1370,7 +1401,7 @@ void BindAloAlox(ALO* palo)
 
 }
 
-void SnipAloObjects(ALO *palo, int csnip, SNIP *asnip)
+void SnipAloObjects(ALO* palo, int csnip, SNIP* asnip)
 {
 	SW* psw = palo->psw;
 
@@ -1419,8 +1450,6 @@ void RenderAloAll(ALO* palo, CM* pcm, RO* pro)
 			return;
 	}
 
-	RO ro{};
-	RO* proOriginal = &ro;
 	glm::vec3 posWorld{};
 
 	if (pro != nullptr)
@@ -1431,103 +1460,93 @@ void RenderAloAll(ALO* palo, CM* pcm, RO* pro)
 	if (!SphereInFrustum(pcm->frustum, posWorld, palo->sRadiusRenderAll))
 		return;
 
-	float alpha{};
-	if (!FInsideCmMrd(pcm, pcm->pos - palo->xf.posWorld, palo->sRadiusRenderAll, palo->sMRD, alpha))
+	float uAlpha = 1.0f;
+	if (!FInsideCmMrd(pcm, posWorld - pcm->pos, palo->sRadiusRenderAll, palo->sMRD, uAlpha))
 		return;
 
-	if (alpha == 1.0)
-		proOriginal = pro;
-	else
-	{
-		DupAloRo(palo, pro, &ro);
-		ro.uAlpha = ro.uAlpha * alpha;
-		proOriginal = &ro;
+	RO roLocal{};
+	RO* proOriginal = pro;
+
+	auto ensureLocal = [&]() {
+		if (proOriginal == &roLocal) return;
+		DupAloRo(palo, proOriginal, &roLocal);
+		proOriginal = &roLocal;
+	};
+
+	if (uAlpha != 1.0f) {
+		ensureLocal();
+		proOriginal->uAlpha *= uAlpha;
 	}
 
-	// ---- Cel-border MRD handling (matches original structure) ----
-	// If cel-border MRD is tighter than main MRD, test and scale uAlphaCelBorder
-	if (palo->sCelBorderMRD < palo->sMRD)
-	{
-		// In the original decomp, dpos_00 came from ro.mat.* (current RO).
-		// Here we use the current render origin (proOriginal if set, otherwise ALO pos)
-		glm::vec3 testPos = (proOriginal != nullptr) ? glm::vec3(proOriginal->model[3]) : palo->xf.posWorld;
-
-		float alphaCB = 1.0f;
-		if (!FInsideCmMrd(pcm, pcm->pos - testPos, palo->sRadiusRenderAll, palo->sCelBorderMRD, alphaCB))
-			alphaCB = 0.0f; // original sets uAlpha to 0 when outside cel-border MRD
-
-		if (alphaCB != 1.0f)
-		{
-			// In the original, when uAlpha != 1, it duped RO and scaled uAlphaCelBorder
-			DupAloRo(palo, proOriginal, &ro);
-			ro.uAlphaCelBorder = ro.uAlphaCelBorder * alphaCB;
-			proOriginal = &ro;
-		}
-		// If alphaCB == 1.0f, keep current proOriginal as-is (same as original goto path)
+	float uCel = uAlpha;
+	if (palo->sCelBorderMRD < palo->sMRD) {
+		float dummy = 1.0f;
+		if (!FInsideCmMrd(pcm, posWorld - pcm->pos, palo->sRadiusRenderAll, palo->sCelBorderMRD, dummy))
+			uCel = 0.0f;
+	}
+	if (uCel != 1.0f) {
+		ensureLocal();
+		proOriginal->uAlphaCelBorder *= uCel;
 	}
 
-	// ---- Optional fader (post adjustments), multiplies base uAlpha ----
-	if (palo->pfader != nullptr)
-	{
-		DupAloRo(palo, proOriginal, &ro);
-		//ro.uAlpha = ro.uAlpha * palo->pfader->uAlpha;
-		proOriginal = &ro;
+	if (palo->pfader) {
+		ensureLocal();
+		//roUse->uAlpha *= palo->pfader->uAlpha;
 	}
 
 	palo->pvtalo->pfnRenderAloSelf(palo, pcm, proOriginal);
 
-	ALO* child = palo->dlChild.paloFirst;
-	float fastShadowRadius = palo->sFastShadowRadius;
-
-	if (proOriginal == nullptr)
+	for (ALO* child = palo->dlChild.paloFirst; child; child = child->dleChild.paloNext)
 	{
-		// No proxy: simple render all children
-		for (; child != nullptr; child = child->dleChild.paloNext) {
-			if (child->pvtlo->grfcid & 1U)
-			{
-				child->pvtalo->pfnRenderAloAll(child, pcm, nullptr);
+		if (!(child->pvtlo->grfcid & 1U))
+			continue;
 
-			}
+		if (!proOriginal)
+		{
+			child->pvtalo->pfnRenderAloAll(child, pcm, nullptr);
+			continue;
 		}
-	}
-	else {
-		// Proxy exists: need to adjust transforms
-		RO roChild;
 
-		for (; child != nullptr; child = child->dleChild.paloNext) {
-			if (!(child->pvtlo->grfcid & 1U)) {
-				continue;
-			}
-
-			glm::mat4 childLocalMatrix;
-			if (child->ppxr == nullptr) {
-				LoadMatrixFromPosRot(child->xf.pos, child->xf.mat, childLocalMatrix);
-			}
-			else
-			{
-				glm::mat4 invParentWorld = glm::inverse(palo->xf.matWorld);
-				LoadMatrixFromPosRot(child->xf.posWorld, child->xf.matWorld, childLocalMatrix);
-				glm::mat4 proxyAdjust = invParentWorld * proOriginal->model;
-				childLocalMatrix = proxyAdjust * childLocalMatrix;
-			}
-
-			// Compute final child world matrix
-			roChild.model = proOriginal->model * childLocalMatrix;
-			roChild.uAlpha = proOriginal->uAlpha;
-			roChild.uAlphaCelBorder = proOriginal->uAlphaCelBorder;
-
-			// Render child with adjusted transform
-			child->pvtalo->pfnRenderAloAll(child, pcm, &roChild);
+		// 1) Build child's matrix (whatever space the game expects here)
+		glm::mat4 childMat;
+		if (!child->ppxr /* or your full proxy condition */)
+		{
+			// non-proxy source (matches the first LoadMatrixFromPosRot in original)
+			LoadMatrixFromPosRot(child->xf.pos, child->xf.mat, childMat);
 		}
+		else
+		{
+			// proxy source (matches the *other* LoadMatrixFromPosRot in original)
+			LoadMatrixFromPosRot(child->xf.pos, child->xf.mat, childMat);
+		}
+
+		// 2) Choose parent matrix for child
+		glm::mat4 parentForChild = proOriginal->model;
+		if (child->ppxr)
+		{
+			glm::mat4 parentWorld = palo->xf.matWorld; // parent’s true world
+			glm::mat4 invParentWorld = glm::inverse(parentWorld);
+			parentForChild = proOriginal->model * invParentWorld; // rebased parent RO (delta)
+		}
+
+		// 3) Final child transform (ONLY ONE parent multiply)
+		RO roChild{};
+		roChild.model = parentForChild * childMat;
+
+		// 4) Inherit alpha (matches original)
+		roChild.uAlpha = proOriginal->uAlpha;
+		roChild.uAlphaCelBorder = proOriginal->uAlphaCelBorder;
+
+		child->pvtalo->pfnRenderAloAll(child, pcm, &roChild);
 	}
 }
 
-void RenderAloSelf(ALO *palo, CM *pcm, RO *pro)
+void RenderAloSelf(ALO* palo, CM* pcm, RO* pro)
 {
 	palo->pvtalo->pfnRenderAloGlobset(palo, pcm, pro);
 }
 
-void DupAloRo(ALO *palo, RO *proOrig, RO *proDup)
+void DupAloRo(ALO* palo, RO* proOrig, RO* proDup)
 {
 	if (proOrig == nullptr)
 	{
@@ -1549,16 +1568,18 @@ void DupAloRo(ALO *palo, RO *proOrig, RO *proDup)
 
 void RenderAloGlobset(ALO* palo, CM* pcm, RO* pro)
 {
-	RO proDup{};
-	float uAlpha{};
+	RPL rpl{};
+	RPLCEL rplCel{};
 
+	RO* proDup;
+	proDup = &rpl.ro;
 	// Duplicate rendering object from original
-	DupAloRo(palo, pro, &proDup);
+	DupAloRo(palo, pro, proDup);
 
-	glm::mat4 baseModelMatrix = proDup.model;
+	glm::mat4 baseModelMatrix = rpl.ro.model;
 
-	float baseAlpha = proDup.uAlpha;
-	float baseAlphaCel = proDup.uAlphaCelBorder;
+	float baseAlpha = rpl.ro.uAlpha;
+	float baseAlphaCel = rpl.ro.uAlphaCelBorder;
 
 	for (int i = 0; i < palo->globset.aglob.size(); ++i)
 	{
@@ -1568,142 +1589,197 @@ void RenderAloGlobset(ALO* palo, CM* pcm, RO* pro)
 				continue;
 		}
 
-		auto& glob  = palo->globset.aglob[i];
+		auto& glob = palo->globset.aglob[i];
 		auto& globi = palo->globset.aglobi[i];
 
 		glm::vec4 posCenterWorld = baseModelMatrix * glm::vec4(glob.posCenter, 1.0f);
 
+		glm::vec3 dpos = glm::vec3(posCenterWorld) - pcm->pos;
+
 		if (!SphereInFrustum(pcm->frustum, posCenterWorld, glob.sRadius))
 			continue;
 
-		if (!FInsideCmMrd(pcm, glm::vec4(pcm->pos, 1.0) - posCenterWorld, glob.sRadius, glob.sMRD, uAlpha))
+		float mrdAlphaDummy = 1.0f;
+		if (!FInsideCmMrd(pcm, glm::vec4(dpos, 0.0f), glob.sRadius, glob.sMRD, mrdAlphaDummy))
+			continue;
+
+		
+		float alpha = baseAlpha;
+
+		float uAlpha = 1.0f;
+		alpha *= uAlpha;
+
+		// Gleam (if any) affects alpha
+		if (glob.gleam.size() != 0)
+		{
+			glm::vec3 n = glob.gleam[0].normal;
+			glm::vec3 X = glm::vec3(baseModelMatrix[0]); // model X column
+			glm::vec3 Y = glm::vec3(baseModelMatrix[1]); // model Y column
+			glm::vec3 Z = glm::vec3(baseModelMatrix[2]); // model Z column
+
+			glm::vec3 v = X * n.x + Y * n.y + Z * n.z;
+
+			// Normalize with PS2-style guard
+			float len2 = glm::dot(v, v);
+			glm::vec3 dir = (len2 < 1e-4f) ? glm::vec3(0.0f) : (v / std::sqrt(len2));
+
+			// Intensity = abs(dot(dir, camera X))
+			glm::vec3 camX = glm::vec3(g_pcm->mat[0]);
+			float intensity = std::abs(glm::dot(dir, camX));
+
+			// Polynomial gain g0 + i*(g1 + i*(g2 + i*g3))
+			const auto& c = glob.gleam[0].clqc; // has g0,g1,g2,g3
+			float gain = c.g0 + intensity * (c.g1 + intensity * (c.g2 + intensity * c.g3));
+
+			// Limit and apply
+			gain = GLimitLm(&g_lmZeroOne, gain);
+			alpha *= gain;
+		}
+
+		// Optional glbi fade/unfade (if you implement it)
+		// target = 0.5 before tUnfade, else 1.0
+		float target = (g_clock.tReal < globi.tUnfade) ? 0.5f : 1.0f;
+
+		if (globi.uAlpha != target)
+			globi.uAlpha = GSmooth(globi.uAlpha, target, g_clock.dt, &g_smpAlphaFade, nullptr);
+
+		alpha *= globi.uAlpha;
+
+		// Global multiplier (your equivalent of g_droSnap.uAlpha / g_uAlpha)
+		alpha *= g_uAlpha;
+
+		if (alpha <= 0.0f)
 			continue;
 
 		for (auto& subglob : glob.asubglob)
 		{
-			subglob.rpl.ro.uAlpha = uAlpha;
-			subglob.rpl.ro.uAlpha *= baseAlpha;
+			rpl.VAO  = subglob.VAO;
+			rpl.cvtx = subglob.cvtx;
 
-			if (glob.gleam.size() != 0)
-			{
-				glm::vec3 n = glob.gleam[0].normal;
-				glm::vec3 X = glm::vec3(baseModelMatrix[0]); // model X column
-				glm::vec3 Y = glm::vec3(baseModelMatrix[1]); // model Y column
-				glm::vec3 Z = glm::vec3(baseModelMatrix[2]); // model Z column
+			rpl.ro.uAlpha = alpha;
 
-				glm::vec3 v = X * n.x + Y * n.y + Z * n.z;
-
-				// Normalize with PS2-style guard
-				float len2 = glm::dot(v, v);
-				glm::vec3 dir = (len2 < 1e-4f) ? glm::vec3(0.0f) : (v / std::sqrt(len2));
-
-				// Intensity = abs(dot(dir, camera X))
-				glm::vec3 camX = glm::vec3(g_pcm->mat[0]);
-				float intensity = std::abs(glm::dot(dir, camX));
-
-				// Polynomial gain g0 + i*(g1 + i*(g2 + i*g3))
-				const auto& c = glob.gleam[0].clqc; // has g0,g1,g2,g3
-				float gain = c.g0 + intensity * (c.g1 + intensity * (c.g2 + intensity * c.g3));
-
-				// Limit and apply
-				gain = GLimitLm(&g_lmZeroOne, gain);
-				subglob.rpl.ro.uAlpha *= gain;
-			}
-
-			if (subglob.rpl.ro.uAlpha == 0.0)
+			if (rpl.ro.uAlpha == 0.0)
 				continue;
 
-			subglob.rpl.ro.posCenter = posCenterWorld;
+			rpl.ro.fDynamic = glob.fDynamic;
+			rpl.ro.uFog = glob.uFog;
+			rpl.ro.posCenter = posCenterWorld;
+			rpl.ro.sRadius = glob.sRadius;
 
 			if ((glob.grfglob & 4U) == 0)
-				subglob.rpl.ro.darken = g_psw->rDarken;
+				rpl.ro.darken = g_psw->rDarken;
 			else
-				subglob.rpl.ro.darken = 1.0;
+				rpl.ro.darken = 1.0;
 
-			subglob.rpl.rp = glob.rp;
-			subglob.rpl.ro.uAlpha = subglob.rpl.ro.uAlpha * g_uAlpha;
+			rpl.pshd = subglob.pshd;
 
-			if (subglob.rpl.ro.uAlpha != 1.0)
+			if (subglob.pshd->shdk == SHDK_ThreeWay)
 			{
-				switch (subglob.rpl.rp)
+				rpl.PFNBIND = BindThreeWay;
+				rpl.ro.rko = SHDK_ThreeWay;
+			}
+			else
+			{
+				rpl.PFNBIND = BindOneWay;
+				rpl.ro.rko = 1;
+			}
+
+			rpl.grfshd = subglob.pshd->grfshd;
+			rpl.ro.unSelfIllum = subglob.unSelfIllum;
+			rpl.cvtx = subglob.cvtx;
+			rpl.rp = glob.rp;
+
+			if (rpl.ro.uAlpha != 1.0)
+			{
+				switch (rpl.rp)
 				{
 					case RP_Opaque:
 					case RP_Cutout:
 					case RP_OpaqueAfterProjVolume:
 					case RP_CutoutAfterProjVolume:
-					subglob.rpl.rp = RP_Translucent;
+					rpl.rp = RP_Translucent;
 					break;
 				}
 			}
 
 			if (glob.pdmat != nullptr)
-				subglob.rpl.ro.model = baseModelMatrix * *glob.pdmat;
+				rpl.ro.model = baseModelMatrix * *glob.pdmat;
 			else
-				subglob.rpl.ro.model = baseModelMatrix;
+				rpl.ro.model = baseModelMatrix;
 
-			switch (subglob.rpl.rp)
+			switch (rpl.rp)
 			{
 				case RP_Background:
-				subglob.rpl.z = -glm::length2(pcm->pos - glm::vec3(subglob.rpl.ro.model * glm::vec4(glob.posCenter, 1.0f)));
+				rpl.z = -glm::length2(pcm->pos - glm::vec3(rpl.ro.model * glm::vec4(glob.posCenter, 1.0f)));
 				break;
 				case RP_Cutout:
 				case RP_CutoutAfterProjVolume:
 				case RP_Translucent:
-				subglob.rpl.z = glm::length2(pcm->pos - glm::vec3(subglob.rpl.ro.model * glm::vec4(subglob.posCenter, 1.0f)));
+				rpl.z = glm::length2(pcm->pos - glm::vec3(rpl.ro.model * glm::vec4(subglob.posCenter, 1.0f)));
 				break;
 			}
 
 			if (glob.rtck != RTCK_None)
-				AdjustAloRtckMat(palo, pcm, glob.rtck, (glm::vec3*)&posCenterWorld, subglob.rpl.ro.model);
-			
-			SubmitRpl(&subglob.rpl);
+				AdjustAloRtckMat(palo, pcm, glob.rtck, (glm::vec3*)&posCenterWorld, rpl.ro.model);
+
+			SubmitRpl(&rpl);
 		}
 
 		if (glob.csubcel > 0)
 		{
 			if (g_fRenderCelBorders > 0)
 			{
-				const float alphaMRD = uAlpha;
-				const float mainBase = baseAlpha * alphaMRD;
-				float       mainAlpha = mainBase;
+				float celAlpha = baseAlphaCel;
 
-				//mainAlpha *= gleamGain;
-				mainAlpha *= g_uAlpha;
+				// If you have a real uAlpha fade, apply it the same way you do for main.
+				// (Right now your uAlpha is 1.0f)
+				celAlpha *= uAlpha;
 
-				float celBase = 0.0f;
-
-				if (glob.sCelBorderMRD < glob.sMRD) {
+				// Optional stricter MRD for cel border
+				if (glob.sCelBorderMRD < glob.sMRD)
+				{
 					float dummy = 1.0f;
-					const bool insideCB = FInsideCmMrd(pcm, glm::vec4(pcm->pos, 1.0) - posCenterWorld, glob.sRadius, glob.sCelBorderMRD, dummy);
-					celBase = insideCB ? (baseAlphaCel * alphaMRD) : 0.0f;
-				}
-				else {
-					celBase = baseAlphaCel * alphaMRD;
+					const bool insideCB = FInsideCmMrd(pcm, glm::vec4(dpos, 0.0f), glob.sRadius, glob.sCelBorderMRD, dummy);
+
+					if (!insideCB)
+						celAlpha = 0.0f;
 				}
 
-				float celAlphaFinal = celBase * mainAlpha;
-				celAlphaFinal *= g_rgbaCel.a;
+				// Couple border to the *final* main alpha (this matches original)
+				float celAlphaFinal = celAlpha * alpha;
+
+				// If you still need to apply cel color alpha in your pipeline, do it here:
+				if ((palo->globset.grfglobset & 2) == 0)
+					celAlphaFinal *= g_rgbaCel.a;
+				else
+					celAlphaFinal *= palo->globset.rgbaCel.a;
 
 				if (celAlphaFinal > 0.0)
 				{
-					for (int a = 0; a < glob.asubcel.size(); ++a)
+					for (auto& sc : glob.asubcel)
 					{
-						glob.asubcel[a].rplCel.rp = glob.rp;
+						rplCel.edgeSSBO  = sc.edgeSSBO;
+						rplCel.edgeCount = sc.edgeCount;
 
-						if (mainAlpha != 1.0f)
+						rplCel.rp = glob.rp;
+
+						// If main is translucent, cel border should use translucent cel border pass
+						if (alpha != 1.0f)
 						{
-							if (glob.asubcel[a].rplCel.rp == RP_CelBorder || glob.asubcel[a].rplCel.rp == RP_CelBorderAfterProjVolume)
-								glob.asubcel[a].rplCel.rp = RP_TranslucentCelBorder;
+							if (rplCel.rp == RP_CelBorder || rplCel.rp == RP_CelBorderAfterProjVolume)
+								rplCel.rp = RP_TranslucentCelBorder;
 						}
 
-						if (glob.pdmat != nullptr)
-							glob.asubcel[a].rplCel.ro.model = baseModelMatrix * *glob.pdmat;
+						rplCel.rocel.model = (glob.pdmat) ? (baseModelMatrix * *glob.pdmat) : baseModelMatrix;
+
+						if ((palo->globset.grfglobset & 2) == 0)
+							rplCel.rocel.celRgba = g_rgbaCel;
 						else
-							glob.asubcel[a].rplCel.ro.model = baseModelMatrix;
+							rplCel.rocel.celRgba = palo->globset.rgbaCel;
 
-						glob.asubcel[a].rplCel.ro.uAlpha = celAlphaFinal;
+						rplCel.rocel.uAlphaCelBorder = celAlphaFinal;
 
-						SubmitRpl(&glob.asubcel[a].rplCel);
+						SubmitRplCel(&rplCel);
 					}
 				}
 			}
@@ -1762,10 +1838,7 @@ void DeleteModel(ALO* palo)
 		}
 
 		for (int b = 0; b < palo->globset.aglob[i].asubcel.size(); b++)
-		{
-			glDeleteBuffers(1, &palo->globset.aglob[i].asubcel[b].edgeBuf);
-			glDeleteTextures(1, &palo->globset.aglob[i].asubcel[b].edgeTex);
-		}
+			glDeleteBuffers(1, &palo->globset.aglob[i].asubcel[b].edgeSSBO);
 	}
 }
 

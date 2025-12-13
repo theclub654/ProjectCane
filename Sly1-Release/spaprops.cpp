@@ -249,6 +249,7 @@ void BuildEopids(void)
 	g_aeopid[94].optdat.ibGet = 0;
 	g_aeopid[95].grfeopid = 0x120;
 	g_aeopid[95].otyp = OTYP_Int;
+	g_aeopid[95].optdat.pfnset = (PFNSET)SetAloCelRgba;
 	g_aeopid[96].otyp = OTYP_Int;
 	g_aeopid[96].grfeopid = 0x20;
 	g_aeopid[97].otyp = 0x1040;
