@@ -196,36 +196,28 @@ void AllocateRpl()
 
 void RenderSw(SW* psw, CM* pcm)
 {
-	// Set up a DLI walker for the busy object list in the current SW (Scene/World)
 	DLI dlBusyWalker;
-	dlBusyWalker.m_pdl = &psw->dlBusy;                // Point to the actual DL list
-	dlBusyWalker.m_ibDle = psw->dlBusy.ibDle;         // Offset to the 'next' pointer inside each object
-	dlBusyWalker.m_pdliNext = s_pdliFirst;            // Link this walker into a global list of DLI walkers
+	dlBusyWalker.m_pdl = &psw->dlBusy;
+	dlBusyWalker.m_ibDle = psw->dlBusy.ibDle;
+	dlBusyWalker.m_pdliNext = s_pdliFirst;
 
-	// Get the first object (LO) in the busy list
 	LO* currentObject = psw->dlBusy.ploFirst;
 
-	// Set up the pointer to the "next" object in the list,
-	// using offset-based pointer arithmetic from current object
-	dlBusyWalker.m_ppv = reinterpret_cast<void**>(reinterpret_cast<uintptr_t>(currentObject) + dlBusyWalker.m_ibDle);
+	dlBusyWalker.m_ppv = (currentObject != nullptr) ? reinterpret_cast<void**>(reinterpret_cast<uintptr_t>(currentObject) + dlBusyWalker.m_ibDle) : nullptr;
 
-	// Save the current DLI walker globally
+	// push
 	s_pdliFirst = &dlBusyWalker;
 
-	// Loop over every object in the busy list
 	while (currentObject != nullptr)
 	{
-		// Call the rendering function on the current object
-		// This renders the object and all of its attached ALO children
-		currentObject->pvtalo->pfnRenderAloAll(reinterpret_cast<ALO*>(currentObject), pcm, nullptr);
+		currentObject->pvtalo->pfnRenderAloAll((ALO*)currentObject, pcm, nullptr);
 
-		// Move to the next object in the list using the stored offset
 		currentObject = reinterpret_cast<LO*>(*dlBusyWalker.m_ppv);
-
-		// If there is a next object, update the walker’s pointer to its next link
-		if (currentObject != nullptr)
-			dlBusyWalker.m_ppv = reinterpret_cast<void**>(reinterpret_cast<uintptr_t>(currentObject) + dlBusyWalker.m_ibDle);
+		dlBusyWalker.m_ppv = (currentObject != nullptr) ? reinterpret_cast<void**>(reinterpret_cast<uintptr_t>(currentObject) + dlBusyWalker.m_ibDle) : nullptr;
 	}
+
+	// pop (critical)
+	s_pdliFirst = dlBusyWalker.m_pdliNext;
 }
 
 void RenderSwAloAll(SW* psw, CM* pcm)
@@ -254,9 +246,9 @@ void SubmitRpl(RPL* prpl)
 		break;
 
 		case RP_Background:
-		if (prpl->grfshd != 2)
+		if (prpl->pshd->grfshd != 2)
 		{
-			prpl->grfshd = 0;
+			prpl->pshd->grfshd = 0;
 			g_backGroundPrpl[g_backGroundCount] = *prpl;
 			g_backGroundCount++;
 		}
@@ -278,12 +270,12 @@ void SubmitRpl(RPL* prpl)
 		break;
 
 		case RP_Cutout:
-		switch (prpl->grfshd)
+		switch (prpl->pshd->grfshd)
 		{
 			case 2:
 			case 6:
-			if (prpl->grfshd == 6)
-				prpl->grfshd = 2;
+			if (prpl->pshd->grfshd == 6)
+				prpl->pshd->grfshd = 2;
 			g_cutOutPrpl[g_cutOutCount] = *prpl;
 			g_cutOutCount++;
 			break;
@@ -296,7 +288,7 @@ void SubmitRpl(RPL* prpl)
 		break;
 
 		case RP_ProjVolume:
-		switch (prpl->grfshd)
+		switch (prpl->pshd->grfshd)
 		{
 			case 0:
 			g_projVolumePrpl[g_projVolumeCount] = *prpl;
@@ -322,12 +314,12 @@ void SubmitRpl(RPL* prpl)
 		break;
 
 		case RP_CutoutAfterProjVolume:
-		switch (prpl->grfshd)
+		switch (prpl->pshd->grfshd)
 		{
 			case 2:
 			case 6:
-			if (prpl->grfshd == 6)
-				prpl->grfshd = 2;
+			if (prpl->pshd->grfshd == 6)
+				prpl->pshd->grfshd = 2;
 			g_cutOutAfterProjVolumePrpl[g_cutOutAfterProjVolumeCount] = *prpl;
 			g_cutOutAfterProjVolumeCount++;
 			break;
@@ -355,12 +347,12 @@ void SubmitRpl(RPL* prpl)
 		break;
 
 		case RP_Translucent:
-		switch (prpl->grfshd)
+		switch (prpl->pshd->grfshd)
 		{
 			case 2:
 			case 6:
-			if (prpl->grfshd == 6)
-				prpl->grfshd = 2;
+			if (prpl->pshd->grfshd == 6)
+				prpl->pshd->grfshd = 2;
 			g_translucentPrpl[g_translucentCount] = *prpl;
 			g_translucentCount++;
 			break;
@@ -454,7 +446,7 @@ void DrawSw(SW* psw, CM* pcm)
 	glBindBuffer(GL_UNIFORM_BUFFER, ropUBO);
 	glBindBufferBase(GL_UNIFORM_BUFFER, 1, ropUBO);
 
-	glLineWidth(6.0);
+	glLineWidth(5.0);
 	glEnable(GL_CULL_FACE);
 
 	if (g_dynamicTextureCount > 0)
@@ -838,11 +830,18 @@ void DrawSw(SW* psw, CM* pcm)
 
 	if (g_blipCount > 0)
 	{
+		glEnable(GL_BLEND);
+		glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE, GL_ONE, GL_ZERO);
+		glDepthMask(false);
+
 		for (int i = 0; i < g_blipCount; i++)
 		{
 			BindRenderObject(&g_blipPrpl[i]);
-			DrawGlob(&g_blipPrpl[i]);
+			DrawBlip(&g_blipPrpl[i]);
 		}
+
+		glDepthMask(true);
+		glDisable(GL_BLEND);
 
 		g_blipCount = 0;
 	}
@@ -862,7 +861,7 @@ void DrawSw(SW* psw, CM* pcm)
 	{
 		glEnable(GL_BLEND);
 		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-		glUniform1i(glslfAlphaTest, 1);
+		glDepthMask(false);
 		//glDepthFunc(GL_ALWAYS);
 
 		for (int i = 0; i < g_worldMapCount; i++)
@@ -871,7 +870,7 @@ void DrawSw(SW* psw, CM* pcm)
 			DrawGlob(&g_worldMapPrpl[i]);
 		}
 
-		glUniform1i(glslfAlphaTest, 0);
+		glDepthMask(true);
 		//glDepthFunc(GL_LESS);
 		glDisable(GL_BLEND);
 
@@ -899,6 +898,9 @@ void DrawSw(SW* psw, CM* pcm)
 void BindRenderObject(RPL* prpl)
 {
 	glBindVertexArray(prpl->VAO);
+
+	if (prpl->ro.warpType != 0)
+		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, prpl->ssboWarpState);
 
 	prpl->PFNBIND(prpl);
 }
@@ -932,7 +934,7 @@ void BindRenderCelObject(RPLCEL* prplcel)
 	glBufferData(GL_UNIFORM_BUFFER, sizeof(ROCEL), nullptr, GL_STREAM_DRAW);
 	glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(ROCEL), &prplcel->rocel);
 
-	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, prplcel->edgeSSBO);
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 5, prplcel->edgeSSBO);
 }
 
 void DrawGlob(RPL* prpl)
@@ -965,7 +967,6 @@ void DrawProjVolume(RPL* prpl)
 	glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP);
 	glFrontFace(GL_CW);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
 	glDrawElements(GL_TRIANGLES, prpl->cvtx, GL_UNSIGNED_SHORT, 0);
 }
 
@@ -989,20 +990,18 @@ void DrawProjVolumeAlphaAdd(RPL* prpl)
 	glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP);
 	glFrontFace(GL_CW);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
 	glDrawElements(GL_TRIANGLES, prpl->cvtx, GL_UNSIGNED_SHORT, 0);
 }
 
 void DrawProjVolumeAdd(RPL* prpl)
 {
-	// Expect grfshd in {1, 3}. If not, early-out or clamp.
-	switch (prpl->grfshd)
+	switch (prpl->pshd->grfshd)
 	{
-		case 1: // edge pass uses (ZERO, ONE)
+		case 1:
 		glBlendFunc(GL_ZERO, GL_ONE);
 		break;
 
-		case 3: // edge pass uses (SRC_ALPHA, ONE)
+		case 3:
 		glBlendFunc(GL_SRC_ALPHA, GL_ONE);
 		break;
 	}
@@ -1057,6 +1056,11 @@ void DrawTranslucent(RPL* prpl)
 	glDrawElements(GL_TRIANGLES, prpl->cvtx, GL_UNSIGNED_SHORT, 0);
 }
 
+void DrawBlip(RPL* prpl)
+{
+	glDrawElements(GL_TRIANGLES, prpl->cvtx, GL_UNSIGNED_SHORT, 0);
+}
+
 void DrawSwCollisionAll(CM* pcm)
 {
 	glGeomShader.Use();
@@ -1064,7 +1068,6 @@ void DrawSwCollisionAll(CM* pcm)
 	glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, sizeof(CMGL), &g_pcm->matWorldToClip);
 
 	glLineWidth(2.0);
-	glEnable(GL_CULL_FACE);
 
 	ROGEOM rogeom{};
 
@@ -1095,7 +1098,6 @@ void DrawSwCollisionAll(CM* pcm)
 	}
 
 	glBindVertexArray(0);
-	glDisable(GL_CULL_FACE);
 }
 
 int numRo = 0;

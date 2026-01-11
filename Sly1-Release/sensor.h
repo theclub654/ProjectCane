@@ -1,5 +1,5 @@
 #pragma once
-#include "so.h"
+#include "jt.h"
 
 enum SENSM
 {
@@ -146,6 +146,7 @@ void InitSensor(SENSOR* psensor);
 int  GetSensorSize();
 void CloneSensor(SENSOR* psensor, SENSOR* psensorBase);
 void SetSensorSensors(SENSOR* psensor, SENSORS sensors);
+void UpdateSensor(SENSOR* psensor, float dt);
 void DeleteSensor(SENSOR* psensor);
 
 LASEN*NewLasen();
@@ -156,6 +157,7 @@ void LoadLasenFromBrx(LASEN* plasen, CBinaryInputStream* pbis);
 void CloneLasen(LASEN* plasen, LASEN* plasenBase);
 void BindLasen(LASEN* plasen);
 void PostLasenLoad(LASEN* plasen);
+void UpdateLasen(LASEN* plasen, float dt);
 void SetLasenSensors(LASEN* plasen, SENSORS sensors);
 void RenderLasenSelf(LASEN* plasen, CM* pcm, RO* pro);
 void DeleteLasen(LASEN *plasen);
@@ -164,6 +166,9 @@ CAMSEN*NewCamsen();
 void InitCamsen(CAMSEN* pcamsen);
 int  GetCamsenSize();
 void CloneCamsen(CAMSEN* pcamsen, CAMSEN* pcamsenBase);
+void PostCamsenLoad(CAMSEN* pcamsen);
+void SetCamsenCsdts(CAMSEN* pcamsen, CSDTS csdts);
+void UpdateCamsen(CAMSEN* pcamsen, float dt);
 void RenderCamsenSelf(CAMSEN* pcamsen, CM* pcm, RO* pro);
 void DeleteCamsen(CAMSEN *pcamsen);
 
@@ -171,6 +176,8 @@ PRSEN*NewPrsen();
 void InitPrsen(PRSEN* pprsen);
 int  GetPrsenSize();
 void ClonePrsen(PRSEN* pprsen, PRSEN* pprsenBase);
+void PostPrsenLoad(PRSEN* pprsen);
+void UpdatePrsen(PRSEN* pprsen, float dt);
 void DeletePrsen(PRSEN* ppprsen);
 
 float SCalcLasenShapeExtent(LASEN* plasen, LBEAM* plbeam);

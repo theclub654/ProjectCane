@@ -100,6 +100,7 @@ VAULT*NewVault();
 void InitVault(VAULT* pvault);
 int  GetVaultSize();
 void CloneVault(VAULT* pvault, VAULT* pvaultBase);
+void PostVaultLoad(VAULT* pvault);
 void DeleteVault(VAULT *pvault);
 
 SPRIZE*NewSprize();
@@ -108,6 +109,8 @@ int  GetSprizeSize();
 void LoadSprizeFromBrx(SPRIZE* psprize, CBinaryInputStream* pbis);
 void CloneSprize(SPRIZE* psprize, SPRIZE* psprizeBase);
 void BindSprize(SPRIZE* psprize);
+void PostSprizeLoad(SPRIZE* psprize);
+void UpdateSprize(SPRIZE* psprize, float dt);
 void DeleteSprize(SPRIZE* psprize);
 
 SCPRIZE*NewScprize();
@@ -123,6 +126,7 @@ void InitClue(CLUE* pclue);
 int  GetClueSize();
 void CloneClue(CLUE* pclue, CLUE* pclueBase);
 void LoadClueFromBrx(CLUE *pclue, CBinaryInputStream *pbis);
+void PostClueLoad(CLUE* pclue);
 void RenderClueAll(CLUE* pclue, CM* pcm, RO* pro);
 void DeleteClue(CLUE *pclue);
 
@@ -130,12 +134,14 @@ LOCK*NewLock();
 int  GetLockSize();
 void LoadLockFromBrx(LOCK* plock, CBinaryInputStream* pbis);
 void CloneLock(LOCK* plock, LOCK* plockBase);
+void PostLockLoad(LOCK* plock);
 void DeleteLock(LOCK* plock);
 
 LOCKG*NewLockg();
 int  GetLockgSize();
 void LoadLockgFromBrx(LOCKG* plockg, CBinaryInputStream* pbis);
 void CloneLockg(LOCKG* plockg, LOCKG* plockgBase);
+void PostLockgLoad(LOCKG* plockg);
 void DeleteLockg(LOCKG* plockg);
 
 extern CLUECTR g_cluectr;

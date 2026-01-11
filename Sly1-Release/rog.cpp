@@ -62,6 +62,16 @@ void CloneRov(ROV* prov, ROV* provBase)
 	prov->fRetractDrive = provBase->fRetractDrive;
 }
 
+void PostRovLoad(ROV* prov)
+{
+	PostAloLoad(prov);
+}
+
+void UpdateRov(ROV* prov, float dt)
+{
+	UpdatePo(prov, dt);
+}
+
 void DeleteRov(ROV *prov)
 {
 	delete prov;
@@ -118,6 +128,17 @@ void CloneRoh(ROH* proh, ROH* prohBase)
 	proh->dleRob = prohBase->dleRob;
 }
 
+void PostRohLoad(ROH* proh)
+{
+	PostAloLoad(proh);
+	proh->pvtlo->pfnRemoveLo(proh);
+}
+
+void UpdateRoh(ROH* proh, float dt)
+{
+	UpdateSo(proh, dt);
+}
+
 void DeleteRoh(ROH *proh)
 {
 	delete proh;
@@ -170,6 +191,16 @@ void CloneRoc(ROC* proc, ROC* procBase)
 	proc->dleRob = procBase->dleRob;
 }
 
+void PostRocLoad(ROC* proc)
+{
+	PostAloLoad(proc);
+}
+
+void UpdateRoc(ROC* proc, float dt)
+{
+	UpdateSo(proc, dt);
+}
+
 void DeleteRoc(ROC *proc)
 {
 	delete proc;
@@ -213,6 +244,16 @@ void CloneRost(ROST* prost, ROST* prostBase)
 	prost->dleRob = prostBase->dleRob;
 }
 
+void PostRostLoad(ROST* prost)
+{
+	PostAloLoad(prost);
+}
+
+void UpdateRost(ROST* prost, float dt)
+{
+	UpdateSo(prost, dt);
+}
+
 void DeleteRost(ROST *prost)
 {
 	delete prost;
@@ -252,6 +293,16 @@ void CloneRop(ROP* prop, ROP* probBase)
 	prop->pasegReveal = probBase->pasegReveal;
 	prop->pasega = probBase->pasega;
 	prop->pexpl = probBase->pexpl;
+}
+
+void PostRopLoad(ROP* prop)
+{
+	PostAloLoad(prop);
+}
+
+void UpdateRop(ROP* prop, float dt)
+{
+	UpdateSo(prop, dt);
 }
 
 void DeleteRop(ROP *prop)
@@ -332,6 +383,16 @@ void CloneRob(ROB* prob, ROB* probBase)
 void BindRob(ROB* prob)
 {
 	BindAlo(prob);
+}
+
+void PostRobLoad(ROB* prob)
+{
+	PostAloLoad(prob);
+}
+
+void UpdateRob(ROB* prob, float dt)
+{
+	UpdateAlo(prob, dt);
 }
 
 void DeleteRob(ROB *prob)

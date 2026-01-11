@@ -52,6 +52,11 @@ void LoadRchmFromBrx(RCHM *prchm, CBinaryInputStream *pbis)
     LoadOptionsFromBrx(prchm, pbis);
 }
 
+void PostRchmLoad(RCHM* prchm)
+{
+    PostLoLoad(prchm);
+}
+
 void CloneRchm(RCHM* prchm, RCHM* prchmBase)
 {
     CloneLo(prchm, prchmBase);

@@ -31,7 +31,7 @@ void LoadCrvlFromBrx(std::shared_ptr <CRVL> pcrvl, CBinaryInputStream *pbis)
 {
 	pcrvl->fClosed = pbis->U8Read();
 	pcrvl->ccv = pbis->U8Read();
-
+	
 	pcrvl->mpicvu.resize(pcrvl->ccv);
 	pcrvl->mpicvs.resize(pcrvl->ccv);
 	pcrvl->mpicvpos.resize(pcrvl->ccv);
@@ -41,13 +41,41 @@ void LoadCrvlFromBrx(std::shared_ptr <CRVL> pcrvl, CBinaryInputStream *pbis)
 		pcrvl->mpicvu[i] = pbis->F32Read();
 		pcrvl->mpicvpos[i] = pbis->ReadVector();
 	}
+
+	pcrvl.get()->pvtcrvl->pfnMeasureCrvl(pcrvl);
+}
+
+void MeasureCrvl(std::shared_ptr<CRVL> pcrvl)
+{
+	SMeasureApos(pcrvl.get()->ccv, pcrvl.get()->mpicvpos, pcrvl.get()->mpicvs);
+}
+
+float SMeasureApos(int cpos, std::vector<glm::vec3> &apos, std::vector <float> &mpiposs)
+{
+	float cumulative = 0.0f;
+
+	for (int i = 1; i < cpos; ++i)
+	{
+		const glm::vec3 a = apos[i - 1];
+		const glm::vec3 b = apos[i];
+
+		const float dx = b.x - a.x;
+		const float dy = b.y - a.y;
+		const float dz = b.z - a.z;
+
+		cumulative += sqrtf(dx * dx + dy * dy + dz * dz);
+
+		mpiposs[i] = cumulative;
+	}
+
+	return cumulative;
 }
 
 void LoadCrvcFromBrx(std::shared_ptr <CRVC> pcrvc, CBinaryInputStream *pbis)
 {
 	pcrvc->fClosed = pbis->U8Read();
 	pcrvc->ccv = pbis->U8Read();
-
+	
 	pcrvc->mpicvu.resize(pcrvc->ccv);
 	pcrvc->mpicvs.resize(pcrvc->ccv);
 	pcrvc->mpicvpos.resize(pcrvc->ccv);
@@ -62,6 +90,11 @@ void LoadCrvcFromBrx(std::shared_ptr <CRVC> pcrvc, CBinaryInputStream *pbis)
 		pcrvc->mpicvdposIn[i] = pbis->ReadVector();
 		pcrvc->mpicvdposOut[i] = pbis->ReadVector();
 	}
+}
+
+void MeasureCrvc(std::shared_ptr <CRVC>)
+{
+
 }
 
 void DeletePcrv(CRVK crvk, CRV* pcrv)

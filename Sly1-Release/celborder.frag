@@ -1,6 +1,6 @@
 #version 430 core
 
-layout(std140, binding = 1) uniform ROCEL // Cel border properties
+layout(std140, binding = 1) uniform ROCEL
 {
     mat4  model;                 
 	vec4  celRgba;         

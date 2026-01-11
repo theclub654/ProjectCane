@@ -99,7 +99,7 @@ glm::mat4 CBinaryInputStream::ReadMatrix4()
     file.read(reinterpret_cast<char*> (&temp[1]), sizeof(glm::vec3));
     file.read(reinterpret_cast<char*> (&temp[2]), sizeof(glm::vec3));
     file.read(reinterpret_cast<char*> (&temp[3]), sizeof(glm::vec3));
-    temp[3][3] = 1.0;
+    temp[3][3] = 1.0f;
     return temp;
 }
 

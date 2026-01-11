@@ -49,6 +49,14 @@ struct ZPD
 	struct LO* aploThrow[32];
 };
 
+struct OXA 
+{
+	struct OX* pox;
+	struct SO* pso;
+	struct OXA* poxaNext;
+	struct OXA* poxaPrev;
+};
+
 struct NPG
 {
 	int cmk;

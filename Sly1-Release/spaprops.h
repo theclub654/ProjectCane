@@ -2143,7 +2143,11 @@ enum TBID
     TBID_Copyright = 0,
     TBID_Max = 1
 };
-
+enum ENSK
+{
+    ENSK_Get = 0,
+    ENSK_Set = 1
+};
 // Option Data
 struct OPTDAT
 {

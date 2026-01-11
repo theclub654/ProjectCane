@@ -8,6 +8,8 @@ EXPLO* NewExplo()
 void InitExplo(EXPLO* pexplo)
 {
 	InitXfm(pexplo);
+	pexplo->oidShape = OID_Nil;
+	pexplo->oidReference = OID_Nil;
 }
 
 int GetExploSize()
@@ -19,25 +21,26 @@ void LoadExploFromBrx(EXPLO* pexplo, CBinaryInputStream* pbis)
 {
 	EMITB emitb{};
 
+	pexplo->pemitb = std::make_shared<EMITB>();
+
 	LoadXfmFromBrx(pexplo, pbis);
 	int8_t crvk = pbis->S8Read();
 
 	if (crvk != -1)
 	{
 		std::shared_ptr <CRV> pcrv = PcrvNew((CRVK)crvk);
-		pcrv->pvtcrvl->pfnLoadCrvlFromBrx(std::static_pointer_cast <CRVL> (pcrv), pbis);
+		pcrv->pvtcrvl->pfnLoadCrvlFromBrx(std::static_pointer_cast<CRVL>(pcrv), pbis);
 	}
 
-	if (loadEmitMesh == true)
-	{
-		loadEmitMesh = false;
-		LoadEmitMeshFromBrx(pbis);
-	}
+	if (pexplo->pemitb->emito.emitok == EMITOK_Mesh)
+		LoadEmitMeshFromBrx(&pexplo->pemitb->emito.emitmeshOrigin, pbis);
 
 	uint16_t crgba = pbis->U16Read();
 
 	if (crgba != 0)
-		LoadEmitblipColorsFromBrx(crgba, pbis);
+	{
+		LoadEmitblipColorsFromBrx(nullptr, crgba, pbis);
+	}
 }
 
 void CloneExplo(EXPLO* pexplo, EXPLO* pexploBase)
@@ -45,8 +48,13 @@ void CloneExplo(EXPLO* pexplo, EXPLO* pexploBase)
 	CloneExpl(pexplo, pexploBase);
 
 	pexplo->pemitb = pexploBase->pemitb;
-	pexplo->oidreference = pexploBase->oidreference;
+	pexplo->oidReference = pexploBase->oidReference;
 	pexplo->oidShape = pexploBase->oidShape;
+}
+
+EMITOK* PemitbEnsureExploEmitok(EXPLO* pexplo, ENSK ensk)
+{
+	return &pexplo->pemitb.get()->emito.emitok;;
 }
 
 void BindExplo(EXPLO* pexplo)
@@ -67,6 +75,17 @@ EMITTER* NewEmitter()
 void InitEmitter(EMITTER* pemitter)
 {
 	InitAlo(pemitter);
+	pemitter->lmSvcParticle.gMin = 10.0;
+	pemitter->tUnpause = -1.0;
+	pemitter->oidGroup = OID_Nil;
+	pemitter->cParticle = -1;
+	pemitter->lmSvcParticle.gMax = 10.0;
+	pemitter->oidReference = OID_Nil;
+	pemitter->oidRender = OID_Nil;
+	pemitter->oidNextRender = OID_Nil;
+	pemitter->oidTouch = OID_Nil;
+	pemitter->oidShape = OID_Nil;
+	pemitter->emitrk = EMITRK_Nil;
 	InitDl(&pemitter->dlGroup, offsetof(EMITTER, dleGroup));
 }
 
@@ -75,7 +94,7 @@ int GetEmitterSize()
 	return sizeof(EMITTER);
 }
 
-void LoadEmitMeshFromBrx(CBinaryInputStream* pbis)
+void LoadEmitMeshFromBrx(EMITMESH* pemitmesh, CBinaryInputStream* pbis)
 {
 	uint16_t cpos = pbis->U16Read();
 
@@ -95,16 +114,48 @@ void LoadEmitMeshFromBrx(CBinaryInputStream* pbis)
 	pbis->ReadVector();
 }
 
-void LoadEmitblipColorsFromBrx(int crgba, CBinaryInputStream* pbis)
+void LoadEmitblipColorsFromBrx(EMITBLIP *pemitblip, int crgba, CBinaryInputStream* pbis)
 {
-	byte colorRanges = pbis->U8Read();
+	if (pemitblip != nullptr)
+	{
+		const int storeCount = std::min<int>(crgba, 0x20);
 
-	for (int i = 0; i < crgba; i++)
-		pbis->U32Read();
+		pemitblip->crgba = storeCount;
+		pemitblip->argba.resize(storeCount);
+
+		pemitblip->fColorRanges = static_cast<int>(static_cast<int8_t>(pbis->U8Read()));
+
+		constexpr float inv255 = 1.0f / 255.0f;
+
+		for (int i = 0; i < crgba; ++i)
+		{
+			const u32 packed = pbis->U32Read();
+			
+			if (i < storeCount)
+			{
+				const float r = ((packed >> 0)  & 0xFF) * inv255;
+				const float g = ((packed >> 8)  & 0xFF) * inv255;
+				const float b = ((packed >> 16) & 0xFF) * inv255;
+				const float a = ((packed >> 24) & 0xFF) * inv255;
+
+				pemitblip->argba[i] = glm::vec4(r, g, b, a);
+			}
+		}
+	}
+	else
+	{
+		byte colorRanges = pbis->U8Read();
+
+		for (int i = 0; i < crgba; i++)
+			pbis->U32Read();
+	}
 }
 
 void LoadEmitterFromBrx(EMITTER* pemitter, CBinaryInputStream* pbis)
 {
+	EMITB emitb{};
+	pemitter->pemitb = std::make_shared <EMITB>(emitb);
+	
 	LoadAloFromBrx(pemitter, pbis);
 
 	int8_t crvk = pbis->S8Read();
@@ -112,19 +163,20 @@ void LoadEmitterFromBrx(EMITTER* pemitter, CBinaryInputStream* pbis)
 	if (crvk != -1)
 	{
 		std::shared_ptr <CRV> pcrv = PcrvNew((CRVK)crvk);
+		pemitter->pemitb->emito.emitcrvOrigin.pcrv = pcrv;
 		pcrv->pvtcrvl->pfnLoadCrvlFromBrx(std::static_pointer_cast <CRVL> (pcrv), pbis);
 	}
 
-	if (loadEmitMesh == true)
-	{
-		loadEmitMesh = false;
-		LoadEmitMeshFromBrx(pbis);
-	}
+	if (pemitter->pemitb->emito.emitok == EMITOK_Mesh)
+		LoadEmitMeshFromBrx(&pemitter->pemitb->emito.emitmeshOrigin, pbis);
 
 	uint16_t crgba = pbis->U16Read();
 
 	if (crgba != 0)
-		LoadEmitblipColorsFromBrx(crgba, pbis);
+	{
+		EMITB *pemitb = PemitbEnsureEmitter(pemitter, ENSK_Set);
+		LoadEmitblipColorsFromBrx(&pemitb->emitp.emitblip, crgba, pbis);
+	}
 }
 
 void CloneEmitter(EMITTER* pemitter, EMITTER* pemitterBase)
@@ -160,9 +212,212 @@ void CloneEmitter(EMITTER* pemitter, EMITTER* pemitterBase)
 	pemitter->fValuesChanged = pemitterBase->fValuesChanged;
 }
 
+void UnpauseEmitter(EMITTER* pemitter)
+{
+	pemitter->tUnpause = -1.0;
+}
+
+int FPausedEmitter(EMITTER* emitter)
+{
+	if (emitter->tUnpause > g_clock.t)
+		return 1;
+
+	const int isActiveNonBurst = (EMITRK_Nil < emitter->emitrk) && (emitter->emitrk < EMITRK_Burst);
+
+	return (isActiveNonBurst && emitter->cParticle == 0) ? 1 : 0;
+}
+
+EMITTER* PemitterEnsureEmitter(EMITTER* pemitter, ENSK ensk)
+{
+	if (ensk == ENSK_Set) {
+		pemitter->fValuesChanged = 1;
+	}
+
+	return pemitter;
+}
+
 EMITB* PemitbEnsureEmitter(EMITTER* pemitter, ENSK ensk)
 {
-	return pemitter->pemitb;
+	/*if (ensk == ENSK_Set) 
+	{
+		pemitter->fValuesChanged = 1;
+		pemitter->pemitb = PemitbCopyOnWrite(pemitter->pemitb);
+		pemitter->pemitb->pchzName = PchzFromLo(pemitter);
+	}*/
+
+	return pemitter->pemitb.get();
+}
+
+EMITOK* PemitbEnsureEmitterEmitok(EMITTER* pemitter, ENSK ensk)
+{
+
+	return &pemitter->pemitb.get()->emito.emitok;
+}
+
+glm::vec3* PemitbEnsureEmitterEmitokVec(EMITTER* pemitter, ENSK ensk)
+{
+	return &pemitter->pemitb.get()->emito.posOrigin;
+}
+
+EMITRK *PemitbEnsureEmitterEmitrk(EMITTER* pemitter)
+{
+	return &PemitterEnsureEmitter(pemitter, ENSK_Set)->emitrk;
+}
+
+LM* PemitbEnsureEmitterlmSvcParticle(EMITTER* pemitter)
+{
+	return &PemitterEnsureEmitter(pemitter, ENSK_Set)->lmSvcParticle;
+}
+
+float* PemitbEnsureEmittercParticleConstant(EMITTER* pemitter)
+{
+	return &PemitterEnsureEmitter(pemitter, ENSK_Set)->cParticleConstant;
+}
+
+float* PemitEnsureEmitteruPauseProb(EMITTER* pemitter)
+{
+	return &PemitterEnsureEmitter(pemitter, ENSK_Set)->uPauseProb;
+}
+
+LM* PemitbEnsureEmitterlmDtPause(EMITTER* pemitter)
+{
+	return &PemitterEnsureEmitter(pemitter, ENSK_Set)->lmDtPause;
+}
+
+void GetEmitterEnabled(EMITTER* pemitter, int* pfEnabled)
+{
+	bool isPaused = FPausedEmitter(pemitter);
+	*pfEnabled = !isPaused;
+}
+
+void SetEmitterEnabled(EMITTER* pemitter, int fEnabled)
+{
+	if (fEnabled == 0) {
+		PauseEmitterIndefinite(pemitter);
+	}
+	else {
+		UnpauseEmitter(pemitter);
+	}
+}
+
+int* GetEmitterfCountIsDensity(EMITTER* pemitter)
+{
+	return &pemitter->fCountIsDensity;
+}
+
+void SetEmitterfCountIsDensity(EMITTER* pemitter, bool fCountDensity)
+{
+	pemitter->fCountIsDensity = fCountDensity;
+}
+
+void SetEmitterOidReference(EMITTER* pemitter, OID oidReference)
+{
+	pemitter->oidReference = oidReference;
+}
+
+OID* GetEmitterOidReference(EMITTER* pemitter)
+{
+	return &pemitter->oidReference;
+}
+
+void* GetEmitterOidRender(EMITTER* pemitter)
+{
+	return &pemitter->oidRender;
+}
+
+void SetEmitterOidRender(EMITTER* pemitter, OID oidRender)
+{
+	pemitter->oidRender = oidRender;
+}
+
+void* GetEmitterOidTouch(EMITTER* pemitter)
+{
+	return &pemitter->oidTouch;
+}
+
+void SetEmitterOidTouch(EMITTER* pemitter, OID oidTouch)
+{
+	pemitter->oidTouch = oidTouch;
+}
+
+void* GetEmitterOidNextRender(EMITTER* pemitter)
+{
+	return &pemitter->oidNextRender;
+}
+
+void SetEmitterOidNextRender(EMITTER* pemitter, OID oidNextRender)
+{
+	pemitter->oidNextRender = oidNextRender;
+}
+
+void* GetEmitterOidGroup(EMITTER* pemitter)
+{
+	return &pemitter->oidGroup;
+}
+
+void SetEmitterOidGroup(EMITTER* pemitter, OID oidGroup)
+{
+	pemitter->oidGroup = oidGroup;
+}
+
+void PauseEmitter(EMITTER* pemitter, float dtPause)
+{
+	pemitter->tUnpause = g_clock.t + dtPause;
+}
+
+void GetEmitterPaused(EMITTER* pemitter, int* pfPaused)
+{
+	*pfPaused = FPausedEmitter(pemitter);
+}
+
+void* GetEmitterOidShape(EMITTER* pemitter)
+{
+	return &pemitter->oidShape;
+}
+
+void SetEmitterOidShape(EMITTER* pemitter, OID oidShape)
+{
+	pemitter->oidShape = oidShape;
+}
+
+EMITNK* PemitbEnsureEmitterEmitnk(EMITTER* pemitter)
+{
+	return &PemitterEnsureEmitter(pemitter, ENSK_Set)->pemitb->emito.emitnk;
+}
+
+glm::vec3* PemitbEnsureEmitterEmitoVec(EMITTER* pemitter)
+{
+	return &PemitterEnsureEmitter(pemitter, ENSK_Set)->pemitb->emito.vec;
+}
+
+LM* PemitbEnsureEmitterlmSOffset(EMITTER* pemitter)
+{
+	return &PemitterEnsureEmitter(pemitter, ENSK_Set)->pemitb->emito.lmSOffset;
+}
+
+void SetEmitterParticleCount(EMITTER* pemitter, int cParticle)
+{
+	if (pemitter->emitrk == EMITRK_Nil) {
+		pemitter->cParticle = cParticle;
+	}
+	else if (pemitter->emitrk == EMITRK_Continuous) {
+		if (cParticle == 0) {
+			PauseEmitterIndefinite(pemitter);
+		}
+		else if (cParticle == -1) {
+			UnpauseEmitter(pemitter);
+		}
+		else {
+			pemitter->cParticle = cParticle;
+		}
+	}
+	pemitter->fValuesChanged = 1;
+}
+
+void SetEmitterAutoPause(EMITTER* pemitter, int fAutoPause)
+{
+	pemitter->fAutoPause = fAutoPause;
+	pemitter->fValuesChanged = 1;
 }
 
 void PauseEmitterIndefinite(EMITTER* pemitter)
@@ -178,6 +433,16 @@ void RenderEmitterSelf(EMITTER* pemitter, CM* pcm, RO* pro)
 void BindEmitter(EMITTER* pemitter)
 {
 	BindAlo(pemitter);
+}
+
+void PostEmitterLoad(EMITTER* pemitter)
+{
+	PostAloLoad(pemitter);
+}
+
+void UpdateEmitter(EMITTER* pemitter, float dt)
+{
+	UpdateAlo(pemitter, dt);
 }
 
 void DeleteEmitter(EMITTER *pemitter)
@@ -202,6 +467,12 @@ void CloneExpl(EXPL* pexpl, EXPL* pexplBase)
 	pexpl->pexplgParent = pexplBase->pexplgParent;
 }
 
+void PostExplLoad(EXPL* pexpl)
+{
+	PostLoLoad(pexpl);
+	pexpl->pvtlo->pfnRemoveLo(pexpl);
+}
+
 void DeleteExpl(EXPL* pexpl)
 {
 	delete pexpl;
@@ -215,6 +486,9 @@ EXPLS* NewExpls()
 void InitExpls(EXPLS* pexpls)
 {
 	InitExplo(pexpls);
+	pexpls->oidTouch = OID_Nil;
+	pexpls->oidRender = OID_Nil;
+	pexpls->oidNextRender = OID_Nil;
 }
 
 int GetExplsSize()

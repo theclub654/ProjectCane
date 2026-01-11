@@ -1,5 +1,6 @@
 #pragma once
 #include "so.h"
+#include "shdanim.h"
 
 class CNVO : public SO
 {
@@ -14,4 +15,7 @@ void InitCnvo(CNVO* pcnvo);
 int  GetCnvoSize();
 void LoadCnvoFromBrx(CNVO* pcnvo, CBinaryInputStream* pbis);
 void CloneCnvo(CNVO* pcnvo, CNVO* pcnvoBase);
+void MatchCnvoScrollerToBeltSpeed(CNVO* cnvo);
+void SetCnvoBeltSpeed(CNVO* pcnvo, float svBelt);
+void PostCnvoLoad(CNVO* pcnvo);
 void DeleteCnvo(CNVO *pcnvo);

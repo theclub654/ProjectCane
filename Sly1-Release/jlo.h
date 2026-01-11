@@ -94,6 +94,8 @@ void InitJlo(JLO* pjlo);
 int  GetJloSize();
 void LoadJloFromBrx(JLO* pjlo, CBinaryInputStream* pbis);
 void CloneJlo(JLO* pjlo, JLO* pjloBase);
+void PostJloLoad(JLO* pjlo);
+void UpdateJlo(JLO* pjlo, float dt);
 void DeleteJlo(JLO *pjlo);
 
 JLOC*NewJloc();
@@ -101,4 +103,5 @@ void InitJloc(JLOC* pjloc);
 int  GetJlocSize();
 void LoadJlocFromBrx(JLOC* pjloc, CBinaryInputStream* pbis);
 void CloneJloc(JLOC* pjloc, JLOC* pjlocBase);
+void PostJlocLoad(JLOC* pjloc);
 void DeleteJloc(JLOC* pjloc);

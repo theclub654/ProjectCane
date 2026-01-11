@@ -105,6 +105,16 @@ void LoadTbspFromBrx(CBinaryInputStream* pbis)
     }
 }
 
+void PostTnLoad(TN* ptn)
+{
+    PostAloLoad(ptn);
+}
+
+void UpdateTn(TN* ptn, float dt)
+{
+    UpdateAlo(ptn, dt);
+}
+
 void RenderTnSelf(TN* ptn, CM* pcm, RO* pro)
 {
     RenderAloSelf(ptn, pcm, pro);

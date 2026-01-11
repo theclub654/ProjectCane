@@ -26,15 +26,18 @@ LO* PloNew(CID cid, SW* psw, ALO* paloParent, OID oid, int isplice)
 		plo->paloParent = paloParent;
 		psw = (SW*)plo;
 	}
-
 	else
 		plo->paloParent = paloParent;
 
-	// Storing pointer to static world object
+	// Storing pointer to scene world object
 	plo->psw = psw;
 
 	// Appending object to fist parent list
     AppendDlEntry(PdlFromSwOid(plo->psw, plo->oid) , plo);
+
+	LO** head = plo->psw->aploCidHead + cid;
+	plo->ploCidNext = *head;
+	*head = plo;
 	
 	// Initializing local object
 	plo->pvtlo->pfnInitLo(plo);
@@ -65,7 +68,6 @@ void LoadSwObjectsFromBrx(SW *psw, ALO *paloParent, CBinaryInputStream *pbis)
 	{
 		// Objects class ID
 		CID cid = (CID)pbis->S16Read();
-		//std::cout << std::dec << cid << "\n";
 		// Objects ID
 		OID oid = (OID)pbis->S16Read();
 		// Objects splice event index
@@ -74,7 +76,6 @@ void LoadSwObjectsFromBrx(SW *psw, ALO *paloParent, CBinaryInputStream *pbis)
 		LO *plo = PloNew(cid, psw, paloParent, oid, isplice);
 		// Loading object from binary file
 		plo->pvtlo->pfnLoadLoFromBrx(plo, pbis);
-		
 		int stockOidIndex = IploFromStockOid(oid);
 
 		if (stockOidIndex > -1)
@@ -99,7 +100,6 @@ void LoadOptionsFromBrx(void* pvObject, CBinaryInputStream* pbis)
 
 		if (eopid < 0) break;
 
-		//std::cout << g_aeopid[eopid].optdat.pfnget << "\n";
 		LoadOptionFromBrx(pvObject, g_aeopid[eopid], eopid ,pbis);
 	}
 }
@@ -160,6 +160,9 @@ void LoadOptionFromBrx(void* pvObject, EOPID eopid, int eopidID, CBinaryInputStr
 			}
 		}
 
+		if (eopid.optdat.pfnget != nullptr)
+			eopid.optdat.pfnget(pvObject);
+
 		return;
 	}
 
@@ -183,7 +186,7 @@ void LoadOptionFromBrx(void* pvObject, EOPID eopid, int eopidID, CBinaryInputStr
 			{
 				float optionTypeBool = pbis->U8Read();
 
-				if (eopid.optdat.pfnget != nullptr)
+				if (eopid.optdat.pfnget != nullptr || eopid.optdat.pfnensure != nullptr)
 					memcpy(objectDataPtr, &optionTypeBool, sizeof(byte));
 				return;
 			}
@@ -191,8 +194,8 @@ void LoadOptionFromBrx(void* pvObject, EOPID eopid, int eopidID, CBinaryInputStr
 			case OTYP_Float:
 			{
 				float optionTypefloat = pbis->F32Read();
-				//std::cout << optionTypefloat << "\n";
-				if (eopid.optdat.pfnget != nullptr)
+				
+				if (eopid.optdat.pfnget != nullptr || eopid.optdat.pfnensure != nullptr)
 					memcpy(objectDataPtr, &optionTypefloat, sizeof(float));
 				return;
 			}
@@ -202,7 +205,7 @@ void LoadOptionFromBrx(void* pvObject, EOPID eopid, int eopidID, CBinaryInputStr
 			{
 				glm::vec3 optionDataMat3 = pbis->ReadVector();
 
-				if (eopid.optdat.pfnget != nullptr)
+				if (eopid.optdat.pfnget != nullptr || eopid.optdat.pfnensure != nullptr)
 					memcpy(objectDataPtr, &optionDataMat3, sizeof(glm::vec3));
 				return;
 			}
@@ -211,7 +214,7 @@ void LoadOptionFromBrx(void* pvObject, EOPID eopid, int eopidID, CBinaryInputStr
 			{
 				int optionDataInt = pbis->S32Read();
 
-				if (eopid.optdat.pfnget != nullptr)
+				if (eopid.optdat.pfnget != nullptr || eopid.optdat.pfnensure != nullptr)
 					memcpy(objectDataPtr, &optionDataInt, sizeof(int));
 				return;
 			}
@@ -219,7 +222,7 @@ void LoadOptionFromBrx(void* pvObject, EOPID eopid, int eopidID, CBinaryInputStr
 			case OTYP_Lm:
 			{
 				glm::vec2 optionTypeLm = pbis->ReadVector2();
-				if (eopid.optdat.pfnget != nullptr)
+				if (eopid.optdat.pfnget != nullptr || eopid.optdat.pfnensure != nullptr)
 					memcpy(objectDataPtr, &optionTypeLm, sizeof(glm::vec2));
 				return;
 			}
@@ -230,7 +233,7 @@ void LoadOptionFromBrx(void* pvObject, EOPID eopid, int eopidID, CBinaryInputStr
 			{
 				glm::vec3 optionDataVec = pbis->ReadVector();
 
-				if (eopid.optdat.pfnget != nullptr)
+				if (eopid.optdat.pfnget != nullptr || eopid.optdat.pfnensure != nullptr)
 					memcpy(objectDataPtr, &optionDataVec, sizeof(glm::vec3));
 				return;
 			}
@@ -240,7 +243,7 @@ void LoadOptionFromBrx(void* pvObject, EOPID eopid, int eopidID, CBinaryInputStr
 			{
 				glm::vec4 optionDataVec4 = pbis->ReadVector4();
 
-				if (eopid.optdat.pfnget != nullptr)
+				if (eopid.optdat.pfnget != nullptr || eopid.optdat.pfnensure != nullptr)
 					memcpy(objectDataPtr, &optionDataVec4, sizeof(glm::vec4));
 				return;
 			}
@@ -249,14 +252,16 @@ void LoadOptionFromBrx(void* pvObject, EOPID eopid, int eopidID, CBinaryInputStr
 			{
 				int optionDataUint = pbis->U32Read();
 
-				if (eopid.optdat.pfnget != nullptr)
+				if (eopid.optdat.pfnget != nullptr || eopid.optdat.pfnensure != nullptr)
 					memcpy(objectDataPtr, &optionDataUint, sizeof(int));
 				return;
 			}
 
 			default:
-				if (pbis->S16Read() == 0x4 && eopid.otyp == 0x1016)
-					loadEmitMesh = true;
+				short optionDataShort = pbis->S16Read();
+
+				if (eopid.optdat.pfnget != nullptr || eopid.optdat.pfnensure != nullptr)
+					memcpy(objectDataPtr, &optionDataShort, sizeof(short));
 			return;
 		}
 	}

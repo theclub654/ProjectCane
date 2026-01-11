@@ -8,8 +8,10 @@ RIPG* NewRipg()
 void InitRipg(RIPG *pripg)
 {
 	InitSo(pripg);
-	InitDl(&pripg->dlRip, 0x1C + 0x10 + 0xC);
-	pripg->sMRD = 10000000000;
+	InitDl(&pripg->dlRip, 0x10);
+	//*(ulong*)&(pripg->bspcCamera).absp = *(ulong*)&(pripg->bspcCamera).absp | 0x8040000000000;
+	pripg->sMRD = 1e+10;
+	*(unsigned long*)&pripg->bitfield = *(unsigned long*)&pripg->bitfield & 0xffffffffcfffffff | 0x10020000000;
 }
 
 int GetRipgSize()

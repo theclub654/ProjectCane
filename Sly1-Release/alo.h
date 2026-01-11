@@ -2,6 +2,7 @@
 #include "lo.h"
 #include "glob.h"
 #include "act.h"
+#include "wr.h"
 
 enum ACK
 {

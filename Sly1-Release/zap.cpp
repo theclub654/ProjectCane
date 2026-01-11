@@ -29,6 +29,16 @@ void CloneTzp(TZP* ptzp, TZP* ptzpBase)
 	}
 }
 
+void PostTzpLoad(TZP* ptzp)
+{
+	PostAloLoad(ptzp);
+}
+
+void UpdateTzp(TZP* ptzp, float dt)
+{
+	UpdateSo(ptzp, dt);
+}
+
 void DeleteTzp(TZP *ptzp)
 {
 	delete ptzp;
@@ -52,6 +62,11 @@ int GetVolzpSize()
 void CloneVolzp(VOLZP* pvolzp, VOLZP* pvolzpBase)
 {
 	CloneTzp(pvolzp, pvolzpBase);
+}
+
+void UpdateVolzp(VOLZP* pvolzp, float dt)
+{
+	UpdateSo(pvolzp, dt);
 }
 
 void RenderTzpAll(TZP* ptzp, CM* pcm, RO* pro)

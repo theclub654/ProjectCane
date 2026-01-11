@@ -52,6 +52,16 @@ void ClonePuffer(PUFFER* ppuffer, PUFFER* ppufferBase)
 	ppuffer->tGameMax = ppufferBase->tGameMax;
 }
 
+void PostPufferLoad(PUFFER* ppuffer)
+{
+	PostAloLoad(ppuffer);
+}
+
+void UpdatePuffer(PUFFER* ppuffer, float dt)
+{
+	UpdatePo(ppuffer, dt);
+}
+
 int GetPufferSize()
 {
 	return sizeof(PUFFER);
@@ -85,6 +95,16 @@ void ClonePuffb(PUFFB* ppuffb, PUFFB* ppuffbBase)
 	ppuffb->mpippathzonecpuffc = ppuffbBase->mpippathzonecpuffc;
 	ppuffb->appuffv = ppuffbBase->appuffv;
 	ppuffb->appuffc = ppuffbBase->appuffc;
+}
+
+void PostPuffbLoad(PUFFB* ppuffb)
+{
+	PostAloLoad(ppuffb);
+}
+
+void UpdatePuffb(PUFFB* ppuffb, float dt)
+{
+	UpdateAlo(ppuffb, dt);
 }
 
 void DeletePuffb(PUFFB* ppuffb)
@@ -125,6 +145,11 @@ void ClonePuffv(PUFFV* ppuffv, PUFFV* ppuffvBase)
 	std::copy(std::begin(ppuffvBase->appuffvLand), std::end(ppuffvBase->appuffvLand), std::begin(ppuffv->appuffvLand));
 }
 
+void PostPuffvLoad(PUFFV* ppuffv)
+{
+	PostLoLoad(ppuffv);
+}
+
 void DeletePuffv(PUFFV* ppuffv)
 {
 	delete ppuffv;
@@ -154,6 +179,17 @@ void ClonePuffc(PUFFC* ppuffc, PUFFC* ppuffcBase)
 	ppuffc->ppuffb = ppuffcBase->ppuffb;
 }
 
+void PostPuffcLoad(PUFFC* ppuffc)
+{
+	PostStepguardLoad(ppuffc);
+	ppuffc->pvtlo->pfnRemoveLo(ppuffc);
+}
+
+void UpdatePuffc(PUFFC* ppuffc, float dt)
+{
+	UpdateStepguard(ppuffc, dt);
+}
+
 void DeletePuffc(PUFFC* ppuffc)
 {
 	delete ppuffc;
@@ -177,6 +213,11 @@ void ClonePufft(PUFFT* ppufft, PUFFT* ppufftBase)
 
 	ppufft->ppntFire = ppufftBase->ppntFire;
 	ppufft->pemitterFire = ppufftBase->pemitterFire;
+}
+
+void PostPufftLoad(PUFFT* ppufft)
+{
+	PostAloLoad(ppufft);
 }
 
 void DeletePufft(PUFFT *ppufft)

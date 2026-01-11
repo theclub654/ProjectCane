@@ -31,6 +31,16 @@ void CloneWater(WATER* pwater, WATER* pwaterBase)
 	pwater->zpd = pwaterBase->zpd;
 }
 
+void PostWaterLoad(WATER* pwater)
+{
+	PostAloLoad(pwater);
+}
+
+void UpdateWater(WATER* pwater, float dt)
+{
+	UpdateSo(pwater, dt);
+}
+
 void DeleteWater(WATER *pwater)
 {
 	delete pwater;

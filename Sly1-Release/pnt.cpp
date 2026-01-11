@@ -31,7 +31,7 @@ void SetPntParent(PNT* ppnt, ALO* paloParent)
 
 void ApplyPntProxy(PNT* ppnt, PROXY* pproxyApply)
 {
-
+	ConvertAloPos((ALO*)pproxyApply, nullptr, ppnt->posLocal, ppnt->posLocal);
 }
 
 void DeletePnt(PNT* ppnt)

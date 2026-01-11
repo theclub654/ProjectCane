@@ -36,6 +36,11 @@ void CloneUbg(UBG* pubg, UBG* pubgBase)
 	pubg->nBossctr = pubgBase->nBossctr;
 }
 
+void PostUbgLoad(UBG* pubg)
+{
+	PostGomerLoad(pubg);
+}
+
 void RenderUbpAll(UBP* pubp, CM* pcm, RO* pro)
 {
 	RenderUbpAll(pubp, pcm, pro);
@@ -65,6 +70,11 @@ void CloneUbp(UBP* pubp, UBP* pubpBase)
 	pubp->tUbps = pubpBase->tUbps;
 	pubp->pactval = pubpBase->pactval;
 	pubp->pbomb = pubpBase->pbomb;
+}
+
+void PostUbpLoad(UBP* pubp)
+{
+	PostAloLoad(pubp);
 }
 
 void DeleteUbp(UBP *pubp)
@@ -107,6 +117,11 @@ void CloneUbv(UBV* pubv, UBV* pubvBase)
 
 	for (int i = 0; i < 4; ++i)
 		pubv->mprowcolSafe[i] = pubvBase->mprowcolSafe[i];
+}
+
+void PostUbvLoad(UBV* pubv)
+{
+	PostAloLoad(pubv);
 }
 
 void DeleteUbv(UBV *pubv)

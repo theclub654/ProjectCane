@@ -98,11 +98,14 @@ void InitBrk(BRK* pbrk);
 int  GetBrkSize();
 void LoadBrkFromBrx(BRK* pbrk, CBinaryInputStream* pbis);
 void CloneBrk(BRK* pbrk, BRK* pbrkBase);
+void PostBrkLoad(BRK* pbrk);
+void UpdateBrk(BRK* pbrk, float dt);
 void DeleteBrk(BRK* pbrk);
 
 BRKP*NewBrkp();
 int  GetBrkpSize();
 void CloneBrkp(BRKP* prkp, BRKP* prkpBase);
+void UpdateBrkp(BRKP* pbrkp, float dt); 
 void DeleteBrkp(BRKP* pbrkp);
 
 BREAK*NewBreak();
@@ -120,4 +123,5 @@ void DeleteFragile(FRAGILE* pfragile);
 ZAPBREAK*NewZapbreak();
 int  GetZapbreakSize();
 void CloneZapbreak(ZAPBREAK* pzapbreak, ZAPBREAK* pzapbreakBase);
+void UpdateZapbreak(ZAPBREAK* pzapbreak, float dt);
 void DeleteZapbreak(ZAPBREAK* pzapbreak);

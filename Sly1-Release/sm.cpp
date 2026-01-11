@@ -50,6 +50,11 @@ void LoadSmFromBrx(SM* psm, CBinaryInputStream* pbis)
 	}
 }
 
+void PostSmLoad(SM* psm)
+{
+	PostLoLoad(psm);
+}
+
 void CloneSm(SM* psm, SM* psmBase)
 {
 	CloneLo(psm, psmBase);

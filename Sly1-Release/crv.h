@@ -47,18 +47,25 @@ public:
 };
 
 std::shared_ptr <CRV> PcrvNew(CRVK crvk);
-void LoadCrvlFromBrx(std::shared_ptr <CRVL> pcrvl, CBinaryInputStream* pbis);
+void  LoadCrvlFromBrx(std::shared_ptr <CRVL> pcrvl, CBinaryInputStream* pbis);
+void  MeasureCrvl(std::shared_ptr <CRVL> pcrvl);
+float SMeasureApos(int cpos, std::vector<glm::vec3>& apos, std::vector <float>& mpiposs);
+
 void LoadCrvcFromBrx(std::shared_ptr <CRVC> pcrvc, CBinaryInputStream* pbis);
+void MeasureCrvc(std::shared_ptr <CRVC>);
+
 void DeletePcrv(CRVK crvk, CRV* pcrv);
 
 struct VTCRVL
 {
 	void (*pfnLoadCrvlFromBrx)(std::shared_ptr <CRVL>, CBinaryInputStream*) = LoadCrvlFromBrx;
+	void (*pfnMeasureCrvl)(std::shared_ptr <CRVL>) = MeasureCrvl;
 };
 
 struct VTCRVC
 {
 	void (*pfnLoadCrvcFromBrx)(std::shared_ptr <CRVC>, CBinaryInputStream*) = LoadCrvcFromBrx;
+	void (*pfnMeasureCrvc)(std::shared_ptr <CRVC>) = MeasureCrvc;
 };
 
 inline VTCRVL g_vtcrvl;

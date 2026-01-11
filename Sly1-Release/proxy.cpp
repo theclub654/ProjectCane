@@ -14,9 +14,6 @@ void InitProxy(PROXY *pproxy)
 {
 	InitAlo(pproxy);
 	AppendDlEntry(&pproxy->psw->dlProxy, pproxy);
-	numProxy++;
-	pproxy->numProxy = numProxy;
-	void *addr = &pproxy->dleBusy;
 }
 
 int GetProxySize()
@@ -94,26 +91,38 @@ void LoadProxyFromBrx(PROXY* pproxy, CBinaryInputStream* pbis)
 		// Loading oid needed to find
 		OID oidFind = (OID)pbis->S16Read();
 	
-		LO* pvObject = nullptr;
+		ALO* pvObject = nullptr;
 
 		for (int a = 0; a < proxyObjs.size(); a++)
 		{
 			if (proxyObjs[a]->oid != oidFind && (proxyObjs[a]->pvtlo->grfcid & 1U) != 0)
-				pvObject = PloFindSwObject(pproxy->psw, 0x101, oidFind, pvObject);
+				pvObject = (ALO*)PloFindSwObject(pproxy->psw, 0x101, oidFind, pvObject);
 
-			if (pvObject != nullptr) break;
-
+			if (pvObject != nullptr) 
+				break;
 			else
-				pvObject = proxyObjs[a];
+				pvObject = (ALO*)proxyObjs[a];
 		}
 
 		// Loads splice index
 		short isplice = pbis->S16Read();
 
-		pbis->U32Read();
+		int grfzon = pbis->U32Read();
+
+		if ((pvObject->pvtlo->grfcid & 1U) != 0)
+			pvObject->grfzon = grfzon;
 
 		if (pbis->S8Read() == 2)
-			pbis->F32Read();
+		{
+			*(unsigned long*)&pvObject->bitfield = *(unsigned long*)&pvObject->bitfield & 0xffffffffcfffffff | 0x20000000;
+
+			float sMRD = pbis->F32Read();
+
+			pvObject->sMRD = sMRD;
+
+			if (sMRD == 3.402823e+38)
+				pvObject->sMRD = 1e+10;
+		}
 
 		// GOTTA COME BACK TO THIS
 		LoadOptionsFromBrx(pvObject, pbis);
@@ -154,7 +163,7 @@ void LoadProxyFromBrx(PROXY* pproxy, CBinaryInputStream* pbis)
 	}
 
 	pproxy->pvtlo->pfnRemoveLo(pproxy);
-	//pproxy->pvtlo->pfnAddLo(pproxy);
+	pproxy->pvtlo->pfnAddLo(pproxy);
 }
 
 void CloneProxy(PROXY* pproxy, PROXY* pproxyBase)
@@ -221,6 +230,3 @@ void DeleteProxy(PROXY *pproxy)
 {
 	delete pproxy;
 }
-
-// Temporary flag
-bool loadEmitMesh = 0;

@@ -32,42 +32,37 @@ TICK TickNow()
 
 void MarkClockTick(CLOCK* pclock)
 {
-    uint64_t currentTick = TickNow();
-    int64_t deltaTicks = static_cast<int64_t>(currentTick - pclock->tickFrame);
+    TICK now = TickNow();
+    uint32_t u = static_cast<uint32_t>(now - static_cast<TICK>(pclock->tickFrame));
 
-    float deltaTime;
-    if (deltaTicks < 0) {
-        // Handling possible underflow or wraparound
-        uint64_t corrected = static_cast<uint64_t>((deltaTicks & 1) | (deltaTicks >> 1));
-        float f = static_cast<float>(corrected);
-        deltaTime = f + f;
+    float dtTicks;
+    if (static_cast<int32_t>(u) < 0) {
+        // exact unsigned->float trick from the original
+        float f = static_cast<float>((u >> 1) | (u & 1u));
+        dtTicks = f + f;
     }
     else {
-        deltaTime = static_cast<float>(deltaTicks);
+        dtTicks = static_cast<float>(u);
     }
 
-    // Convert to seconds: tick * tick-to-sec (3.390842e-09 is probably 1/tickFrequency)
-    deltaTime *= 3.390842e-09f;
+    float dt = dtTicks * 3.390842e-09f;
 
-    // Clamp to min/max frame time
-    deltaTime = std::clamp(deltaTime, 0.01666667f, 0.03333334f);
-    pclock->dtReal = deltaTime;
-    
-    float scaledDelta = 0.0f;
-    if (pclock->fEnabled) {
-        scaledDelta = deltaTime;
-    }
+    // clamp to [1/60, 1/30]
+    if (dt < 0.00833333) dt = 0.00833333;
+    else if (dt > 0.03333334f) dt = 0.03333334f;
 
-    float adjustedDelta = scaledDelta * g_rtClockDebug * g_rtClockPowerUp * g_rtClock;
+    pclock->dtReal = dt;
 
-    if (adjustedDelta >= 0.01666667f) {
-        pclock->dtReal = adjustedDelta;
-    }
+    float enabledDt = (pclock->fEnabled != 0) ? dt : 0.0f;
+    float adjusted = enabledDt * g_rtClockDebug * g_rtClockPowerUp * g_rtClock;
 
-    pclock->tickFrame = currentTick;
-    pclock->t += adjustedDelta;
+    if (adjusted >= 0.00833333)
+        pclock->dtReal = adjusted;
+
+    pclock->tickFrame = now;
+    pclock->t += adjusted;
     pclock->dtPrev = pclock->dt;
-    pclock->dt = adjustedDelta;
+    pclock->dt = adjusted;
     pclock->tReal += pclock->dtReal;
 }
 

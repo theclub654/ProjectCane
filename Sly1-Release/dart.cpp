@@ -60,6 +60,16 @@ void LoadDartFromBrx(DART* pdart, CBinaryInputStream* pbis)
 	LoadSoFromBrx(pdart, pbis);
 }
 
+void PostDartLoad(DART* pdart)
+{
+    PostAloLoad(pdart);
+}
+
+void UpdateDart(DART* pdart, float dt)
+{
+    UpdateSo(pdart, dt);
+}
+
 void DeleteDart(DART *pdart)
 {
 	delete pdart;

@@ -43,6 +43,16 @@ void CloneAlarm(ALARM* palarm, ALARM* palarmBase)
     palarm->ichkDisabled = ichkDisabled;
 }
 
+void PostAlarmLoad(ALARM* palarm)
+{
+    PostAloLoad(palarm);
+}
+
+void UpdateAlarm(ALARM* palarm, float dt)
+{
+    UpdateSo(palarm, dt);
+}
+
 void DeleteAlarm(ALARM* palarm)
 {
 	delete palarm;

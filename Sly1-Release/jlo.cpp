@@ -87,6 +87,16 @@ void CloneJlo(JLO* pjlo, JLO* pjloBase)
 	pjlo->pexc = pjloBase->pexc;
 }
 
+void PostJloLoad(JLO* pjlo)
+{
+	PostAloLoad(pjlo);
+}
+
+void UpdateJlo(JLO* pjlo, float dt)
+{
+	UpdateSo(pjlo, dt);
+}
+
 void DeleteJlo(JLO *pjlo)
 {
 	delete pjlo;
@@ -131,6 +141,12 @@ void CloneJloc(JLOC* pjloc, JLOC* pjlocBase)
 	pjloc->radTilt = pjlocBase->radTilt;
 	pjloc->svLaunch = pjlocBase->svLaunch;
 	pjloc->svTarget = pjlocBase->svTarget;
+}
+
+void PostJlocLoad(JLOC* pjloc)
+{
+	PostAloLoad(pjloc);
+	pjloc->pvtlo->pfnRemoveLo(pjloc);
 }
 
 void DeleteJloc(JLOC* pjloc)

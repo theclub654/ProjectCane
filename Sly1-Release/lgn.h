@@ -77,6 +77,8 @@ LGN* NewLgn();
 void InitLgn(LGN* plgn);
 int  GetLgnSize();
 void CloneLgn(LGN* plgn, LGN* plgnBase);
+void PostLgnLoad(LGN* plgn);
+void UpdateLgn(LGN* plgn, float dt);
 void RenderLgnAll(LGN* plgn, CM* pcm, RO* pro);
 void DeleteLgn(LGN* plgn);
 
@@ -84,12 +86,16 @@ LGNB*NewLgnb();
 void InitLgnb(LGNB *plgnb);
 int  GetLgnbSize();
 void CloneLgnb(LGNB *plgnb, LGNB* plgnbBase);
+void PostLgnbLoad(LGNB* plgnb);
+void UpdateLgnb(LGNB* plgnb, float dt);
 void DeleteLgnb(LGNB *plgnb);
 
 SWP* NewSwp();
 void InitSwp(SWP* pswp);
 int  GetSwpSize();
 void CloneSwp(SWP* pswp, SWP* pswpBase);
+void PostSwpLoad(SWP* pswp);
+void UpdateSwp(SWP* pswp, float dt);
 void DeleteSwp(SWP* pswp);
 
 extern LGNR g_lgnr;

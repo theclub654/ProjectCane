@@ -45,6 +45,8 @@ ALARM*NewAlarm();
 void InitAlarm(ALARM* palarm);
 int  GetAlarmSize();
 void CloneAlarm(ALARM* palarm, ALARM* palarmBase);
+void PostAlarmLoad(ALARM* palarm);
+void UpdateAlarm(ALARM* palarm, float dt);
 void DeleteAlarm(ALARM* plo);
 
 ALBRK*NewAlbrk();

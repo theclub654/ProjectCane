@@ -60,16 +60,20 @@ void InitMbg(MBG* pmbg);
 int  GetMbgSize();
 void LoadMbgFromBrx(MBG* pmbg, CBinaryInputStream* pbis);
 void CloneMbg(MBG* pmbg, MBG* pmbgBase);
+void PostMbgLoad(MBG* pmbg);
 void DeleteMbg(MBG* pmbg);
 
 BHG* NewBhg();
 void InitBhg(BHG* pbhg);
 int  GetBhgSize();
 void CloneBhg(BHG* pbhg, BHG* pbhgBase);
+void PostBhgLoad(BHG* pbhg);
 void DeleteBhg(BHG* pbhg);
 
 SCENTMAP*NewScentmap();
 void InitScentmap(SCENTMAP* pscentmap);
 int  GetScentmapSize();
 void CloneScentmap(SCENTMAP* pscentmap, SCENTMAP* pscentmapBase);
+void PostScentmapLoad(SCENTMAP* pscentmap);
+void UpdateScentmap(SCENTMAP* pscentmap, float dt);
 void DeleteScentmap(SCENTMAP* pscentmap);

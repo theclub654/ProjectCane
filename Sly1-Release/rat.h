@@ -59,6 +59,8 @@ void OnRatAdd(RAT* prat);
 void OnRatRemove(RAT* prat);
 void CloneRat(RAT* prat, RAT* pratBase);
 void LoadRatFromBrx(RAT* prat, CBinaryInputStream* pbis);
+void PostRatLoad(RAT* prat);
+void UpdateRat(RAT* prat, float dt);
 void RenderRatAll(RAT* prat, CM* pcm, RO* pro);
 void DeleteRat(RAT *prat);
 

@@ -25,7 +25,6 @@ struct CHN
 class ASEG : public LO
 {
     public:
-
     float tMax;
     int cchn;
     std::vector <CHN> achn;

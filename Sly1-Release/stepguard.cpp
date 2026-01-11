@@ -208,6 +208,16 @@ void BindStepguard(STEPGUARD* pstepguard)
     BindAlo(pstepguard);
 }
 
+void PostStepguardLoad(STEPGUARD* pstepguard)
+{
+    PostStepLoad(pstepguard);
+}
+
+void UpdateStepguard(STEPGUARD* pstepguard, float dt)
+{
+    UpdatePo(pstepguard, dt);
+}
+
 void RenderStepguardSelf(STEPGUARD* pstepguard, CM* pcm, RO* pro)
 {
 	RenderStepSelf(pstepguard, pcm, pro);

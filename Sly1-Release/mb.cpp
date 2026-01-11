@@ -62,6 +62,11 @@ void CloneMbg(MBG* pmbg, MBG* pmbgBase)
     pmbg->pasegblRun = pmbgBase->pasegblRun;
 }
 
+void PostMbgLoad(MBG* pmbg)
+{
+    PostStepguardLoad(pmbg);
+}
+
 void DeleteMbg(MBG* pmbg)
 {
 	delete pmbg;
@@ -92,6 +97,11 @@ void CloneBhg(BHG* pbhg, BHG* pbhgBase)
 
     // Shallow copy of the pscentmap pointer
     pbhg->pscentmap = pbhgBase->pscentmap;
+}
+
+void PostBhgLoad(BHG* pbhg)
+{
+    PostStepguardLoad(pbhg);
 }
 
 void DeleteBhg(BHG* phg)
@@ -125,6 +135,16 @@ void CloneScentmap(SCENTMAP* pscentmap, SCENTMAP* pscentmapBase)
     pscentmap->mpixiypscpFirst = pscentmapBase->mpixiypscpFirst;
     pscentmap->posMin = pscentmapBase->posMin;
     pscentmap->posMax = pscentmapBase->posMax;
+}
+
+void PostScentmapLoad(SCENTMAP* pscentmap)
+{
+    PostAloLoad(pscentmap);
+}
+
+void UpdateScentmap(SCENTMAP* pscentmap, float dt)
+{
+    UpdateAlo(pscentmap, dt);
 }
 
 void DeleteScentmap(SCENTMAP* pscentmap)

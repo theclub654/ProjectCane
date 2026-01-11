@@ -28,24 +28,17 @@ DLE* PdleFromDlEntry(DL *pdl, void *pv)
 
 void AppendDlEntry(DL *pdl, void *pv)
 {
-	// Loading entry from data list 
-	DLE *entry0 = PdleFromDlEntry(pdl, pv);
+	DLE* node = PdleFromDlEntry(pdl, pv);
 
-	// Checking to see if list is empty
 	if (pdl->pvLast == nullptr)
-		// If list is empty than it makes data the head node
 		pdl->pvFirst = pv;
-
 	else
 	{
-		// Loading last entry from list
-		DLE *entry1 = PdleFromDlEntry(pdl, pdl->pvLast);
-		entry0->pvPrev = (DLE*)pdl->pvLast;
-		// Storing the new next data entry in entry list
-		entry1->pvNext = pv;
+		DLE* lastNode = PdleFromDlEntry(pdl, pdl->pvLast);
+		node->pvPrev = pdl->pvLast;    // <-- store previous OBJECT pointer
+		lastNode->pvNext = pv;
 	}
 
-	// Storing data at the end of list
 	pdl->pvLast = pv;
 }
 
@@ -75,39 +68,48 @@ void PrependDlEntry(DL* pdl, void* pv)
 
 void RemoveDlEntry(DL *pdl, void *pv)
 {
-	if (!pdl || !pv) return;
-
 	DLE* dle = PdleFromDlEntry(pdl, pv);
 	if (!dle) return;
+
+	if (s_pdliFirst != nullptr)
+	{
+		for (DLI* it = s_pdliFirst; it != nullptr; it = it->m_pdliNext)
+		{
+			// m_ppv can equal the DLE being removed.
+			// If so, repoint it so iteration remains valid.
+			if ((DLE*)it->m_ppv == dle)
+			{
+				if (dle->pvPrev == nullptr)
+				{
+					// Removing first element: iterator should point at DL head storage.
+					it->m_ppv = (void**)pdl; // points at pdl->pvFirst
+				}
+				else
+				{
+					// Otherwise point at previous element's DLE.
+					DLE* prevDle = PdleFromDlEntry(pdl, dle->pvPrev);
+					it->m_ppv = (void**)prevDle;
+				}
+			}
+		}
+	}
 
 	void* prev = dle->pvPrev;
 	void* next = dle->pvNext;
 
-	// Update previous element's next pointer
-	if (!prev) {
-		// Removing first element
+	// --- unlink from prev / fix head ---
+	if (prev == nullptr)
 		pdl->pvFirst = next;
-	}
-	else {
-		DLE* prevDle = PdleFromDlEntry(pdl, prev);
-		if (prevDle) {
-			prevDle->pvNext = next;
-		}
-	}
+	else
+		PdleFromDlEntry(pdl, prev)->pvNext = next;
 
-	// Update next element's previous pointer
-	if (!next) {
-		// Removing last element
+	// --- unlink from next / fix tail ---
+	if (next == nullptr)
 		pdl->pvLast = prev;
-	}
-	else {
-		DLE* nextDle = PdleFromDlEntry(pdl, next);
-		if (nextDle) {
-			nextDle->pvPrev = prev;
-		}
-	}
+	else
+		PdleFromDlEntry(pdl, next)->pvPrev = prev;
 
-	// Clear links in removed entry
+	// clear removed links
 	dle->pvPrev = nullptr;
 	dle->pvNext = nullptr;
 }
@@ -118,7 +120,7 @@ int FFindDlEntry(DL *pdl, void *pv)
 	DLE *entry = PdleFromDlEntry(pdl, pv);
 
 	// Checks to see if list has a entry
-	if (entry->pvNext != 0 || pdl->pvLast == pv)
+	if (entry->pvNext != nullptr || pdl->pvLast == pv)
 		return 1;
 	else
 		return 0;

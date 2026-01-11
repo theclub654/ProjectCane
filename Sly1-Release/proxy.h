@@ -2,8 +2,6 @@
 #include "alo.h"
 #include "dec.h"
 
-extern bool loadEmitMesh;
-
 class PROXY : public ALO
 {
 	public:

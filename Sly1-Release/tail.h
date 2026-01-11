@@ -22,4 +22,5 @@ TAIL*NewTail();
 void InitTail(TAIL* ptail);
 int  GetTailSize();
 void CloneTail(TAIL* ptail, TAIL* ptailBase);
+void PostTailLoad(TAIL* ptail);
 void DeleteTail(TAIL* ptail);

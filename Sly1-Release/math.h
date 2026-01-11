@@ -10,6 +10,8 @@ void LoadMatrixFromPosRotScale(glm::vec3& vecPos, glm::mat3& matRot, glm::vec3& 
 void LoadMatrixFromPosRotInverse(glm::vec3& pposSrc, glm::mat3& pmatSrc, glm::mat4& pmatDst);
 void BuildOrthonormalMatrixZ(glm::vec3& pvecX, glm::vec3& pvecZ, glm::mat4& pmat);
 glm::vec3 DecomposeRotateMatrixEuler(const glm::mat3& R);
+void LoadScaleMatrixScalar(glm::vec3* ppos, float rScale, glm::mat4* outMatScale);
+void LoadScaleMatrixVector(glm::vec3* ppos, glm::mat3* pmat, glm::vec3* pvecScale, glm::mat4* outMatScale);
 void BuildRotateVectorsMatrix(const glm::vec3* pvec1, const glm::vec3* pvec2, glm::mat3* pmat);
 void LoadRotateMatrixRad(float rad, const glm::vec3* pnormal, glm::mat3* pmat);
 void CalculateSinCos(float rad, float* pgSin, float* pgCos);

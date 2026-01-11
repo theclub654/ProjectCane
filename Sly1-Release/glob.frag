@@ -1,7 +1,7 @@
 #version 430 core
 
-#define RKO_ThreeWay 0
-#define RKO_OneWay   1
+#define RKO_OneWay   0
+#define RKO_ThreeWay 1
 
 uniform sampler2D shadowMap;
 uniform sampler2D diffuseMap;
@@ -18,24 +18,37 @@ struct SWP // Scene world properties
     vec4  fogColor;
 }; uniform SWP swp;
 
-layout(std140) uniform CMGL
+layout(std430, binding = 0) readonly buffer CMGL
 {
     mat4 matWorldToClip;
     vec4 cameraPos;
 } cm;
 
-layout(std140) uniform RO // Render object properties
+layout(std140, binding = 1) uniform RO // Render object properties
 {
-    mat4  model;       // 0..63
-	int   rko;         // 64
-	float uAlpha;      // 68
-	float uFog;        // 72
-	float darken;      // 76
-	int   fDynamic;    // 80
-	float unSelfIllum; // 84
-	float sRadius;	   // 88
-	int   pad;         // 92
-	vec4  posCenter;   // 96..111
+    mat4  model;        //   0 -  63
+    int   rko;          //  64
+    float uAlpha;       //  68
+    float uFog;         //  72
+    float darken;       //  76
+    vec2  uvOffsets;    //  80 -  87
+    int   _pad0;        //  88
+    int   _pad1;        //  92
+    int   warpType;     //  96
+    int   warpCmat;     // 100
+    int   warpCvtx;     // 104
+    int   _padWarp0;    // 108
+	int   _padWarp1;    // 112
+	int   _padWarp2;    // 116
+	int   _padWarp3;    // 120
+	int   _padWarp4;    // 124
+    mat4  amatDpos[4];  // 128 - 383
+    mat4  amatDuv[4];   // 384 - 639
+    int   fDynamic;     // 640
+    float unSelfIllum;  // 644
+    float sRadius;      // 648
+    int   _pad2;        // 652
+    vec4  posCenter;    // 656 - 671
 }op;
 
 struct MATERIAL
@@ -54,12 +67,16 @@ in float fogIntensity;
 
 out vec4 FragColor;
 
+void AlphaTest();
 void DrawOneWay();
 void DrawThreeWay();
 void ApplyFog();
 
 void main()
 {
+    if (fAlphaTest == 1)
+        AlphaTest();
+
     FragColor = vec4(0.0);
 
     switch (op.rko)
@@ -77,18 +94,21 @@ void main()
         ApplyFog();
 }
 
+void AlphaTest()
+{
+    vec4  diffuse = texture(diffuseMap, texcoord);
+    float alphaIn = clamp(vertexColor.a * diffuse.a, 0.0, 1.0);
+
+    if (alphaIn < 0.9)
+        discard;
+}
+
 void DrawOneWay()
 {
     vec4 diffuse = texture(diffuseMap, texcoord);
 
-    FragColor = vertexColor * diffuse;
-
-    float alphaIn = clamp(vertexColor.a * diffuse.a, 0.0, 1.0);
-
-    if (fAlphaTest == 1 && alphaIn < 0.9)
-        discard;
-
-    FragColor.a = clamp(FragColor.a * op.uAlpha, 0.0, 1.0);
+    FragColor.rgb = (vertexColor.rgb * diffuse.rgb) * op.darken;
+    FragColor.a = clamp(vertexColor.a * diffuse.a * op.uAlpha, 0.0, 1.0);
 }
 
 void DrawThreeWay()
@@ -97,18 +117,8 @@ void DrawThreeWay()
     vec4 diffuse  = texture(diffuseMap,  texcoord);
     vec4 saturate = texture(saturateMap, texcoord);
 
-    // Alpha test first
-    float alphaIn = clamp(vertexColor.a * diffuse.a, 0.0, 1.0);
-
-    if (fAlphaTest == 1 && alphaIn < 0.9)
-        discard;
-
-    FragColor.rgb += shadow.rgb   * material.ambient     * op.darken;
-    FragColor.rgb += diffuse.rgb  * material.midtone.rgb * op.darken;
-    FragColor.rgb += saturate.rgb * material.light.rgb;
-
+    FragColor.rgb = (shadow.rgb * material.ambient + diffuse.rgb * material.midtone.rgb + saturate.rgb * material.light.rgb) * op.darken;
     float finalAlpha = clamp(vertexColor.a * diffuse.a, 0.0, 1.0);
-
     FragColor.a = clamp(finalAlpha * op.uAlpha, 0.0, 1.0);
 }
 

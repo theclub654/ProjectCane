@@ -38,6 +38,7 @@ void RenderMsGlobset(MS* pms, CM* pcm, RO* pro)
 
 		// globi unfade smoothing
 		float target = (g_clock.tReal < globi.tUnfade) ? 0.5f : 1.0f;
+
 		if (globi.uAlpha != target)
 			globi.uAlpha = GSmooth(globi.uAlpha, target, g_clock.dt, &s_smpFade, nullptr);
 
@@ -47,71 +48,114 @@ void RenderMsGlobset(MS* pms, CM* pcm, RO* pro)
 			continue;
 
 		rpl.ro.uAlpha = alpha;
+		rpl.ro.uFog = glob.uFog;
+
+		if ((glob.grfglob & 4U) == 0)
+			rpl.ro.darken = g_psw->rDarken;
+		else
+			rpl.ro.darken = 1.0;
+
+		if (glob.pdmat != nullptr)
+			rpl.ro.model = baseModelMatrix * *glob.pdmat;
+		else
+			rpl.ro.model = baseModelMatrix;
+
+		if (glob.pwrbg != nullptr && glob.pwrbg->pwr != nullptr)
+		{
+			rpl.ro.warpType = glob.pwrbg->warpType;
+			rpl.ro.warpCmat = glob.pwrbg->pwr->cmat;
+
+			const size_t count = glob.pwrbg->cmat;
+
+			switch (rpl.ro.warpType)
+			{
+				case WARP_POS:
+				std::memcpy(rpl.ro.amatDpos, glob.pwrbg->pwr->amatDpos, count * sizeof(*rpl.ro.amatDpos));
+				break;
+
+				case WARP_UV:
+				std::memcpy(rpl.ro.amatDuv, glob.pwrbg->pwr->amatDuv, count * sizeof(*rpl.ro.amatDuv));
+				break;
+
+				case WARP_BOTH:
+				std::memcpy(rpl.ro.amatDpos, glob.pwrbg->pwr->amatDpos, count * sizeof(*rpl.ro.amatDpos));
+				std::memcpy(rpl.ro.amatDuv,  glob.pwrbg->pwr->amatDuv,  count * sizeof(*rpl.ro.amatDuv));
+				break;
+			}
+
+		}
+		else
+			rpl.ro.warpType = WARP_NONE;
+
+		if (glob.rtck != RTCK_None)
+			AdjustAloRtckMat(pms, pcm, glob.rtck, (glm::vec3*)&posCenterWorld, rpl.ro.model);
+
+		rpl.rp = glob.rp;
+
+		if (rpl.ro.uAlpha < 1.0)
+		{
+			switch (rpl.rp)
+			{
+				case RP_Opaque:
+				case RP_Cutout:
+				case RP_OpaqueAfterProjVolume:
+				case RP_CutoutAfterProjVolume:
+				rpl.rp = RP_Translucent;
+				break;
+			}
+		}
+
+		switch (rpl.rp)
+		{
+			case RP_Background:
+			rpl.z = -glm::length(pcm->pos - glm::vec3(rpl.ro.model * glm::vec4(glob.posCenter, 1.0f)));
+			break;
+			case RP_Cutout:
+			case RP_CutoutAfterProjVolume:
+			case RP_Translucent:
+			rpl.z = glm::length(pcm->pos - glm::vec3(rpl.ro.model * glm::vec4(glob.posCenter, 1.0f)));
+			break;
+		}
 
 		for (auto& subglob : glob.asubglob)
 		{
-			rpl.VAO = subglob.VAO;
-			rpl.ro.fDynamic = glob.fDynamic;
-			rpl.ro.uFog = glob.uFog;
-			rpl.ro.posCenter = posCenterWorld;
-			rpl.ro.sRadius = glob.sRadius;
-
-			if ((glob.grfglob & 4U) == 0)
-				rpl.ro.darken = g_psw->rDarken;
-			else
-				rpl.ro.darken = 1.0;
+			rpl.VAO  = subglob.VAO;
+			rpl.cvtx = subglob.cvtx;
 
 			rpl.pshd = subglob.pshd;
 
 			if (subglob.pshd->shdk == SHDK_ThreeWay)
 			{
 				rpl.PFNBIND = BindThreeWay;
-				rpl.ro.rko = SHDK_ThreeWay;
+				rpl.ro.rko = RKO_ThreeWay;
+				rpl.ro.fDynamic = glob.fDynamic;
+				rpl.ro.posCenter = posCenterWorld;
+				rpl.ro.sRadius = glob.sRadius;
+				rpl.ro.unSelfIllum = subglob.unSelfIllum;
 			}
 			else
 			{
 				rpl.PFNBIND = BindOneWay;
-				rpl.ro.rko = 1;
+				rpl.ro.rko = RKO_OneWay;
 			}
 
-			rpl.grfshd = subglob.pshd->grfshd;
-			rpl.ro.unSelfIllum = subglob.unSelfIllum;
-			rpl.cvtx = subglob.cvtx;
-			rpl.rp = glob.rp;
-			rpl.ro.uAlpha = rpl.ro.uAlpha * g_uAlpha;
-
-			if (rpl.ro.uAlpha != 1.0)
+			if (subglob.usesUvAnim && subglob.uvSai) 
 			{
-				switch (rpl.rp)
-				{
-					case RP_Opaque:
-					case RP_Cutout:
-					case RP_OpaqueAfterProjVolume:
-					case RP_CutoutAfterProjVolume:
-					rpl.rp = RP_Translucent;
-					break;
-				}
+				rpl.ro.uvOffsets.x = subglob.uvSai->tcx.du;
+				rpl.ro.uvOffsets.y = subglob.uvSai->tcx.dv;
 			}
-
-			if (glob.pdmat != nullptr)
-				rpl.ro.model = baseModelMatrix * *glob.pdmat;
 			else
-				rpl.ro.model = baseModelMatrix;
-
-			switch (rpl.rp)
 			{
-				case RP_Background:
-				rpl.z = -glm::length2(pcm->pos - glm::vec3(rpl.ro.model * glm::vec4(subglob.posCenter, 1.0f)));
-				break;
-				case RP_Cutout:
-				case RP_CutoutAfterProjVolume:
-				case RP_Translucent:
-				rpl.z = glm::length2(pcm->pos - glm::vec3(rpl.ro.model * glm::vec4(subglob.posCenter, 1.0f)));
-				break;
+				rpl.ro.uvOffsets.x = 0.0;
+				rpl.ro.uvOffsets.y = 0.0;
 			}
 
-			if (glob.rtck != RTCK_None)
-				AdjustAloRtckMat(pms, pcm, glob.rtck, (glm::vec3*)&posCenterWorld, rpl.ro.model);
+			// ---- enable warp if this subglob is wired ----
+			if (rpl.ro.warpType != WARP_NONE)
+			{
+				rpl.ro.warpCvtx   = subglob.pwarp->vertexCount;
+				rpl.ssboWarpState = subglob.pwarp->ssboState;
+			}
 
 			SubmitRpl(&rpl);
 		}

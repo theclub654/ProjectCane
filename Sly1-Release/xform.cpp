@@ -124,6 +124,11 @@ void CloneWarp(WARP* pwarp, WARP* pwarpBase)
 	}
 }
 
+void PostWarpLoad(WARP* pwarp)
+{
+	PostLoLoad(pwarp);
+}
+
 void DeleteWarp(WARP* pwarp)
 {
 	delete pwarp;
@@ -208,9 +213,14 @@ void CloneExit(EXIT* pexit, EXIT* pexitBase)
 	pexit->dtTriggerWipe = pexitBase->dtTriggerWipe;
 }
 
+void PostExitLoad(EXIT* pexit)
+{
+	PostAloLoad(pexit);
+}
+
 void UpdateExit(EXIT* pexit, float dt)
 {
-	
+	UpdateAlo(pexit, dt);
 }
 
 void DeleteExit(EXIT* pexit)
@@ -239,6 +249,11 @@ void CloneCamera(CAMERA* pcamera, CAMERA* pcameraBase)
 	pcamera->vecView = pcameraBase->vecView;
 	pcamera->vecUp = pcameraBase->vecUp;
 	pcamera->fSetCplcy = pcameraBase->fSetCplcy;
+}
+
+void PostCameraLoad(CAMERA* pcamera)
+{
+	PostAloLoad(pcamera);
 }
 
 void InitCamera(CAMERA* pcamera)

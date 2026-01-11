@@ -1,7 +1,12 @@
 ﻿#version 430 core
 
-#define RKO_ThreeWay 0
-#define RKO_OneWay   1
+#define RKO_OneWay   0
+#define RKO_ThreeWay 1
+
+#define WARP_NONE 0
+#define WARP_POS  1
+#define WARP_UV   2
+#define WARP_BOTH 3
 
 #define LIGHTK_Direction 0
 #define LIGHTK_Position  1
@@ -11,10 +16,12 @@
 #define FOG_PS2 1
 #define FOG_PS3 2
 
-layout (location = 0) in vec3 vertex;
-layout (location = 1) in vec3 normal;
-layout (location = 2) in vec4 color;
-layout (location = 3) in vec2 uv;
+layout (location = 0) in vec3  vertex;
+layout (location = 1) in vec3  normal;
+layout (location = 2) in vec4  color;
+layout (location = 3) in vec2  uv;
+layout (location = 4) in uvec4 boneIndices;
+layout (location = 5) in vec4  boneWeights;
 
 struct SWP // Scene world properties
 {
@@ -55,27 +62,45 @@ layout(std430, binding = 0) readonly buffer CMGL
 
 layout(std140, binding = 1) uniform RO // Render object properties
 {
-    mat4  model;           // 0..63
-	int   rko;             // 64
-	float uAlpha;          // 68
-	float uFog;            // 72
-	float darken;          // 76
-	int   fDynamic;        // 80
-	float unSelfIllum;	   // 84
-	float sRadius;		   // 88
-	int   pad;             // 92
-	vec4  posCenter;	   // 96..111
+    mat4  model;        //   0 -  63
+    int   rko;          //  64
+    float uAlpha;       //  68
+    float uFog;         //  72
+    float darken;       //  76
+    vec2  uvOffsets;    //  80 -  87
+    int   _pad0;        //  88
+    int   _pad1;        //  92
+    int   warpType;     //  96
+    int   warpCmat;     // 100
+    int   warpCvtx;     // 104
+    int   _padWarp0;    // 108
+	int   _padWarp1;    // 112
+	int   _padWarp2;    // 116
+	int   _padWarp3;    // 120
+	int   _padWarp4;    // 124
+    mat4  amatDpos[4];  // 128 - 383
+    mat4  amatDuv[4];   // 384 - 639
+    int   fDynamic;     // 640
+    float unSelfIllum;  // 644
+    float sRadius;      // 648
+    int   _pad2;        // 652
+    vec4  posCenter;    // 656 - 671
 }op;
 
-layout(std430, binding = 2) buffer LIGHTBLK 
+layout(std430, binding = 2) readonly buffer LIGHTBLK 
 {
     LIGHT lights[];
 };
 
-layout(std430, binding = 3) buffer ACTIVELIGHTS 
+layout(std430, binding = 3) readonly buffer ACTIVELIGHTS 
 {
     int numLights;
     int lightIndices[];
+};
+
+layout(std430, binding = 4) readonly buffer WARPSTATE
+{
+    vec4 warpState[];
 };
 
 struct MATERIAL
@@ -87,6 +112,7 @@ struct MATERIAL
 
 vec4 worldPos;
 vec3 normalWorld;
+vec2 uvLocal;
 
 float objectShadow;
 float objectMidtone;
@@ -97,13 +123,14 @@ out vec2 texcoord;
 out MATERIAL material;
 out float fogIntensity;
 
+void ApplyWarp(inout vec4 vLocal, inout vec2 uvLocal);
 void StartThreeWay();
 void InitGlobLighting();
 vec4 AddDirectionLight(LIGHT dirlight);
 vec4 AddDynamicLight(vec4 dir, vec4 color, vec4 ru, vec4 du);
 bool SphereIntersectsPositionLight(LIGHT L, vec3 center, float radius);
-vec4 AddPositionLight(LIGHT pointlight, vec3 toLight, float dist);
-vec4 AddPositionLightDynamic(LIGHT pointlight, vec3 direction);
+vec4 AddPositionLight(LIGHT pointlight);
+vec4 AddPositionLightDynamic(LIGHT pointlight);
 bool SphereIntersectsFrustum(LIGHT L, vec3 center, float radius);
 vec4 AddFrustrumLight(LIGHT frustumlight);
 vec4 AddFrustrumLightDynamic(LIGHT frustumlight);
@@ -116,26 +143,73 @@ void CalculateFogPS3();
 
 void main()
 {
-    switch (op.rko)
-    {
-        case RKO_OneWay:
-        worldPos    = op.model * vec4(vertex, 1.0);
-        vertexColor = color;
-        texcoord    = uv;
-        break;
+    worldPos = op.model * vec4(vertex, 1.0);
+    uvLocal  = uv.xy + op.uvOffsets.xy;
 
-        case RKO_ThreeWay:
-        worldPos    = op.model * vec4(vertex, 1.0);
-        vertexColor = color;
-        texcoord    = uv;
+    if (op.warpType != WARP_NONE)
+        ApplyWarp(worldPos, uvLocal);
+
+    vertexColor = color;
+    texcoord    = uvLocal;
+
+    if (op.rko == RKO_ThreeWay)
         StartThreeWay();
-        break;
-    }
-    
+
     if (swp.fogType != 0)
         CalculateFog();
 
     gl_Position = cm.matWorldToClip * worldPos;
+}
+
+void ApplyWarp(inout vec4 vLocal, inout vec2 uvLocal)
+{
+    int base = int(gl_VertexID);
+
+    // Guard so bad indices don't explode the draw
+    if (base < 0 || base >= op.warpCvtx)
+        return;
+
+    switch(op.warpType)
+    {
+        case WARP_POS:
+        vec4 sumPos0 = vec4(0.0);
+
+        for (int imat = 0; imat < op.warpCmat; ++imat)
+        {
+            vec4 st  = warpState[imat * op.warpCvtx + base];
+            sumPos0 += op.amatDpos[imat] * st;
+        }
+
+        vLocal.xyz += sumPos0.xyz;
+        break;
+
+        case WARP_UV:
+        vec2 sumUv0 = vec2(0.0);
+
+        for (int imat = 0; imat < op.warpCmat; ++imat)
+        {
+            vec4 st  = warpState[imat * op.warpCvtx + base];
+            sumUv0  += (op.amatDuv[imat] * st).xy;
+        }
+
+        uvLocal += sumUv0;
+        break;
+
+        case WARP_BOTH:
+        vec4 sumPos1 = vec4(0.0);
+        vec2 sumUv1  = vec2(0.0);
+
+        for (int imat = 0; imat < op.warpCmat; ++imat)
+        {
+            vec4 st  = warpState[imat * op.warpCvtx + base];
+            sumPos1 += op.amatDpos[imat] * st;
+            sumUv1  += (op.amatDuv[imat] * st).xy;
+        }
+
+        vLocal.xyz += sumPos1.xyz;
+        uvLocal    += sumUv1;
+        break;
+    }
 }
 
 void StartThreeWay()
@@ -160,8 +234,7 @@ void StartThreeWay()
                     if (!SphereIntersectsPositionLight(L, op.posCenter.xyz, op.sRadius))
                         continue;
 
-                    vec3 toLight = L.pos.xyz - worldPos.xyz; // shaded point
-                    light.rgb += AddPositionLight(L, toLight, dot(toLight,toLight)).rgb;
+                    light.rgb += AddPositionLight(L).rgb;
                     break;
                 }
 
@@ -193,8 +266,7 @@ void StartThreeWay()
                     if (!SphereIntersectsPositionLight(L, op.posCenter.xyz, op.sRadius))
                         continue;
 
-                    vec3 toLight = L.pos.xyz - op.posCenter.xyz;
-                    light.rgb += AddPositionLightDynamic(L, toLight).rgb;
+                    light.rgb += AddPositionLightDynamic(L).rgb;
                     break;
                 }
 
@@ -286,8 +358,9 @@ bool SphereIntersectsPositionLight(LIGHT L, vec3 center, float radius)
     return distSq <= maxDist * maxDist;
 }
 
-vec4 AddPositionLight(LIGHT pointlight, vec3 toLight, float dist)
+vec4 AddPositionLight(LIGHT pointlight)
 {
+    vec3 toLight = pointlight.pos.xyz - worldPos.xyz;
     // Normalize light direction with a zero-length guard (use toLight directly for accuracy)
     float d2 = dot(toLight, toLight);
     float invLen = (d2 > 1e-12) ? inversesqrt(d2) : 0.0; // 1/|d|
@@ -321,8 +394,9 @@ vec4 AddPositionLight(LIGHT pointlight, vec3 toLight, float dist)
     return vec4(pointlight.color * highlight);
 }
 
-vec4 AddPositionLightDynamic(LIGHT pointlight, vec3 direction)
+vec4 AddPositionLightDynamic(LIGHT pointlight)
 {
+    vec3  direction = pointlight.pos.xyz - op.posCenter.xyz;
     float distance = length(direction);
 
     // Compute clamped attenuation

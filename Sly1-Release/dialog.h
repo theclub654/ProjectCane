@@ -127,6 +127,7 @@ int  GetDialogSize();
 void LoadDialogFromBrx(DIALOG* pdialog, CBinaryInputStream* pbis);
 void CloneDialog(DIALOG* pdialog, DIALOG* pdialogBase);
 void LoadDialogEventsFromBrx(DIALOG* pdialog, CBinaryInputStream *pbis, int* pcde, DE** pade);
+void UpdateDialog(DIALOG* pdialog, float dt);
 void DeleteDialog(DIALOG* pdialog);
 
 inline DIALOG* g_pdialogPlaying = nullptr;

@@ -8,6 +8,12 @@ FLASH* NewFlash()
 void InitFlash(FLASH* pflash)
 {
 	InitAlo(pflash);
+
+	pflash->smpScale.svFast = 1.0;
+	pflash->gScaleTarget = 1.0;
+	pflash->gScaleCur = 1.0;
+	pflash->smpScale.dtFast = 0.1;
+	pflash->smpScale.svSlow = 0.2;
 }
 
 int GetFlashSize()
@@ -34,9 +40,24 @@ void CloneFlash(FLASH* pflash, FLASH* pflashBase)
 	pflash->gScaleTarget = pflashBase->gScaleTarget;
 }
 
-void RenderFlashSelf(FLASH* pflash, CM* pcm, RO* pro)
+void UpdateFlash(FLASH* pflash, float dt)
 {
-	RenderAloSelf(pflash, pcm, pro);
+	UpdateAlo(pflash, dt);
+
+	pflash->gScaleCur = GSmooth(pflash->gScaleCur, pflash->gScaleTarget, g_clock.dt, &pflash->smpScale, nullptr);
+}
+
+void RenderFlashSelf(FLASH *pflash, CM *pcm, RO *pro)
+{
+	glm::mat4 matScale{};
+	RO ro{};
+
+	LoadScaleMatrixScalar(nullptr, pflash->gScaleCur, &matScale);
+	DupAloRo(pflash, pro, &ro);
+
+	ro.model = ro.model * matScale;
+
+	RenderAloSelf(pflash, pcm, &ro);
 }
 
 void DeleteFlash(FLASH* pflash)

@@ -29,6 +29,11 @@ void CloneMurray(MURRAY* pmurray, MURRAY* pmurrayBase)
     pmurray->pturret = pmurrayBase->pturret;
 }
 
+void PostMurrayLoad(MURRAY* pmurray)
+{
+    PostStepguardLoad(pmurray);
+}
+
 void DeleteMurray(MURRAY* pmurray)
 {
 	delete pmurray;

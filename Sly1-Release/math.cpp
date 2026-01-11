@@ -131,6 +131,41 @@ glm::vec3 DecomposeRotateMatrixEuler(const glm::mat3& R)
 	return eul;
 }
 
+void LoadScaleMatrixScalar(glm::vec3* ppos, float rScale, glm::mat4* outMatScale)
+{
+	glm::vec3 scale(rScale, rScale, rScale);
+	LoadScaleMatrixVector(ppos, nullptr, &scale, outMatScale);
+}
+
+void LoadScaleMatrixVector(glm::vec3* ppos, glm::mat3* pmat, glm::vec3* pvecScale, glm::mat4* outMatScale)
+{
+	if (!outMatScale) return;
+
+	// Defaults match original globals: g_vecZero, g_matIdentity
+	const glm::vec3 pos = ppos ? *ppos : glm::vec3(0.0f);
+	const glm::mat3 rot = pmat ? *pmat : glm::mat3(1.0f);
+	const glm::vec3 scale = pvecScale ? *pvecScale : glm::vec3(1.0f);
+
+	// Build M from pos + rot (inline)
+	glm::mat4 M(1.0f);
+	M[0] = glm::vec4(rot[0], 0.0f);
+	M[1] = glm::vec4(rot[1], 0.0f);
+	M[2] = glm::vec4(rot[2], 0.0f);
+	M[3] = glm::vec4(pos, 1.0f);
+
+	// Inverse(M) – same role as LoadMatrixFromPosRotInverse
+	const glm::mat4 Minv = glm::inverse(M);
+
+	// Scale matrix (diagonal)
+	glm::mat4 S(1.0f);
+	S[0][0] = scale.x;
+	S[1][1] = scale.y;
+	S[2][2] = scale.z;
+
+	// Final conjugated scale
+	*outMatScale = M * S * Minv;
+}
+
 void BuildRotateVectorsMatrix(const glm::vec3* pvec1, const glm::vec3* pvec2, glm::mat3* pmat)
 {
 	const float EPS = 1e-4f; // matches the original (~0.0001 thresholds)

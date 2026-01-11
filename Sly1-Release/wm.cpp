@@ -49,6 +49,11 @@ void PostWmLoad(WM* pwm)
     g_wmc.pwm = pwm;
 }
 
+void UpdateWm(WM* pwm, float dt)
+{
+    UpdateAlo(pwm, dt);
+}
+
 void RenderWmAll(WM* pwm, CM* pcm, RO* pro)
 {
     /*RO ro{};

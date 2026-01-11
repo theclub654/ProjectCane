@@ -27,6 +27,16 @@ void CloneBrk(BRK* pbrk, BRK* pbrkBase)
 	pbrk->ichkBroken = ichkBroken;
 }
 
+void PostBrkLoad(BRK* pbrk)
+{
+	PostAloLoad(pbrk);
+}
+
+void UpdateBrk(BRK* pbrk, float dt)
+{
+	UpdateSo(pbrk, dt);
+}
+
 void DeleteBrk(BRK *pbrk)
 {
 	delete pbrk;
@@ -45,6 +55,11 @@ int GetBrkpSize()
 void CloneBrkp(BRKP* prkp, BRKP* prkpBase)
 {
 	CloneSo(prkp, prkpBase);
+}
+
+void UpdateBrkp(BRKP* pbrkp, float dt)
+{
+	UpdateSo(pbrkp, dt);
 }
 
 void DeleteBrkp(BRKP* pbrkp)
@@ -120,6 +135,11 @@ void CloneZapbreak(ZAPBREAK* pzapbreak, ZAPBREAK* pzapbreakBase)
 
 	pzapbreak->zpk = pzapbreakBase->zpk;
 	pzapbreak->ppoZap = pzapbreakBase->ppoZap;
+}
+
+void UpdateZapbreak(ZAPBREAK* pzapbreak, float dt)
+{
+	UpdateBrk(pzapbreak, dt);
 }
 
 void DeleteZapbreak(ZAPBREAK* pzapbreak)

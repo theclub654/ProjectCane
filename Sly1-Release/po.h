@@ -27,5 +27,6 @@ void InitPo(PO *ppo); //NOT FINISHED
 void OnPoAdd(PO* ppo);
 void OnPoRemove(PO* ppo);
 void ClonePo(PO* ppo, PO* ppoBase);
+void UpdatePo(PO* ppo, float dt);
 int  GetPoSize();
 void DeletePo(PO* ppo);

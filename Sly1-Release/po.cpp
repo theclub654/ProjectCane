@@ -33,6 +33,11 @@ void ClonePo(PO* ppo, PO* ppoBase)
 	ppo->paloUseCharm = ppoBase->paloUseCharm;
 }
 
+void UpdatePo(PO* ppo, float dt)
+{
+	UpdateSo(ppo, dt);
+}
+
 int GetPoSize()
 {
 	return sizeof(PO);

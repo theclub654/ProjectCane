@@ -30,6 +30,7 @@ void DrawProjVolumeAdd(RPL* prpl);
 void DrawMurkClear(RPL* prpl);
 void DrawMurkFill(RPL* prpl);
 void DrawTranslucent(RPL* prpl);
+void DrawBlip(RPL *prpl);
 // Draws all collision models in SW
 void DrawSwCollisionAll(CM* pcm);
 

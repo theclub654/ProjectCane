@@ -63,6 +63,7 @@ TARMISS*NewTarmiss();
 void InitTarmiss(TARMISS* ptarmiss);
 int  GetTarmissSize();
 void CloneTarmiss(TARMISS* ptarmiss, TARMISS* ptarmissBase);
+void UpdateTarmiss(TARMISS* ptarmiss, float dt);
 void DeleteTarmiss(TARMISS* ptarmiss);
 
 SPLMISS*NewSplmiss();

@@ -25,34 +25,60 @@ struct CMGL
 	glm::vec4 cameraPos;
 };
 
-struct ROONEWAY
+struct alignas(16) ROONEWAY
 {
-	glm::mat4 model;           // 0..63
-	int       rko;             // 64
-	float     uAlpha;          // 68
-	float     uFog;            // 72
-	float     darken;          // 76
+	glm::mat4 model;       //  0 -  63
+	int       rko;         //  64
+	float     uAlpha;      //  68
+	float     uFog;        //  72
+	float     darken;      //  76
+	glm::vec2 uvOffsets;   //  80 -  87
+	int       _pad0;       //  88
+	int       _pad1;       //  92
+	int       warpType;    //  96
+	int       warpCmat;    // 100
+	int       warpCvtx;    // 104
+	int       _padWarp0;   // 108
+	int       _padWarp1;   // 112
+	int       _padWarp2;   // 116
+	int       _padWarp3;   // 120
+	int       _padWarp4;   // 124
+	glm::mat4 amatDpos[4]; // 128 - 383
+	glm::mat4 amatDuv[4];  // 384 - 639
 };
 
 struct alignas(16) ROTHREEWAY
 {
-	glm::mat4 model;           // 0..63
-	int       rko;             // 64
-	float     uAlpha;          // 68
-	float     uFog;            // 72
-	float     darken;          // 76
-	int       fDynamic;        // 80
-	float     unSelfIllum;	   // 84
-	float	  sRadius;		   // 88
-	int       pad;             // 92
-	glm::vec4 posCenter;	   // 96..111
+	glm::mat4 model;       //  0 -  63
+	int       rko;         //  64
+	float     uAlpha;      //  68
+	float     uFog;        //  72
+	float     darken;      //  76
+	glm::vec2 uvOffsets;   //  80 -  87
+	int       _pad0;       //  88
+	int       _pad1;       //  92
+	int       warpType;    //  96
+	int       warpCmat;    // 100
+	int       warpCvtx;    // 104
+	int       _padWarp0;   // 108
+	int       _padWarp1;   // 112
+	int       _padWarp2;   // 116
+	int       _padWarp3;   // 120
+	int       _padWarp4;   // 124
+	glm::mat4 amatDpos[4]; // 128 - 383
+	glm::mat4 amatDuv[4];  // 384 - 639
+	int       fDynamic;    // 640
+	float     unSelfIllum; // 644
+	float     sRadius;     // 648
+	int       _pad2;       // 652
+	glm::vec4 posCenter;   // 656 - 671
 };
 
 struct alignas(16) ROCEL
 {
-	glm::mat4 model;           // 0..63
-	glm::vec4 celRgba;         // 68
-	float     uAlphaCelBorder; // 72
+	glm::mat4 model;           
+	glm::vec4 celRgba;         
+	float     uAlphaCelBorder;
 };
 
 struct ROGEOM

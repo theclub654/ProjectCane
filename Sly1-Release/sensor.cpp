@@ -57,38 +57,42 @@ void CloneSensor(SENSOR* psensor, SENSOR* psensorBase)
 
 void SetSensorSensors(SENSOR* psensor, SENSORS sensors)
 {
-	// No change needed
-	if (psensor->sensors == sensors) {
+	if (!psensor) return;
+
+	const SENSORS oldState = psensor->sensors;
+	if (oldState == sensors)
 		return;
-	}
 
-	// Special case: SenseEnabled -> SenseTriggered
-	if (psensor->sensors == SENSORS_SenseEnabled &&
-		sensors == SENSORS_SenseTriggered)
+	// Special case: going from Enabled -> Triggered
+	if (oldState == SENSORS_SenseEnabled && sensors == SENSORS_SenseTriggered)
 	{
-		SENSORS SVar1 = SENSORS_SenseTriggered;
+		// Default to triggered, but the alarm callback may change psensor->sensors.
+		SENSORS finalState = SENSORS_SenseTriggered;
 
-		if (psensor->palarm != NULL) {
-			// Trigger alarm; this may change psensor->sensors
+		if (psensor->palarm != NULL)
+		{
 			//TriggerAlarm(psensor->palarm, ALTK_Trigger);
 
-			// If alarm changed the state away from SenseEnabled, respect that
-			if (psensor->sensors != SENSORS_SenseEnabled) {
-				SVar1 = psensor->sensors;
-			}
+			// Preserve original behavior: if TriggerAlarm changed psensor->sensors,
+			// we keep that updated state instead of forcing Triggered.
+			if (psensor->sensors != SENSORS_SenseEnabled)
+				finalState = psensor->sensors;
 		}
 
-		// Notify splice event
-		//HandleLoSpliceEvent((LO*)psensor, 2, 0, NULL);
-
-		psensor->sensors = SVar1;
-		psensor->tSensors = g_clock.t;
-		return;
+		//HandleLoSpliceEvent(psensor, 2, 0, NULL);
+		psensor->sensors = finalState;
+	}
+	else
+	{
+		psensor->sensors = sensors;
 	}
 
-	// All other transitions: just set the new state
-	psensor->sensors = sensors;
 	psensor->tSensors = g_clock.t;
+}
+
+void UpdateSensor(SENSOR* psensor, float dt)
+{
+	UpdateSo(psensor, dt);
 }
 
 void DeleteSensor(SENSOR *psensor)
@@ -109,6 +113,8 @@ void InitSwLasenDl(SW* psw)
 void InitLasen(LASEN* plasen)
 {
 	InitSensor(plasen);
+
+	plasen->sensorsInitial = SENSORS_SenseEnabled;
 	plasen->uDrawMax = 1.0;
 }
 
@@ -154,9 +160,9 @@ void BindLasen(LASEN* plasen)
 {
 	BindAlo(plasen);
 
-	// --- DLI iterator setup ---
+	// DL iteration safety
 	DLI dli{};
-	dli.m_pdl   = &plasen->dlChild;
+	dli.m_pdl = &plasen->dlChild;
 	dli.m_ibDle = plasen->dlChild.ibDle;
 
 	EMITTER* pemitter = (EMITTER*)plasen->dlChild.paloFirst;
@@ -166,87 +172,105 @@ void BindLasen(LASEN* plasen)
 	dli.m_pdliNext = s_pdliFirst;
 	s_pdliFirst = &dli;
 
-	while (pemitter != nullptr)
+	while (pemitter)
 	{
-		const bool isShape   = FIsBasicDerivedFrom(pemitter, CID_SHAPE)   != 0;
-		const bool isEmitter = FIsBasicDerivedFrom(pemitter, CID_EMITTER) != 0;
-
-		if (!isShape)
+		if (!FIsBasicDerivedFrom((BASIC*)pemitter, CID_SHAPE))
 		{
-			if (isEmitter)
+			// Non-shape children: track damage scorch emitters (up to 4)
+			if (FIsBasicDerivedFrom((BASIC*)pemitter, CID_EMITTER))
 			{
-				uint32_t n = plasen->albeam[0].clemitDamage;
-				if (n < 4)
+				uint32_t idx = plasen->albeam[0].clemitDamage;
+				if (idx < 4)
 				{
-					plasen->albeam[0].clemitDamage = n + 1;
-					LEMIT* le = plasen->albeam[0].alemitDamage + n;
-					le->pemitter = pemitter;
-					le->fScorch =(pemitter->oid == 649) ? 1u : 0u;
+					plasen->albeam[0].clemitDamage = idx + 1;
+
+					LEMIT* plemit = plasen->albeam[0].alemitDamage + idx;
+					plemit->pemitter = pemitter;
+					plemit->fScorch = (short)(pemitter->oid == 649);
+
 					PauseEmitterIndefinite(pemitter);
 				}
 			}
 		}
 		else
 		{
-			uint32_t idx = plasen->clbeam;
-			SHAPE *pshape = pemitter->dlChild.pshapeFirst;
-
-			if (idx < 0x10 && pshape->psidebag == nullptr)
+			// Shape children: bind beam shapes (up to 16) that have a linear CRVL child
+			uint32_t iBeam = plasen->clbeam;
+			if (iBeam < 0x10)
 			{
-				plasen->clbeam = idx + 1;
-				plasen->albeam[idx].pshape = (SHAPE*)pshape;
-
-				//plasen->albeam[idx].sShape = ;
-
-				//int posCount = pshape->pcrv.get()->ccv;
-				int posCount = 0;
-
-				plasen->cposBeamShapeMax = std::max(plasen->cposBeamShapeMax, posCount);
-
-				if (posCount > 0)
+				CRVL* pcrvl = (CRVL*)pemitter->dlChild.ploFirst;
+				if (pcrvl && pcrvl->crvk == CRVK_Linear)
 				{
-					ALO* parent = pshape->paloParent;
-					for (int i = 0; i < posCount; ++i)
+					plasen->clbeam = iBeam + 1;
+					plasen->albeam[iBeam].pshape = (SHAPE*)pemitter;
+					plasen->albeam[iBeam].sShape = pcrvl->mpicvs[pcrvl->ccv + -1];
+
+					// cposBeamShapeMax = max(cposBeamShapeMax, pcrvl->ccv)
+					if (plasen->cposBeamShapeMax < pcrvl->ccv)
+						plasen->cposBeamShapeMax = pcrvl->ccv;
+
+					// Expand plasen->sRadiusRenderAll to include all control points in world space
+					for (int i = 0; i < pcrvl->ccv; ++i)
 					{
-						glm::vec3 cvWorld;
-						//glm::vec3 *src = (glm::vec3*)pshape->pcrv.get()->mpicvpos;
+						glm::vec3 posCvWorld{};
 
-						//ConvertAloPos(plasen, nullptr, *src, cvWorld);
+						ConvertAloPos(plasen, nullptr, pcrvl->mpicvpos[i], posCvWorld);
 
-						float d = glm::length(plasen->xf.posWorld - cvWorld);
-						plasen->sRadiusRenderAll = std::max(plasen->sRadiusRenderAll, d);
+						// distance = |plasen->xf.posWorld - posCvWorld|
+						// (spelled out to avoid extra helpers)
+						float dx = ((plasen->xf).posWorld.x - posCvWorld.x);
+						float dy = ((plasen->xf).posWorld.y - posCvWorld.y);
+						float dz = ((plasen->xf).posWorld.z - posCvWorld.z);
+						float dist = sqrtf(dx * dx + dy * dy + dz * dz);
+
+						if (plasen->sRadiusRenderAll < dist)
+							plasen->sRadiusRenderAll = dist;
 					}
 				}
 			}
 		}
 
+		// Advance using the same DLI pointer-walk the decomp does
 		pemitter = reinterpret_cast<EMITTER*>(*dli.m_ppv);
 		dli.m_ppv = reinterpret_cast<void**>(reinterpret_cast<uintptr_t>(pemitter) + dli.m_ibDle);
 	}
 
-	if ((reinterpret_cast<unsigned long&>(plasen->bitfield) & 0x3000000UL) != 0x2000000UL)
+	// Clip current lasen sphere unless flagged as "no vismap clip" (matches the mask test)
+	if ((*(unsigned long*)&plasen->bitfield & 0x03000000) != 0x02000000)
+		ClipVismapSphereOneHop(plasen->psw->pvismap, &(plasen->xf).posWorld, plasen->sRadiusRenderAll, &plasen->grfzon);
+
+	// Propagate expanded radius up the parent chain based on local offset length + child radius
+	if (plasen->paloParent != nullptr)
 	{
-		//ClipVismapSphereOneHop(plasen->psw->pvismap, &plasen->xf.posWorld, plasen->sRadiusRenderAll, &plasen->grfzon);
-	}
+		LASEN* cur = plasen;
 
-	while (plasen->paloParent != nullptr)
-	{
-		float sRadius = glm::length(plasen->xf.pos) + plasen->sRadiusRenderAll;
-		ALO* parent = plasen->paloParent;
-
-		if (sRadius <= parent->sRadiusRenderAll)
-			break;
-
-		parent->sRadiusRenderAll = sRadius;
-
-		if ((reinterpret_cast<unsigned long&>(parent->bitfield) & 0x3000000UL) != 0x2000000UL)
+		for (;;)
 		{
-			//ClipVismapSphereOneHop(parent->psw->pvismap, &parent->xf.posWorld, sRadius, &parent->grfzon);
-		}
+			// |cur->xf.pos| + cur->sRadiusRenderAll
+			float px = (cur->xf).pos.x;
+			float py = (cur->xf).pos.y;
+			float pz = (cur->xf).pos.z;
+			float localLen = sqrtf(px * px + py * py + pz * pz);
 
-		plasen = (LASEN*)parent;
+			ALO* parent = cur->paloParent;
+			float needed = localLen + cur->sRadiusRenderAll;
+
+			if (needed <= parent->sRadiusRenderAll)
+				break;
+
+			parent->sRadiusRenderAll = needed;
+
+			if ((*(unsigned long*)&parent->bitfield & 0x03000000) != 0x02000000)
+				ClipVismapSphereOneHop(parent->psw->pvismap, &(parent->xf).posWorld, needed, &parent->grfzon);
+
+			// Walk up
+			cur = (LASEN*)parent;
+			if (!cur->paloParent)
+				break;
+		}
 	}
 
+	// Pop DLI
 	s_pdliFirst = dli.m_pdliNext;
 }
 
@@ -300,6 +324,154 @@ void PostLasenLoad(LASEN* plasen)
 	plasen->pvtlasen->pfnSetLasenSensors(plasen, plasen->sensorsInitial);
 }
 
+void UpdateLasen(LASEN* plasen, float dt)
+{
+	// Base sensor update
+	UpdateSensor(plasen, dt);
+
+	// uDrawMax = clamp01(uDrawMax + dt * svuDrawMax)
+	float u = plasen->uDrawMax + dt * plasen->svuDrawMax;
+	if (u < 0.0f) u = 0.0f;
+	else if (u > 1.0f) u = 1.0f;
+
+	plasen->uDrawMax = u;
+
+	/*if (g_fLasenBusyListChange != 0) {
+		UpdateBusyLasenSenseTimes();
+	}*/
+
+	SENSORS sensors = plasen->sensors;
+
+	// State machine
+	switch (sensors)
+	{
+	case SENSORS_SenseEnabling:
+	{
+		if (plasen->dtEnabling < (g_clock.t - plasen->tSensors)) {
+			sensors = SENSORS_SenseEnabled;
+		}
+
+		// Always call OnPoActive (if any) after this case in the original flow
+		/*code* onActive = (code*)plasen->field0_0x0.pvtpo->pfnOnPoActive;
+		if (onActive != nullptr) {
+			(*onActive)(plasen, &sensors);
+		}*/
+		break;
+	}
+
+	case SENSORS_SenseEnabled:
+	case SENSORS_DamageEnabled:
+	case SENSORS_DamageTriggered:
+	{
+		// Falls through to OnPoActive call in original
+		/*code* onActive = (code*)plasen->field0_0x0.pvtpo->pfnOnPoActive;
+		if (onActive != nullptr) {
+			(*onActive)(plasen, &sensors);
+		}*/
+		break;
+	}
+
+	case SENSORS_SenseTriggered:
+	{
+		sensors = SENSORS_SenseDisabling;
+
+		/*code* onActive = (code*)plasen->field0_0x0.pvtpo->pfnOnPoActive;
+		if (onActive != nullptr) {
+			(*onActive)(plasen, &sensors);
+		}*/
+		break;
+	}
+
+	case SENSORS_SenseDisabling:
+	{
+		if (plasen->dtDisabling < (g_clock.t - plasen->tSensors))
+		{
+			// If SenseOnly, it goes straight to Disabled
+			if (plasen->sensm == SENSM_SenseOnly)
+			{
+				sensors = SENSORS_Disabled;
+			}
+			else
+			{
+				// If DamageTarget, transition to DamageEnabling and call OnPoActive immediately
+				if (plasen->sensm == SENSM_DamageTarget)
+				{
+					sensors = SENSORS_DamageEnabling;
+					/*code* onActive = (code*)plasen->field0_0x0.pvtpo->pfnOnPoActive;
+					if (onActive != nullptr) {
+						(*onActive)(plasen, &sensors);
+					}*/
+				}
+				// else: sensors stays SenseDisabling, no special transition here
+			}
+		}
+		else
+		{
+			// Not finished disabling yet: call OnPoActive
+			/*code* onActive = (code*)plasen->field0_0x0.pvtpo->pfnOnPoActive;
+			if (onActive != nullptr) {
+				(*onActive)(plasen, &sensors);
+			}*/
+		}
+
+		// If we didn't do the "DamageTarget -> DamageEnabling" immediate call above,
+		// the original still calls OnPoActive via the common tail path.
+		// We preserve that by calling it again only when we didn't already call it
+		// in the DamageTarget transition.
+		if (!((plasen->dtDisabling < (g_clock.t - plasen->tSensors)) &&
+			(plasen->sensm != SENSM_SenseOnly) &&
+			(plasen->sensm == SENSM_DamageTarget)))
+		{
+			/*code* onActive = (code*)plasen->field0_0x0.pvtpo->pfnOnPoActive;
+			if (onActive != nullptr) {
+				(*onActive)(plasen, &sensors);
+			}*/
+		}
+		break;
+	}
+
+	case SENSORS_DamageEnabling:
+	{
+		if (plasen->dtEnabling < (g_clock.t - plasen->tSensors)) {
+			sensors = SENSORS_DamageEnabled;
+		}
+
+		/*code* onActive = (code*)plasen->field0_0x0.pvtpo->pfnOnPoActive;
+		if (onActive != nullptr) {
+			(*onActive)(plasen, &sensors);
+		}*/
+		break;
+	}
+
+	case SENSORS_DamageDisabling:
+	{
+		if (plasen->dtDamageDisabling < (g_clock.t - plasen->tSensors))
+		{
+			sensors = SENSORS_Disabled;
+			// Note: original does NOT call OnPoActive after forcing Disabled (it jumps to default tail)
+		}
+		else
+		{
+			// In this state, original calls OnPoActive only while not finished disabling
+			/*code* onActive = (code*)plasen->field0_0x0.pvtpo->pfnOnPoActive;
+			if (onActive != nullptr) {
+				(*onActive)(plasen, &sensors);
+			}*/
+		}
+		break;
+	}
+
+	default:
+	{
+		// Original jumps to a shared tail; effectively just skips the per-case call.
+		break;
+	}
+	}
+
+	// Always call pfnFTakePoDamage(plasen, sensors) at the end
+	//((code*)plasen->field0_0x0.pvtpo->pfnFTakePoDamage)(plasen, sensors);
+}
+
 void SetLasenSensors(LASEN* plasen, SENSORS sensors)
 {
 	if (plasen->sensors == sensors)
@@ -312,102 +484,127 @@ void RenderLasenSelf(LASEN* plasen, CM* pcm, RO* pro)
 {
 	RenderSoSelf(plasen, pcm, pro);
 
-	//SENSORS sensors = plasen->sensors;
-	//if (sensors == SENSORS_Disabled || sensors <= SENSORS_Nil) return;
+	SENSORS sensors = plasen->sensors;
+	if (sensors == SENSORS_Disabled || sensors <= SENSORS_Nil)
+		return;
 
-	//// Choose which ALO to render the lines with
-	//ALO* paloRender = nullptr;
-	//if (sensors < SENSORS_DamageEnabling) {
-	//	paloRender = plasen->paloRenderSense;
-	//}
-	//else {
-	//	if (sensors > SENSORS_DamageDisabling) return;
-	//	paloRender = plasen->paloRenderDamage;
-	//}
-	//if (!paloRender) {
-	//	paloRender = (ALO*)plasen->psw->aploStock[0x0B];
-	//	if (!paloRender) return;
-	//}
+	// Choose which ALO to render the beam lines with (matches original state gates)
+	ALO* paloRender = nullptr;
+	if (sensors < SENSORS_DamageEnabling) {
+		paloRender = plasen->paloRenderSense;
+	}
+	else {
+		if (sensors > SENSORS_DamageDisabling)
+			return;
+		paloRender = plasen->paloRenderDamage;
+	}
 
-	//std::vector <glm::vec3> posBuf;
-	//posBuf.resize(plasen->cposBeamShapeMax);
+	// Fallback to stock[0x0B] like original
+	if (!paloRender) {
+		paloRender = reinterpret_cast<ALO*>(plasen->psw->aploStock[0x0B]);
+		if (!paloRender)
+			return;
+	}
 
-	//if (plasen->clbeam > 0)
-	//{
-	//	for (int ibeam = 0; ibeam < plasen->clbeam; ++ibeam)
-	//	{
-	//		float drawnLen = 0.0f;
+	// Alpha is fetched per-segment in the original; value is constant for this call
+	float alpha = 1.0;
 
-	//		LBEAM* plbeam = &plasen->albeam[ibeam];
-	//		CRV* crv = plbeam->pshape->pcrv.get();
+	if (pro != nullptr)
+		alpha = pro->uAlpha;
 
-	//		int ccv = crv->ccv;
-	//		const float extent = SCalcLasenShapeExtent(plasen, plbeam);
+	// Temp buffer (original uses stack allocator sized by cposBeamShapeMax * 16 bytes)
+	std::vector<glm::vec3> posBuf;
+	posBuf.resize(static_cast<size_t>(plasen->cposBeamShapeMax));
 
-	//		// If we had a collision, clamp the max CV processed like original (+2 past hit index)
-	//		if (plbeam->psoHit && (plbeam->iposHit + 2) < ccv) {
-	//			ccv = plbeam->iposHit + 2;
-	//		}
+	const int clbeam = plasen->clbeam;
+	for (int ibeam = 0; ibeam < clbeam; ++ibeam)
+	{
+		LBEAM* plbeam = &plasen->albeam[ibeam];
 
-	//		// Convert curve CVs to world space into posBuf[0..ccv-1]
-	//		for (int i = 0; i < ccv; ++i) {
-	//			// ConvertAloPos(ALO* dstAlo, ALO* srcAloOrNull, VECTOR* src, VECTOR* dst)
-	//			ConvertAloPos(plasen, nullptr, crv->mpicvpos[i], posBuf[i]);
-	//		}
+		// --- Build positions from the curve ---
+		CRV* crv = plbeam->pshape->pcrv.get();
+		int ccv = crv->ccv;
 
-	//		// If a hit point exists, overwrite posBuf[iposHit+1] with the exact hit
-	//		if (plbeam->psoHit) {
-	//			const int ip = plbeam->iposHit;
-	//			if (ip + 1 < ccv) {
-	//				// posHit is assumed to have .x/.y/.z; if different, adjust field names.
-	//				posBuf[ip + 1] = glm::vec3(plbeam->posHit.x, plbeam->posHit.y, plbeam->posHit.z);
-	//			}
-	//		}
+		const float extent = SCalcLasenShapeExtent(plasen, plbeam);
 
-	//		// Draw line segments along the curve up to 'extent'
-	//		if (ccv > 1)
-	//		{
-	//			for (int i = 0; i < ccv - 1; ++i)
-	//			{
-	//				glm::vec3& p0 = posBuf[i];
-	//				glm::vec3& p1 = posBuf[i + 1];
+		// Clamp CV count if we have a hit: min(ccv, iposHit + 2)
+		if (plbeam->psoHit != nullptr) {
+			const int clampCount = plbeam->iposHit + 2;
+			if (clampCount < ccv)
+				ccv = clampCount;
+		}
 
-	//				float segLen = glm::length(p1 - p0);
-	//				if (segLen > 0.0f)
-	//				{
-	//					const float remaining = extent - drawnLen;
-	//					if (remaining < segLen)
-	//					{
-	//						// Clamp the segment endpoint so we don't overdraw beyond 'extent'
-	//						const float t = glm::clamp(remaining / segLen, 0.0f, 1.0f);
-	//						p1 = p0 * (1.0f - t) + p1 * t;
-	//						segLen = remaining;
-	//					}
-	//				}
+		// Convert curve CVs to world space into posBuf[0..ccv-1]
+		for (int i = 0; i < ccv; ++i) {
+			ConvertAloPos(plasen, nullptr, crv->mpicvpos[i], posBuf[i]);
+		}
 
-	//				const float alpha = pro ? pro->uAlpha : 1.0f;
+		// Overwrite posBuf[iposHit+1] with exact hit point (if valid)
+		if (plbeam->psoHit != nullptr) {
+			const int idx = plbeam->iposHit + 1;
+			if (0 <= idx && idx < ccv) {
+				posBuf[idx] = glm::vec3(plbeam->posHit.x, plbeam->posHit.y, plbeam->posHit.z);
+			}
+		}
 
-	//				// Render this segment
-	//				RenderAloLine(paloRender, pcm, &p0, &p1, 1.0f, alpha);
+		// --- Render segments up to the extent ---
+		float drawnLen = 0.0f;
 
-	//				drawnLen += segLen;
+		if (ccv > 1)
+		{
+			for (int i = 0; i < ccv - 1; ++i)
+			{
+				glm::vec3& p0 = posBuf[i];
+				glm::vec3& p1 = posBuf[i + 1];
 
-	//				// Stop if we finished desired extent
-	//				if (extent < drawnLen) break;
-	//			}
-	//		}
+				const float segLenFull = glm::length(p1 - p0);
+				if (segLenFull <= 0.0f)
+					continue;
 
-	//		// Update sShapeLast depending on sensor state (mirrors original conditions):
-	//		// set if sensors [SenseEnabling, DamageTriggered] and sensors != SenseDisabling
-	//		sensors = plasen->sensors;
-	//		if (sensors >= SENSORS_SenseEnabling &&
-	//			sensors <= SENSORS_DamageTriggered &&
-	//			sensors != SENSORS_SenseDisabling)
-	//		{
-	//			plbeam->sShapeLast = drawnLen;
-	//		}
-	//	}
-	//}
+				const float remaining = extent - drawnLen;
+				if (remaining <= 0.0f)
+					break;
+
+				float segLen = segLenFull;
+
+				// If extent ends inside this segment, truncate p1 in-place (like original)
+				if (remaining < segLenFull) {
+					const float t = remaining / segLenFull; // 0..1
+					p1 = p0 * (1.0f - t) + p1 * t;
+					segLen = remaining;
+				}
+
+				RenderAloLine(paloRender, pcm, &p0, &p1, 1.0f, alpha);
+
+				drawnLen += segLen;
+
+				// Original breaks when fVar13 < fVar15 after rendering
+				if (extent < drawnLen)
+					break;
+			}
+		}
+
+		// --- Update sShapeLast with the same state-machine behavior as original ---
+		sensors = plasen->sensors;
+
+		if (sensors < SENSORS_SenseEnabling) {
+			// no update
+		}
+		else if (sensors < SENSORS_SenseDisabling) {
+			plbeam->sShapeLast = drawnLen;
+		}
+		else {
+			if (sensors > SENSORS_DamageTriggered) {
+				// no update
+			}
+			else if (sensors > SENSORS_SenseDisabling) {
+				plbeam->sShapeLast = drawnLen;
+			}
+			else {
+				// sensors == SENSORS_SenseDisabling -> no update
+			}
+		}
+	}
 }
 
 void DeleteLasen(LASEN *plasen)
@@ -449,9 +646,357 @@ void CloneCamsen(CAMSEN* pcamsen, CAMSEN* pcamsenBase)
 	pcamsen->csdts = pcamsenBase->csdts;
 }
 
+void PostCamsenLoad(CAMSEN* pcamsen)
+{
+	PostAloLoad(pcamsen);
+}
+
+void SetCamsenCsdts(CAMSEN* pcamsen, CSDTS csdts)
+{
+	if (!pcamsen)
+		return;
+
+	// No change
+	if (pcamsen->csdts == csdts)
+		return;
+
+	// Leaving Zap -> stop looping zap sound
+	//if (pcamsen->csdts == CSDTS_Zap)
+	//	StopSound(pcamsen->pamb, 0);
+
+	//// Entering Focus -> raise priority
+	//if (csdts == CSDTS_Focus)
+	//{
+	//	if (pcamsen->pactla)
+	//		pcamsen->pactla->nPriorityEnabled = 4;
+
+	//	pcamsen->csdts = csdts;
+	//	pcamsen->tCsdts = g_clock.t;
+	//	return;
+	//}
+
+	//// Entering Zap -> start zap sound and force state to Zap
+	//if (csdts == CSDTS_Zap)
+	//{
+	//	StartSound(SFXID_EnvEzap, &pcamsen->pamb, (ALO*)0x0, (VECTOR*)0x0,
+	//		3000.0f,
+	//		300.0f,
+	//		1.0f,
+	//		0.0f,
+	//		0.0f,
+	//		(LM*)0x0,
+	//		(LM*)0x0
+	//	);
+
+	//	pcamsen->csdts = CSDTS_Zap;
+	//	pcamsen->tCsdts = g_clock.t;
+	//	return;
+	//}
+
+	//// Entering Unfocus -> drop priority
+	//if (csdts == CSDTS_Unfocus)
+	//{
+	//	if (pcamsen->pactla)
+	//		pcamsen->pactla->nPriorityEnabled = 0;
+
+	//	pcamsen->csdts = csdts;
+	//	pcamsen->tCsdts = g_clock.t;
+	//	return;
+	//}
+
+	// Any other state
+	pcamsen->csdts = csdts;
+	pcamsen->tCsdts = g_clock.t;
+}
+
+void UpdateCamsen(CAMSEN* pcamsen, float dt)
+{
+	if (!pcamsen)
+		return;
+
+	UpdateSensor((SENSOR*)pcamsen, dt);
+
+	SENSORS sensors = pcamsen->sensors;
+
+	switch (sensors)
+	{
+	case SENSORS_SenseEnabling:
+	{
+		if (pcamsen->dtEnabling < (g_clock.t - pcamsen->tSensors))
+			sensors = SENSORS_SenseEnabled;
+		break;
+	}
+
+	case SENSORS_SenseEnabled:
+	case SENSORS_DamageEnabled:
+	{
+		// If the PO has an "active" callback, let it modify the sensor state.
+		/*auto pfnOnPoActive = pcamsen->pvtpo ? pcamsen->pvtpo->pfnOnPoActive : nullptr;
+		if (pfnOnPoActive)
+			pfnOnPoActive(pcamsen, &sensors);*/
+
+		break;
+	}
+
+	case SENSORS_SenseTriggered:
+	{
+		sensors = SENSORS_SenseDisabling;
+		break;
+	}
+
+	case SENSORS_SenseDisabling:
+	{
+		if (pcamsen->dtDisabling < (g_clock.t - pcamsen->tSensors))
+			sensors = SENSORS_Disabled;
+		break;
+	}
+
+	case SENSORS_DamageEnabling:
+	{
+		if (pcamsen->dtEnabling < (g_clock.t - pcamsen->tSensors))
+			sensors = SENSORS_DamageEnabled;
+		break;
+	}
+
+	case SENSORS_DamageTriggered:
+	{
+		CSDTS csdts = pcamsen->csdts;
+
+		if (csdts == CSDTS_Zap)
+		{
+			if (pcamsen->dtDamageZap < (g_clock.t - pcamsen->tCsdts))
+				csdts = CSDTS_Unfocus;
+		}
+		else if (csdts == CSDTS_Focus)
+		{
+			bool invulnerable = false;
+
+			if (g_pjt)
+			{
+				// pfnFInvulnerablePo(g_pjt, 2) != 0 means invulnerable
+				//invulnerable = (g_pjt->pvtpo && g_pjt->pvtpo->pfnFInvulnerablePo) && (g_pjt->pvtpo->pfnFInvulnerablePo(g_pjt, 2) != 0);
+			}
+
+			if (invulnerable)
+			{
+				csdts = CSDTS_Unfocus;
+			}
+			else
+			{
+				if (pcamsen->dtDamageFocus < (g_clock.t - pcamsen->tCsdts))
+				{
+					if (!g_pjt)
+					{
+						csdts = CSDTS_Zap;
+					}
+					else
+					{
+						ZPR zpr{};
+						/*InitZpr(&zpr, ZPK_Fire, (LO*)pcamsen);
+
+						long tookDamage = 0;
+						if (g_pjt->pvtpo && g_pjt->pvtpo->pfnFTakePoDamage)
+							tookDamage = g_pjt->pvtpo->pfnFTakePoDamage(g_pjt, &zpr);
+
+						if (tookDamage != 0)
+						{
+							csdts = CSDTS_Zap;
+							PauseSensor((SENSOR*)pcamsen);
+						}*/
+					}
+				}
+			}
+		}
+		else if (csdts == CSDTS_Unfocus)
+		{
+			if (pcamsen->dtDamageUnfocus < (g_clock.t - pcamsen->tCsdts))
+			{
+				csdts = CSDTS_Nil;
+				sensors = SENSORS_DamageEnabled;
+			}
+		}
+
+		//SetCamsenCsdts(pcamsen, csdts);
+		break;
+	}
+
+	case SENSORS_DamageDisabling:
+	{
+		if (pcamsen->dtDisabling < (g_clock.t - pcamsen->tSensors))
+			sensors = SENSORS_Disabled;
+		break;
+	}
+
+	case SENSORS_Disabled:
+	{
+		if (pcamsen->fRemainDisabledIndefinite != 0)
+		{
+			// remain disabled; no state change
+			break;
+		}
+
+		if (pcamsen->sensm == SENSM_SenseOnly)
+		{
+			sensors = SENSORS_SenseEnabling;
+		}
+		else if (pcamsen->sensm == SENSM_DamageTarget)
+		{
+			sensors = SENSORS_DamageEnabling;
+		}
+		// else: leave disabled
+		break;
+	}
+
+	default:
+		break;
+	}
+
+}
+
 void RenderCamsenSelf(CAMSEN* pcamsen, CM* pcm, RO* pro)
 {
-	pcamsen->pvtalo->pfnRenderAloGlobset(pcamsen, pcm, pro);
+	if (!pcamsen || !pcm || !pro)
+		return;
+
+	if (pcamsen->sensors == SENSORS_Disabled)
+		return;
+
+	RO ro{};
+	DupAloRo((ALO*)pcamsen, pro, &ro);
+
+	// Default scale
+	glm::vec3 scale(1.0f, 1.0f, 1.0f);
+
+	const float now = g_clock.t;
+
+	switch (pcamsen->sensors)
+	{
+	case SENSORS_SenseEnabling:
+	case SENSORS_DamageEnabling:
+	{
+		float t = 1.0f;
+		if (pcamsen->dtEnabling != 0.0f)
+		{
+			t = (now - pcamsen->tSensors) / pcamsen->dtEnabling;
+			if (t < 0.0f) t = 0.0f;
+			else if (t > 1.0f) t = 1.0f;
+		}
+
+		// X fixed at 1, Y/Z ramp
+		scale.x = 1.0f;
+		scale.y = t;
+		scale.z = t;
+		break;
+	}
+
+	case SENSORS_SenseEnabled:
+	case SENSORS_SenseTriggered:
+	case SENSORS_DamageEnabled:
+	{
+		scale.x = 1.0f;
+		scale.y = 1.0f;
+		scale.z = 1.0f;
+		break;
+	}
+
+	case SENSORS_SenseDisabling:
+	case SENSORS_DamageDisabling:
+	{
+		float t = 0.0f;
+		if (pcamsen->dtDisabling != 0.0f)
+		{
+			t = 1.0f - (now - pcamsen->tSensors) / pcamsen->dtDisabling;
+			if (t < 0.0f) t = 0.0f;
+			else if (t > 1.0f) t = 1.0f;
+		}
+
+		scale.x = 1.0f;
+		scale.y = t;
+		scale.z = t;
+		break;
+	}
+
+	case SENSORS_DamageTriggered:
+	{
+		scale.x = 1.0f;
+
+		if (pcamsen->csdts == CSDTS_Zap)
+		{
+			if (g_pjt && pcamsen->paloRenderZap)
+			{
+				float t = 1.0f;
+				if (pcamsen->dtDamageZap != 0.0f)
+				{
+					t = (now - pcamsen->tCsdts) / pcamsen->dtDamageZap;
+					if (t < 0.0f) t = 0.0f;
+					else if (t > 1.0f) t = 1.0f;
+				}
+
+				// posZap = pcamsenPos*(1-t) + pjtPos*t
+				const glm::vec3 camsenPos = pcamsen->xf.posWorld;     // adjust if your type differs
+				const glm::vec3 pjtPos = g_pjt->xf.posWorld;
+
+				glm::vec3 posZap;
+				posZap.x = camsenPos.x * (1.0f - t) + pjtPos.x * t;
+				posZap.y = camsenPos.y * (1.0f - t) + pjtPos.y * t;
+				posZap.z = camsenPos.z * (1.0f - t) + pjtPos.z * t;
+
+				RenderAloLine(pcamsen->paloRenderZap, pcm, &posZap, (glm::vec3*)&(g_pjt->xf.posWorld), 10.0f, ro.uAlpha);
+			}
+		}
+		else if (pcamsen->csdts == CSDTS_Focus)
+		{
+			float v = 0.1f;
+
+			if (pcamsen->dtDamageFocus != 0.0f)
+			{
+				v = 1.0f - (now - pcamsen->tCsdts) / pcamsen->dtDamageFocus;
+				if (v < 0.0f) v = 0.0f;
+				else if (v > 1.0f) v = 1.0f;
+
+				if (v < 0.1f) v = 0.1f;
+			}
+
+			scale.y = v;
+			scale.z = v;
+		}
+		else if (pcamsen->csdts == CSDTS_Unfocus)
+		{
+			float v = 0.1f;
+
+			if (pcamsen->dtDamageUnfocus != 0.0f)
+			{
+				v = (now - pcamsen->tCsdts) / pcamsen->dtDamageUnfocus;
+				if (v < 0.0f) v = 0.0f;
+				else if (v > 1.0f) v = 1.0f;
+
+				if (v < 0.1f) v = 0.1f;
+			}
+
+			scale.y = v;
+			scale.z = v;
+		}
+		// else: unknown csdts -> leave scale as default (1,1,1) except X forced to 1
+		break;
+	}
+
+	default:
+		// leave scale at (1,1,1)
+		break;
+	}
+
+	// Choose which ALO to render (matches the decompiled state-band check)
+	CAMSEN* renderAlo = pcamsen;
+	if ((SENSORS_Nil < pcamsen->sensors) &&
+		(SENSORS_SenseDisabling < pcamsen->sensors) &&
+		(pcamsen->sensors < SENSORS_Disabled) &&
+		pcamsen->paloRenderDamage)
+	{
+		renderAlo = (CAMSEN*)pcamsen->paloRenderDamage;
+	}
+
+	LoadMatrixFromPosRotScale(pcamsen->xf.posWorld, pcamsen->xf.matWorld, scale, ro.model);
+	renderAlo->pvtalo->pfnRenderAloGlobset(renderAlo, pcm, &ro);
 }
 
 void DeleteCamsen(CAMSEN* pcamsen)
@@ -500,6 +1045,16 @@ void ClonePrsen(PRSEN* pprsen, PRSEN* pprsenBase)
 
 	// Shallow copy of pointer members
 	pprsen->ploop = pprsenBase->ploop;
+}
+
+void PostPrsenLoad(PRSEN* pprsen)
+{
+	PostAloLoad(pprsen);
+}
+
+void UpdatePrsen(PRSEN* pprsen, float dt)
+{
+	UpdateSensor(pprsen, dt);
 }
 
 void DeletePrsen(PRSEN *ppprsen)

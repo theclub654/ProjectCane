@@ -41,7 +41,7 @@ void LoadKeyholeFromBrx(KEYHOLE *pkeyhole, CBinaryInputStream *pbis)
 
     for (int i = 0; i < 5; i++)
     {
-        int oid = i + OID_shd_keyhole_background;
+        int oid = i + 1166;
         SHD *pshd = PshdFindShader((OID)oid);
 
         if (pshd != nullptr)

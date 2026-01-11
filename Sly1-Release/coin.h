@@ -107,6 +107,8 @@ void InitDprize(DPRIZE *pdprize);//NOT FINISHED
 int  GetDprizeSize();
 void LoadDprizeFromBrx(DPRIZE* pdprize, CBinaryInputStream* pbis);
 void CloneDprize(DPRIZE* pdprize, DPRIZE* pdprizeBase);
+void PostDprizeLoad(DPRIZE* pdprize);
+void UpdateDprize(DPRIZE* pdprize, float dt);
 void RenderDprizeAll(DPRIZE* pdprize, CM* pcm, RO* pro);
 void DeleteDprize(DPRIZE* pdprize);
 
@@ -122,6 +124,7 @@ COIN*NewCoin();
 void InitCoin(COIN* pcoin);
 int  GetCoinSize();
 void CloneCoin(COIN* pcoin, COIN* pcoinBase);
+void UpdateCoin(COIN* pcoin, float dt);
 void DeleteCoin(COIN *pcoin);
 
 void StartupLifeCtr(LIFECTR* plifectr);

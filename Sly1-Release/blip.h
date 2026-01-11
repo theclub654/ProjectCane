@@ -78,5 +78,6 @@ void CloneBlipg(BLIPG *pblipg, BLIPG *pblipgBase);
 void OnBlipgAdd(BLIPG *pblipg);
 void OnBlipgRemove(BLIPG* pblipg);
 void SetBlipgShader(BLIPG *pblipg, OID oid);
+void UpdateBlipg(BLIPG* pblipg, float dt);
 void RenderBlipgSelf(BLIPG *pblipg, CM *pcm, RO *pro);
 void DeleteBlipg(BLIPG *pblipg);

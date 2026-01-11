@@ -23,6 +23,16 @@ void CloneTurret(TURRET* pturret, TURRET* pturretBase)
     pturret->tCharmPending = pturretBase->tCharmPending;
 }
 
+void PostTurretLoad(TURRET* pturret)
+{
+    PostAloLoad(pturret);
+}
+
+void UpdateTurret(TURRET* pturret, float dt)
+{
+    UpdatePo(pturret, dt);
+}
+
 void DeleteTurret(TURRET *pturret)
 {
 	delete pturret;

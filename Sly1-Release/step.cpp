@@ -98,6 +98,16 @@ void RotateStepToMat(STEP* pstep, glm::mat3& pmat)
 	RotateSoToMat(pstep, pmat);
 }
 
+void PostStepLoad(STEP* pstep)
+{
+    PostAloLoad(pstep);
+}
+
+void UpdateStep(STEP* pstep, float dt)
+{
+    UpdatePo(pstep, dt);
+}
+
 void DeleteStep(STEP* pstep)
 {
 	delete pstep;

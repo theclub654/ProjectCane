@@ -68,6 +68,7 @@ int  GetWmSize();
 void CloneWm(WM* pwm, WM* pwmBase);
 void BindWm(WM* pwm);
 void PostWmLoad(WM *pwm);
+void UpdateWm(WM* pwm, float dt);
 void RenderWmAll(WM* pwm, CM* pcm, RO* pro);
 void DeleteWm(WM* pwm);
 

@@ -464,6 +464,8 @@ JT*  NewJt();
 void InitJt(JT *pjt); // NOT FINSHED
 void LoadJtFromBrx(JT *pjt, CBinaryInputStream *pbis); // NOT FINSHED
 void CloneJt(JT* pjt, JT* pjtBase);
+void PostJtLoad(JT *pjt);
+void UpdateJt(JT* pjt, float dt);
 void RenderJtAll(JT* pjt, CM* pcm, RO* pro);
 void RenderJtSelf(JT* pjt, CM* pcm, RO* pro);
 int  GetJtSize();

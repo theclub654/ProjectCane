@@ -19,6 +19,11 @@ void CloneFrzg(FRZG* pfrzg, FRZG* pfrzgBase)
 	pfrzg->mrg = pfrzgBase->mrg;
 }
 
+void PostFrzgLoad(FRZG* pfrzg)
+{
+	PostLoLoad(pfrzg);
+}
+
 void DeleteFrzg(FRZG* pfrzg)
 {
 	delete pfrzg;

@@ -43,6 +43,12 @@ void CloneSpeaker(SPEAKER* pspeaker, SPEAKER* pspeakerBase)
     pspeaker->psmaIdle = pspeakerBase->psmaIdle;
 }
 
+void PostSpeakerLoad(SPEAKER* pspeaker)
+{
+    PostAloLoad(pspeaker);
+    pspeaker->pvtlo->pfnRemoveLo(pspeaker);
+}
+
 void DeleteSpeaker(SPEAKER* pspeaker)
 {
 	delete pspeaker;

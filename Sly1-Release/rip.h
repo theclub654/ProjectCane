@@ -9,7 +9,8 @@ enum RIPGT
     RIPGT_Loot = 2,
     RIPGT_Max = 3
 };
-enum RIPT {
+enum RIPT 
+{
     RIPT_Nil = -1,
     RIPT_Rip = 0,
     RIPT_Shadow = 1,

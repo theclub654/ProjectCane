@@ -33,6 +33,11 @@ void CloneTail(TAIL* ptail, TAIL* ptailBase)
     ptail->posTip = ptailBase->posTip;
 }
 
+void PostTailLoad(TAIL* ptail)
+{
+    PostAloLoad(ptail);
+}
+
 void DeleteTail(TAIL* ptail)
 {
 	delete ptail;

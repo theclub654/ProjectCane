@@ -10,5 +10,6 @@ class SKY : public ALO
 SKY* NewSky();
 int  GetSkySize();
 void CloneSky(SKY* psky, SKY* pskyBase);
+void PostSkyLoad(SKY* psky);
 void UpdateSky(SKY* psky, float dt);
 void DeleteSky(SKY *psky);

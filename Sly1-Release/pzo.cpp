@@ -43,6 +43,11 @@ void CloneVault(VAULT* pvault, VAULT* pvaultBase)
 	std::memcpy(pvault->apdialogPending, pvaultBase->apdialogPending, sizeof(pvault->apdialogPending));
 }
 
+void PostVaultLoad(VAULT* pvault)
+{
+	PostAloLoad(pvault);
+}
+
 void DeleteVault(VAULT* pvault)
 {
 	delete pvault;
@@ -95,6 +100,16 @@ void CloneSprize(SPRIZE* psprize, SPRIZE* psprizeBase)
 void BindSprize(SPRIZE* psprize)
 {
 	BindAlo(psprize);
+}
+
+void PostSprizeLoad(SPRIZE* psprize)
+{
+	PostAloLoad(psprize);
+}
+
+void UpdateSprize(SPRIZE* psprize, float dt)
+{
+	UpdateSo(psprize, dt);
 }
 
 void DeleteSprize(SPRIZE *psprize)
@@ -172,6 +187,11 @@ void LoadClueFromBrx(CLUE* pclue, CBinaryInputStream* pbis)
 	LoadSprizeFromBrx(pclue, pbis);
 }
 
+void PostClueLoad(CLUE* pclue)
+{
+	PostSprizeLoad(pclue);
+}
+
 void RenderClueAll(CLUE *pclue, CM *pcm, RO *pro)
 {
 	RenderAloAll(pclue, pcm, pro);
@@ -205,6 +225,11 @@ void CloneLock(LOCK* plock, LOCK* plockBase)
 	plock->psm = plockBase->psm;
 	plock->psma = plockBase->psma;
 	plock->paloKey = plockBase->paloKey;
+}
+
+void PostLockLoad(LOCK* plock)
+{
+	PostAloLoad(plock);
 }
 
 void DeleteLock(LOCK* plock)
@@ -246,6 +271,11 @@ void CloneLockg(LOCKG* plockg, LOCKG* plockgBase)
 	{
 		plockg->aoidLock[i] = plockgBase->aoidLock[i];
 	}
+}
+
+void PostLockgLoad(LOCKG* plockg)
+{
+	PostAloLoad(plockg);
 }
 
 void DeleteLockg(LOCKG* plockg)

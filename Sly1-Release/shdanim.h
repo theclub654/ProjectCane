@@ -1,67 +1,7 @@
 #pragma once
-#include "spaprops.h"
-#include "bis.h"
+#include "shd.h"
+#include "clock.h"
 
-struct VTSAA
-{
-
-};
-
-struct VTLOOP
-{
-    
-};
-
-struct VTPINGPONG
-{
-
-};
-
-struct VTSHUFFLE
-{
-
-};
-
-struct VTHOLOGRAM
-{
-
-};
-
-struct VTSCROLLER
-{
-
-};
-
-struct VTCIRCLER
-{
-
-};
-
-struct VTLOOKER
-{
-
-};
-
-struct VTEYES
-{
-
-};
-
-// Shader animation type
-enum SAAK
-{
-    SAAK_Nil = -1,
-    SAAK_None = 0,
-    SAAK_Loop = 1,
-    SAAK_PingPong = 2,
-    SAAK_Shuffle = 3,
-    SAAK_Hologram = 4,
-    SAAK_Eyes = 5,
-    SAAK_Scroller = 6,
-    SAAK_Circler = 7,
-    SAAK_Looker = 8,
-    SAAK_Max = 9
-};
 enum EYESS
 {
     EYESS_Nil = -1,
@@ -70,40 +10,6 @@ enum EYESS
     EYESS_Closed = 2,
     EYESS_Opening = 3,
     EYESS_Max = 4
-};
-struct TCX
-{
-    float du;
-    float dv;
-};
-struct SAI
-{
-    int grfsai;
-    struct SHD *pshd;
-    int iframe;
-    TCX tcx;
-    SAI *psaiNext;
-};
-// Shader animation
-struct SAA
-{
-    union
-    {
-        struct VTSAA* pvtsaa;
-        struct VTLOOP* pvtloop;
-        struct VTPINGPONG* pvtpingpong;
-        struct VTSHUFFLE* pvtshuffle;
-        struct VTHOLOGRAM* pvthologram;
-        struct VTSCROLLER* pvtscroller;
-        struct VTCIRCLER* pvtcircler;
-        struct VTLOOKER* pvtlooker;
-        struct VTEYES* pvteyes;
-    };
-
-    float tUpdated;
-    SAAK saak;
-    OID oid;
-    SAI sai;
 };
 
 struct LOOP : public SAA
@@ -192,25 +98,117 @@ struct LOOKER
     struct POSAD* pposad;
 };
 
-// Shader animation face
 struct SAAF
 {
     uint16_t oid;
     short fInstanced;
     union
     {
-        LOOP loopf;
-        PINGPONG pingpongf;
-        SHUFFLE shufflef;
-        HOLOGRAM hologramf;
-        EYES eyesf;
-        SCROLLER scrollerf;
-        CIRCLER circlerf;
-        LOOKER lookerf;
+        union LOOPF
+        {
+            float dtLoopMin;
+            float dtLoopMax;
+            float dtPauseMin;
+            float dtPauseMax;
+            short iframeStart;
+            uint8_t  pad0x12;
+            uint8_t  pad0x13;
+            uint32_t padTail;
+        }loopf;
+        union PINGPONGF
+        {
+            float dtPingpongMin;
+            float dtPingpongMax;
+            float dtPauseMin;
+            float dtPauseMax;
+            short iframeStart;
+            uint8_t  pad0x12;
+            uint8_t  pad0x13;
+            uint32_t padTail;
+        }pingpongf;
+        union SHUTTLEF
+        {
+            float dtPauseMin;
+            float dtPauseMax;
+            uint32_t pad[4];
+        }shufflef;
+        union HOLOGRAMF
+        {
+            float dradAdjust;
+            uint32_t cSymmetry;
+            uint32_t pad[4];
+        }hologramf;
+        union EYESF
+        {
+            float dtBlink;
+            float dtOpenMin;
+            float dtOpenMax;
+            float uDoubleBlink;
+            short oidOther;
+            uint8_t pad0x12;
+            uint8_t pad0x13;
+            uint32_t padTail;
+        }eyesf;
+        union SCROLLERF
+        {
+            float svu;
+            float svv;
+            float duMod;
+            float dvMod;
+            uint32_t pad[2];
+        }scrollerf;
+        union CIRCLEF
+        {
+            float sw;
+            float sRadius;
+            float du;
+            float dv;
+            uint32_t pad[2];
+        }circlerf;
+        union LOOKERF
+        {
+            float uCenter;
+            float vCenter;
+            float uMin;
+            float uMax;
+            float vMin;
+            float vMax;
+        }lookerf;
     };
 };
 
 // Returns size and type of shader animation
-int CbFromSaak(SAAK saak);
+void* NewSaa(SAAK saak);
 // Loads shader animation from binary file
-void PsaaLoadFromBrx(CBinaryInputStream *pbis); // GOTTA COME BACK TO THIS
+SAA* PsaaLoadFromBrx(CBinaryInputStream *pbis);
+VTSAA* PvtsaaFromSaak(SAAK saak);
+void  InitSaa(SAA* psaa, SAAF* psaaf);
+void  PostSaaLoad(SAA* psaa);
+float UCompleteSaa(SAA* psaa);
+SAI*  PsaiFromSaaShd(SAA* psaa, SHD* pshd);
+int   FUpdatableSaa(SAA* psaa);
+void  DeleteSaa(SAA* psaa);
+
+void  LoadLoopFromBrx(LOOP *ploop, CBinaryInputStream *pbis);
+void  InitLoop(LOOP* ploop, SAAF* psaaf);
+void  PostLoopLoad(LOOP* ploop);
+void  UpdateLoop(LOOP* ploop, float dt);
+float UCompleteLoop(LOOP* ploop);
+void  DeleteLoop(LOOP* ploop);
+
+void  LoadScrollerFromBrx(SCROLLER* pscroller, CBinaryInputStream* pbis);
+void  InitScroller(SCROLLER* pscroller, SAAF* psaaf);
+void  UpdateScroller(SCROLLER* pscroller, float dt);
+float UCompleteScroller(SCROLLER* scroller);
+void  DeleteScroller(SCROLLER* pscroller);
+
+void  LoadCirclerFromBrx(CIRCLER* pcircler, CBinaryInputStream* pbis);
+void  InitCircler(CIRCLER* pcircler, SAAF* psaaf);
+void  UpdateCircler(CIRCLER* pcircler, float dt);
+float UCompleteCircler(CIRCLER* pcircler);
+void  DeleteCircler(CIRCLER* pcircler);
+
+void SetSaiDuDv(SAI* psai, float du, float dv);
+
+extern SAI* g_psaiUpdate;
+extern SAI* g_psaiUpdateTail;

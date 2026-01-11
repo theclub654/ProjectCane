@@ -389,12 +389,10 @@ bool FInsideCmMrd(const CM* pcm, const glm::vec3& dpos, float sRadius, float sMR
 	float inner = outer - pcm->rMRDAdjust * 400.0f;
 	float innerSq = inner * inner;
 
-	if (distSq > innerSq) {
+	if (distSq > innerSq) 
 		outAlpha = (outerSq - distSq) / (outerSq - innerSq);
-	}
-	else {
+	else 
 		outAlpha = 1.0f;
-	}
 
 	return true;
 }

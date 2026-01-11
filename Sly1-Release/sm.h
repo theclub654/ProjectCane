@@ -53,6 +53,7 @@ class SM : public LO
 SM*  NewSm();
 int  GetSmSize();
 void LoadSmFromBrx(SM *psm, CBinaryInputStream *pbis);
+void PostSmLoad(SM* psm);
 void DeleteSm(SM* psm);
 
 SMA* NewSma();

@@ -160,6 +160,8 @@ SUV* NewSuv();
 void InitSuv(SUV *psuv);
 int  GetSuvSize();
 void UpdateSuvXfWorld(SUV* psuv);
+void PostSuvLoad(SUV* psuv);
+void UpdateSuv(SUV* psuv, float dt);
 void RenderSuvSelf(SUV* psuv, CM* pcm, RO* pro);
 void CloneSuv(SUV* psuv, SUV* psuvBase);
 void DeleteSuv(SUV* psuv);

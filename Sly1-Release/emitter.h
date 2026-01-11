@@ -62,11 +62,6 @@ enum BLIPRK {
     BLIPRK_NoMirror = 1,
     BLIPRK_Max = 2
 };
-enum ENSK 
-{
-    ENSK_Get = 0,
-    ENSK_Set = 1
-};
 
 struct EMITDV
 {
@@ -84,7 +79,7 @@ struct BOX
 };
 struct EMITCRV 
 {
-    struct CRV* pcrv;
+    std::shared_ptr <CRV> pcrv;
 };
 struct SKEL 
 {
@@ -95,7 +90,7 @@ struct SKEL
 struct EMITMESH 
 {
     int cpos;
-    glm::vec3* apos;
+    std::vector <glm::vec3> apos;
     int cemittri;
     struct EMITTRI* aemittri;
     float sTotalArea;
@@ -111,7 +106,8 @@ struct EMITX__remit
     OID oidExpls;
     float svcParticle;
 };
-struct EMITX__shrapnel {
+struct EMITX__shrapnel 
+{
     float sRadius;
     float elas;
     float mu;
@@ -119,23 +115,21 @@ struct EMITX__shrapnel {
 struct EMITO 
 {
     EMITOK emitok;
-    union {
-        glm::vec3 posOrigin;
-        BOX boxOrigin;
-        EMITCRV emitcrvOrigin;
-        SKEL skelOrigin;
-        EMITMESH emitmeshOrigin;
-    };
-
+    glm::vec3 posOrigin;
+    BOX boxOrigin;
+    EMITCRV emitcrvOrigin;
+    SKEL skelOrigin;
+    EMITMESH emitmeshOrigin;
     EMITNK emitnk;
     glm::vec3 vec;
     LM lmSOffset;
-    struct EMITOLXF* pemitolxf;
-    struct ALO* paloReference;
+    struct EMITOLXF *pemitolxf;
+    struct ALO *paloReference;
     EMITVK emitvk;
     glm::vec3 vLocal;
 };
-struct EMITV {
+struct EMITV 
+{
     LM lmSv;
     float rSvz;
     glm::vec3 dv;
@@ -178,7 +172,7 @@ struct EMITBLIP
     float dtShaderLoop;
     int fRandomFrame;
     int crgba;
-    struct RGBA* argba;
+    std::vector <glm::vec4> argba;
     int fColorRanges;
     OID oidSplineTarget;
     struct EXPLO* pexploSplineTarget;
@@ -206,12 +200,14 @@ struct EMITP
     EMITBLIP emitblip;
     EMITRIP emitrip;
 };
-struct EMITB {
+struct EMITB 
+{
     int cref;
     EMITO emito;
     EMITV emitv;
     EMITP emitp;
-    union EMITX {
+    union EMITX 
+    {
         struct EMITX__bullet bullet;
         struct EMITX__remit remit;
         struct EMITX__shrapnel shrapnel;
@@ -232,8 +228,8 @@ class EXPLG : public EXPL
 class EXPLO : public EXPL
 {
 	public:
-		struct EMITB* pemitb;
-		OID oidreference;
+        std::shared_ptr <EMITB> pemitb;;
+		OID oidReference;
 		OID oidShape;
 };
 class EXPLS : public EXPLO
@@ -254,8 +250,8 @@ class EXPLS : public EXPLO
 
 class EMITTER : public ALO
 {
-public:
-    struct EMITB* pemitb;
+    public:
+    std::shared_ptr <EMITB> pemitb;
     EMITRK emitrk;
     int cParticle;
     LM lmSvcParticle;
@@ -284,33 +280,69 @@ public:
     int fValuesChanged;
 };
 
-static int LoadExploCount = 0;
-static int LoadEmitterCount = 0;
-
 EXPLO*NewExplo();
 void InitExplo(EXPLO* pexplo);
 int  GetExploSize();
 void LoadExploFromBrx(EXPLO* pexplo, CBinaryInputStream* pbis);
 void CloneExplo(EXPLO* pexplo, EXPLO* pexploBase);
+EMITOK* PemitbEnsureExploEmitok(EXPLO* pexplo, ENSK ensk);
 void BindExplo(EXPLO* pexplo);
 void DeleteExplo(EXPLO* pexplo);
 
 EMITTER*NewEmitter();
 void InitEmitter(EMITTER* pemitter);
 int  GetEmitterSize();
-void LoadEmitMeshFromBrx(CBinaryInputStream* pbis);
-void LoadEmitblipColorsFromBrx(int crgba, CBinaryInputStream* pbis);
+void LoadEmitMeshFromBrx(EMITMESH *pemitmesh, CBinaryInputStream *pbis);
+void LoadEmitblipColorsFromBrx(EMITBLIP* pemitblip, int crgba, CBinaryInputStream* pbis);
 void LoadEmitterFromBrx(EMITTER* pemitter, CBinaryInputStream* pbis);
 void CloneEmitter(EMITTER* pemitter, EMITTER* pemitterBase);
+void UnpauseEmitter(EMITTER* pemitter);
+int FPausedEmitter(EMITTER* emitter);
+EMITTER* PemitterEnsureEmitter(EMITTER* pemitter, ENSK ensk);
 EMITB* PemitbEnsureEmitter(EMITTER* pemitter, ENSK ensk);
+EMITOK* PemitbEnsureEmitterEmitok(EMITTER* pemitter, ENSK ensk);
+glm::vec3* PemitbEnsureEmitterEmitokVec(EMITTER* pemitter, ENSK ensk);
+EMITRK* PemitbEnsureEmitterEmitrk(EMITTER* pemitter);
+LM* PemitbEnsureEmitterlmSvcParticle(EMITTER* pemitter);
+float* PemitbEnsureEmittercParticleConstant(EMITTER* pemitter);
+float* PemitEnsureEmitteruPauseProb(EMITTER* pemitter);
+LM* PemitbEnsureEmitterlmDtPause(EMITTER* pemitter);
+void GetEmitterEnabled(EMITTER* pemitter, int* pfEnabled);
+void SetEmitterEnabled(EMITTER* pemitter, int fEnabled);
+int* GetEmitterfCountIsDensity(EMITTER* pemitter);
+void SetEmitterfCountIsDensity(EMITTER* pemitter, bool fCountDensity);
+void SetEmitterOidReference(EMITTER* pemitter, OID oidReference);
+OID* GetEmitterOidReference(EMITTER* pemitter);
+void* GetEmitterOidRender(EMITTER* pemitter);
+void  SetEmitterOidRender(EMITTER* pemitter, OID oidRender);
+void* GetEmitterOidTouch(EMITTER* pemitter);
+void  SetEmitterOidTouch(EMITTER* pemitter, OID oidTouch);
+void* GetEmitterOidNextRender(EMITTER* pemitter); 
+void  SetEmitterOidNextRender(EMITTER* pemitter, OID oidNextRender);
+void* GetEmitterOidGroup(EMITTER* pemitter);
+void  SetEmitterOidGroup(EMITTER* pemitter, OID oidGroup);
+void PauseEmitter(EMITTER* pemitter, float dtPause);
+void GetEmitterPaused(EMITTER* pemitter, int* pfPaused);
+void* GetEmitterOidShape(EMITTER* pemitter);
+void  SetEmitterOidShape(EMITTER* pemitter, OID oidShape);
+EMITNK* PemitbEnsureEmitterEmitnk(EMITTER* pemitter);
+glm::vec3* PemitbEnsureEmitterEmitoVec(EMITTER* pemitter);
+LM* PemitbEnsureEmitterlmSOffset(EMITTER* pemitter);
+
+
+void SetEmitterParticleCount(EMITTER *pemitter, int cParticle);
+void SetEmitterAutoPause(EMITTER* pemitter, int fAutoPause);
 void PauseEmitterIndefinite(EMITTER* pemitter);
 void RenderEmitterSelf(EMITTER* pemitter, CM* pcm, RO* pro);
 void BindEmitter(EMITTER* pemitter);
+void PostEmitterLoad(EMITTER* pemitter);
+void UpdateEmitter(EMITTER* pemitter, float dt);
 void DeleteEmitter(EMITTER *pemitter);
 
 EXPL*NewExpl();
 int  GetExplSize();
 void CloneExpl(EXPL* pexpl, EXPL* pexplBase);
+void PostExplLoad(EXPL* pexpl);
 void DeleteExpl(EXPL* pexpl);
 
 EXPLS*NewExpls();

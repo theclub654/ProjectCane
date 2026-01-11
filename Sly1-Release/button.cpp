@@ -58,6 +58,16 @@ void CloneButton(BUTTON* pbutton, BUTTON* pbuttonBase)
     pbutton->phndSwitchHook = pbuttonBase->phndSwitchHook;
 }
 
+void PostButtonLoad(BUTTON* pbutton)
+{
+    PostAloLoad(pbutton);
+}
+
+void UpdateButton(BUTTON* pbutton, float dt)
+{
+    UpdateSo(pbutton, dt);
+}
+
 void DeleteButton(BUTTON *pbutton)
 {
 	delete pbutton;
@@ -96,6 +106,16 @@ void CloneVolbtn(VOLBTN* pvolbtn, VOLBTN* pvolbtnBase)
 void LoadVolbtnFromBrx(VOLBTN* pvolbtn, CBinaryInputStream* pbis)
 {
 	LoadSoFromBrx(pvolbtn, pbis);
+}
+
+void PostVolbtnLoad(VOLBTN* pvolbtn)
+{
+    PostAloLoad(pvolbtn);
+}
+
+void UpdateVolbtn(VOLBTN* pvolbtn, float dt)
+{
+    UpdateSo(pvolbtn, dt);
 }
 
 void DeleteVolbtn(VOLBTN* pvolbtn)

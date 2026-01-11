@@ -16,4 +16,5 @@ MURRAY*NewMurray();
 void InitMurray(MURRAY* pmurray);
 int  GetMurraySize();
 void CloneMurray(MURRAY* pmurray, MURRAY* pmurrayBase);
+void PostMurrayLoad(MURRAY* pmurray);
 void DeleteMurray(MURRAY* pmurray);

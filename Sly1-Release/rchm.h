@@ -84,4 +84,5 @@ RCHM*NewRchm();
 void InitRchm(RCHM* prchm);
 int  GetRchmSize();
 void LoadRchmFromBrx(RCHM *prchm, CBinaryInputStream *pbis);
+void PostRchmLoad(RCHM* prchm);
 void DeleteRchm(RCHM* prchm);

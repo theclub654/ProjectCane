@@ -555,6 +555,9 @@
     <ClCompile Include="rostream.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="update.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="basic.h">
@@ -1113,6 +1116,12 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="rostream.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="update.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="shdanimdec.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

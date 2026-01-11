@@ -6,8 +6,11 @@
 #include <sstream>
 #include <cerrno>
 
-#include "shdanim.h"
+#include "spaprops.h"
+#include "bis.h"
 #include "font.h"
+#include "util.h"
+#include "shdanimdec.h"
 
 void PostBlotsLoad();
 
@@ -53,6 +56,28 @@ enum RP
     RP_Max = 18
 };
 
+// Shader animation type
+enum SAAK
+{
+    SAAK_Nil = -1,
+    SAAK_None = 0,
+    SAAK_Loop = 1,
+    SAAK_PingPong = 2,
+    SAAK_Shuffle = 3,
+    SAAK_Hologram = 4,
+    SAAK_Eyes = 5,
+    SAAK_Scroller = 6,
+    SAAK_Circler = 7,
+    SAAK_Looker = 8,
+    SAAK_Max = 9
+};
+
+enum RKO
+{
+    RKO_OneWay = 0,
+    RKO_ThreeWay = 1
+};
+
 // Color property's
 struct RGBA
 {
@@ -60,6 +85,44 @@ struct RGBA
     byte bGreen;
     byte bBlue;
     byte bAlpha;
+};
+
+struct TCX
+{
+    float du;
+    float dv;
+};
+
+struct SAI
+{
+    int grfsai;
+    struct SHD *pshd;
+    int iframe;
+    TCX tcx;
+    glm::vec2 uvOffset;
+    SAI *psaiNext;
+};
+
+// Shader animation
+struct SAA
+{
+    union
+    {
+        struct VTSAA* pvtsaa;
+        struct VTLOOP* pvtloop;
+        struct VTPINGPONG* pvtpingpong;
+        struct VTSHUFFLE* pvtshuffle;
+        struct VTHOLOGRAM* pvthologram;
+        struct VTSCROLLER* pvtscroller;
+        struct VTCIRCLER* pvtcircler;
+        struct VTLOOKER* pvtlooker;
+        struct VTEYES* pvteyes;
+    };
+
+    float tUpdated;
+    SAAK saak;
+    OID oid;
+    SAI sai;
 };
 
 // CLUT property
@@ -158,6 +221,7 @@ void ConvertUserHsvToUserRgb(glm::vec3 &pvecHSV, glm::vec3& pvecRGB);
 SHD* PshdFindShader(OID oid);
 // Loads texture and shader property's from binary file
 void LoadShadersFromBrx(CBinaryInputStream *pbis);
+void SetSaiIframe(SAI* psai, int iframe);
 // Loads texture data from binary file
 void LoadTexturesFromBrx(CBinaryInputStream *pbis);
 // Make Texture
@@ -166,6 +230,8 @@ std::vector <byte> MakeBmp(BMP *pbmp, CBinaryInputStream* pbis);
 std::vector <byte> MakePallete(CLUT *pclut, CBinaryInputStream* pbis);
 // Make texture
 void MakeTexture(GLuint& textureReference, TEX* ptex, BMP* pbmp, std::vector <byte>& texture, CLUT* pclut, bool fFlip, bool fMipMap, SHDK shdk, RP rp, CBinaryInputStream* pbis);
+void UpdateShaders(float dt);
+
 
 // Global variable which holds the number of CLUT's in a binary file
 extern int g_cclut;
@@ -180,12 +246,15 @@ extern int g_cshd;
 extern std::vector <BMP> g_abmp;
 // Global vector for shader property's
 extern std::vector <SHD> g_ashd;
+// Table for texture property's
+extern std::vector<TEX> g_atex;
 // Global variable which holds the number of shader animation's in a binary file
 extern int g_cpsaa;
 // Global vector for shader animation property's
-extern std::vector <SAA> g_apsaa;
-// Table for texture property's
-extern std::vector<TEX> g_atex;
+extern std::vector <SAA*> g_apsaa;
+extern std::vector <SAA*> g_apsaaSw;
+extern SAI* g_psaiUpdate;
+extern SAI* g_psaiUpdateTail;
 // Start of texture data
 extern size_t textureDataStart;
 // Unswizzled CLUT indices

@@ -66,7 +66,7 @@ void SnipLo(LO* plo)
 	}
 
 	if (pvtlo->pfnPostAloLoad) {
-		//pvtlo->pfnPostAloLoad((ALO*)plo);
+		pvtlo->pfnPostAloLoad((ALO*)plo);
 	}
 
 	if (pvtlo->pfnRemoveLo) {
@@ -113,32 +113,37 @@ void LoadLoFromBrx(LO* plo, CBinaryInputStream* pbis)
 	LoadOptionsFromBrx(plo, pbis);
 }
 
+int FMatchesLoName(LO* plo, OID oid)
+{
+	if (oid == OID_Nil)
+		return 0;
+	
+	if ((plo->oid != oid) && ((plo->ppxr == nullptr || (plo->ppxr->oidProxyRoot != oid))))
+		return 0;
+
+	return 1;
+}
+
 void RemoveLo(LO* plo)
 {
-	// Loading objects parent child list
-	DL* objectChildList = &plo->paloParent->dlChild;
+	DL* objectChildList;
 
-	// If object doesnt have a parent load up the sw dlChild
-	if (plo->paloParent == nullptr)
+	if (plo->paloParent != nullptr)
+		objectChildList = &plo->paloParent->dlChild;
+	else
 		objectChildList = &plo->psw->dlChild;
 
-	// Returns if parent LO or SW has a child object or not
-	bool isFound = FFindDlEntry(objectChildList, plo);
+	bool isFound = FFindDlEntry(objectChildList, plo) != 0;
 
-	if (isFound != 0)
-	{
-		// Returning if object is in world or not
-		isFound = FIsLoInWorld(plo);
+	if (!isFound)
+		return;
 
-		if (isFound == 0)
-			RemoveDlEntry(objectChildList, plo);
+	bool inWorld = FIsLoInWorld(plo) != 0;
 
-		else
-		{
-			RemoveDlEntry(objectChildList, plo);
-			plo->pvtlo->pfnRemoveLoHierarchy(plo);
-		}
-	}
+	RemoveDlEntry(objectChildList, plo);
+
+	if (inWorld)
+		plo->pvtlo->pfnRemoveLoHierarchy(plo);
 }
 
 void OnLoAdd(LO* plo)

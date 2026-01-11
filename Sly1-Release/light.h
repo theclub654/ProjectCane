@@ -149,6 +149,7 @@ extern GLuint g_lightSsbo;
 extern int numRl;
 extern int cLights;
 extern std::vector <LIGHTBLK> lightBlk;
+
 extern glm::vec3 g_vecHighlight;
 extern float g_degHighlight;
 extern float g_gMidtone;

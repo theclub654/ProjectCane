@@ -78,25 +78,33 @@ void InitPuffer(PUFFER *ppuffer);
 int  GetPufferSize();
 void LoadPufferFromBrx(PUFFER* ppuffer, CBinaryInputStream* pbis);
 void ClonePuffer(PUFFER* ppuffer, PUFFER* ppufferBase);
+void PostPufferLoad(PUFFER* ppuffer);
+void UpdatePuffer(PUFFER* ppuffer, float dt);
 void DeletePuffer(PUFFER* ppuffer);
 
 PUFFB*NewPuffb();
 int  GetPuffbSize();
 void ClonePuffb(PUFFB* ppuffb, PUFFB* ppuffbBase);
+void PostPuffbLoad(PUFFB* ppuffb);
+void UpdatePuffb(PUFFB* ppuffb, float dt);
 void DeletePuffb(PUFFB* ppuffb);
 
 PUFFV*NewPuffv();
 void InitPuffv(PUFFV* ppuffv);
 int  GetPuffvSize();
 void ClonePuffv(PUFFV* ppuffv, PUFFV* ppuffvBase);
+void PostPuffvLoad(PUFFV* ppuffv);
 void DeletePuffv(PUFFV* ppuffv);
 
 PUFFC*NewPuffc();
 int  GetPuffcSize();
 void ClonePuffc(PUFFC* ppuffc, PUFFC* ppuffcBase);
+void PostPuffcLoad(PUFFC* ppuffc);
+void UpdatePuffc(PUFFC* ppuffc, float dt);
 void DeletePuffc(PUFFC* ppuffc);
 
 PUFFT*NewPufft();
 int  GetPufftSize();
 void ClonePufft(PUFFT* ppufft, PUFFT* ppufftBase);
+void PostPufftLoad(PUFFT* ppufft);
 void DeletePufft(PUFFT *ppufft);

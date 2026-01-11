@@ -49,6 +49,12 @@ struct SOP
     struct SOP* psopNext;
 };
 
+struct DLR 
+{
+    OID oidChild;
+    struct DLR* pdlrNext;
+};
+
 // Proxy Source List
 struct PSL 
 {
@@ -102,8 +108,6 @@ class LO : public BASIC
         struct CFrame* pframe;
         std::shared_ptr <PXR> ppxr;
 		uint64_t dtickPerf;
-        int fHit;
-        int numProxy;
 };
 
 // Creates a new local object
@@ -118,9 +122,10 @@ void RemoveLoHierarchy(LO* plo);
 void SnipLo(LO* plo);
 void CloneLoHierarchy(LO* plo, LO* ploBase);
 void CloneLo(LO* plo, LO* ploBase);
-LO* PloCloneLo(LO* plo, SW* psw, ALO* paloParent);
+LO*  PloCloneLo(LO* plo, SW* psw, ALO* paloParent);
 void SendLoMessage(LO* plo, MSGID msgid, void* pv); // GOTTA COME BACK
 void LoadLoFromBrx(LO* plo, CBinaryInputStream* pbis);
+int  FMatchesLoName(LO* plo, OID oid);
 void RemoveLo(LO* plo); // GOTTA COME BACK
 void OnLoAdd(LO* plo);
 void OnLoRemove(LO* plo);

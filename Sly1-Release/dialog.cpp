@@ -95,6 +95,11 @@ void LoadDialogEventsFromBrx(DIALOG* pdialog, CBinaryInputStream* pbis, int* pcd
     }
 }
 
+void UpdateDialog(DIALOG* pdialog, float dt)
+{
+    UpdateAlo(pdialog, dt);
+}
+
 void DeleteDialog(DIALOG* pdialog)
 {
 	delete pdialog;

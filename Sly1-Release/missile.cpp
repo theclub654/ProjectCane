@@ -99,6 +99,11 @@ void CloneTarmiss(TARMISS* ptarmiss, TARMISS* ptarmissBase)
 	ptarmiss->lmSwMax = ptarmissBase->lmSwMax;
 }
 
+void UpdateTarmiss(TARMISS* ptarmiss, float dt)
+{
+	UpdateBomb(ptarmiss, dt);
+}
+
 void DeleteTarmiss(TARMISS *ptarmiss)
 {
 	delete ptarmiss;

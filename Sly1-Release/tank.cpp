@@ -38,6 +38,16 @@ void CloneTank(TANK* ptank, TANK* ptankBase)
     ptank->ppntAnchor = ptankBase->ppntAnchor;
 }
 
+void PostTankLoad(TANK* ptank)
+{
+    PostStepLoad(ptank);
+}
+
+void UpdateTank(TANK* ptank, float dt)
+{
+    UpdateStep(ptank, dt);
+}
+
 void RenderTankAll(TANK* ptank, CM* pcm, RO* pro)
 {
 	RenderAloAll(ptank, pcm, pro);

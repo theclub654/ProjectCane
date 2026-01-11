@@ -33,6 +33,16 @@ void CloneBarrier(BARRIER* pbarrier, BARRIER* pbarrierBase)
     pbarrier->psoLastWarped = pbarrierBase->psoLastWarped;
 }
 
+void PostBarrierLoad(BARRIER* pbarrier)
+{
+    PostAloLoad(pbarrier);
+}
+
+void UpdateBarrier(BARRIER* pbarrier, float dt)
+{
+    UpdateSo(pbarrier, dt);
+}
+
 void DeleteBarrier(BARRIER* pbarrier)
 {
 	delete pbarrier;

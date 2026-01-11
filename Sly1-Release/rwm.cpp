@@ -10,6 +10,11 @@ void InitRwm(RWM* prwm)
 	InitLo(prwm);
 }
 
+void PostRwmLoad(RWM* prwm)
+{
+    PostLoLoad(prwm);
+}
+
 void CloneRwm(RWM* prwm, RWM* prwmBase)
 {
     CloneLo(prwm, prwmBase); // Assuming CloneLo handles copying the base class (LO) members

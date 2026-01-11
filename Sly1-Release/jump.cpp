@@ -36,6 +36,11 @@ void CloneJmt(JMT* pjmt, JMT* pjmtBase)
 	pjmt->psoSetIgnoreJt = pjmtBase->psoSetIgnoreJt;
 }
 
+void PostJmtLoad(JMT* pjmt)
+{
+	PostLoLoad(pjmt);
+}
+
 void DeleteJmt(JMT* pjmt)
 {
 	delete pjmt;

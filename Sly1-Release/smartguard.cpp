@@ -42,6 +42,16 @@ void CloneSmartguard(SMARTGUARD* psmartguard, SMARTGUARD* psmartguardBase)
     psmartguard->cidleSearch = psmartguardBase->cidleSearch;
 }
 
+void PostSmartguardLoad(SMARTGUARD* psmartguard)
+{
+    PostStepguardLoad(psmartguard);
+}
+
+void UpdateSmartguard(SMARTGUARD* psmartguard, float dt)
+{
+    UpdateStepguard(psmartguard, dt);
+}
+
 void DeleteSmartGuard(SMARTGUARD* psmartguard)
 {
 	delete psmartguard;

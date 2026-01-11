@@ -20,6 +20,16 @@ void UpdateSuvXfWorld(SUV* psuv)
 	UpdateSoXfWorld(psuv);
 }
 
+void PostSuvLoad(SUV* psuv)
+{
+    PostAloLoad(psuv);
+}
+
+void UpdateSuv(SUV* psuv, float dt)
+{
+    UpdatePo(psuv, dt);
+}
+
 void RenderSuvSelf(SUV* psuv, CM* pcm, RO* pro)
 {
 	RenderSoSelf(psuv, pcm, pro);

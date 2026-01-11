@@ -16,4 +16,6 @@ class TURRET : public PO
 TURRET*NewTurret();
 int  GetTurretSize();
 void CloneTurret(TURRET* pturret, TURRET* pturretBase);
+void PostTurretLoad(TURRET* pturret);
+void UpdateTurret(TURRET* pturret, float dt);
 void DeleteTurret(TURRET *pturret);

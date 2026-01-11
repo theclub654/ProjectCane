@@ -15,4 +15,5 @@ int  GetJmtSize();
 void OnJmtAdd(JMT* pjmt);
 void OnJmtRemove(JMT* pjmt);
 void CloneJmt(JMT* pjmt, JMT* pjmtBase);
+void PostJmtLoad(JMT* pjmt);
 void DeleteJmt(JMT* pjmt);

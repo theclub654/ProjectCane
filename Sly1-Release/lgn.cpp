@@ -68,6 +68,16 @@ void CloneLgn(LGN* plgn, LGN* plgnBase)
 	plgn->pxpZap = plgnBase->pxpZap;
 }
 
+void PostLgnLoad(LGN* plgn)
+{
+	PostAloLoad(plgn);
+}
+
+void UpdateLgn(LGN* plgn, float dt)
+{
+	UpdatePo(plgn, dt);
+}
+
 void RenderLgnAll(LGN* plgn, CM* pcm, RO* pro)
 {
 	RenderAloAll(plgn, pcm, pro);
@@ -108,6 +118,17 @@ void CloneLgnb(LGNB* plgnb, LGNB* plgnbBase)
 	plgnb->pstso = nullptr;
 }
 
+void PostLgnbLoad(LGNB* plgnb)
+{
+	PostAloLoad(plgnb);
+	plgnb->pvtlo->pfnRemoveLo(plgnb);
+}
+
+void UpdateLgnb(LGNB* plgnb, float dt)
+{
+	UpdateSo(plgnb, dt);
+}
+
 void DeleteLgnb(LGNB *plgnb)
 {
 	delete plgnb;
@@ -141,6 +162,16 @@ void CloneSwp(SWP* pswp, SWP* pswpBase)
 	pswp->pxa = nullptr;
 	pswp->grfpvaXpValid = 0;
 	pswp->pstso = nullptr;
+}
+
+void PostSwpLoad(SWP* pswp)
+{
+	PostBrkLoad(pswp);
+}
+
+void UpdateSwp(SWP* pswp, float dt)
+{
+	UpdateBrk(pswp, dt);
 }
 
 void DeleteSwp(SWP *pswp)

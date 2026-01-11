@@ -35,9 +35,15 @@ void UnloadShaders()
     g_pfontScreenCounters = nullptr;
     g_pfontJoy = nullptr;
     g_grfzonShaders = 0;
+
+    for (int i = 0; i < g_apsaaSw.size(); i++)
+        g_apsaaSw[i]->pvtsaa->pfnDeleteSaa(g_apsaaSw[i]);
+
     g_cpsaa = 0;
     g_apsaa.clear();
     g_apsaa.shrink_to_fit();
+    g_apsaaSw.clear();
+    g_apsaaSw.shrink_to_fit();
     g_testFontBrx.clear();
     g_testFontBrx.shrink_to_fit();
     textureDataStart = 0;
@@ -225,7 +231,7 @@ void LoadShadersFromBrx(CBinaryInputStream* pbis)
 
     // Loading number of shader animation's from file
     g_cpsaa = pbis->U16Read();
-    g_apsaa.resize(g_cpsaa);
+    g_apsaa.reserve(g_cpsaa);
 
     for (int i = 0; i < g_cshd; i++)
     {
@@ -252,16 +258,58 @@ void LoadShadersFromBrx(CBinaryInputStream* pbis)
         g_ashd[i].atex.resize(g_ashd[i].ctex);
 
         // Reading shader animation from file
-        PsaaLoadFromBrx(pbis);
+        SAA *psaa = PsaaLoadFromBrx(pbis);
+        g_ashd[i].psaa = psaa;
+
+        if (psaa != nullptr)
+        {
+            psaa->sai.pshd = &g_ashd[i];
+            g_apsaa.push_back(psaa);
+        }
 
         // Reading texture tables from file
         for (int a = 0; a < g_ashd[i].ctex; a++)
             LoadTexFromBrx(&g_ashd[i].atex[a], pbis);
+
+        g_ashd[i].cframe = g_ashd[i].atex[0].cibmp;
     }
 
     LoadFontsFromBrx(pbis);
 
+    for (int i = 0; i < g_apsaa.size(); i++)
+    {
+        if (g_apsaa[i]->pvtsaa != nullptr)
+            g_apsaa[i]->pvtsaa->pfnPostSaaLoad(g_apsaa[i]);
+    }
+
     PostBlotsLoad();
+}
+
+void SetSaiIframe(SAI* psai, int iframe)
+{
+    if (!psai || !psai->pshd)
+        return;
+
+    // Clamp iframe to [0, cframe - 1]
+    const int maxFrame = psai->pshd->cframe - 1;
+    if (iframe < 0)       iframe = 0;
+    else if (iframe > maxFrame) iframe = maxFrame;
+
+    // If iframe didn't change, nothing to do.
+    if (psai->iframe == iframe)
+        return;
+
+    psai->iframe = iframe;
+
+    // Enqueue for update if not already queued and not the tail sentinel.
+    if (!psai->psaiNext && psai != g_psaiUpdateTail)
+    {
+        if (!g_psaiUpdateTail)
+            g_psaiUpdateTail = psai;
+
+        psai->psaiNext = g_psaiUpdate;
+        g_psaiUpdate = psai;
+    }
 }
 
 void LoadTexturesFromBrx(CBinaryInputStream* pbis)
@@ -449,6 +497,25 @@ void MakeTexture(GLuint &textureReference, TEX *ptex, BMP *pbmp, std::vector <by
     }
 }
 
+void UpdateShaders(float dt)
+{
+    for (int i = 0; i < g_apsaa.size(); ++i)
+    {
+        SAA* saa = g_apsaa[i];
+        if (!saa)
+            continue;
+
+        if (!FUpdatableSaa(saa))
+            continue;
+
+        auto* vtsaa = saa->pvtscroller;
+        if (!vtsaa || !vtsaa->pfnUpdateScroller)
+            continue;
+
+        vtsaa->pfnUpdateScroller((SCROLLER*)saa, dt);
+    }
+}
+
 int g_cclut;
 std::vector <CLUT> g_aclut;
 int g_grfzonShaders;
@@ -456,8 +523,11 @@ int g_cbmp;
 std::vector <BMP> g_abmp;
 int g_cshd;
 std::vector <SHD> g_ashd;
-int g_cpsaa;
-std::vector <SAA> g_apsaa;
 std::vector <TEX> g_atex;
+int g_cpsaa;
+std::vector <SAA*> g_apsaa;
+std::vector <SAA*> g_apsaaSw;
+SAI* g_psaiUpdate = nullptr;
+SAI* g_psaiUpdateTail = nullptr;
 size_t textureDataStart;
 uint8_t csm1ClutIndices[256];

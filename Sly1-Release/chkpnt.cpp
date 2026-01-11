@@ -50,6 +50,16 @@ void BindChkpnt(CHKPNT* pchkpnt)
 	BindAlo(pchkpnt);
 }
 
+void PostChkpntLoad(CHKPNT* pchkpnt)
+{
+	PostAloLoad(pchkpnt);
+}
+
+void UpdateChkpnt(CHKPNT* pchkpnt, float dt)
+{
+	UpdateAlo(pchkpnt, dt);
+}
+
 void DeleteChkpnt(CHKPNT *pchkpnt)
 {
 	delete pchkpnt;

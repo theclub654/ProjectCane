@@ -73,9 +73,19 @@ void LoadFlyFromBrx(FLY* pfly, CBinaryInputStream* pbis)
 	LoadSoFromBrx(pfly, pbis);
 }
 
+void PostFlyLoad(FLY* pfly)
+{
+    PostAloLoad(pfly);
+}
+
+void UpdateFly(FLY* pfly, float dt)
+{
+    UpdateSo(pfly, dt);
+}
+
 void RenderFlySelf(FLY* pfly, CM* pcm, RO* pro)
 {
-
+    pfly->pvtalo->pfnRenderAloGlobset(pfly, pcm, pro);
 }
 
 void DeleteFly(FLY *pfly)

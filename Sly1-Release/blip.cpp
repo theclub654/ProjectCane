@@ -78,9 +78,30 @@ void SetBlipgShader(BLIPG *pblipg, OID oid)
     //PropagateBlipgShader(pblipg);
 }
 
+void UpdateBlipg(BLIPG* pblipg, float dt)
+{
+    UpdateAlo(pblipg, dt);
+    ResolveAlo(pblipg);
+
+    GRFZON objZoneMask = pblipg->pshd->grfzon;
+
+    bool inCameraZone = (objZoneMask & 0x10000000u) || ((g_pcm->grfzon & objZoneMask) == g_pcm->grfzon);
+
+    if (!inCameraZone)
+        pblipg->pvtlo->pfnRemoveLo(pblipg);
+}
+
 void RenderBlipgSelf(BLIPG* pblipg, CM* pcm, RO* pro)
 {
+    RPL rpl{};
+    rpl.rp = RP_Blip;
+    rpl.ro.uAlpha = 1.0;
+    rpl.z = 0.0;
 
+    if (pro != nullptr)
+        rpl.ro.uAlpha = pro->uAlpha;
+
+    SubmitRpl(&rpl);
 }
 
 void DeleteBlipg(BLIPG* pblipg)

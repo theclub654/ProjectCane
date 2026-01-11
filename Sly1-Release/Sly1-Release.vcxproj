@@ -315,6 +315,7 @@
     <ClCompile Include="unk7.cpp" />
     <ClCompile Include="unk8.cpp" />
     <ClCompile Include="unk9.cpp" />
+    <ClCompile Include="update.cpp" />
     <ClCompile Include="util.cpp" />
     <ClCompile Include="vec.cpp" />
     <ClCompile Include="vis.cpp" />
@@ -457,6 +458,7 @@
     <ClInclude Include="shape.h" />
     <ClInclude Include="shd.h" />
     <ClInclude Include="shdanim.h" />
+    <ClInclude Include="shdanimdec.h" />
     <ClInclude Include="sidebag.h" />
     <ClInclude Include="sky.h" />
     <ClInclude Include="sm.h" />
@@ -502,6 +504,7 @@
     <ClInclude Include="unk7.h" />
     <ClInclude Include="unk8.h" />
     <ClInclude Include="unk9.h" />
+    <ClInclude Include="update.h" />
     <ClInclude Include="upscale.h" />
     <ClInclude Include="util.h" />
     <ClInclude Include="vec.h" />

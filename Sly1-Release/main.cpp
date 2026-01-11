@@ -22,7 +22,7 @@ int main(int cphzArgs, char* aphzArgs[])
         if (g_psw != nullptr)
         {
             UpdateUi(&g_ui);
-
+            
             SetupCm(g_pcm);
             MarkClockTick(&g_clock);
             UpdateSw(g_psw, g_clock.dt);
@@ -64,7 +64,7 @@ int main(int cphzArgs, char* aphzArgs[])
 
     if (g_psw != nullptr)
         DeleteWorld(g_psw);
-
+    
     g_gl.TerminateGL();
     return 0;
 }
@@ -80,7 +80,7 @@ void Startup()
     StartupBrx();
     StartupScreen();
     StartupUi();
-    glfwSwapInterval(1);
+    //glfwSwapInterval(1);
 }
 
 bool fQuitGame;

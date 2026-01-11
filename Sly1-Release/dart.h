@@ -41,4 +41,6 @@ void OnDartAdd(DART* pdart);
 void RemoveDart(DART* pdart);
 void CloneDart(DART* pdart, DART* pdartBase);
 void LoadDartFromBrx(DART* pdart, CBinaryInputStream* pbis);
+void PostDartLoad(DART* pdart);
+void UpdateDart(DART* pdart, float dt);
 void DeleteDart(DART *pdart);

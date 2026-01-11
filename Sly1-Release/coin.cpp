@@ -79,6 +79,16 @@ void CloneDprize(DPRIZE* pdprize, DPRIZE* pdprizeBase)
 	pdprize->cAttract = pdprizeBase->cAttract;
 }
 
+void PostDprizeLoad(DPRIZE* pdprize)
+{
+	PostAloLoad(pdprize);
+}
+
+void UpdateDprize(DPRIZE* pdprize, float dt)
+{
+	UpdateAlo(pdprize, dt);
+}
+
 void RenderDprizeAll(DPRIZE* pdprize, CM* pcm, RO* pro)
 {
 	RenderAloAll(pdprize, pcm, pro);
@@ -137,6 +147,11 @@ int GetCoinSize()
 void CloneCoin(COIN* pcoin, COIN* pcoinBase)
 {
 	CloneDprize(pcoin, pcoinBase);
+}
+
+void UpdateCoin(COIN* pcoin, float dt)
+{
+	UpdateDprize(pcoin, dt);
 }
 
 void DeleteCoin(COIN* pcoin)

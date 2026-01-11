@@ -80,6 +80,16 @@ void LoadRatFromBrx(RAT* prat, CBinaryInputStream* pbis)
 	LoadSoFromBrx(prat, pbis);
 }
 
+void PostRatLoad(RAT* prat)
+{
+    PostAloLoad(prat);
+}
+
+void UpdateRat(RAT* prat, float dt)
+{
+    UpdateSo(prat, dt);
+}
+
 void RenderRatAll(RAT* prat, CM* pcm, RO* pro)
 {
 	RenderAloAll(prat, pcm, pro);

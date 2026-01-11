@@ -180,6 +180,16 @@ void CloneJt(JT* pjt, JT* pjtBase)
     pjt->fCanBoost = pjtBase->fCanBoost;
 }
 
+void PostJtLoad(JT* pjt)
+{
+    PostStepLoad(pjt);
+}
+
+void UpdateJt(JT* pjt, float dt)
+{
+    UpdateStep(pjt, dt);
+}
+
 void RenderJtAll(JT* pjt, CM* pcm, RO* pro)
 {
 	RenderAloAll(pjt, pcm, pro);

@@ -98,12 +98,14 @@ WARP*NewWarp();
 int  GetWarpSize();
 void LoadWarpFromBrx(WARP* pwarp, CBinaryInputStream* pbis);
 void CloneWarp(WARP* pwarp, WARP* pwarpBase);
+void PostWarpLoad(WARP* pwarp);
 void DeleteWarp(WARP* pwarp);
 
 EXIT*NewExit();
 int  GetExitSize();
 void LoadExitFromBrx(EXIT *pexit, CBinaryInputStream* pbis);
 void CloneExit(EXIT* pexit, EXIT* pexitBase);
+void PostExitLoad(EXIT* pexit);
 void UpdateExit(EXIT* pexit, float dt);
 void DeleteExit(EXIT* pexit);
 
@@ -111,4 +113,5 @@ CAMERA*NewCamera();
 void InitCamera(CAMERA* pcamera);
 int  GetCameraSize();
 void CloneCamera(CAMERA* pcamera, CAMERA* pcameraBase);
+void PostCameraLoad(CAMERA* pcamera);
 void DeleteCamera(CAMERA *pcamera);
