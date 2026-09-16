@@ -1,15 +1,11 @@
 #pragma once
-#include "blot.h"
+#include "ctr.h"
 
-struct SCORES : public BLOT
+struct SCORES : public CTR
 {
-    const char* achzFormat;
-    int an[8];
+    int cCpuCollected;
 };
 
 void StartupScores(SCORES* pscores);
-void PostScoresLoad(SCORES* pscores);
-void UpdateScores(SCORES* pscores);
-void DrawScores(SCORES* pscores);
 
 extern SCORES g_scores;

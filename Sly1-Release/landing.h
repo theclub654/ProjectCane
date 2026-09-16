@@ -4,7 +4,7 @@
 class LANDING : public SHAPE
 {
 	public:
-		DLE dleLanding;
+	DLE dleLanding;
 };
 
 LANDING*NewLanding();

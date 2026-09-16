@@ -36,88 +36,88 @@ struct JE
 struct JPR 
 {
     JE je;
-    struct SO* pso;
+    class SO* pso;
 };
 
 class JACK : public PO
 {
 	public:
-        JACKS jacks;
-        float tJacks;
-        struct ASEGA* pasegaCur;
-        struct ASEG* pasegStop;
-        struct ASEG* pasegRim;
-        struct ASEG* pasegGap;
-        struct ASEG* pasegZap;
-        struct ASEG* pasegDead;
-        struct ASEG* pasegCelebrate;
-        struct JACKF* pjackf;
-        struct JACKB* pjackb;
-        struct JACKN* apjackn[32];
-        struct JACKF* apjackfDrop[4];
-        int cjpr;
-        JPR ajpr[6];
-        int iCur;
-        int jCur;
-        int iNext;
-        int jNext;
-        float uCur;
-        float radTarget;
-        int cpjacknActive;
-        int cpjacknTarget;
-        float tNextJackn;
-        struct SHD* pshdTop;
-        struct SHD* pshdSides;
-        struct SHD* pshdGap;
-        glm::mat4 matPosToUv;
+    JACKS jacks;
+    float tJacks;
+    struct ASEGA* pasegaCur;
+    struct ASEG* pasegStop;
+    struct ASEG* pasegRim;
+    struct ASEG* pasegGap;
+    struct ASEG* pasegZap;
+    struct ASEG* pasegDead;
+    struct ASEG* pasegCelebrate;
+    struct JACKF* pjackf;
+    struct JACKB* pjackb;
+    struct JACKN* apjackn[32];
+    struct JACKF* apjackfDrop[4];
+    int cjpr;
+    JPR ajpr[6];
+    int iCur;
+    int jCur;
+    int iNext;
+    int jNext;
+    float uCur;
+    float radTarget;
+    int cpjacknActive;
+    int cpjacknTarget;
+    float tNextJackn;
+    struct SHD* pshdTop;
+    struct SHD* pshdSides;
+    struct SHD* pshdGap;
+    glm::mat4 matPosToUv;
 };
 class JACKN : public ALO
 {
 	public:
-        struct JACK* pjack;
-        struct JACKF* pjackf;
-        int cpaloRender;
-        struct ALO* apaloRender[16];
-        float svu;
-        float u;
-        int fGap;
+    struct JACK* pjack;
+    struct JACKF* pjackf;
+    int cpaloRender;
+    class ALO* apaloRender[16];
+    float svu;
+    float u;
+    int fGap;
 };
 
 class JACKB : public ALO
 {
 	public:
-        struct JACK* pjack;
-        JBS jbs;
-        float tJbs;
-        struct ASEGA* pasegaCur;
-        JBS jbsNext;
-        float radTarget;
-        BL ablWalk[2];
-        struct ASEGBL* pasegblWalk;
-        struct ASEG* pasegSpike;
-        struct ASEG* pasegFly;
-        struct ASEG* pasegTaunt;
-        struct PNT* ppntLeftWingTip;
-        struct PNT* ppntRightWingTip;
-        JBWS jbws;
-        JBWS jbwsNext;
-        glm::vec3 posPlant;
-        glm::vec3 posNextPlant;
+    struct JACK* pjack;
+    JBS jbs;
+    float tJbs;
+    struct ASEGA* pasegaCur;
+    JBS jbsNext;
+    float radTarget;
+    BL ablWalk[2];
+    struct ASEGBL* pasegblWalk;
+    struct ASEG* pasegSpike;
+    struct ASEG* pasegFly;
+    struct ASEG* pasegTaunt;
+    struct PNT* ppntLeftWingTip;
+    struct PNT* ppntRightWingTip;
+    JBWS jbws;
+    JBWS jbwsNext;
+    glm::vec3 posPlant;
+    glm::vec3 posNextPlant;
 };
 
 class JACKF : public ALO
 {
 	public:
-        struct JACK* pjack;
-        int cjeRim;
-        struct JE* ajeRim;
-        struct JEP* ajepRim;
-        int cjeGap;
-        struct JE* ajeGap;
-        enum JK* aaajk;
-        float tDrop;
-        glm::vec3 dvDrop;
-        int c;
+    struct JACK* pjack;
+    int cjeRim;
+    struct JE* ajeRim;
+    struct JEP* ajepRim;
+    int cjeGap;
+    struct JE* ajeGap;
+    enum JK* aaajk;
+    float tDrop;
+    glm::vec3 dvDrop;
+    int c;
 };
 
 JACK*NewJack();

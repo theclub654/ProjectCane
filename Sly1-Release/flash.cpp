@@ -24,7 +24,8 @@ int GetFlashSize()
 void LoadFlashFromBrx(FLASH* pflash, CBinaryInputStream* pbis)
 {
 	LoadAloFromBrx(pflash, pbis);
-	LoadTbspFromBrx(pbis);
+	LoadTbspFromBrx(&pflash->ctsurf, pflash->atsurf, &pflash->ctbsp, pflash->atbsp, pbis);
+
 }
 
 void CloneFlash(FLASH* pflash, FLASH* pflashBase)
@@ -43,7 +44,6 @@ void CloneFlash(FLASH* pflash, FLASH* pflashBase)
 void UpdateFlash(FLASH* pflash, float dt)
 {
 	UpdateAlo(pflash, dt);
-
 	pflash->gScaleCur = GSmooth(pflash->gScaleCur, pflash->gScaleTarget, g_clock.dt, &pflash->smpScale, nullptr);
 }
 
@@ -58,6 +58,19 @@ void RenderFlashSelf(FLASH *pflash, CM *pcm, RO *pro)
 	ro.model = ro.model * matScale;
 
 	RenderAloSelf(pflash, pcm, &ro);
+}
+
+int FPosFlashWithin(FLASH* pflash, glm::vec3* ppos)
+{
+	if (pflash->gScaleCur < 0.0001f)
+		return 0;
+
+	glm::vec3 posLocal;
+	ConvertAloPos(nullptr, (ALO*)pflash, ppos, &posLocal);
+
+	posLocal *= 1.0f / pflash->gScaleCur;
+
+	return FCheckTbspPoint(pflash->atbsp.data(), &posLocal);
 }
 
 void DeleteFlash(FLASH* pflash)

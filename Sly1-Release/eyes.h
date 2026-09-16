@@ -33,6 +33,7 @@ void  LoadEyesFromBrx(EYES* peyes, CBinaryInputStream* pbis);
 void  InitEyes(EYES* peyes, SAAF* psaaf);
 void  PostEyesLoad(EYES* peyes);
 void  UpdateEyes(EYES* peyes, float dt);
+void  SetEyesClosed(EYES* peyes, float uClosed);
 SAI*  PsaiFromEyesShd(EYES* peyes, SHD* pshd);
 void  SetEyesEyess(EYES* peyes, EYESS eyess);
 void  DeleteEyes(EYES* peyes);

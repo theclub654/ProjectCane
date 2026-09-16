@@ -4,13 +4,14 @@
 class FRZG : public LO
 {
 	public:
-		int coid;
-		OID aoid[8];
-		MRG mrg;
+	int coid;
+	short aoid[8];
+	MRG mrg;
 };
 
 FRZG*NewFrzg();
 int  GetFrzgSize();
 void CloneFrzg(FRZG* pfrzg, FRZG* pfrzgBase);
 void PostFrzgLoad(FRZG* pfrzg);
+void AddFrzgObject(FRZG* pfrzg, OID oid);
 void DeleteFrzg(FRZG* pfrzg);

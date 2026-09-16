@@ -18,42 +18,28 @@ void PostTitleLoad(TITLE* ptitle)
     PostBlotLoad(ptitle);
 
     // Clone and rescale font (0.95f x 0.95f)
-    if (ptitle->pfont)
+    ptitle->pfont = ptitle->pfont->PfontClone(0.9f, 0.9f);
+    ptitle->rgba = glm::vec4(127.0f / 255.0f, 127.0f / 255.0f, 127.0f / 255.0f, 223.0f / 255.0f);
+
+    if (FFontLoaded(2))
     {
-        ptitle->pfont = ptitle->pfont->PfontClone(0.95f, 0.95f);
+        ptitle->pte = &g_teTitle;
+        ptitle->pte->m_pfont = PfontFromFont(2);
     }
 
-    ptitle->rgba = glm::vec4(
-        127.0f / 255.0f,
-        127.0f / 255.0f,
-        127.0f / 255.0f,
-        223.0f / 255.0f
-    );
-
-    // Assign edge font if available
-    ptitle->pte = &g_teTitle;
-    g_teTitle.m_pfont = &g_afontBrx[2];
-
     // Used for testing
-    ptitle->pvtblot->pfnSetBlotAchzDraw(ptitle, (char*)"A Sucker Punch Production");
+    //ptitle->pvtblot->pfnSetBlotAchzDraw(ptitle, (char*)"A Sucker Punch Production");
 }
 
 int FIncludeTitleForPeg(TITLE* ptitle, BLOT* pblotOther)
 {
-    int iVar1;
-
-    iVar1 = FIncludeBlotForPeg((BLOT*)ptitle, pblotOther);
-
-    if ((iVar1 != 0) || (iVar1 = 0, ptitle->fReshow != 0)) {
-        iVar1 = 1;
-    }
-    return iVar1;
+    return FIncludeBlotForPeg(ptitle, pblotOther) || ptitle->fReshow;
 }
 
 void SetTitleAchzDraw(TITLE* ptitle, char* pchz)
 {
     if (ptitle->blots == BLOTS_Hidden) {
-        SetBlotAchzDraw((BLOT*)ptitle, pchz);
+        SetBlotAchzDraw(ptitle, pchz);
     }
     else if ((BLOTS_Nil < ptitle->blots) && (ptitle->blots < BLOTS_Max)) {
         ptitle->pchzReshow = pchz;
@@ -70,6 +56,20 @@ void SetTitleBlots(TITLE* ptitle, BLOTS blots)
         blots = BLOTS_Appearing;
     }
     SetBlotBlots((BLOT*)ptitle, blots);
+}
+
+void ShowTitle(TITLE* ptitle)
+{
+    if ((ptitle->blots != BLOTS_Disappearing) || (ptitle->fReshow == 0))
+        ShowBlot(ptitle);
+}
+
+void HideTitle(TITLE* ptitle)
+{
+    if ((ptitle->blots == BLOTS_Disappearing) && (ptitle->fReshow != 0)) 
+        ptitle->fReshow = 0;
+    else
+        HideBlot(ptitle);
 }
 
 void DrawTitle(TITLE* ptitle)

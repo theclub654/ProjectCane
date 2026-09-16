@@ -36,8 +36,7 @@ struct ACTIVESHADOWS
 
 class SHADOW
 {
-public:
-
+    public:
     SHD* pshd;
     float sNearRadius;
     float sFarRadius;
@@ -77,6 +76,7 @@ void FindSwShadows(SW* psw, glm::vec3* ppos, float sRadius, int cpshadowMax, int
 void PostShadowLoad(SHADOW* pshadow);
 void RebuildShadowRegion(SHADOW* pshadow);
 void CombineShadowEyeLookAtProj(const glm::vec3& posEye, const glm::mat3& matLookAt, const glm::mat4& matProj, glm::mat4& out);
+int FFilterFastShadows(void*, void* pvso);
 void UpdateShadow(SHADOW* pshadow, float dt);
 void RebuildShadow(SHADOW* pshadow);
 void AllocateShadows(SW* psw);

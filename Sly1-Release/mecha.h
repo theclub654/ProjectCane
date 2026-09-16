@@ -30,10 +30,10 @@ class MECHA : public STEP
         SFF sffRun;
         struct ASEG* pasegKick0;
         struct ASEG* pasegKick1;
-        struct SO* psoKickEffect;
+        class SO* psoKickEffect;
         struct XP* pxpEffect;
         int cpaloIgnoreEffect;
-        struct ALO* apaloIgnoreEffect[16];
+        class ALO* apaloIgnoreEffect[16];
         struct SM* psmGun;
         struct SMA* psmaGun;
         struct ASEG* pasegJump;

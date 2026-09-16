@@ -1,10 +1,20 @@
 #pragma once
+#define ALO_BUILDING
 #include "lo.h"
 #include "glob.h"
-#include "act.h"
-#include "wr.h"
-#include "shadow.h"
-#include "freeze.h"
+#undef ALO_BUILDING
+
+struct SHADOW;
+struct FADER;
+struct SFX;
+struct ACT;
+struct ACTLA;
+struct ACTBANK;
+struct ACTREF;
+struct ACTADJ;
+struct ACTSEG;
+struct RO;
+struct BLOT;
 
 enum ACK
 {
@@ -45,6 +55,14 @@ enum ZONS : unsigned int
 	ZONS_Fixed = 1,
 	ZONS_Dynamic = 2,
 	ZONS_Max = 3
+};
+
+enum FREEZEMODE : unsigned int
+{
+	FREEZEMODE_Normal = 0,
+	FREEZEMODE_AlwaysBusy = 1,
+	FREEZEMODE_AlwaysFrozen = 2,
+	FREEZEMODE_Max = 3
 };
 enum VISS : unsigned int
 {
@@ -94,6 +112,18 @@ enum CT
 	CT_Locked = 3
 };
 
+struct WKR 
+{
+	LO* ploSource;
+	LO* ploTarget;
+	float sftMax;
+	GRFIC grfic;
+	GRFTAK grftak;
+	float gSort;
+	glm::vec3 pos;
+	glm::vec3 v;
+};
+
 struct XF
 {
 	glm::mat3 mat;
@@ -104,6 +134,12 @@ struct XF
 	glm::vec3 w;
 	glm::vec3 dv;
 	glm::vec3 dw;
+};
+
+struct MSGTRANS
+{
+	struct ALO *palo;
+	glm::vec3 posWorldPrev;
 };
 
 struct POSEC
@@ -133,6 +169,12 @@ struct THROB
 	glm::vec3 hsvIn;
 	glm::vec3 hsvOut;
 	float dtInOut;
+};
+
+struct MSGDMG 
+{
+	LO* ploDamaged;
+	LO* ploSource;
 };
 
 enum IAK
@@ -167,8 +209,8 @@ struct IKJ
 
 struct IKHALOX
 {
-	glm::vec4 posIkh;
-	glm::vec4 posWrist;
+	glm::vec3 posIkh;
+	glm::vec3 posWrist;
 	ALO* paloShoulder;
 	OID oidElbow;
 	ALO* paloElbow;
@@ -224,6 +266,10 @@ struct JOINT
 	glm::mat4 matInfluence;
 	int fSsc;
 	int fMatInfluence;
+	OID oidParent;
+	OID oidChild;
+	ALO* paloParent;
+	ALO* paloChild;
 };
 
 struct ALOX
@@ -267,7 +313,6 @@ struct FRZ
 class ALO : public LO
 {
 	public:
-
 	DL dlChild;
 	DLE dleBusy;
 	DLE dleMRD;
@@ -290,38 +335,40 @@ class ALO : public LO
 	struct ACT *pactPos;
 	struct ACT *pactRot;
 	struct ACT *pactScale;
-	struct ACT **apactPose;
-	struct ACT *pactRestore;
-	struct ACTLA *pactla;
-	struct ACTBANK *pactbank;
+	std::vector <ACT*> apactPose;
+	std::shared_ptr <ACT> pactRestore;
+	std::shared_ptr <ACTLA> pactla;
+	std::shared_ptr <ACTBANK> pactbank;
 	struct IKH *pikh;
-	struct CLQ *pclqPosSpring;
-	struct CLQ *pclqPosDamping;
-	struct CLQ *pclqRotSpring;
-	struct CLQ *pclqRotDamping;
-	struct SMPA *psmpaPos;
-	struct SMPA *psmpaRot;
+	std::shared_ptr <CLQ> pclqPosSpring;
+	std::shared_ptr <CLQ> pclqPosDamping;
+	std::shared_ptr <CLQ> pclqRotSpring;
+	std::shared_ptr <CLQ> pclqRotDamping;
+	std::shared_ptr <SMPA> psmpaPos;
+	std::shared_ptr <SMPA> psmpaRot;
 	std::shared_ptr <ALOX> palox;
 	int cframeStatic;
 	GLOBSET globset;
 	std::shared_ptr <SHADOW> pshadow;
-	struct THROB *pthrob;
+	std::shared_ptr <THROB> pthrob;
 	float sFastShadowRadius;
 	float sFastShadowDepth;
 	int fRealClock;
-	struct FADER* pfader;
+	std::shared_ptr <FADER> pfader;
 	float dtUpdatePause;
 	std::shared_ptr <ASEGD> pasegd;
 	float sRadiusRenderSelf;
 	float sRadiusRenderAll;
 	glm::vec3 posCenter;
-	struct SFX *psfx;
+	std::shared_ptr <SFX> psfx;
 	FICG ficg;
 	int cposec;
 	std::vector <POSEC> aposec;
 	struct ACTREF *pactrefCombo;
-	struct DLR *pdlrFirst;
+	std::shared_ptr <DLR> pdlrFirst;
 	int mtlk : 8;
+	ACK ackPos;
+	ACK ackRot;
 	unsigned int zons : 2;
 	unsigned int viss : 2;
 	unsigned int mrds : 2;
@@ -334,11 +381,26 @@ class ALO : public LO
 	unsigned int fBusy : 1;
 	unsigned int fFrozen : 1;
 	unsigned int fRemerge : 1;
-	unsigned int fNoFreeze : 1;
+	union
+	{
+		unsigned int freezeMode : 2;
+		unsigned int fNoFreeze : 1;
+	};
 	unsigned int cpaloFindSwObjects : 4;
 	unsigned int fApplyAseg : 1;
-	ACK ackRot;
+
 };
+
+#ifdef ALO_IMPLEMENTATION
+// Implementation-only dependencies. Keeping them out of ordinary users of
+// alo.h prevents the ALO/SO/emitter header cycle.
+#include "act.h"
+#include "wr.h"
+#include "shadow.h"
+#include "freeze.h"
+#include "sound.h"
+#include "fader.h"
+#endif
 
 // Create ALO
 ALO* NewAlo();
@@ -359,10 +421,14 @@ void AdjustAloRtckMat(ALO* palo, CM* pcm, RTCK rtck, glm::vec3* pposCenter, glm:
 void CloneAloHierarchy(ALO* palo, ALO* paloBase);
 // Makes a copy of ALO object
 void CloneAlo(ALO* palo, ALO* paloBase);
+void HandleAloMessage(ALO* palo, MSGID msgid, void* pv);
 bool FIsZeroV(const glm::vec3& v);
 bool FIsZeroW(const glm::vec3& w);
+bool FIsZeroDv(const glm::vec3& dv);
+bool FIsZeroDw(const glm::vec3& dw);
 int  FIsAloStatic(ALO* palo);
 void ResolveAlo(ALO* palo);
+void InvalidateAloLighting(ALO* palo);
 // Sets a Alo object to a parent
 void SetAloParent(ALO* palo, ALO* paloParent);
 // Apply transformation to proxy ALO
@@ -376,17 +442,48 @@ void UpdateAloXfWorldHierarchy(ALO* palo);
 // Updates Alo and children
 void UpdateAloHierarchy(ALO* palo, float dt);
 // Moves ALO object to a position
-void TranslateAloToPos(ALO* palo, glm::vec3& ppos);
-void ConvertAloPos(ALO* paloFrom, ALO* paloTo, glm::vec3& pposFrom, glm::vec3& pposTo);
-void ConvertAloVec(ALO* paloFrom, ALO* paloTo, glm::vec3* pvecFrom, glm::vec3* pvecTo);
-void RotateAloToMat(ALO* palo, glm::mat3& pmat);
+void TranslateAloToPos(ALO* palo, glm::vec3 *ppos);
+void ConvertAloPos(ALO* paloFrom, ALO* paloTo, glm::vec3 *pposFrom, glm::vec3 *pposTo);
+void ConvertAloVec(ALO* paloFrom, ALO* paloTo, glm::vec3 *pvecFrom, glm::vec3 *pvecTo);
+void RotateAloToMat(ALO* palo, glm::mat3 *pmat);
 // Rotate or scale object to a new transformation
-void ConvertAloMat(ALO* paloFrom, ALO* paloTo, glm::mat3& pmatFrom, glm::mat3& pmatTo);
+void ConvertAloMat(ALO* paloFrom, ALO* paloTo, glm::mat3 *pmatFrom, glm::mat3 *pmatTo);
+void SetAloTransformBasis(ALO* palo, ALO* paloPosBasis, ALO* paloRotBasis);
+int  FDrivenAlo(ALO* palo);
+void ConvertAloMovement(ALO* paloFrom, ALO* paloTo, glm::vec3* ppos, glm::vec3* pvFrom, glm::vec3* pwFrom, glm::vec3* pdvFrom, glm::vec3* pdwFrom, glm::vec3* pvTo, glm::vec3* pwTo, glm::vec3* pdvTo, glm::vec3* pdwTo);
+void SetAloVelocityVec(ALO* palo, glm::vec3 *velocity);
+void SetAloVelocityXYZ(ALO* palo, float x, float y, float z);
+void SetAloAngularVelocityVec(ALO* palo, glm::vec3 *angularVelocity);
+void SetAloAngularVelocityXYZ(ALO* palo, float x, float y, float z);
+void PresetAloAccel(ALO* palo, float dt);
+void ProjectAloTransform(ALO* palo, float dt, int fParentDirty);
+void PredictAloTransform(ALO* paloLeaf, ALO* paloBasis, float dtOffset, glm::vec3* ppos, glm::mat3* pmat, glm::vec3* pv, glm::vec3* pw);
+void PredictAloTransformAdjust(ALO* paloLeaf, ALO* paloBasis, float dtOffset, glm::vec3* ppos, glm::mat3* pmat, glm::vec3* pv, glm::vec3* pw);
+void UpdateAloInfluences(ALO* palo, RO* pro);
+void AdjustAloRotation(ALO* palo, glm::mat3* pmat, glm::vec3* pw);
+void UnadjustAloRotation(ALO* palo, glm::mat3* pmat);
+void RecacheAloActList(ALO* palo);
+void ResortAloActList(ALO* palo);
+ASEGA* PasegaFindAlo(ALO* palo, OID oidAseg);
+ASEGA* PasegaFindAloNearest(ALO* paloLeaf);
+void RetractAloDrive(ALO* palo);
+SMA* PsmaFindAlo(ALO* palo, OID oidSm);
+void CreateAloActadj(ALO* palo, int nPriority, ACTADJ** ppactadj);
+void UpdateAloConstraints(ALO* palo);
+int  FAbsorbAloWkr(ALO* palo, WKR* pwkr);
 void SetAloInitialVelocity(ALO* palo, glm::vec3* pv);
 void SetAloInitialAngularVelocity(ALO* palo, const glm::vec3* pw);
+void MatchAloOtherObject(ALO* palo, ALO* paloOther);
 ASEGD* PasegdEnsureAlo(ALO* palo);
+OID* PasegdEnsureAloOid(ALO* palo);
+float* PasegdEnsureAlotLocal(ALO* palo);
+float* PasegdEnsureAlosvtLocal(ALO* palo);
+IAK* PasegdEnsureAloiak(ALO* palo);
 SHADOW* PshadowAloEnsure(ALO* palo);
 SHADOW* PshadowInferAlo(ALO* palo);
+void EnsureAloActRestore(ALO* palo);
+void EnsureAloActla(ALO* palo);
+void InsertAloAct(ALO* palo, ACT* pact);
 void SetAloAsegdOid(ALO* palo, short oid);
 void SetAloAsegdtLocal(ALO* palo, float tLocal);
 void SetAloAsegdSvtLocal(ALO* palo, float svtLocal);
@@ -413,6 +510,8 @@ void SetAloShadowFrustrumUp(ALO* palo, glm::vec3* pvecUp);
 void GetAloShadowFrustrumUp(ALO* palo, glm::vec3* pvecUp);
 void SetAloDynamicShadowObject(ALO* palo, OID oidDysh);
 void SetAloNoFreeze(ALO* palo, int fNoFreeze);
+void SetAloFreezeMode(ALO* palo, FREEZEMODE freezeMode);
+void GetAloFreezeMode(ALO* palo, FREEZEMODE* pfreezeMode);
 void SetAloRestorePosition(ALO* palo, int fRestore);
 void SetAloRestorePositionAck(ALO* palo, ACK ack);
 void SetAloPositionSpring(ALO* palo, float r);
@@ -421,6 +520,8 @@ void SetAloPositionDamping(ALO* palo, float r);
 void SetAloPositionDampingDetail(ALO* palo, CLQ* pclq);
 void SetAloRestoreRotation(ALO* palo, int fRestore);
 void SetAloRestoreRotationAck(ALO* palo, ACK ack);
+void SetAloActPriority(ALO* palo, int nPriority);
+void SetAloRotationMatchesVelocity(ALO* palo, float uBank, float dtPredict, ACK ackRot);
 void SetAloRotationSpring(ALO* palo, float r);
 void SetAloRotationSpringDetail(ALO* palo, CLQ* pclq);
 void SetAloRotationDamping(ALO* palo, float r);
@@ -441,12 +542,17 @@ void SetAloLookAtTiltFunction(ALO* palo, CLQ* pclq);
 void SetAloLookAtTiltLimits(ALO* palo, LM* plm);
 void SetAloLookAtEnabledPriority(ALO* palo, int nPriority);
 void SetAloLookAtDisabledPriority(ALO* palo, int nPriority);
+TARGET* PtargetEnsureAlo(ALO* palo);
 void SetAloTargetAttacks(ALO* palo, int grftak);
 void SetAloTargetRadius(ALO* palo, float sRadiusTarget);
+void SetAloTargetHitTest(ALO* palo, int fHitTest);
+void EnsureAloThrob(ALO* palo);
 void SetAloThrobKind(ALO* palo, THROBK throbk);
 void SetAloThrobInColor(ALO* palo, glm::vec3* phsvInColor);
 void SetAloThrobOutColor(ALO* palo, glm::vec3* phsvOutColor);
 void SetAloThrobDtInOut(ALO* palo, float dtInOut);
+void NewSfx(std::shared_ptr<SFX> &psfx);
+void EnsureAloSfx(ALO* palo);
 void SetAloSfxid(ALO* palo, SFXID sfxid);
 void SetAloSStart(ALO* palo, float sStart);
 void SetAloSFull(ALO* palo, float sFull);
@@ -454,7 +560,7 @@ void SetAloUVolumeSpl(ALO* palo, float uVol);
 void SetAloUVolume(ALO* palo, float uVol);
 void SetAloUPitchSpl(ALO* palo, float uPitch);
 void SetAloUPitch(ALO* palo, float uPitch);
-void SetAloSndRepeat(ALO* palo, LM* plm);
+void SetAloSndRepeat(ALO* palo, LM plm);
 void SetAloUDoppler(ALO* palo, float uDoppler);
 void SetAloInteractCane(ALO* palo, int grfic);
 void SetAloInteractCaneSweep(ALO* palo, int grfic);
@@ -467,18 +573,29 @@ void SetAloForceCameraFade(ALO* palo, int fFade);
 void SetAloCelRgba(ALO* palo, RGBA prgba);
 void SetAloOverrideCel(ALO* palo, glm::vec4* rgba);
 void UpdateAloThrob(ALO* palo, float dt);
+void SetAloBlotContext(ALO* palo, BLOT* pblot);
 //GOTTA COME BACK TO THIS
-void*GetAloFrozen(ALO* palo);
-void*GetAloXfPos(ALO* palo);
-void*GetAloXfPosOrig(ALO* palo);
-void*GetAloXfPosWorld(ALO* palo);
-void*GetAloXfMat(ALO* palo);
-void*GetAloMatOrig(ALO* palo);
-void*GetAloXfMatWorld(ALO* palo);
-void*GetAloEuler(ALO* palo);
+void GetAloFrozen(ALO* palo, int* pfFrozen);
+void SetAloHidden(ALO* palo, int fHidden);
+void GetAloHidden(ALO* palo, int* pfHidden);
+void* GetAloXfPos(ALO* palo);
+void SetAloXfPos(ALO* palo, glm::vec3 value);
+void* GetAloXfPosOrig(ALO* palo);
+void SetAloXfPosOrig(ALO* palo, glm::vec3 value);
+void* GetAloXfPosWorld(ALO* palo);
+void SetAloXfPosWorld(ALO* palo, glm::vec3 value);
+void* GetAloXfMat(ALO* palo);
+void SetAloXfMat(ALO* palo, glm::mat3 value);
+void* GetAloMatOrig(ALO* palo);
+void SetAloMatOrig(ALO* palo, glm::mat3 value);
+void* GetAloXfMatWorld(ALO* palo);
+void SetAloXfMatWorld(ALO* palo, glm::mat3 value);
+void GetAloEuler(ALO* palo, glm::vec3* peul);
 void GetAloVelocityLocal(ALO* palo, glm::vec3* pvec);
-void*GetAloXfw(ALO* palo);
-void*GetAloXfdv(ALO* palo);
+void* GetAloXfw(ALO* palo);
+void SetAloXfw(ALO* palo, glm::vec3 value);
+void* GetAloXfdv(ALO* palo);
+void SetAloXfdv(ALO* palo, glm::vec3 value);
 void*GetAloXfdw(ALO* palo);
 void*GetAloRoot(ALO* palo);
 void GetAloFastShadowRadius(ALO* palo, float* psRadius);
@@ -491,11 +608,12 @@ void GetAloLookAtTiltFunction(ALO* palo, CLQ* pclq);
 void GetAloLookAtTiltLimits(ALO* palo, LM* plm);
 void GetAloLookAtEnabledPriority(ALO* palo, int* pnPriority);
 void GetAloLookAtDisabledPriority(ALO* palo, int* pnPriority);
-int  FGetAloChildrenList(ALO* palo, void* pvstate);
+int  FGetAloChildrenList(ALO* palo, void* pvstate); // GOTTA COME BACK TO THIS
 void GetAloThrobKind(ALO* palo, THROBK* pthrobk);
 void GetAloThrobInColor(ALO* palo, glm::vec3* phsvInColor);
 void GetAloThrobOutColor(ALO* palo, glm::vec3* phsvOutColor);
 void GetAloThrobDtInOut(ALO* palo, float* pdtInOut);
+void SetAloSfxidSpl(ALO* palo, SFXID sfxid);
 void GetAloSfxid(ALO* palo, SFXID* psfxid);
 void GetAloSStart(ALO* palo, float* psStart);
 void GetAloSFull(ALO* palo, float* psFull);
@@ -510,14 +628,32 @@ void GetAloInteractCaneSmash(ALO* palo, int* pgrfic);
 void GetAloInteractBomb(ALO* palo, int* pgrfic);
 void GetAloInteractShock(ALO* palo, int* pgrfic);
 void*GetAlofRealClock(ALO* palo);
+void SetAloRealClock(ALO* palo, int fRealClock);
+void SetAloScrollingMasterSpeeds(ALO* palo, float svu, float svv);
+void SetAloEyesClosed(ALO* palo, float uClosed);
+void GetAloActlaTarget(ALO* palo, ALO** ppaloTarget);
+void SetAloActlaTarget(ALO* palo, ALO* paloTarget);
+void ResumeAloActla(ALO* palo);
+void PauseAloActla(ALO* palo);
+void StartAloSound(ALO* palo, SFXID sfxid, float sStart, float sFull, float uVol, LM* plmRepeat);
+void StopAloSound(ALO* palo);
+void EnsureAloFader(ALO* palo);
+void FadeAloIn(ALO* palo, float dtFade);
+void FadeAloOut(ALO* palo, float dtFade);
+void CalculateAloDrive(ALO* palo, CLQ* pclqHoming, LM* plmHoming, float dt, float radPanCur, float* pradPanTarget, float* pradTiltTarget, float* psvTarget);
 void CalculateAloMovement(ALO* paloLeaf, ALO* paloBasis, glm::vec3& pos, glm::vec3* pv, glm::vec3* pw, glm::vec3* pdv, glm::vec3* pdw);
+void CalculateAloTransformAdjust(ALO* paloLeaf, ALO* paloBasis, glm::vec3* ppos, glm::mat3* pmat, glm::vec3* pv, glm::vec3* pw);
+void CalculateAloTransform(ALO* paloLeaf, ALO* paloBasis, int cpaloPredict, glm::vec3* apos, glm::mat3* amat, glm::vec3* av, glm::vec3* aw);
+ACTSEG* PactsegNewAlo(ALO* palo);
 // Loads ALO object from binary file
 void LoadAloFromBrx(ALO* palo, CBinaryInputStream* pbis);
 // Loads bone data from binary file
 void LoadAloAloxFromBrx(ALO* palo, CBinaryInputStream* pbis);
+void SetAloIkhTarget(ALO* palo, ALO* ploTarget);
 void BindAloAlox(ALO* palo);
 void SnipAloObjects(ALO* palo, int csnip, SNIP* asnip);
 void PostAloLoad(ALO *palo);
+void PostAloLoadCallback(ALO* palo, MSGID msgid, void* pvData);
 // Updates ALO object
 void UpdateAlo(ALO* palo, float dt);
 void RenderFastShadow(ALO* palo, CM* pcm, RO* pro);
@@ -534,3 +670,12 @@ int  GetAloSize();
 void DeleteAlo(ALO* palo);
 
 extern std::vector <ALO*> allSWAloObjs;
+extern THROB s_mpthrobkthrob[6];
+extern CLQ g_clqPosSpringDefault;
+extern CLQ g_clqPosDampingDefault;
+extern CLQ g_clqRotSpringDefault;
+extern CLQ g_clqRotDampingDefault;
+extern SMPA g_smpaPosDefault;
+extern SMPA g_smpaRotDefault;
+extern CLQ s_clqHomingSpeed;
+extern LM s_lmHomingSpeed;

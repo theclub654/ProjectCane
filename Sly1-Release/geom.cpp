@@ -22,16 +22,12 @@ void ReadGeom(GEOM *pgeom, CBinaryInputStream *pbis)
 
     pgeom->csurf = pbis->U16Read();
 
-    pgeom->asurf.clear();
-    pgeom->asurf.resize(pgeom->csurf);
-
+    pgeom->asurf.assign(pgeom->csurf, SURF{});
     pgeom->mpisurfposCenter.resize(pgeom->csurf);
     pgeom->mpisurfsRadius.resize(pgeom->csurf);
 
     pgeom->cedge = pbis->U16Read();
-
-    pgeom->aedge.clear();
-    pgeom->aedge.resize(pgeom->cedge);
+    pgeom->aedge.assign(pgeom->cedge, EDGE{});
 
     pgeom->indices.clear();
 
@@ -39,11 +35,19 @@ void ReadGeom(GEOM *pgeom, CBinaryInputStream *pbis)
 
     for (int isurf = 0; isurf < pgeom->csurf; ++isurf)
     {
-        SURF &surf = pgeom->asurf[isurf];
+        SURF& surf = pgeom->asurf[isurf];
 
-        uint16_t ipos0 = pbis->U16Read();
-        uint16_t ipos1 = pbis->U16Read();
-        uint16_t ipos2 = pbis->U16Read();
+        int ipos0 = static_cast<int16_t>(pbis->U16Read());
+        int ipos1 = static_cast<int16_t>(pbis->U16Read());
+        int ipos2 = static_cast<int16_t>(pbis->U16Read());
+
+        if (ipos0 < 0 || ipos0 >= pgeom->cpos ||
+            ipos1 < 0 || ipos1 >= pgeom->cpos ||
+            ipos2 < 0 || ipos2 >= pgeom->cpos)
+        {
+            __debugbreak();
+            return;
+        }
 
         glm::vec3& p0 = pgeom->apos[ipos0];
         glm::vec3& p1 = pgeom->apos[ipos1];
@@ -53,32 +57,49 @@ void ReadGeom(GEOM *pgeom, CBinaryInputStream *pbis)
         glm::vec3 dpos1 = p2 - p0;
 
         surf.normal = glm::normalize(glm::cross(dpos0, dpos1));
-        surf.ipos = ipos0;
+        surf.ipos = static_cast<int16_t>(ipos0);
         surf.gDot = glm::dot(surf.normal, p0);
 
         pgeom->mpisurfsRadius[isurf] = pbis->F32Read();
         pgeom->mpisurfposCenter[isurf] = pbis->ReadVector();
 
-        uint8_t cedgeSurf = pbis->U8Read();
+        int cedgeSurf = static_cast<int8_t>(pbis->U8Read());
 
-        EDGE *prevEdge = nullptr;
+        EDGE* prevEdge = nullptr;
 
         for (int iedge = 0; iedge < cedgeSurf; ++iedge)
         {
+            if (edgeIndex >= pgeom->cedge)
+            {
+                __debugbreak();
+                return;
+            }
+
             EDGE& edge = pgeom->aedge[edgeIndex];
 
-            edge.aipos[0]  = pbis->U16Read();
-            edge.aisurf[0] = static_cast<int16_t>(isurf);
+            int iposEdge0 = static_cast<int16_t>(pbis->U16Read());
+            int iposEdge1 = static_cast<int16_t>(pbis->U16Read());
+            int isurfOther = static_cast<int16_t>(pbis->U16Read());
 
-            edge.aipos[1]  = pbis->U16Read();
-            edge.aisurf[1] = pbis->U16Read();
+            if (iposEdge0 < 0 || iposEdge0 >= pgeom->cpos ||
+                iposEdge1 < 0 || iposEdge1 >= pgeom->cpos ||
+                isurfOther < 0 || isurfOther >= pgeom->csurf)
+            {
+                __debugbreak();
+                return;
+            }
+
+            edge.aipos[0] = static_cast<int16_t>(iposEdge0);
+            edge.aisurf[0] = static_cast<int16_t>(isurf);
+            edge.aipos[1] = static_cast<int16_t>(iposEdge1);
+            edge.aisurf[1] = static_cast<int16_t>(isurfOther);
 
             if (iedge == 0)
                 surf.pedge = &edge;
             else
                 prevEdge->pedgeNext = &edge;
 
-            SURF& otherSurf = pgeom->asurf[edge.aisurf[1]];
+            SURF& otherSurf = pgeom->asurf[isurfOther];
 
             edge.pedgeOtherNext = otherSurf.pedgeOther;
             otherSurf.pedgeOther = &edge;
@@ -86,9 +107,8 @@ void ReadGeom(GEOM *pgeom, CBinaryInputStream *pbis)
             prevEdge = &edge;
             ++edgeIndex;
 
-            // Optional: useful if you are rendering wireframe edges
-            pgeom->indices.push_back(edge.aipos[0]);
-            pgeom->indices.push_back(edge.aipos[1]);
+            pgeom->indices.push_back(static_cast<uint16_t>(edge.aipos[0]));
+            pgeom->indices.push_back(static_cast<uint16_t>(edge.aipos[1]));
         }
     }
 
@@ -127,6 +147,8 @@ void CloneGeom(GEOM* pgeomSrc, glm::mat4* pdmat, GEOM* pgeomDst)
     pgeomDst->aedge = pgeomSrc->aedge;
     pgeomDst->indices = pgeomSrc->indices;
 
+    RebaseGeomPointers(pgeomSrc, pgeomDst);
+
     pgeomDst->VAO = 0;
     pgeomDst->VBO = 0;
     pgeomDst->EBO = 0;
@@ -141,52 +163,115 @@ void CloneGeom(GEOM* pgeomSrc, glm::mat4* pdmat, GEOM* pgeomDst)
 
         for (size_t i = 0; i < pgeomDst->asurf.size(); ++i)
         {
-            glm::vec3 normal = pgeomDst->asurf[i].normal;
-            normal = glm::normalize(glm::mat3(*pdmat) * normal);
+            // Retail CloneGeom transforms surface normals as vectors (w = 0)
+            // and does not normalize the result before rebuilding gDot.
+            glm::vec3 normal = glm::vec3((*pdmat) * glm::vec4(pgeomDst->asurf[i].normal, 0.0f));
 
             pgeomDst->asurf[i].normal = normal;
 
-            uint16_t ipos = pgeomDst->asurf[i].ipos;
-            pgeomDst->asurf[i].gDot = glm::dot(normal, pgeomDst->apos[ipos]);
+            int ipos = static_cast<int16_t>(pgeomDst->asurf[i].ipos);
+
+            if (ipos >= 0 && ipos < static_cast<int>(pgeomDst->apos.size()))
+                pgeomDst->asurf[i].gDot = glm::dot(normal, pgeomDst->apos[ipos]);
         }
     }
 
-    if (pgeomDst->cpos != 0)
+    if (g_fDebugMode > 0)
     {
-        glGenVertexArrays(1, &pgeomDst->VAO);
-        glBindVertexArray(pgeomDst->VAO);
+        if (pgeomDst->cpos != 0)
+        {
+            glGenVertexArrays(1, &pgeomDst->VAO);
+            glBindVertexArray(pgeomDst->VAO);
 
-        glGenBuffers(1, &pgeomDst->VBO);
-        glBindBuffer(GL_ARRAY_BUFFER, pgeomDst->VBO);
-        glBufferData(GL_ARRAY_BUFFER, pgeomDst->apos.size() * sizeof(glm::vec3), pgeomDst->apos.data(), GL_STATIC_DRAW);
+            glGenBuffers(1, &pgeomDst->VBO);
+            glBindBuffer(GL_ARRAY_BUFFER, pgeomDst->VBO);
+            glBufferData(GL_ARRAY_BUFFER, pgeomDst->apos.size() * sizeof(glm::vec3), pgeomDst->apos.data(), GL_STATIC_DRAW);
 
-        glGenBuffers(1, &pgeomDst->EBO);
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, pgeomDst->EBO);
-        glBufferData(GL_ELEMENT_ARRAY_BUFFER, pgeomDst->indices.size() * sizeof(uint16_t), pgeomDst->indices.data(), GL_STATIC_DRAW);
+            glGenBuffers(1, &pgeomDst->EBO);
+            glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, pgeomDst->EBO);
+            glBufferData(GL_ELEMENT_ARRAY_BUFFER, pgeomDst->indices.size() * sizeof(uint16_t), pgeomDst->indices.data(), GL_STATIC_DRAW);
 
-        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), 0);
+            glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), 0);
 
-        glEnableVertexAttribArray(0);
+            glEnableVertexAttribArray(0);
 
-        glBindVertexArray(0);
+            glBindVertexArray(0);
+        }
+    }
+}
+
+static EDGE* RebaseEdgePtr(const GEOM* src, GEOM* dst, EDGE* edge)
+{
+    if (edge == nullptr)
+        return nullptr;
+
+    EDGE* srcBase = const_cast<EDGE*>(src->aedge.data());
+    EDGE* srcEnd = srcBase + src->aedge.size();
+
+    if (edge < srcBase || edge >= srcEnd)
+        return nullptr;
+
+    ptrdiff_t iedge = edge - srcBase;
+    return &dst->aedge[iedge];
+}
+
+static SURF* RebaseSurfPtr(const GEOM* src, GEOM* dst, SURF* surf)
+{
+    if (surf == nullptr)
+        return nullptr;
+
+    SURF* srcBase = const_cast<SURF*>(src->asurf.data());
+    SURF* srcEnd = srcBase + src->asurf.size();
+
+    if (surf < srcBase || surf >= srcEnd)
+        return nullptr;
+
+    ptrdiff_t isurf = surf - srcBase;
+    return &dst->asurf[isurf];
+}
+
+static void RebaseGeomPointers(const GEOM* src, GEOM* dst)
+{
+    for (SURF& surf : dst->asurf)
+    {
+        surf.pedge = RebaseEdgePtr(src, dst, surf.pedge);
+        surf.pedgeOther = RebaseEdgePtr(src, dst, surf.pedgeOther);
+    }
+
+    for (EDGE& edge : dst->aedge)
+    {
+        edge.pedgeNext = RebaseEdgePtr(src, dst, edge.pedgeNext);
+        edge.pedgeOtherNext = RebaseEdgePtr(src, dst, edge.pedgeOtherNext);
     }
 }
 
 void UpdateGeomWorld(GEOM* pgeomLocal, GEOM* pgeomWorld, glm::vec3& pos, glm::mat3& mat)
 {
-    // If local/world share the same position buffer, nothing to update.
-    if (pgeomLocal->apos == pgeomWorld->apos)
+    // The original guard compared the raw position-buffer pointers.  GEOM owns
+    // its arrays with std::vector here, so comparing vectors compares their
+    // contents and incorrectly skips the first (and often every) world update.
+    // Fixed physics is already excluded by UpdateSoXfWorldHierarchy.
+    if (pgeomLocal == pgeomWorld)
         return;
 
+    if (pgeomWorld->apos.size() < pgeomLocal->apos.size())
+        pgeomWorld->apos.resize(pgeomLocal->apos.size());
+
+    if (pgeomWorld->asurf.size() < pgeomLocal->asurf.size())
+        pgeomWorld->asurf.resize(pgeomLocal->asurf.size());
+
+    if (pgeomWorld->mpisurfposCenter.size() < pgeomLocal->asurf.size())
+        pgeomWorld->mpisurfposCenter.resize(pgeomLocal->asurf.size());
+
     // Transform vertex positions: worldPos = mat * localPos + pos
-    for (int i = 0; i < pgeomLocal->cpos; ++i)
+    for (size_t i = 0; i < pgeomLocal->apos.size(); ++i)
     {
         const glm::vec3 localPos = pgeomLocal->apos[i];
         pgeomWorld->apos[i] = mat * localPos + pos;
     }
 
     // Transform surface normals and surface centers
-    for (int i = 0; i < pgeomLocal->csurf; ++i)
+    for (size_t i = 0; i < pgeomLocal->asurf.size(); ++i)
     {
         SURF &localSurf = pgeomLocal->asurf[i];
         SURF &worldSurf = pgeomWorld->asurf[i];
@@ -197,11 +282,18 @@ void UpdateGeomWorld(GEOM* pgeomLocal, GEOM* pgeomWorld, glm::vec3& pos, glm::ma
         worldSurf.normal = worldNormal;
 
         // gDot appears to be dot(normal, world position at surf ipos)
-        int posIndex = static_cast<unsigned short>(worldSurf.ipos);
-        worldSurf.gDot = glm::dot(worldNormal, pgeomWorld->apos[posIndex]);
+        const size_t posIndex = static_cast<unsigned short>(localSurf.ipos);
+
+        if (posIndex < pgeomWorld->apos.size())
+            worldSurf.gDot = glm::dot(worldNormal, pgeomWorld->apos[posIndex]);
 
         // Transform surface center position
-        glm::vec3 localCenter = pgeomLocal->mpisurfposCenter[i];
+        glm::vec3 localCenter(0.0f);
+
+        if (i < pgeomLocal->mpisurfposCenter.size())
+            localCenter = pgeomLocal->mpisurfposCenter[i];
+        else if (posIndex < pgeomLocal->apos.size())
+            localCenter = pgeomLocal->apos[posIndex];
 
         pgeomWorld->mpisurfposCenter[i] = mat * localCenter + pos;
     }

@@ -1,15 +1,9 @@
 #pragma once
 #include "xform.h"
+#include "emitshared.h"
 #include "rip.h"
 #include "crv.h"
 
-enum EMITCNK
-{
-	EMITCNK_Nil = -1,
-	EMITCNK_World = 0,
-	EMITCNK_Local = 1,
-	EMITCNK_Max = 2
-};
 enum EMITRK 
 {
     EMITRK_Nil = -1,
@@ -56,22 +50,14 @@ enum EMITPK
     EMITPK_Rip = 1,
     EMITPK_Max = 2
 };
-enum BLIPRK {
+enum BLIPRK 
+{
     BLIPRK_Nil = -1,
     BLIPRK_Mirror = 0,
     BLIPRK_NoMirror = 1,
     BLIPRK_Max = 2
 };
 
-struct EMITDV
-{
-    float rvDamping;
-    glm::vec3 dv;
-    float swCurl;
-    glm::vec3 normalCurl;
-    EMITCNK emitcnk;
-    struct ALO* paloCurlRef;
-};
 struct BOX 
 {
     glm::vec3 posMin;
@@ -79,13 +65,7 @@ struct BOX
 };
 struct EMITCRV 
 {
-    CRV *pcrv;
-};
-struct SKEL 
-{
-    int cskelp;
-    struct SKELP* askelp;
-    float gTotalWeight;
+    std::shared_ptr <CRV> pcrv;
 };
 
 struct EMITTRI {
@@ -93,21 +73,30 @@ struct EMITTRI {
     float sArea;
 };
 
-struct SKELP {
-    OID aoid[2];
+struct SKELP 
+{
+    short aoid[2];
     float agDensity[2];
     float asRadius[2];
-    struct ALO* apalo[2];
+    class ALO* apalo[2];
     float s;
     float gWeight;
+};
+
+struct SKEL
+{
+    int cskelp;
+    std::vector <SKELP> askelp;
+    float gTotalWeight;
 };
 
 struct EMITMESH 
 {
     int cpos;
     std::vector <glm::vec3> apos;
+    std::vector <glm::vec3> anormal;
     int cemittri;
-    struct EMITTRI* aemittri;
+    std::vector <EMITTRI> aemittri;
     float sTotalArea;
     glm::vec3 posCenter;
 };
@@ -121,12 +110,14 @@ struct EMITX__remit
     OID oidExpls;
     float svcParticle;
 };
+
 struct EMITX__shrapnel 
 {
     float sRadius;
     float elas;
     float mu;
 };
+
 struct EMITO 
 {
     EMITOK emitok;
@@ -189,7 +180,7 @@ struct EMITBLIP
     int crgba;
     std::vector <glm::vec4> argba;
     int fColorRanges;
-    OID oidSplineTarget;
+    short oidSplineTarget;
     struct EXPLO* pexploSplineTarget;
     BLIPOK blipok;
     float rSFlying;
@@ -203,9 +194,9 @@ struct EMITRIP
     RIPT riptTrail;
     CLQ clqScale;
     LM lmGScale;
-    struct ALO* paloRender;
-    struct ALO* paloNextRender;
-    struct SO* psoTouch;
+    class ALO* paloRender;
+    class ALO* paloNextRender;
+    class SO*  psoTouch;
     RIPGT ripgt;
     float sExpand;
 };
@@ -246,7 +237,8 @@ struct EMITGEN
     int fConvertPosVec;
 };
 
-struct EMITOLXF {
+struct EMITOLXF 
+{
     glm::vec3 posLocal;
     glm::mat3 matLocal;
     glm::vec3 vLocal;
@@ -262,38 +254,17 @@ struct EMITVX
     float radPanMin;
 };
 
-class EXPL : public XFM
+struct EXPLSO 
 {
-	public:
-		class EXPLG *pexplgParent;
-};
-class EXPLG : public EXPL
-{
-	public:
-		int cpexpl;
-		EXPL *apexpl;
-};
-class EXPLO : public EXPL
-{
-	public:
-        std::shared_ptr <EMITB> pemitb;;
-		OID oidReference;
-		OID oidShape;
-};
-class EXPLS : public EXPLO
-{
-	public:
-        struct SFX* psfx;
-        struct LM lmcParticle;
-        OID oidRender;
-        OID oidNextRender;
-        OID oidTouch;
-        float dtDelay;
-        int fGrouped;
-        struct RIPG* pripg;
-        struct BLIPG* pblipg;
-        float tExplodeNext;
-        int fExplodeSiblings;
+    GRFEXPLSO grfexplso;
+    class ALO* paloReference;
+    glm::vec3 vec;
+    glm::vec3 posOrigin;
+    float rScale;
+    float sRadius;
+    struct SO* psoTouch;
+    struct EMITOLXF* pemitolxf;
+    int cParticle;
 };
 
 class EMITTER : public ALO
@@ -328,15 +299,6 @@ class EMITTER : public ALO
     int fValuesChanged;
 };
 
-EXPLO*NewExplo();
-void InitExplo(EXPLO* pexplo);
-int  GetExploSize();
-void LoadExploFromBrx(EXPLO* pexplo, CBinaryInputStream* pbis);
-void CloneExplo(EXPLO* pexplo, EXPLO* pexploBase);
-EMITOK* PemitbEnsureExploEmitok(EXPLO* pexplo, ENSK ensk);
-void BindExplo(EXPLO* pexplo);
-void DeleteExplo(EXPLO* pexplo);
-
 EMITTER*NewEmitter();
 void InitEmitter(EMITTER* pemitter);
 int  GetEmitterSize();
@@ -344,80 +306,113 @@ void LoadEmitMeshFromBrx(EMITMESH *pemitmesh, CBinaryInputStream *pbis);
 void LoadEmitblipColorsFromBrx(EMITBLIP* pemitblip, int crgba, CBinaryInputStream* pbis);
 void LoadEmitterFromBrx(EMITTER* pemitter, CBinaryInputStream* pbis);
 void CloneEmitter(EMITTER* pemitter, EMITTER* pemitterBase);
-void UnpauseEmitter(EMITTER* pemitter);
-int FPausedEmitter(EMITTER* emitter);
+void SetEmitterAutoPause(EMITTER* pemitter, int fAutoPause);
+void*GetEmitterFAutoPause(EMITTER* pemitter);
 EMITTER* PemitterEnsureEmitter(EMITTER* pemitter, ENSK ensk);
+void AddEmitterSkeleton(EMITTER* pemitter, OID oid, OID oidOther, float sRadius, float gDensity, float sRadiusOther, float gDensityOther);
 EMITB* PemitbEnsureEmitter(EMITTER* pemitter, ENSK ensk);
-EMITOK* PemitbEnsureEmitterEmitok(EMITTER* pemitter, ENSK ensk);
-glm::vec3* PemitbEnsureEmitterEmitokVec(EMITTER* pemitter, ENSK ensk);
-EMITRK* PemitbEnsureEmitterEmitrk(EMITTER* pemitter);
-LM* PemitbEnsureEmitterlmSvcParticle(EMITTER* pemitter);
-float* PemitbEnsureEmittercParticleConstant(EMITTER* pemitter);
-float* PemitEnsureEmitteruPauseProb(EMITTER* pemitter);
-LM* PemitbEnsureEmitterlmDtPause(EMITTER* pemitter);
+EMITRK* PemitbEnsureEmitterEmitrk(EMITTER* pemitter, ENSK ensk);
+LM* PemitbEnsureEmitterlmSvcParticle(EMITTER* pemitter, ENSK ensk);
+float* PemitbEnsureEmittercParticleConstant(EMITTER* pemitter, ENSK ensk);
+float* PemitEnsureEmitteruPauseProb(EMITTER* pemitter, ENSK ensk);
+LM* PemitbEnsureEmitterlmDtPause(EMITTER* pemitter, ENSK ensk);
 void GetEmitterEnabled(EMITTER* pemitter, int* pfEnabled);
 void SetEmitterEnabled(EMITTER* pemitter, int fEnabled);
-int* GetEmitterfCountIsDensity(EMITTER* pemitter);
-void SetEmitterfCountIsDensity(EMITTER* pemitter, bool fCountDensity);
+void SetEmitterFCountIsDensity(EMITTER* pemitter, int fCountIsDensity);
+void*GetEmitterFCountIsDensity(EMITTER* pemitter);
 void SetEmitterOidReference(EMITTER* pemitter, OID oidReference);
-OID* GetEmitterOidReference(EMITTER* pemitter);
-void*GetEmitterOidRender(EMITTER* pemitter);
+void*GetEmitterOidReference(EMITTER* pemitter);
 void SetEmitterOidRender(EMITTER* pemitter, OID oidRender);
-void*GetEmitterOidTouch(EMITTER* pemitter);
+void*GetEmitterOidRender(EMITTER* pemitter);
 void SetEmitterOidTouch(EMITTER* pemitter, OID oidTouch);
-void*GetEmitterOidNextRender(EMITTER* pemitter); 
+void*GetEmitterOidTouch(EMITTER* pemitter);
 void SetEmitterOidNextRender(EMITTER* pemitter, OID oidNextRender);
-void*GetEmitterOidGroup(EMITTER* pemitter);
+void*GetEmitterOidNextRender(EMITTER* pemitter);
 void SetEmitterOidGroup(EMITTER* pemitter, OID oidGroup);
-void PauseEmitter(EMITTER* pemitter, float dtPause);
+void*GetEmitterOidGroup(EMITTER* pemitter);
 void GetEmitterPaused(EMITTER* pemitter, int* pfPaused);
-void*GetEmitterOidShape(EMITTER* pemitter);
+EMITOK* PemitbEnsureEmitterEmitok(EMITTER* pemitter, ENSK ensk);
+glm::vec3* PemitbEnsureEmitterPosOrigin(EMITTER* pemitter, ENSK ensk);
+glm::vec3* PemitbEnsureEmitterBoxOriginPosMin(EMITTER* pemitter, ENSK ensk);
+glm::vec3* PemitbEnsureEmitterBoxOriginPosMax(EMITTER* pemitter, ENSK ensk);
 void SetEmitterOidShape(EMITTER* pemitter, OID oidShape);
-EMITNK* PemitbEnsureEmitterEmitnk(EMITTER* pemitter);
-glm::vec3* PemitbEnsureEmitterEmitoVec(EMITTER* pemitter);
-LM* PemitbEnsureEmitterlmSOffset(EMITTER* pemitter);
+void* GetEmitterOidShape(EMITTER* pemitter);
+EMITNK* PemitbEnsureEmitterEmitnk(EMITTER* pemitter, ENSK ensk);
+glm::vec3* PemitbEnsureEmitterEmitoVec(EMITTER* pemitter, ENSK ensk);
+LM* PemitbEnsureEmitterlmSOffset(EMITTER* pemitter, ENSK ensk);
+void* PemitbEnsureEmitterEmitvk(EMITTER* pemitter, ENSK ensk);
+LM* PemitbEnsureEmitterLmSv(EMITTER* pemitter, ENSK ensk);
+float* PemitbEnsureEmitterRSvz(EMITTER* pemitter, ENSK ensk);
+glm::vec3* PemitbEnsureEmitterDv(EMITTER* pemitter, ENSK ensk);
+float* PemitbEnsureEmitterRvDamping(EMITTER* pemitter, ENSK ensk);
+float* PemitbEnsureEmitterSwCurl(EMITTER* pemitter, ENSK ensk);
+glm::vec3* PemitbEnsureEmitterNormalCurl(EMITTER* pemitter, ENSK ensk);
+void* PemitbEnsureEmitterEmitcnk(EMITTER* pemitter, ENSK ensk);
+LM* PemitbEnsureEmitterLmTilt(EMITTER* pemitter, ENSK ensk);
+int* PemitbEnsureEmitterCParticlePerRing(EMITTER* pemitter, ENSK ensk);
+float* PemitbEnsureEmitterURandomRad(EMITTER* pemitter, ENSK ensk);
+float* PemitbEnsureEmitterDtLifetime(EMITTER* pemitter, ENSK ensk);
+LM* PemitbEnsureEmitterLmDtSkip(EMITTER* pemitter, ENSK ensk);
+LM* PemitbEnsureEmitterLmDtBirth(EMITTER* pemitter, ENSK ensk);
+CLQ* PemitbEnsureEmitterClqAlpha(EMITTER* pemitter, ENSK ensk);
+void* PemitbEnsureEmitterEmitpk(EMITTER* pemitter, ENSK ensk);
+void* PemitbEnsureEmitterRiptTrail(EMITTER* pemitter, ENSK ensk);
+LM* PemitbEnsureEmitterRipLmGScale(EMITTER* pemitter, ENSK ensk);
+CLQ* PemitbEnsureEmitterRipClqScale(EMITTER* pemitter, ENSK ensk);
+void* PemitbEnsureEmitterRipgt(EMITTER* pemitter, ENSK ensk);
+float* PemitbEnsureEmitterSExpand(EMITTER* pemitter, ENSK ensk);
+OID* PemitbEnsureEmitterOidShader(EMITTER* pemitter, ENSK ensk);
+CLQ* PemitbEnsureEmitterBlipClqScale(EMITTER* pemitter, ENSK ensk);
+CLQ* PemitbEnsureEmitterBlipClqTexture(EMITTER* pemitter, ENSK ensk);
+CLQ* PemitbEnsureEmitterBlipClqColor(EMITTER* pemitter, ENSK ensk);
+int* PemitbEnsureEmitterBlipFShaderSpan(EMITTER* pemitter, ENSK ensk);
+float* PemitbEnsureEmitterBlipDtShaderLoop(EMITTER* pemitter, ENSK ensk);
+int* PemitbEnsureEmitterBlipFRandomFrame(EMITTER* pemitter, ENSK ensk);
+void* PemitbEnsureEmitterBlipmk(EMITTER* pemitter, ENSK ensk);
+void* PemitbEnsureEmitterBlipok(EMITTER* pemitter, ENSK ensk);
+float* PemitbEnsureEmitterBlipRSFlying(EMITTER* pemitter, ENSK ensk);
+void* PemitbEnsureEmitterBliprk(EMITTER* pemitter, ENSK ensk);
+LM* PemitbEnsureEmitterBlipLmSw(EMITTER* pemitter, ENSK ensk);
+int* PemitbEnsureEmitterBlipFRandomRoll(EMITTER* pemitter, ENSK ensk);
+int* PemitbEnsureEmitterBulletFDamage(EMITTER* pemitter, ENSK ensk);
+int* PemitbEnsureEmitterBulletFRichochet(EMITTER* pemitter, ENSK ensk);
+OID* PemitbEnsureEmitterRemitOidExpls(EMITTER* pemitter, ENSK ensk);
+float* PemitbEnsureEmitterRemitSvcParticle(EMITTER* pemitter, ENSK ensk);
+float* PemitbEnsureEmitterShrapnelSRadius(EMITTER* pemitter, ENSK ensk);
+float* PemitbEnsureEmitterShrapnelElas(EMITTER* pemitter, ENSK ensk);
+float* PemitbEnsureEmitterShrapnelMu(EMITTER* pemitter, ENSK ensk);
 
-
+void PauseEmitter(EMITTER* pemitter, float dtPause);
+void UnpauseEmitter(EMITTER* pemitter);
+int  FPausedEmitter(EMITTER* emitter);
 void SetEmitterParticleCount(EMITTER *pemitter, int cParticle);
-void SetEmitterAutoPause(EMITTER* pemitter, int fAutoPause);
+void*GetEmitterParticleCount(EMITTER* pemitter);
 void PauseEmitterIndefinite(EMITTER* pemitter);
 void RenderEmitterSelf(EMITTER* pemitter, CM* pcm, RO* pro);
+void BindEmitterCallback(EMITTER* pemitter, MSGID msgid, void* pvData);
 void BindEmitter(EMITTER* pemitter);
+void AddEmitoSkeleton(EMITO* pemito, OID oid, OID oidOther, float sRadius, float gDensity, float sRadiusOther, float gDensityOther, LO* ploContext);
 void InitEmitb(EMITB* pemitb);
+void SetEmitbRipt(EMITB* pemitb, RIPT ript);
+void SetEmitterRipt(EMITTER* pemitter, RIPT ript);
 void BindEmitb(EMITB* pemitb, LO* ploContext);
-void SetBlipgEmitb(BLIPG* pblipg, EMITB* pemitb);
-void SetRipgEmitb(RIPG* pripg, EMITB* pemitb);
 void SetEmitdvEmitb(EMITDV* pemitdv, EMITB* pemitb);
+void CalculateEmitdvMatrix(EMITDV* pemitdv, float dt, glm::mat4* pmat4Dv);
 void PostEmitterLoad(EMITTER* pemitter);
+void HandleEmitterMessage(EMITTER* pemitter, MSGID msgid, void* pv);
 void OnEmitterValuesChanged(EMITTER* pemitter);
 void EmitParticles(int cParticle, EMITB* pemitb, EMITG* pemitg);
+void EmitRipsSphere(glm::vec3* ppos, glm::vec3* pnormal, int crip, EMITRIP* pemitrip, EMITV* pemitv, RIPG** ppripg, LO* ploSubscribe);
 void ModifyEmitterParticles(EMITTER* pemitter);
 void OriginateParticles(int cParticle, EMITB* pemitb, EMITGEN* pemitgen);
+void OriginateSplineSinkParticles(int cParticle, EMITB* pemitb, EMITGEN* emitgen, EMITGEN* emitgenTarget);
 void CalculateEmitvx(int cParticlePerRing, LM* plmTilt, int cParticle, EMITVX* pemitvx);
 void ChooseEmitoPos(EMITO* pemito, int iParticle, int cParticle, glm::vec3* pposRet, glm::vec3* pnormalRet);
 void ChooseEmitvVelocityAge(EMITV* pemitv, EMITVX* pemitvx, EMITO* pemito, int iParticle, glm::vec3* ppos, glm::vec3* pnormal, glm::vec3* pv, float* ptCreated, float* ptDestroy);
 void ChooseEmitVelocity(EMITVX* pemitvx, float uRandom, float rSvz, LM* plmSv, glm::vec3* pvecNormal, int iParticle, glm::vec3* pv);
 void ConvertEmitoPosVec(EMITO* pemito, glm::vec3* ppos, glm::vec3* pv);
-void EmitBlips(EMITB* pemitb, EMITG* pemitg, int cblipeRequested, glm::vec3* apos, glm::vec3* av, float* atCreated, float* atDestroy, glm::vec3* aposFinal, glm::vec3* avFinal);
 void UpdateEmitter(EMITTER* pemitter, float dt);
+void InheritEmitterGrfzon(EMITTER* pemitter);
 void DeleteEmitter(EMITTER *pemitter);
 
-EXPL*NewExpl();
-int  GetExplSize();
-void CloneExpl(EXPL* pexpl, EXPL* pexplBase);
-void PostExplLoad(EXPL* pexpl);
-void DeleteExpl(EXPL* pexpl);
-
-EXPLS*NewExpls();
-void InitExpls(EXPLS* pexpls);
-int  GetExplsSize();
-void CloneExpls(EXPLS* pexpls, EXPLS* pexplsBase);
-void BindExpls(EXPLS* pexpls);
-void DeleteExpls(EXPLS* pexpls);
-
-EXPLG*NewExplg();
-int  GetExplgSize();
-void LoadExplgFromBrx(EXPLG* pexplg, CBinaryInputStream* pbis);
-void CloneExplg(EXPLG* pexplg, EXPLG* pexplgBase);
-void BindExplg(EXPLG* pexplg);
-void DeleteExplg(EXPLG* pexplg);
+void StockSplashBig(glm::vec3* ppos, float gScale, SO* psoTouch);

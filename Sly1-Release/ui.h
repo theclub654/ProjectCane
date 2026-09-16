@@ -9,13 +9,14 @@ enum UIS
     UIS_Nil = -1,
     UIS_Splash = 0,
     UIS_Attract = 1,
-    UIS_Playing = 2,
-    UIS_Pausing = 3,
-    UIS_Paused = 4,
-    UIS_Unpausing = 5,
-    UIS_WorldMap = 6,
-    UIS_Wiping = 7,
-    UIS_Max = 8
+    UIS_Hub = 2,
+    UIS_Playing = 3,
+    UIS_Pausing = 4,
+    UIS_Paused = 5,
+    UIS_Unpausing = 6,
+    UIS_WorldMap = 7,
+    UIS_Wiping = 8,
+    UIS_Max = 9
 };
 
 struct UI
@@ -32,8 +33,12 @@ struct UI
 void StartupUi();
 void InitUi(UI *pui);
 void PostUiLoad(UI* pui);
-void SetUiUis(UI *pui, UIS uis);
+void SetUiUis(UI *pui, int uis);
 void SetUiUPause(UI *pui, float uPause);
+bool FCanShowGameplayBlot();
+bool FCanDrawBinoc();
+bool FCanDrawTv();
+bool FCanRenderTv();
 void PushUiActiveBlot(UI* pui, BLOT* pblot);
 void PopUiActiveBlot(UI* pui);
 int  FDebugmenuActive(UI* pui);
@@ -41,6 +46,7 @@ void UpdateUi(UI *pui);
 void DrawUiSelf(UI* pui);
 void DrawUiSplash(UI* pui);
 void DrawUi(UI *pui);
+void RenderUi(UI* pui);
 void ResetUi(UI* pui);
 
 extern UI g_ui;

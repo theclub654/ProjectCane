@@ -14,4 +14,5 @@ struct FRM
 
 void StartupFrame();
 void OpenFrame();
+void ClearAllPendingFrames();
 

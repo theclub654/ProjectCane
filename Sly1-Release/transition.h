@@ -1,9 +1,7 @@
 #pragma once
 #include "brx.h"
 #include "phasemem.h"
-
-typedef int GRFTRANS;
-void UnloadShaders();
+#include <filesystem>
 
 enum FTRANS 
 {
@@ -14,35 +12,38 @@ enum FTRANS
     FTRANS_SameWorld = 8,
     FTRANS_ShowLives = 16
 };
-struct TRANS 
+struct TRANS
 {
     int fSet;
-    char* pchzWorld;
-    OID oidWarp;
-    OID oidWarpContext;
-    int grftrans;
+    LEVELINFO* plevel;
+    OID oidWarp = OID_Nil;
+    OID oidWarpContext = OID_Nil;
+    GRFTRANS grftrans;
 };
 
 class CTransition
 {
-protected:
-    char *m_pchzWorld;      // This is the ptr to level sector offset and size in memory
-    OID   m_oidWarp;        // Which checkpoint you spawn at when you start a level
-    OID   m_oidWarpContext;
+    public:
+    LEVELINFO* m_plevelCurrent = nullptr;
+    LEVELINFO* m_plevelPending = nullptr;
 
-public:
-    GRFTRANS grftrans;       // Flags that affect level loading, one of them checks if you lost all lives when you die.
-    char m_achzWorldCur[64]; // File description contents.
-    int  m_fPending = 0;     // Basically like a level pending flag.
+    std::string m_worldCurrent;
+    std::string m_worldPending;
+
+    OID m_oidWarp = OID_Nil;
+    OID m_oidWarpContext = OID_Nil;
+    GRFTRANS m_grftrans = static_cast<GRFTRANS>(0);
+
+    int m_fPending = 0;
 
     // Reloads the current level. The value of FTRANS affects the load.
-    void ResetWorld(FTRANS ftrans);
+    void ResetWorld(int nParam);
 
     // Sets the conditions on the level if you died or loading a level
-    void Set(char* pchzWorld, OID oidWarp, OID oidWarpContext, GRFTRANS grftrans);
+    void Set(LEVELINFO* plevel, OID oidWarp, OID oidWarpContext, GRFTRANS grftrans);
 
     // Executes the conditions from CTransition::Set by setting some engine vaules to default and loading the level file
-    void Execute(std::string file);
+    void Execute(std::string &file);
 };
 
 extern CTransition g_transition;

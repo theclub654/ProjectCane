@@ -83,7 +83,7 @@ void RenderAloAsBone(ALO* palo, CM* pcm, RO* pro)
             posChild = glm::vec3(pro->model * glm::vec4(s_posDefaultBone, 1.0f));
         }
         else {
-            ConvertAloPos(palo, nullptr, s_posDefaultBone, posChild);
+            ConvertAloPos(palo, nullptr, &s_posDefaultBone, &posChild);
         }
 
         RenderAloLine(lineRenderer, pcm, &posBase, &posChild, 1.0f, 1.0f);

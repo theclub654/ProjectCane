@@ -1,4 +1,11 @@
 #include "light.h"
+#include "tv.h"
+#include <algorithm>
+
+// Stable correspondence between a LIGHT object and its slot in lightBlk/the
+// GPU SSBO. SW::dlLight is mutable, so its traversal index cannot be used as
+// an SSBO index after a light is removed.
+static std::vector<LIGHT*> s_lightSlotOwners;
 
 LIGHT* NewLight()
 {
@@ -137,29 +144,30 @@ void UpdateLightBeamGrfzon(LIGHT* plight)
 
 void CloneLight(LIGHT* plight, LIGHT* plightBase)
 {
+	bool fReaddLight = false;
+
+	if (FIsLoInWorld(plight))
+		fReaddLight = plight->fDynamic != plightBase->fDynamic;
+
+	if (fReaddLight)
+		RemoveLightFromSw(plight);
+
+	DLE dleLight = plight->dleLight;
+
 	CloneAlo(plight, plightBase);
 
-	// Clone the LIGHTK structure (direct copy)
 	plight->lightk = plightBase->lightk;
-
-	// Clone the TWPS structure (direct copy)
 	plight->twps = plightBase->twps;
 
-	// Clone the color vectors (HSV and RGBA)
 	plight->vecHighlight = plightBase->vecHighlight;
 	plight->rgbaColor = plightBase->rgbaColor;
 
-	// Clone the LTFN structure (direct copy)
 	plight->ltfn = plightBase->ltfn;
-
-	// Clone the falloff vectors
 	plight->agFallOff = plightBase->agFallOff;
 
-	// Clone the matrix values (frustum and matLookAt)
 	plight->frustum = plightBase->frustum;
 	plight->matLookAt = plightBase->matLookAt;
 
-	// Clone the float values
 	plight->gMidtone = plightBase->gMidtone;
 	plight->gShadow = plightBase->gShadow;
 	plight->degHighlight = plightBase->degHighlight;
@@ -170,27 +178,27 @@ void CloneLight(LIGHT* plight, LIGHT* plightBase)
 	plight->rx = plightBase->rx;
 	plight->ry = plightBase->ry;
 
-	// Clone the vectors for local direction and normals
 	plight->vecDirectionOrig = plightBase->vecDirectionOrig;
 	plight->normalLocal = plightBase->normalLocal;
 	plight->vecUpLocal = plightBase->vecUpLocal;
 
-	// Clone the LM structures (light falloff and penumbra)
 	plight->lmFallOffS = plightBase->lmFallOffS;
 	plight->lmFallOffPenumbra = plightBase->lmFallOffPenumbra;
 	plight->lmFallOffAbsX = plightBase->lmFallOffAbsX;
 	plight->lmFallOffAbsY = plightBase->lmFallOffAbsY;
 
-	// Clone the frustrum vector array (size 6)
 	for (int i = 0; i < 6; ++i)
 		plight->avecFrustrum[i] = plightBase->avecFrustrum[i];
 
-	// Clone the grfzonBeam (int value)
 	plight->grfzonBeam = plightBase->grfzonBeam;
 
-	// Clone the dynamic flags (int values)
 	plight->fDynamic = plightBase->fDynamic;
 	plight->fExcludeDynamicObjects = plightBase->fExcludeDynamicObjects;
+
+	plight->dleLight = dleLight;
+
+	if (fReaddLight)
+		AddLightToSw(plight);
 
 	if (plight->fDynamic == 1)
 		allSwDynamicLights.push_back(plight);
@@ -529,6 +537,16 @@ void SetLightDynamic(LIGHT* plight, int fDynamic)
 	}
 }
 
+void SetLightFExcludeDynamicObjects(LIGHT* plight, int fExcludeDynamicObjects)
+{
+	plight->fExcludeDynamicObjects = fExcludeDynamicObjects;
+}
+
+void* GetLightFExcludeDynamicObjects(LIGHT* plight)
+{
+	return &plight->fExcludeDynamicObjects;
+}
+
 void* GetLightFallOff(LIGHT* plight)
 {
 	return &plight->lmFallOffS;
@@ -583,119 +601,78 @@ void RemoveLightFromSw(LIGHT* plight)
 	RemoveDlEntry(&plight->psw->dlLight, plight);
 }
 
-void CreateSwDefaultLights(SW* psw)
-{
-	LIGHT* plight;
-
-	if ((g_grfdfl & 1U) != 0)
-	{
-		plight = (LIGHT*)PloNew(CID_LIGHT, psw, nullptr, (OID)0x201, -1);
-		SetLightHighlightColor(plight, g_vecHighlight);
-		SetLightHighlightAngle(plight, g_degHighlight);
-		SetLightMidtoneStrength(plight, g_gMidtone);
-		SetLightMidtoneAngle(plight, g_degMidtone);
-		SetLightShadowStrength(plight, g_gShadow);
-		SetLightShadowAngle(plight, g_degShadow);
-		SetLightDirection(plight, s_vecDirectionDefault);
-	}
-
-	if ((g_grfdfl & 2U) != 0)
-	{
-		plight = (LIGHT*)PloNew(CID_LIGHT, psw, nullptr, (OID)0x201, -1);
-		SetLightKind(plight, LIGHTK_Position);
-		SetLightHighlightColor(plight, g_vecHighlight);
-		SetLightHighlightAngle(plight, g_degHighlight);
-		SetLightMidtoneStrength(plight, g_gMidtone);
-		SetLightMidtoneAngle(plight, g_degMidtone);
-		SetLightShadowStrength(plight, g_gShadow);
-		SetLightShadowAngle(plight, g_degShadow);
-		SetLightFallOff(plight, &s_lmFallOffDefault);
-		plight->pvtlight->pfnTranslateAloToPos(plight, s_posDefault);
-	}
-
-	if ((g_grfdfl & 4U) != 0)
-	{
-		plight = (LIGHT*)PloNew(CID_LIGHT, psw, nullptr, (OID)0x201, -1);
-		SetLightKind(plight, LIGHTK_Frustrum);
-		SetLightHighlightColor(plight, g_vecHighlight);
-		SetLightHighlightAngle(plight, g_degHighlight);
-		SetLightMidtoneStrength(plight, g_gMidtone);
-		SetLightMidtoneAngle(plight, g_degMidtone);
-		SetLightShadowStrength(plight, g_gShadow);
-		SetLightShadowAngle(plight, g_degShadow);
-		SetLightDirection(plight, s_vecDirectionDefault);
-		SetLightFallOff(plight, &s_lmFallOffDefault);
-		plight->pvtlight->pfnTranslateAloToPos(plight, s_posDefault);
-	}
-
-	if ((g_grfdfl & 8U) != 0)
-	{
-		plight = (LIGHT*)PloNew(CID_LIGHT, psw, nullptr, (OID)0x201, -1);
-		SetLightKind(plight, LIGHTK_Spot);
-		SetLightHighlightColor(plight, g_vecHighlight);
-		SetLightHighlightAngle(plight, g_degHighlight);
-		SetLightMidtoneStrength(plight, g_gMidtone);
-		SetLightMidtoneAngle(plight, g_degMidtone);
-		SetLightShadowStrength(plight, g_gShadow);
-		SetLightShadowAngle(plight, g_degShadow);
-		SetLightDirection(plight, s_vecDirectionDefault);
-		SetLightFallOff(plight, &s_lmFallOffDefault);
-		plight->pvtlight->pfnTranslateAloToPos(plight, s_posDefault);
-	}
-}
-
 static GLsizeiptr AlignUp(GLsizeiptr v, GLsizeiptr a) { return (v + a - 1) & ~(a - 1); }
+
+static void BuildLightBlk(LIGHT* plight, LIGHTBLK* pblk)
+{
+	LIGHTBLK blk{};
+	blk.lightk = plight->lightk;
+	blk.fExcludeDynamicObjects = plight->fExcludeDynamicObjects;
+	blk.fDynamic = plight->fDynamic;
+	blk.color = glm::vec4(plight->rgbaColor, 1.0f);
+	blk.ru = glm::vec4(plight->ltfn.ruShadow, plight->ltfn.ruMidtone,
+		plight->ltfn.ruHighlight, 0.0f);
+	blk.du = glm::vec4(plight->ltfn.duShadow, plight->ltfn.duMidtone,
+		plight->ltfn.duHighlight, 0.0f);
+
+	switch (plight->lightk)
+	{
+		case LIGHTK_Direction:
+		blk.dir = glm::vec4(plight->xf.matWorld[2], 0.0f);
+		break;
+
+		case LIGHTK_Position:
+		blk.pos = glm::vec4(plight->xf.posWorld, 1.0f);
+		blk.constant = plight->agFallOff.x;
+		blk.invDst = plight->agFallOff.y;
+		blk.dst = plight->lmFallOffS.gMax;
+		break;
+
+		case LIGHTK_Frustrum:
+		case LIGHTK_Spot:
+		{
+			glm::vec3 dirWorld;
+			ConvertAloVec(plight, nullptr, &plight->normalLocal, &dirWorld);
+			dirWorld = -dirWorld;
+			const float dirLenSq = glm::dot(dirWorld, dirWorld);
+			if (dirLenSq > 1.0e-8f)
+				dirWorld *= glm::inversesqrt(dirLenSq);
+			else
+				dirWorld = glm::vec3(0.0f);
+
+			blk.pos = glm::vec4(plight->xf.posWorld, 1.0f);
+			blk.dir = glm::vec4(dirWorld, 0.0f);
+			blk.dst = plight->lmFallOffS.gMax;
+			blk.matFrustrum = plight->frustum;
+			blk.falloffScale = plight->falloffScale;
+			blk.falloffBias = plight->falloffBias;
+			break;
+		}
+
+		default:
+		break;
+	}
+
+	*pblk = blk;
+}
 
 void AllocateLightBlkList()
 {
-	if (g_psw->dlLight.plightFirst == nullptr)
+	// Detached lights (notably each TV portrait light) still require GPU
+	// storage even though they are intentionally absent from SW::dlLight.
+	if (numSwLights <= 0)
 		return;
 
 	lightBlk.resize(numSwLights);
+	s_lightSlotOwners.assign(lightBlk.size(), nullptr);
 
 	LIGHT* plight = g_psw->dlLight.plightFirst;
 	int idx = 0;
 
 	while (plight != nullptr && idx < (int)lightBlk.size())
 	{
-		switch (plight->lightk)
-		{
-			case LIGHTK_Direction:
-		
-			lightBlk[idx].lightk   = plight->lightk;
-			lightBlk[idx].fDynamic = plight->fDynamic;
-			lightBlk[idx].dir      = glm::vec4(plight->xf.matWorld[2], 0.0f);
-			lightBlk[idx].color    = glm::vec4(plight->rgbaColor, 0.0f);
-			lightBlk[idx].ru       = glm::vec4(plight->ltfn.ruShadow, plight->ltfn.ruMidtone, plight->ltfn.ruHighlight, 0.0f);
-			lightBlk[idx].du       = glm::vec4(plight->ltfn.duShadow, plight->ltfn.duMidtone, plight->ltfn.duHighlight, 0.0f);
-			break;
-
-			case LIGHTK_Position:
-		
-			lightBlk[idx].lightk   = plight->lightk;
-			lightBlk[idx].fDynamic = plight->fDynamic;
-			lightBlk[idx].pos      = glm::vec4(plight->xf.posWorld, 1.0f);
-			lightBlk[idx].color    = glm::vec4(plight->rgbaColor, 1.0f);
-			lightBlk[idx].constant = plight->agFallOff.x;
-			lightBlk[idx].invDst   = plight->agFallOff.y;
-			lightBlk[idx].dst      = plight->lmFallOffS.gMax;
-			lightBlk[idx].ru       = glm::vec4(plight->ltfn.ruShadow, plight->ltfn.ruMidtone, plight->ltfn.ruHighlight, 0.0f);
-			lightBlk[idx].du       = glm::vec4(plight->ltfn.duShadow, plight->ltfn.duMidtone, plight->ltfn.duHighlight, 0.0f);
-			break;
-
-			case LIGHTK_Frustrum:
-			case LIGHTK_Spot:
-			lightBlk[idx].lightk       = plight->lightk;
-			lightBlk[idx].fDynamic     = plight->fDynamic;
-			lightBlk[idx].pos          = glm::vec4(plight->xf.posWorld, 1.0f);
-			lightBlk[idx].color        = glm::vec4(plight->rgbaColor, 1.0f);
-			lightBlk[idx].matFrustrum  = plight->frustum;
-			lightBlk[idx].falloffScale = plight->falloffScale;
-			lightBlk[idx].falloffBias  = plight->falloffBias;
-			lightBlk[idx].ru           = glm::vec4(plight->ltfn.ruShadow, plight->ltfn.ruMidtone, plight->ltfn.ruHighlight, 0.0f);
-			lightBlk[idx].du           = glm::vec4(plight->ltfn.duShadow, plight->ltfn.duMidtone, plight->ltfn.duHighlight, 0.0f);
-			break;
-		}
+		BuildLightBlk(plight, &lightBlk[idx]);
+		s_lightSlotOwners[idx] = plight;
 
 		plight = plight->dleLight.plightNext;
 		++idx;
@@ -729,7 +706,23 @@ void AllocateLightBlkList()
 
 	glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(ACTIVELIGHTS), &activeLights, GL_DYNAMIC_DRAW);
 
+	// TV portraits have their own isolated light domain. Both persistent TV
+	// lights are addressed directly by the portrait glob, so no active-index
+	// buffer is required for them.
+	glGenBuffers(1, &g_tvLightSsbo);
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, g_tvLightSsbo);
+	glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(LIGHTBLK) * 2, nullptr, GL_DYNAMIC_DRAW);
+	// Binding 12 belongs to the cel-border pose stream and is replaced while
+	// drawing posed outlines. Keep persistent TV lighting on its own binding.
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 13, g_tvLightSsbo);
+
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+
+	// PostTvLoad has already created both detached lights by the time world GL
+	// storage is allocated. Seed their stable slots now; RenderTv refreshes the
+	// slot whenever it resolves a new light transform.
+	UpdateTvLightGpu(g_tvLeft.plight, 0);
+	UpdateTvLightGpu(g_tvRight.plight, 1);
 }
 
 bool FindSwDynamicLights(glm::vec3* pposCenter, float sRadius)
@@ -767,14 +760,20 @@ bool FindSwDynamicLights(glm::vec3* pposCenter, float sRadius)
 
 				glm::mat4 M = plight->frustum;
 
-				// Extract clip planes (same pattern as your GLSL)
+				// GLM indexes matrices by column.  Frustum planes are row
+				// combinations, and this projection uses zero-to-one depth.
+				const glm::vec4 row0(M[0][0], M[1][0], M[2][0], M[3][0]);
+				const glm::vec4 row1(M[0][1], M[1][1], M[2][1], M[3][1]);
+				const glm::vec4 row2(M[0][2], M[1][2], M[2][2], M[3][2]);
+				const glm::vec4 row3(M[0][3], M[1][3], M[2][3], M[3][3]);
+
 				glm::vec4 planes[6];
-				planes[0] = M[3] + M[0]; // left
-				planes[1] = M[3] - M[0]; // right
-				planes[2] = M[3] + M[1]; // bottom
-				planes[3] = M[3] - M[1]; // top
-				planes[4] = M[3] + M[2]; // near
-				planes[5] = M[3] - M[2]; // far
+				planes[0] = row3 + row0; // left
+				planes[1] = row3 - row0; // right
+				planes[2] = row3 + row1; // bottom
+				planes[3] = row3 - row1; // top
+				planes[4] = row2;        // near (ZO depth)
+				planes[5] = row3 - row2; // far
 
 				for (int i = 0; i < 6; ++i)
 				{
@@ -809,7 +808,7 @@ bool FindSwDynamicLights(glm::vec3* pposCenter, float sRadius)
 	return false;
 }
 
-void PrepareSwLights(SW* psw, CM* pcm)
+void PrepareSwLights(SW *psw, CM *pcm)
 {
 	bool useZones = (g_fBsp != 0);
 	GLsizeiptr headerSize = sizeof(LightSSBOHeader);
@@ -819,19 +818,28 @@ void PrepareSwLights(SW* psw, CM* pcm)
 
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, g_lightSsbo);
 
-	int idx = 0;
-	for (LIGHT* plight = psw->dlLight.plightFirst; plight; plight = plight->dleLight.plightNext, ++idx)
+	for (LIGHT* plight = psw->dlLight.plightFirst; plight; plight = plight->dleLight.plightNext)
 	{
-		if (idx >= MAX_LIGHTS)
+		const auto slotIt = std::find(s_lightSlotOwners.begin(), s_lightSlotOwners.end(), plight);
+		if (slotIt == s_lightSlotOwners.end())
+			continue;
+
+		const int idx = static_cast<int>(std::distance(s_lightSlotOwners.begin(), slotIt));
+		if (idx >= MAX_LIGHTS || idx >= static_cast<int>(lightBlk.size()))
 			break;
 
-		if (useZones && ((plight->grfzon & pcm->grfzon) != pcm->grfzon))
+		const bool fZoneAccepted = !useZones || ((plight->grfzon & pcm->grfzon) == pcm->grfzon);
+
+		if (!fZoneAccepted)
 			continue;
 
 		if (plight->fDynamic)
 		{
 			if (activeLights.numDynamicLights < MAX_LIGHTS)
 			{
+				// Dynamic transforms call RebuildLight, so rebuild the GPU packet
+				// from the live LIGHT instead of uploading its load-time snapshot.
+				BuildLightBlk(plight, &lightBlk[idx]);
 				activeLights.dynamicLightIndices[activeLights.numDynamicLights++] = idx;
 				glBufferSubData(GL_SHADER_STORAGE_BUFFER, headerSize + (GLintptr)(sizeof(LIGHTBLK) * idx), sizeof(LIGHTBLK), &lightBlk[idx]);
 			}
@@ -841,10 +849,28 @@ void PrepareSwLights(SW* psw, CM* pcm)
 			if (activeLights.numStaticLights < MAX_LIGHTS)
 				activeLights.staticLightIndices[activeLights.numStaticLights++] = idx;
 		}
+
 	}
 
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, g_activeLightsSsbo);
 	glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, sizeof(ACTIVELIGHTS), &activeLights);
+
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+}
+
+void UpdateTvLightGpu(LIGHT* plight, int iTvLight)
+{
+	if (plight == nullptr || g_tvLightSsbo == 0 || iTvLight < 0 || iTvLight >= 2)
+		return;
+
+	LIGHTBLK blk;
+	BuildLightBlk(plight, &blk);
+	// Portrait Quick lighting treats this moving utility light as its sole
+	// static light; movement is reflected by refreshing this dedicated slot.
+	blk.fDynamic = 0;
+
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, g_tvLightSsbo);
+	glBufferSubData(GL_SHADER_STORAGE_BUFFER, static_cast<GLintptr>(sizeof(LIGHTBLK) * iTvLight), sizeof(LIGHTBLK), &blk);
 
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 }
@@ -859,6 +885,10 @@ void DeallocateLightBlkList()
 
 	glDeleteBuffers(1, &g_lightSsbo);
 	glDeleteBuffers(1, &g_activeLightsSsbo);
+	glDeleteBuffers(1, &g_tvLightSsbo);
+	g_lightSsbo = 0;
+	g_activeLightsSsbo = 0;
+	g_tvLightSsbo = 0;
 }
 
 void DeleteLight(LIGHT* plight)
@@ -870,6 +900,8 @@ void DeallocateLightVector()
 {
 	allSwLights.clear();
 	allSwLights.shrink_to_fit();
+	s_lightSlotOwners.clear();
+	s_lightSlotOwners.shrink_to_fit();
 }
 
 std::vector <LIGHT*> allSwLights;
@@ -877,6 +909,7 @@ std::vector<LIGHT*> allSwDynamicLights;
 ACTIVELIGHTS activeLights;
 GLuint g_lightSsbo;
 GLuint g_activeLightsSsbo;
+GLuint g_tvLightSsbo;
 int numSwLights;
 std::vector <LIGHTBLK> lightBlk;
 glm::vec3 g_vecHighlight = glm::vec3(0.0, 255.0, 255.0);
@@ -886,6 +919,6 @@ float g_degMidtone = 240.0;
 float g_gShadow = 0.0;
 float g_degShadow = 180.0;
 glm::vec3 s_vecDirectionDefault = glm::vec3(-0.2, 0.3, -1.0);
-LM s_lmFallOffDefault{ 500, 2500 };
+LM s_lmFallOffDefault{500, 2500};
 glm::vec3 s_posDefault = glm::vec3(100, -150, 500);
 GRFDFL g_grfdfl = 1;

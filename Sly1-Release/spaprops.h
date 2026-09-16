@@ -1,20 +1,24 @@
 #pragma once
-#include <vector>
-#include "dec.h"
 #include "ref.h"
 
 typedef int GRFEOPID;
 typedef int BOOL;
 
-typedef void* (*PFNGET)(void*);
+typedef void* (*PFNGET)(void*, void*);
 typedef void* (*PFNSETBYTE)(void*, unsigned char);
 typedef void* (*PFNSETSHORT)(void*, short);
 typedef void* (*PFNSET)(void*, int);
 typedef void* (*PFNSETFLOAT)(void*, float);
 typedef void* (*PFNSETVEC2)(void*, glm::vec2);
-typedef void* (*PFNSETVEC3)(void*, glm::vec3);
+typedef void* (*PFNSETVEC3)(void*, glm::vec3*);
 typedef void* (*PFNSETVEC4)(void*, glm::vec4);
+typedef void* (*PFNSETMAT3)(void*, glm::mat3*);
+typedef void* (*PFNSETMAT4)(void*, glm::mat4);
+typedef void* (*PFNSETBASIC)(void*, BASIC*);
 typedef void* (*PFNENSURE)(void*, int);
+typedef void (*PFNRAW)();
+typedef CRef(*PVTHUNKFNUSER)(BASIC*, int, CRef*);
+typedef CRef(*PVTHUNKFN)(BASIC*, int, CRef*);
 
 struct BASIC;
 // Class ID
@@ -40,7 +44,8 @@ enum CID
     CID_CRFOD = 16,
     CID_CRFODB = 17,
     CID_CRFODK = 18,
-    CID_UNK16 = 19,
+    CID_RUBY = 19,
+    CID_UNK16 = CID_RUBY,
     CID_TANK = 20,
     CID_ROV = 21,
     CID_TURRET = 22,
@@ -48,8 +53,8 @@ enum CID
     CID_PUFFER = 24,
     CID_SUV = 25,
     CID_LGN = 26,
-    CID_UNK0 = 27,
-    CID_UNK1 = 28,
+    CID_JETPACK = 27,
+    CID_RYTHM = 28,
     CID_MGV = 29,
     CID_RIPG = 30,
     CID_WATER = 31,
@@ -64,8 +69,7 @@ enum CID
     CID_BUTTON = 40,
     CID_VOLBTN = 41,
     CID_JLOVOL = 42,
-    CID_BONE = 42,
-    CID_UNK17 = 43,
+    CID_BONE = 43,
     CID_SPRIZE = 44,
     CID_SCPRIZE = 45,
     CID_CLUE = 46,
@@ -85,7 +89,7 @@ enum CID
     CID_MISSILE = 60,
     CID_ACCMISS = 61,
     CID_TARMISS = 62,
-    CID_UNK3 = 63,
+    CID_MINE = 63,
     CID_FLY = 64,
     CID_RAT = 65,
     CID_ROH = 66,
@@ -96,9 +100,9 @@ enum CID
     CID_JLO = 71,
     CID_PUFFT = 72,
     CID_MRKV = 73,
-    CID_UNK4 = 74,
-    CID_UNK5 = 75,
-    CID_UNK6 = 76,
+    CID_CLKWORK = 74,
+    CID_CLKWRKDMG = 75,
+    CID_DECOY = 76,
     CID_BLIPG = 77,
     CID_CAMERA = 78,
     CID_LBONE = 79,
@@ -113,22 +117,22 @@ enum CID
     CID_COIN = 88,
     CID_KEY = 89,
     CID_GOLD = 90,
-    CID_UNK7 = 91,
+    CID_BOOST = 91,
     CID_LOCK = 92,
     CID_LOCKG = 93,
     CID_TAIL = 94,
     CID_ROB = 95,
     CID_FLASH = 96,
     CID_DYSH = 97,
-    CID_SCENTMAP = 98,
+    CID_WAYPOINT = 98,
     CID_TN = 99,
     CID_JLOC = 100,
     CID_DIALOG = 101,
     CID_SPEAKER = 102,
     CID_WM = 103,
-    CID_UNK8 = 104,
-    CID_UNK9 = 105,
-    CID_UNK10 = 106,
+    CID_CRFODKSPAWN = 104,
+    CID_HUBSEL = 105,
+    CID_HUBPROG = 106,
     CID_UNK11 = 107,
     CID_SW = 108,
     CID_CM = 109,
@@ -149,12 +153,12 @@ enum CID
     CID_RATHOLE = 124,
     CID_EXIT = 125,
     CID_PNT = 126,
-    CID_PNTSV = 127,
+    CID_HPNT = 127,
     CID_JMT = 128,
     CID_SPIRE = 129,
     CID_SCAN = 130,
     CID_ASEG = 131,
-    CID_MAP = 132,
+    CID_ASEGBL = 132,
     CID_VISZONE = 133,
     CID_VISMAP = 134,
     CID_FRZG = 135,
@@ -166,9 +170,12 @@ enum CID
     CID_WR = 141,
     CID_KEYHOLE = 142,
     CID_JSG = 143,
-    CID_UNK13 = 144,
-    CID_UNK14 = 145,
+    CID_RYTHMSEQUENCE = 144,
+    CID_THNDFLASH = 145,
+    CID_ASEGA = 146,
+    CID_SMA = 147
 };
+
 // Object ID
 enum OID
 {
@@ -1329,6 +1336,7 @@ enum OID
     OID_xs_jack_rim = 1153,
     OID_Max = 1154
 };
+
 // Option Type
 enum OTYP : int
 {
@@ -1443,6 +1451,7 @@ enum OTYP : int
     OTYP_Suvgk = 4182,
     OTYP_Jsgjk = 4183,
     OTYP_Jsglk = 4184,
+    OTYP_Mgvs = 4199,
     OTYP_Basic = 8192,
     OTYP_Lo = 8193,
     OTYP_Alo = 8194,
@@ -1605,6 +1614,10 @@ enum OTYP : int
     OTYP_Asega = 8351,
     OTYP_Sma = 8352,
     OTYP_Fcst = 8353
+};
+enum OPTID 
+{
+    OPTID_Nil = -1
 };
 // World ID
 enum WID
@@ -2148,47 +2161,48 @@ enum ENSK
     ENSK_Get = 0,
     ENSK_Set = 1
 };
+
 // Option Data
 struct OPTDAT
 {
-    // Option data type
-    union 
+    union
     {
-        BOOL  fDef;
+        BOOL fDef;
         float gDef;
-        int   nDef;
-        OID   oidDef;
-        CID   cidDef;
-        WID   widDef;
-        TBID  tbidDef;
+        int nDef;
+        OID oidDef;
+        CID cidDef;
+        WID widDef;
+        TBID tbidDef;
         SFXID sfxidDef;
     };
 
-    // Function that returns data to be written to
-    PFNGET pfnget;
-    // Function that sets data to write to
     union
     {
-        PFNSETBYTE pfnsetbyte;
-        PFNSETSHORT pfnsetshort;
-        PFNSET pfnset;
-        PFNSETFLOAT pfnsetfloat;
-        PFNSETVEC2 pfnsetvec2;
-        PFNSETVEC3 pfnsetvec3;
-        PFNSETVEC4 pfnsetvec4;
+        std::ptrdiff_t ibGet;
+        PFNRAW pfnget;
+
+        struct
+        {
+            PVTHUNKFN pvThunkFnUser;
+            PVTHUNKFN pvThunkFn;
+        };
     };
 
-    // Function that sets the data
-    //PFNSET pfnsetUser;
-    PFNENSURE pfnensure;
+    union
+    {
+        std::ptrdiff_t ibSet;
+        std::ptrdiff_t crefReq;
+        PFNRAW pfnset;
+    };
 
-    int ibGet;
-    int ibSet;
-    int ibSetUser;
-    int crefReq;
+    union
+    {
+        std::ptrdiff_t ibSetUser;
+        PFNRAW pfnsetUser;
+    };
 
-    void (*pvThunkFnUser)(void*, void*, void*);
-    void (*pvThunkFn)(void*, void*, void*);
+    void* (*pfnensure)(void*, int);
 };
 
 // Each Option ID
@@ -2204,5 +2218,253 @@ struct EOPID
 // Builds the eopid option vector
 void BuildEopids();
 
+CRef RefThunkBasicDERIVED_FROMQ(BASIC* pbasic, int carg, CRef* aref);
+CRef RefThunkLoREMOVEFnUser(BASIC* pbasic, int carg, CRef* aref);
+CRef RefThunkLoREMOVEFn(BASIC* pbasic, int carg, CRef* aref);
+CRef RefThunkLoADD(BASIC* pbasic, int carg, CRef* aref);
+CRef RefThunkLoCLONE(BASIC* pbasic, int carg, CRef* aref);
+CRef RefThunkLoSETPARENT(BASIC* pbasic, int carg, CRef* aref);
+CRef RefThunkLoANCESTORQ(BASIC* pbasic, int carg, CRef* aref);
+CRef RefThunkLoMATCHES_NAMEQ(BASIC* pbasic, int carg, CRef* aref);
+CRef RefThunkLoCUSTOM_BOOL_PROPERTY(BASIC* pbasic, int carg, CRef* aref);
+CRef RefThunkLoCUSTOM_INT_PROPERTY(BASIC* pbasic, int carg, CRef* aref);
+CRef RefThunkLoCUSTOM_FLOAT_PROPERTY(BASIC* pbasic, int carg, CRef* aref);
+CRef RefThunkLoCUSTOM_CLQ_PROPERTY(BASIC* pbasic, int carg, CRef* aref);
+CRef RefThunkLoCUSTOM_LM_PROPERTY(BASIC* pbasic, int carg, CRef* aref);
+CRef RefThunkLoCUSTOM_OID_PROPERTY(BASIC* pbasic, int carg, CRef* aref);
+CRef RefThunkLoCUSTOM_VECTOR_PROPERTY(BASIC* pbasic, int carg, CRef* aref);
+CRef RefThunkAloRIP_REF(BASIC* pbasic, int cref, CRef* aref);
+CRef RefThunkAloINVALIDATE_LIGHTING(BASIC* pbasic, int carg, CRef* aref);
+CRef RefThunkAloROTATION_MATCHES_VELOCITY(BASIC* pbasic, int carg, CRef* aref);
+CRef RefThunkAloSCROLLING_MASTER_SPEEDS(BASIC* pbasic, int carg, CRef* aref);
+CRef RefThunkAloEYES_CLOSED(BASIC* pbasic, int carg, CRef* aref);
+CRef RefThunkAloRESUME_ACTLA(BASIC* pbasic, int carg, CRef* aref);
+CRef RefThunkAloPAUSE_ACTLA(BASIC* pbasic, int carg, CRef* aref);
+CRef RefThunkAloSTART_SOUND(BASIC* pbasic, int carg, CRef* aref);
+CRef RefThunkAloSTOP_SOUND(BASIC* pbasic, int carg, CRef* aref);
+CRef RefThunkAloFADE_IN(BASIC* pbasic, int carg, CRef* aref);
+CRef RefThunkAloFADE_OUT(BASIC* pbasic, int carg, CRef* aref);
+CRef RefThunkAloCURRENT_SMA(BASIC* pbasic, int carg, CRef* aref);
+CRef RefThunkAloCURRENT_ASEGA(BASIC* pbasic, int carg, CRef* aref);
+CRef RefThunkAloNEAREST_ASEGA(BASIC* pbasic, int carg, CRef* aref);
+CRef RefThunkAloMATCH_OTHER_OBJECT(BASIC* pbasic, int carg, CRef* aref);
+CRef RefThunkAloSET_TRANSFORM_BASIS(BASIC* pbasic, int carg, CRef* aref);
+CRef RefThunkSoEDGE_GRAB(BASIC* pbasic, int carg, CRef* aref);
+
+CRef RefThunkPoMAKE_ACTIVE(BASIC* pbasic, int carg, CRef* aref);
+CRef RefThunkPoINVULNERABLEQ(BASIC* pbasic, int carg, CRef* aref);
+
+CRef RefThunkJtTHROW(BASIC* pbasic, int carg, CRef* aref);
+CRef RefThunkJtUNHOOK(BASIC* pbasic, int carg, CRef* aref);
+CRef RefThunkJtPLACE_ON_PIPE(BASIC* pbasic, int carg, CRef* aref);
+CRef RefThunkJtSET_PUPPET(BASIC* pbasic, int carg, CRef* aref);
+CRef RefThunkJtSET_STUN(BASIC* pbasic, int carg, CRef* aref);
+CRef RefThunkJtDEPLOY_MINE(BASIC* pbasic, int carg, CRef* aref);
+CRef RefThunkJtTRIGGER_LOCKG(BASIC* pbasic, int carg, CRef* aref);
+CRef RefThunkJtTRIGGER_DISPLACE(BASIC* pbasic, int carg, CRef* aref);
+CRef RefThunkJtTRIGGER_DISPLACE_SECONDARY(BASIC* pbasic, int carg, CRef* aref);
+
+CRef RefThunkStepguardUSE_ANIMATION(BASIC* pbasic, int carg, CRef* aref);
+CRef RefThunkStepguardUSE_ANIMATION_IMMEDIATE(BASIC* pbasic, int carg, CRef* aref);
+CRef RefThunkStepguardGET_ANIMATION_IMMEDIATE(BASIC* pbasic, int carg, CRef* aref);
+CRef RefThunkStepguardMATCH_ANIMATION_PHASE(BASIC* pbasic, int carg, CRef* aref);
+CRef RefThunkStepguardADD_ATTACK_EFFECT(BASIC* pbasic, int carg, CRef* aref);
+CRef RefThunkStepguardUSE_DEATH_ANIMATION(BASIC* pbasic, int carg, CRef* aref);
+CRef RefThunkStepguardSET_STATE_EXTERNAL(BASIC* pbasic, int carg, CRef* aref);
+CRef RefThunkStepguardUSE_PHYS(BASIC* pbasic, int carg, CRef* aref);
+CRef RefThunkStepguardJUMP(BASIC* pbasic, int carg, CRef* aref);
+CRef RefThunkStepguardSET_PATROL_ANIMATION(BASIC* pbasic, int carg, CRef* aref);
+
+CRef RefThunkSmartguardUSE_FLASHLIGHT_TARGET(BASIC* pbasic, int carg, CRef* aref);
+
+CRef RefThunkMbgUPDATE_AI(BASIC* pbasic, int carg, CRef* aref);
+CRef RefThunkBhgSET_HIT_ANIMATIONS(BASIC* pbasic, int carg, CRef* aref);
+
+CRef RefThunkSmartguardFAdd_MURRAY_DETECTED_ENEMY(BASIC* pbasic, int carg, CRef* aref);
+
+CRef RefThunkVaultADD_GOAD_DIALOG(BASIC* pbasic, int carg, CRef* aref);
+
+CRef RefThunkSuvADD_CHECK_POINT(BASIC* pbasic, int carg, CRef* aref);
+CRef RefThunkSuvADD_FEATURE(BASIC* pbasic, int carg, CRef* aref);
+CRef RefThunkSuvRESET(BASIC* pbasic, int carg, CRef* aref);
+
+CRef RefThunkJetpackRESET_TRANSFORM(BASIC* pbasic, int carg, CRef* aref);
+CRef RefThunkThndFlashSTART(BASIC* pbasic, int carg, CRef* aref);
+
+CRef RefThunkClkworkPLAY_DAMAGE_ANIMATION(BASIC* pbasic, int carg, CRef* aref);
+CRef RefThunkClkworkSET_DAMAGE_ANIMATION(BASIC* pbasic, int carg, CRef* aref);
+
+CRef RefThunkWaterRESET_THROW_COUNT(BASIC* pbasic, int carg, CRef* aref);
+
+CRef RefThunkBrkBREAK(BASIC* pbasic, int carg, CRef* aref);
+
+CRef RefThunkDartgunSTART_TARGET_AREA_CHANGE(BASIC* pbasic, int carg, CRef* aref);
+CRef RefThunkDartgunADD_TARGET_AREA_TARGET(BASIC* pbasic, int carg, CRef* aref);
+
+CRef RefThunkSwpSET_SHAPE(BASIC* pbasic, int cref, CRef* aref);
+
+CRef RefThunkButtonSET_SM_GOAL(BASIC* pbasic, int carg, CRef* aref);
+
+CRef RefThunkVolbtnSET_SM_GOAL(BASIC* pbasic, int carg, CRef* aref);
+
+CRef RefThunkClueBREAK(BASIC* pbasic, int carg, CRef* aref);
+
+CRef RefThunkAlarmTRIGGER(BASIC* pbasic, int carg, CRef* aref);
+CRef RefThunkAlarmSET_SM_GOAL(BASIC* pbasic, int carg, CRef* aref);
+
+CRef RefThunkSensorENABLE(BASIC* pbasic, int carg, CRef* aref);
+CRef RefThunkSensorDISABLE(BASIC* pbasic, int carg, CRef* aref);
+
+CRef RefThunkLasenEXTEND(BASIC* pbasic, int carg, CRef* aref);
+CRef RefThunkLasenRETRACT(BASIC* pbasic, int carg, CRef* aref);
+
+CRef RefThunkTzpRESET_TZP_THROW_COUNT(BASIC* pbasic, int carg, CRef* aref);
+
+CRef RefThunkBombPRIME(BASIC* pbasic, int carg, CRef* aref);
+CRef RefThunkBombDETONATE(BASIC* pbasic, int carg, CRef* aref);
+
+CRef RefThunkMissileADD_IGNORE_OBJECT(BASIC* pbasic, int carg, CRef* aref);
+CRef RefThunkMissileADD_IGNORE_CLASS(BASIC* pbasic, int carg, CRef* aref);
+
+CRef RefThunkJloACTIVATE(BASIC* pbasic, int carg, CRef* aref);
+CRef RefThunkJloDEACTIVATE(BASIC* pbasic, int carg, CRef* aref);
+
+CRef RefThunkDecoyDAMAGE(BASIC* pbasic, int cref, CRef* aref);
+
+CRef RefThunkCameraENABLE(BASIC* pbasic, int carg, CRef* aref);
+CRef RefThunkCameraDISABLE(BASIC* pbasic, int carg, CRef* aref);
+
+CRef RefThunkEmitterPAUSE(BASIC* pbasic, int carg, CRef* aref);
+CRef RefThunkEmitterPAUSE_FOREVER(BASIC* pbasic, int carg, CRef* aref);
+CRef RefThunkEmitterUNPAUSE(BASIC* pbasic, int carg, CRef* aref);
+CRef RefThunkEmitterADD_SKELETON(BASIC* pbasic, int carg, CRef* aref);
+
+CRef RefThunkLockgTRIGGER(BASIC* pbasic, int carg, CRef* aref);
+
+CRef RefThunkFlashPOS_WITHIN(BASIC* pbasic, int carg, CRef* aref);
+CRef RefThunkBspPOINT_IN_BSP_QUICK(BASIC* pbasic, int carg, CRef* aref);
+
+CRef RefThunkWaypointSET_SM_GOAL(BASIC* pbasic, int carg, CRef* aref);
+
+CRef RefThunkDialogINSTRUCT(BASIC* pbasic, int carg, CRef* aref);
+CRef RefThunkDialogCONFRONT(BASIC* pbasic, int carg, CRef* aref);
+CRef RefThunkDialogADD_EQUIVALENCE(BASIC* pbasic, int carg, CRef* aref);
+CRef RefThunkDialogTRIGGER(BASIC* pbasic, int carg, CRef* aref);
+CRef RefThunkDialogUNTRIGGER(BASIC* pbasic, int carg, CRef* aref);
+
+CRef RefThunkSwSpawnRandomCoins(BASIC* pbasic, int carg, CRef* aref);
+CRef RefThunkSwSetDefaultReverb(BASIC* pbasic, int carg, CRef* aref);
+CRef RefThunkSwPUSH_REVERB(BASIC* pbasic, int carg, CRef* aref);
+CRef RefThunkSwPOP_REVERB(BASIC* pbasic, int carg, CRef* aref);
+CRef RefThunkSwLEVEL_VISITED(BASIC* pbasic, int carg, CRef* aref);
+CRef RefThunkSwLEVEL_PRIMARY(BASIC* pbasic, int carg, CRef* aref);
+CRef RefThunkSwLEVEL_SECONDARY(BASIC* pbasic, int carg, CRef* aref);
+CRef RefThunkSwLEVEL_TERTIARY(BASIC* pbasic, int carg, CRef* aref);
+CRef RefThunkSwLEVEL_KEY_COLLECTED(BASIC* pbasic, int carg, CRef* aref);
+CRef RefThunkSwSECONDARY_TASK_AVAILABLE(BASIC* pbasic, int carg, CRef* aref);
+CRef RefThunkSwCOMMENTARY_UNLOCKED_FOR_LEVEL(BASIC* pbasic, int carg, CRef* aref);
+CRef RefThunkSwSET_LEVEL_DATA_VALUE(BASIC* pbasic, int carg, CRef* aref);
+CRef RefThunkSwGET_LEVEL_DATA_VALUE(BASIC* pbasic, int carg, CRef* aref);
+CRef RefThunkSwWORLD_VISITED(BASIC* pbasic, int carg, CRef* aref);
+CRef RefThunkSwWORLD_COMPLETE(BASIC* pbasic, int carg, CRef* aref);
+CRef RefThunkSwRECALCULATE_PERCENT_COMPLETION(BASIC* pbasic, int carg, CRef* aref);
+CRef RefThunkSwCANCEL_DIALOG(BASIC* pbasic, int carg, CRef* aref);
+CRef RefThunkSwSET_SMA_PROMPT(BASIC* pbasic, int carg, CRef* aref);
+CRef RefThunkSwACQUIRE_LETTERBOX(BASIC* pbasic, int carg, CRef* aref);
+CRef RefThunkSwRELEASE_LETTERBOX(BASIC* pbasic, int carg, CRef* aref);
+CRef RefThunkSwSET_EXCITEMENT(BASIC* pbasic, int carg, CRef* aref);
+CRef RefThunkSwUNSET_EXCITEMENT(BASIC* pbasic, int carg, CRef* aref);
+CRef RefThunkSwSET_MUSIC_REGISTER(BASIC* pbasic, int carg, CRef* aref);
+CRef RefThunkSwRESPONSE_TEXT(BASIC* pbasic, int carg, CRef* aref);
+CRef RefThunkSwREFRESH_MIDI_REGISTER(BASIC* pbasic, int carg, CRef* aref);
+CRef RefThunkSwHANDS_OFF(BASIC* pbasic, int carg, CRef* aref);
+CRef RefThunkSwHANDS_ON(BASIC* pbasic, int carg, CRef* aref);
+CRef RefThunkSwLOCK_VAULT(BASIC* pbasic, int carg, CRef* aref);
+CRef RefThunkSwUNLOCK_VAULT(BASIC* pbasic, int carg, CRef* aref);
+
+CRef RefThunkCmPUSH_LOOK_KIND(BASIC* pbasic, int cref, CRef* aref);
+CRef RefThunkCmPOP_LOOK_KIND(BASIC* pbasic, int cref, CRef* aref);
+CRef RefThunkCmLOOK_KIND(BASIC* pbasic, int cref, CRef* aref);
+CRef RefThunkCmSET_SNIPER_FOCUS(BASIC* pbasic, int cref, CRef* aref);
+CRef RefThunkCmJOLT(BASIC* pbasic, int cref, CRef* aref);
+CRef RefThunkCmCUT(BASIC* pbasic, int cref, CRef* aref);
+CRef RefThunkCmVISIBLE_SPHERE(BASIC* pbasic, int cref, CRef* aref);
+
+CRef RefThunkWarpSET_SM_GOAL(BASIC* pbasic, int cref, CRef* aref);
+CRef RefThunkWarpTRIGGER(BASIC* pbasic, int cref, CRef* aref);
+
+CRef RefThunkExplsEXPLODE(BASIC* pbasic, int cref, CRef* aref);
+CRef RefThunkExplsEXPLODE_OVR(BASIC* pbasic, int cref, CRef* aref);
+
+CRef RefThunkExploADD_SKELETON(BASIC* pbasic, int cref, CRef* aref);
+
+CRef RefThunkExitTRIGGER(BASIC* pbasic, int carg, CRef* aref);
+
+CRef RefThunkVolCHECK_POINT(BASIC* pbasic, int cref, CRef* aref);
+
+CRef RefThunkAsegAPPLY(BASIC* pbasic, int carg, CRef* aref);
+CRef RefThunkAsegENSURE(BASIC* pbasic, int carg, CRef* aref);
+CRef RefThunkAsegFIND_LABEL(BASIC* pbasic, int carg, CRef* aref);
+
+CRef RefThunkSmAPPLY(BASIC* pbasic, int cref, CRef* aref);
+
+CRef RefThunkRchmSET_NATURAL_COEFFICIENTS(BASIC* pbasic, int cref, CRef* aref);
+CRef RefThunkRchmSET_CENTER_COEFFICIENTS(BASIC* pbasic, int cref, CRef* aref);
+
+CRef RefThunkRwmADD_AMMO(BASIC* pbasic, int cref, CRef* aref);
+CRef RefThunkRwmENABLE_CACHE(BASIC* pbasic, int cref, CRef* aref);
+CRef RefThunkRwmDISABLE_CACHE(BASIC* pbasic, int cref, CRef* aref);
+CRef RefThunkRwmRESIZE_CACHE(BASIC* pbasic, int cref, CRef* aref);
+CRef RefThunkRwmRELOAD(BASIC* pbasic, int cref, CRef* aref);
+CRef RefThunkRwmFIRE(BASIC* pbasic, int cref, CRef* aref);
+CRef RefThunkRwmCLEAR_FIRE_INFO(BASIC* pbasic, int cref, CRef* aref);
+CRef RefThunkRwmCLEAR_TARGET_INFO(BASIC* pbasic, int cref, CRef* aref);
+CRef RefThunkRwmCLEAR_AIM_CONSTRAINTS(BASIC* pbasic, int cref, CRef* aref);
+
+CRef RefThunkWrADD_CIRCLE_WARP(BASIC* pbasic, int cref, CRef* aref);
+CRef RefThunkWrADD_BEND_WARP(BASIC* pbasic, int carg, CRef* aref);
+CRef RefThunkWrADD_BEND_NOISE(BASIC* pbasic, int cref, CRef* aref);
+CRef RefThunkWrADD_SWIVEL_NOISE(BASIC* pbasic, int carg, CRef* aref);
+
+CRef RefThunkJsgCLEAR(BASIC* pbasic, int carg, CRef* aref);
+CRef RefThunkJsgAPPLY(BASIC* pbasic, int carg, CRef* aref);
+CRef RefThunkJsgRETRACT(BASIC* pbasic, int carg, CRef* aref);
+CRef RefThunkJsgCONTEXT(BASIC* pbasic, int carg, CRef* aref);
+CRef RefThunkJsgCUT(BASIC* pbasic, int carg, CRef* aref);
+CRef RefThunkJsgFOCUS(BASIC* pbasic, int carg, CRef* aref);
+CRef RefThunkJsgLABEL(BASIC* pbasic, int carg, CRef* aref);
+CRef RefThunkJsgTUNNEL(BASIC* pbasic, int carg, CRef* aref);
+CRef RefThunkJsgPAUSE(BASIC* pbasic, int carg, CRef* aref);
+CRef RefThunkJsgJUMP(BASIC* pbasic, int carg, CRef* aref);
+CRef RefThunkJsgRUN(BASIC* pbasic, int carg, CRef* aref);
+CRef RefThunkJsgCLIMB(BASIC* pbasic, int carg, CRef* aref);
+CRef RefThunkJsgATTACK(BASIC* pbasic, int carg, CRef* aref);
+CRef RefThunkJsgASEG(BASIC* pbasic, int carg, CRef* aref);
+CRef RefThunkJsgCLOCK(BASIC* pbasic, int carg, CRef* aref);
+CRef RefThunkJsgHIDE(BASIC* pbasic, int carg, CRef* aref);
+
+CRef RefThunkRubySET_RYTHM_SEQUENCE(BASIC* pbasic, int carg, CRef* aref);
+CRef RefThunkRubyCLEAR_RYTHM_SEQUENCE(BASIC* pbasic, int carg, CRef* aref);
+CRef RefThunkRubyADD_RYTHM_EVENT(BASIC* pbasic, int carg, CRef* aref);
+CRef RefThunkRubyREMOVE_RYTHM_EVENT(BASIC* pbasic, int carg, CRef* aref);
+CRef RefThunkRubyDAMAGE_BOSS(BASIC* pbasic, int carg, CRef* aref);
+CRef RefThunkRythmSequenceADD_MATCH(BASIC* pbasic, int carg, CRef* aref);
+CRef RefThunkRythmSequenceADD_SPLICE_EVENT(BASIC* pbasic, int carg, CRef* aref);
+CRef RefThunkRythmSequenceENABLE_INPUT(BASIC* pbasic, int carg, CRef* aref);
+CRef RefThunkRythmSequenceDISABLE_INPUT(BASIC* pbasic, int carg, CRef* aref);
+CRef RefThunkRythmSequenceENABLE_EFFECT(BASIC* pbasic, int carg, CRef* aref);
+CRef RefThunkRythmSequenceDISABLE_EFFECT(BASIC* pbasic, int carg, CRef* aref);
+
+CRef RefThunkMgvAPPLY_DEATH_THROW(BASIC* pbasic, int carg, CRef* aref);
+CRef RefThunkMgvADD_RESPAWN_POINT(BASIC* pbasic, int carg, CRef* aref);
+CRef RefThunkMgvRESPAWN_OBJECT(BASIC* pbasic, int carg, CRef* aref);
+
+CRef RefThunkAsegaSEEK(BASIC* pbasic, int carg, CRef* aref);
+CRef RefThunkAsegaRETRACT(BASIC* pbasic, int carg, CRef* aref);
+CRef RefThunkAsegaSNAP(BASIC* pbasic, int carg, CRef* aref);
+CRef RefThunkAsegaRETRACT_ACTSEG(BASIC* pbasic, int carg, CRef* aref);
+
+CRef RefThunkSmaRETRACT(BASIC* pbasic, int carg, CRef* aref);
+
 // Used to store option data
-extern std::vector<EOPID> g_aeopid;
+extern EOPID g_aeopid[1179];

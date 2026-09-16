@@ -27,6 +27,37 @@ float GLimitAbs(float g, float absLimit)
 	return absLimit;
 }
 
+float GSmoothA(float gCur, float dgCur, float gTarget, float dt, SMPA* psmpa, float* pdgNext)
+{
+	float dgNext;
+	float gNext = GSmooth(gCur, gTarget, dt, reinterpret_cast<SMP*>(psmpa), &dgNext);
+
+	const float sdvMax = psmpa->sdvMax;
+
+	if (sdvMax > 0.0f)
+	{
+		const float dgMax = dgCur + sdvMax * dt;
+		const float dgMin = dgCur - sdvMax * dt;
+		const float dgStep = 0.5f * sdvMax * dt * dt;
+
+		if (dgNext > dgMax)
+		{
+			gNext = gCur + dgCur * dt + dgStep;
+			dgNext = dgMax;
+		}
+		else if (dgNext < dgMin)
+		{
+			gNext = gCur + dgCur * dt - dgStep;
+			dgNext = dgMin;
+		}
+	}
+
+	if (pdgNext != nullptr)
+		*pdgNext = dgNext;
+
+	return gNext;
+}
+
 float GSmooth(float gCur, float gTarget, float dt, SMP* psmp, float* pdgNext)
 {
 	float delta = gCur - gTarget;
@@ -64,12 +95,12 @@ float GSmooth(float gCur, float gTarget, float dt, SMP* psmp, float* pdgNext)
 			float t = tSolutions[0] - dt;
 			float accelRate = (acc - vSlow) / dtFast;
 			float vMid = vSlow + accelRate * t;
-			velocity = -0.5f * (vSlow + vMid);
+			velocity = -vMid;
 			delta = (vSlow * t) + (0.5f * accelRate * t * t);
 		}
 		else {
 			velocity = -vSlow;
-			delta = vSlow * dt;
+			delta = 0.0f;
 		}
 	}
 
@@ -78,6 +109,22 @@ float GSmooth(float gCur, float gTarget, float dt, SMP* psmp, float* pdgNext)
 		*pdgNext = isNegative ? -velocity : velocity;
 	}
 	return result;
+}
+
+float RadSmooth(float radCur, float radTarget, float dt, SMP* psmp, float* pdradNext)
+{
+	float drad = RadNormalize(radTarget - radCur);
+	float dradSmoothed = GSmooth(0.0f, drad, dt, psmp, pdradNext);
+
+	return RadNormalize(radCur + dradSmoothed);
+}
+
+float RadSmoothA(float radCur, float dradCur, float radTarget, float dt, SMPA* psmpa, float* pdradNext)
+{
+	const float dradTarget = RadNormalize(radTarget - radCur);
+	const float drad = GSmoothA(0.0f, dradCur, dradTarget, dt, psmpa, pdradNext);
+
+	return RadNormalize(radCur + drad);
 }
 
 //TODO: GSmooth
@@ -101,40 +148,49 @@ int NRandInRange(int nLow, int nHigh)
 //return a random floating-point number in the given range
 float GRandInRange(float gLow, float gHigh)
 {
-	if (gLow != gHigh) {
-		int randomNum = rand();
-		gLow = gLow + (gHigh - gLow) * (float)randomNum * 4.656613e-10;
+	float t;
+
+	if (gLow == gHigh) {
+		return gLow;
 	}
-	return gLow;
+
+	t = (float)rand() / ((float)RAND_MAX + 1.0f);
+
+	return gLow + (gHigh - gLow) * t;
 }
 
 //return a random number from the Gaussian distribution
-float GRandGaussian(float param_1, float param_2, float param_3)
+float GRandGaussian(float gMean, float gDeviation, float gLimit)
 {
-	float fVar1;
-	float fVar2;
-	float fVar3;
-	float fVar4;
+	float x;
+	float y;
+	float radiusSq;
+	float gaussian;
+	float result;
 
-	fVar3 = -1.0f;
-	fVar4 = 0.0f;
 	do {
 		do {
-			fVar1 = (float)GRandInRange(fVar3, 1.0f);
-			fVar2 = (float)GRandInRange(fVar3, 1.0f);
-			fVar1 = fVar1 * fVar1 + fVar2 * fVar2;
-		} while (1.0f < fVar1);
-	} while (fVar1 == fVar4);
-	fVar3 = logf(fVar1);
-	fVar4 = param_1 + param_2 * fVar2 * sqrtf((fVar3 * -2.0f) / fVar1);
-	fVar3 = fVar4;
-	if (param_3 != 0.0f)
-	{
-		fVar3 = param_1 - param_3;
-		if ((param_1 - param_3 <= fVar4) && (fVar3 = fVar4, param_1 + param_3 < fVar4))
-			fVar3 = param_1 + param_3;
+			x = GRandInRange(-1.0f, 1.0f);
+			y = GRandInRange(-1.0f, 1.0f);
+
+			radiusSq = x * x + y * y;
+		} while (radiusSq > 1.0f);
+	} while (radiusSq == 0.0f);
+
+	gaussian = y * sqrt((-2.0f * logf(radiusSq)) / radiusSq);
+
+	result = gMean + gDeviation * gaussian;
+
+	if (gLimit != 0.0f) {
+		if (result < gMean - gLimit) {
+			result = gMean - gLimit;
+		}
+		else if (result > gMean + gLimit) {
+			result = gMean + gLimit;
+		}
 	}
-	return fVar3;
+
+	return result;
 }
 
 //returns true if two given floats they are within a certain epsilon of each other
@@ -244,7 +300,7 @@ float GModPositive(float gDividend, float gDivisor)
 //check whether the given float falls within the given limit
 bool FCheckLm(LM *plm, float g)
 {
-	return (plm->gMin < g) && (g < plm->gMax);
+	return g > plm->gMin && g < plm->gMax;
 }
 
 //check whether the given float falls within any of the given limits
@@ -267,12 +323,13 @@ bool FCheckAlm(int clm, LM *alm, float g)
 //clamp the float to fall inside range given by the limit
 float GLimitLm(LM *plm, float g)
 {
-	float result = plm->gMin;
+	if (g < plm->gMin)
+		return plm->gMin;
 
-	if ((result <= g) && (result = plm->gMax, g <= plm->gMax))
-		return g;
+	if (g > plm->gMax)
+		return plm->gMax;
 
-	return plm->gMin;
+	return g;
 }
 
 int SgnCompareG(float *a, float *b)
@@ -290,6 +347,73 @@ void Force(void *)
 	//this function is empty
 }
 
+void MinimizeRange(PFNGG pfn, void* pv, float g, float dg, float gMin, float gMax, float* pgDom, float* pgRng)
+{
+	auto Evaluate = [pfn, pv](float gDom) -> DR
+	{
+		return { gDom, pfn(pv, gDom) };
+	};
+
+	DR left;
+	DR center;
+	DR right;
+
+	center = Evaluate(std::min(std::max(g, gMin), gMax));
+	left = Evaluate(std::max(center.gDom - dg, gMin));
+	right = Evaluate(std::min(center.gDom + dg, gMax));
+
+	while (center.gRng > left.gRng)
+	{
+		right = center;
+		center = left;
+		left = Evaluate(std::max((2.0f * center.gDom) - right.gDom, gMin));
+	}
+
+	while (center.gRng > right.gRng)
+	{
+		left = center;
+		center = right;
+		right = Evaluate(std::min((2.0f * center.gDom) - left.gDom, gMax));
+	}
+
+	for (int iteration = 0; iteration < 10; ++iteration)
+	{
+		const DR leftMid = Evaluate((left.gDom + center.gDom) * 0.5f);
+		const DR rightMid = Evaluate((center.gDom + right.gDom) * 0.5f);
+
+		if (leftMid.gRng < center.gRng)
+		{
+			if (leftMid.gRng < rightMid.gRng)
+			{
+				right = center;
+				center = leftMid;
+			}
+			else
+			{
+				left = center;
+				center = rightMid;
+			}
+		}
+		else if (center.gRng <= rightMid.gRng)
+		{
+			left = leftMid;
+			right = rightMid;
+		}
+		else
+		{
+			left = center;
+			center = rightMid;
+		}
+	}
+
+	if (pgDom != nullptr)
+		*pgDom = center.gDom;
+
+	if (pgRng != nullptr)
+		*pgRng = center.gRng;
+}
+
 //TODO: MinimizeRange
 
 LM g_lmZeroOne = { 0.0, 1.0 };
+CLQ g_clqZero{0.0};

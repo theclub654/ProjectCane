@@ -20,10 +20,13 @@
 #define TRLK_Relight 0
 #define TRLK_Baked   1
 #define TRLK_Dynamic 2
+#define TRLK_Quick   3
 
 #define FOG_NONE 0
 #define FOG_PS2  1
 #define FOG_PS3  2
+
+#define MAX_POSES 64
 
 layout (location = 0) in vec3  vertex;
 layout (location = 1) in vec3  normal;
@@ -46,7 +49,7 @@ struct SWP // Scene world properties
 struct LIGHT
 {
     int   lightk;
-    int   pad1;
+    int   fExcludeDynamicObjects;
     int   pad2;
     int   fDynamic;
     vec4  pos;
@@ -102,7 +105,7 @@ layout(std140, binding = 1) uniform RO
     float uFog;
     float darken;
     int   grfglob;
-    int   pad0;
+    int   blotTvLight;
     int   warpType;
     int   warpCmat;
     int   warpCvtx;
@@ -153,14 +156,40 @@ layout(std430, binding = 7) buffer CACHEDLIGHTING
     MATERIAL cachedMaterial[];
 };
 
+layout(std430, binding = 9) readonly buffer BONEBLK
+{
+    mat4 boneMatrices[];
+};
+
+layout(std430, binding = 10) readonly buffer POSEPOSBLK
+{
+    vec4 poseDpos[];
+};
+
+layout(std430, binding = 11) readonly buffer POSENORMALBLK
+{
+    vec4 poseDnormal[];
+};
+
+layout(std430, binding = 13) readonly buffer TVLIGHTBLK
+{
+    LIGHT tvLights[];
+};
+
+uniform int fPose;
+uniform int poseCount;
+uniform float poseWeights[MAX_POSES];
+
 uniform int   rko;
 uniform int   fAnimateUv;
 uniform vec2  uvOffsets;
 uniform float unSelfIllum;
 
+uniform int fSkin;
 uniform vec3  subGlobPosCenter;
 uniform float subGlobRadius;
 
+vec3 normalLocal;
 vec3 normalWorld;
 vec2 uvLocal;
 
@@ -181,10 +210,12 @@ flat out int vShadowIndices[MAX_OBJECT_SHADOWS];
 out float fogIntensity;
 
 void ApplyWarp(inout vec4 vLocal, inout vec2 uvLocal);
+void ApplyPoses(inout vec4 positionLocal, inout vec3 normalLocal);
 void StartThreeWay();
 void InitGlobLighting();
 void ApplyStaticLightsRelight();
 void ApplyStaticLights();
+void ApplyQuickLights();
 void ApplyDynamicLights();
 void AddDynamicMaterial();
 vec4 AddDirectionLight(LIGHT dirlight);
@@ -206,9 +237,55 @@ void CalculateFogPS3();
 
 void main()
 {
-    worldPos    = op.model * vec4(vertex, 1.0);
-    worldNormal = normalize(mat3(op.model) * normal);
-    uvLocal     = uv.xy;
+    vec4 positionLocal = vec4(vertex, 1.0);
+    normalLocal = normal;
+
+    if (fPose != 0)
+        ApplyPoses(positionLocal, normalLocal);
+
+    if (fSkin != 0)
+    {
+        mat4 matSkin = mat4(0.0);
+        float totalWeight = 0.0;
+
+        if (boneWeights.x != 0.0)
+        {
+            matSkin += boneMatrices[boneIndices.x] * boneWeights.x;
+            totalWeight += boneWeights.x;
+        }
+
+        if (boneWeights.y != 0.0)
+        {
+            matSkin += boneMatrices[boneIndices.y] * boneWeights.y;
+            totalWeight += boneWeights.y;
+        }
+
+        if (boneWeights.z != 0.0)
+        {
+            matSkin += boneMatrices[boneIndices.z] * boneWeights.z;
+            totalWeight += boneWeights.z;
+        }
+
+        if (boneWeights.w != 0.0)
+        {
+            matSkin += boneMatrices[boneIndices.w] * boneWeights.w;
+            totalWeight += boneWeights.w;
+        }
+
+        if (totalWeight > 0.0)
+        {
+            positionLocal = matSkin * positionLocal;
+
+            vec3 skinnedNormal = mat3(matSkin) * normalLocal;
+            float normalLength2 = dot(skinnedNormal, skinnedNormal);
+
+            normalLocal = normalLength2 > 1e-8 ? skinnedNormal * inversesqrt(normalLength2) : vec3(0.0);
+        }
+    }
+
+    worldPos = op.model * positionLocal;
+    worldNormal = normalize(mat3(op.model) * normalLocal);
+    uvLocal = uv;
 
     if (fAnimateUv > 0)
         uvLocal += uvOffsets;
@@ -217,7 +294,7 @@ void main()
         ApplyWarp(worldPos, uvLocal);
 
     vertexColor = color;
-    texcoord    = uvLocal;
+    texcoord = uvLocal;
 
     if (rko == RKO_ThreeWay)
         StartThreeWay();
@@ -298,10 +375,46 @@ void ApplyWarp(inout vec4 vLocal, inout vec2 uvLocal)
     }
 }
 
+void ApplyPoses(inout vec4 positionLocal, inout vec3 normalLocal)
+{
+    vec3 dpos = vec3(0.0);
+    vec3 dnormal = vec3(0.0);
+    int count = min(poseCount, MAX_POSES);
+    int poseBase = gl_VertexID * poseCount;
+
+    for (int ipose = 0; ipose < count; ++ipose)
+    {
+        float weight = poseWeights[ipose];
+
+        if (weight == 0.0)
+            continue;
+
+        dpos += poseDpos[poseBase + ipose].xyz * weight;
+        dnormal += poseDnormal[poseBase + ipose].xyz * weight;
+    }
+
+    positionLocal.xyz += dpos;
+    normalLocal += dnormal;
+
+    float normalLength2 = dot(normalLocal, normalLocal);
+
+    if (normalLength2 > 1e-8)
+        normalLocal *= inversesqrt(normalLength2);
+}
+
 void StartThreeWay()
 {
     switch(op.trlk)
     {
+        // TV portraits use the retail pglob->pblot Quick-light path.  The
+        // sole detached TV light is evaluated after pose/skin transforms and
+        // the resulting three-way material is baked per vertex for this draw.
+        case TRLK_Quick:
+        InitGlobLighting();
+        ApplyQuickLights();
+        ProcessGlobLighting();
+        break;
+
         // Static bake
         case TRLK_Relight:
         InitGlobLighting();
@@ -333,13 +446,38 @@ void StartThreeWay()
     };
 }
 
+void ApplyQuickLights()
+{
+    // Retail sends TRLK_Quick through the same VU lighting path as
+    // TRLK_Relight. The TV glob uses its one directly indexed detached light.
+    int idx = op.blotTvLight - 1;
+    if (idx < 0)
+        return;
+
+    LIGHT tvLight = tvLights[idx];
+    switch (tvLight.lightk)
+    {
+        case LIGHTK_Direction:
+        light.rgb += AddDirectionLight(tvLight).rgb;
+        break;
+
+        case LIGHTK_Position:
+        light.rgb += AddPositionLight(tvLight).rgb;
+        break;
+
+        case LIGHTK_Frustrum:
+        case LIGHTK_Spot:
+        light.rgb += AddFrustrumLight(tvLight).rgb;
+        break;
+    }
+}
+
 void InitGlobLighting()
 {
-    objectShadow  = swp.uShadow;
+    objectShadow = swp.uShadow;
     objectMidtone = swp.uMidtone + unSelfIllum * 0.000031;
     light = vec3(0.0);
-
-    normalWorld = normalize(mat3(op.model) * normal);
+    normalWorld = worldNormal;
 }
 
 void ApplyStaticLightsRelight()
@@ -413,6 +551,9 @@ void ApplyStaticLights()
         {
             int idx = staticLightIndices[i];
 
+            if (lights[idx].fExcludeDynamicObjects != 0)
+                continue;
+
             switch (lights[idx].lightk)
             {
                 case LIGHTK_Direction:
@@ -448,6 +589,7 @@ void ApplyDynamicLights()
         for (int i = 0; i < numDynamicLights; ++i)
         {
             int idx = dynamicLightIndices[i];
+
             switch (lights[idx].lightk)
             {
                 case LIGHTK_Direction:
@@ -476,6 +618,10 @@ void ApplyDynamicLights()
         for (int i = 0; i < numDynamicLights; ++i)
         {
             int idx = dynamicLightIndices[i];
+
+            if (lights[idx].fExcludeDynamicObjects != 0)
+                continue;
+
             switch (lights[idx].lightk)
             {
                 case LIGHTK_Direction:
@@ -503,23 +649,19 @@ void ApplyDynamicLights()
 
 void AddDynamicMaterial()
 {
-    // Save cached base
     baseMaterial = material;
 
-    // Compute dynamic-only into material
-    objectShadow  = 0.0;
+    objectShadow = 0.0;
     objectMidtone = 0.0;
-    light         = vec3(0.0);
-
-    normalWorld   = normalize(mat3(op.model) * normal);
+    light = vec3(0.0);
+    normalWorld = worldNormal;
 
     ApplyDynamicLights();
-    ProcessGlobLighting(); // material = dynamic-only buckets
+    ProcessGlobLighting();
 
-    // Add on top
     material.ambient = baseMaterial.ambient + material.ambient;
     material.midtone = baseMaterial.midtone + material.midtone;
-    material.light   = baseMaterial.light   + material.light;
+    material.light = baseMaterial.light + material.light;
 }
 
 vec4 AddDirectionLight(LIGHT dirlight)
@@ -544,7 +686,7 @@ vec4 AddDirectionLight(LIGHT dirlight)
 vec4 AddDynamicLight(vec4 dir, vec4 color, vec4 ru, vec4 du)
 {
     vec3 lightDir = normalize(mat3(transpose(op.model)) * vec3(dir));
-    float diffuse = dot(lightDir, normal);
+    float diffuse = dot(lightDir, normalLocal);
     diffuse += diffuse * diffuse * diffuse;
 
     float shadow    = diffuse * ru.x + du.x;
@@ -607,28 +749,42 @@ vec4 AddPositionLight(LIGHT pointlight)
 
 vec4 AddPositionLightDynamic(LIGHT pointlight)
 {
-    vec3  direction = pointlight.pos.xyz - op.posCenter.xyz;
-    float distance = length(direction);
+    vec3 direction = pointlight.pos.xyz - op.posCenter.xyz;
+    float distanceSquared = dot(direction, direction);
 
-    float attenuation = 1.0 / distance * pointlight.invDst + pointlight.constant;
-    attenuation = clamp(attenuation, 0.0, 1.0);
+    if (distanceSquared <= 0.00000001)
+        return vec4(0.0);
 
-    vec4 color = AddDynamicLight(vec4(direction, 0.0), pointlight.color * attenuation, pointlight.ru * attenuation, pointlight.du * attenuation) * attenuation;
+    float inverseDistance = inversesqrt(distanceSquared);
+    float attenuation =
+        clamp(pointlight.constant + pointlight.invDst * inverseDistance, 0.0, 1.0);
 
-    return color;
+    return AddDynamicLight(
+        vec4(direction, 0.0),
+        pointlight.color,
+        pointlight.ru * attenuation,
+        pointlight.du * attenuation);
 }
 
 bool SphereIntersectsFrustum(LIGHT L, vec3 center, float radius)
 {
     mat4 M = L.matFrustrum;
 
+    // GLSL indexes matrices by column.  Frustum planes are combinations of
+    // matrix rows, so construct the rows explicitly.  The projection uses
+    // zero-to-one depth (glm::perspectiveRH_ZO), making row 2 the near plane.
+    vec4 row0 = vec4(M[0][0], M[1][0], M[2][0], M[3][0]);
+    vec4 row1 = vec4(M[0][1], M[1][1], M[2][1], M[3][1]);
+    vec4 row2 = vec4(M[0][2], M[1][2], M[2][2], M[3][2]);
+    vec4 row3 = vec4(M[0][3], M[1][3], M[2][3], M[3][3]);
+
     vec4 planes[6];
-    planes[0] = M[3] + M[0];
-    planes[1] = M[3] - M[0];
-    planes[2] = M[3] + M[1];
-    planes[3] = M[3] - M[1];
-    planes[4] = M[3] + M[2];
-    planes[5] = M[3] - M[2];
+    planes[0] = row3 + row0;
+    planes[1] = row3 - row0;
+    planes[2] = row3 + row1;
+    planes[3] = row3 - row1;
+    planes[4] = row2;
+    planes[5] = row3 - row2;
 
     for (int i = 0; i < 6; ++i)
     {
@@ -776,8 +932,8 @@ void ProcessGlobLighting()
 
     // Assign lighting output
     material.ambient   = shadowContribution * baseIntensity;
-    material.midtone.rgb = clampedMidtone * vertexColor.rgb;
-    material.light.rgb = min(light.rgb, vec3(1.0)) * baseIntensity;
+    material.midtone = vec4(clampedMidtone * vertexColor.rgb, 0.0);
+    material.light = vec4(min(light.rgb, vec3(1.0)) * baseIntensity, 0.0);
 }
 
 void CalculateFog()

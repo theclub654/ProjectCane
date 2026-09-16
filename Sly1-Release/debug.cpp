@@ -2,6 +2,13 @@
 #define  STB_IMAGE_WRITE_IMPLEMENTATION 
 #include <stb/stb_image_write.h>
 #include "render.h"
+#include "clock.h"
+#include "timer.h"
+#include "steppower.h"
+#include "game.h"
+
+static bool s_fInfiniteTimer = false;
+static float s_svtTimerBeforeCheat = -1.0f;
 
 void RenderMenuGui(SW* psw)
 {
@@ -10,7 +17,20 @@ void RenderMenuGui(SW* psw)
     ImGui_ImplGlfw_NewFrame();
     ImGui::NewFrame();
 
-    g_fDisableInput = false; // Reset hover flag
+    g_fDisableInput = false;
+
+    // Keep the ImGui frame lifecycle active for the renderer, but do not
+    // create any debug windows or menu bars in normal gameplay mode.
+    if (g_fDebugMode == 0)
+        return;
+
+    // SetTimer may configure a new countdown while the cheat is already on.
+    // Capture that direction and freeze it again every frame.
+    if (s_fInfiniteTimer && g_timer.svt != 0.0f)
+    {
+        s_svtTimerBeforeCheat = g_timer.svt;
+        g_timer.svt = 0.0f;
+    }
 
     // Main menu bar
     if (ImGui::BeginMainMenuBar())
@@ -21,18 +41,26 @@ void RenderMenuGui(SW* psw)
         if (ImGui::BeginMenu("File"))
         {
             if (ImGui::MenuItem("Open World"))
-                instance_a.Instance()->OpenDialog("ChooseFileDlgKey", "Choose File", ".brx", ".");
+                instance_a.Instance()->OpenDialog("ChooseFileDlgKey", "Choose File", ".brx", "Worlds");
             else if (ImGui::IsItemHovered())
                 g_fDisableInput = true;
 
             if (ImGui::MenuItem("Close World"))
             {
-                if (psw != nullptr)
+                if (g_psw != nullptr)
                 {
-                    DeleteWorld(psw);
-                    file = "";
-                    filePath = "";
-                    levelName = "";
+                    DeleteWorld(g_psw);
+                    g_psw = nullptr;
+
+                    file.clear();
+                    filePath.clear();
+                    levelName.clear();
+
+                    g_transition.m_plevelCurrent = nullptr;
+                    g_transition.m_plevelPending = nullptr;
+                    g_transition.m_worldCurrent.clear();
+                    g_transition.m_worldPending.clear();
+                    g_transition.m_fPending = 0;
                 }
             }
             else if (ImGui::IsItemHovered())
@@ -151,12 +179,46 @@ void RenderMenuGui(SW* psw)
                 glfwSwapInterval(g_fVsync ? 1 : 0);
             }
 
+            if (ImGui::BeginMenu("Frame Rate"))
+            {
+                if (ImGui::MenuItem("30 FPS", nullptr, g_targetFrameRate == 30))
+                    g_targetFrameRate = 30;
+
+                if (ImGui::MenuItem("60 FPS", nullptr, g_targetFrameRate == 60))
+                    g_targetFrameRate = 60;
+
+                if (ImGui::MenuItem("120 FPS", nullptr, g_targetFrameRate == 120))
+                    g_targetFrameRate = 120;
+
+                if (ImGui::IsItemHovered()) g_fDisableInput = true;
+                ImGui::EndMenu();
+            }
+
+            if (ImGui::IsItemHovered()) g_fDisableInput = true;
+
             if (g_pcm != nullptr)
             {
-                ImGui::SliderFloat("Draw Distance", &g_pcm->rMRDAdjust, baseRenderDistance, 2.5f);
+                float drawDistance = g_pcm->rMRD;
+                ImGui::SetNextItemWidth(180.0f);
+                if (ImGui::SliderFloat("Draw Distance", &drawDistance, 0.25f, 4.0f, "%.2fx"))
+                {
+                    SetCmMrdRatio(g_pcm, drawDistance);
+                    g_drawDistanceMultiplier = drawDistance;
+                }
 
-                // Disable game input while slider is being interacted with
+                // Keep camera/game controls from responding while the slider
+                // is hovered or dragged.
                 if (ImGui::IsItemActive() || ImGui::IsItemHovered())
+                    g_fDisableInput = true;
+
+                if (ImGui::MenuItem("Reset Draw Distance", nullptr, false,
+                    g_pcm->rMRD != 1.0f))
+                {
+                    SetCmMrdRatio(g_pcm, 1.0f);
+                    g_drawDistanceMultiplier = 1.0f;
+                }
+
+                if (ImGui::IsItemHovered())
                     g_fDisableInput = true;
             }
 
@@ -195,34 +257,299 @@ void RenderMenuGui(SW* psw)
             ImGui::EndMenu();
         }
 
+        if (ImGui::BeginMenu("Cheats"))
+        {
+            const bool fCanSetCharms = g_pgsCur != nullptr;
+
+            if (ImGui::MenuItem("Give Sly 1 Charm", nullptr, false, fCanSetCharms))
+                SetCcharm(1);
+
+            if (ImGui::MenuItem("Give Sly 2 Charms", nullptr, false, fCanSetCharms))
+                SetCcharm(2);
+
+            const bool fCanUnlockPowerUps = g_pgsCur != nullptr && psw != nullptr;
+
+            if (ImGui::MenuItem("Unlock All Power-Ups", nullptr, false, fCanUnlockPowerUps))
+            {
+                GRFVAULT grfvaultPowerUps = 0;
+
+                for (int ifsp = 0; ifsp < FSP_Max; ++ifsp)
+                    grfvaultPowerUps |= s_agrfvaultFsp[ifsp];
+
+                // Passive Binocucom scan upgrade. Unlike the seven
+                // selectable FSP abilities, this is consumed directly by
+                // OnBinocActive/DrawBinocFilter to display CID_SCAN guard
+                // dossiers while peeking.
+                grfvaultPowerUps |= 0x0800U;
+
+                // Binocucom nearby-object finder. Each world blueprint owns
+                // one of the high four vault bits; UpdateBinocActiveFilter
+                // requires the current world's bit before it highlights clue
+                // bottles and breakable objects.
+                grfvaultPowerUps |= 0xF0000000U;
+
+                // Electric Roll is a passive upgrade to the base Roll, not a
+                // separate selectable FSP. JT state 55 checks this bit before
+                // attaching psoBallEffect and applying electric roll damage.
+                grfvaultPowerUps |= 0x0400U;
+
+                // Passive invisibility upgrades. Holding Circle (L on the
+                // keyboard) enters JTS_Hide/JTHK_Nonchalant; these flags let
+                // that state hide Sly from sensors and allow shadow-sneak
+                // movement while it remains held.
+                grfvaultPowerUps |= 0x12000U;
+
+                // Availability is the intersection of the persistent save
+                // flags and the current world's mask, so a runtime unlock
+                // must enable the power-up flags on both sides.
+                g_pgsCur->grfvault |= grfvaultPowerUps;
+                psw->grfvault |= grfvaultPowerUps;
+
+                // Allow SetFsp to display the selected power-up notification
+                // the next time the player cycles to one of the new abilities.
+                g_pgsCur->nPowerupLast = FSP_Nil;
+            }
+
+            bool fInvulnerable = (g_grfcht & 1U) != 0;
+            if (ImGui::MenuItem("Sly Invulnerable", nullptr, &fInvulnerable))
+            {
+                if (fInvulnerable)
+                    g_grfcht |= 1U;
+                else
+                    g_grfcht &= ~1U;
+            }
+
+            if (ImGui::MenuItem("Infinite Timer", nullptr, &s_fInfiniteTimer))
+            {
+                if (s_fInfiniteTimer)
+                {
+                    if (g_timer.svt != 0.0f)
+                        s_svtTimerBeforeCheat = g_timer.svt;
+                    g_timer.svt = 0.0f;
+                }
+                else if (g_timer.svt == 0.0f)
+                {
+                    g_timer.svt = s_svtTimerBeforeCheat;
+                }
+            }
+
+            ImGui::Separator();
+
+            const bool fCanVisitLevels =
+                g_pgsCur != nullptr &&
+                g_pgsCur->gameWorldCur >= GAMEWORLD_Intro &&
+                g_pgsCur->gameWorldCur < GAMEWORLD_Max;
+
+            if (ImGui::MenuItem("Mark All Levels Visited (Current World)", nullptr, false, fCanVisitLevels))
+            {
+                const GAMEWORLD gameWorld = g_pgsCur->gameWorldCur;
+                WS& worldState = g_pgsCur->aws[gameWorld];
+
+                // Match normal level entry: mark the world and each real level
+                // in its LEVELINFO table visited without granting objectives.
+                worldState.fws |= FWS_Visited;
+
+                for (const LEVELINFO& levelInfo : g_levelTable)
+                {
+                    if ((levelInfo.levelID >> 8) != gameWorld)
+                        continue;
+
+                    const int worldLevel = levelInfo.levelID & 0xff;
+                    if (worldLevel < 0 || worldLevel >= WORLDLEVEL_Max)
+                        continue;
+
+                    worldState.als[worldLevel].grfls |= FLS_Visited;
+                }
+            }
+
+            const bool fCanUnlockKeys =
+                g_pgsCur != nullptr &&
+                g_pgsCur->gameWorldCur >= GAMEWORLD_Intro &&
+                g_pgsCur->gameWorldCur < GAMEWORLD_Max;
+
+            if (ImGui::MenuItem("Unlock All Keys (Current World)", nullptr, false, fCanUnlockKeys))
+            {
+                const GAMEWORLD gameWorld = g_pgsCur->gameWorldCur;
+                WS& worldState = g_pgsCur->aws[gameWorld];
+                int ckey = 0;
+
+                // A key belongs to its mission-level LS.  Match normal key
+                // collection by setting FLS_KeyCollected there, then rebuild
+                // the world's cached key count from the level table.
+                for (const LEVELINFO& levelInfo : g_levelTable)
+                {
+                    if ((levelInfo.levelID >> 8) != gameWorld ||
+                        (static_cast<uint32_t>(levelInfo.task) & FLS_KeyCollected) == 0)
+                    {
+                        continue;
+                    }
+
+                    const int worldLevel = levelInfo.levelID & 0xff;
+                    if (worldLevel < 0 || worldLevel >= WORLDLEVEL_Max)
+                        continue;
+
+                    worldState.als[worldLevel].grfls |= FLS_KeyCollected;
+                    ++ckey;
+                }
+
+                worldState.ckey = ckey;
+            }
+
+            const bool fCanUnlockVaults =
+                g_pgsCur != nullptr &&
+                g_pgsCur->gameWorldCur >= GAMEWORLD_Underwater &&
+                g_pgsCur->gameWorldCur <= GAMEWORLD_Snow;
+
+            if (ImGui::MenuItem("Unlock All Vaults (Current World)", nullptr, false, fCanUnlockVaults))
+            {
+                const GAMEWORLD gameWorld = g_pgsCur->gameWorldCur;
+                WS& worldState = g_pgsCur->aws[gameWorld];
+                int cvault = 0;
+
+                // Vault completion is stored on each mission as the secondary
+                // objective flag. Rebuild the cached world total at the same
+                // time, just like normal vault collection does.
+                for (const LEVELINFO& levelInfo : g_levelTable)
+                {
+                    if ((levelInfo.levelID >> 8) != gameWorld ||
+                        (static_cast<uint32_t>(levelInfo.task) & FLS_Secondary) == 0)
+                    {
+                        continue;
+                    }
+
+                    const int worldLevel = levelInfo.levelID & 0xff;
+                    if (worldLevel < 0 || worldLevel >= WORLDLEVEL_Max)
+                        continue;
+
+                    worldState.als[worldLevel].grfls |= FLS_Secondary;
+                    ++cvault;
+                }
+
+                worldState.cvault = cvault;
+
+                // Bit zero belongs to the Paris vault. The remaining ordinary
+                // vault rewards occupy the low bits in world order; each main
+                // world also owns one blueprint bit in the high nibble.
+                int ordinaryBit = 1;
+                for (int precedingWorld = GAMEWORLD_Underwater;
+                     precedingWorld < gameWorld;
+                     ++precedingWorld)
+                {
+                    int ckeyUnused = 0;
+                    int cvaultPreceding = 0;
+                    int ctimedUnused = 0;
+                    TallyWorldTaskTotals(static_cast<GAMEWORLD>(precedingWorld),
+                        &ckeyUnused, &cvaultPreceding, &ctimedUnused);
+                    ordinaryBit += std::max(0, cvaultPreceding - 1);
+                }
+
+                const int cOrdinaryVaults = std::max(0, cvault - 1);
+                for (int i = 0; i < cOrdinaryVaults && ordinaryBit + i < 16; ++i)
+                    g_pgsCur->grfvault |= 1U << (ordinaryBit + i);
+
+                static constexpr uint32_t s_agrfvaultBlueprint[] =
+                {
+                    0,
+                    0x20000000U,
+                    0x40000000U,
+                    0x80000000U,
+                    0x10000000U
+                };
+                g_pgsCur->grfvault |= s_agrfvaultBlueprint[gameWorld];
+            }
+
+            int ckeyMtsUnused = 0;
+            int cvaultMtsUnused = 0;
+            int ctimedAvailable = 0;
+            if (g_pgsCur != nullptr &&
+                g_pgsCur->gameWorldCur >= GAMEWORLD_Intro &&
+                g_pgsCur->gameWorldCur < GAMEWORLD_Max)
+            {
+                TallyWorldTaskTotals(g_pgsCur->gameWorldCur,
+                    &ckeyMtsUnused, &cvaultMtsUnused, &ctimedAvailable);
+            }
+
+            const bool fCanCompleteMts = g_pgsCur != nullptr && ctimedAvailable > 0;
+            if (ImGui::MenuItem("Complete All Master Thief Sprints (Current World)",
+                nullptr, false, fCanCompleteMts))
+            {
+                const GAMEWORLD gameWorld = g_pgsCur->gameWorldCur;
+                WS& worldState = g_pgsCur->aws[gameWorld];
+                int ctimed = 0;
+
+                for (const LEVELINFO& levelInfo : g_levelTable)
+                {
+                    if ((levelInfo.levelID >> 8) != gameWorld ||
+                        (static_cast<uint32_t>(levelInfo.task) & FLS_Tertiary) == 0)
+                    {
+                        continue;
+                    }
+
+                    const int worldLevel = levelInfo.levelID & 0xff;
+                    if (worldLevel < 0 || worldLevel >= WORLDLEVEL_Max)
+                        continue;
+
+                    LS& levelState = worldState.als[worldLevel];
+                    levelState.grfls |= FLS_Tertiary;
+
+                    // Completed sprints always have a positive best time. Give
+                    // newly cheated entries a valid placeholder while preserving
+                    // real times already earned by the player.
+                    if (levelState.dtTimedBest <= 0.0f)
+                        levelState.dtTimedBest = 1.0f;
+
+                    ++ctimed;
+                }
+
+                worldState.ctimed = ctimed;
+
+                // Match the normal final-sprint path when this action completes
+                // the tertiary objective across every world.
+                if ((GetGameProgress() & FLS_Tertiary) != 0)
+                    UnlockProgressRewards(FLS_Tertiary);
+            }
+
+            if (ImGui::IsWindowHovered(ImGuiHoveredFlags_AllowWhenBlockedByPopup))
+                g_fDisableInput = true;
+
+            ImGui::EndMenu();
+        }
+
         ImGui::EndMainMenuBar();
     }
 
     // Draw the file dialog
     if (instance_a.Instance()->Display("ChooseFileDlgKey"))
     {
-        // Handle file selection
         if (instance_a.Instance()->IsOk())
         {
-
-            if (psw != nullptr)
-                DeleteWorld(psw);
-
             file = ImGuiFileDialog::Instance()->GetFilePathName();
+
             filePath = ImGuiFileDialog::Instance()->GetCurrentPath();
-            std::string tempLevelName = ImGuiFileDialog::Instance()->GetCurrentFileName();
-            levelName.resize(tempLevelName.size() - 4);
 
-            for (int i = 0; i < tempLevelName.length(); i++)
+            const std::string selectedFileName = ImGuiFileDialog::Instance()->GetCurrentFileName();
+
+            const std::size_t extensionPosition = selectedFileName.find_last_of('.');
+
+            levelName =
+                extensionPosition == std::string::npos
+                ? selectedFileName
+                : selectedFileName.substr(0, extensionPosition);
+
+            LEVELINFO* plevel = PlevelinfoFromLevelName(levelName);
+
+            if (plevel != nullptr)
             {
-                char temp = tempLevelName[i];
-                if (temp == '.')
-                    break;
+                // The debug file picker can be used before any world exists.
+                // In that state UpdateUi/UpdateWipe are not running, so a wipe
+                // request can never advance far enough to schedule the load.
+                if (g_psw == nullptr)
+					g_transition.Set(plevel, OID_Nil, OID_Nil, static_cast<GRFTRANS>(0));
                 else
-                    levelName[i] = temp;
+					WipeToWorldWarp(plevel, OID_Nil, WIPEK_Fade);
             }
-
-            g_transition.m_fPending = 1;
+            else
+                std::printf("MENU WORLD ERROR: '%s' is not in g_levelTable\n", levelName.c_str());
         }
 
         instance_a.Instance()->Close();
@@ -1600,11 +1927,15 @@ void ExportTextures()
                     stbi_flip_vertically_on_write(0);
                 }
 
-                if (!bmp->diffuseTexture.empty())
+                const std::vector<byte>* diffusePixels = &bmp->diffuseTexture;
+                if (f < tex.diffuseTexture.size() && !tex.diffuseTexture[f].empty())
+                    diffusePixels = &tex.diffuseTexture[f];
+
+                if (!diffusePixels->empty())
                 {
                     snprintf(filename, sizeof(filename), "%s/shader_%03zu_tex_%02zu_frame_%02zu_diffuse.png", textureDir.c_str(), i, t, f);
                     stbi_flip_vertically_on_write(1);
-                    stbi_write_png(filename, bmp->bmpWidth, bmp->bmpHeight, 4, bmp->diffuseTexture.data(), bmp->bmpWidth * 4);
+                    stbi_write_png(filename, bmp->bmpWidth, bmp->bmpHeight, 4, diffusePixels->data(), bmp->bmpWidth * 4);
                     stbi_flip_vertically_on_write(0);
                 }
 
@@ -1632,6 +1963,7 @@ void ExportTextures()
         stbi_write_png(filename, bmp->bmpWidth, bmp->bmpHeight, 4,
             bmp->diffuseTexture.data(), bmp->bmpWidth * 4);
     }
+
 }
 
 bool g_fDisableInput = false;

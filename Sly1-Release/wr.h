@@ -82,20 +82,21 @@ struct WRE
 class WR : public LO
 {
 	public:
-        float tLastUpdate;
-        int cwre;
-        int cmat;
-        int imatHalf;
-        struct WRE awre[8];
-        int iwreCur;
-        glm::mat4 amatDpos[4];
-        glm::mat4 amatDuv[4];
-        std::shared_ptr<WRBG> pwrbgFirst;
-        int fValuesChanged;
+    float tLastUpdate;
+    int cwre;
+    int cmat;
+    int imatHalf;
+    struct WRE awre[8];
+    int iwreCur;
+    glm::mat4 amatDpos[4];
+    glm::mat4 amatDuv[4];
+    std::shared_ptr <WRBG> pwrbgFirst;
+    int fValuesChanged;
 };
 
 WR*  NewWr();
 void InitWr(WR* pwr);
+void HandleWrMessage(WR* pwr, MSGID msgid, void* pv);
 void CloneWr(WR* pwr, WR* pwrBase);
 void AddWrCircleWarp(WR* pwr);
 WRE* PwreGetWrCircle(WR* pwr, ENSK ensk);
@@ -120,12 +121,14 @@ void AddWrSwivelNoise(WR* pwr, float uAmpl, float gFreq, float gPhase, float uRa
 WRE* PwreGetWrCur(WR* pwr, ENSK ensk, WREK wrek);
 void SetWrWavelength(WR* pwr, float sWavelength);
 void GetWrWavelength(WR* pwr, float* psWavelength);
+void GetWrBounds(WR* pwr, glm::vec3* pdpos);
 int  GetWrSize();
 void ApplyWrGlob(WR* pwr, ALO* palo, GLOB* pglob);
 float GFromOnz(ONZ* ponz);
 float UBias(float u, float uBias);
 float UNoise(float gFreq, float gPhase, float uRandom);
 float Hash01(uint32_t n);
+void WarpWrTransform(WR* pwr, float sWavelengthMin, const glm::vec3* pposSrc, const glm::mat3* pmatSrc, glm::vec3* pposDst, glm::mat3* pmatDst, glm::vec3* pvDst);
 void UpdateWrStateVectors(WR* pwr);
 void UpdateWrMatrixes(WR* pwr);
 void DeleteWr(WR* pwr);

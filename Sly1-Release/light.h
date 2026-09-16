@@ -36,7 +36,7 @@ struct alignas(16) LightSSBOHeader
 struct LIGHTBLK
 {
 	int  lightk;
-	int  pad1;
+	int  fExcludeDynamicObjects;
 	int  pad2;
 	int  fDynamic;
 	glm::vec4 pos;
@@ -133,6 +133,8 @@ void*GetLightDirection(LIGHT* plight);
 void SetLightDirection(LIGHT* plight, glm::vec3& pvecDirection);
 void*GetLightDynamic(LIGHT* plight);
 void SetLightDynamic(LIGHT* plight, int fDynamic);
+void SetLightFExcludeDynamicObjects(LIGHT* plight, int fExcludeDynamicObjects);
+void*GetLightFExcludeDynamicObjects(LIGHT* plight);
 void*GetLightFallOff(LIGHT* plight);
 void SetLightFallOff(LIGHT* plight, LM* plm);
 void*GetLightConeAngle(LIGHT* plight);
@@ -142,10 +144,10 @@ void SetLightHotSpotAngle(LIGHT* plight, float degHotSpot);
 void*GetLightFrustrumUp(LIGHT* plight);
 void SetLightFrustrumUp(LIGHT* plight, glm::vec3& pvecUpLocal);
 void RemoveLightFromSw(LIGHT* plight);
-void CreateSwDefaultLights(SW* psw);
 void AllocateLightBlkList();
 bool FindSwDynamicLights(glm::vec3* pposCenter, float sRadius);
 void PrepareSwLights(SW* psw, CM* pcm);
+void UpdateTvLightGpu(LIGHT* plight, int iTvLight);
 void DeallocateLightBlkList();
 void DeleteLight(LIGHT* plight);
 void DeallocateLightVector();
@@ -155,6 +157,7 @@ extern std::vector<LIGHT*> allSwDynamicLights;
 extern ACTIVELIGHTS activeLights;
 extern GLuint g_lightSsbo;
 extern GLuint g_activeLightsSsbo;
+extern GLuint g_tvLightSsbo;
 extern int numSwLights;
 extern std::vector <LIGHTBLK> lightBlk;
 

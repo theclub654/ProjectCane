@@ -12,35 +12,49 @@ void RemergeSwObject(SW* psw, ALO* palo)
     psw->cpaloRemerge++;
 }
 
-void MergeSwGroup(SW *psw, MRG *pmrg)
+void MergeSwGroup(SW* psw, MRG* pmrg)
 {
-    int firstInWorld = -1;
+    int ipaloFirst = 0;
 
-    for (int i = 0; i < pmrg->cpalo; ++i)
-    {
-        if (FIsLoInWorld(pmrg->apalo[i]))
-        {
-            firstInWorld = i;
-            break;
-        }
-    }
+    while (ipaloFirst < pmrg->apalo.size() && !FIsLoInWorld(pmrg->apalo[ipaloFirst]))
+        ++ipaloFirst;
 
-    if (firstInWorld < 0)
+    if (ipaloFirst >= pmrg->apalo.size())
         return;
 
-    ALO* baseRoot = pmrg->apalo[firstInWorld]->paloFreezeRoot;
+    ALO* paloFreezeRootBase = pmrg->apalo[ipaloFirst]->paloFreezeRoot;
 
-    for (int i = firstInWorld; i < pmrg->cpalo; ++i)
+    for (int ipalo = ipaloFirst; ipalo < pmrg->apalo.size(); ++ipalo)
     {
-        ALO* palo = pmrg->apalo[i];
+        ALO* palo = pmrg->apalo[ipalo];
 
-        if (!FIsLoInWorld(palo))
-            continue;
-
-        MergeSwFreezeGroups(psw, baseRoot, palo->paloFreezeRoot);
+        if (FIsLoInWorld(palo))
+            MergeSwFreezeGroups(psw, paloFreezeRootBase, palo->paloFreezeRoot);
     }
 }
 
+void AddSwMergeGroup(SW* psw, MRG* pmrg)
+{
+    if (pmrg == nullptr)
+        return;
+
+    for (std::size_t i = 0; i < pmrg->apalo.size(); ++i)
+        ALO* palo = pmrg->apalo[i];
+
+    if (pmrg->apalo.size() <= 1)
+        return;
+
+    for (ALO* palo : pmrg->apalo)
+    {
+        if (palo->cpmrg < 4)
+        {
+            palo->apmrg[palo->cpmrg] = pmrg;
+            ++palo->cpmrg;
+        }
+    }
+
+    MergeSwGroup(psw, pmrg);
+}
 void RemoveFromArray(int* count, void** items, void* item)
 {
     for (int i = *count - 1; i >= 0; --i)
@@ -60,17 +74,17 @@ void RemoveFromArray(int* count, void** items, void* item)
 
 void RemoveSwMergeGroup(SW* psw, MRG* pmrg)
 {
-    if (pmrg->cpalo <= 1)
+    if (pmrg->apalo.size() <= 1)
         return;
 
-    for (int i = 0; i < pmrg->cpalo; ++i)
+    for (int i = 0; i < pmrg->apalo.size(); ++i)
     {
         ALO* palo = pmrg->apalo[i];
 
         RemoveFromArray(&palo->cpmrg, (void**)palo->apmrg, pmrg);
     }
 
-    for (int i = 0; i < pmrg->cpalo; ++i)
+    for (int i = 0; i < pmrg->apalo.size(); ++i)
     {
         ALO* freezeRoot = pmrg->apalo[i]->paloFreezeRoot;
 
@@ -108,18 +122,20 @@ void RefreezeSwObjects(SW* psw)
 {
     for (ALO* freezeRoot = psw->dlMRD.paloFirst; freezeRoot != nullptr; freezeRoot = freezeRoot->dleMRD.paloNext)
     {
-        // Only process true freeze roots.
         if (freezeRoot->paloFreezeRoot != freezeRoot)
             continue;
 
         ALO* first = freezeRoot->dlFreeze.paloFirst;
-
         bool shouldBeBusy = false;
-
         for (ALO* palo = first; palo != nullptr; palo = palo->dleFreeze.paloNext)
         {
-            
-            if (palo->fNoFreeze)
+            if (palo->freezeMode == FREEZEMODE_AlwaysBusy)
+            {
+                shouldBeBusy = true;
+                break;
+            }
+
+            if (palo->freezeMode == FREEZEMODE_AlwaysFrozen)
             {
                 shouldBeBusy = false;
                 break;
@@ -128,25 +144,18 @@ void RefreezeSwObjects(SW* psw)
             if ((palo->grfzon & g_pcm->grfzon) != g_pcm->grfzon)
                 continue;
 
-            if (g_cmlk == CMLK_Grfzon)
+            /*if (g_cmlk == CMLK_Grfzon)
             {
-                shouldBeBusy = false;
+                shouldBeBusy = true;
                 break;
-            }
+            }*/
 
             const float radius = palo->sMRD + palo->sRadiusRenderAll;
-
             glm::vec3 delta;
 
-            if (g_cmlk == CMLK_Mrd)
-                delta = palo->xf.posWorld - glm::vec3(0.0);
-            else
-                delta = palo->xf.posWorld - g_pcm->pos;
+            delta = palo->xf.posWorld - g_pcm->pos;
 
-            const float distSq =
-                delta.x * delta.x +
-                delta.y * delta.y +
-                delta.z * delta.z;
+            const float distSq = glm::dot(delta, delta);
 
             if (distSq <= radius * radius)
             {
@@ -165,7 +174,7 @@ void RefreezeSwObjects(SW* psw)
                 FreezeAloHierarchy(palo, false);
                 AppendDlEntry(&psw->dlBusy, palo);
 
-                if (palo->pvtlo->grfcid & 2U)
+                if ((palo->pvtlo->grfcid & 2U) != 0)
                     AppendDlEntry(&psw->dlBusySo, palo);
             }
             else
@@ -173,7 +182,7 @@ void RefreezeSwObjects(SW* psw)
                 FreezeAloHierarchy(palo, true);
                 RemoveDlEntry(&psw->dlBusy, palo);
 
-                if (palo->pvtlo->grfcid & 2U)
+                if ((palo->pvtlo->grfcid & 2U) != 0)
                     RemoveDlEntry(&psw->dlBusySo, palo);
             }
 
@@ -197,16 +206,19 @@ void MergeSwFreezeGroups(SW* psw, ALO* freezeGroup1, ALO* freezeGroup2)
 
 void SplinterSwFreezeGroup(SW* psw, ALO* paloFreezeRoot)
 {
-    DLI dli;
+    DLI dli{};
 
     dli.m_pdl = &paloFreezeRoot->dlFreeze;
     dli.m_ibDle = paloFreezeRoot->dlFreeze.ibDle;
+    dli.m_pdliNext = s_pdliFirst;
 
     ALO* palo = paloFreezeRoot->dlFreeze.paloFirst;
 
-    dli.m_ppv = reinterpret_cast<void**>(reinterpret_cast<char*>(palo) + dli.m_ibDle);
+    if (palo != nullptr)
+        dli.m_ppv = reinterpret_cast<void**>(reinterpret_cast<char*>(palo) + dli.m_ibDle);
+    else
+        dli.m_ppv = reinterpret_cast<void**>(&paloFreezeRoot->dlFreeze.paloFirst);
 
-    dli.m_pdliNext = s_pdliFirst;
     s_pdliFirst = &dli;
 
     while (palo != nullptr)
@@ -216,13 +228,16 @@ void SplinterSwFreezeGroup(SW* psw, ALO* paloFreezeRoot)
             RemoveDlEntry(&paloFreezeRoot->dlFreeze, palo);
 
             palo->paloFreezeRoot = palo;
-
             palo->dlFreeze.paloFirst = palo;
             palo->dlFreeze.paloLast = palo;
         }
 
         RemergeSwObject(psw, palo);
 
+        /*
+         * RemoveDlEntry updates dli.m_ppv when the current entry is
+         * removed, so this reads the correct next object.
+         */
         palo = static_cast<ALO*>(*dli.m_ppv);
 
         if (palo != nullptr)

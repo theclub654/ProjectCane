@@ -51,15 +51,6 @@ SAA* PsaaLoadFromBrx(CBinaryInputStream *pbis)
         saaf.fInstanced = pbis->U16Read();
         psaa->pvtscroller->pfnLoadScrollerFromBrx((SCROLLER*)psaa, pbis);
         psaa->pvtsaa->pfnInitSaa(psaa, &saaf);
-
-        /*if (saakType == SAAK_Loop)
-        {
-            printf("psaa=%p pvtsaa=%p pvtscroller=%p saak=%d\n",
-                psaa,
-                psaa ? psaa->pvtsaa : nullptr,
-                psaa ? psaa->pvtscroller : nullptr,
-                saakType);
-        }*/
     }
 
     return psaa;
@@ -145,16 +136,6 @@ void SetSaiDuDv(SAI* psai, float du, float dv)
 
     psai->tcx.du = du;
     psai->tcx.dv = dv;
-
-    // If it's not already queued (psaiNext == nullptr) and it's not the tail,
-    // push it onto the global update list.
-    if (psai->psaiNext == nullptr && psai != g_psaiUpdateTail) {
-        if (!g_psaiUpdateTail)
-            g_psaiUpdateTail = psai;
-
-        psai->psaiNext = g_psaiUpdate;
-        g_psaiUpdate = psai;
-    }
 }
 
 void DeleteSaa(SAA* psaa)

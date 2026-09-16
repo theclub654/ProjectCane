@@ -53,12 +53,14 @@ void  LoadEyesFromBrx(EYES* peyes, CBinaryInputStream* pbis);
 void  InitEyes(EYES* peyes, SAAF* psaaf);
 void  PostEyesLoad(EYES* peyes);
 void  UpdateEyes(EYES* peyes, float dt);
+void  SetEyesClosed(EYES* peyes, float uClosed);
 SAI*  PsaiFromEyesShd(EYES* peyes, SHD* pshd);
 void  DeleteEyes(EYES* peyes);
 
 struct SCROLLER;
 SCROLLER* NewScroller();
 void  LoadScrollerFromBrx(SCROLLER* pscroller, CBinaryInputStream* pbis);
+void  SetScrollerMasterSpeeds(SCROLLER* pscroller, float svu, float svv);
 void  InitScroller(SCROLLER* pscroller, SAAF* psaaf);
 void  UpdateScroller(SCROLLER* pscroller, float dt);
 float UCompleteScroller(SCROLLER* pscroller);

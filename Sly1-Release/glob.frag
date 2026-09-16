@@ -59,7 +59,7 @@ layout(std140, binding = 1) uniform RO
     float uFog;
     float darken;
     int   grfglob;
-    int   pad0;
+    int   blotTvLight;
     int   warpType;
     int   warpCmat;
     int   warpCvtx;

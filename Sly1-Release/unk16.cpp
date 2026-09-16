@@ -7,22 +7,27 @@ void* NewUnk16()
 
 void InitUnk16(UNK16* punk16)
 {
-    InitMbg(punk16);
+    InitStepGuard(punk16);
+}
+
+void LoadUnk16FromBrx(UNK16* punk16, CBinaryInputStream* pbis)
+{
+	LoadStepGuardFromBrx(punk16, pbis);
 }
 
 void CloneUnk16(UNK16* punk16, UNK16* punk16Base)
 {
-	LO lo = *punk16;
-	*punk16 = *punk16Base;
-	memcpy(punk16, &lo, sizeof(LO));
-
 	CloneLo(punk16, punk16Base);
+}
 
-	ClearDl(&punk16->dlChild);
+void PostUnk16Load(UNK16* punk16)
+{
+	PostStepguardLoad(punk16);
+}
 
-	punk16->pxa = nullptr;
-	punk16->grfpvaXpValid = 0;
-	punk16->pstso = nullptr;
+int GetUnk16Size()
+{
+	return sizeof(UNK16);
 }
 
 void DeleteUnk16(UNK16* punk16)

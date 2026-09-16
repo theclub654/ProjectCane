@@ -1,4 +1,6 @@
 #include "shadow.h"
+#include "dysh.h"
+#include "dysh.h"
 
 void InitSwShadowDl(SW* psw)
 {
@@ -216,9 +218,65 @@ void CombineShadowEyeLookAtProj(const glm::vec3& posEye, const glm::mat3& matLoo
 	out = matProj * glm::inverse(mat);
 }
 
-void UpdateShadow(SHADOW* pshadow, float dt)
+int FFilterFastShadows(void*, void* pvso)
 {
+	SO* pso = static_cast<SO*>(pvso);
 
+	if (pso->fNoXpsSelf != 0)
+		return 0;
+
+	return !pso->mpisurfihsgMic.empty();
+}
+
+void UpdateShadow(SHADOW* pshadow, float)
+{
+	/*if (g_droSnap.fDisableShadows != 0)
+		return;*/
+
+	std::vector <SO*> apso;
+	IntersectSwBoundingSphere(g_psw, nullptr, &pshadow->posEffect, pshadow->sRadiusEffect, FFilterFastShadows, nullptr, apso);
+
+	const glm::vec3 posNear = pshadow->posCast + pshadow->normalCast * pshadow->sNearCast;
+	const glm::vec3 posFar = pshadow->posCast + pshadow->normalCast * pshadow->sFarCast;
+
+	for (SO* pso : apso)
+	{
+		LSG lsg{};
+
+		if (ClsgClipEdgeToBsp(pso->bspc.absp.data(), const_cast<glm::vec3*>(&posNear), const_cast<glm::vec3*>(&posFar), nullptr, 1, &lsg) == 0)
+			continue;
+
+		SURF* psurf = lsg.data.bsp.apsurf[0];
+
+		if (psurf == nullptr)
+			continue;
+
+		const int isurf = static_cast<int>(psurf - pso->geomWorld.asurf.data());
+		const int ihsgMin = pso->mpisurfihsgMic[isurf];
+		const int ihsgMax = pso->mpisurfihsgMic[isurf + 1];
+
+		for (int ihsg = ihsgMin; ihsg < ihsgMax; ++ihsg)
+		{
+			HSG& hsg = pso->ahsg[ihsg];
+			GLOB& glob = pso->globset.aglob[hsg.ipglob];
+
+			if (!FShadowValid(pshadow, glob.grfglob))
+				continue;
+
+			SUBGLOBI& subglobi = pso->globset.aglobi[hsg.ipglob].asubglobi[hsg.ipsubglob];
+
+			if (subglobi.tShadowsValid != g_clock.t)
+			{
+				subglobi.tShadowsValid = g_clock.t;
+				subglobi.cpshadow = 0;
+			}
+
+			if (subglobi.cpshadow >= 4)
+				return;
+
+			subglobi.apshadow[subglobi.cpshadow++] = pshadow;
+		}
+	}
 }
 
 void RebuildShadow(SHADOW* pshadow)
@@ -283,17 +341,26 @@ void RebuildShadow(SHADOW* pshadow)
 	pshadow->rsh.matClipToUv = glm::mat4(1.0f);
 
 	pshadow->rsh.rgba = pshadow->pshd->rgba;
-
 	pshadow->rsh.shdk = pshadow->pshd->shdk;
 
-	pshadow->rsh.posEffect = glm::vec4(pshadow->posCast, 1.0f);
+	pshadow->rsh.posEffect = glm::vec4(pshadow->posEffect, 1.0f);
 	pshadow->rsh.sRadiusEffect = pshadow->sRadiusEffect;
 
 	pshadow->rsh.normalCast = glm::vec4(pshadow->normalCast, 0.0f);
 
 	if (pshadow->rsh.fDynamic == 0)
 	{
-		GLuint64 handle = pshadow->pshd->atex[0].abmp[0]->hDiffuseMap;
+		const TEX& tex = pshadow->pshd->atex[0];
+		const BMP* pbmp = tex.abmp[0];
+
+		// Resolved non-three-way textures are owned by TEX because the same
+		// indexed BMP can be referenced with different CLUTs.  Do not read the
+		// legacy BMP handle first: it is intentionally left empty in that case.
+		// Keep the fallback for three-way/older loading paths which still own
+		// their resolved texture on BMP.
+		const GLuint64 handle = !tex.hDiffuseMap.empty() && tex.hDiffuseMap[0] != 0
+			? tex.hDiffuseMap[0]
+			: pbmp->hDiffuseMap;
 
 		pshadow->rsh.textureHandle[0] = uint32_t(handle & 0xFFFFFFFFull);
 		pshadow->rsh.textureHandle[1] = uint32_t(handle >> 32);
@@ -347,35 +414,75 @@ void AllocateShadows(SW* psw)
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 }
 
-void PrepareSwShadows(SW* psw, CM* pcm)
+void PrepareSwShadows(SW *psw, CM *pcm)
 {
-	//GLsizeiptr headerSize = sizeof(SHADOWSSBOHEADER);
-
+	// This must be cleared and uploaded even when the world has no shadows.
+	// Otherwise the GPU keeps using the previous frame's active-shadow list.
 	activeShadows.numShadows = 0;
+
+	const GLsizeiptr headerSize = sizeof(SHADOWSSBOHEADER);
 
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, shadowSsbo);
 
 	int idx = 0;
+
 	for (SHADOW* pshadow = psw->dlShadow.pshadowFirst; pshadow; pshadow = pshadow->dle.pshadowNext, ++idx)
 	{
 		if (idx >= MAX_SHADOWS)
 			break;
 
+		// A frozen dynamic-shadow owner no longer contributes its projected
+		// shadow. Static projected shadows have no DYSH owner and are unaffected.
+		if (pshadow->pdysh != nullptr && pshadow->pdysh->fFrozen)
+			continue;
+
+		// Dynamic shadow maps are frame-local in the original renderer. If the
+		// owning DYSH was not submitted this frame, do not reuse its previous
+		// texture contents (for example, after Sly enters the van).
+		if (pshadow->rsh.fDynamic != 0 && pshadow->pdysh != nullptr)
+		{
+			bool fDyshSubmitted = false;
+
+			for (int i = 0; i < g_dynamicTextureCount; ++i)
+			{
+				if (g_dynamicTexturePrpl[i].pdysh == pshadow->pdysh)
+				{
+					fDyshSubmitted = true;
+					break;
+				}
+			}
+
+			if (!fDyshSubmitted)
+				continue;
+		}
+
 		if (g_fBsp > 0)
 		{
 			uint32_t grfzon = pshadow->pshd->grfzon;
+
 			bool visibleInZone = ((grfzon & 0x10000000u) != 0) || ((pcm->grfzon & grfzon) == pcm->grfzon);
 
 			if (!visibleInZone)
 				continue;
 		}
 
+		if (activeShadows.numShadows >= MAX_SHADOWS)
+			break;
+
+		// Rebuild this shadow's CPU-side GPU struct
+		RebuildShadow(pshadow);
+
+		// Update only this shadow's slot in the main shadow SSBO
+		GLsizeiptr offset = headerSize + GLsizeiptr(idx) * sizeof(SHADOWBLK);
+		glBufferSubData(GL_SHADER_STORAGE_BUFFER, offset,  sizeof(SHADOWBLK), &pshadow->rsh);
+
+		// Store original global shadow index
 		activeShadows.shadowsIndices[activeShadows.numShadows++] = idx;
 	}
 
+	// Update active shadow list
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, activeShadowsSsbo);
 	glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, sizeof(ACTIVESHADOWS), &activeShadows);
-
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 }
 

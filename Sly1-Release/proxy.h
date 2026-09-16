@@ -5,17 +5,19 @@
 class PROXY : public ALO
 {
 	public:
-		DL dlProxyRoot;
-		DLE dleProxy;
+	DL dlProxyRoot;
+	DLE dleProxy;
+
+	std::vector<std::shared_ptr <PXR>> apxrProxyRoot;
 };
 
 static int numProxy = 0;
 
 PROXY*NewProxy();
-void InitSwProxyDl(SW* psw);
-void InitProxy(PROXY *pproxy);
-int  GetProxySize();
-void LoadProxyFromBrx(PROXY* pproxy, CBinaryInputStream* pbis);
-void CloneProxy(PROXY* pproxy, PROXY* pproxyBase);
-void PostProxyLoad(PROXY *pproxy);
-void DeleteProxy(PROXY *pproxy);
+void  InitProxy(PROXY *pproxy);
+int   GetProxySize();
+void  LoadProxyFromBrx(PROXY* pproxy, CBinaryInputStream* pbis);
+void  CloneProxy(PROXY* pproxy, PROXY* pproxyBase);
+void  RebuildClonedProxyRoots(ALO* palo, ALO* paloBase);
+void  PostProxyLoad(PROXY *pproxy);
+void  DeleteProxy(PROXY *pproxy);

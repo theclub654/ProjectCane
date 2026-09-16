@@ -5,11 +5,6 @@ SHAPE* NewShape()
     return new SHAPE{};
 }
 
-void InitSwShapeDl(SW* psw)
-{
-    InitDl(&psw->dlShape, offsetof(SHAPE, dleShape));
-}
-
 void InitShape(SHAPE* pshape)
 {
     InitLo(pshape);
@@ -29,6 +24,17 @@ void CloneShape(SHAPE* pshape, SHAPE* pshapeBase)
     pshape->pcrv = pshapeBase->pcrv;
 }
 
+void LoadShapeFromBrx(SHAPE* pshape, CBinaryInputStream* pbis)
+{
+    byte crvk = pbis->U8Read();
+
+    pshape->pcrv = PcrvNew((CRVK)crvk);
+    pshape->pcrv->pvtcrv->pfnLoadCrvFromBrx(pshape->pcrv.get(), pbis);
+
+    //std::cout << pbis->file.tellg() << std::hex << "\n";
+    LoadOptionsFromBrx(pshape, pbis);
+}
+
 void SetShapeParent(SHAPE* pshape, ALO* paloParent)
 {
     glm::mat4 matSrc(1.0f);
@@ -37,27 +43,17 @@ void SetShapeParent(SHAPE* pshape, ALO* paloParent)
     ALO* oldParent = pshape->paloParent;
 
     if (oldParent != nullptr)
-        LoadMatrixFromPosRot(oldParent->xf.posWorld, oldParent->xf.matWorld, matSrc);
+        LoadMatrixFromPosRot(&oldParent->xf.posWorld, &oldParent->xf.matWorld, &matSrc);
 
     if (paloParent != nullptr)
-        LoadMatrixFromPosRot(paloParent->xf.posWorld, paloParent->xf.matWorld, matDst);
+        LoadMatrixFromPosRot(&paloParent->xf.posWorld, &paloParent->xf.matWorld, &matDst);
 
     CRV *pcrv = pshape->pcrv.get();
 
-    /*if (pcrv != nullptr && pcrv->pvtcrv != nullptr && pcrv->pvtcrvl->pfnConvertCrvl != nullptr)
-        pcrv->pvtcrvl->pfnConvertCrvl((CRVL*)pcrv, &matSrc, &matDst);*/
+    if (pcrv != nullptr && pcrv->pvtcrv != nullptr && pcrv->pvtcrv->pfnConvertCrv != nullptr)
+        pcrv->pvtcrv->pfnConvertCrv(pcrv, &matSrc, &matDst);
 
     SetLoParent(pshape, paloParent);
-}
-
-void LoadShapeFromBrx(SHAPE* pshape, CBinaryInputStream* pbis)
-{
-    byte crvk = pbis->U8Read();
-
-    pshape->pcrv = PcrvNew((CRVK)crvk);
-    pshape->pcrv->pvtcrvl->pfnLoadCrvlFromBrx((CRVL*)pshape->pcrv.get(), pbis);
-
-    LoadOptionsFromBrx(pshape, pbis);
 }
 
 void DeleteShape(SHAPE* pshape)

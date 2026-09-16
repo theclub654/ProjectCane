@@ -39,9 +39,6 @@
     <ClCompile Include="unk17.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="unk16.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="brx.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -66,10 +63,7 @@
     <ClCompile Include="glob.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="unk0.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="unk5.cpp">
+    <ClCompile Include="jetpack.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="binoc.cpp">
@@ -78,7 +72,7 @@
     <ClCompile Include="unk13.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="unk14.cpp">
+    <ClCompile Include="thndflash.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="unk11.cpp">
@@ -87,25 +81,7 @@
     <ClCompile Include="unk10.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="unk9.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="unk8.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="unk7.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="unk6.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="unk4.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="unk3.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="unk1.cpp">
+    <ClCompile Include="clkwork.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="sw.cpp">
@@ -522,6 +498,9 @@
     <ClCompile Include="scores.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="van.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="timer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -588,6 +567,297 @@
     <ClCompile Include="looker.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="actdec.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="actval.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="actref.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="actadd.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="actadj.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="actbank.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="actla.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="mark.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="bbmark.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="pair.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="frame.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="gc.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="eval.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="proc.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="bif.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="spliceobj.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="acpc.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="acp.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="acpb.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="acpbl.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="acr.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="acrc.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="acrb.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="acrbl.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="acs.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="acg.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="acsc.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="acsb.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="acgb.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="acgbw.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="acgl.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="acgblt.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="acgblp.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="apacg.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="akvb.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="steprun.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="clip.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="dzg.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="explo.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="expl.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="expls.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="explg.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="cpman.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="cplook.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="cpalign.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="cpaseg.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="cptn.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="find.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="crvl.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="crvc.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="blend.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="asegbl.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="droplet.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="bublet.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="ripple.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="puff.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="dablet.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="flake.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="spark.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="burst.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="riprail.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="trail.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="fireball.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="smokecloud.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="smoketrail.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="debris.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="orbit.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="smack.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="ray.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="rose.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="flying.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="stuck.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="leaf.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="flame.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="bullet.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="shrapnel.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="glint.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="match.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="remit.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="percentctr.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="save.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="stepzap.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="stephide.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="stepside.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="stephang.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="steppipe.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="decoy.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="steppower.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="stepcane.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="mine.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="boost.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="hubsel.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="hubprog.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="hubblot.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="fmv.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="rythm.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="ruby.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="basic.h">
@@ -602,19 +872,13 @@
     <ClInclude Include="unk17.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="unk16.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="unk0.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="unk5.h">
+    <ClInclude Include="jetpack.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="binoc.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="unk14.h">
+    <ClInclude Include="thndflash.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="unk13.h">
@@ -626,25 +890,7 @@
     <ClInclude Include="unk10.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="unk9.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="unk8.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="unk7.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="unk6.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="unk4.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="unk3.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="unk1.h">
+    <ClInclude Include="clkwork.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="puffer.h">
@@ -1109,6 +1355,9 @@
     <ClInclude Include="scores.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="van.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="timer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -1184,9 +1433,309 @@
     <ClInclude Include="looker.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="actdec.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="actval.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="actref.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="actadd.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="actadj.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="actbank.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="actla.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="mark.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="bbmark.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="pair.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="frame.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="gc.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="eval.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="proc.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="bif.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="spliceobj.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="acpc.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="acp.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="acpb.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="acpbl.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="acr.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="acrc.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="acrb.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="acrbl.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="acs.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="acg.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="acsc.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="acsb.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="acgb.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="acgbw.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="acgl.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="acgblt.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="acgblp.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="apacg.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="akvb.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="steprun.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="clip.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="dzg.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="ripgdec.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="explo.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="expl.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="expls.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="explg.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="cpman.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="cplook.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="cpalign.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="cpaseg.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="cptn.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="find.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="crvl.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="crvc.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="blend.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="asegbl.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="droplet.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="bublet.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="ripple.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="puff.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="dablet.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="flake.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="spark.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="burst.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="riprail.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="trail.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="fireball.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="smokecloud.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="smoketrail.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="debris.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="orbit.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="smack.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="ray.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="rose.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="flying.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="stuck.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="leaf.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="flame.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="bullet.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="shrapnel.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="glint.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="match.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="remit.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="percentctr.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="save.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="stepzap.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="stephide.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="stepside.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="stephang.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="steppipe.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="decoy.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="steppower.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="stepcane.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="mine.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="boost.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="hubsel.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="hubprog.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="hubblot.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="fmv.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="cidinc.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="rythm.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="ruby.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Sly1-Release.rc">
+      <Filter>Resource Files</Filter>
+    </ResourceCompile>
+    <ResourceCompile Include="EmbeddedShaders.rc">
       <Filter>Resource Files</Filter>
     </ResourceCompile>
   </ItemGroup>
@@ -1225,6 +1774,12 @@
       <Filter>Resource Files</Filter>
     </None>
     <None Include="dysh.frag">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="blip.vert">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="blip.frag">
       <Filter>Resource Files</Filter>
     </None>
   </ItemGroup>

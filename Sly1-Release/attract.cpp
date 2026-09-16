@@ -1,4 +1,7 @@
 #include "attract.h"
+#include "logo.h"
+#include "save.h"
+#include "ui.h"
 
 void StartupAttract(ATTRACT* pattract)
 {
@@ -14,34 +17,46 @@ void StartupAttract(ATTRACT* pattract)
 
 void PostAttractLoad(ATTRACT* pattract)
 {
-    // Initialize the base BLOT
     PostBlotLoad(pattract);
 
-    // Clone the font with RX_Attract and RY_Attract scaling
-    if (pattract->pfont)
-    {
-        pattract->pfont = pattract->pfont->PfontClone(RX_Attract, RY_Attract);
-    }
+    pattract->pfont = pattract->pfont->PfontClone(RX_Attract, RY_Attract);
 
-    // Assign text edge font if screen counter font exists
-    if (g_pfontScreenCounters)
+    if (CFontBrx* pfontEdge = PfontFromFont(2))
     {
         pattract->pte = &g_teAttract;
-        g_teAttract.m_pfont = &g_afontBrx[2];
+        pattract->pte->m_pfont = pfontEdge;
     }
 
-    // Check if joypad is valid
-    //pattract->fJoyValid = (g_joy.joys == JOYS_Ready);
+    pattract->fJoyValid = g_joy.joys == JOYS_Ready;
+    pattract->fReshow = g_saveData.pgsAttractSave && g_saveData.pgsAttractSave->dt != 0.0f;
 
-    // Select default attract string based on whether the joypad is ready
-    //int index = pattract->fJoyValid ? 0 : 4;
+    UpdateAttractText(pattract);
+}
 
-    // Set the draw string using virtual function
-    if (pattract->pvtblot && pattract->pvtblot->pfnSetBlotAchzDraw)
+void UpdateAttractText(ATTRACT* pattract)
+{
+    if (!pattract->fJoyValid)
     {
-        const char* text = g_aachzAttract[0];
-        pattract->pvtblot->pfnSetBlotAchzDraw(pattract, (char*)text);
+        pattract->rgba = glm::vec4(111.0f / 255.0f, 31.0f / 255.0f, 31.0f / 255.0f, 1.0f);
+        std::strcpy(pattract->achzDraw, "No Controller");
     }
+    else
+    {
+        pattract->rgba = glm::vec4(111.0f / 255.0f, 111.0f / 255.0f, 111.0f / 255.0f, 1.0f);
+        const int ichz = pattract->fReshow ? 1 : 0;
+        std::snprintf(pattract->achzDraw, sizeof(pattract->achzDraw), g_aachzAttract[ichz], "Press SELECT button for Menu");
+    }
+
+    pattract->pfont->PushScaling(pattract->rFontScale, pattract->rFontScale);
+
+    CRichText richText(pattract->achzDraw, pattract->pfont);
+
+    const float width  = richText.DxMaxLine();
+    const float height = richText.DyWrap(0.0);
+
+    ResizeBlot(pattract, width, height);
+
+    pattract->pfont->PopScaling();
 }
 
 void SetAttractAchzDraw(ATTRACT* pattract, char* pchz)
@@ -70,20 +85,10 @@ void SetAttractAchzDraw(ATTRACT* pattract, char* pchz)
 
 void SetAttractBlots(ATTRACT* pattract, BLOTS blots)
 {
-    if (pattract->fReshow && blots == BLOTS_Hidden)
+    if (pattract->pchzReshow && blots == BLOTS_Hidden)
     {
-        pattract->fReshow = 0;
-
-        // Restore previously hidden string
-        SetBlotAchzDraw(pattract, pattract->pchzReshow);
-
-        // Choose text color based on joypad presence
-        glm::vec4 color;
-        color = glm::vec4(1.0, 1.0f, 1.0, 1.0f);
-
-        pattract->rgba = color;
-
-        // Mark as reappearing
+        pattract->pchzReshow = nullptr;
+        UpdateAttractText(pattract);
         blots = BLOTS_Appearing;
     }
 
@@ -92,64 +97,57 @@ void SetAttractBlots(ATTRACT* pattract, BLOTS blots)
 
 void UpdateAttract(ATTRACT* pattract)
 {
-    //bool joyNowValid = (g_joy.joys == JOYS_Ready);
+    if (g_ui.uisPlaying == UIS_Attract)
+    {
+        const int fJoyValid = g_joy.joys == JOYS_Ready;
+        const int fReshow = g_saveData.pgsAttractSave && g_saveData.pgsAttractSave->dt != 0.0f;
 
-    //// Only update text if fJoyValid has changed
-    //if (joyNowValid != pattract->fJoyValid)
-    //{
-    //    pattract->fJoyValid = joyNowValid;
-
-    //    // Choose string index based on joypad state
-    //    int index = joyNowValid ? 0 : 4;
-    //    const char* text = g_aachzAttract[index];
-
-    //    if (pattract->pvtblot &&
-    //        pattract->pvtblot->pfnSetBlotAchzDraw)
-    //    {
-    //        pattract->pvtblot->pfnSetBlotAchzDraw(pattract, text);
-    //    }
-    //}
+        if (pattract->fJoyValid != fJoyValid || pattract->fReshow != fReshow)
+        {
+            pattract->fJoyValid = fJoyValid;
+            pattract->fReshow = fReshow;
+            UpdateAttractText(pattract);
+        }
+    }
 
     UpdateBlot(pattract);
 }
 
 void DrawAttract(ATTRACT* pattract)
 {
-    // 1. Pulsing alpha using sine wave
-    float t = g_clock.tReal * 3.0f;
-    float alpha = (sinf(t) * 0.5f + 0.5f);  // 0.0 to 1.0
+    const float pulse = std::sin(g_clock.tReal * 3.0f) * 0.5f + 0.5f;
+    const float u = std::min(pattract->uOn, g_logo.uOn);
 
-    // 2. Apply pulsing alpha to the color
-    glm::vec4 color = glm::vec4(
-        pattract->rgba.r,
-        pattract->rgba.g,
-        pattract->rgba.b,
-        alpha
-    );
+    const float x = glm::mix(pattract->xOff, pattract->xOn, u);
+    const float y = glm::mix(pattract->yOff, pattract->yOn, u);
 
-    // Setup text box
+    glm::vec4 color = pattract->rgba;
+    color.a = pulse;
+
     CTextBox tbx;
-    tbx.SetPos(pattract->x, pattract->y);
+    tbx.SetPos(x, y);
     tbx.SetSize(pattract->dx, pattract->dy);
     tbx.SetTextColor(&color);
     tbx.SetHorizontalJust(JH_Right);
     tbx.SetVerticalJust(JV_Top);
 
-    // Optionally draw edge box
     if (pattract->pte && pattract->pte->m_pfont)
         pattract->pte->m_pfont->EdgeRect(pattract->pte, &tbx);
 
-    // Draw the attract text string
-    if (pattract->pfont)
-        pattract->pfont->DrawPchz(pattract->achzDraw, &tbx);
+    pattract->pfont->PushScaling(pattract->rFontScale, pattract->rFontScale);
+
+    CRichText richText(pattract->achzDraw, pattract->pfont);
+    richText.Draw(&tbx, nullptr);
+
+    pattract->pfont->PopScaling();
 }
 
 ATTRACT g_attract;
 CTextEdge g_teAttract;
 const char* g_aachzAttract[2]
 {
-    "Press Start to Play",
-    "No Controller"
+    "Press START button to Play\n%s",
+    "Press START button to Resume Game\n%s"
 };
 float RX_Attract = 0.69999999;
 float RY_Attract = 0.6;

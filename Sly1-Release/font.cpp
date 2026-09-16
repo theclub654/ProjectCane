@@ -128,6 +128,12 @@ int CRichText::ClineWrap(float dx)
 	}
 }
 
+float CRichText::DyWrap(float dxWrap)
+{
+	const float dyLine = static_cast<float>(m_pfontBase->m_dyUnscaled) * m_pfontBase->m_ryScale;
+	return dyLine * static_cast<float>(ClineWrap(dxWrap));
+}
+
 float CRichText::DxMaxLine()
 {
 	float maxLineWidth = 0.0f;
@@ -147,111 +153,211 @@ float CRichText::DxMaxLine()
 		}
 	}
 
-	// Final check in case the last line didn’t end with newline
+	// Final check in case the last line didnâ€™t end with newline
 	return std::max(maxLineWidth, currentLineWidth);
 }
 
 char CRichText::ChNext()
 {
-	while (*m_pchCur != '\0') {
-		char ch = *m_pchCur;
+	while (m_pchCur != nullptr && *m_pchCur != '\0')
+	{
+		const char ch = *m_pchCur;
 
-		// -------- & font / entity handling --------
-		if (ch == '&') {
-			char next = *(m_pchCur + 1);
+		// ------------------------------------------------------------
+		// Scaling: ^10, ^15, ^., ^^
+		// ------------------------------------------------------------
 
-			if (next == '&') {
+		if (ch == '^')
+		{
+			const char next = m_pchCur[1];
+
+			if (next == '^')
+			{
+				m_pchCur += 2;
+				return '^';
+			}
+
+			if (next == '.')
+			{
+				if (m_pfontCur != nullptr)
+					m_pfontCur->PopScaling();
+
+				m_pchCur += 2;
+				continue;
+			}
+
+			const char decimal = m_pchCur[2];
+
+			if (next >= '0' && next <= '9' && decimal >= '0' && decimal <= '9')
+			{
+				const float scale = static_cast<float>(next - '0') + static_cast<float>(decimal - '0') * 0.1f;
+
+				if (m_pfontCur != nullptr)
+				{
+					const float rx = scale * m_pfontCur->m_rxScale;
+					const float ry = scale * m_pfontCur->m_ryScale;
+
+					m_pfontCur->PushScaling(rx, ry);
+				}
+
+				m_pchCur += 3;
+				continue;
+			}
+
+			// Malformed scaling sequence: render '^' normally.
+			++m_pchCur;
+			return '^';
+		}
+
+		// ------------------------------------------------------------
+		// Font selection: &1, &2, &3, &4, &., &&
+		// ------------------------------------------------------------
+
+		if (ch == '&')
+		{
+			const char next = m_pchCur[1];
+
+			if (next == '&')
+			{
 				m_pchCur += 2;
 				return '&';
 			}
 
-			if (next == '.') {
+			if (next == '.')
+			{
 				m_pfontCur = m_pfontBase;
-				m_rgbaCur = m_rgbaSet;   // PS2 restores to the *set* color
+				m_rgbaCur = m_rgbaSet;
+				m_fFontChanged = true;
 				m_pchCur += 2;
 				continue;
 			}
 
-			int fontIndex = next - '0';
-			if (fontIndex >= 1 && fontIndex < g_cfontBrx) {
-				// copy font and scale relative to base
-				g_afontBrx[fontIndex].CopyTo(&m_fontOther);
+			// Rich-text digits are selector codes, not direct font indices.
+			// The release table maps "&1" to font 2 and "&2" to font 1.
+			CFontBrx* pfontSource = PfontFromRichTextCode(next);
 
-				float scaleBase = m_pfontBase->m_dyUnscaled * m_pfontBase->m_ryScale;
-				float scaleOther = m_fontOther.m_dyUnscaled * m_fontOther.m_ryScale;
-				float rx = (scaleOther != 0.0f) ? (scaleBase / scaleOther) : 1.0f;
+			if (pfontSource == nullptr)
+			{
+				// Release resets formatting and returns the '&' literally.
+				m_pfontCur = m_pfontBase;
+				m_rgbaCur = m_rgbaBase;
+				m_fFontChanged = true;
 
-				m_fontOther.PushScaling(rx, rx);
-				m_pfontCur = &m_fontOther;
-
-				// carry alpha; use "other" color like PS2 does
-				float a = m_rgbaCur.a;
-				m_rgbaCur = m_rgbaOther;
-				m_rgbaCur.a = a;
-
-				m_pchCur += 2;
-				continue;
+				++m_pchCur;
+				return '&';
 			}
 
-			// Unknown '&' pattern:
-			// DO NOT consume two chars. Return '&' and advance one,
-			// so the following character is still parsed on the next call.
-			++m_pchCur;
-			return '&';
+			pfontSource->CopyTo(&m_fontOther);
+			m_pchCur += 2;
+
+			const float baseHeight = static_cast<float>(m_pfontBase->m_dyUnscaled) * m_pfontBase->m_ryScale;
+			const float otherHeight = static_cast<float>(m_fontOther.m_dyUnscaled) * m_fontOther.m_ryScale;
+
+			if (otherHeight != 0.0f)
+			{
+				const float scale = baseHeight / otherHeight;
+				m_fontOther.PushScaling(scale, scale);
+			}
+
+			m_pfontCur = &m_fontOther;
+			m_fFontChanged = true;
+
+			const float alpha = m_rgbaCur.a;
+			m_rgbaCur = m_rgbaOther;
+			m_rgbaCur.a = alpha;
+
+			continue;
 		}
 
-		// -------- ~ color handling --------
-		if (ch == '~') {
-			char next = *(m_pchCur + 1);
+		// ------------------------------------------------------------
+		// Color selection: ~RRGGBB, ~., ~~
+		// ------------------------------------------------------------
 
+		if (ch == '~')
+		{
+			const char next = m_pchCur[1];
 
-			if (next == '~') {
+			if (next == '~')
+			{
 				m_pchCur += 2;
 				return '~';
 			}
 
-
-			if (next == '.') {
+			if (next == '.')
+			{
 				m_rgbaSet = m_rgbaBase;
 				m_rgbaCur = m_rgbaSet;
 				m_pchCur += 2;
 				continue;
 			}
 
+			uint32_t rgb = 0;
+			bool valid = true;
 
-			if (std::isxdigit((unsigned char)next) &&
-				std::isxdigit((unsigned char)*(m_pchCur + 2)) &&
-				std::isxdigit((unsigned char)*(m_pchCur + 3)) &&
-				std::isxdigit((unsigned char)*(m_pchCur + 4)) &&
-				std::isxdigit((unsigned char)*(m_pchCur + 5)) &&
-				std::isxdigit((unsigned char)*(m_pchCur + 6))) {
+			for (int i = 0; i < 6; ++i)
+			{
+				const unsigned char hexCharacter = static_cast<unsigned char>(m_pchCur[i + 1]);
 
-				unsigned int hexColor = std::strtoul(std::string(m_pchCur + 1, 6).c_str(), nullptr, 16);
-				float a = m_rgbaCur.a; // keep alpha
-				glm::vec4 color = {
-					((hexColor >> 16) & 0xFF) / 255.0f * 0.5f,
-					((hexColor >> 8) & 0xFF) / 255.0f * 0.5f,
-					((hexColor) & 0xFF) / 255.0f * 0.5f,
-					a
-				};
-				m_rgbaSet = m_rgbaCur = color;
-				m_pchCur += 7; // '~' + 6 hex
-				continue;
+				if (hexCharacter == '\0')
+				{
+					valid = false;
+					break;
+				}
+
+				uint32_t hexValue = 0;
+
+				if (hexCharacter >= '0' && hexCharacter <= '9')
+					hexValue = hexCharacter - '0';
+				else if (hexCharacter >= 'A' && hexCharacter <= 'F')
+					hexValue = hexCharacter - 'A' + 10;
+				else if (hexCharacter >= 'a' && hexCharacter <= 'f')
+					hexValue = hexCharacter - 'a' + 10;
+				else
+				{
+					valid = false;
+					break;
+				}
+
+				rgb = rgb * 16 + hexValue;
 			}
 
+			if (!valid)
+			{
+				// Release restores the base state and returns '~'.
+				m_pfontCur = m_pfontBase;
+				m_rgbaCur = m_rgbaBase;
 
-			++m_pchCur;
-			return '~';
+				++m_pchCur;
+				return '~';
+			}
+
+			const uint32_t red = ((rgb >> 16) & 0xFFU);
+			const uint32_t green = ((rgb >> 8) & 0xFFU);
+			const uint32_t blue = (rgb & 0xFFU);
+
+			// The PS2 color range is halved with rounding.
+			const float redScaled = static_cast<float>((red + 1U) >> 1) / 255.0f;
+			const float greenScaled = static_cast<float>((green + 1U) >> 1) / 255.0f;
+			const float blueScaled = static_cast<float>((blue + 1U) >> 1) / 255.0f;
+			const float alpha = m_rgbaCur.a;
+
+			m_rgbaSet = glm::vec4(redScaled, greenScaled, blueScaled, alpha);
+			m_rgbaCur = m_rgbaSet;
+
+			m_pchCur += 7;
+			continue;
 		}
 
-		// -------- Normal character --------
+		// ------------------------------------------------------------
+		// Ordinary printable character
+		// ------------------------------------------------------------
+
 		++m_pchCur;
 		return ch;
 	}
 
 	return '\0';
 }
-
 void CRichText::SetBaseColor(glm::vec4* rgba)
 {
 	m_rgbaBase = *rgba;
@@ -286,158 +392,243 @@ void CRichText::Trim(int cch)
 	*m_pchCur = '\0';
 }
 
+float CRichText::Dx()
+{
+	float dx = 0.0f;
+
+	Reset();
+
+	while (true)
+	{
+		const char ch = ChNext();
+
+		if (ch == '\0')
+			break;
+
+		dx += m_pfontCur->DxFromCh(ch);
+	}
+
+	return dx;
+}
+
 void CRichText::Reset()
 {
 	m_pchCur = m_achz;
 	m_pfontCur = m_pfontBase;
+	m_fFontChanged = false;
 
 	// Reset colors: start with base color, and apply it to current and set
 	m_rgbaSet = m_rgbaBase;
 	m_rgbaCur = m_rgbaBase;
 }
 
-void CRichText::Draw(CTextBox* ptbx)
+void CRichText::Draw(CTextBox* ptbx, CTextBox* ptbxClip)
 {
-	// ----- First pass: line widths for horizontal justification -----
-	float lineWidths[64] = { 0.0f };
-	int   lineCount = 0;
+	if (ptbx == nullptr || m_pfontBase == nullptr)
+		return;
+
+	float lineWidths[64]{};
+	int lineCount = 0;
 
 	Reset();
-	for (;;)
+
+	while (true)
 	{
-		char ch = ChNext();
-		if (ch == '\0') break;
+		const char ch = ChNext();
+
+		if (ch == '\0')
+			break;
+
 		if (ch == '\n')
 		{
-			if (lineCount < 63) ++lineCount;         // clamp to 64 lines
+			if (lineCount < 63)
+				++lineCount;
+
+			continue;
 		}
-		else
-		{
-			// Width must reflect current font as modified by ChNext.
+
+		if (m_pfontCur != nullptr)
 			lineWidths[lineCount] += m_pfontCur->DxFromCh(ch);
-		}
 	}
 
-	// ----- Vertical justification -----
-	const float lineH = m_pfontBase->m_dyUnscaled * m_pfontBase->m_ryScale;
-	const float totalH = (lineCount + 1) * lineH;
-	float       yCursor = 0.0f;
+	const float lineHeight = static_cast<float>(m_pfontBase->m_dyUnscaled) * m_pfontBase->m_ryScale;
+	const float totalHeight = static_cast<float>(lineCount + 1) * lineHeight;
 
-	switch (ptbx->m_jv)
-	{
-		case JV_Top:    yCursor = ptbx->m_y;                                break;
-		case JV_Bottom: yCursor = ptbx->m_y + ptbx->m_dy - totalH;          break;
-		default:        yCursor = ptbx->m_y + (ptbx->m_dy - totalH) * 0.5f; break;
-	}
+	float yCursor = ptbx->m_y;
 
-	// ----- Base color (the per-run color still comes from ChNext) -----
+	if (ptbx->m_jv == JV_Bottom)
+		yCursor = ptbx->m_y + ptbx->m_dy - totalHeight;
+	else if (ptbx->m_jv != JV_Top)
+		yCursor = ptbx->m_y + (ptbx->m_dy - totalHeight) * 0.5f;
+
 	SetBaseColor(&ptbx->m_rgba);
-
-	// ----- Second pass: draw -----
 	Reset();
 
-	int   currentLine = 0;
-	bool  newLineStart = true;
-	float xCursor = 0.0f;
+	GLboolean scissorWasEnabled = GL_FALSE;
+	GLint previousScissorBox[4]{};
+	bool appliedClip = false;
 
-	CFontBrx* prevFont = nullptr;  // “previously active” font object (PS2 tracked this)
-	bool   didSetup = false;    // whether we called SetupDraw for the first font
-
-	for (;;)
+	if (ptbxClip != nullptr)
 	{
-		char ch = ChNext();
-		if (ch == '\0') break;
+		scissorWasEnabled = glIsEnabled(GL_SCISSOR_TEST);
+		glGetIntegerv(GL_SCISSOR_BOX, previousScissorBox);
+
+		const float clipLeft = ptbxClip->m_x;
+		const float clipTop = ptbxClip->m_y;
+		const float clipRight = ptbxClip->m_x + ptbxClip->m_dx;
+		const float clipBottom = ptbxClip->m_y + ptbxClip->m_dy;
+
+		const GLint targetWidth = g_gl.renderWidth;
+		const GLint targetHeight = g_gl.renderHeight;
+		const float rasterScaleX = static_cast<float>(targetWidth) / g_gl.width;
+		const float rasterScaleY = static_cast<float>(targetHeight) / g_gl.height;
+
+		GLint scissorLeft = static_cast<GLint>(std::floor(clipLeft * rasterScaleX));
+		GLint scissorBottom = static_cast<GLint>(std::floor((g_gl.height - clipBottom) * rasterScaleY));
+		GLint scissorRight = static_cast<GLint>(std::ceil(clipRight * rasterScaleX));
+		GLint scissorTop = static_cast<GLint>(std::ceil((g_gl.height - clipTop) * rasterScaleY));
+
+		scissorLeft = std::clamp(scissorLeft, 0, targetWidth);
+		scissorRight = std::clamp(scissorRight, 0, targetWidth);
+		scissorBottom = std::clamp(scissorBottom, 0, targetHeight);
+		scissorTop = std::clamp(scissorTop, 0, targetHeight);
+
+		if (scissorWasEnabled)
+		{
+			const GLint previousLeft = previousScissorBox[0];
+			const GLint previousBottom = previousScissorBox[1];
+			const GLint previousRight = previousLeft + previousScissorBox[2];
+			const GLint previousTop = previousBottom + previousScissorBox[3];
+
+			scissorLeft = std::max(scissorLeft, previousLeft);
+			scissorBottom = std::max(scissorBottom, previousBottom);
+			scissorRight = std::min(scissorRight, previousRight);
+			scissorTop = std::min(scissorTop, previousTop);
+		}
+
+		const GLsizei scissorWidth = static_cast<GLsizei>(std::max(scissorRight - scissorLeft, 0));
+		const GLsizei scissorHeight = static_cast<GLsizei>(std::max(scissorTop - scissorBottom, 0));
+
+		glEnable(GL_SCISSOR_TEST);
+		glScissor(scissorLeft, scissorBottom, scissorWidth, scissorHeight);
+		appliedClip = true;
+	}
+
+	int currentLine = 0;
+	bool newLineStart = true;
+	bool drawStarted = false;
+	float xCursor = 0.0f;
+	CFontBrx* previousFont = nullptr;
+
+	while (true)
+	{
+		const char ch = ChNext();
+
+		if (ch == '\0')
+			break;
 
 		if (ch == '\n')
 		{
-			++currentLine;
-			yCursor += lineH;
+			if (currentLine < 63)
+				++currentLine;
+
+			yCursor += lineHeight;
 			newLineStart = true;
 			continue;
 		}
 
-		// Compute X at the beginning of the line
+		CFontBrx* currentFont = m_pfontCur;
+
+		if (currentFont == nullptr || currentFont->m_pbmp == nullptr)
+			continue;
+
 		if (newLineStart)
 		{
-			switch (ptbx->m_jh)
-			{
-				case JH_Left:   xCursor = ptbx->m_x; break;
-				case JH_Right:  xCursor = ptbx->m_x + ptbx->m_dx - lineWidths[currentLine]; break;
-				default:        xCursor = ptbx->m_x + (ptbx->m_dx - lineWidths[currentLine]) * 0.5f;
-				break;
-			}
+			if (ptbx->m_jh == JH_Left)
+				xCursor = ptbx->m_x;
+			else if (ptbx->m_jh == JH_Right)
+				xCursor = ptbx->m_x + ptbx->m_dx - lineWidths[currentLine];
+			else
+				xCursor = ptbx->m_x + (ptbx->m_dx - lineWidths[currentLine]) * 0.5f;
+
 			newLineStart = false;
 		}
 
-		// PS2 logic: only act when the FONT POINTER changes (ChNext sets m_pfontCur)
-		CFontBrx* curFont = m_pfontCur;
-
-		if (!didSetup)
+		if (!drawStarted)
 		{
-			// First glyph: set up the font’s render state (PS2: SetupDraw)
-			curFont->SetupDraw();
+			glBlotShader.Use();
+			currentFont->SetupDraw();
 
-			didSetup = true;
-			prevFont = curFont;
+			previousFont = currentFont;
+			drawStarted = true;
+			m_fFontChanged = false;
 		}
-		else if (curFont != prevFont)
+		else if (m_fFontChanged || currentFont != previousFont)
 		{
-			// Font changed mid-stream (due to &n / &.)
-			// PS2: SwitchTex0 — in GL, this should bind the new atlas & update per-font uniforms.
-			//curFont->SwitchTex0(pgifs);
-			glUniformHandleui64ARB(u_fontTexLoc, curFont->m_pbmp->hDiffuseMap);
-			prevFont = curFont;
+			// m_fontOther is reused for every alternate font, so pointer comparison
+			// alone cannot detect all rich-text font changes. The release keeps a
+			// separate dirty flag and switches the complete font draw state here.
+			glBlotShader.Use();
+			currentFont->SetupDraw();
+			previousFont = currentFont;
+			m_fFontChanged = false;
 		}
 
-		// Draw glyph with the current font and color chosen by ChNext
-		float dx = curFont->DxDrawCh(ch, xCursor, yCursor, m_rgbaCur);
-		xCursor += dx;
+		xCursor += currentFont->DxDrawCh(ch, xCursor, yCursor, m_rgbaCur);
 	}
 
-	if (didSetup)
-		m_pfontCur->CleanUpDraw();
+	if (drawStarted)
+		previousFont->CleanUpDraw();
+
+	if (appliedClip)
+	{
+		if (scissorWasEnabled)
+		{
+			glEnable(GL_SCISSOR_TEST);
+			glScissor(previousScissorBox[0], previousScissorBox[1], previousScissorBox[2], previousScissorBox[3]);
+		}
+		else
+		{
+			glDisable(GL_SCISSOR_TEST);
+		}
+	}
 }
 
 void CFontBrx::LoadFromBrx(CBinaryInputStream* pbis)
 {
-	FONTF fontf{};
-	// Loading texture ID for glyph from file
-	fontf.ibmp = pbis->U16Read();
-	// Loading CLUT ID for glyph from file
-	fontf.iclut = pbis->U16Read();
-	fontf.dxChar = pbis->U8Read();
-	fontf.dxSpace = pbis->U8Read();
-	fontf.dy = pbis->U8Read();
-	fontf.bUnused = pbis->U8Read();
-	fontf.rScale = pbis->F32Read();
-	fontf.cglyff = pbis->U32Read();
+	const uint16_t ibmp = pbis->U16Read();
+	const int16_t iclut = pbis->S16Read();
 
-	g_testFontBrx.push_back(this);
+	m_dxCharUnscaled = pbis->U8Read();
+	m_dxSpaceUnscaled = pbis->U8Read();
+	m_dyUnscaled = pbis->U8Read();
 
-	m_pbmp = &g_abmp[fontf.ibmp];
+	const uint8_t fontk = pbis->U8Read();
+	m_grffont = fontk;
 
-	if (fontf.iclut == -1)
-		m_pclut = nullptr;
-	else
-		m_pclut = &g_aclut[fontf.iclut];
+	m_rxScale = pbis->F32Read();
+	m_ryScale = m_rxScale;
 
-	m_dxCharUnscaled = fontf.dxChar;
-	m_dxSpaceUnscaled = fontf.dxSpace;
-	m_dyUnscaled = fontf.dy;
-	m_ryScale = fontf.rScale;
-	m_rxScale = fontf.rScale;
-	m_cglyff = fontf.cglyff;
+	m_cglyff = static_cast<uint16_t>(pbis->U32Read());
 
-	for (int i = 0; i < fontf.cglyff; i++)
+	m_pbmp = ibmp < g_abmp.size() ? &g_abmp[ibmp] : nullptr;
+	m_pclut = iclut >= 0 && static_cast<std::size_t>(iclut) < g_aclut.size()
+		? &g_aclut[static_cast<std::size_t>(iclut)]
+		: nullptr;
+
+	m_aglyff.clear();
+	m_aglyff.reserve(m_cglyff);
+
+	for (int i = 0; i < m_cglyff; ++i)
 	{
-		GLYFF glyph;
+		GLYFF glyph{};
 
-		glyph.wch = pbis->U16Read();
-		glyph.x = pbis->U16Read();
-		glyph.y = pbis->U16Read();
-		glyph.dx = pbis->U16Read();
+		glyph.wch = pbis->S16Read();
+		glyph.x = pbis->S16Read();
+		glyph.y = pbis->S16Read();
+		glyph.dx = pbis->S16Read();
 
-		m_aglyff[glyph.wch] = glyph;
+		m_aglyff[static_cast<uint16_t>(glyph.wch)] = glyph;
 	}
 }
 
@@ -448,7 +639,7 @@ void CFontBrx::PostLoad()
 
 GLYFF* CFontBrx::PglyffFromCh(char ch)
 {
-	auto it = m_aglyff.find(static_cast<uint8_t>(ch));
+	auto it = m_aglyff.find(static_cast<uint16_t>(ch));
 
 	if (it != m_aglyff.end())
 		return &it->second;
@@ -512,9 +703,9 @@ CFontBrx* CFontBrx::PfontClone(float rx, float ry)
 	return fontclone;
 }
 
-void CFontBrx::FValid(char ch)
+bool CFontBrx::FValid(char ch)
 {
-
+	return PglyffFromCh(ch) != nullptr;
 }
 
 void CFontBrx::SetupDraw()
@@ -522,6 +713,10 @@ void CFontBrx::SetupDraw()
 	glUniformMatrix4fv(u_projectionLoc, 1, GL_FALSE, glm::value_ptr(g_gl.blotProjection));
 
 	glUniformHandleui64ARB(u_fontTexLoc, m_pbmp->hDiffuseMap);
+	// The shared blot VAO has no per-vertex color attribute.  Other UI paths
+	// may leave this enabled, which multiplies font/preview RGB by the generic
+	// attribute's default zero value and turns colored FMV glyphs black.
+	glUniform1i(u_useVertexColorLoc, 0);
 
 	glBindVertexArray(g_gl.gao);
 
@@ -626,12 +821,10 @@ void CFontBrx::PushScaling(float rx, float ry)
 	SFR* previousScale;
 
 	// Determine the previous scale: use identity (1.0, 1.0) if stack is empty
-	if (this->m_csfr < 1) {
+	if (this->m_csfr < 1) 
 		previousScale = &g_sfrOne;  // g_sfrOne is likely {1.0f, 1.0f}
-	}
-	else {
+	else
 		previousScale = &this->m_asfr[this->m_csfr - 1];  // top of the stack
-	}
 
 	// Get index where the new scale will be stored
 	int newStackIndex = this->m_csfr;
@@ -709,44 +902,59 @@ void CFontBrx::PopScaling()
 
 int CFontBrx::ClineWrapPchz(char* pchz, float dx)
 {
-	if (!pchz || dx < 0.0f) return 0;
+	if (pchz == nullptr)
+		return 0;
 
 	int lineCount = 1;
-	float currentLineWidth = 0.0f;
-	char* lineStart = pchz;
+	float lineWidth = 0.0f;
+
 	char* cursor = pchz;
 
-	while (*cursor != '\0') {
-		if (*cursor == '\n') {
-			currentLineWidth = 0.0f;
+	while (*cursor != '\0')
+	{
+		if (*cursor == '\n')
+		{
+			lineWidth = 0.0f;
 			++lineCount;
-			lineStart = cursor + 1;
+			++cursor;
+			continue;
 		}
-		else {
-			float charWidth = this->DxFromCh(*cursor);
-			currentLineWidth += charWidth;
 
-			if (dx > 0.0f && currentLineWidth > dx) {
-				// Try to break at the last whitespace before this point
-				char* breakAt = cursor;
-				while (breakAt > lineStart && *breakAt != ' ' && *breakAt != '\t' && *breakAt != '\n') {
-					--breakAt;
+		lineWidth += DxFromCh(*cursor);
+
+		if (dx == 0.0f)
+		{
+			++cursor;
+			continue;
+		}
+
+		if (lineWidth > dx)
+		{
+			char* breakPosition = cursor;
+
+			while (true)
+			{
+				if (breakPosition < pchz || *breakPosition == '\n')
+					break;
+
+				if (*breakPosition == ' ' || *breakPosition == '\t')
+				{
+					*breakPosition = '\n';
+					lineWidth = 0.0f;
+					++lineCount;
+					cursor = breakPosition;
+					break;
 				}
 
-				if (breakAt > lineStart && (*breakAt == ' ' || *breakAt == '\t')) {
-					*breakAt = '\n';
-					currentLineWidth = 0.0f;
-					++lineCount;
-					cursor = breakAt;  // resume after newline
-					lineStart = cursor + 1;
-				}
-				else {
-					// No whitespace found, hard break
-					*cursor = '\n';
-					++lineCount;
-					currentLineWidth = 0.0f;
-					lineStart = cursor + 1;
-				}
+				--breakPosition;
+			}
+
+			// No whitespace was found before the current character.
+			if (lineWidth != 0.0f)
+			{
+				*cursor = '\n';
+				lineWidth = 0.0f;
+				++lineCount;
 			}
 		}
 
@@ -868,6 +1076,32 @@ void CFontBrx::CleanUpDraw()
 	glBindVertexArray(0);
 }
 
+CFontBrx* PfontFromFont(int fontk)
+{
+	if (fontk < 0 || fontk >= static_cast<int>(g_afontBrx.size()))
+		return g_pfont;
+
+	return &g_afontBrx[fontk];
+}
+
+bool FFontLoaded(int fontk)
+{
+	return fontk >= 0 && fontk < static_cast<int>(g_afontBrx.size());
+}
+
+CFontBrx* PfontFromRichTextCode(char code)
+{
+	for (int fontk = 0;
+		fontk < static_cast<int>(g_achFontSelector.size());
+		++fontk)
+	{
+		if (code == g_achFontSelector[fontk])
+			return PfontFromFont(fontk);
+	}
+
+	return nullptr;
+}
+
 void RenderGlyphQuad(float x, float y, float w, float h, float u0, float v0, float u1, float v1, const glm::vec4& color)
 {
 	glm::mat4 model = glm::translate(glm::mat4(1.0f), glm::vec3(x, y + h, 0.0f)) * glm::scale(glm::mat4(1.0f), glm::vec3(w, -h, 1.0f));  // flips vertically
@@ -893,6 +1127,16 @@ SFR g_sfrOne = { 1.0, 1.0 };
 GLuint u_projectionLoc = 0;
 GLuint u_modelLoc = 0;
 GLuint uvRectLoc = 0;
+GLuint u_useVertexColorLoc = 0;
 GLuint blotColorLoc = 0;
 GLuint whiteTex = 0;
-uint64_t  whiteHandle = 0;
+uint64_t whiteHandle = 0;
+
+std::array<char, 5> g_achFontSelector =
+{
+	'0',
+	'2',
+	'1',
+	'3',
+	'4'
+};

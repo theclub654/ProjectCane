@@ -9,9 +9,16 @@ struct SQTR
     glm::vec3 apos[2];
 };
 
+struct SQTRGPU
+{
+    glm::vec3 pos;
+    glm::vec2 uv;
+    glm::vec4 rgba;
+};
+
 struct SQTRM 
 {
-    struct ALO* palo;
+    class ALO* palo;
     struct SHD* pshd;
     int isqtrMic;
     int isqtrMac;
@@ -26,3 +33,7 @@ struct SQTRM
     glm::mat3 matPrev;
 };
 
+void ClearSqtrm(SQTRM* psqtrm);
+void UpdateSqtrm(SQTRM* psqtrm, glm::vec3* ppos, glm::mat3* pmat, float swExtra, float dt);
+void RenderSqtrm(SQTRM* psqtrm, CM* pcm);
+void DrawSqtrm(RPL* prpl);

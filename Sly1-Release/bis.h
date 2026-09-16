@@ -1,47 +1,75 @@
 #pragma once
+
+#include <cstddef>
+#include <cstdint>
+#include <cstring>
 #include <fstream>
-#include "glm/glm.hpp"
-typedef unsigned char byte;
+#include <memory>
+#include <stdexcept>
+#include <string>
+
+#include <glm/glm.hpp>
+
+using byte = std::uint8_t;
+
+enum BISK
+{
+    BISK_Nil = -1,
+    BISK_File = 0,
+    BISK_Mem = 1
+};
 
 class CBinaryInputStream
 {
-	public:
+public:
+    CBinaryInputStream();
+    explicit CBinaryInputStream(const std::string& filePath);
 
-		// File Object
-		std::ifstream file;
+    CBinaryInputStream(const CBinaryInputStream&) = delete;
+    CBinaryInputStream& operator=(const CBinaryInputStream&) = delete;
 
-		CBinaryInputStream(std::string filePath);
+    void OpenFile(const std::string& filePath);
+    void OpenMemory(int cb, const void* pv);
 
-		// Align bytes to n
-		void Align(int n);
-		// Reads 8 unsigned bytes from file
-		byte U8Read();
-		// Reads 16 unsigned bytes from file
-		uint16_t U16Read();
-		// Reads 32 unsigned bytes from file
-		uint32_t U32Read();
-		// Reads 8 signed bytes from file
-		int8_t S8Read();
-		// Reads 16 signed bytes from file
-		int16_t S16Read();
-		// Reads 32 signed bytes from file
-		int32_t S32Read();
-		// Reads float bytes from file
-		float F32Read();
-		// Reads Vector 2 from file
-		glm::vec2 ReadVector2();
-		// Reads vector from file
-		glm::vec3 ReadVector();
-		// Reads vector 4 from file
-		glm::vec4 ReadVector4();
-		// Reads matrix from file
-		glm::mat3 ReadMatrix();
-		// Reads matrix 4 from file
-		glm::mat4 ReadMatrix4();
-		// Reads a string from file
-		void ReadStringSw();
-		// Close and destroy binary stream
-		void Close();
+    void ReadBytes(void* destination, std::size_t cb);
 
-		~CBinaryInputStream();
+    void Align(int n);
+
+    [[nodiscard]] std::size_t GetOffset();
+
+    byte U8Read();
+    uint16_t U16Read();
+    uint32_t U32Read();
+
+    int8_t S8Read();
+    int16_t S16Read();
+    int32_t S32Read();
+
+    float F32Read();
+
+    glm::vec2 ReadVector2();
+    glm::vec3 ReadVector();
+    glm::vec4 ReadVector4();
+
+    glm::mat3 ReadMatrix();
+    glm::mat4 ReadMatrix4();
+
+    std::shared_ptr<char[]> ReadStringAlloc();
+    std::string ReadStringSw();
+
+    std::string ReadFixedString32NoAlloc();
+    std::shared_ptr<char[]> ReadFixedString32();
+
+    void Close();
+
+    ~CBinaryInputStream();
+
+    std::ifstream file;
+
+    BISK m_bisk = BISK_Nil;
+
+    // OpenMemory uses a non-owning view of this buffer.
+    const std::uint8_t* m_pb = nullptr;
+    std::size_t m_cb = 0;
+    std::size_t m_ib = 0;
 };

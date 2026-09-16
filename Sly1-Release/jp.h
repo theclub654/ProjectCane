@@ -18,31 +18,31 @@ enum JPS
 class JP : public STEP
 {
 	public:
-        JPS jps;
-        float tJps;
-        struct ASEGA* pasegaCur;
-        float radPan;
-        float radTilt;
-        struct ALO* paloTurret;
-        BLRUN ablrunRun[6];
-        struct ASEGBL* pasegblRun;
-        struct ASEG* pasegStand;
-        struct ASEG* pasegThrust;
-        struct ASEG* pasegFloat;
-        struct ASEG* pasegZap;
-        struct ASEG* pasegDead;
-        SFF sffRun;
-        struct TARGET* ptargetCur;
-        int fGround;
-        float tGround;
-        glm::vec3 posGround;
-        int fFlash;
-        float tFlash;
-        float tCharm;
-        float tCharmPending;
-        int fCharmEnabled;
-        struct ALO* paloJt;
-        struct XP* pxpZap;
+    JPS jps;
+    float tJps;
+    struct ASEGA* pasegaCur;
+    float radPan;
+    float radTilt;
+    class ALO* paloTurret;
+    BLRUN ablrunRun[6];
+    struct ASEGBL* pasegblRun;
+    struct ASEG* pasegStand;
+    struct ASEG* pasegThrust;
+    struct ASEG* pasegFloat;
+    struct ASEG* pasegZap;
+    struct ASEG* pasegDead;
+    SFF sffRun;
+    struct TARGET* ptargetCur;
+    int fGround;
+    float tGround;
+    glm::vec3 posGround;
+    int fFlash;
+    float tFlash;
+    float tCharm;
+    float tCharmPending;
+    int fCharmEnabled;
+    class ALO* paloJt;
+    struct XP* pxpZap;
 };
 
 JP*  NewJp();

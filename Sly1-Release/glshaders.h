@@ -2,9 +2,6 @@
 #include <iostream>
 #include <glad/glad.h>
 #include <string>
-#include <fstream>
-#include <sstream>
-#include <cerrno>
 #include "shd.h"
 
 class GLSHADER
@@ -22,11 +19,10 @@ class GLSHADER
     void compileErrors(unsigned int shader, const char* type);
 };
 
-std::string get_file_contents(const char* filename);
-
 extern GLSHADER glScreenShader;
 extern GLSHADER glDyshadow;
 extern GLSHADER glGlobShader;
 extern GLSHADER glCelBorderShader;
 extern GLSHADER glGeomShader;
 extern GLSHADER glBlotShader;
+extern GLSHADER glBlipShader;

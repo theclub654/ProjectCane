@@ -48,4 +48,7 @@ struct GEOM
 void InitGeom(GEOM *pgeom);
 void ReadGeom(GEOM *pgeom, CBinaryInputStream *pbis);
 void CloneGeom(GEOM* pgeomSrc, glm::mat4* pdmat, GEOM* pgeomDst);
+static EDGE* RebaseEdgePtr(const GEOM* src, GEOM* dst, EDGE* edge);
+static SURF* RebaseSurfPtr(const GEOM* src, GEOM* dst, SURF* surf);
+static void RebaseGeomPointers(const GEOM* src, GEOM* dst);
 void UpdateGeomWorld(GEOM* pgeomLocal, GEOM* pgeomWorld, glm::vec3& pos, glm::mat3& mat);

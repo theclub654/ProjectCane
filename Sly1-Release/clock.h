@@ -29,3 +29,4 @@ extern std::atomic<uint32_t> Count;
 extern float g_rtClockDebug;
 extern float g_rtClockPowerUp;
 extern float g_rtClock;
+extern int g_targetFrameRate;

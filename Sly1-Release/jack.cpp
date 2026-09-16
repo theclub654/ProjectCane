@@ -157,7 +157,7 @@ void CloneJackn(JACKN* pjackn, JACKN* pjacknBase)
 
 void UpdateJackn(JACKN* pjackn, float dt)
 {
-	pjackn->pvtalo->pfnTranslateAloToPos(pjackn, pjackn->xf.pos);
+	pjackn->pvtalo->pfnTranslateAloToPos(pjackn, &pjackn->xf.pos);
 }
 
 void RenderJacknSelf(JACKN* pjackn, CM* pcm, RO* pro)

@@ -1,6 +1,6 @@
 #include "brx.h"
-
-std::vector<EOPID> g_aeopid;
+#include "rwm.h"
+#include <cstdio>
 
 void StartupBrx()
 {
@@ -11,7 +11,7 @@ LO* PloNew(CID cid, SW* psw, ALO* paloParent, OID oid, int isplice)
 {
 	// Loading class object vtable
 	VTLO *pvtlo = (VTLO*)g_mpcidpvt[cid];
-
+	
 	// Returning a address for the newly made object
 	LO *plo = (LO*)pvtlo->pfnNewLo();
 
@@ -20,20 +20,21 @@ LO* PloNew(CID cid, SW* psw, ALO* paloParent, OID oid, int isplice)
 	// Storing the object ID with object
 	plo->oid = oid;
 
+    
 	if (cid == CID_SW)
 	{
 		InitSwDlHash((SW*)plo);
-		plo->paloParent = paloParent;
 		psw = (SW*)plo;
 	}
-	else
-		plo->paloParent = paloParent;
 
+	plo->paloParent = paloParent;
 	// Storing pointer to scene world object
 	plo->psw = psw;
 
+	plo->pframe = PframeFromIsplice(isplice, psw);
+
 	// Appending object to fist parent list
-    AppendDlEntry(PdlFromSwOid(plo->psw, plo->oid) , plo);
+    AppendDlEntry(PdlFromSwOid(plo->psw, (OID)plo->oid) , plo);
 
 	LO** head = plo->psw->aploCidHead + cid;
 	plo->ploCidNext = *head;
@@ -41,7 +42,7 @@ LO* PloNew(CID cid, SW* psw, ALO* paloParent, OID oid, int isplice)
 	
 	// Initializing local object
 	plo->pvtlo->pfnInitLo(plo);
-	
+
 	// Storing pointer to object in global vector
 	allWorldObjs.push_back(plo);
 
@@ -53,7 +54,7 @@ int IploFromStockOid(int oid)
 {
 	int stockOid = oid - 0xC;
 
-	if (stockOid > 0x1C)
+	if (stockOid > 30)
 		return -1;
 	else
 		return stockOid;
@@ -76,6 +77,7 @@ void LoadSwObjectsFromBrx(SW *psw, ALO *paloParent, CBinaryInputStream *pbis)
 		LO *plo = PloNew(cid, psw, paloParent, oid, isplice);
 		// Loading object from binary file
 		plo->pvtlo->pfnLoadLoFromBrx(plo, pbis);
+
 		int stockOidIndex = IploFromStockOid(oid);
 
 		if (stockOidIndex > -1)
@@ -86,61 +88,353 @@ void LoadSwObjectsFromBrx(SW *psw, ALO *paloParent, CBinaryInputStream *pbis)
 	}
 }
 
-DL* PdlFromSwOid(SW *psw, OID oid)
-{
-	return psw->adlHash + (oid * 0x95675 & 0x1ff);
-}
-
-void LoadOptionsFromBrx(void* pvObject, CBinaryInputStream* pbis)
+void LoadOptionsFromBrx(LO* pvObject, CBinaryInputStream* pbis)
 {
 	while (true)
 	{
 		// Reading eopid from binary file
 		int16_t eopid = pbis->S16Read();
-
+        
 		if (eopid < 0) break;
-		
-		LoadOptionFromBrx(pvObject, &g_aeopid[eopid], eopid ,pbis);
+
+		LoadOptionFromBrx(pvObject, &g_aeopid[eopid], pbis);
 	}
 }
 
-void LoadOptionFromBrx(void* pvObject, EOPID *eopid, int eopidID, CBinaryInputStream* pbis)
+void LoadOptionFromBrx(void* pvStruct, EOPID* peopid, CBinaryInputStream* pbis)
 {
-	void* objectDataPtr = nullptr;
+	const GRFEOPID grfeopid = peopid->grfeopid;
 
-	if ((eopid->grfeopid & 0x400) != 0)
+	if ((grfeopid & 0x400) != 0)
 	{
-		for (int i = 0; i < eopid->optdat.ibSet; i++)
-		{
-			OTYP optionType = (OTYP)pbis->S16Read();
+		CRef aref[32]{};
+		const int carg = static_cast<int>(peopid->optdat.crefReq);
 
-			switch (optionType)
+		for (int iarg = 0; iarg < carg; ++iarg)
+		{
+			const OTYP otyp = static_cast<OTYP>(pbis->S16Read());
+
+			switch (otyp)
 			{
 				case OTYP_Bool:
-					pbis->U8Read();
+					aref[iarg].SetBool(static_cast<int8_t>(pbis->U8Read()));
+					break;
+
+				case OTYP_Float:
+					aref[iarg].SetF32(pbis->F32Read());
+					break;
+
+				case OTYP_Vector:
+					aref[iarg].SetVector(pbis->ReadVector());
+					break;
+
+				case OTYP_Int:
+					aref[iarg].SetS32(pbis->S32Read());
+					break;
+
+				case OTYP_Oid:
+				case OTYP_Cid:
+				case OTYP_Sfxid:
+				case OTYP_Wid:
+				case OTYP_Tbid:
+				case OTYP_Msgid:
+				case OTYP_Optid:
+					aref[iarg].SetS32(pbis->S16Read());
+					break;
+
+				case OTYP_Clq:
+				{
+					CLQ clq{};
+					clq.g0 = pbis->F32Read();
+					clq.g1 = pbis->F32Read();
+					clq.g2 = pbis->F32Read();
+					aref[iarg].SetClq(clq);
+					break;
+				}
+
+				case OTYP_Lm:
+				{
+					LM lm{};
+					lm.gMin = pbis->F32Read();
+					lm.gMax = pbis->F32Read();
+					aref[iarg].SetLm(lm);
+					break;
+				}
+
+				default:
+				{
+					if ((static_cast<uint32_t>(static_cast<int16_t>(otyp)) & 0x7fffffffU) >> 12 == 1)
+						aref[iarg].SetS32(pbis->S16Read());
+
+					break;
+				}
+			}
+		}
+
+		peopid->optdat.pvThunkFnUser(static_cast<BASIC*>(pvStruct), carg, aref);
+		return;
+	}
+
+	if ((grfeopid & 0x80) != 0)
+	{
+		void* pvBase = pvStruct;
+
+		if ((grfeopid & 0x1000) != 0)
+			pvBase = peopid->optdat.pfnensure(pvStruct, 1);
+
+		std::byte* pbField = static_cast<std::byte*>(pvBase) + peopid->optdat.ibSetUser;
+
+		switch (peopid->otyp)
+		{
+			case OTYP_Bool:
+			*reinterpret_cast<uint8_t*>(pbField) = pbis->U8Read();
+			return;
+
+			case OTYP_Float:
+			*reinterpret_cast<float*>(pbField) = pbis->F32Read();
+			return;
+
+			case OTYP_Vector:
+			*reinterpret_cast<glm::vec3*>(pbField) = pbis->ReadVector();
+			return;
+
+			case OTYP_Clq:
+			case OTYP_Smp:
+			reinterpret_cast<float*>(pbField)[0] = pbis->F32Read();
+			reinterpret_cast<float*>(pbField)[1] = pbis->F32Read();
+			reinterpret_cast<float*>(pbField)[2] = pbis->F32Read();
+			return;
+
+			case OTYP_Vector4:
+			case OTYP_Smpa:
+			reinterpret_cast<float*>(pbField)[0] = pbis->F32Read();
+			reinterpret_cast<float*>(pbField)[1] = pbis->F32Read();
+			reinterpret_cast<float*>(pbField)[2] = pbis->F32Read();
+			reinterpret_cast<float*>(pbField)[3] = pbis->F32Read();
+			return;
+
+			case OTYP_Matrix:
+			{
+				glm::vec3 euler = pbis->ReadVector();
+				LoadRotateMatrix(&euler, reinterpret_cast<glm::mat3*>(pbField));
+				return;
+			}
+
+			case OTYP_Int:
+			*reinterpret_cast<int32_t*>(pbField) = pbis->S32Read();
+			return;
+
+			case OTYP_Oid:
+			case OTYP_Cid:
+			case OTYP_Sfxid:
+			case OTYP_Wid:
+			case OTYP_Tbid:
+			case OTYP_Msgid:
+			case OTYP_Optid:
+			*reinterpret_cast<int32_t*>(pbField) = static_cast<int32_t>(pbis->S16Read());
+			return;
+
+			case OTYP_Lm:
+			reinterpret_cast<float*>(pbField)[0] = pbis->F32Read();
+			reinterpret_cast<float*>(pbField)[1] = pbis->F32Read();
+			return;
+
+			case OTYP_Rgba:
+			*reinterpret_cast<uint32_t*>(pbField) = pbis->U32Read();
+			return;
+
+			default:
+			*reinterpret_cast<int32_t*>(pbField) = static_cast<int32_t>(pbis->S16Read());
+			return;
+		}
+	}
+
+	PFNRAW pfnset = nullptr;
+
+	if ((grfeopid & 0x100) != 0)
+	{
+		pfnset = peopid->optdat.pfnsetUser;
+
+		if ((grfeopid & 0x1000) != 0)
+			pvStruct = peopid->optdat.pfnensure(pvStruct, 1);
+	}
+	else
+	{
+		std::byte* pvt = *reinterpret_cast<std::byte**>(pvStruct);
+		pfnset = *reinterpret_cast<PFNRAW*>(pvt + peopid->optdat.ibSetUser);
+	}
+
+	switch (peopid->otyp)
+	{
+		case OTYP_Bool:
+		{
+			const uint8_t value = pbis->U8Read();
+			reinterpret_cast<void(*)(void*, uint8_t)>(pfnset)(pvStruct, value);
+			return;
+		}
+
+		case OTYP_Float:
+		{
+			const float value = pbis->F32Read();
+			reinterpret_cast<void(*)(void*, float)>(pfnset)(pvStruct, value);
+			return;
+		}
+
+		case OTYP_Vector:
+		{
+			glm::vec3 value = pbis->ReadVector();
+			reinterpret_cast<void(*)(void*, glm::vec3*)>(pfnset)(pvStruct, &value);
+			return;
+		}
+
+		case OTYP_Clq:
+		{
+			CLQ value{};
+			value.g0 = pbis->F32Read();
+			value.g1 = pbis->F32Read();
+			value.g2 = pbis->F32Read();
+			reinterpret_cast<void(*)(void*, CLQ*)>(pfnset)(pvStruct, &value);
+			return;
+		}
+
+		case OTYP_Smp:
+		{
+			SMP value{};
+			value.svFast = pbis->F32Read();
+			value.svSlow = pbis->F32Read();
+			value.dtFast = pbis->F32Read();
+			reinterpret_cast<void(*)(void*, SMP*)>(pfnset)(pvStruct, &value);
+			return;
+		}
+
+		case OTYP_Vector4:
+		{
+			glm::vec4 value = pbis->ReadVector4();
+			reinterpret_cast<void(*)(void*, glm::vec4*)>(pfnset)(pvStruct, &value);
+			return;
+		}
+
+		case OTYP_Smpa:
+		{
+			SMPA value{};
+			value.svFast = pbis->F32Read();
+			value.sdvMax = pbis->F32Read();
+			value.svSlow = pbis->F32Read();
+			value.dtFast = pbis->F32Read();
+			reinterpret_cast<void(*)(void*, SMPA*)>(pfnset)(pvStruct, &value);
+			return;
+		}
+
+		case OTYP_Matrix:
+		{
+			glm::vec3 euler = pbis->ReadVector();
+			glm::mat3 matrix{};
+			LoadRotateMatrix(&euler, &matrix);
+			reinterpret_cast<void(*)(void*, glm::mat3*)>(pfnset)(pvStruct, &matrix);
+			return;
+		}
+
+		case OTYP_Int:
+		{
+			const int32_t value = pbis->S32Read();
+			reinterpret_cast<void(*)(void*, int32_t)>(pfnset)(pvStruct, value);
+			return;
+		}
+
+		case OTYP_Lm:
+		{
+			LM value{};
+			value.gMin = pbis->F32Read();
+			value.gMax = pbis->F32Read();
+			reinterpret_cast<void(*)(void*, LM*)>(pfnset)(pvStruct, &value);
+			return;
+		}
+
+		case OTYP_Rgba:
+		{
+			const uint32_t value = pbis->U32Read();
+			reinterpret_cast<void(*)(void*, uint32_t)>(pfnset)(pvStruct, value);
+			return;
+		}
+
+		case OTYP_Oid:
+		case OTYP_Cid:
+		case OTYP_Sfxid:
+		case OTYP_Wid:
+		case OTYP_Tbid:
+		case OTYP_Msgid:
+		{
+			const int16_t value = pbis->S16Read();
+			reinterpret_cast<void(*)(void*, int16_t)>(pfnset)(pvStruct, value);
+			return;
+		}
+
+		default:
+		{
+			const int16_t value = pbis->S16Read();
+			reinterpret_cast<void(*)(void*, int16_t)>(pfnset)(pvStruct, value);
+			return;
+		}
+	}
+}
+
+void LoadSkipOptionFromBrx(void* pvObject, EOPID* peopid, int eopidID, CBinaryInputStream* pbis)
+{
+	(void)pvObject;
+	(void)eopidID;
+
+	if ((peopid->grfeopid & 0x400) != 0)
+	{
+		const int carg = static_cast<int>(peopid->optdat.crefReq);
+
+		for (int iarg = 0; iarg < carg; ++iarg)
+		{
+			const OTYP otyp = static_cast<OTYP>(pbis->S16Read());
+
+			switch (otyp)
+			{
+				case OTYP_Bool:
+				pbis->U8Read();
 				break;
 
 				case OTYP_Float:
-					pbis->F32Read();
+				pbis->F32Read();
 				break;
 
 				case OTYP_Vector:
-					pbis->ReadVector();
+				pbis->ReadVector();
 				break;
 
 				case OTYP_Int:
-					pbis->S32Read();
+				pbis->S32Read();
 				break;
 
 				case OTYP_Clq:
-					pbis->F32Read();
-					pbis->F32Read();
-					pbis->F32Read();
+				case OTYP_Smp:
+				pbis->F32Read();
+				pbis->F32Read();
+				pbis->F32Read();
+				break;
+
+				case OTYP_Vector4:
+				case OTYP_Smpa:
+				pbis->F32Read();
+				pbis->F32Read();
+				pbis->F32Read();
+				pbis->F32Read();
+				break;
+
+				case OTYP_Matrix:
+				pbis->ReadVector();
 				break;
 
 				case OTYP_Lm:
-					pbis->F32Read();
-					pbis->F32Read();
+				pbis->F32Read();
+				pbis->F32Read();
+				break;
+
+				case OTYP_Rgba:
+				pbis->U32Read();
 				break;
 
 				case OTYP_Oid:
@@ -150,214 +444,65 @@ void LoadOptionFromBrx(void* pvObject, EOPID *eopid, int eopidID, CBinaryInputSt
 				case OTYP_Tbid:
 				case OTYP_Msgid:
 				case OTYP_Optid:
-					pbis->S16Read();
+				pbis->S16Read();
 				break;
 
 				default:
-					if ((optionType & 0x7fffffffU) >> 0xc == 1)
-						pbis->S16Read();
+				if ((static_cast<uint32_t>(static_cast<int16_t>(otyp)) & 0x7fffffffU) >> 12 == 1)
+					pbis->S16Read();
+
 				break;
 			}
 		}
-
-		if (eopid->optdat.pfnget != nullptr)
-			eopid->optdat.pfnget(pvObject);
 
 		return;
 	}
 
-	if ((eopid->grfeopid & 0x80) != 0)
-	{
-		if ((eopid->grfeopid & 0x1000) == 0)
-		{
-			if (eopid->optdat.pfnget != nullptr)
-				objectDataPtr = eopid->optdat.pfnget(pvObject);
-		}
-
-		else
-		{
-			if (eopid->optdat.pfnensure != nullptr)
-				objectDataPtr = eopid->optdat.pfnensure(pvObject, 1);
-		}
-
-		switch (eopid->otyp)
-		{
-			case OTYP_Bool:
-			{
-				float optionTypeBool = pbis->U8Read();
-
-				if (eopid->optdat.pfnget != nullptr || eopid->optdat.pfnensure != nullptr)
-					memcpy(objectDataPtr, &optionTypeBool, sizeof(byte));
-				return;
-			}
-
-			case OTYP_Float:
-			{
-				float optionTypefloat = pbis->F32Read();
-				
-				if (eopid->optdat.pfnget != nullptr || eopid->optdat.pfnensure != nullptr)
-					memcpy(objectDataPtr, &optionTypefloat, sizeof(float));
-				return;
-			}
-			
-
-			case OTYP_Matrix:
-			{
-				glm::vec3 optionDataMat3 = pbis->ReadVector();
-
-				if (eopid->optdat.pfnget != nullptr || eopid->optdat.pfnensure != nullptr)
-					memcpy(objectDataPtr, &optionDataMat3, sizeof(glm::vec3));
-				return;
-			}
-
-			case OTYP_Int:
-			{
-				int optionDataInt = pbis->S32Read();
-
-				if (eopid->optdat.pfnget != nullptr || eopid->optdat.pfnensure != nullptr)
-					memcpy(objectDataPtr, &optionDataInt, sizeof(int));
-				return;
-			}
-
-			case OTYP_Lm:
-			{
-				glm::vec2 optionTypeLm = pbis->ReadVector2();
-				if (eopid->optdat.pfnget != nullptr || eopid->optdat.pfnensure != nullptr)
-					memcpy(objectDataPtr, &optionTypeLm, sizeof(glm::vec2));
-				return;
-			}
-
-			case OTYP_Vector:
-			case OTYP_Clq:
-			case OTYP_Smp:
-			{
-				glm::vec3 optionDataVec = pbis->ReadVector();
-
-				if (eopid->optdat.pfnget != nullptr || eopid->optdat.pfnensure != nullptr)
-					memcpy(objectDataPtr, &optionDataVec, sizeof(glm::vec3));
-				return;
-			}
-
-			case OTYP_Vector4:
-			case OTYP_Smpa:
-			{
-				glm::vec4 optionDataVec4 = pbis->ReadVector4();
-
-				if (eopid->optdat.pfnget != nullptr || eopid->optdat.pfnensure != nullptr)
-					memcpy(objectDataPtr, &optionDataVec4, sizeof(glm::vec4));
-				return;
-			}
-
-			case OTYP_Rgba:
-			{
-				int optionDataUint = pbis->U32Read();
-
-				if (eopid->optdat.pfnget != nullptr || eopid->optdat.pfnensure != nullptr)
-					memcpy(objectDataPtr, &optionDataUint, sizeof(int));
-				return;
-			}
-
-			default:
-				short optionDataShort = pbis->S16Read();
-
-				if (eopid->optdat.pfnget != nullptr || eopid->optdat.pfnensure != nullptr)
-					memcpy(objectDataPtr, &optionDataShort, sizeof(short));
-			return;
-		}
-	}
-
-	switch (eopid->otyp)
+	switch (peopid->otyp)
 	{
 		case OTYP_Bool:
-		{
-			byte optionDataBool = pbis->U8Read();
-			if (eopid->optdat.pfnsetbyte != nullptr)
-				eopid->optdat.pfnsetbyte(pvObject, optionDataBool);
-			return;
-		}
+		pbis->U8Read();
+		break;
 
 		case OTYP_Float:
-		{
-			float optionDataFloat = pbis->F32Read();
-			
-			if (eopid->optdat.pfnsetfloat != nullptr)
-				eopid->optdat.pfnsetfloat(pvObject, optionDataFloat);
-			return;
-		}
-
-		case OTYP_Matrix:
-		{
-			glm::vec3 optionDataMat = pbis->ReadVector();
-
-			if (eopid->optdat.pfnsetvec3 != nullptr)
-				eopid->optdat.pfnsetvec3(pvObject, optionDataMat);
-			return;
-		}
-
-		case OTYP_Int:
-		{
-			int optionDataInt = pbis->S32Read();
-
-			if (eopid->optdat.pfnset != nullptr)
-				eopid->optdat.pfnset(pvObject, optionDataInt);
-			return;
-		}
-		case OTYP_Lm:
-		{
-			glm::vec2 optionDataLM = pbis->ReadVector2();
-
-			if (eopid->optdat.pfnsetvec2 != nullptr)
-				eopid->optdat.pfnsetvec2(pvObject, optionDataLM);
-			break;
-		}
+		pbis->F32Read();
+		break;
 
 		case OTYP_Vector:
 		case OTYP_Clq:
 		case OTYP_Smp:
-		{
-			glm::vec3 optionDataVec3 = pbis->ReadVector();
-
-			if (eopid->optdat.pfnsetvec3 != nullptr)
-				eopid->optdat.pfnsetvec3(pvObject, optionDataVec3);
-			break;
-		}
+		pbis->F32Read();
+		pbis->F32Read();
+		pbis->F32Read();
+		break;
 
 		case OTYP_Vector4:
 		case OTYP_Smpa:
-		{
-			glm::vec4 optionDataVec4 = pbis->ReadVector4();
+		pbis->F32Read();
+		pbis->F32Read();
+		pbis->F32Read();
+		pbis->F32Read();
+		break;
 
-			if (eopid->optdat.pfnsetvec4 != nullptr)
-				eopid->optdat.pfnsetvec4(pvObject, optionDataVec4);
-			break;
-		}
+		case OTYP_Matrix:
+		pbis->ReadVector();
+		break;
+
+		case OTYP_Int:
+		pbis->S32Read();
+		break;
+
+		case OTYP_Lm:
+		pbis->F32Read();
+		pbis->F32Read();
+		break;
 
 		case OTYP_Rgba:
-		{
-			int optionDataRGBA = pbis->U32Read();
-
-			if (eopid->optdat.pfnset != nullptr)
-				eopid->optdat.pfnset(pvObject, optionDataRGBA);
-			break;
-		}
-		case OTYP_Oid:
-		case OTYP_Cid:
-		case OTYP_Sfxid:
-		case OTYP_Wid:
-		case OTYP_Tbid:
-		case OTYP_Msgid:
-		{
-			short optionDataShort = pbis->S16Read();
-
-			if (eopid->optdat.pfnsetshort != nullptr)
-				eopid->optdat.pfnsetshort(pvObject, optionDataShort);
-			break;
-		}
+		pbis->U32Read();
+		break;
 
 		default:
-			int16_t optionData = pbis->S16Read();
-			if (eopid->optdat.pfnset != nullptr)
-				eopid->optdat.pfnset(pvObject, optionData);
-		return;
+		pbis->S16Read();
+		break;
 	}
 }

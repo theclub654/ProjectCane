@@ -1,0 +1,33 @@
+# Visual Studio
+.vs/
+**/x64/
+**/Debug/
+**/Release/
+!Libraries/lib/Debug/
+!Libraries/lib/Debug/**
+!Libraries/lib/Release/
+!Libraries/lib/Release/**
+*.vcxproj.user
+*.aps
+*.obj
+*.pdb
+*.ilk
+*.iobj
+*.ipdb
+*.tlog
+*.exe
+*.suo
+*.VC.db
+*.VC.VC.opendb
+
+# Runtime/generated
+imgui.ini
+Saves/
+*.log
+*.bak
+build-output.txt
+
+# Extracted game data
+Sly1-Release/Worlds/
+Sly1-Release/Cutscenes/
+*.iso

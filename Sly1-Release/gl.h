@@ -1,5 +1,6 @@
 ﻿#pragma once
 #include "glshaders.h"
+#include "rocel.h"
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/gtx/rotate_vector.hpp>
@@ -19,6 +20,13 @@ enum AspectMode
 	Fixed_16_10,
 };
 
+enum WindowMode
+{
+	WindowMode_Windowed,
+	WindowMode_Borderless,
+	WindowMode_Fullscreen
+};
+
 struct CMGL
 {
 	glm::mat4 matWorldToClip;
@@ -32,7 +40,9 @@ struct alignas(16) ROGL
 	float     uFog;          //  68 -  71
 	float     darken;        //  72 -  75
 	int32_t   grfglob;       //  76 -  79
-	int32_t   pad0;          //  80 -  83
+	// Zero for ordinary world globs. TV portrait globs store their dedicated
+	// TV-light SSBO index plus one (1 = left, 2 = right).
+	int32_t   blotTvLight;   //  80 -  83
 	int32_t   warpType;      //  84 -  87
 	int32_t   warpCmat;      //  88 -  91
 	int32_t   warpCvtx;      //  92 -  95
@@ -45,11 +55,14 @@ struct alignas(16) ROGL
 	glm::vec4 posCenter;     // 624 - 639
 };
 
-struct alignas(16) ROCEL
+// Per-group BLIP parameters. One aligned range is streamed for every queued
+// BLIP group, replacing several individual glUniform updates.
+struct alignas(16) BLIPGROUPGPU
 {
 	glm::mat4 model;
-	glm::vec4 celRgba;
-	float     uAlphaCelBorder;
+	glm::vec4 params;   // groupAlpha, rSFlying, blipMode, unused
+	glm::vec4 clqScale; // g0, g1, g2, unused
+	glm::vec4 clqAlpha; // g0, g1, g2, unused
 };
 
 struct STREAM
@@ -62,6 +75,13 @@ struct STREAM
 	GLsizeiptr frameSize; // bytes in this frame slice
 	uint8_t* mappedPtr;
 	GLsync* fences; // length = g_frames
+};
+
+struct BLOTLINEVERTEX
+{
+	glm::vec3 position;
+	glm::vec2 uv;
+	glm::vec4 color;
 };
 
 class GL
@@ -98,12 +118,37 @@ class GL
 	// Text Buffer Object
 	GLuint gbo;
 	GLuint geo;
+
+	// Instanced particle billboard geometry.
+	GLuint blipVao;
+	GLuint blipVbo;
+	GLuint blipEbo;
+	GLuint blipInstanceVbo;
+	GLsizeiptr blipInstanceCapacity;
+	GLuint sqtrVao;
+	GLuint sqtrVbo;
 	glm::mat4 blotProjection;
 
 	// Window width
 	float width;
 	// Window height
 	float height;
+	// Pixel dimensions of the off-screen 3D render target. These may differ
+	// from width/height when internal resolution scaling is enabled.
+	int renderWidth = 1;
+	int renderHeight = 1;
+	int outputWidth = 1;
+	int outputHeight = 1;
+	int presentX = 0;
+	int presentY = 0;
+	int presentWidth = 1;
+	int presentHeight = 1;
+	// Uniform transform from the original 640 x 492.8 UI canvas into the
+	// current framebuffer. Updated by FrameBufferSizeCallBack.
+	float uiScale = 1.0f;
+	glm::vec2 uiOrigin = glm::vec2(0.0f);
+	glm::vec2 screenOffset;
+	glm::vec2 screenOffsetOriginal;
 
 	float aspectRatio;
 	AspectMode aspectMode;
@@ -122,13 +167,21 @@ void AppendStream(STREAM* pstream, void* ptr, int size, int copySize);
 void EndFrameStream(STREAM* pstream);
 void DeleteFrameStream(STREAM* pstream);
 void ApplyMsaaSettings();
+void ApplyInternalResolutionSettings();
+void ApplyWindowModeSettings(WindowMode mode);
+void ApplyAspectRatioSettings(AspectMode mode);
 void FrameBufferSizeCallBack(GLFWwindow* window, int width, int height);
 
 extern GL g_gl;
 extern GLuint cmUBO;
 extern STREAM ropStream;
 extern STREAM rcbStream;
+extern STREAM blipStream;
 extern GLuint geomUBO;
+extern GLint glslBlipCurrentTime;
+extern GLint glslBlipDtFrame;
+extern GLint glslBlipCameraMat;
+extern GLint glslBlipAlphaPass;
 extern GLuint glslLsmShadow;
 extern GLuint glslLsmDiffuse;
 extern GLuint glslFogType;
@@ -146,6 +199,7 @@ extern GLuint glslSubGlobPosCenter;
 extern GLuint glslSubGlobRadius;
 extern GLuint glslDyshMatWorldClip;
 extern GLuint glslDyshModel;
+extern GLuint glslDyshfSkin;
 extern GLuint glslAmbientMap;
 extern GLuint glslDiffuseMap;
 extern GLuint glslSaturateMap;
@@ -156,4 +210,22 @@ extern uint64_t screenTextureHandle;
 extern GLuint g_sceneFbo;
 extern int g_msaaSamples;
 extern bool g_fMsaa;
+extern bool g_fVsync;
+extern int g_internalResolutionHeight;
+extern WindowMode g_windowMode;
+extern float g_drawDistanceMultiplier;
 extern int g_frames;
+extern float s_dxDisplay;
+extern float s_dyDisplay;
+extern float s_dxDisplayOriginal;
+extern float s_dyDisplayOriginal;
+extern GLuint lineVao;
+extern GLuint lineVbo;
+extern GLuint glslfSkin;
+extern GLint  glslCelSkin;
+extern GLuint glslfPose;
+extern GLuint glslPoseCount;
+extern GLuint glslPoseWeights;
+extern GLuint glslCelPose;
+extern GLuint glslCelPoseCount;
+extern GLuint glslCelPoseWeights;

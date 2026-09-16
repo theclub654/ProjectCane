@@ -1,5 +1,9 @@
 ﻿#include "gl.h"
 #include "render.h"
+#include "sqtr.h"
+#include "tv.h"
+#include "game.h"
+#include <cmath>
 
 #ifdef _WIN32
 extern "C"
@@ -9,6 +13,52 @@ extern "C"
 }
 #endif
 
+namespace
+{
+int s_windowedX = 100;
+int s_windowedY = 100;
+int s_windowedWidth = 800;
+int s_windowedHeight = 800;
+
+GLFWmonitor* MonitorForWindow(GLFWwindow* window)
+{
+	if (GLFWmonitor* monitor = glfwGetWindowMonitor(window))
+		return monitor;
+
+	int windowX = 0;
+	int windowY = 0;
+	int windowWidth = 0;
+	int windowHeight = 0;
+	glfwGetWindowPos(window, &windowX, &windowY);
+	glfwGetWindowSize(window, &windowWidth, &windowHeight);
+
+	GLFWmonitor* bestMonitor = glfwGetPrimaryMonitor();
+	int bestOverlap = -1;
+	int monitorCount = 0;
+	GLFWmonitor** monitors = glfwGetMonitors(&monitorCount);
+	for (int i = 0; i < monitorCount; ++i)
+	{
+		int monitorX = 0;
+		int monitorY = 0;
+		int monitorWidth = 0;
+		int monitorHeight = 0;
+		glfwGetMonitorWorkarea(monitors[i], &monitorX, &monitorY, &monitorWidth, &monitorHeight);
+		const int overlapWidth = (std::max)(0,
+			(std::min)(windowX + windowWidth, monitorX + monitorWidth) - (std::max)(windowX, monitorX));
+		const int overlapHeight = (std::max)(0,
+			(std::min)(windowY + windowHeight, monitorY + monitorHeight) - (std::max)(windowY, monitorY));
+		const int overlap = overlapWidth * overlapHeight;
+		if (overlap > bestOverlap)
+		{
+			bestOverlap = overlap;
+			bestMonitor = monitors[i];
+		}
+	}
+
+	return bestMonitor;
+}
+}
+
 void GL::InitGL()
 {
 	// Create GLFW context and window
@@ -17,13 +67,21 @@ void GL::InitGL()
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
-	width  = 800;
-	height = 800;
+	width  = 1280;
+	height = 720;
+	renderWidth = static_cast<int>(width);
+	renderHeight = static_cast<int>(height);
+	outputWidth = static_cast<int>(width);
+	outputHeight = static_cast<int>(height);
+	presentX = 0;
+	presentY = 0;
+	presentWidth = outputWidth;
+	presentHeight = outputHeight;
 
 	aspectRatio = float(width) / float(height);
 	aspectMode = FitToScreen;
 
-	window = glfwCreateWindow(width, height, "Sly 1", nullptr, nullptr);
+	window = glfwCreateWindow(width, height, "Sly Cooper and the Thievius Raccoonus", nullptr, nullptr);
 
 	if (!window)
 	{
@@ -52,7 +110,11 @@ void GL::InitGL()
 	ImGui_ImplOpenGL3_Init("#version 430");
 	ImGui::StyleColorsDark();
 
-	float imguiOffset = ImGui::GetFrameHeight(); // or use a cached value after rendering ImGui menu
+	const float imguiOffset = g_fDebugMode != 0 ? ImGui::GetFrameHeight() : 0.0f;
+	const float initialSceneHeight = std::max(1.0f, height - imguiOffset);
+	uiScale = std::min(width / 640.0f, initialSceneHeight / 492.80002f);
+	uiOrigin.x = (width - 640.0f * uiScale) * 0.5f;
+	uiOrigin.y = (initialSceneHeight - 492.80002f * uiScale) * 0.5f;
 
 	// ========== Framebuffer setup ==========
 	CreateFramebuffers(width, height);
@@ -82,6 +144,59 @@ void GL::InitGL()
 	glEnableVertexAttribArray(1);
 	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)(2 * sizeof(float)));
 
+	glBindVertexArray(0);
+
+	// ========== Instanced BLIP quad ==========
+	const float blipCorners[] = {
+		-1.0f, -1.0f,
+		 1.0f, -1.0f,
+		 1.0f,  1.0f,
+		-1.0f,  1.0f
+	};
+	const uint16_t blipIndices[] = { 0, 1, 2, 0, 2, 3 };
+
+	glGenVertexArrays(1, &blipVao);
+	glGenBuffers(1, &blipVbo);
+	glGenBuffers(1, &blipEbo);
+	glGenBuffers(1, &blipInstanceVbo);
+	glBindVertexArray(blipVao);
+
+	glBindBuffer(GL_ARRAY_BUFFER, blipVbo);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(blipCorners), blipCorners, GL_STATIC_DRAW);
+	glEnableVertexAttribArray(0);
+	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), nullptr);
+
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, blipEbo);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(blipIndices), blipIndices, GL_STATIC_DRAW);
+
+	glBindBuffer(GL_ARRAY_BUFFER, blipInstanceVbo);
+	blipInstanceCapacity = 64 * 384;
+	glBufferData(GL_ARRAY_BUFFER, blipInstanceCapacity, nullptr, GL_STREAM_DRAW);
+	for (GLuint attribute = 1; attribute <= 4; ++attribute)
+	{
+		glEnableVertexAttribArray(attribute);
+		glVertexAttribPointer(attribute, 4, GL_FLOAT, GL_FALSE, 64,
+			reinterpret_cast<void*>(static_cast<uintptr_t>((attribute - 1) * 16)));
+		glVertexAttribDivisor(attribute, 1);
+	}
+	glBindVertexArray(0);
+
+	// ========== SQTR ribbon trail ==========
+	glGenVertexArrays(1, &sqtrVao);
+	glGenBuffers(1, &sqtrVbo);
+	glBindVertexArray(sqtrVao);
+	glBindBuffer(GL_ARRAY_BUFFER, sqtrVbo);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(SQTRGPU) * 64 * 2, nullptr, GL_STREAM_DRAW);
+
+	glEnableVertexAttribArray(0);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(SQTRGPU),
+		reinterpret_cast<void*>(offsetof(SQTRGPU, pos)));
+	glEnableVertexAttribArray(2);
+	glVertexAttribPointer(2, 4, GL_FLOAT, GL_FALSE, sizeof(SQTRGPU),
+		reinterpret_cast<void*>(offsetof(SQTRGPU, rgba)));
+	glEnableVertexAttribArray(3);
+	glVertexAttribPointer(3, 2, GL_FLOAT, GL_FALSE, sizeof(SQTRGPU),
+		reinterpret_cast<void*>(offsetof(SQTRGPU, uv)));
 	glBindVertexArray(0);
 
 	glViewport(0, 0, width, height - imguiOffset);
@@ -132,6 +247,7 @@ void GL::InitGL()
 	
 	glslDyshMatWorldClip = glGetUniformLocation(glDyshadow.ID, "matWorldToClip");
 	glslDyshModel        = glGetUniformLocation(glDyshadow.ID, "model");
+	glslDyshfSkin        = glGetUniformLocation(glDyshadow.ID, "fSkin");
 
 	glGlobShader.Init("glob.vert", NULL, "glob.frag");
 	ropStream.bindIndex = 1;
@@ -178,14 +294,80 @@ void GL::InitGL()
 	u_projectionLoc = glGetUniformLocation(glBlotShader.ID, "u_projection");
 	u_modelLoc      = glGetUniformLocation(glBlotShader.ID, "u_model");
 	uvRectLoc       = glGetUniformLocation(glBlotShader.ID, "u_uvRect");
+	u_useVertexColorLoc = glGetUniformLocation(glBlotShader.ID, "u_useVertexColor");
+	glUniform1i(u_useVertexColorLoc, 0);
 	blotColorLoc    = glGetUniformLocation(glBlotShader.ID, "blotColor");
 	u_fontTexLoc    = glGetUniformLocation(glBlotShader.ID, "u_fontTex");
 
 	glUniformMatrix4fv(u_projectionLoc, 1, GL_FALSE, glm::value_ptr(g_gl.blotProjection));
 
+	glBlipShader.Init("blip.vert", NULL, "blip.frag");
+	glBlipShader.Use();
+	glUniform1i(glGetUniformLocation(glBlipShader.ID, "diffuseMap"), 0);
+	glslBlipCurrentTime = glGetUniformLocation(glBlipShader.ID, "currentTime");
+	glslBlipDtFrame = glGetUniformLocation(glBlipShader.ID, "dtFrame");
+	glslBlipCameraMat = glGetUniformLocation(glBlipShader.ID, "cameraMat");
+	glslBlipAlphaPass = glGetUniformLocation(glBlipShader.ID, "alphaPass");
+
+	blipStream.bindIndex = 1;
+	align = 256;
+	glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &align);
+	blipStream.stride = (sizeof(BLIPGROUPGPU) + align - 1) & ~(align - 1);
+	const GLuint blipGroupBlock = glGetUniformBlockIndex(glBlipShader.ID, "BlipGroup");
+	if (blipGroupBlock != GL_INVALID_INDEX)
+		glUniformBlockBinding(glBlipShader.ID, blipGroupBlock, blipStream.bindIndex);
+
 	glDepthMask(GL_TRUE);
 	glCullFace(GL_BACK);
 	glFrontFace(GL_CCW);
+	////
+	glGenVertexArrays(1, &lineVao);
+	glGenBuffers(1, &lineVbo);
+
+	glBindVertexArray(lineVao);
+	glBindBuffer(GL_ARRAY_BUFFER, lineVbo);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(BLOTLINEVERTEX) * 2, nullptr, GL_DYNAMIC_DRAW);
+
+	glEnableVertexAttribArray(0);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(BLOTLINEVERTEX), reinterpret_cast<void*>(offsetof(BLOTLINEVERTEX, position)));
+
+	glEnableVertexAttribArray(1);
+	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(BLOTLINEVERTEX), reinterpret_cast<void*>(offsetof(BLOTLINEVERTEX, uv)));
+
+	glEnableVertexAttribArray(2);
+	glVertexAttribPointer(2, 4, GL_FLOAT, GL_FALSE, sizeof(BLOTLINEVERTEX), reinterpret_cast<void*>(offsetof(BLOTLINEVERTEX, color)));
+
+	glBindVertexArray(0);
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+	////
+	glGenTextures(1, &whiteTex);
+	glBindTexture(GL_TEXTURE_2D, whiteTex);
+
+	uint32_t white = 0xFFFFFFFFu;
+
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, 1, 1, 0, GL_RGBA, GL_UNSIGNED_BYTE, &white);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+
+	whiteHandle = glGetTextureHandleARB(whiteTex);
+	glMakeTextureHandleResidentARB(whiteHandle);
+
+	glBindTexture(GL_TEXTURE_2D, 0);
+
+	glslDyshfSkin = glGetUniformLocation(glDyshadow.ID, "fSkin");
+	glslfSkin     = glGetUniformLocation(glGlobShader.ID, "fSkin");
+	glslCelSkin   = glGetUniformLocation(glCelBorderShader.ID, "fSkin");
+
+	glslfPose       = glGetUniformLocation(glGlobShader.ID, "fPose");
+	glslPoseCount   = glGetUniformLocation(glGlobShader.ID, "poseCount");
+	glslPoseWeights = glGetUniformLocation(glGlobShader.ID, "poseWeights[0]");
+
+	glslCelPose        = glGetUniformLocation(glCelBorderShader.ID, "fPose");
+	glslCelPoseCount   = glGetUniformLocation(glCelBorderShader.ID, "poseCount");
+	glslCelPoseWeights = glGetUniformLocation(glCelBorderShader.ID, "poseWeights[0]");
 }
 
 void GL::CreateFramebuffers(int w, int h)
@@ -258,7 +440,7 @@ void GL::CreateFramebuffers(int w, int h)
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	}
 
-	dyshWidth = 1024;
+	dyshWidth  = 1024;
 	dyshHeight = 1024;
 
 	glGenFramebuffers(1, &dyshFbo);
@@ -278,37 +460,38 @@ void GL::CreateFramebuffers(int w, int h)
 
 void GL::ResizeFramebuffers(int w, int h)
 {
-	width  = (float)std::max(1, w);
-	height = (float)std::max(1, h);
+	int fbW = std::max(1, w);
+	int fbH = std::max(1, h);
 
-	// ----------------------------
-	// Resolved FBO attachments
-	// ----------------------------
+	// Resizing the off-screen scene target must not change the logical UI
+	// canvas. width/height track the output framebuffer for HUD/blot layout.
+	renderWidth = fbW;
+	renderHeight = fbH;
+
 	if (fbc)
 	{
 		glBindTexture(GL_TEXTURE_2D, fbc);
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, fbW, fbH, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
 	}
 
 	if (rbo)
 	{
 		glBindRenderbuffer(GL_RENDERBUFFER, rbo);
-		glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, w, h);
+		glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, fbW, fbH);
 	}
 
 	if (fbo)
 	{
 		glBindFramebuffer(GL_FRAMEBUFFER, fbo);
-		if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+
+		GLenum status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
+		if (status != GL_FRAMEBUFFER_COMPLETE)
 		{
-			std::cout << "Resolved FBO incomplete after resize\n";
+			std::cout << "Resolved FBO incomplete after resize: 0x" << std::hex << status << std::dec << "\n";
 			while (true) {}
 		}
 	}
 
-	// ----------------------------
-	// MSAA FBO attachments
-	// ----------------------------
 	if (g_fMsaa && fboMSAA)
 	{
 		GLint maxSamples = 0;
@@ -318,27 +501,30 @@ void GL::ResizeFramebuffers(int w, int h)
 		if (rboColorMSAA)
 		{
 			glBindRenderbuffer(GL_RENDERBUFFER, rboColorMSAA);
-			glRenderbufferStorageMultisample(GL_RENDERBUFFER, g_msaaSamples, GL_RGBA8, w, h);
+			glRenderbufferStorageMultisample(GL_RENDERBUFFER, g_msaaSamples, GL_RGBA8, fbW, fbH);
 		}
 
 		if (rboDepthStencilMSAA)
 		{
 			glBindRenderbuffer(GL_RENDERBUFFER, rboDepthStencilMSAA);
-			glRenderbufferStorageMultisample(GL_RENDERBUFFER, g_msaaSamples, GL_DEPTH24_STENCIL8, w, h);
+			glRenderbufferStorageMultisample(GL_RENDERBUFFER, g_msaaSamples, GL_DEPTH24_STENCIL8, fbW, fbH);
 		}
 
 		glBindFramebuffer(GL_FRAMEBUFFER, fboMSAA);
-		if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+
+		GLenum status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
+		if (status != GL_FRAMEBUFFER_COMPLETE)
 		{
-			std::cout << "MSAA FBO incomplete after resize\n";
+			std::cout << "MSAA FBO incomplete after resize: 0x" << std::hex << status << std::dec << "\n";
 			while (true) {}
 		}
 	}
-}
 
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+}
 void GL::UpdateGLProjections()
 {
-	float windowAspect = width / height;
+	const float windowAspect = static_cast<float>(width) / static_cast<float>(height);
 
 	float scaleX = 1.0f;
 	float scaleY = 1.0f;
@@ -360,6 +546,17 @@ void GL::UpdateGLProjections()
 
 void GL::TerminateGL()
 {
+	if (whiteHandle)
+	{
+		glMakeTextureHandleNonResidentARB(whiteHandle);
+		whiteHandle = 0;
+	}
+
+	if (whiteTex)
+	{
+		glDeleteTextures(1, &whiteTex);
+		whiteTex = 0;
+	}
 	glDeleteFramebuffers(1, &fbo);
 	glDeleteTextures(1, &fbc);
 	glDeleteRenderbuffers(1, &rbo);
@@ -376,8 +573,21 @@ void GL::TerminateGL()
 	glDeleteBuffers(1, &sbo);
 	glDeleteVertexArrays(1, &gao);
 	glDeleteBuffers(1, &gbo);
+	glDeleteBuffers(1, &geo);
+
+	glDeleteVertexArrays(1, &blipVao);
+	glDeleteBuffers(1, &blipVbo);
+	glDeleteBuffers(1, &blipEbo);
+	glDeleteBuffers(1, &blipInstanceVbo);
+	glDeleteVertexArrays(1, &sqtrVao);
+	glDeleteBuffers(1, &sqtrVbo);
+
+	glDeleteVertexArrays(1, &lineVao);
+	glDeleteBuffers(1, &lineVbo);
+
 	DeleteFrameStream(&ropStream);
 	DeleteFrameStream(&rcbStream);
+	DeleteFrameStream(&blipStream);
 	glDeleteBuffers(1, &geomUBO);
 	glDeleteBuffers(1, &cmUBO);
 
@@ -386,6 +596,7 @@ void GL::TerminateGL()
 	glCelBorderShader.Delete();
 	glGeomShader.Delete();
 	glBlotShader.Delete();
+	glBlipShader.Delete();
 
 	ImGui_ImplOpenGL3_Shutdown();
 	ImGui_ImplGlfw_Shutdown();
@@ -517,9 +728,26 @@ void DeleteFrameStream(STREAM* pstream)
 
 void ApplyMsaaSettings()
 {
-	// Use your current render target size (scene size)
-	int w = g_gl.width;   // or g_gl.width if that's your scene width
-	int h = g_gl.height;   // or g_gl.height if that's your scene height
+	if (g_gl.fboMSAA)
+		glDeleteFramebuffers(1, &g_gl.fboMSAA);
+	if (g_gl.rboColorMSAA)
+		glDeleteRenderbuffers(1, &g_gl.rboColorMSAA);
+	if (g_gl.rboDepthStencilMSAA)
+		glDeleteRenderbuffers(1, &g_gl.rboDepthStencilMSAA);
+
+	g_gl.fboMSAA = 0;
+	g_gl.rboColorMSAA = 0;
+	g_gl.rboDepthStencilMSAA = 0;
+
+	if (!g_fMsaa)
+	{
+		glBindFramebuffer(GL_FRAMEBUFFER, 0);
+		return;
+	}
+
+	// MSAA storage must match the off-screen scene target, not the UI canvas.
+	int w = g_gl.renderWidth;
+	int h = g_gl.renderHeight;
 	w = std::max(w, 1);
 	h = std::max(h, 1);
 
@@ -549,15 +777,137 @@ void ApplyMsaaSettings()
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
+void ApplyInternalResolutionSettings()
+{
+	int width = 1;
+	int height = 1;
+	glfwGetFramebufferSize(g_gl.window, &width, &height);
+	FrameBufferSizeCallBack(g_gl.window, width, height);
+}
+
+void ApplyWindowModeSettings(WindowMode mode)
+{
+	if (g_gl.window == nullptr || mode == g_windowMode)
+		return;
+
+	GLFWmonitor* monitor = MonitorForWindow(g_gl.window);
+	if (monitor == nullptr)
+		return;
+
+	if (g_windowMode == WindowMode_Windowed)
+	{
+		glfwGetWindowPos(g_gl.window, &s_windowedX, &s_windowedY);
+		glfwGetWindowSize(g_gl.window, &s_windowedWidth, &s_windowedHeight);
+	}
+
+	if (mode == WindowMode_Windowed)
+	{
+		glfwSetWindowAttrib(g_gl.window, GLFW_DECORATED, GLFW_TRUE);
+		glfwSetWindowMonitor(g_gl.window, nullptr, s_windowedX, s_windowedY,
+			(std::max)(s_windowedWidth, 320), (std::max)(s_windowedHeight, 240), GLFW_DONT_CARE);
+	}
+	else if (mode == WindowMode_Borderless)
+	{
+		int x = 0;
+		int y = 0;
+		int width = 0;
+		int height = 0;
+		glfwGetMonitorWorkarea(monitor, &x, &y, &width, &height);
+		glfwSetWindowAttrib(g_gl.window, GLFW_DECORATED, GLFW_FALSE);
+		glfwSetWindowMonitor(g_gl.window, nullptr, x, y, width, height, GLFW_DONT_CARE);
+	}
+	else
+	{
+		const GLFWvidmode* videoMode = glfwGetVideoMode(monitor);
+		if (videoMode == nullptr)
+			return;
+		glfwSetWindowAttrib(g_gl.window, GLFW_DECORATED, GLFW_TRUE);
+		glfwSetWindowMonitor(g_gl.window, monitor, 0, 0,
+			videoMode->width, videoMode->height, videoMode->refreshRate);
+	}
+
+	g_windowMode = mode;
+	glfwSwapInterval(g_fVsync ? 1 : 0);
+}
+
+void ApplyAspectRatioSettings(AspectMode mode)
+{
+	g_gl.aspectMode = mode;
+	switch (mode)
+	{
+		case Fixed_4_3: g_gl.aspectRatio = 4.0f / 3.0f; break;
+		case Fixed_16_10: g_gl.aspectRatio = 16.0f / 10.0f; break;
+		case Fixed_16_9: g_gl.aspectRatio = 16.0f / 9.0f; break;
+		case FitToScreen:
+		default: break;
+	}
+	ApplyInternalResolutionSettings();
+}
+
 void FrameBufferSizeCallBack(GLFWwindow* window, int width, int height)
 {
-	float imguiOffset = ImGui::GetFrameHeight();
+	constexpr float kVirtualUiWidth = 640.0f;
+	constexpr float kVirtualUiHeight = 492.80002f;
 
-	int sceneW = width;
-	int sceneH = std::max(1, int(float(height) - imguiOffset));
+	float imguiOffset = 0.0f;
+	if (g_fDebugMode != 0 && ImGui::GetCurrentContext() != nullptr)
+	{
+		float contentScaleX = 1.0f;
+		float contentScaleY = 1.0f;
+		glfwGetWindowContentScale(window, &contentScaleX, &contentScaleY);
+		imguiOffset = ImGui::GetFrameHeight() * contentScaleY;
+	}
 
-	g_gl.width  = sceneW;
-	g_gl.height = sceneH;
+	const int outputW = std::max(1, width);
+	const int outputH = std::max(1, int(std::ceil(float(height) - imguiOffset)));
+	float targetAspect = static_cast<float>(outputW) / static_cast<float>(outputH);
+	if (g_gl.aspectMode == Fixed_4_3)
+		targetAspect = 4.0f / 3.0f;
+	else if (g_gl.aspectMode == Fixed_16_9)
+		targetAspect = 16.0f / 9.0f;
+	else if (g_gl.aspectMode == Fixed_16_10)
+		targetAspect = 16.0f / 10.0f;
+	g_gl.aspectRatio = targetAspect;
+	int presentW = outputW;
+	int presentH = std::max(1, static_cast<int>(std::lround(outputW / targetAspect)));
+	if (presentH > outputH)
+	{
+		presentH = outputH;
+		presentW = std::max(1, static_cast<int>(std::lround(outputH * targetAspect)));
+	}
+
+	int sceneW = presentW;
+	int sceneH = presentH;
+
+	if (g_internalResolutionHeight > 0)
+	{
+		sceneH = g_internalResolutionHeight;
+		sceneW = std::max(1, static_cast<int>(std::lround(
+			static_cast<double>(sceneH) * static_cast<double>(presentW) /
+			static_cast<double>(presentH))));
+	}
+
+	// UI and HUD layout always use the actual output size. Only the scene
+	// framebuffer changes with the internal-resolution option.
+	g_gl.width  = static_cast<float>(presentW);
+	g_gl.height = static_cast<float>(presentH);
+	g_gl.renderWidth = sceneW;
+	g_gl.renderHeight = sceneH;
+	g_gl.outputWidth = outputW;
+	g_gl.outputHeight = outputH;
+	g_gl.presentX = (outputW - presentW) / 2;
+	g_gl.presentY = (outputH - presentH) / 2;
+	g_gl.presentWidth = presentW;
+	g_gl.presentHeight = presentH;
+
+	// Preserve the PS2 UI aspect ratio and center the virtual canvas.  UI
+	// renderers can now share one resize result instead of independently
+	// stretching X and Y or mixing virtual and framebuffer coordinates.
+	g_gl.uiScale = std::min(
+		static_cast<float>(presentW) / kVirtualUiWidth,
+		static_cast<float>(presentH) / kVirtualUiHeight);
+	g_gl.uiOrigin.x = (static_cast<float>(presentW) - kVirtualUiWidth * g_gl.uiScale) * 0.5f;
+	g_gl.uiOrigin.y = (static_cast<float>(presentH) - kVirtualUiHeight * g_gl.uiScale) * 0.5f;
 
 	g_gl.ResizeFramebuffers(sceneW, sceneH);
 
@@ -565,16 +915,15 @@ void FrameBufferSizeCallBack(GLFWwindow* window, int width, int height)
 
 	g_gl.UpdateGLProjections();
 
-	g_gl.blotProjection = glm::ortho(0.0f, float(sceneW), float(sceneH), 0.0f, -1.0f, 1.0f);
+	g_gl.blotProjection = glm::ortho(0.0f, float(presentW), float(presentH), 0.0f, -1.0f, 1.0f);
 
 	glBlotShader.Use();
 	glUniformMatrix4fv(u_projectionLoc, 1, GL_FALSE, glm::value_ptr(g_gl.blotProjection));
 
-	glGlobShader.Use();
-
 	if (g_pcm != nullptr)
 		RecalcCm(g_pcm);
 
+	ResizeTvUiForFramebuffer();
 	RepositionAllBlots();
 }
 
@@ -582,7 +931,12 @@ GL g_gl;
 GLuint cmUBO = 0;
 STREAM ropStream;
 STREAM rcbStream;
+STREAM blipStream;
 GLuint geomUBO = 0;
+GLint glslBlipCurrentTime = -1;
+GLint glslBlipDtFrame = -1;
+GLint glslBlipCameraMat = -1;
+GLint glslBlipAlphaPass = -1;
 GLuint glslLsmShadow = 0;
 GLuint glslLsmDiffuse = 0;
 GLuint glslFogType = 0;
@@ -600,6 +954,7 @@ GLuint glslSubGlobPosCenter = 0;
 GLuint glslSubGlobRadius = 0;
 GLuint glslDyshMatWorldClip = 0;
 GLuint glslDyshModel = 0;
+GLuint glslDyshfSkin = 0;
 GLuint glslAmbientMap = 0;
 GLuint glslDiffuseMap = 0;
 GLuint glslSaturateMap = 0;
@@ -610,4 +965,21 @@ uint64_t screenTextureHandle = 0;
 GLuint g_sceneFbo = 0;
 int g_msaaSamples = 4;
 bool g_fMsaa = false;
+int g_internalResolutionHeight = 0;
+WindowMode g_windowMode = WindowMode_Windowed;
+float g_drawDistanceMultiplier = 1.0f;
 int g_frames = 3;
+float s_dxDisplay;
+float s_dyDisplay;
+float s_dxDisplayOriginal;
+float s_dyDisplayOriginal;
+GLuint lineVao = 0;
+GLuint lineVbo = 0;
+GLuint glslfSkin = 0;
+GLint glslCelSkin = 0;
+GLuint glslfPose = 0;
+GLuint glslPoseCount = 0;
+GLuint glslPoseWeights = 0;
+GLuint glslCelPose = 0;
+GLuint glslCelPoseCount = 0;
+GLuint glslCelPoseWeights = 0;

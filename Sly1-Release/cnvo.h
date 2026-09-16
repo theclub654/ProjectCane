@@ -5,7 +5,6 @@
 class CNVO : public SO
 {
 	public:
-
 	float svBelt;
 	float svuAvg;
 	float svvAvg;
@@ -13,10 +12,11 @@ class CNVO : public SO
 
 CNVO*NewCnvo();
 void InitCnvo(CNVO* pcnvo);
-int  GetCnvoSize();
 void LoadCnvoFromBrx(CNVO* pcnvo, CBinaryInputStream* pbis);
 void CloneCnvo(CNVO* pcnvo, CNVO* pcnvoBase);
-void MatchCnvoScrollerToBeltSpeed(CNVO* cnvo);
-void SetCnvoBeltSpeed(CNVO* pcnvo, float svBelt);
 void PostCnvoLoad(CNVO* pcnvo);
+void AdjustCnvoXpVelocity(CNVO* pcnvo, XP* pxp, int ixpd);
+int  GetCnvoSize();
+void SetCnvoBeltSpeed(CNVO* pcnvo, float svBelt);
+void MatchCnvoScrollerToBeltSpeed(CNVO* pcnvo);
 void DeleteCnvo(CNVO *pcnvo);

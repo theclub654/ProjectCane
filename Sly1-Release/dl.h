@@ -13,7 +13,7 @@ struct DL
 		class ALO* paloFirst;
 		class SO* psoFirst;
 		class ASEGA* pasegaFirst;
-		class ACTSEG* pactsegFirst;
+		struct ACTSEG* pactsegFirst;
 		class AMB* pambFirst;
 		class EXC* pexcFirst;
 		class RIP* pripFirst;
@@ -48,7 +48,7 @@ struct DL
 		class LASEN* plasenFirst;
 		class FE* pfeFirst;
 		class EXPLSTE* pexplsteFirst;
-		class FADER* pfaderFirst;
+		struct FADER* pfaderFirst;
 		class CRFOD* pcrfodFirst;
 		class JLOVOL* pjlovolFirst;
 		class EMITTER* pemitterFirst;
@@ -64,7 +64,7 @@ struct DL
 		class ALO* paloLast;
 		class SO* psoLast;
 		class ASEGA* pasegaLast;
-		class ACTSEG* pactsegLast;
+		struct ACTSEG* pactsegLast;
 		class AMB* pambLast;
 		class EXC* pexcLast;
 		class RIP* pripLast;
@@ -99,7 +99,7 @@ struct DL
 		class LASEN* plasenLast;
 		class FE* pfeLast;
 		class EXPLSTE* pexplsteLast;
-		class FADER* pfaderLast;
+		struct FADER* pfaderLast;
 		class CRFOD* pcrfodLast;
 		class JLOVOL* pjlovolLast;
 		class EMITTER* pemitterLast;
@@ -125,7 +125,7 @@ struct DLE
 		class ALO* paloNext;
 		class SO* psoNext;
 		class ASEGA* pasegaNext;
-		class ACTSEG* pactsegNext;
+		struct ACTSEG* pactsegNext;
 		class AMB* pambNext;
 		class EXC* pexcNext;
 		class RIP* pripNext;
@@ -160,7 +160,7 @@ struct DLE
 		class LASEN* plasenNext;
 		class FE* pfeNext;
 		class EXPLSTE* pexplsteNext;
-		class FADER* pfaderNext;
+		struct FADER* pfaderNext;
 		class CRFOD* pcrfodNext;
 		class JLOVOL* pjlovolNext;
 		class EMITTER* pemitterNext;
@@ -176,7 +176,7 @@ struct DLE
 		class ALO* paloPrev;
 		class SO* psoPrev;
 		class ASEGA* pasegaPrev;
-		class ACTSEG* pactsegPrev;
+		struct ACTSEG* pactsegPrev;
 		class AMB* pambPrev;
 		class EXC* pexcPrev;
 		class RIP* pripPrev;
@@ -211,7 +211,7 @@ struct DLE
 		class LASEN* plasenPrev;
 		class FE* pfePrev;
 		class EXPLSTE* pexplstePrev;
-		class FADER* pfaderPrev;
+		struct FADER* pfaderPrev;
 		class CRFOD* pcrfodPrev;
 		class JLOVOL* pjlovolPrev;
 		class EMITTER* pemitterPrev;
@@ -245,6 +245,7 @@ DLE* PdleFromDlEntry(DL *pdl, void *pv);
 void AppendDlEntry(DL *pdl, void *pv);
 // Inserts data at the front of DL list
 void PrependDlEntry(DL *pdl, void *pv);
+void InsertDlEntryBefore(DL* pdl, void* pvNext, void* pv);
 // Remove Entry from DL list
 void RemoveDlEntry(DL *pdl, void *pv);
 // Returns whether entry was found in DL list or not

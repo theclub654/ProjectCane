@@ -1,4 +1,66 @@
 #include "glshaders.h"
+#include "resource1.h"
+
+#include <Windows.h>
+#include <cstring>
+#include <stdexcept>
+
+namespace
+{
+	int ShaderResourceId(const char* filename)
+	{
+		struct ShaderResource
+		{
+			const char* filename;
+			int resourceId;
+		};
+
+		static constexpr ShaderResource resources[] =
+		{
+			{ "screen.vert", IDR_SHADER_SCREEN_VERT },
+			{ "screen.frag", IDR_SHADER_SCREEN_FRAG },
+			{ "dysh.vert", IDR_SHADER_DYSH_VERT },
+			{ "dysh.frag", IDR_SHADER_DYSH_FRAG },
+			{ "glob.vert", IDR_SHADER_GLOB_VERT },
+			{ "glob.frag", IDR_SHADER_GLOB_FRAG },
+			{ "celborder.vert", IDR_SHADER_CELBORDER_VERT },
+			{ "celborder.frag", IDR_SHADER_CELBORDER_FRAG },
+			{ "geom.vert", IDR_SHADER_GEOM_VERT },
+			{ "geom.frag", IDR_SHADER_GEOM_FRAG },
+			{ "blot.vert", IDR_SHADER_BLOT_VERT },
+			{ "blot.frag", IDR_SHADER_BLOT_FRAG },
+			{ "blip.vert", IDR_SHADER_BLIP_VERT },
+			{ "blip.frag", IDR_SHADER_BLIP_FRAG },
+		};
+
+		for (const ShaderResource& resource : resources)
+		{
+			if (std::strcmp(filename, resource.filename) == 0)
+				return resource.resourceId;
+		}
+
+		return 0;
+	}
+
+	std::string GetEmbeddedShaderSource(const char* filename)
+	{
+		const int resourceId = ShaderResourceId(filename);
+		if (resourceId == 0)
+			throw std::runtime_error(std::string("Unknown embedded shader: ") + filename);
+
+		HRSRC resource = FindResourceW(nullptr, MAKEINTRESOURCEW(resourceId), RT_RCDATA);
+		if (resource == nullptr)
+			throw std::runtime_error(std::string("Embedded shader resource was not found: ") + filename);
+
+		HGLOBAL loadedResource = LoadResource(nullptr, resource);
+		const DWORD resourceSize = SizeofResource(nullptr, resource);
+		const void* resourceData = LockResource(loadedResource);
+		if (loadedResource == nullptr || resourceData == nullptr || resourceSize == 0)
+			throw std::runtime_error(std::string("Embedded shader resource could not be loaded: ") + filename);
+
+		return std::string(static_cast<const char*>(resourceData), resourceSize);
+	}
+}
 
 void GLSHADER::Init(const char* vertexFile, const char* geometryFile, const char* fragmentFile)
 {
@@ -7,13 +69,13 @@ void GLSHADER::Init(const char* vertexFile, const char* geometryFile, const char
 	std::string fragmentCode{};
 
 	if (vertexFile != NULL)
-		vertexCode = get_file_contents(vertexFile);
+		vertexCode = GetEmbeddedShaderSource(vertexFile);
 
 	if (geometryFile != NULL)
-		geometryCode = get_file_contents(geometryFile);
+		geometryCode = GetEmbeddedShaderSource(geometryFile);
 
 	if (fragmentFile != NULL)
-		fragmentCode = get_file_contents(fragmentFile);
+		fragmentCode = GetEmbeddedShaderSource(fragmentFile);
 
 	const char* vertexSource   = NULL;
 	const char* geometrySource = NULL;
@@ -119,26 +181,10 @@ void GLSHADER::compileErrors(unsigned int shader, const char* type)
 	}
 }
 
-std::string get_file_contents(const char* filename)
-{
-	std::ifstream in(filename, std::ios::binary);
-	if (in)
-	{
-		std::string contents;
-		in.seekg(0, std::ios::end);
-		contents.resize(in.tellg());
-		in.seekg(0, std::ios::beg);
-		in.read(&contents[0], contents.size());
-		in.close();
-		return(contents);
-	}
-
-	throw(errno);
-}
-
 GLSHADER glScreenShader;
 GLSHADER glDyshadow;
 GLSHADER glGlobShader;
 GLSHADER glCelBorderShader;
 GLSHADER glGeomShader;
 GLSHADER glBlotShader;
+GLSHADER glBlipShader;

@@ -1,4 +1,5 @@
 #include "dysh.h"
+#include "shadow.h"
 
 DYSH* NewDysh()
 {
@@ -21,6 +22,7 @@ void CloneDysh(DYSH *pdysh, DYSH *pdyshBase)
 {
 	CloneAlo(pdysh, pdyshBase);
 
+    pdysh->shadowTex  = pdyshBase->shadowTex;
 	pdysh->pshadowGen = pdyshBase->pshadowGen;
 }
 
@@ -31,6 +33,7 @@ void SetDyshShadow(DYSH *pdysh, SHADOW *pshadow)
     if (!pshadow)
         return;
 
+    pshadow->pdysh = pdysh;
     pshadow->rsh.fDynamic = 1;
 
     const int w = g_gl.dyshWidth;
@@ -44,14 +47,12 @@ void SetDyshShadow(DYSH *pdysh, SHADOW *pshadow)
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
-    // Better match PS2 clamp/border behavior.
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
 
     float borderColor[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
     glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
 
-    // Initialize texture to transparent, like PS2 clearing the bitmap.
     std::vector <uint8_t> clearData(w * h * 4, 0);
     glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, w, h, GL_RGBA, GL_UNSIGNED_BYTE, clearData.data());
 
@@ -69,19 +70,28 @@ void RenderDyshSelf(DYSH* pdysh, CM* pcm, RO* pro)
     if (pdysh->pshadowGen != nullptr) 
     {
         RPL rpl{};
-		//pdysh->pvtalo->pfnUpdateAloInfluences(pdysh, pro);
+
+		if (pdysh->pvtalo != nullptr && pdysh->pvtalo->pfnUpdateAloInfluences != nullptr)
+			pdysh->pvtalo->pfnUpdateAloInfluences(pdysh, pro);
+
         rpl.rp = RP_DynamicTexture;
         DupAloRo(pdysh, pro, &rpl.ro);
 
         rpl.pdysh = pdysh;
-
-        rpl.pglob = &pdysh->globset.aglob[0];
         SubmitRpl(&rpl);
     }
 }
 
 void DeleteDysh(DYSH *pdysh)
 {
+    if (pdysh->shadowTex)
+    {
+        GLuint64 handle = glGetTextureHandleARB(pdysh->shadowTex);
+
+        glMakeTextureHandleNonResidentARB(handle);
+        glDeleteTextures(1, &pdysh->shadowTex);
+    }
+
 	delete pdysh;
 }
 

@@ -5,6 +5,8 @@
 #include "clock.h"
 #include "Input.h"
 #include <unordered_set>
+#include <unordered_map>
+#include "game.h"
 
 enum BLOTS
 {
@@ -24,30 +26,38 @@ enum BLOTK
     BLOTK_Lives = 3,
     BLOTK_Clue = 4,
     BLOTK_Key = 5,
-    BLOTK_Gold = 6,
-    BLOTK_Coin = 7,
-    BLOTK_Trunk = 8,
-    BLOTK_Crusher = 9,
-    BLOTK_Lap = 10,
-    BLOTK_Boost = 11,
-    BLOTK_Place = 12,
-    BLOTK_Boss = 13,
-    BLOTK_PuffCharge = 14,
-    BLOTK_Timer = 15,
-    BLOTK_Note = 16,
-    BLOTK_Title = 17,
-    BLOTK_Totals = 18,
-    BLOTK_Call = 19,
-    BLOTK_Wmc = 20,
-    BLOTK_Prompt = 21,
-    BLOTK_TvLeft = 22,
-    BLOTK_TvRight = 23,
-    BLOTK_Scores = 24,
-    BLOTK_Logo = 25,
-    BLOTK_Attract = 26,
-    BLOTK_Credit = 27,
-    BLOTK_Debug = 28,
-    BLOTK_Max = 29
+    BLOTK_Coin = 6,
+    BLOTK_Gold = 7,
+    BLOTK_PuffCharge = 8,
+    BLOTK_Lap = 9,
+    BLOTK_Boost = 10,
+    BLOTK_Place = 11,
+    BLOTK_SecurityCode = 12,
+    BLOTK_MgvHealth = 13,
+    BLOTK_Boss = 14,
+    BLOTK_Crusher = 15,
+    BLOTK_Timer = 16,
+    BLOTK_Note = 17,
+    BLOTK_Unused18 = 18,
+    BLOTK_Title = 19,
+    BLOTK_Totals = 20,
+    BLOTK_Call = 21,
+    BLOTK_Wmc = 22,
+    BLOTK_Hub = 23,
+    BLOTK_FmvMenu = 24,
+    BLOTK_Prompt = 25,
+    BLOTK_TvLeft = 26,
+    BLOTK_TvRight = 27,
+    BLOTK_VanComputer = 28,
+    BLOTK_Scores = 29,
+    BLOTK_Logo = 30,
+    BLOTK_Attract = 31,
+    BLOTK_Credit = 32,
+    BLOTK_RubyIcon = 33,
+    BLOTK_JtIcon = 34,
+    BLOTK_Autosave = 35,
+    BLOTK_Percent = 36,
+    BLOTK_Max = 37
 };
 enum BLOTE
 {
@@ -86,12 +96,13 @@ struct BLOT
         struct VTPLACECTR* pvtplacectr;
         struct VTLAPCTR* pvtlapctr;
         struct VTPUFFCHARGECTR* pvtpuffchargectr;
-        struct VTBOSSCTR* pvtbossctr;
+        struct VTBOSS* pvtboss;
         struct VTNOTE* pvtnote;
         struct VTTITLE* pvttitle;
         struct VTTOTALS* pvttotals;
         struct VTCALL* pvtcall;
         struct VTSCORES* pvtscores;
+        struct VTVAN* pvtvan;
         struct VTLOGO* pvtlogo;
         struct VTATTRACT* pvtattract;
         struct VTTIMER* pvttimer;
@@ -103,6 +114,10 @@ struct BLOT
         struct VTBINOC* pvtbinoc;
         struct VTLGNR* pvtlgnr;
         struct VTWMC* pvtwmc;
+        struct VTSAVEBLOT* pvtsaveblot;
+        struct VTHUBBLOT* pvthubblot;
+        struct VTFMV* pvtfmv;
+        struct VTJTICON* pvtjticon;
 
     };
     CFontBrx* pfont;          // Font to draw with
@@ -138,9 +153,11 @@ void  PostBlotsLoad();
 void  PostBlotLoad(BLOT* pblot);
 // Sets the text to be drawn on the blot and resizes it to fit the text
 void  SetBlotAchzDraw(BLOT *pblot, char *pchz);
+char* FormatBlotRichText(BLOT* pblot);
 void  OnBlotActive(BLOT* pblot, int fActive);
 void  ShowBlot(BLOT* pblot);
 void  HideBlot(BLOT* pblot);
+void  ForceHideBlots();
 BLOTS GetBlot(BLOT* pblot);
 void  SetBlotClock(BLOT* pblot, float* pt);
 void  SetBlotFontScale(BLOT* pblot, float rFontScale);
@@ -161,6 +178,7 @@ void  UpdateBlot(BLOT* pblot);
 void  UpdateBlotActive(BLOT* pblot, JOY* pjoy);
 void  UpdateBlots();
 void  DrawBlot(BLOT *pblot);
+void  RenderBlots();
 void  DrawBlots();
 void  ResetBlots();
 
@@ -217,7 +235,7 @@ extern VTKEYCTR g_vtkeyctr;
 struct VTLETTERBOX 
 {
     void (*pfnInitBlot)(BLOT*, BLOTK) = InitBlot;
-    void (*pfnPostBlotLoad)(BLOT*) = PostBlotLoad;
+    void (*pfnPostLetterboxLoad)(LETTERBOX*) = PostLetterBoxLoad;
     void (*pfnUpdateBlot)(BLOT*) = UpdateBlot;
     void (*pfnOnBlotActive) = nullptr;
     void (*pfnUpdateBlotActive) = nullptr;
@@ -232,7 +250,7 @@ struct VTLETTERBOX
     float (*pfnDtDisappearBlot)(BLOT*) = DtDisappearBlot;
     void (*pfnShowBlot)(BLOT*) = ShowBlot;
     void (*pfnHideBlot)(BLOT*) = HideBlot;
-    void (*pfnSetBlotBlots)(BLOT*, BLOTS) = SetBlotBlots;
+    void (*pfnSetLetterboxBlots)(LETTERBOX*, BLOTS) = SetLetterboxBlots;
     void (*pfnSetBlotClock)(BLOT*, float*) = SetBlotClock;
     int  (*pfnFIncludeBlotForPeg)(BLOT*, BLOT*) = FIncludeBlotForPeg;
 };
@@ -299,14 +317,14 @@ struct VTTITLE
     void (*pfnOnBlotReset)(BLOT*) = OnBlotReset;
     void (*pfnOnBlotPush) = nullptr;
     void (*pfnOnBlotPop) = nullptr;
-    void (*pfnSetTitleAchzDraw)(TITLE* ptitle, char* pchz) = SetTitleAchzDraw;
+    void (*pfnSetTitleAchzDraw)(TITLE*, char*) = SetTitleAchzDraw;
     void (*pfnDrawTitle)(TITLE*) = DrawTitle;
     void (*pfnRenderBlot) = nullptr;
     float (*pfnDtAppearBlot)(BLOT*) = DtAppearBlot;
     float (*pfnDtVisibleBlot)(BLOT*) = DtVisibleBlot;
     float (*pfnDtDisappearBlot)(BLOT*) = DtDisappearBlot;
-    void (*pfnShowBlot)(BLOT*) = ShowBlot;
-    void (*pfnHideBlot)(BLOT*) = HideBlot;
+    void (*pfnShowTitle)(TITLE*) = ShowTitle;
+    void (*pfnHideTitle)(TITLE*) = HideTitle;
     void (*pfnSetTitleBlots)(TITLE*, BLOTS) = SetTitleBlots;
     void (*pfnSetBlotClock)(BLOT*, float*) = SetBlotClock;
     int  (*pfnFIncludeTitleForPeg)(TITLE*, BLOT*) = FIncludeTitleForPeg;
@@ -319,8 +337,8 @@ struct VTWMC
     void (*pfnInitBlot)(BLOT*, BLOTK) = InitBlot;
     void (*pfnPostWmcLoad)(WMC*) = PostWmcLoad;
     void (*pfnUpdateBlot)(BLOT*) = UpdateBlot;
-    void (*pfnOnWmcActive) = nullptr;
-    void (*pfnUpdateWmcActive) = nullptr;
+    void (*pfnOnWmcActive)(WMC*, int) = OnWmcActive;
+    void (*pfnUpdateWmcActive)(WMC*, JOY*) = UpdateWmcActive;
     void (*pfnOnBlotReset)(BLOT*) = OnBlotReset;
     void (*pfnOnBlotPush) = nullptr;
     void (*pfnOnBlotPop) = nullptr;
@@ -397,11 +415,11 @@ struct VTBLOT
     void (*pfnOnBlotActive)(BLOT*, int) = OnBlotActive;
     void (*pfnUpdateBlotActive)(BLOT*, JOY*) = UpdateBlotActive;
     void (*pfnOnBlotReset)(BLOT*) = OnBlotReset;
-    void (*pfnOnBlotPush) = nullptr;
-    void (*pfnOnBlotPop) = nullptr;
+    void (*pfnOnBlotPush)(BLOT*) = nullptr;
+    void (*pfnOnBlotPop)(BLOT*) = nullptr;
     void (*pfnSetBlotAchzDraw)(BLOT*, char*) = SetBlotAchzDraw;
     void (*pfnDrawBlot)(BLOT*) = DrawBlot;
-    void (*pfnRenderBlot) = nullptr;
+    void (*pfnRenderBlot)(BLOT*) = nullptr;
     float (*pfnDtAppearBlot)(BLOT*) = DtAppearBlot;
     float (*pfnDtVisibleBlot)(BLOT*) = DtVisibleBlot;
     float (*pfnDtDisappearBlot)(BLOT*) = DtDisappearBlot;
@@ -599,14 +617,14 @@ struct VTTOTALS
     void (*pfnOnBlotReset)(BLOT*) = OnBlotReset;
     void (*pfnOnBlotPush) = nullptr;
     void (*pfnOnBlotPop) = nullptr;
-    void (*pfnSetBlotAchzDraw)(BLOT*, char*) = SetBlotAchzDraw;
+    void (*pfnSetTotalsAchzDraw)(TOTALS*, char*) = SetTotalsAchzDraw;
     void (*pfnDrawTotals)(TOTALS*) = DrawTotals;
     void (*pfnRenderBlot) = nullptr;
     float (*pfnDtAppearBlot)(BLOT*) = DtAppearBlot;
     float (*pfnDtVisibleBlot)(BLOT*) = DtVisibleBlot;
     float (*pfnDtDisappearBlot)(BLOT*) = DtDisappearBlot;
-    void (*pfnShowBlot)(BLOT*) = ShowBlot;
-    void (*pfnHideBlot)(BLOT*) = HideBlot;
+    void (*pfnShowBlot)(TOTALS*) = ShowTotals;
+    void (*pfnHideBlot)(TOTALS*) = HideTotals;
     void (*pfnSetTotalsBlots)(TOTALS*, BLOTS) = SetTotalsBlots;
     void (*pfnSetBlotClock)(BLOT*, float*) = SetBlotClock;
     int  (*pfnFIncludeBlotForPeg)(BLOT*, BLOT*) = FIncludeBlotForPeg;
@@ -618,7 +636,7 @@ struct VTTV
 {
     void (*pfnInitTv)(TV*, BLOTK) = InitTv;
     void (*pfnPostTvLoad)(TV*) = PostTvLoad;
-    void (*pfnUpdateTv) = nullptr;
+    void (*pfnUpdateTv)(TV*) = UpdateTv;
     void (*pfnOnBlotActive) = nullptr;
     void (*pfnUpdateBlotActive) = nullptr;
     void (*pfnOnTvReset)(TV*) = OnTvReset;
@@ -626,7 +644,7 @@ struct VTTV
     void (*pfnOnBlotPop) = nullptr;
     void (*pfnSetBlotAchzDraw)(BLOT*, char*) = SetBlotAchzDraw;
     void (*pfnDrawTv)(TV*) = DrawTv;
-    void (*pfnRenderTv) = nullptr;
+    void (*pfnRenderTv)(TV*) = RenderTv;
     float (*pfnDtAppearBlot)(BLOT*) = DtAppearBlot;
     float (*pfnDtVisibleBlot)(BLOT*) = DtVisibleBlot;
     float (*pfnDtDisappearBlot)(BLOT*) = DtDisappearBlot;
@@ -714,18 +732,18 @@ struct VTLOGO
 
 extern VTLOGO g_vtlogo;
 
-struct VTBOSSCTR 
+struct VTBOSS
 {
     void (*pfnInitBlot)(BLOT*, BLOTK) = InitBlot;
-    void (*pfnPostBossCtrLoad)(BOSSCTR*) = PostBossctrLoad;
-    void (*pfnUpdateCtr)(CTR*) = UpdateCtr;
+    void (*pfnPostBossLoad)(BOSS*) = PostBossLoad;
+    void (*pfnUpdateBlot)(BLOT*) = UpdateBlot;
     void (*pfnOnBlotActive) = nullptr;
     void (*pfnUpdateBlotActive) = nullptr;
     void (*pfnOnBlotReset)(BLOT*) = OnBlotReset;
     void (*pfnOnBlotPush) = nullptr;
     void (*pfnOnBlotPop) = nullptr;
     void (*pfnSetBlotAchzDraw)(BLOT*, char*) = SetBlotAchzDraw;
-    void (*pfnDrawBossctr)(BOSSCTR*) = DrawBossCtr;
+    void (*pfnDrawBoss)(BOSS*) = DrawBoss;
     void (*pfnRenderBlot) = nullptr;
     float (*pfnDtAppearBlot)(BLOT*) = DtAppearBlot;
     float (*pfnDtVisibleCtr)(CTR*) = DtVisibleCtr;
@@ -737,19 +755,19 @@ struct VTBOSSCTR
     int  (*pfnFIncludeBlotForPeg)(BLOT*, BLOT*) = FIncludeBlotForPeg;
 };
 
-extern VTBOSSCTR g_vtbossctr;
+extern VTBOSS g_vtboss;
 
 struct VTNOTE 
 {
     void (*pfnInitBlot)(BLOT*, BLOTK) = InitBlot;
     void (*pfnPostNoteLoad)(NOTE*) = PostNoteLoad;
-    void (*pfnUpdateBlot)(BLOT*) = UpdateBlot;
+    void (*pfnUpdateNote)(NOTE*) = UpdateNote;
     void (*pfnOnBlotActive) = nullptr;
     void (*pfnUpdateBlotActive) = nullptr;
     void (*pfnOnBlotReset)(BLOT*) = OnBlotReset;
     void (*pfnOnBlotPush) = nullptr;
     void (*pfnOnBlotPop) = nullptr;
-    void (*pfnSetNoteAchzDraw) = nullptr;
+    void (*pfnSetBlotAchzDraw)(BLOT*, char*) = SetBlotAchzDraw;
     void (*pfnDrawNote)(NOTE*) = DrawNote;
     void (*pfnRenderBlot) = nullptr;
     float (*pfnDtAppearBlot)(BLOT*) = DtAppearBlot;
@@ -768,7 +786,7 @@ struct VTCALL
 {
     void (*pfnInitBlot)(BLOT*, BLOTK) = InitBlot;
     void (*pfnPostCallLoad)(CALL*) = PostCallLoad;
-    void (*pfnUpdateBlot)(BLOT*) = UpdateBlot;
+    void (*pfnUpdateCall)(CALL*) = UpdateCall;
     void (*pfnOnBlotActive) = nullptr;
     void (*pfnUpdateBlotActive) = nullptr;
     void (*pfnOnBlotReset)(BLOT*) = OnBlotReset;
@@ -792,18 +810,18 @@ extern VTCALL g_vtcall;
 struct VTSCORES 
 {
     void (*pfnInitBlot)(BLOT*, BLOTK) = InitBlot;
-    void (*pfnPostScoresLoad)(SCORES*) = PostScoresLoad;
-    void (*pfnUpdateScores)(SCORES*) = UpdateScores;
+    void (*pfnPostCtrLoad)(CTR*) = PostCtrLoad;
+    void (*pfnUpdateCtr)(CTR*) = UpdateCtr;
     void (*pfnOnBlotActive) = nullptr;
     void (*pfnUpdateBlotActive) = nullptr;
     void (*pfnOnBlotReset)(BLOT*) = OnBlotReset;
     void (*pfnOnBlotPush) = nullptr;
     void (*pfnOnBlotPop) = nullptr;
     void (*pfnSetBlotAchzDraw)(BLOT*, char*) = SetBlotAchzDraw;
-    void (*pfnDrawScores)(SCORES*) = DrawScores;
+    void (*pfnDrawCtr)(CTR*) = DrawCtr;
     void (*pfnRenderBlot) = nullptr;
     float (*pfnDtAppearBlot)(BLOT*) = DtAppearBlot;
-    float (*pfnDtVisibleBlot)(BLOT*) = DtVisibleBlot;
+    float (*pfnDtVisibleCtr)(CTR*) = DtVisibleCtr;
     float (*pfnDtDisappearBlot)(BLOT*) = DtDisappearBlot;
     void (*pfnShowBlot)(BLOT*) = ShowBlot;
     void (*pfnHideBlot)(BLOT*) = HideBlot;
@@ -813,6 +831,31 @@ struct VTSCORES
 };
 
 extern VTSCORES g_vtscores;
+
+struct VTVAN
+{
+    void (*pfnInitBlot)(BLOT*, BLOTK) = InitBlot;
+    void (*pfnPostCtrLoad)(CTR*) = PostCtrLoad;
+    void (*pfnUpdateCtr)(CTR*) = UpdateCtr;
+    void (*pfnOnBlotActive) = nullptr;
+    void (*pfnUpdateBlotActive) = nullptr;
+    void (*pfnOnBlotReset)(BLOT*) = OnBlotReset;
+    void (*pfnOnBlotPush) = nullptr;
+    void (*pfnOnBlotPop) = nullptr;
+    void (*pfnSetBlotAchzDraw)(BLOT*, char*) = SetBlotAchzDraw;
+    void (*pfnDrawCtr)(CTR*) = DrawCtr;
+    void (*pfnRenderBlot) = nullptr;
+    float (*pfnDtAppearBlot)(BLOT*) = DtAppearBlot;
+    float (*pfnDtVisibleCtr)(CTR*) = DtVisibleCtr;
+    float (*pfnDtDisappearBlot)(BLOT*) = DtDisappearBlot;
+    void (*pfnShowBlot)(BLOT*) = ShowBlot;
+    void (*pfnHideBlot)(BLOT*) = HideBlot;
+    void (*pfnSetBlotBlots)(BLOT*, BLOTS) = SetBlotBlots;
+    void (*pfnSetBlotClock)(BLOT*, float*) = SetBlotClock;
+    int (*pfnFIncludeBlotForPeg)(BLOT*, BLOT*) = FIncludeBlotForPeg;
+};
+
+extern VTVAN g_vtvan;
 
 struct VTLGNR 
 {
@@ -914,68 +957,79 @@ struct VTPROMPT
 
 extern VTPROMPT g_vtprompt;
 
-inline BLOTI s_abloti[29] = 
+struct VTSAVEBLOT
 {
-    {0.0f,   0.0f,   BLOTE_Nil,    BLOTK_Nil,     BLOTE_Nil},    // 0
-    {0.0f,   0.0f,   BLOTE_Nil,    BLOTK_Nil,     BLOTE_Nil},    // 1
-    {0.0f,   0.0f,   BLOTE_Nil,    BLOTK_Nil,     BLOTE_Nil},    // 2
-    {0.0f,   20.0f,  BLOTE_Top,    BLOTK_Nil,     BLOTE_Nil},    // 3
-    {-18.0f, 20.0f,  BLOTE_Right,  BLOTK_Nil,     BLOTE_Nil},    // 4
-    {-18.0f, 20.0f,  BLOTE_Right,  BLOTK_Clue,    BLOTE_Top},    // 5
-    {-18.0f, 20.0f,  BLOTE_Right,  BLOTK_Key,     BLOTE_Top},    // 6
-    {18.0f,  20.0f,  BLOTE_Left,   BLOTK_Nil,     BLOTE_Nil},    // 7
-    {-18.0f, 20.0f,  BLOTE_Right,  BLOTK_Gold,    BLOTE_Nil},    // 8
-    {-18.0f, 20.0f,  BLOTE_Right,  BLOTK_Gold,    BLOTE_Nil},    // 9
-    {18.0f,  20.0f,  BLOTE_Top,    BLOTK_Coin,    BLOTE_Top},    // 10
-    {0.0f,   20.0f,  BLOTE_Top,    BLOTK_Lives,   BLOTE_Top},    // 11
-    {-18.0f, 20.0f,  BLOTE_Top,    BLOTK_Key,     BLOTE_Top},    // 12
-    {0.0f,   -5.0f,  BLOTE_Bottom, BLOTK_Nil,     BLOTE_Nil},    // 13
-    {-18.0f, 20.0f,  BLOTE_Right,  BLOTK_Crusher, BLOTE_Top},    // 14
-    {18.0f,  -20.0f, BLOTE_Left,   BLOTK_Nil,     BLOTE_Nil},    // 15
-    {18.0f,  -20.0f, BLOTE_Nil,    BLOTK_Nil,     BLOTE_Nil},    // 16
-    {-18.0f, -20.0f, BLOTE_Right,  BLOTK_Nil,     BLOTE_Nil},    // 17
-    {-18.0f, -20.0f, BLOTE_Right,  BLOTK_Title,   BLOTE_Bottom}, // 18
-    {18.0f,  -20.0f, BLOTE_Left,   BLOTK_Note,    BLOTE_Bottom}, // 19
-    {18.0f,  -20.0f, BLOTE_Nil,    BLOTK_Nil,     BLOTE_Nil},    // 20
-    {0.0f,    0.0f,  BLOTE_Nil,    BLOTK_Nil,     BLOTE_Nil},    // 21
-    {1.0f,   -20.0f, BLOTE_Left,   BLOTK_Nil,     BLOTE_Nil},    // 22
-    {-1.0f,  -20.0f, BLOTE_Right,  BLOTK_Nil,     BLOTE_Nil},    // 23
-    {-18.0f,  20.0f, BLOTE_Right,  BLOTK_Gold,    BLOTE_Nil},    // 24
-    {18.0f,   20.0f, BLOTE_Top,    BLOTK_Nil,     BLOTE_Nil},    // 25
-    {-18.0f, -20.0f, BLOTE_Bottom, BLOTK_Nil,     BLOTE_Nil},    // 26
-    {18.0f,   20.0f, BLOTE_Nil,    BLOTK_Nil,     BLOTE_Nil},    // 27
-    {16.0f,   16.0f, BLOTE_Left,   BLOTK_Nil,     BLOTE_Nil},    // 28
+    void (*pfnInitBlot)(BLOT*, BLOTK) = InitBlot;
+    void (*pfnPostAutoSaveLoad)(SAVEBLOT*) = PostAutoSaveLoad;
+    void (*pfnUpdateBlot)(BLOT*) = UpdateBlot;
+    void (*pfnOnBlotActive)(BLOT*, int) = OnBlotActive;
+    void (*pfnUpdateBlotActive)(BLOT*, JOY*) = UpdateBlotActive;
+    void (*pfnOnBlotReset)(BLOT*) = OnBlotReset;
+    void(*pfnOnBlotPush) = nullptr;
+    void(*pfnOnBlotPop) = nullptr;
+    void (*pfnSetBlotAchzDraw)(BLOT*, char*) = SetBlotAchzDraw;
+    void (*pfnDrawBlot)(BLOT*) = DrawBlot;
+    void(*pfnRenderBlot) = nullptr;
+    float (*pfnDtAppearBlot)(BLOT*) = DtAppearBlot;
+    float (*pfnDtVisibleBlot)(BLOT*) = DtVisibleBlot;
+    float (*pfnDtDisappearBlot)(BLOT*) = DtDisappearBlot;
+    void (*pfnShowBlot)(BLOT*) = ShowBlot;
+    void (*pfnHideBlot)(BLOT*) = HideBlot;
+    void (*pfnSetSavesBlots)(SAVEBLOT*, BLOTS) = SetSaveBlots;
+    void (*pfnSetBlotClock)(BLOT*, float*) = SetBlotClock;
+    int  (*pfnFIncludeBlotForPeg)(BLOT*, BLOT*) = FIncludeBlotForPeg;
 };
 
-inline BLOT* s_apblot[29] =
+extern VTSAVEBLOT g_vtsaveblot;
+
+extern BLOTI s_abloti[37];
+
+struct JTICON;
+extern JTICON g_rubyicon;
+extern JTICON g_jticon;
+
+inline std::unordered_map<int, BLOT*> s_apblot =
 {
-    (BLOT*)&g_letterbox,     // [0]
-    (BLOT*)&g_binoc,         // [1]
-    (BLOT*)&g_lgnr,          // [2]
-    (BLOT*)&g_lifectr,       // [3]
-    (BLOT*)&g_cluectr,       // [4]
-    (BLOT*)&g_keyctr,        // [5]
-    (BLOT*)&g_goldctr,       // [6]
-    (BLOT*)&g_coinctr,       // [7]
-    (BLOT*)&g_trunkctr,      // [8]
-    (BLOT*)&g_crusherctr,    // [9]
-    (BLOT*)&g_lapctr,        // [10]
-    (BLOT*)&g_boostctr,      // [11]
-    (BLOT*)&g_placectr,      // [12]
-    (BLOT*)&g_bossctr,       // [13]
-    (BLOT*)&g_puffchargectr, // [14]
-    (BLOT*)&g_timer,         // [15]
-    (BLOT*)&g_note,          // [16]
-    (BLOT*)&g_title,         // [17]
-    (BLOT*)&g_totals,        // [18]
-    (BLOT*)&g_call,          // [19]
-    (BLOT*)&g_wmc,           // [20]
-    (BLOT*)&g_prompt,        // [21]
-    (BLOT*)&g_tvLeft,        // [22]
-    (BLOT*)&g_tvRight,       // [23]
-    (BLOT*)&g_scores,        // [24]
-    (BLOT*)&g_logo,          // [25]
-    (BLOT*)&g_attract,       // [26]
-    (BLOT*)&g_credit,        // [27] 
-    (BLOT*)&g_debugmenu      // [28]
+    {  0, (BLOT*)&g_letterbox },
+    {  1, (BLOT*)&g_binoc },
+    {  2, (BLOT*)&g_lgnr },
+    {  3, (BLOT*)&g_lifectr },
+    {  4, (BLOT*)&g_cluectr },
+    {  5, (BLOT*)&g_keyctr },
+    {  6, (BLOT*)&g_coinctr },
+    {  7, (BLOT*)&g_goldctr },
+    {  8, (BLOT*)&g_puffchargectr },
+    {  9, (BLOT*)&g_lapctr },
+    { 10, (BLOT*)&g_boostctr },
+    { 11, (BLOT*)&g_placectr },
+    { 12, (BLOT*)&g_securitycodectr },
+    { 13, (BLOT*)&g_mgvhealthctr },
+    { 14, (BLOT*)&g_boss },
+    { 15, (BLOT*)&g_crusherctr },
+    { 16, (BLOT*)&g_timer },
+    { 17, (BLOT*)&g_note },
+    { 19, (BLOT*)&g_title },
+    { 20, (BLOT*)&g_totals },
+    { 21, (BLOT*)&g_call },
+    { 22, (BLOT*)&g_wmc },
+    { 23, (BLOT*)&g_hubblot },
+    { 24, (BLOT*)&g_fmvmenu },
+    { 25, (BLOT*)&g_prompt },
+    { 26, (BLOT*)&g_tvLeft },
+    { 27, (BLOT*)&g_tvRight },
+    { 28, (BLOT*)&g_van },
+    { 29, (BLOT*)&g_scores },
+    { 30, (BLOT*)&g_logo },
+    { 31, (BLOT*)&g_attract },
+    { 32, (BLOT*)&g_credit },
+    { 33, (BLOT*)&g_rubyicon },
+    { 34, (BLOT*)&g_jticon },
+    { 35, (BLOT*)&g_autosave },
+    { 36, (BLOT*)&g_percentctr }
 };
+
+inline BLOT* PblotFromBlotk(int blotk)
+{
+    const auto it = s_apblot.find(blotk);
+    return it != s_apblot.end() ? it->second : nullptr;
+}

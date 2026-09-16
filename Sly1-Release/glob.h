@@ -1,7 +1,14 @@
 #pragma once
 #include "bis.h"
-#include "gl.h"
+#include "dec.h"
 #include "util.h"
+#include "rocel.h"
+#include <glad/glad.h>
+#include <vector>
+#include "sqtr.h"
+
+struct SHD;
+struct SAI;
 
 enum TWPS
 {
@@ -47,7 +54,14 @@ enum TRLK
 {
 	TRLK_Relight = 0,
 	TRLK_Baked = 1,
-	TRLK_Dynamic = 2
+	TRLK_Dynamic = 2,
+	// Retail's pglob->pblot path: evaluate the detached TV light against
+	// posed/skinned vertices, then pass the pre-lit three-way material on to
+	// rasterization without admitting any lights from the world.
+	TRLK_Quick = 3,
+	// A relight packet has been queued, but its SSBO-writing draw has not
+	// executed yet.  Never expose the unfinished cache to another packet.
+	TRLK_BakePending = 4
 };
 
 struct VERTICE
@@ -74,7 +88,8 @@ struct alignas(16) RO
 	float     uFog;          //  68 -  71
 	float     darken;        //  72 -  75
 	int32_t   grfglob;       //  76 -  79
-	int32_t   pad0;          //  80 -  83
+	// Zero for world globs; TV portraits store their TV-light slot plus one.
+	int32_t   blotTvLight;   //  80 -  83
 	int32_t   warpType;      //  84 -  87
 	int32_t   warpCmat;      //  88 -  91
 	int32_t   warpCvtx;      //  92 -  95
@@ -93,6 +108,8 @@ struct RPL
 {
 	RP rp;
 
+	void (*PFNDRAWRPL)(RPL*);
+
 	int fTransluscentSort;
 	float z;
 
@@ -100,6 +117,11 @@ struct RPL
 	{
 		ALO  *palo;
 		DYSH *pdysh;
+		BLIPG *pblipg;
+		SQTRM *psqtrm;
+		JT* pjt;
+		THNDFLASH* pthndflash;
+		struct TV* ptv;
 	};
 
 	GLOB *pglob;
@@ -135,8 +157,8 @@ struct RPLCEL
 {
 	RP rp;
 
-	GLuint edgeCount;
-	GLuint edgeSSBO;
+	ALO *palo;
+	GLOB *pglob;
 
 	ROCEL rocel;
 };
@@ -187,7 +209,7 @@ struct WEKI
 
 struct WRBG
 {
-	struct ALO* palo;
+	class ALO* palo;
 	struct GLOB* pglob;
 	OID oid;
 	struct WR* pwr;
@@ -204,6 +226,13 @@ struct GLEAM
 {
 	glm::vec3 normal;
 	CLQC clqc;
+};
+
+struct BND
+{
+	ALO* palo;
+	glm::mat4 dmatOrig;
+	glm::mat4 dmat;
 };
 
 struct FGFN
@@ -265,6 +294,17 @@ struct GLOB // NOT DONE
 
 	GLuint ssboCachedMaterial;
 
+	// Combined pose-delta buffers for every subglob in this VAO.
+	GLuint poseDposSSBO;
+	GLuint poseDnormalSSBO;
+
+	int poseCount;
+	int poseVertexCount;
+
+	// Optional CPU copies. Remove after upload if they are never updated.
+	std::vector<glm::vec4> poseDpos;
+	std::vector<glm::vec4> poseDnormal;
+
 	void (*PFNDRAW)(int, int, int);
 
 	// Moodel origin position
@@ -298,6 +338,15 @@ struct GLOB // NOT DONE
 	// SSBO: 4 vec4 per edge (E0, E1, OA, OB)
 	GLuint edgeSSBO;  // GL_SHADER_STORAGE_BUFFER
 	GLsizei edgeCount; // number of edges (== ctwef)
+	// Four global bone indices per cel position.
+	GLuint edgeBoneIndicesSSBO;
+	// Four bone weights per cel position.
+	GLuint edgeBoneWeightsSSBO;
+	// Optional CPU copies.
+	std::vector <glm::uvec4> edgeBoneIndices;
+	std::vector <glm::vec4> edgeBoneWeights;
+	GLuint edgePoseDposSSBO = 0;
+	std::vector<glm::vec4> edgePoseDpos;
 	// Ptr to instance model matrix
 	std::shared_ptr <glm::mat4> pdmat;
 	struct BLOT* pblot;
@@ -308,7 +357,7 @@ struct GLOB // NOT DONE
 struct GLOBI
 {
 	int grfzon;
-	SUBGLOBI asubglobi;
+	std::vector <SUBGLOBI> asubglobi;
 	int cframeStaticLights;
 	TWPS twps;
 	float uAlpha;
@@ -318,8 +367,10 @@ struct GLOBI
 struct GLOBSET
 {
 	int cbnd;
-	struct BND* abnd;
+	std::vector <BND> abnd;
 	std::vector <OID> mpibndoid;
+	GLuint boneMatrixSSBO;
+	std::vector<glm::mat4> boneMatrices;
 	uint64_t cglob;
 	std::vector <GLOB>  aglob;
 	std::vector <GLOBI> aglobi;
@@ -336,9 +387,11 @@ struct GLOBSET
 // Loads 3D model data from binary file
 void LoadGlobsetFromBrx(GLOBSET* pglobset, ALO* palo, CBinaryInputStream* pbis);
 // Converts strips to tri lists and stores 3D sub model in VRAM
-void BuildSubGlob(GLOB* pglob, SUBGLOB* psubglob, SHD* pshd, std::vector <glm::vec3>& positions, std::vector <glm::vec3>& normals, std::vector <glm::vec4>& colors, std::vector <glm::vec2>& texcoords, std::vector <VTXFLG>& indexes, SUBPOSEF* subposef, std::vector <glm::vec3>& aposfPoses, std::vector <glm::vec3>& anormalfPoses, std::vector <float>& agWeights, int fDynamic);
-void BuildSubcel(GLOBSET* pglobset, GLOB* pglob, SUBCEL* psubcel, int cposf, std::vector <glm::vec3>& aposf, int ctwef, std::vector <TWEF>& atwef, std::vector <SUBPOSEF>& asubposef, std::vector <glm::vec3>& aposfPoses, std::vector <float>& agWeights, std::vector <glm::vec4>& totalEdges);
+void BuildSubGlob(GLOB* pglob, SUBGLOB* psubglob, SHD* pshd, std::vector <glm::vec3>& positions, std::vector <glm::vec3>& normals, std::vector <glm::vec4>& colors, std::vector <glm::vec2>& texcoords, std::vector <VTXFLG>& indexes, std::vector< SUBPOSEF> &subposef, std::vector <glm::vec3>& aposfPoses, std::vector <glm::vec3>& anormalfPoses, std::vector <float>& agWeights, int fDynamic);
+void BuildSubcel(GLOBSET* pglobset, GLOB* pglob, SUBCEL* psubcel, int cposf, const std::vector<glm::vec3>& aposf, int ctwef, const std::vector<TWEF>& atwef, int cibnd, const std::vector<int>& aibnd, const std::vector<SUBPOSEF>& asubposef, const std::vector<glm::vec3>& aposfPoses, const std::vector<float>& agWeights, std::vector<glm::vec4>& totalEdges, std::vector<glm::uvec4>& totalBoneIndices, std::vector<glm::vec4>& totalBoneWeights, std::vector<glm::vec4>& totalPoseDpos);
 void BuildGlobsetSaaArray(GLOBSET* pglobset);
+void CloneGlob(GLOBSET* pglobset, GLOB* pglob, GLOBI* pglobi);
+void CloneGlobset(GLOBSET* pglobset, ALO* palo, GLOBSET* pglobsetBase);
 void PostGlobsetLoad(GLOBSET* pglobset, ALO* palo);
 void UpdateGlobset(GLOBSET* pglobset, ALO* palo, float dt);
 

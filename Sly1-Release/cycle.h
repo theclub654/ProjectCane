@@ -3,8 +3,8 @@
 
 struct SXP 
 {
-    struct ALO* paloWheel;
-    struct ALO* paloHub;
+    class ALO* paloWheel;
+    class ALO* paloHub;
     struct PNT* ppntTop;
     int xsxp;
     glm::vec3 posCur;

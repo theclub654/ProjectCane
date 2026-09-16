@@ -16,20 +16,24 @@ void PostLogoLoad(LOGO* plogo)
         plogo->pfont = plogo->pfont->PfontClone(RX_LogoText, RY_LogoText);
     }
 
-    // Set up text edge font if available
-    plogo->pte = &g_teLogo;
-    g_teLogo.m_pfont = &g_afontBrx[2];
+    if (PfontFromFont(2))
+    {
+        // Set up text edge font if available
+        plogo->pte = &g_teLogo;
+        g_teLogo.m_pfont = PfontFromFont(2);
+    }
 
-    // Try to find the shader for the attract logo
+    // Retail PostLogoLoad requests shader 1171.  Keep the lookup exact and
+    // report the resolved BRX records once: if the wrong artwork is displayed,
+    // these indices identify whether the BRX shader table or texture decode is
+    // at fault.
     plogo->pshd = PshdFindShader((OID)1171);
 
     if (plogo->pshd == nullptr)
     {
         // Fallback: set a default draw string if no shader was found
         if (plogo->pvtblot && plogo->pvtblot->pfnSetBlotAchzDraw)
-        {
             plogo->pvtblot->pfnSetBlotAchzDraw(plogo, (char*)logoPchz);
-        }
     }
     else
     {
@@ -45,8 +49,17 @@ void DrawLogo(LOGO* plogo)
         return;
     }
 
-    BMP* pbmp = plogo->pshd->atex[0].abmp[0]; // first frame
-    GLuint texture = pbmp->glDiffuseMap;
+    TEX& tex = plogo->pshd->atex[0];
+    if (tex.abmp.empty() || tex.abmp[0] == nullptr)
+        return;
+
+    BMP* pbmp = tex.abmp[0];
+    const GLuint texture = !tex.glDiffuseMap.empty() && tex.glDiffuseMap[0] != 0
+        ? tex.glDiffuseMap[0]
+        : pbmp->glDiffuseMap;
+
+    if (texture == 0)
+        return;
 
     float width = plogo->dx;
     float height = plogo->dy;
@@ -63,7 +76,10 @@ void DrawLogo(LOGO* plogo)
     glUniform4f(uvRectLoc, u0, v0, u1, v1);
     glUniform4fv(blotColorLoc, 1, glm::value_ptr(glm::vec4(1.0f)));
 
+    glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, texture);
+    glUniform1i(u_fontTexLoc, 0);
+    glUniform1i(u_useVertexColorLoc, 0);
     glBindVertexArray(g_gl.gao);
 
     glEnable(GL_BLEND);

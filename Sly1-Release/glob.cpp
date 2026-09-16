@@ -1,5 +1,6 @@
 #include "glob.h"
 #include "wr.h"
+#include "render.h"
 
 void LoadGlobsetFromBrx(GLOBSET* pglobset, ALO* palo, CBinaryInputStream* pbis)
 {
@@ -7,18 +8,22 @@ void LoadGlobsetFromBrx(GLOBSET* pglobset, ALO* palo, CBinaryInputStream* pbis)
 
     byte fRelight = pbis->U8Read();
     pbis->U8Read();
+
     pglobset->cbnd = pbis->U8Read();
+    pglobset->abnd.resize(pglobset->cbnd);
 
     pglobset->mpibndoid.resize(pglobset->cbnd);
-
     for (int i = 0; i < pglobset->cbnd; i++)
         pglobset->mpibndoid[i] = (OID)pbis->S16Read();
 
     pglobset->cpose = pbis->U8Read();
+
     pglobset->agPoses.resize(pglobset->cpose);
 
-    for (int i = 0; i < pglobset->cpose; i++)
+    for (int i = 0; i < pglobset->cpose; ++i)
         pglobset->agPoses[i] = pbis->F32Read();
+
+    pglobset->agPosesOrig = pglobset->agPoses;
 
     // Loading number of submodels for model
     pglobset->cglob = pbis->U16Read();
@@ -177,11 +182,19 @@ void LoadGlobsetFromBrx(GLOBSET* pglobset, ALO* palo, CBinaryInputStream* pbis)
 
         if (fInstanceGlob == 0)
         {
+            GLOB& glob = pglobset->aglob[i];
+
+            glob.poseCount = pglobset->cpose;
+            glob.poseVertexCount = 0;
+            glob.poseDpos.clear();
+            glob.poseDnormal.clear();
+
             int fProjVolume = 0;
             // Number of submodels
             // std::cout << "Model Start: " << std::hex << file.tellg()<<"\n";
             pglobset->aglob[i].csubglob = pbis->U16Read();
             pglobset->aglob[i].asubglob.resize(pglobset->aglob[i].csubglob);
+            pglobset->aglobi[i].asubglobi.resize(pglobset->aglob[i].csubglob);
 
             for (int a = 0; a < pglobset->aglob[i].csubglob; a++)
             {
@@ -296,36 +309,38 @@ void LoadGlobsetFromBrx(GLOBSET* pglobset, ALO* palo, CBinaryInputStream* pbis)
 
                 std::vector <glm::vec3> posfPose;
                 std::vector <glm::vec3> normalfPose;
-                SUBPOSEF subposef;
+                std::vector<SUBPOSEF> asubposef;
 
                 if (pglobset->cpose != 0)
                 {
-                    uint16_t posfPosesCount = pbis->U16Read();
-                    posfPose.resize(posfPosesCount);
+                    uint16_t cposfPoses = pbis->U16Read();
+                    posfPose.resize(cposfPoses);
 
-                    for (int g = 0; g < posfPosesCount; g++)
-                        posfPose[g] = pbis->ReadVector();
+                    for (int i = 0; i < cposfPoses; ++i)
+                        posfPose[i] = pbis->ReadVector();
 
-                    uint16_t normalfPoseCount = pbis->U16Read();
-                    normalfPose.resize(normalfPoseCount);
+                    uint16_t cnormalfPoses = pbis->U16Read();
+                    normalfPose.resize(cnormalfPoses);
 
-                    for (int h = 0; h < normalfPoseCount; h++)
-                        normalfPose[h] = pbis->ReadVector();
+                    for (int i = 0; i < cnormalfPoses; ++i)
+                        normalfPose[i] = pbis->ReadVector();
 
-                    subposef.aiposf.resize(indexCount);
-                    subposef.ainormalf.resize(indexCount);
+                    asubposef.resize(pglobset->cpose);
 
-                    for (int j = 0; j < pglobset->cpose; j++)
+                    for (int ipose = 0; ipose < pglobset->cpose; ++ipose)
                     {
-                        for (int a = 0; a < indexCount; a++)
-                            subposef.aiposf[a] = pbis->U16Read();
+                        asubposef[ipose].aiposf.resize(indexCount);
+                        asubposef[ipose].ainormalf.resize(indexCount);
 
-                        for (int b = 0; b < indexCount; b++)
-                            subposef.ainormalf[b] = pbis->U16Read();
+                        for (int ivtx = 0; ivtx < indexCount; ++ivtx)
+                            asubposef[ipose].aiposf[ivtx] = pbis->U16Read();
+
+                        for (int ivtx = 0; ivtx < indexCount; ++ivtx)
+                            asubposef[ipose].ainormalf[ivtx] = pbis->U16Read();
                     }
                 }
 
-                BuildSubGlob(&pglobset->aglob[i], &pglobset->aglob[i].asubglob[a], pglobset->aglob[i].asubglob[a].pshd, vertexes, normals, vertexColors, texcoords, indexes, &subposef, posfPose, normalfPose, agWeights, pglobset->aglob[i].fDynamic);
+                BuildSubGlob(&pglobset->aglob[i], &pglobset->aglob[i].asubglob[a], pglobset->aglob[i].asubglob[a].pshd, vertexes, normals, vertexColors, texcoords, indexes, asubposef, posfPose, normalfPose, agWeights, pglobset->aglob[i].fDynamic);
             }
 
             if (pglobset->aglob[i].asubglob.size() > 0)
@@ -411,6 +426,26 @@ void LoadGlobsetFromBrx(GLOBSET* pglobset, ALO* palo, CBinaryInputStream* pbis)
 
                 glBindVertexArray(0);
 
+                glob.poseVertexCount = static_cast<int>(totalVerts);
+
+                const size_t expectedPoseDeltaCount = static_cast<size_t>(glob.poseVertexCount) * glob.poseCount;
+
+                assert(glob.poseDpos.size() == expectedPoseDeltaCount);
+                assert(glob.poseDnormal.size() == expectedPoseDeltaCount);
+
+                if (expectedPoseDeltaCount > 0)
+                {
+                    glGenBuffers(1, &glob.poseDposSSBO);
+                    glBindBuffer(GL_SHADER_STORAGE_BUFFER, glob.poseDposSSBO);
+                    glBufferData(GL_SHADER_STORAGE_BUFFER, static_cast<GLsizeiptr>(glob.poseDpos.size() * sizeof(glm::vec4)), glob.poseDpos.data(), GL_STATIC_DRAW);
+
+                    glGenBuffers(1, &glob.poseDnormalSSBO);
+                    glBindBuffer(GL_SHADER_STORAGE_BUFFER, glob.poseDnormalSSBO);
+                    glBufferData(GL_SHADER_STORAGE_BUFFER, static_cast<GLsizeiptr>(glob.poseDnormal.size() * sizeof(glm::vec4)), glob.poseDnormal.data(), GL_STATIC_DRAW);
+
+                    glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+                }
+
                 if (glob.pwrbg && glob.pwrbg->cmat > 0)
                 {
                     if (!glob.pwarpGlob)
@@ -424,7 +459,7 @@ void LoadGlobsetFromBrx(GLOBSET* pglobset, ALO* palo, CBinaryInputStream* pbis)
                     for (int v = 0; v < w.vertexCount; ++v)
                         w.basePos[v] = glm::vec4(packedVerts[v].pos, 1.0f);
 
-                    // don't allocate state yet here (because WR->cmat isn’t known until ApplyWrGlob)
+                    // don't allocate state yet here (because WR->cmat isnâ€™t known until ApplyWrGlob)
                     // but you CAN create the SSBO name now:
                     if (w.ssboState == 0)
                         glGenBuffers(1, &w.ssboState);
@@ -443,13 +478,18 @@ void LoadGlobsetFromBrx(GLOBSET* pglobset, ALO* palo, CBinaryInputStream* pbis)
                     }
                 }
 
-                SetRpCount(&pglobset->aglob[i], pglobset->aglob[i].fTransluscentSort);
+                SetGlobDraw(&pglobset->aglob[i]);
                 numRo++;
             }
 
             pglobset->aglob[i].csubcel = pbis->U16Read();
             pglobset->aglob[i].asubcel.resize(pglobset->aglob[i].csubcel);
-            std::vector <glm::vec4> mergedEdges;
+
+            std::vector<glm::vec4> mergedEdges;
+            std::vector<glm::uvec4> mergedEdgeBoneIndices;
+            std::vector<glm::vec4> mergedEdgeBoneWeights;
+            std::vector<glm::vec4> mergedEdgePoseDpos;
+
 
             for (int k = 0; k < pglobset->aglob[i].csubcel; k++)
             {
@@ -514,82 +554,75 @@ void LoadGlobsetFromBrx(GLOBSET* pglobset, ALO* palo, CBinaryInputStream* pbis)
                     }
                 }
 
-                BuildSubcel(pglobset, &pglobset->aglob[i], &subcel, aposfCount, aposf, ctwef, atwef, subposef, aposfPoses, weightsCel, mergedEdges);
-                pglobset->aglob[i].asubcel[k] = subcel;
+                BuildSubcel(pglobset, &glob, &subcel, aposfCount, aposf, ctwef, atwef, cibnd, aibnd, subposef, aposfPoses, weightsCel, mergedEdges, mergedEdgeBoneIndices, mergedEdgeBoneWeights, mergedEdgePoseDpos);
+                glob.asubcel[k] = std::move(subcel);
             }
 
-            if (pglobset->aglob[i].edgeCount > 0)
+            if (glob.edgeCount > 0)
             {
-                glGenBuffers(1, &pglobset->aglob[i].edgeSSBO);
-                glBindBuffer(GL_SHADER_STORAGE_BUFFER, pglobset->aglob[i].edgeSSBO);
-                glBufferData(GL_SHADER_STORAGE_BUFFER, mergedEdges.size() * sizeof(glm::vec4), mergedEdges.data(), GL_STATIC_DRAW);
+                const size_t expectedEdgePointCount = static_cast<size_t>(glob.edgeCount) * 4;
+                const size_t expectedEdgePoseCount = expectedEdgePointCount * glob.poseCount;
+
+                assert(mergedEdges.size() == expectedEdgePointCount);
+                assert(mergedEdgeBoneIndices.size() == expectedEdgePointCount);
+                assert(mergedEdgeBoneWeights.size() == expectedEdgePointCount);
+                assert(mergedEdgePoseDpos.size() == expectedEdgePoseCount);
+
+                glGenBuffers(1, &glob.edgeSSBO);
+                glBindBuffer(GL_SHADER_STORAGE_BUFFER, glob.edgeSSBO);
+                glBufferData(GL_SHADER_STORAGE_BUFFER, static_cast<GLsizeiptr>(mergedEdges.size() * sizeof(glm::vec4)), mergedEdges.data(), GL_STATIC_DRAW);
+
+                glGenBuffers(1, &glob.edgeBoneIndicesSSBO);
+                glBindBuffer(GL_SHADER_STORAGE_BUFFER, glob.edgeBoneIndicesSSBO);
+                glBufferData(GL_SHADER_STORAGE_BUFFER, static_cast<GLsizeiptr>(mergedEdgeBoneIndices.size() * sizeof(glm::uvec4)), mergedEdgeBoneIndices.data(), GL_STATIC_DRAW);
+
+                glGenBuffers(1, &glob.edgeBoneWeightsSSBO);
+                glBindBuffer(GL_SHADER_STORAGE_BUFFER, glob.edgeBoneWeightsSSBO);
+                glBufferData(GL_SHADER_STORAGE_BUFFER, static_cast<GLsizeiptr>(mergedEdgeBoneWeights.size() * sizeof(glm::vec4)), mergedEdgeBoneWeights.data(), GL_STATIC_DRAW);
+
+                if (!mergedEdgePoseDpos.empty())
+                {
+                    glGenBuffers(1, &glob.edgePoseDposSSBO);
+                    glBindBuffer(GL_SHADER_STORAGE_BUFFER, glob.edgePoseDposSSBO);
+                    glBufferData(GL_SHADER_STORAGE_BUFFER, static_cast<GLsizeiptr>(mergedEdgePoseDpos.size() * sizeof(glm::vec4)), mergedEdgePoseDpos.data(), GL_STATIC_DRAW);
+                }
+
                 glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 
-                SetRpCount(&pglobset->aglob[i], 0);
+                glob.edgeBoneIndices = std::move(mergedEdgeBoneIndices);
+                glob.edgeBoneWeights = std::move(mergedEdgeBoneWeights);
+                glob.edgePoseDpos = std::move(mergedEdgePoseDpos);
+
                 numRoCel++;
             }
         }
         else
         {
-            pglobset->aglob[i].csubglob = pglobset->aglob[instanceIndex].csubglob;
-            pglobset->aglob[i].asubglob = pglobset->aglob[instanceIndex].asubglob;
-
-            pglobset->aglob[i].csubcel = pglobset->aglob[instanceIndex].csubcel;
-            pglobset->aglob[i].asubcel = pglobset->aglob[instanceIndex].asubcel;
-
-            if (pglobset->aglob[i].fThreeWay == 1 && pglobset->aglob[i].fDynamic == 0)
-            {
-                uint32_t totalVerts = 0;
-                for (int a = 0; a < pglobset->aglob[i].csubglob; a++)
-                    totalVerts += pglobset->aglob[i].asubglob[a].vertices.size();
-
-                glGenBuffers(1, &pglobset->aglob[i].ssboCachedMaterial);
-                glBindBuffer(GL_SHADER_STORAGE_BUFFER, pglobset->aglob[i].ssboCachedMaterial);
-                glBufferData(GL_SHADER_STORAGE_BUFFER, totalVerts * sizeof(MATERIAL), nullptr, GL_STATIC_DRAW);
-                glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
-            }
-
-            // after you've copied VAO/VBO/EBO/etc from instanceIndex:
             GLOB& inst = pglobset->aglob[i];
             GLOB& base = pglobset->aglob[instanceIndex];
 
-            if (inst.pwrbg && inst.pwrbg->cmat > 0)
-            {
-                // base must have built warp basePos already (it was non-instanced and packed)
-                if (!inst.pwarpGlob)
-                    inst.pwarpGlob = std::make_shared <WRBGLOB_GL>();
+            inst.csubglob = base.csubglob;
+            inst.asubglob = base.asubglob;
 
-                WRBGLOB_GL& wInst = *inst.pwarpGlob;
-                WRBGLOB_GL& wBase = *base.pwarpGlob;
+            inst.csubcel = base.csubcel;
+            inst.asubcel = base.asubcel;
 
-                // share geometry-side data
-                wInst.vertexCount = wBase.vertexCount;
-                wInst.basePos = wBase.basePos;     // shares the vector (copy) — see note below
-                // If you want true sharing without copy, store basePos in a shared_ptr (see Option C)
+            inst.edgeSSBO  = base.edgeSSBO;
+            inst.edgeCount = base.edgeCount;
 
-                // unique SSBO for this instance's state
-                if (wInst.ssboState == 0)
-                    glGenBuffers(1, &wInst.ssboState);
-            }
+            inst.poseDposSSBO = base.poseDposSSBO;
+            inst.poseDnormalSSBO = base.poseDnormalSSBO;
+            inst.poseCount = base.poseCount;
+            inst.poseVertexCount = base.poseVertexCount;
 
-            if (pglobset->aglob[i].asubglob.size() > 0)
-            {
-                SetRpCount(&pglobset->aglob[i], pglobset->aglob[i].fTransluscentSort);
-                numRo++;
-            }
-
-            if (pglobset->aglob[i].edgeCount > 0)
-            {
-                SetRpCount(&pglobset->aglob[i], 0);
-                numRoCel++;
-            }
+            CloneGlob(pglobset, &inst, &pglobset->aglobi[i]);
         }
     }
 
     BuildGlobsetSaaArray(pglobset);
 }
 
-void BuildSubGlob(GLOB* pglob, SUBGLOB* psubglob, SHD* pshd, std::vector <glm::vec3>& positions, std::vector <glm::vec3>& normals, std::vector <glm::vec4>& colors, std::vector <glm::vec2>& texcoords, std::vector <VTXFLG>& indexes, SUBPOSEF* subposef, std::vector <glm::vec3>& aposfPoses, std::vector <glm::vec3>& anormalfPoses, std::vector <float>& agWeights, int fDynamic)
+void BuildSubGlob(GLOB* pglob, SUBGLOB* psubglob, SHD* pshd, std::vector <glm::vec3>& positions, std::vector <glm::vec3>& normals, std::vector <glm::vec4>& colors, std::vector <glm::vec2>& texcoords, std::vector <VTXFLG>& indexes, std::vector <SUBPOSEF>& subposef, std::vector <glm::vec3>& aposfPoses, std::vector <glm::vec3>& anormalfPoses, std::vector <float>& agWeights, int fDynamic)
 {
     if (pshd->shdk == SHDK_ThreeWay)
         pglob->fThreeWay = 1;
@@ -651,13 +684,47 @@ void BuildSubGlob(GLOB* pglob, SUBGLOB* psubglob, SHD* pshd, std::vector <glm::v
             }
         }
 
-        // Normalize weights
-        float totalWeight = glm::compAdd(weights);
-        if (totalWeight > 0.0f)
-            weights /= totalWeight;
-
         psubglob->vertices[i].boneIndices = boneIDs;
         psubglob->vertices[i].boneWeights = weights;
+    }
+
+    if (pglob->poseCount > 0)
+    {
+        const size_t vertexCount = indexes.size();
+
+        pglob->poseDpos.reserve(pglob->poseDpos.size() + vertexCount * pglob->poseCount);
+        pglob->poseDnormal.reserve(pglob->poseDnormal.size() + vertexCount * pglob->poseCount);
+
+        for (size_t ivtx = 0; ivtx < vertexCount; ++ivtx)
+        {
+            const VTXFLG& vertex = indexes[ivtx];
+
+            for (int ipose = 0; ipose < pglob->poseCount; ++ipose)
+            {
+                const SUBPOSEF& pose = subposef[ipose];
+
+                glm::vec3 dpos(0.0f);
+                glm::vec3 dnormal(0.0f);
+
+                const uint16_t iposPose = pose.aiposf[ivtx];
+
+                if (iposPose < aposfPoses.size() && vertex.ipos < positions.size())
+                    dpos = aposfPoses[iposPose] - positions[vertex.ipos];
+
+                if (vertex.inormal != 0xFF)
+                {
+                    const uint16_t inormalPose = pose.ainormalf[ivtx];
+
+                    if (inormalPose < anormalfPoses.size() && vertex.inormal < normals.size())
+                        dnormal = anormalfPoses[inormalPose] - normals[vertex.inormal];
+                }
+
+                pglob->poseDpos.emplace_back(dpos, 0.0f);
+                pglob->poseDnormal.emplace_back(dnormal, 0.0f);
+            }
+        }
+
+        pglob->poseVertexCount += static_cast<int>(vertexCount);
     }
 
     uint32_t idx = 0;
@@ -705,33 +772,66 @@ void BuildSubGlob(GLOB* pglob, SUBGLOB* psubglob, SHD* pshd, std::vector <glm::v
     psubglob->usesUvAnim = (sai && (sai->grfsai & 0x2));
 }
 
-void BuildSubcel(GLOBSET *pglobset, GLOB *pglob, SUBCEL *psubcel, int cposf, std::vector <glm::vec3> &aposf, int ctwef, std::vector <TWEF>& atwef, std::vector <SUBPOSEF>& asubposef, std::vector <glm::vec3>& aposfPoses, std::vector <float>& agWeights, std::vector <glm::vec4>& totalEdges)
+void BuildSubcel(GLOBSET* pglobset, GLOB* pglob, SUBCEL* psubcel, int cposf, const std::vector<glm::vec3>& aposf, int ctwef, const std::vector<TWEF>& atwef, int cibnd, const std::vector<int>& aibnd, const std::vector<SUBPOSEF>& asubposef, const std::vector<glm::vec3>& aposfPoses, const std::vector<float>& agWeights, std::vector<glm::vec4>& totalEdges, std::vector<glm::uvec4>& totalBoneIndices, std::vector<glm::vec4>& totalBoneWeights, std::vector<glm::vec4>& totalPoseDpos)
 {
-    // Keep only what you still need:
     pglob->edgeCount += ctwef;
 
-    // Reserve extra space in the merged buffer (4 vec4 per edge)
-    totalEdges.reserve(totalEdges.size() + (size_t)ctwef * 4);
+    const size_t pointCount = static_cast<size_t>(ctwef) * 4;
 
-    auto getP = [&](uint32_t idx) -> const glm::vec3& {return aposf[idx];};
+    totalEdges.reserve(totalEdges.size() + pointCount);
+    totalBoneIndices.reserve(totalBoneIndices.size() + pointCount);
+    totalBoneWeights.reserve(totalBoneWeights.size() + pointCount);
+    totalPoseDpos.reserve(totalPoseDpos.size() + pointCount * pglobset->cpose);
 
-    for (int i = 0; i < ctwef; ++i)
+    auto AppendCelPoint = [&](uint32_t ipos)
     {
-        const uint32_t iOppA = atwef[i].aipos0;
-        const uint32_t iE0   = atwef[i].aipos1;
-        const uint32_t iE1   = atwef[i].aipos2;
-        const uint32_t iOppB = atwef[i].aipos3;
+        if (ipos >= aposf.size())
+            return;
 
-        const glm::vec3 E0 = getP(iE0);
-        const glm::vec3 E1 = getP(iE1);
-        const glm::vec3 OA = getP(iOppA);
-        const glm::vec3 OB = getP(iOppB);
+        glm::uvec4 boneIndices(0);
+        glm::vec4 boneWeights(0.0f);
 
-        // same layout as before, but appended to the merged buffer
-        totalEdges.emplace_back(E0, 1.0f);
-        totalEdges.emplace_back(E1, 1.0f);
-        totalEdges.emplace_back(OA, 1.0f);
-        totalEdges.emplace_back(OB, 1.0f);
+        const int influenceCount = std::min(cibnd, 4);
+
+        for (int iibnd = 0; iibnd < influenceCount; ++iibnd)
+        {
+            const size_t weightIndex = static_cast<size_t>(ipos) * cibnd + iibnd;
+
+            if (iibnd < static_cast<int>(aibnd.size()) && weightIndex < agWeights.size())
+            {
+                boneIndices[iibnd] = static_cast<uint32_t>(aibnd[iibnd]);
+                boneWeights[iibnd] = agWeights[weightIndex];
+            }
+        }
+
+        totalEdges.emplace_back(aposf[ipos], 1.0f);
+        totalBoneIndices.push_back(boneIndices);
+        totalBoneWeights.push_back(boneWeights);
+
+        for (int ipose = 0; ipose < pglobset->cpose; ++ipose)
+        {
+            glm::vec3 dpos(0.0f);
+
+            if (ipose < static_cast<int>(asubposef.size()) && ipos < asubposef[ipose].aiposf.size())
+            {
+                const uint16_t iposPose = asubposef[ipose].aiposf[ipos];
+
+                if (iposPose < aposfPoses.size())
+                    dpos = aposfPoses[iposPose] - aposf[ipos];
+            }
+
+            totalPoseDpos.emplace_back(dpos, 0.0f);
+        }
+    };
+
+    for (int itwef = 0; itwef < ctwef; ++itwef)
+    {
+        const TWEF& twef = atwef[itwef];
+
+        AppendCelPoint(twef.aipos1);
+        AppendCelPoint(twef.aipos2);
+        AppendCelPoint(twef.aipos0);
+        AppendCelPoint(twef.aipos3);
     }
 }
 
@@ -741,11 +841,137 @@ void BuildGlobsetSaaArray(GLOBSET* pglobset)
 
     for (int i = 0, saaIndex = 0; i < pglobset->cglob; i++)
     {
-        SAA* psaa = pglobset->aglob[i].psaa;
+        SAA *psaa = pglobset->aglob[i].psaa;
 
         if (psaa != nullptr)
             pglobset->apsaa[saaIndex++] = psaa;
     }
+}
+
+void CloneGlob(GLOBSET* pglobset, GLOB* pglob, GLOBI* pglobi)
+{
+    if (!pglob || !pglobi)
+        return;
+
+    if (pglob->psaa)
+        pglobset->cpsaa++;
+
+    if (pglob->pwrbg)
+    {
+        // already created with correct palo/pglob during load
+        // just keep this as safety if needed
+        pglob->pwrbg->pglob = pglob;
+    }
+
+    if (pglob->pwrbg && pglob->pwrbg->cmat > 0)
+    {
+        if (!pglob->pwarpGlob)
+            pglob->pwarpGlob = std::make_shared<WRBGLOB_GL>();
+
+        WRBGLOB_GL& w = *pglob->pwarpGlob;
+
+        w.basePos.clear();
+
+        for (auto& subglob : pglob->asubglob)
+        {
+            for (auto& v : subglob.vertices)
+                w.basePos.emplace_back(v.pos, 1.0f);
+        }
+
+        w.vertexCount = (int)w.basePos.size();
+
+        if (w.ssboState == 0)
+            glGenBuffers(1, &w.ssboState);
+    }
+
+    if (pglob->fThreeWay == 1 && pglob->fDynamic == 0 && pglob->pwarpGlob == nullptr)
+    {
+        uint32_t totalVerts = 0;
+
+        for (auto& subglob : pglob->asubglob)
+            totalVerts += (uint32_t)subglob.vertices.size();
+
+        pglob->trlk = TRLK_Relight;
+
+        glGenBuffers(1, &pglob->ssboCachedMaterial);
+        glBindBuffer(GL_SHADER_STORAGE_BUFFER, pglob->ssboCachedMaterial);
+        glBufferData(GL_SHADER_STORAGE_BUFFER, totalVerts * sizeof(MATERIAL), nullptr, GL_STATIC_DRAW);
+        glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+    }
+
+    if (!pglob->asubglob.empty())
+    {
+        SetGlobDraw(pglob);
+        numRo++;
+
+        if (pglob->edgeCount > 0)
+            numRoCel++;
+    }
+}
+
+void CloneGlobset(GLOBSET* pglobset, ALO* palo, GLOBSET* pglobsetBase)
+{
+    *pglobset = *pglobsetBase;
+
+    // Bone transforms are instance state.  Geometry buffers may be shared by
+    // clones, but sharing this SSBO makes every clone overwrite the matrices
+    // used by all of the others before the deferred render lists are drawn.
+    // PostGlobsetLoad allocates and initializes a private buffer for the clone.
+    pglobset->boneMatrixSSBO = 0;
+
+    pglobset->cpsaa = 0;
+    pglobset->pwrbgFirst.reset();
+
+    for (int i = 0; i < pglobset->aglob.size(); i++)
+    {
+        GLOB& glob = pglobset->aglob[i];
+
+        // Cached lighting is instance-dependent, so the clone must never
+        // retain the source glob's OpenGL buffer handle.
+        glob.ssboCachedMaterial = 0;
+
+        // Deep-copy WRBG and repair owner pointers.
+        if (glob.pwrbg)
+        {
+            glob.pwrbg = std::make_shared<WRBG>(*glob.pwrbg);
+
+            glob.pwrbg->palo = palo;
+            glob.pwrbg->pglob = &glob;
+
+            glob.pwrbg->pwrbgNextGlobset = pglobset->pwrbgFirst;
+            pglobset->pwrbgFirst = glob.pwrbg;
+        }
+
+        // Recount SAA array.
+        if (glob.psaa)
+            pglobset->cpsaa++;
+
+        if (glob.fThreeWay == 1 && glob.fDynamic == 0 && glob.pwarpGlob == nullptr)
+        {
+            size_t totalVerts = 0;
+
+            for (const SUBGLOB& subglob : glob.asubglob)
+                totalVerts += subglob.vertices.size();
+
+            glob.trlk = TRLK_Relight;
+
+            glGenBuffers(1, &glob.ssboCachedMaterial);
+            glBindBuffer(GL_SHADER_STORAGE_BUFFER, glob.ssboCachedMaterial);
+            glBufferData(GL_SHADER_STORAGE_BUFFER, static_cast<GLsizeiptr>(totalVerts * sizeof(MATERIAL)), nullptr, GL_STATIC_DRAW);
+            glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+        }
+
+        if (!glob.asubglob.empty())
+        {
+            SetGlobDraw(&glob);
+            numRo++;
+
+            if (glob.edgeCount > 0)
+                numRoCel++;
+        }
+    }
+
+    BuildGlobsetSaaArray(pglobset);
 }
 
 void PostGlobsetLoad(GLOBSET* pglobset, ALO* palo)
@@ -768,6 +994,19 @@ void PostGlobsetLoad(GLOBSET* pglobset, ALO* palo)
 
         ApplyWrGlob(pwr, palo, wrbg->pglob);
     }
+
+    if (pglobset->cbnd <= 0)
+        return;
+
+    if (pglobset->boneMatrices.size() != static_cast<size_t>(pglobset->cbnd))
+        pglobset->boneMatrices.resize(pglobset->cbnd, glm::mat4(1.0f));
+
+    if (pglobset->boneMatrixSSBO == 0)
+        glGenBuffers(1, &pglobset->boneMatrixSSBO);
+
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, pglobset->boneMatrixSSBO);
+    glBufferData(GL_SHADER_STORAGE_BUFFER, pglobset->boneMatrices.size() * sizeof(glm::mat4), pglobset->boneMatrices.data(), GL_DYNAMIC_DRAW);
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 }
 
 void UpdateGlobset(GLOBSET* pglobset, ALO* palo, float dt)
@@ -803,7 +1042,7 @@ int  g_fogType = 1;
 bool g_fRenderModels = true;
 bool g_fRenderCollision = false;
 bool g_fRenderCelBorders = true;
-bool g_fBsp = false;
+bool g_fBsp = true;
 float g_uAlpha = 1.0;
 SMP s_smpFade = { 2.0, 0.0, 0.1 };
 SMP g_smpAlphaFade = { 2.0, 0.0, 0.1 };

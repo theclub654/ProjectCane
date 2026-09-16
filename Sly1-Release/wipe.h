@@ -1,5 +1,6 @@
 #pragma once
 #include "transition.h"
+#include "game.h"
 
 enum WIPES
 {
@@ -32,5 +33,17 @@ struct WIPE
 };
 
 void InitWipe(WIPE* pwipe);
+void UpdateWipe(WIPE* pwipe, JOY* pjoy);
+void DrawWipe(WIPE* pwipe);
+void ActivateWipe(WIPE* pwipe, TRANS* ptrans, WIPEK wipek);
+void SetWipeButtonTrans(WIPE* pwipe, TRANS* ptrans, WIPEK wipek);
+int  FCatchWipeButtonTrans(WIPE* pwipe, JOY* pjoy, WIPES wipesNew);
+void SetWipeWipes(WIPE* pwipe, WIPES wipes);
+void WipeToWorldWarp(LEVELINFO* plevel, OID oidWarp, WIPEK wipek);
+void WipeToWorldWarp(const std::string& levelName, OID oidWarp, WIPEK wipek);
+void WipeToWorldWarp(const char* pchzLevelName, OID oidWarp, WIPEK wipek);
+//GOTTA COME BACK TO THIS
+void FadeFramesToBlack(float dt);
 
 extern WIPE g_wipe;
+extern GAMEWORLD g_gameWorldPrev;

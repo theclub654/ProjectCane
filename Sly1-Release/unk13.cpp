@@ -12,8 +12,8 @@ void InitUnk13(UNK13* punk13)
 
 void CloneUnk13(UNK13* punk13, UNK13* punk13Base)
 {
-	RemoveDlEntry(PdlFromSwOid(punk13->psw, punk13->oid), punk13);
-	AppendDlEntry(PdlFromSwOid(punk13Base->psw, punk13Base->oid), punk13);
+	RemoveDlEntry(PdlFromSwOid(punk13->psw, (OID)punk13->oid), punk13);
+	AppendDlEntry(PdlFromSwOid(punk13Base->psw, (OID)punk13Base->oid), punk13);
 
 	punk13->oid = punk13Base->oid;
 	punk13->pchzName = punk13Base->pchzName;

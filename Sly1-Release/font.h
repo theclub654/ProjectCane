@@ -71,14 +71,12 @@ public:
 
 struct FONTF
 {
-    // Texture ID
-    short ibmp;
-    // CLUT ID
-    short iclut;
-    byte dxChar;
-    byte dxSpace;
-    byte dy;
-    byte bUnused;
+    int16_t ibmp;
+    int16_t iclut;
+    uint8_t dxChar;
+    uint8_t dxSpace;
+    uint8_t dy;
+    uint8_t fontk;
     float rScale;
     uint32_t cglyff;
 };
@@ -97,37 +95,31 @@ struct GLYFF
 
 struct CFont
 {
-    // Default character width unscaled
-    int m_dxCharUnscaled;
-    // Default space width unscaled
-    int m_dxSpaceUnscaled;
-    // Default font height unscaled
-    int m_dyUnscaled;
-    int m_csfr;
-    SFR m_asfr[4];
-    int m_fGstest;
-    uint64_t m_gstest;
-    uint32_t m_z;
+    int m_dxCharUnscaled = 0;
+    int m_dxSpaceUnscaled = 0;
+    int m_dyUnscaled = 0;
 
-    // Scale X
-    float m_rxScale;
-    // Scale Y
-    float m_ryScale;
+    int m_csfr = 0;
+    SFR m_asfr[4]{};
+
+    int m_fGstest = 0;
+    uint64_t m_gstest = 0;
+    uint32_t m_z = 0;
+
+    float m_rxScale = 1.0f;
+    float m_ryScale = 1.0f;
 };
 
 class CFontBrx : public CFont
 {
-public:
+    public:
+    BMP* m_pbmp = nullptr;
+    CLUT* m_pclut = nullptr;
 
-    // Ptr to font texture
-    struct BMP* m_pbmp;
-    struct CLUT* m_pclut;
+    int m_cglyff = 0;
+    std::unordered_map<uint16_t, GLYFF> m_aglyff;
 
-    // Number of glyffs
-    int m_cglyff;
-    std::unordered_map <uint16_t, GLYFF> m_aglyff;
-
-    uint32_t m_grffont;
+    uint32_t m_grffont = 0;
 
     // Loads glyff data
     void LoadFromBrx(CBinaryInputStream* pbis);
@@ -138,7 +130,7 @@ public:
     float DxFromPchz(char* pchz);
     float DxFromCh(char ch);
     CFontBrx* PfontClone(float rx, float ry);
-    void FValid(char ch);
+    bool FValid(char ch);
     void SetupDraw();
     float DxDrawCh(char ch, float xChar, float yChar, glm::vec4& rgba);
     void EdgeRect(CTextEdge* pte, CTextBox* ptbx);
@@ -154,9 +146,12 @@ public:
     void CleanUpDraw();
 };
 
+CFontBrx* PfontFromFont(int fontk);
+bool FFontLoaded(int fontk);
+
 class CRichText
 {
-public:
+    public:
 
     char* m_achz;
     char* m_pchCur;
@@ -167,19 +162,26 @@ public:
     glm::vec4 m_rgbaSet;
     glm::vec4 m_rgbaBase;
     glm::vec4 m_rgbaOther;
+    bool m_fFontChanged = false;
 
     CRichText(char* achz, CFontBrx* pfont);
 
     void  GetExtents(float* pdx, float* pdy, float dxMax);
     int   ClineWrap(float dx);
+    float DyWrap(float dxWrap);
+
     float DxMaxLine();
     char  ChNext();
     void  SetBaseColor(glm::vec4* rgba);
     int   Cch();
     void  Trim(int cch);
+    float Dx();
     void  Reset();
-    void  Draw(CTextBox* ptbx);
+    void  Draw(CTextBox* ptbx, CTextBox* ptbxClip);
 };
+
+CFontBrx* PfontFromRichTextCode(char code);
+CFontBrx* PfontFromFont(int fontk);
 
 void RenderGlyphQuad(float x, float y, float w, float h, float u0, float v0, float u1, float v1, const glm::vec4& color);
 
@@ -199,6 +201,9 @@ extern SFR g_sfrOne;
 extern GLuint u_projectionLoc;
 extern GLuint u_modelLoc;
 extern GLuint uvRectLoc;
+extern GLuint u_useVertexColorLoc;
 extern GLuint blotColorLoc;
 extern GLuint whiteTex;
 extern uint64_t whiteHandle;
+
+extern std::array<char, 5> g_achFontSelector;

@@ -19,8 +19,7 @@ struct VBSP
 
 class VISMAP : public LO
 {
-public:
-
+	public:
 	int cvbsp;
 	std::vector <VBSP> avbsp;
 	int cgrfzon;

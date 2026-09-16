@@ -14,9 +14,18 @@ struct CTR : public BLOT
     void* pv;
 };
 
+struct PERCENTCTR : public CTR
+{
+
+};
+
 // GOTTA COME BACK TO THIS
 void PostCtrLoad(CTR *pctr);
 float DtVisibleCtr(CTR* pctr);
 void UpdateCtr(CTR* pctr);
 void RebuildCtrAchzDraw(CTR *pctr);
 void DrawCtr(CTR *pctr);
+
+void StartupPercentCtr(PERCENTCTR* ppercentctr);
+
+extern PERCENTCTR g_percentctr; 

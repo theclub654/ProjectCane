@@ -1,4 +1,25 @@
 #include "alo.h"
+#include "hide.h"
+#include "render.h"
+#include "target.h"
+#include "sm.h"
+#include "actadj.h"
+#include "proxy.h"
+#include "aseg.h"
+#include "actseg.h"
+#include "actla.h"
+#include "actbank.h"
+#include "actref.h"
+#include "spliceobj.h"
+#include "ik.h"
+#include <algorithm>
+#include <cstdint>
+#include <cmath>
+#include <cstdio>
+#include "vis.h"
+
+#include "jt.h"
+#include "mb.h"
 
 ALO* NewAlo()
 {
@@ -7,6 +28,7 @@ ALO* NewAlo()
 
 void InitAlo(ALO* palo)
 {
+
 	InitDl(&palo->dlChild,  offsetof(LO, dleChild));
 	InitDl(&palo->dlFreeze, offsetof(ALO, dleFreeze));
 
@@ -23,13 +45,27 @@ void InitAlo(ALO* palo)
 
 	InitLo(palo);
 
+	palo->ackPos = ACK_Nil;
+	palo->ackRot = ACK_Nil;
+
 	palo->sCelBorderMRD = FLT_MAX;
 	palo->sMRD = FLT_MAX;
-	palo->grfzon = -1;
+
+	// Default motion tuning
+	palo->pclqPosSpring  = std::make_shared<CLQ>(g_clqPosSpringDefault);
+	palo->pclqRotSpring  = std::make_shared<CLQ>(g_clqRotSpringDefault);
+	palo->pclqPosDamping = std::make_shared<CLQ>(g_clqPosDampingDefault);
+	palo->pclqRotDamping = std::make_shared<CLQ>(g_clqRotDampingDefault);
+
+	palo->psmpaPos = std::make_shared<SMPA>(g_smpaPosDefault);
+	palo->psmpaRot = std::make_shared<SMPA>(g_smpaRotDefault);
+
+	// The release initializes only the 28 valid zone bits.
+	palo->grfzon = 0x0fffffff;
 	palo->mtlk = 0;
-	palo->xf.mat = glm::identity<glm::mat3>();
-	palo->xf.matWorld = glm::identity<glm::mat3>();
-	palo->matOrig = glm::identity<glm::mat3>();
+	palo->xf.mat = glm::identity <glm::mat3>();
+	palo->xf.matWorld = glm::identity <glm::mat3>();
+	palo->matOrig = glm::identity <glm::mat3>();
 
 	InitDl(&palo->dlAct, offsetof(ACT, dleAlo));
 
@@ -39,45 +75,43 @@ void InitAlo(ALO* palo)
 
 void RemoveAloHierarchy(ALO* palo)
 {
-	DLI it{};
+	DLI dliChild{};
 
-	it.m_pdl = &palo->dlChild;
-	it.m_ibDle = palo->dlChild.ibDle;
-	it.m_pdliNext = s_pdliFirst;
+	dliChild.m_pdl = &palo->dlChild;
+	dliChild.m_ibDle = palo->dlChild.ibDle;
+	dliChild.m_pdliNext = s_pdliFirst;
+	dliChild.m_ppv = reinterpret_cast<void**>(dliChild.m_pdl);
 
-	s_pdliFirst = &it;
+	s_pdliFirst = &dliChild;
 
-	it.m_ppv = (void**)it.m_pdl;
-
-	// Start with the parent
-	LO* current = (LO*)palo;
+	/*
+	 * The original calls OnLoRemove directly for this object.
+	 */
+	palo->pvtlo->pfnOnLoRemove(palo);
 
 	while (true)
 	{
-		// Call OnLoAdd for the CURRENT object (parent first, then each child)
-		current->pvtlo->pfnOnLoRemove(current);
+		LO* child = static_cast<LO*>(*dliChild.m_ppv);
 
-		// Load next child pointer from the current "next field"
-		void* next = *it.m_ppv;
-		if (next == nullptr)
+		if (child == nullptr)
 			break;
 
-		// Advance iterator to the "next pointer field" inside that next object
-		it.m_ppv = (void**)((uintptr_t)next + it.m_ibDle);
+		dliChild.m_ppv = reinterpret_cast<void**>(
+			reinterpret_cast<char*>(child) + dliChild.m_ibDle);
 
-		// Move to the next object so we don't keep calling the parent
-		current = (LO*)next;
+		/*
+		 * Call RemoveLoHierarchy, not OnLoRemove. This recursively
+		 * processes the child's descendants.
+		 */
+		child->pvtlo->pfnRemoveLoHierarchy(child);
 	}
 
-	// palo->pvtlo->pfnSendLoMessage(palo, 1, palo);
+	palo->pvtlo->pfnSendLoMessage(palo, MSGID_removed, palo);
 
-	s_pdliFirst = it.m_pdliNext;
+	s_pdliFirst = dliChild.m_pdliNext;
 }
-
 void OnAloAdd(ALO* palo)
 {
-	if (!palo) return;
-
 	// Original does this first
 	OnLoAdd(palo);
 
@@ -108,12 +142,8 @@ void OnAloAdd(ALO* palo)
 			palo->dlFreeze.paloLast = palo;
 
 			for (int i = palo->cpmrg - 1; i >= 0; --i)
-			{
-				MRG* pmrg = palo->apmrg[i];
-				if (pmrg)
-					MergeSwGroup(sw, pmrg);
-			}
-		}
+				MergeSwGroup(sw, palo->apmrg[i]);
+		} 
 		else
 		{
 			// Real-clock roots go into the real-clock MRD list
@@ -128,165 +158,137 @@ void OnAloAdd(ALO* palo)
 		// If parent's "freeze-propagate" bit is set, freeze child on add (if supported)
 		if ((parent->fFrozen) != 0)
 		{
-			if (palo->pvtalo && palo->pvtalo->pfnFreezeAlo)
-				palo->pvtalo->pfnFreezeAlo(palo, 1);
+			if (palo->pvtalo && palo->pvtlo->pfnFreezeLo)
+				palo->pvtlo->pfnFreezeLo(palo, 1);
 		}
 	}
 
 	// Apply ACT position goal on add
-	//if (palo->pactPos != nullptr)
-	//{
-	//	glm::vec3 w(0.0f);
-	//	glm::vec3 v(0.0f);
+	if (palo->pactPos != nullptr) {
+		glm::vec3 pos;
+		glm::vec3 vel;
 
-	//	// Original signature: pfnGetActPositionGoal(0, pactPos, &w, &v)
-	//	palo->pactPos->pvtact->pfnGetActPositionGoal(nullptr, palo->pactPos, &w, &v);
+		palo->pactPos->pvtact->pfnGetActPositionGoal(palo->pactPos, 0.0f, &pos, &vel);
 
-	//	palo->pvtalo->pfnTranslateAloToPos(palo, &w);
-	//	palo->pvtalo->pfnSetAloVelocityVec(palo, &v);
-	//}
+		palo->pvtalo->pfnTranslateAloToPos(palo, &pos);
+		palo->pvtalo->pfnSetAloVelocityVec(palo, &vel);
+	}
 
-	// Apply ACT rotation goal on add
-	//if (palo->pactRot != nullptr)
-	//{
-	//	glm::mat3 mat(1.0f);
-	//	glm::vec3 w(0.0f);
+	if (palo->pactRot != nullptr) {
+		glm::mat3 mat;
+		glm::vec3 angVel;
 
-	//	// Original signature: pfnGetActRotationGoal(0, pactRot, &mat, &w)
-	//	palo->pactRot->pvtact->pfnGetActRotationGoal(nullptr, palo->pactRot, &mat, &w);
+		palo->pactRot->pvtact->pfnGetActRotationGoal(palo->pactRot, 0.0f, &mat, &angVel);
 
-	//	palo->pvtalo->pfnRotateAloToMat(palo, &mat);
-	//	palo->pvtalo->pfnSetAloAngularVelocityVec(palo, &w);
-	//}
+		palo->pvtalo->pfnRotateAloToMat(palo, &mat);
+		palo->pvtalo->pfnSetAloAngularVelocityVec(palo, &angVel);
+	}
+
 
 	// If flagged, add to camera fade list
-	/*if (palo->fForceCameraFade != 0)
-		AddCmFadeObject(g_pcm, palo);*/
+	if (palo->fForceCameraFade != 0)
+		AddCmFadeObject(g_pcm, palo);
 
 		// Shadow registration
 	if (palo->pshadow != nullptr && palo->psw != nullptr)
 		AppendDlEntry(&palo->psw->dlShadow, palo->pshadow.get());
 
 	// Update world transform if the LO has a handler
-	if (palo->pvtlo && palo->pvtlo->pfnUpdateLoXfWorld)
+	if (palo->pvtalo && palo->pvtalo->pfnUpdateAloXfWorld)
 		palo->pvtalo->pfnUpdateAloXfWorld(palo);
 
-	//HandleLoSpliceEvent(palo, 4, 0, nullptr);
+	HandleLoSpliceEvent(palo, 4, 0, nullptr);
 	ResolveAlo(palo);
 }
 
 void OnAloRemove(ALO* palo)
 {
-	if (!palo) return;
-	
 	OnLoRemove(palo);
-
+	
 	SW* psw = palo->psw;
 
-	// Root-only list cleanup
 	if (palo->paloParent == nullptr)
 	{
-		if (palo->fRealClock != 0)
-		{
-			// Root real-clock list
-			if (psw) RemoveDlEntry(&psw->dlMRDRealClock, palo);
-		}
+		if (palo->fRealClock)
+			RemoveDlEntry(&psw->dlMRDRealClock, palo);
 		else
 		{
-			// Root normal-clock list
-			if (psw) RemoveDlEntry(&psw->dlMRD, palo);
+			RemoveDlEntry(&psw->dlMRD, palo);
 
-			// If it was also in busy lists, remove and clear the bit
 			if (palo->fBusy)
 			{
 				palo->fBusy = false;
 
-				if (psw) RemoveDlEntry(&psw->dlBusy, palo);
+				RemoveDlEntry(&psw->dlBusy, palo);
 
-				if (psw && palo->pvtlo && ((palo->pvtlo->grfcid & 2U) != 0))
+				if ((palo->pvtlo->grfcid & 2U) != 0)
 					RemoveDlEntry(&psw->dlBusySo, palo);
 			}
 
-			// Undo freeze-group bookkeeping that was established for the root
-			if (psw && palo->paloFreezeRoot)
-				SplinterSwFreezeGroup(psw, palo->paloFreezeRoot);
+			SplinterSwFreezeGroup(psw, palo->paloFreezeRoot);
 
 			palo->paloFreezeRoot = nullptr;
 			ClearDl(&palo->dlFreeze);
 		}
 	}
 
-	// Camera fade removal
-	/*if (palo->fForceCameraFade)
-		RemoveCmFadeObject(g_pcm, palo);*/
+	if (palo->fForceCameraFade)
+		RemoveCmFadeObject(g_pcm, palo);
 
-		// Shadow list removal
-	if (palo->pshadow != nullptr && palo->psw != nullptr)
+	if (palo->pshadow != nullptr)
 		RemoveDlEntry(&palo->psw->dlShadow, palo->pshadow.get());
 
-	// If freeze-propagate bit is set, unfreeze on remove (if supported)
-	if (palo->fFrozen && palo->pvtalo->pfnFreezeAlo)
-		palo->pvtalo->pfnFreezeAlo(palo, false);
+	if (palo->fFrozen && palo->pvtlo->pfnFreezeLo != nullptr)
+		palo->pvtlo->pfnFreezeLo(palo, 0);
 
 	ResolveAlo(palo);
+
 	palo->paloRoot = nullptr;
 
-	//HandleLoSpliceEvent(palo, 5, 0, nullptr);
+	HandleLoSpliceEvent(palo, 5, 0, nullptr);
 }
-
 void UpdateAloOrig(ALO* palo)
 {
 	palo->matOrig = palo->xf.mat;   // glm::mat3 (rotation)
 	palo->posOrig = palo->xf.pos;   // glm::vec3
 
-	/*if (palo->pvtalo && palo->pvtalo->pfnUnadjustAloRotation)
-		palo->pvtalo->pfnUnadjustAloRotation(palo, &palo->matOrig);*/
+	if (palo->pvtalo && palo->pvtalo->pfnUnadjustAloRotation)
+		palo->pvtalo->pfnUnadjustAloRotation(palo, &palo->matOrig);
 
 		// Decompose to Euler (radians), PS2 logic
-	palo->eulOrig = DecomposeRotateMatrixEuler(palo->matOrig);
+	DecomposeRotateMatrixEuler(palo->matOrig, palo->eulOrig);
 }
 
 void AdjustAloRtckMat(ALO* palo, CM* pcm, RTCK rtck, glm::vec3* pposCenter, glm::mat4& pmat)
 {
-	// 1) dpos = -camera X
-	glm::vec3 camX = glm::vec3(pcm->mat[1]);
-	glm::vec3 dpos = camX;
-	glm::vec3 dposN = glm::normalize(dpos);
+	glm::vec3 dpos = -glm::vec3(pcm->mat[0]);
 
-	// 2) Rotate object Z to dpos (Z-normal billboard)
-	glm::mat3 R1;
-	glm::vec3 z0 = glm::vec3(pmat[2]);
-	BuildRotateVectorsMatrix(&z0, &dposN, &R1);
+	glm::vec3 vecFrom = glm::vec3(pmat[0]);
+	glm::mat3 matRotate(1.0f);
 
-	glm::mat4 D1;
-	LoadMatrixFromPosRot(g_vecZero, R1, D1);
+	BuildRotateVectorsMatrix(&vecFrom, &dpos, &matRotate);
 
-	// Move to center frame, apply rotation
-	glm::mat4 M = pmat;
-	M[3] = glm::vec4(glm::vec3(M[3]) - *pposCenter, M[3].w);
-	glm::mat4 alignedMat = D1 * M;
+	glm::mat4 mat = pmat;
+	mat[3].x -= pposCenter->x;
+	mat[3].y -= pposCenter->y;
+	mat[3].z -= pposCenter->z;
 
-	// 3) Reflect current X about dpos (swapped axis vs original)
-	glm::vec3 vX = glm::vec3(alignedMat[0]);
-	float s = 2.0f * glm::dot(vX, dposN);
-	glm::vec3 vXr = vX - s * dposN;
+	glm::mat4 dmat(1.0f);
+	LoadMatrixFromPosRot(&g_vecZero, &matRotate, &dmat);
 
-	// 4) Write back local_e0 to pmat, keeping X column from local_e0
+	glm::mat4 alignedMat = dmat * mat;
+
+	glm::vec3 alignedZ = glm::vec3(alignedMat[2]);
+	glm::vec3 vec = alignedZ - dpos * glm::dot(alignedZ, dpos);
+
 	pmat = alignedMat;
-	pmat[0] = glm::vec4(vX, alignedMat[0].w);
 
-	// 5) Rotate reflected X to camera Z, then compose back around +center
-	glm::vec3 camZ = glm::vec3(pcm->mat[2]);
-	glm::mat3 R2;
-	glm::vec3 vXrN = glm::normalize(vXr);
-	glm::vec3 camZN = glm::normalize(camZ);
-	BuildRotateVectorsMatrix(&vXrN, &camZN, &R2);
+	glm::vec3 cameraZ = glm::vec3(pcm->mat[2]);
 
-	glm::mat4 D2;
-	LoadMatrixFromPosRot(*pposCenter, R2, D2);
+	BuildRotateVectorsMatrix(&vec, &cameraZ, &matRotate);
+	LoadMatrixFromPosRot(pposCenter, &matRotate, &dmat);
 
-	// 6) Final result
-	pmat = D2 * pmat;
+	pmat = dmat * pmat;
 }
 
 void CloneAloHierarchy(ALO* palo, ALO* paloBase)
@@ -309,10 +311,18 @@ void CloneAloHierarchy(ALO* palo, ALO* paloBase)
 	{
 		// Advance iterator to next-pointer-field for this child
 		it.m_ppv = (void**)((uintptr_t)child + it.m_ibDle);
-
+		
 		PloCloneLo(child, palo->psw, palo);
 
 		child = (LO*)*it.m_ppv;
+	}
+
+	// Proxy roots can refer to later siblings, so remap them after the whole
+	// cloned hierarchy exists.
+	RebuildClonedProxyRoots(palo, paloBase);
+
+	if ((((palo->pvtlo->grfcid & 2U) != 0) && palo->paloParent == nullptr)) {
+		RecalcSoLocked((SO*)palo);
 	}
 
 	s_pdliFirst = it.m_pdliNext;
@@ -320,109 +330,171 @@ void CloneAloHierarchy(ALO* palo, ALO* paloBase)
 
 void CloneAlo(ALO* palo, ALO* paloBase)
 {
-	palo->dlChild = paloBase->dlChild;
-	//palo->dleBusy = paloBase->dleBusy;
-	//palo->dleMRD = paloBase->dleMRD;
-	//palo->paloRoot = paloBase->paloRoot;
-	//palo->paloFreezeRoot = paloBase->paloFreezeRoot;
-	//palo->dleFreeze = paloBase->dleFreeze;
-	//palo->dlFreeze = paloBase->dlFreeze;
+	DLE  savedDleMRD = palo->dleMRD;
+	DLE  savedDleBusy = palo->dleBusy;
+	DLE  savedDleFreeze = palo->dleFreeze;
+	DL   savedDlFreeze = palo->dlFreeze;
+	DL   savedDlAct = palo->dlAct;
+	ALO* savedFreezeRoot = palo->paloFreezeRoot;
+	ALO* savedRoot = palo->paloRoot;
+
+	CloneLo(palo, paloBase);
+
+	palo->dleMRD = savedDleMRD;
+	palo->dleBusy = savedDleBusy;
+	palo->dleFreeze = savedDleFreeze;
+	palo->dlFreeze = savedDlFreeze;
+	palo->dlAct = savedDlAct;
+	palo->paloFreezeRoot = savedFreezeRoot;
+	palo->paloRoot = savedRoot;
+
+	ClearDl(&palo->dlChild);
+
 	palo->cpmrg = paloBase->cpmrg;
 	for (int i = 0; i < 4; ++i)
 		palo->apmrg[i] = paloBase->apmrg[i];
+
 	palo->sMRD = paloBase->sMRD;
 	palo->sCelBorderMRD = paloBase->sCelBorderMRD;
 	palo->grfzon = paloBase->grfzon;
 	palo->dsMRDSnap = paloBase->dsMRDSnap;
 	palo->frz = paloBase->frz;
+
 	palo->xf = paloBase->xf;
 	palo->posOrig = paloBase->posOrig;
 	palo->matOrig = paloBase->matOrig;
 	palo->eulOrig = paloBase->eulOrig;
-	//palo->dlAct = paloBase->dlAct;
+
 	palo->pactPos = paloBase->pactPos;
 	palo->pactRot = paloBase->pactRot;
 	palo->pactScale = paloBase->pactScale;
 	palo->apactPose = paloBase->apactPose;
-	palo->pactRestore = paloBase->pactRestore;
-	palo->pactla = paloBase->pactla;
-	palo->pactbank = paloBase->pactbank;
+
+	palo->pactRestore = nullptr;
+	palo->pactla = nullptr;
+	palo->pactbank = nullptr;
+
 	palo->pikh = paloBase->pikh;
+
 	palo->pclqPosSpring = paloBase->pclqPosSpring;
 	palo->pclqPosDamping = paloBase->pclqPosDamping;
 	palo->pclqRotSpring = paloBase->pclqRotSpring;
 	palo->pclqRotDamping = paloBase->pclqRotDamping;
+
 	palo->psmpaPos = paloBase->psmpaPos;
 	palo->psmpaRot = paloBase->psmpaRot;
+
 	if (paloBase->palox)
-		palo->palox = std::make_unique<ALOX>(*paloBase->palox);
+		palo->palox = std::make_shared<ALOX>(*paloBase->palox);
 	else
 		palo->palox.reset();
+
 	palo->cframeStatic = paloBase->cframeStatic;
-	palo->globset = paloBase->globset;
 
-	for (int i = 0; i < palo->globset.aglob.size(); i++)
-	{
-		if (palo->globset.aglob[i].fThreeWay == 1 && palo->globset.aglob[i].fDynamic == 0)
-		{
-			size_t totalVerts = 0;
+	CloneGlobset(&palo->globset, palo, &paloBase->globset);
 
-			for (int a = 0; a < palo->globset.aglob[i].asubglob.size(); a++)
-				totalVerts += palo->globset.aglob[i].asubglob[a].vertices.size();
-
-			if (palo->globset.aglob[i].fThreeWay == 1 && palo->globset.aglob[i].fDynamic == 0)
-			{
-				if (palo->globset.aglob[i].pwarpGlob == nullptr)
-				{
-					palo->globset.aglob[i].trlk = TRLK_Relight;
-
-					glGenBuffers(1, &palo->globset.aglob[i].ssboCachedMaterial);
-					glBindBuffer(GL_SHADER_STORAGE_BUFFER, palo->globset.aglob[i].ssboCachedMaterial);
-					glBufferData(GL_SHADER_STORAGE_BUFFER, (GLsizeiptr)(totalVerts * sizeof(MATERIAL)), nullptr, GL_STATIC_DRAW);
-					glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
-				}
-			}
-		}
-
-		if (palo->globset.aglob[i].asubglob.size() > 0)
-		{
-			SetRpCount(&palo->globset.aglob[i], palo->globset.aglob[i].fTransluscentSort);
-			numRo++;
-		}
-
-		if (palo->globset.aglob[i].edgeCount > 0)
-		{
-			SetRpCount(&palo->globset.aglob[i], 0);
-			numRoCel++;
-		}
-	}
-
-	palo->pshadow = paloBase->pshadow;
-	palo->pthrob = paloBase->pthrob;
 	palo->sFastShadowRadius = paloBase->sFastShadowRadius;
 	palo->sFastShadowDepth = paloBase->sFastShadowDepth;
 	palo->fRealClock = paloBase->fRealClock;
 	palo->pfader = paloBase->pfader;
 	palo->dtUpdatePause = paloBase->dtUpdatePause;
 	palo->pasegd = paloBase->pasegd;
+
 	palo->sRadiusRenderSelf = paloBase->sRadiusRenderSelf;
 	palo->sRadiusRenderAll = paloBase->sRadiusRenderAll;
-	palo->psfx = paloBase->psfx;
+
 	palo->ficg = paloBase->ficg;
 	palo->cposec = paloBase->cposec;
 	palo->aposec = paloBase->aposec;
 	palo->pactrefCombo = paloBase->pactrefCombo;
 	palo->pdlrFirst = paloBase->pdlrFirst;
+
+	palo->zons = paloBase->zons;
+	palo->viss = paloBase->viss;
+	palo->mrds = paloBase->mrds;
+	palo->dms = paloBase->dms;
+	palo->fHidden = paloBase->fHidden;
+	palo->fFixedPhys = paloBase->fFixedPhys;
+	palo->fMtlkFromDls = paloBase->fMtlkFromDls;
+	palo->fWater = paloBase->fWater;
+	palo->fForceCameraFade = paloBase->fForceCameraFade;
 	palo->fBusy = true;
-	//palo->bitfield = paloBase->bitfield;
+	palo->fFrozen = paloBase->fFrozen;
+	palo->fRemerge = paloBase->fRemerge;
+	palo->freezeMode = paloBase->freezeMode;
+	palo->cpaloFindSwObjects = paloBase->cpaloFindSwObjects;
+	palo->fApplyAseg = paloBase->fApplyAseg;
+
+	palo->ackPos = paloBase->ackPos;
 	palo->ackRot = paloBase->ackRot;
 
-	/*if (palo->fForceCameraFade && FIsLoInWorld(palo))
-		AddCmFadeObject(g_pcm, palo);*/
+	palo->pvtalo->pfnRecacheAloActList(palo);
 
-	CloneLo(palo, paloBase);
+	if (paloBase->pactRestore != nullptr)
+	{
+		palo->pactRestore = PactNewClone(paloBase->pactRestore.get(), palo->psw, palo);
+		InsertAloAct(palo, palo->pactRestore.get());
+	}
 
-	ClearDl(&palo->dlChild);
+	if (paloBase->pactla != nullptr)
+	{
+		palo->pactla = PactlaNewClone(paloBase->pactla.get(), palo->psw, palo);
+		InsertAloAct(palo, palo->pactla.get());
+	}
+
+	if (paloBase->pactbank != nullptr)
+	{
+		palo->pactbank = PactbankNewClone(paloBase->pactbank.get(), palo->psw, palo);;
+		InsertAloAct(palo, palo->pactbank.get());
+	}
+
+	if (paloBase->pshadow)
+	{
+		palo->pshadow = std::make_shared<SHADOW>(*paloBase->pshadow);
+		ClearDle(&palo->pshadow->dle);
+		AppendDlEntry(&palo->psw->dlShadow, palo->pshadow.get());
+	}
+
+	if (paloBase->psfx)
+		palo->psfx = std::make_shared <SFX>(*paloBase->psfx);
+
+	if (paloBase->pthrob)
+		palo->pthrob = std::make_shared <THROB>(*paloBase->pthrob);
+
+	if (palo->fForceCameraFade && FIsLoInWorld(palo))
+		AddCmFadeObject(g_pcm, palo);
+
+	if (paloBase->pclqPosSpring && paloBase->pclqPosSpring.get() != &g_clqPosSpringDefault)
+		palo->pclqPosSpring = std::make_shared<CLQ>(*paloBase->pclqPosSpring);
+
+	if (paloBase->pclqPosDamping && paloBase->pclqPosDamping.get() != &g_clqPosDampingDefault)
+		palo->pclqPosDamping = std::make_shared<CLQ>(*paloBase->pclqPosDamping);
+
+	if (paloBase->pclqRotSpring && paloBase->pclqRotSpring.get() != &g_clqRotSpringDefault)
+		palo->pclqRotSpring = std::make_shared<CLQ>(*paloBase->pclqRotSpring);
+
+	if (paloBase->pclqRotDamping && paloBase->pclqRotDamping.get() != &g_clqRotDampingDefault)
+		palo->pclqRotDamping = std::make_shared<CLQ>(*paloBase->pclqRotDamping);
+
+}
+
+void HandleAloMessage(ALO* palo, MSGID msgid, void* pv)
+{
+	if (msgid != MSGID_added)
+		return;
+
+	SFX *psfx = palo->psfx.get();
+
+	if (psfx == nullptr)
+		return;
+
+	if (g_clock.t == 0.0f)
+		return;
+
+	if (psfx->pamb != nullptr)
+		return;
+
+	StartSound(psfx->sfxid, &psfx->pamb, palo, nullptr, psfx->sStart, psfx->sFull, psfx->uVol, psfx->uPitch, psfx->uDoppler, &psfx->lmRepeat, nullptr);
 }
 
 bool FIsZeroV(const glm::vec3& v)
@@ -433,6 +505,16 @@ bool FIsZeroV(const glm::vec3& v)
 bool FIsZeroW(const glm::vec3& w)
 {
 	return glm::dot(w, w) < 0.0004f;
+}
+
+bool FIsZeroDv(const glm::vec3& dv)
+{
+	return glm::dot(dv, dv) < 25.0f;
+}
+
+bool FIsZeroDw(const glm::vec3& dw)
+{
+	return glm::dot(dw, dw) < 0.0025000002f;
 }
 
 int FIsAloStatic(ALO* palo)
@@ -461,69 +543,137 @@ void ResolveAlo(ALO* palo)
 		palo->paloRoot->cframeStatic = 0;
 }
 
+void InvalidateAloLighting(ALO* palo)
+{
+	if (palo == nullptr)
+		return;
+
+	const size_t count = std::min(palo->globset.aglob.size(), palo->globset.aglobi.size());
+
+	for (size_t i = 0; i < count; ++i)
+	{
+		GLOB& glob = palo->globset.aglob[i];
+		GLOBI& globi = palo->globset.aglobi[i];
+
+		// Retail invalidates the saved predraw packet for every glob. In this
+		// renderer that packet is the cached three-way material SSBO.
+		globi.cframeStaticLights = -1;
+
+		if (glob.fThreeWay == 1 && glob.fDynamic == 0 && glob.pwarpGlob == nullptr)
+			glob.trlk = TRLK_Relight;
+	}
+}
+
 void SetAloParent(ALO* palo, ALO* paloParent)
 {
 	if (palo->paloParent == paloParent)
 		return;
 
+
 	glm::vec3 posWorld = palo->xf.posWorld;
 	glm::mat3 matWorld = palo->xf.matWorld;
 
-	palo->pvtalo->pfnRemoveLo(palo);
+	glm::vec3 vWorld{};
+	glm::vec3 wWorld{};
 
-	ConvertAloPos(nullptr, paloParent, posWorld, palo->xf.pos);
-	ConvertAloMat(nullptr, paloParent, matWorld, palo->xf.mat);
+	if (palo->paloParent == nullptr)
+	{
+		vWorld = palo->xf.v;
+		wWorld = palo->xf.w;
+	}
+	else
+		CalculateAloMovement(palo, nullptr, palo->xf.posWorld, &vWorld, &wWorld, nullptr, nullptr);
 
 	const bool wasRoot = palo->paloParent == nullptr;
-	const bool nowRoot = paloParent == nullptr;
+	const int mrdsOld = palo->mrds;
 
-	if (wasRoot != nowRoot)
+	palo->pvtlo->pfnRemoveLo(palo);
+
+	ConvertAloPos(nullptr, paloParent, &posWorld, &palo->xf.pos);
+	ConvertAloMat(nullptr, paloParent, &matWorld, &palo->xf.mat);
+
+	if (paloParent != nullptr)
 	{
-		if (nowRoot)
+		glm::vec3 vParent{};
+		glm::vec3 wParent{};
+
+		CalculateAloMovement(paloParent, nullptr, palo->xf.posWorld, &vParent, &wParent, nullptr, nullptr);
+
+		vWorld -= vParent;
+		wWorld -= wParent;
+	}
+
+	glm::vec3 v{};
+	glm::vec3 w{};
+
+	ConvertAloVec(nullptr, paloParent, &vWorld, &v);
+	palo->pvtalo->pfnSetAloVelocityVec(palo, &v);
+
+	ConvertAloVec(nullptr, paloParent, &wWorld, &w);
+	palo->pvtalo->pfnSetAloAngularVelocityVec(palo, &w);
+
+	const bool isRoot = paloParent == nullptr;
+
+	if (wasRoot != isRoot)
+	{
+		if (isRoot)
 		{
-			// Becoming world/root object.
+			palo->viss = 2;
 			palo->zons = 2;
 
-			if (palo->viss != 1)
-			{
-				palo->zons = 2;
-				palo->viss = 2;
-			}
-
-			if (palo->mrds != 1)
+			if (mrdsOld != 1)
 				palo->mrds = 2;
 		}
 		else
 		{
-			// Becoming child object.
-			palo->zons = 1;
+			palo->viss = 1;
 
+			/* Retail reads the field after assigning viss = 1.  Consequently
+			 * this condition is false and the existing zons mode is preserved. */
 			if (palo->viss != 1)
-			{
 				palo->zons = 1;
-				palo->viss = 0;
-			}
 
-			if (palo->mrds != 1 && !(palo->mrds == 2 && palo->sMRD != 1.0e10f))
+			if (mrdsOld != 1 &&
+				!(mrdsOld == 2 && palo->sMRD != 1e+10f))
+			{
 				palo->mrds = 0;
+			}
 		}
 	}
 
 	UpdateAloOrig(palo);
+
 	palo->paloParent = paloParent;
-
 	palo->pvtlo->pfnAddLo(palo);
+
 }
-
-void ApplyAloProxy(ALO* palo, PROXY* pproxyApply)
+void ApplyAloProxy(ALO* palo, PROXY* proxy)
 {
-	glm::vec3 posWorld{};
-	ConvertAloPos((ALO*)pproxyApply, nullptr, palo->xf.pos, posWorld);
-	palo->pvtalo->pfnTranslateAloToPos(palo, posWorld);
+	glm::vec3 posWorld;
+	glm::mat3 matWorld;
 
-	glm::mat3 matWorld{};
-	ConvertAloMat((ALO*)pproxyApply, nullptr, palo->xf.mat, matWorld);
-	palo->pvtalo->pfnRotateAloToMat(palo, matWorld);
+	// Convert proxy-relative position into world space
+	ConvertAloPos(reinterpret_cast<ALO*>(proxy), nullptr, &palo->xf.pos, &posWorld);
+	palo->pvtalo->pfnTranslateAloToPos(palo, &posWorld);
+	// Convert proxy-relative orientation into world space
+	ConvertAloMat(reinterpret_cast<ALO*>(proxy), nullptr, &palo->xf.mat, &matWorld);
+
+	palo->pvtalo->pfnRotateAloToMat(palo, &matWorld);
+
+	glm::vec3 vParent{};
+	glm::vec3 wParent{};
+	CalculateAloMovement(proxy->paloParent, nullptr, posWorld, &vParent, &wParent, nullptr, nullptr);
+
+	glm::vec3 vPalo;
+	glm::vec3 wPalo;
+	ConvertAloVec(reinterpret_cast<ALO*>(proxy), nullptr, &palo->xf.v, &vPalo);
+	ConvertAloVec(reinterpret_cast<ALO*>(proxy), nullptr, &palo->xf.w, &wPalo);
+
+	glm::vec3 v = vParent + vPalo;
+	glm::vec3 w = wParent + wPalo;
+
+	palo->pvtalo->pfnSetAloVelocityVec(palo, &v);
+	palo->pvtalo->pfnSetAloAngularVelocityVec(palo, &w);
 
 	palo->posOrig = palo->xf.pos;
 	palo->matOrig = palo->xf.mat;
@@ -533,6 +683,22 @@ void BindAlo(ALO* palo)
 {
 	BindAloAlox(palo);
 	UpdateAloOrig(palo);
+
+	if (palo->pactla != nullptr)
+	{
+		// Retail loads pactla+0x20 with lw: before binding this field contains
+		// a 32-bit OID, despite being used as an ALO pointer after resolution.
+		const uint32_t oidTargetRaw = static_cast<uint32_t>(reinterpret_cast<std::uintptr_t>(palo->pactla->paloTarget));
+
+		if (oidTargetRaw != UINT32_MAX)
+		{
+			ALO* paloTarget = reinterpret_cast<ALO*>(PloFindSwNearest(palo->psw, static_cast<OID>(oidTargetRaw), palo));
+
+			if (paloTarget != nullptr)
+				SetAloActlaTarget(palo, paloTarget);
+		}
+	}
+
 	BindGlobset(&palo->globset, palo);
 
 	LO* plo = palo->dlChild.ploFirst;
@@ -548,6 +714,23 @@ void BindAlo(ALO* palo)
 
 void BindGlobset(GLOBSET* pglobset, ALO* palo)
 {
+	glm::mat4 matAlo;
+	glm::mat4 matBndInv;
+
+	for (int ibnd = 0; ibnd < pglobset->cbnd; ibnd++)
+	{
+		BND *pbnd = &pglobset->abnd[ibnd];
+		pbnd->palo = (ALO*)PloFindSwNearest(palo->psw, pglobset->mpibndoid[ibnd], palo);
+
+		if (pbnd->palo != nullptr)
+		{
+			LoadMatrixFromPosRot(&palo->xf.posWorld, &palo->xf.matWorld, &matAlo);
+			LoadMatrixFromPosRotInverse(&pbnd->palo->xf.posWorld, &pbnd->palo->xf.matWorld, &matBndInv);
+
+			pbnd->dmatOrig = matBndInv * matAlo;
+		}
+
+	}
 
 }
 
@@ -558,131 +741,77 @@ void UpdateAloXfWorld(ALO* palo)
 
 void UpdateAloXfWorldHierarchy(ALO* palo)
 {
-	ALOX* palox = palo->palox.get();
+	ALO* paloPosParent = palo->paloParent;
+	ALO* paloRotParent = palo->paloParent;
 
-	// ------------------------------------------------------------
-	// 1) Compute posWorld / matWorld
-	// ------------------------------------------------------------
-
-	// Choose parent for POSITION
-	ALO* parentPos = palo->paloParent;
-
-	if (palox)
+	if (palo->palox != nullptr && (palo->palox->grfalox & 0x0CU) != 0)
 	{
-		const uint32_t f = palox->grfalox;
+		// Retail overlays the foster basis and SCJ basis pointer in ALOX.
+		// They are separate members in this port, so prefer the foster basis
+		// used by fired RWM ammo and fall back to the SCJ copy.
+		ALO* paloTransformBasis = palo->palox->foster.paloParent != nullptr
+			? palo->palox->foster.paloParent
+			: palo->palox->scj.paloSchRot;
 
-		if ((f & 0xCU) != 0)
-		{
-			if ((f & 4U) != 0)
-				parentPos = palox->scj.paloSchRot;
-		}
+		if ((palo->palox->grfalox & 0x04U) != 0)
+			paloPosParent = paloTransformBasis;
+
+		if ((palo->palox->grfalox & 0x08U) != 0)
+			paloRotParent = paloTransformBasis;
 	}
 
-	// posWorld
-	if (!parentPos)
+	if (paloPosParent != nullptr)
+		palo->xf.posWorld = paloPosParent->xf.posWorld + paloPosParent->xf.matWorld * palo->xf.pos;
+	else
 		palo->xf.posWorld = palo->xf.pos;
+
+	if (paloRotParent != nullptr)
+		palo->xf.matWorld = paloRotParent->xf.matWorld * palo->xf.mat;
 	else
-		palo->xf.posWorld = parentPos->xf.matWorld * palo->xf.pos + parentPos->xf.posWorld;
-
-	// Choose parent for ROTATION
-	ALO* parentRot = nullptr;
-
-	if (!palox)
-		parentRot = palo->paloParent;
-	else
-	{
-		const uint32_t f = palox->grfalox;
-		parentRot = ((f & 8U) == 0) ? palo->paloParent : palox->scj.paloSchRot;
-	}
-
-	// matWorld
-	if (!parentRot)
 		palo->xf.matWorld = palo->xf.mat;
-	else
-		palo->xf.matWorld = parentRot->xf.matWorld * palo->xf.mat;
-
-	// ------------------------------------------------------------
-	// 2) VISMAP / grfzon update (replace with your real flag check)
-	// ------------------------------------------------------------
 
 	if (palo->zons == 2)
 	{
-		VISMAP* pvismap = palo->psw->pvismap;
-		if (!pvismap)
-			palo->grfzon = 0x0FFFFFFF; // 0xfffffff in the original
+		if (palo->psw == nullptr || palo->psw->pvismap == nullptr)
+			palo->grfzon = 0x0FFFFFFF;
 		else
-			ClipVismapSphereOneHop(pvismap, &palo->xf.posWorld, palo->sRadiusRenderAll, &palo->grfzon);
+			ClipVismapSphereOneHop(palo->psw->pvismap, &palo->xf.posWorld, palo->sRadiusRenderAll, &palo->grfzon);
 	}
 
-	// ------------------------------------------------------------
-	// 3) Shadow update
-	// ------------------------------------------------------------
-	if (palo->pshadow)
+	if (palo->pshadow != nullptr)
 	{
 		SetShadowCastPosition(palo->pshadow.get(), palo->xf.posWorld);
 
-		SHD* pshd = palo->pshadow->pshd;
-		if (pshd && pshd->shdk == 3)
+		if (palo->pshadow->pshd != nullptr && palo->pshadow->pshd->shdk == 3)
 		{
-			glm::vec3 normalCast = -palo->xf.matWorld[2];
+			const glm::vec3 normalCast = -palo->xf.matWorld[2];
+
 			SetShadowCastNormal(palo->pshadow.get(), normalCast);
-
-			glm::vec3 up = palo->xf.matWorld[1];
-			SetShadowFrustrumUp(palo->pshadow.get(), &up);
+			SetShadowFrustrumUp(palo->pshadow.get(), &palo->xf.matWorld[1]);
 		}
 	}
 
-	// ------------------------------------------------------------
-	// 4) Recurse children (LO vtable function pointer)
-	// ------------------------------------------------------------
-	for (ALO* child = palo->dlChild.paloFirst; child; child = child->dleChild.paloNext)
+	for (LO* ploChild = palo->dlChild.ploFirst; ploChild != nullptr;)
 	{
-		auto* vt = child->pvtalo;
-		if (vt && vt->pfnUpdateAloXfWorldHierarchy)
-			vt->pfnUpdateAloXfWorldHierarchy(child);
+		LO* ploNext = ploChild->dleChild.ploNext;
+
+		if (ploChild->pvtlo != nullptr && ploChild->pvtlo->pfnUpdateLoXfWorldHierarchy != nullptr)
+			ploChild->pvtlo->pfnUpdateLoXfWorldHierarchy(ploChild);
+
+		ploChild = ploNext;
 	}
 
-	// ------------------------------------------------------------
-	// 5) IK / scheduler invalidation
-	// ------------------------------------------------------------
-	/*palox = palo->palox.get();
-	if (palox)
+	if (palo->palox != nullptr && (palo->palox->grfalox & 0x8020U) == 0x8020U)
 	{
-		const uint32_t f = palox->grfalox;
+		ALO* paloShoulder = palo->palox->ikh.paloShoulder;
+		ALO* paloElbow = palo->palox->ikh.paloElbow;
 
-		if ((f & 0x8020U) == 0x8020U)
-		{
-			ALO* shoulder = palox->ikh.paloShoulder;
-			ALO* elbow = palox->ikh.paloElbow;
+		if (paloShoulder != nullptr && paloShoulder->palox != nullptr)
+			paloShoulder->palox->ikj.fInvalid = 1;
 
-			if (shoulder && shoulder->palox)
-				shoulder->palox->ikj.fInvalid = 1;
-
-			if (elbow && elbow->palox)
-				elbow->palox->ikj.fInvalid = 1;
-		}
-
-		if ((f & 0x8100U) == 0x8100U && palox->ikh.grfik > 0)
-		{
-			const int count = palox->ikh.grfik;
-			ALO** apalo = palox->sch.apalo;
-
-			for (int i = 0; i < count; ++i)
-			{
-				ALO* a = apalo ? apalo[i] : nullptr;
-				if (!a) continue;
-
-				ALOX* ax = a->palox.get();
-				if (!ax) continue;
-
-				if (palo == ax->scj.paloSchRot)
-					ax->scj.fInvalidRot = 1;
-
-				if (palo == ax->scj.paloSchPos)
-					ax->scj.fInvalidPos = 1;
-			}
-		}
-	}*/
+		if (paloElbow != nullptr && paloElbow->palox != nullptr)
+			paloElbow->palox->ikj.fInvalid = 1;
+	}
 }
 
 void UpdateAloHierarchy(ALO* palo, float dt)
@@ -717,11 +846,11 @@ void UpdateAloHierarchy(ALO* palo, float dt)
 			// This updates the object and all of its attached ALO children
 			if ((currentObject->pvtalo->grfcid & 1U) != 0)
 				UpdateAloHierarchy(reinterpret_cast<ALO*>(currentObject), dt);
-
+			
 			// Move to the next object in the list using the stored offset
 			currentObject = reinterpret_cast<LO*>(*dlBusyWalker.m_ppv);
 
-			// If there is a next object, update the walker’s pointer to its next link
+			// If there is a next object, update the walkerï¿½s pointer to its next link
 			dlBusyWalker.m_ppv = reinterpret_cast<void**>(reinterpret_cast<uintptr_t>(currentObject) + dlBusyWalker.m_ibDle);
 		}
 
@@ -729,100 +858,909 @@ void UpdateAloHierarchy(ALO* palo, float dt)
 	}
 }
 
-void TranslateAloToPos(ALO* palo, glm::vec3& ppos)
+void TranslateAloToPos(ALO* palo, glm::vec3 *ppos)
 {
-	palo->xf.pos = ppos;
+	MSGTRANS msgtrans{};
+	msgtrans.palo = palo;
+	msgtrans.posWorldPrev = palo->xf.posWorld;
+	palo->xf.pos = *ppos;
+	if (VTALO* pvtalo = palo->pvtalo)
+	{
+		if (pvtalo->pfnUpdateAloXfWorld)
+			pvtalo->pfnUpdateAloXfWorld(palo);
 
-	palo->pvtalo->pfnUpdateAloXfWorld(palo);
+		if (palo->pactPos)
+			AdaptAct(palo->pactPos);
+
+		if (pvtalo->pfnSendLoMessage)
+			pvtalo->pfnSendLoMessage(palo, MSGID_translated, &msgtrans);
+	}
 }
 
-void ConvertAloPos(ALO* paloFrom, ALO* paloTo, glm::vec3& pposFrom, glm::vec3& pposTo)
+void ConvertAloPos(ALO* paloFrom, ALO* paloTo, glm::vec3* pposFrom, glm::vec3* pposTo)
 {
-	if (paloFrom == paloTo) {
-		pposTo = pposFrom;
+	if (pposFrom == nullptr || pposTo == nullptr)
+		return;
+
+	if (paloFrom == paloTo)
+	{
+		*pposTo = *pposFrom;
 		return;
 	}
 
-	// local -> world (or already world if paloFrom == nullptr)
-	glm::vec3 world = pposFrom;
-	if (paloFrom)
-		world = paloFrom->xf.matWorld * pposFrom + paloFrom->xf.posWorld;
+	glm::vec3 pos = *pposFrom;
 
-	// world -> paloTo local (or keep world if paloTo == nullptr)
-	if (paloTo) {
-		glm::vec3 delta = world - paloTo->xf.posWorld;
-		glm::mat3 invRot = glm::transpose(paloTo->xf.matWorld);
-		pposTo = invRot * delta;
+	if (paloFrom != nullptr)
+		pos = paloFrom->xf.matWorld * pos + paloFrom->xf.posWorld;
+
+	if (paloTo != nullptr)
+	{
+		const glm::vec3 delta = pos - paloTo->xf.posWorld;
+		pos = glm::transpose(paloTo->xf.matWorld) * delta;
 	}
-	else
-		pposTo = world;
+
+	*pposTo = pos;
 }
 
 void ConvertAloVec(ALO* paloFrom, ALO* paloTo, glm::vec3* pvecFrom, glm::vec3* pvecTo)
 {
-	glm::vec3 vecWorld = *pvecFrom;
+	if (pvecFrom == nullptr || pvecTo == nullptr)
+		return;
 
-	// Transform from local to world space if paloFrom is valid and different from paloTo
-	if (paloFrom && paloFrom != paloTo)
-		vecWorld = paloFrom->xf.matWorld * (*pvecFrom);
-
-	// Transform from world to local space of paloTo if it's valid
-	if (paloTo)
+	if (paloFrom == paloTo)
 	{
-		glm::mat3 invMat = glm::transpose(paloTo->xf.matWorld);
-		*pvecTo = invMat * vecWorld;
-	}
-	else
-		*pvecTo = vecWorld;
-}
-
-void RotateAloToMat(ALO* palo, glm::mat3& pmat)
-{
-	palo->xf.mat = pmat;
-
-	palo->pvtalo->pfnUpdateAloXfWorld(palo);
-}
-
-void ConvertAloMat(ALO* paloFrom, ALO* paloTo, glm::mat3& pmatFrom, glm::mat3& pmatTo)
-{
-	if (paloFrom == paloTo) {
-		pmatTo = pmatFrom;
+		*pvecTo = *pvecFrom;
 		return;
 	}
 
-	glm::mat3 world = pmatFrom;
+	glm::vec3 vec = *pvecFrom;
+
+	if (paloFrom != nullptr)
+		vec = paloFrom->xf.matWorld * vec;
+
+	if (paloTo != nullptr)
+		vec = glm::transpose(paloTo->xf.matWorld) * vec;
+
+	*pvecTo = vec;
+}
+
+void RotateAloToMat(ALO* palo, glm::mat3 *pmat)
+{
+	//Copy local rotation matrix into ALO transform
+	palo->xf.mat = *pmat;
+
+	VTALO* pvtalo = palo->pvtalo;
+
+	// Update world transform if this ALO type provides an update callback
+	if (pvtalo->pfnUpdateAloXfWorld) {
+		pvtalo->pfnUpdateAloXfWorld(palo);
+	}
+
+	// Re-adapt rotation action if present
+	if (palo->pactRot) {
+		AdaptAct(palo->pactRot);
+	}
+
+	// Send transform/rotation changed message
+	pvtalo->pfnSendLoMessage(palo, MSGID_rotated, palo);
+}
+
+void ConvertAloMat(ALO* paloFrom, ALO* paloTo, glm::mat3* pmatFrom, glm::mat3* pmatTo)
+{
+	if (pmatFrom == nullptr || pmatTo == nullptr)
+		return;
+
+	if (paloFrom == paloTo)
+	{
+		*pmatTo = *pmatFrom;
+		return;
+	}
+
+	glm::mat3 mat = *pmatFrom;
+
+	if (paloFrom != nullptr)
+		mat = paloFrom->xf.matWorld * mat;
+
+	if (paloTo != nullptr)
+		mat = glm::transpose(paloTo->xf.matWorld) * mat;
+
+	*pmatTo = mat;
+}
+
+void SetAloTransformBasis(ALO* palo, ALO* paloPosBasis, ALO* paloRotBasis)
+{
+	if (palo == nullptr)
+		return;
+
+	ALO* paloParent = palo->paloParent;
+	if (paloPosBasis != paloParent && paloRotBasis != paloParent &&
+		paloPosBasis != paloRotBasis)
+	{
+		return;
+	}
+
+	const bool fPosOverride = paloPosBasis != paloParent;
+	const bool fRotOverride = paloRotBasis != paloParent;
+	if ((fPosOverride || fRotOverride) && palo->palox == nullptr)
+		palo->palox = std::make_shared<ALOX>();
+
+	if (palo->palox != nullptr)
+	{
+		ALOX* palox = palo->palox.get();
+		if (fPosOverride)
+		{
+			palox->foster.paloParent = paloPosBasis;
+			palox->scj.paloSchRot = paloPosBasis;
+			palox->grfalox = static_cast<GRFALOX>(palox->grfalox | 0x04U);
+		}
+		else
+		{
+			palox->grfalox = static_cast<GRFALOX>(palox->grfalox & ~0x04U);
+		}
+
+		if (fRotOverride)
+		{
+			palox->foster.paloParent = paloRotBasis;
+			palox->scj.paloSchRot = paloRotBasis;
+			palox->grfalox = static_cast<GRFALOX>(palox->grfalox | 0x08U);
+		}
+		else
+		{
+			palox->grfalox = static_cast<GRFALOX>(palox->grfalox & ~0x08U);
+		}
+	}
+
+	ConvertAloPos(nullptr, paloPosBasis, &palo->xf.posWorld, &palo->xf.pos);
+	ConvertAloMat(nullptr, paloRotBasis, &palo->xf.matWorld, &palo->xf.mat);
+}
+
+int FDrivenAlo(ALO* palo)
+{
+	if (palo->pactPos != nullptr && palo->pactPos->ackPos == ACK_Drive) {
+		return 1;
+	}
+
+	if (palo->pactRot != nullptr && palo->pactRot->ackRot == ACK_Drive) {
+		return 1;
+	}
+
+	return 0;
+}
+
+void ConvertAloMovement(ALO* paloFrom, ALO* paloTo, glm::vec3* ppos, glm::vec3* pvFrom, glm::vec3* pwFrom, glm::vec3* pdvFrom, glm::vec3* pdwFrom, glm::vec3* pvTo, glm::vec3* pwTo, glm::vec3* pdvTo, glm::vec3* pdwTo)
+{
+	ALO* paloCommon = PaloFindLoCommonParent(paloFrom, paloTo);
+
+	glm::vec3 vCommon{};
+	glm::vec3 wCommon{};
+	glm::vec3 dvCommon{};
+	glm::vec3 dwCommon{};
+
+	if (pvFrom)  ConvertAloVec(paloFrom, paloCommon, pvFrom, &vCommon);
+	if (pwFrom)  ConvertAloVec(paloFrom, paloCommon, pwFrom, &wCommon);
+	if (pdvFrom) ConvertAloVec(paloFrom, paloCommon, pdvFrom, &dvCommon);
+	if (pdwFrom) ConvertAloVec(paloFrom, paloCommon, pdwFrom, &dwCommon);
 
 	if (paloFrom)
-		world = paloFrom->xf.matWorld * pmatFrom;
+	{
+		glm::vec3 vFromExtra{};
+		glm::vec3 wFromExtra{};
+		glm::vec3 dvFromExtra{};
+		glm::vec3 dwFromExtra{};
+
+		CalculateAloMovement(paloFrom, paloCommon, *ppos, pvFrom ? &vFromExtra : nullptr, pwFrom ? &wFromExtra : nullptr, pdvFrom ? &dvFromExtra : nullptr, pdwFrom ? &dwFromExtra : nullptr);
+
+		if (pvFrom)  vCommon += vFromExtra;
+		if (pwFrom)  wCommon += wFromExtra;
+		if (pdvFrom) dvCommon += dvFromExtra;
+		if (pdwFrom) dwCommon += dwFromExtra;
+	}
 
 	if (paloTo)
-		pmatTo = glm::transpose(paloTo->xf.matWorld) * world;
+	{
+		glm::vec3 vToExtra{};
+		glm::vec3 wToExtra{};
+		glm::vec3 dvToExtra{};
+		glm::vec3 dwToExtra{};
+
+		CalculateAloMovement(paloTo, paloCommon, *ppos, pvTo ? &vToExtra : nullptr, pwTo ? &wToExtra : nullptr, pdvTo ? &dvToExtra : nullptr, pdwTo ? &dwToExtra : nullptr);
+
+		if (pvTo)  vCommon -= vToExtra;
+		if (pwTo)  wCommon -= wToExtra;
+		if (pdvTo) dvCommon -= dvToExtra;
+		if (pdwTo) dwCommon -= dwToExtra;
+	}
+
+	if (pvTo)  ConvertAloVec(paloCommon, paloTo, &vCommon, pvTo);
+	if (pwTo)  ConvertAloVec(paloCommon, paloTo, &wCommon, pwTo);
+	if (pdvTo) ConvertAloVec(paloCommon, paloTo, &dvCommon, pdvTo);
+	if (pdwTo) ConvertAloVec(paloCommon, paloTo, &dwCommon, pdwTo);
+}
+
+void SetAloVelocityVec(ALO* palo, glm::vec3* velocity)
+{
+	palo->xf.v = *velocity;
+
+	if (palo->pactPos)
+		AdaptAct(palo->pactPos);
+
+	if (glm::length2(*velocity) != 0.0f)
+		ResolveAlo(palo);
+}
+
+void SetAloVelocityXYZ(ALO* palo, float x, float y, float z)
+{
+	glm::vec3 velocity(x, y, z);
+	palo->pvtalo->pfnSetAloVelocityVec(palo, &velocity);
+}
+
+void SetAloAngularVelocityVec(ALO* palo, glm::vec3* angularVelocity)
+{
+	palo->xf.w = *angularVelocity;
+
+	if (palo->pactRot)
+		AdaptAct(palo->pactRot);
+
+	if (glm::length2(*angularVelocity) != 0.0f)
+		ResolveAlo(palo);
+}
+
+void SetAloAngularVelocityXYZ(ALO* palo, float x, float y, float z)
+{
+	glm::vec3 angularVelocity(x, y, z);
+	palo->pvtalo->pfnSetAloAngularVelocityVec(palo, &angularVelocity);
+}
+
+void PresetAloAccel(ALO* palo, float dt)
+{
+}
+
+void ProjectAloTransform(ALO* palo, float dt, int fParentDirty)
+{
+	int dirty = fParentDirty;
+	const float dtClock = g_clock.dt;
+
+	ACT* pactPos = palo->pactPos;
+	ACT* pactRot = palo->pactRot;
+
+	bool drivenPos = pactPos == nullptr || pactPos->ackPos == ACK_Drive;
+	bool drivenRot = pactRot == nullptr || pactRot->ackRot == ACK_Drive;
+
+	// If either transform channel is driven, reset accel first.
+	if (drivenPos || drivenRot)
+	{
+		palo->xf.dv = glm::vec3{};
+		palo->xf.dw = glm::vec3{};
+		palo->pvtalo->pfnPresetAloAccel(palo, dtClock);
+	}
+
+	// ----------------------------
+	// Position
+	// ----------------------------
+	if (drivenPos)
+	{
+		if (!FIsZeroV(palo->xf.v) || !FIsZeroDv(palo->xf.dv))
+		{
+			// pos += v * dt + dv * 0.5f * dt^2
+			palo->xf.pos += palo->xf.v * dtClock;
+			palo->xf.pos += palo->xf.dv * (0.5f * dtClock * dtClock);
+
+			// v += dv * dt
+			palo->xf.v += palo->xf.dv * dtClock;
+			dirty = 1;
+		}
+	}
 	else
-		pmatTo = world;
+	{
+		ProjectActPosition(pactPos);
+		dirty = 1;
+	}
+
+	// ----------------------------
+	// Rotation
+	// ----------------------------
+	if (drivenRot)
+	{
+		if (!FIsZeroW(palo->xf.w) || !FIsZeroDw(palo->xf.dw))
+		{
+			glm::vec3 oldW = palo->xf.w;
+
+			// w += dw * dt
+			palo->xf.w += palo->xf.dw * dtClock;
+
+			// average angular velocity over frame
+			glm::vec3 rot = (oldW + palo->xf.w) * (0.5f * dtClock);
+
+			glm::mat3 dmat;
+			LoadRotateMatrix(&rot, &dmat);
+
+			// xf.mat = dmat * xf.mat
+			palo->xf.mat = dmat * palo->xf.mat;
+
+			NormalizeRotateMatrix3(&palo->xf.mat);
+			dirty = 1;
+		}
+	}
+	else
+	{
+		ProjectActRotation(pactRot);
+		dirty = 1;
+	}
+
+	// ----------------------------
+	// Children
+	// ----------------------------
+	DLI dliChild;
+	dliChild.m_pdl = &palo->dlChild;
+	dliChild.m_ibDle = palo->dlChild.ibDle;
+	dliChild.m_pdliNext = s_pdliFirst;
+
+	LO* ploChild = static_cast<LO*>(palo->dlChild.ploFirst);
+
+	while (ploChild != nullptr)
+	{
+		s_pdliFirst = &dliChild;
+
+		if (ploChild->pvtlo->grfcid & 1)
+		{
+			ALO* paloChild = static_cast<ALO*>(ploChild);
+			paloChild->pvtalo->pfnProjectAloTransform(paloChild, dt, dirty);
+		}
+
+		ploChild = *reinterpret_cast<LO**>(reinterpret_cast<char*>(ploChild) + dliChild.m_ibDle);
+	}
+
+	s_pdliFirst = dliChild.m_pdliNext;
+
+	// Only update this node's world transform if this node became dirty
+	// and the parent was not already dirty.
+	if (dirty && !fParentDirty)
+	{
+		if (palo->pvtalo->pfnUpdateAloXfWorld != nullptr)
+			palo->pvtalo->pfnUpdateAloXfWorld(palo);
+	}
+
+}
+
+void PredictAloTransform(ALO* paloLeaf, ALO* paloBasis, float dtOffset, glm::vec3* ppos, glm::mat3* pmat, glm::vec3* pv, glm::vec3* pw)
+{
+	ALO* apalo[16];
+	int cpalo = 0;
+
+	for (ALO* palo = paloLeaf; palo != paloBasis; palo = palo->paloParent)
+		apalo[cpalo++] = palo;
+
+	glm::vec3 posSum(0.0f);
+	glm::vec3 vSum(0.0f);
+	glm::vec3 wSum(0.0f);
+	glm::mat3 matSum(1.0f);
+
+	for (int i = cpalo - 1; i >= 0; --i)
+	{
+		ALO* palo = apalo[i];
+
+		if (ppos != nullptr || pv != nullptr)
+		{
+			glm::vec3 pos;
+			glm::vec3 v;
+
+			palo->pvtalo->pfnPredictAloPosition(palo, dtOffset, &pos, &v);
+
+			glm::vec3 posRotated;
+			posRotated.x = matSum[0].x * pos.x + matSum[1].x * pos.y + matSum[2].x * pos.z;
+			posRotated.y = matSum[0].y * pos.x + matSum[1].y * pos.y + matSum[2].y * pos.z;
+			posRotated.z = matSum[0].z * pos.x + matSum[1].z * pos.y + matSum[2].z * pos.z;
+
+			posSum += posRotated;
+
+			if (pv != nullptr)
+			{
+				glm::vec3 vRotated;
+				vRotated.x = matSum[0].x * v.x + matSum[1].x * v.y + matSum[2].x * v.z;
+				vRotated.y = matSum[0].y * v.x + matSum[1].y * v.y + matSum[2].y * v.z;
+				vRotated.z = matSum[0].z * v.x + matSum[1].z * v.y + matSum[2].z * v.z;
+
+				vSum += vRotated + glm::cross(wSum, posRotated);
+			}
+		}
+
+		glm::mat3 mat;
+		glm::vec3 w;
+
+		palo->pvtalo->pfnPredictAloRotation(palo, dtOffset, &mat, &w);
+
+		if (pw != nullptr || pv != nullptr)
+		{
+			glm::vec3 wRotated;
+			wRotated.x = matSum[0].x * w.x + matSum[1].x * w.y + matSum[2].x * w.z;
+			wRotated.y = matSum[0].y * w.x + matSum[1].y * w.y + matSum[2].y * w.z;
+			wRotated.z = matSum[0].z * w.x + matSum[1].z * w.y + matSum[2].z * w.z;
+
+			wSum += wRotated;
+		}
+
+		glm::mat3 matNext;
+
+		matNext[0].x = matSum[0].x * mat[0].x + matSum[1].x * mat[0].y + matSum[2].x * mat[0].z;
+		matNext[0].y = matSum[0].y * mat[0].x + matSum[1].y * mat[0].y + matSum[2].y * mat[0].z;
+		matNext[0].z = matSum[0].z * mat[0].x + matSum[1].z * mat[0].y + matSum[2].z * mat[0].z;
+
+		matNext[1].x = matSum[0].x * mat[1].x + matSum[1].x * mat[1].y + matSum[2].x * mat[1].z;
+		matNext[1].y = matSum[0].y * mat[1].x + matSum[1].y * mat[1].y + matSum[2].y * mat[1].z;
+		matNext[1].z = matSum[0].z * mat[1].x + matSum[1].z * mat[1].y + matSum[2].z * mat[1].z;
+
+		matNext[2].x = matSum[0].x * mat[2].x + matSum[1].x * mat[2].y + matSum[2].x * mat[2].z;
+		matNext[2].y = matSum[0].y * mat[2].x + matSum[1].y * mat[2].y + matSum[2].y * mat[2].z;
+		matNext[2].z = matSum[0].z * mat[2].x + matSum[1].z * mat[2].y + matSum[2].z * mat[2].z;
+
+		matSum = matNext;
+	}
+
+	if (ppos != nullptr)
+		*ppos = posSum;
+
+	if (pmat != nullptr)
+		*pmat = matSum;
+
+	if (pv != nullptr)
+		*pv = vSum;
+
+	if (pw != nullptr)
+		*pw = wSum;
+}
+
+void PredictAloTransformAdjust(ALO* paloLeaf, ALO* paloBasis, float dtOffset, glm::vec3* ppos, glm::mat3* pmat, glm::vec3* pv, glm::vec3* pw)
+{
+	glm::vec3 posBasis(0.0f);
+	glm::vec3 vBasis(0.0f);
+	glm::vec3 wBasis(0.0f);
+	glm::mat3 matBasis(1.0f);
+
+	glm::vec3* pposBasis = nullptr;
+	glm::vec3* pvBasis = nullptr;
+	glm::vec3* pwBasis = nullptr;
+
+	if (ppos != nullptr || pv != nullptr)
+		pposBasis = &posBasis;
+
+	if (pv != nullptr)
+		pvBasis = &vBasis;
+
+	if (pw != nullptr || pv != nullptr)
+		pwBasis = &wBasis;
+
+	PredictAloTransform(paloLeaf, paloBasis, dtOffset, pposBasis, &matBasis, pvBasis, pwBasis);
+
+	glm::vec3 posRotated(0.0f);
+
+	if (ppos != nullptr)
+	{
+		posRotated.x = matBasis[0].x * ppos->x + matBasis[1].x * ppos->y + matBasis[2].x * ppos->z;
+		posRotated.y = matBasis[0].y * ppos->x + matBasis[1].y * ppos->y + matBasis[2].y * ppos->z;
+		posRotated.z = matBasis[0].z * ppos->x + matBasis[1].z * ppos->y + matBasis[2].z * ppos->z;
+
+		*ppos = posBasis + posRotated;
+	}
+
+	if (pv != nullptr)
+	{
+		glm::vec3 vRotated;
+
+		vRotated.x = matBasis[0].x * pv->x + matBasis[1].x * pv->y + matBasis[2].x * pv->z;
+		vRotated.y = matBasis[0].y * pv->x + matBasis[1].y * pv->y + matBasis[2].y * pv->z;
+		vRotated.z = matBasis[0].z * pv->x + matBasis[1].z * pv->y + matBasis[2].z * pv->z;
+
+		*pv = vBasis + vRotated + glm::cross(wBasis, posRotated);
+	}
+
+	if (pw != nullptr)
+	{
+		glm::vec3 wRotated;
+
+		wRotated.x = matBasis[0].x * pw->x + matBasis[1].x * pw->y + matBasis[2].x * pw->z;
+		wRotated.y = matBasis[0].y * pw->x + matBasis[1].y * pw->y + matBasis[2].y * pw->z;
+		wRotated.z = matBasis[0].z * pw->x + matBasis[1].z * pw->y + matBasis[2].z * pw->z;
+
+		*pw = wBasis + wRotated;
+	}
+
+	if (pmat != nullptr)
+	{
+		const glm::mat3 matLocal = *pmat;
+		glm::mat3 matResult;
+
+		matResult[0].x = matBasis[0].x * matLocal[0].x + matBasis[1].x * matLocal[0].y + matBasis[2].x * matLocal[0].z;
+		matResult[0].y = matBasis[0].y * matLocal[0].x + matBasis[1].y * matLocal[0].y + matBasis[2].y * matLocal[0].z;
+		matResult[0].z = matBasis[0].z * matLocal[0].x + matBasis[1].z * matLocal[0].y + matBasis[2].z * matLocal[0].z;
+
+		matResult[1].x = matBasis[0].x * matLocal[1].x + matBasis[1].x * matLocal[1].y + matBasis[2].x * matLocal[1].z;
+		matResult[1].y = matBasis[0].y * matLocal[1].x + matBasis[1].y * matLocal[1].y + matBasis[2].y * matLocal[1].z;
+		matResult[1].z = matBasis[0].z * matLocal[1].x + matBasis[1].z * matLocal[1].y + matBasis[2].z * matLocal[1].z;
+
+		matResult[2].x = matBasis[0].x * matLocal[2].x + matBasis[1].x * matLocal[2].y + matBasis[2].x * matLocal[2].z;
+		matResult[2].y = matBasis[0].y * matLocal[2].x + matBasis[1].y * matLocal[2].y + matBasis[2].y * matLocal[2].z;
+		matResult[2].z = matBasis[0].z * matLocal[2].x + matBasis[1].z * matLocal[2].y + matBasis[2].z * matLocal[2].z;
+
+		*pmat = matResult;
+	}
+}
+
+void UpdateAloInfluences(ALO* palo, RO* pro)
+{
+	GLOBSET& globset = palo->globset;
+
+	if (globset.cbnd <= 0)
+		return;
+
+	glm::mat4 matAloInv;
+	LoadMatrixFromPosRotInverse(&palo->xf.posWorld, &palo->xf.matWorld, &matAloInv);
+
+	glm::mat4 matRoInv;
+
+	if (pro == nullptr)
+		matRoInv = matAloInv;
+	else
+	{
+		glm::vec3 posRo = glm::vec3(pro->model[3]);
+		glm::mat3 matRo = glm::mat3(pro->model);
+
+		LoadMatrixFromPosRotInverse(&posRo, &matRo, &matRoInv);
+	}
+
+	for (int ibnd = 0; ibnd < globset.cbnd; ++ibnd)
+	{
+		BND& bnd = globset.abnd[ibnd];
+		ALO* paloBone = bnd.palo;
+
+		if (paloBone == nullptr)
+			continue;
+
+		if (paloBone->pvtalo != nullptr && paloBone->pvtalo->pfnUpdateAloConstraints != nullptr)
+			paloBone->pvtalo->pfnUpdateAloConstraints(paloBone);
+
+		glm::mat4 matBnd;
+		const glm::mat4* pmatLeft = &matAloInv;
+
+		ALOX* palox = paloBone->palox.get();
+
+		const bool useJointInfluence =
+			palox != nullptr &&
+			(palox->grfalox & 0x400U) != 0 &&
+			palox->joint.fMatInfluence != 0;
+
+		if (useJointInfluence)
+		{
+			pmatLeft = &matRoInv;
+			matBnd = palox->joint.matInfluence;
+		}
+		else
+			LoadMatrixFromPosRot(&paloBone->xf.posWorld, &paloBone->xf.matWorld, &matBnd);
+
+		const glm::mat4 matInfluence = (*pmatLeft) * matBnd;
+		bnd.dmat = matInfluence * bnd.dmatOrig;
+	}
+
+	globset.boneMatrices.resize(globset.cbnd);
+
+	for (int ibnd = 0; ibnd < globset.cbnd; ++ibnd)
+		globset.boneMatrices[ibnd] = globset.abnd[ibnd].dmat;
+
+	if (globset.boneMatrixSSBO != 0 && !globset.boneMatrices.empty())
+	{
+		glBindBuffer(GL_SHADER_STORAGE_BUFFER, globset.boneMatrixSSBO);
+		glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, static_cast<GLsizeiptr>(globset.boneMatrices.size() * sizeof(glm::mat4)), globset.boneMatrices.data());
+		glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+	}
+}
+
+void AdjustAloRotation(ALO* palo, glm::mat3* pmat, glm::vec3* pw)
+{
+	ALOX* palox = palo->palox.get();
+
+	if (palox == nullptr)
+		return;
+	
+	GRFALOX flags = palox->grfalox;
+
+	if ((flags & 1) != 0 && pmat != nullptr)
+		*pmat = *pmat * palox->matPreRotation;
+
+	if ((flags & 2) != 0)
+	{
+		if (pmat != nullptr)
+			*pmat = palox->matPostRotation * *pmat;
+
+		if (pw != nullptr)
+			*pw = palox->matPostRotation * *pw;
+	}
+}
+void UnadjustAloRotation(ALO* palo, glm::mat3* pmat)
+{
+	ALOX* palox = palo->palox.get();
+
+	if (palox == nullptr)
+		return;
+
+	uint32_t flags = palox->grfalox;
+
+	if ((flags & 1) != 0)
+		*pmat = *pmat * glm::transpose(palox->matPreRotation);
+
+	if ((flags & 2) != 0)
+		*pmat = glm::transpose(palox->matPostRotation) * *pmat;
+}
+
+void RecacheAloActList(ALO* palo)
+{
+	ACT* pactPos = nullptr;
+	ACT* pactRot = nullptr;
+	ACT* pactScale = nullptr;
+
+	std::fill(palo->apactPose.begin(), palo->apactPose.end(), nullptr);
+
+	for (ACT* pact = palo->dlAct.pactFirst; pact != nullptr; pact = pact->dleAlo.pactNext)
+	{
+		if (pactPos == nullptr && pact->ackPos != ACK_Nil)
+			pactPos = pact;
+
+		if (pactRot == nullptr && pact->ackRot != ACK_Nil)
+			pactRot = pact;
+
+		if (pactScale == nullptr && pact->ackScale != ACK_Nil)
+			pactScale = pact;
+
+		if (pact->ackPose == ACK_Nil)
+			continue;
+
+		if (pact->pvtact == reinterpret_cast<VTACT*>(&g_vtactseg))
+		{
+			ACTSEG* pactseg = static_cast<ACTSEG*>(pact);
+			ASEG* paseg = pactseg->pasega->paseg;
+
+			CHN* pchn = pactseg->ichn < paseg->cchn ? &paseg->achn[pactseg->ichn] : paseg->pchnStrip;
+
+			if (pchn == nullptr)
+				continue;
+
+			const int cpose = glm::min(pchn->cpacgPose, static_cast<int>(palo->apactPose.size()));
+
+			for (int ipose = 0; ipose < cpose; ++ipose)
+			{
+				if (pchn->apacgPose[ipose] != nullptr && palo->apactPose[ipose] == nullptr)
+					palo->apactPose[ipose] = pact;
+			}
+		}
+		else
+		{
+			const int cpose = glm::min(palo->globset.cpose, static_cast<int>(palo->apactPose.size()));
+
+			for (int ipose = 0; ipose < cpose; ++ipose)
+			{
+				if (palo->apactPose[ipose] == nullptr)
+					palo->apactPose[ipose] = pact;
+			}
+		}
+	}
+
+	if (pactPos != nullptr && pactPos->ackPos == ACK_None)
+		pactPos = nullptr;
+
+	if (pactRot != nullptr && pactRot->ackRot == ACK_None)
+		pactRot = nullptr;
+
+	if (pactScale != nullptr && pactScale->ackScale == ACK_None)
+		pactScale = nullptr;
+
+	for (ACT*& pactPose : palo->apactPose)
+	{
+		if (pactPose != nullptr && pactPose->ackPose == ACK_None)
+			pactPose = nullptr;
+	}
+
+	palo->pactScale = pactScale;
+
+	if (pactPos != palo->pactPos || pactRot != palo->pactRot)
+	{
+		ResolveAlo(palo);
+
+		if (pactPos != palo->pactPos)
+		{
+			palo->pactPos = pactPos;
+
+			if (pactPos != nullptr)
+				AdaptAct(pactPos);
+		}
+
+		if (pactRot != palo->pactRot)
+		{
+			palo->pactRot = pactRot;
+
+			if (pactRot != nullptr)
+				AdaptAct(pactRot);
+		}
+	}
+}
+
+void ResortAloActList(ALO* palo)
+{
+	ACT* apact[16];
+	int count = 0;
+
+	// Remove every ACT from the ALO action list,
+	// saving them in a temporary array.
+	for (ACT* pact = palo->dlAct.pactFirst; pact != nullptr; )
+	{
+		ACT* next = pact->dleAlo.pactNext;
+		apact[count++] = pact;
+
+		RemoveDlEntry(&palo->dlAct, pact);
+		pact = next;
+	}
+
+	// Reinsert sorted by priority.
+	// Higher nPriority stays closer to the front.
+	for (int i = count - 1; i >= 0; --i)
+	{
+		ACT* act = apact[i];
+		ACT* insertBefore = palo->dlAct.pactFirst;
+
+		while (insertBefore != nullptr && act->nPriority < insertBefore->nPriority)
+			insertBefore = insertBefore->dleAlo.pactNext;
+
+		InsertDlEntryBefore(&palo->dlAct, insertBefore, act);
+	}
+
+	palo->pvtalo->pfnRecacheAloActList(palo);
+}
+
+ASEGA* PasegaFindAlo(ALO* palo, OID oidAseg)
+{
+	for (ASEGA* pasega = palo->psw->dlAsega.pasegaFirst; pasega != nullptr; pasega = pasega->dleSw.pasegaNext)
+	{
+		if (pasega->paloRoot != palo)
+			continue;
+
+		if (oidAseg == OID_Nil)
+			return pasega;
+
+		if (FMatchesLoName((LO*)pasega->paseg, oidAseg))
+			return pasega;
+	}
+
+	return nullptr;
+}
+
+ASEGA* PasegaFindAloNearest(ALO* paloLeaf)
+{
+	for (ALO* palo = paloLeaf; palo != nullptr; palo = palo->paloParent) {
+
+		ACT* pact = palo->pactPos;
+
+		if (pact != nullptr && pact->pvtact == (VTACT*)&g_vtactseg) {
+			return static_cast<ACTSEG*>(pact)->pasega;
+		}
+
+		pact = palo->pactRot;
+
+		if (pact != nullptr && pact->pvtact == (VTACT*)&g_vtactseg) {
+			return static_cast<ACTSEG*>(pact)->pasega;
+		}
+	}
+
+	return nullptr;
+}
+
+void RetractAloDrive(ALO* palo)
+{
+	while (palo->pactPos != nullptr && palo->pactPos->ackPos == ACK_Drive)
+	{
+		ACT* pact = palo->pactPos;
+		pact->pvtact->pfnRetractAct(pact, false);
+	}
+
+	while (palo->pactRot != nullptr && palo->pactRot->ackRot == ACK_Drive)
+	{
+		ACT* pact = palo->pactRot;
+		pact->pvtact->pfnRetractAct(pact, false);
+	}
+}
+
+SMA* PsmaFindAlo(ALO* palo, OID oidSm)
+{
+	for (SMA* psma = palo->psw->dlSma.psmaFirst; psma != nullptr; psma = psma->dleSw.psmaNext)
+	{
+		if (psma->paloRoot != palo)
+			continue;
+
+		if (oidSm == OID_Nil)
+			return psma;
+
+		if (FMatchesLoName((LO*)psma->psm, oidSm))
+			return psma;
+	}
+
+	return nullptr;
+}
+
+void CreateAloActadj(ALO* palo, int nPriority, ACTADJ** ppactadj)
+{
+	if (palo != nullptr) 
+	{
+		ACTADJ *pact = PactadjNew(palo->psw, palo);
+		pact->nPriority = nPriority;
+		InsertAloAct(palo, pact);
+		*ppactadj = pact;
+	}
+}
+
+void UpdateAloConstraints(ALO* palo)
+{
+	ALOX* palox = palo->palox.get();
+
+	if (palox == nullptr)
+		return;
+
+	if ((palox->grfalox & 0x10) != 0 && palox->ikj.fInvalid != 0)
+		SolveAloIK(palox->ikj.paloIkh);
+}
+
+int FAbsorbAloWkr(ALO* palo, WKR* pwkr)
+{
+	return (int)(pwkr->grfic != 0);
 }
 
 void SetAloInitialVelocity(ALO* palo, glm::vec3* pv)
 {
-	const glm::mat4& m = palo->xf.mat;
-
-	glm::vec3 transformedVelocity =
-		glm::vec3(m[0]) * pv->x +
-		glm::vec3(m[1]) * pv->y +
-		glm::vec3(m[2]) * pv->z;
-
-	palo->xf.v = transformedVelocity;
+	palo->xf.v = palo->xf.mat * *pv;
 }
 
 void SetAloInitialAngularVelocity(ALO* palo, const glm::vec3* pw)
 {
-	const glm::mat4& m = palo->xf.mat;
+	palo->xf.w = palo->xf.mat * *pw;
+}
 
-	glm::vec3 transformedAngularVelocity =
-		glm::vec3(m[0]) * pw->x +
-		glm::vec3(m[1]) * pw->y +
-		glm::vec3(m[2]) * pw->z;
+void MatchAloOtherObject(ALO* palo, ALO* paloOther)
+{
+	glm::vec3 pos;
+	glm::vec3 v;
+	glm::vec3 w;
+	glm::mat3 mat;
 
-	palo->xf.w = transformedAngularVelocity;
+	glm::vec3* pposFrom = &paloOther->xf.posWorld;
+
+	ConvertAloPos(nullptr, palo->paloParent, pposFrom, &pos);
+	ConvertAloMat(nullptr, palo->paloParent, &paloOther->xf.matWorld, &mat);
+	ConvertAloMovement(paloOther->paloParent,palo->paloParent, pposFrom, &paloOther->xf.v, &paloOther->xf.w, nullptr, nullptr, &v, &w, nullptr, nullptr);
+
+	palo->pvtalo->pfnTranslateAloToPos(palo, &pos);
+	palo->pvtalo->pfnRotateAloToMat(palo, &mat);
+	palo->pvtalo->pfnSetAloVelocityVec(palo, &v);
+	palo->pvtalo->pfnSetAloAngularVelocityVec(palo, &w);
+
+	if (palo->palox && paloOther->palox && (palo->palox->grfalox & 0x20) && (paloOther->palox->grfalox & 0x20))
+	{
+		palo->palox->ikh.radTwist  = paloOther->palox->ikh.radTwist;
+		palo->palox->ikh.dradTwist = paloOther->palox->ikh.dradTwist;
+	}
+
+	for (ALO* pChild = palo->dlChild.paloFirst; pChild; pChild = pChild->dleChild.paloNext)
+	{
+		if ((pChild->pvtlo->grfcid & 1) == 0)
+			continue;
+
+		LO* pOtherChild = PloFindSwObject(palo->psw, 2, (OID)pChild->oid, paloOther);
+
+		if (!pOtherChild)
+			continue;
+
+		if ((pOtherChild->pvtlo->grfcid & 1) == 0)
+			continue;
+
+		if (pChild->palox && (pChild->palox->grfalox & 0x0C))
+			continue;
+
+		pChild->pvtalo->pfnMatchAloOtherObject(pChild, reinterpret_cast<ALO*>(pOtherChild));
+	}
 }
 
 ASEGD* PasegdEnsureAlo(ALO* palo)
@@ -837,6 +1775,26 @@ ASEGD* PasegdEnsureAlo(ALO* palo)
 	}
 
 	return palo->pasegd.get();
+}
+
+OID* PasegdEnsureAloOid(ALO* palo)
+{
+	return &PasegdEnsureAlo(palo)->oidAseg;
+}
+
+float* PasegdEnsureAlotLocal(ALO* palo)
+{
+	return &PasegdEnsureAlo(palo)->tLocal;
+}
+
+float* PasegdEnsureAlosvtLocal(ALO* palo)
+{
+	return &PasegdEnsureAlo(palo)->svtLocal;
+}
+
+IAK* PasegdEnsureAloiak(ALO* palo)
+{
+	return &PasegdEnsureAlo(palo)->iak;
 }
 
 SHADOW* PshadowAloEnsure(ALO* palo)
@@ -854,6 +1812,36 @@ SHADOW* PshadowAloEnsure(ALO* palo)
 SHADOW* PshadowInferAlo(ALO* palo)
 {
 	return nullptr;
+}
+
+void EnsureAloActRestore(ALO* palo)
+{
+	if (palo->pactRestore == nullptr)
+	{
+		palo->pactRestore = PactNew(palo->psw, palo, &g_vtact);
+		InsertAloAct(palo, palo->pactRestore.get());
+	}
+}
+
+void EnsureAloActla(ALO* palo)
+{
+	if (palo->pactla == nullptr)
+	{
+		palo->pactla = PactlaNew(palo->psw, palo, &g_vtactla);
+		InsertAloAct(palo, reinterpret_cast<ACT*>(palo->pactla.get()));
+	}
+}
+
+void InsertAloAct(ALO* palo, ACT* pact)
+{
+	ACT *pactBefore = palo->dlAct.pactFirst;
+
+	while (pactBefore != nullptr && pact->nPriority < pactBefore->nPriority)
+		pactBefore = pactBefore->dleAlo.pactNext;
+
+	InsertDlEntryBefore(&palo->dlAct, pactBefore, pact);
+
+	palo->pvtalo->pfnRecacheAloActList(palo);
 }
 
 void SetAloAsegdOid(ALO* palo, short oid)
@@ -883,16 +1871,22 @@ void SetAloFrozen(ALO* palo, bool fFrozen)
 
 void SetAloEuler(ALO* palo, glm::vec3* peul)
 {
+	glm::vec3 eul = *peul * 0.017453294f; // degrees to radians
 
+	glm::mat3 mat;
+	LoadRotateMatrixEuler(&eul, &mat);
+
+	palo->pvtalo->pfnAdjustAloRotation(palo, &mat, 0);
+	palo->pvtalo->pfnRotateAloToMat(palo, &mat);
 }
 
 void SetAloVelocityLocal(ALO* palo, glm::vec3* pvec)
 {
 	// Convert local-space velocity to world-space velocity
 	glm::vec3 localVelocity = *pvec;
-	glm::vec3 worldVelocity = palo->xf.mat * localVelocity;
+	glm::vec3 worldVelocity = palo->xf.matWorld * localVelocity;
 
-	//palo->pvtalo->pfnSetAloVelocityVec(palo, &worldVelocity);
+	palo->pvtalo->pfnSetAloVelocityVec(palo, &worldVelocity);
 }
 
 void SetAloFastShadowRadius(ALO* palo, float sRadius)
@@ -928,12 +1922,10 @@ void SetAloShadowShader(ALO* palo, OID oidShdShadow)
 
 void GetAloShadowShader(ALO* palo, OID* poidShdShadow)
 {
-	if (palo && palo->pshadow && palo->pshadow->pshd) {
+	if (palo && palo->pshadow && palo->pshadow->pshd) 
 		*poidShdShadow = static_cast<OID>(palo->pshadow->pshd->oid);
-	}
-	else {
+	else 
 		*poidShdShadow = OID_Nil;
-	}
 }
 
 void GetAloShadowNearRadius(ALO* palo, float* psNearRadius)
@@ -1019,262 +2011,537 @@ void SetAloDynamicShadowObject(ALO* palo, OID oidDysh)
 
 void SetAloNoFreeze(ALO* palo, int fNoFreeze)
 {
-	palo->fFrozen = fNoFreeze;
+	palo->freezeMode = fNoFreeze != 0 ? FREEZEMODE_AlwaysBusy : FREEZEMODE_Normal;
+}
+
+void SetAloFreezeMode(ALO* palo, FREEZEMODE freezeMode)
+{
+	palo->freezeMode = freezeMode;
+}
+
+void GetAloFreezeMode(ALO* palo, FREEZEMODE* pfreezeMode)
+{
+	*pfreezeMode = static_cast<FREEZEMODE>(palo->freezeMode);
 }
 
 void SetAloRestorePosition(ALO* palo, int fRestore)
 {
+	ACK ack = ACK_Spring;
 
+	if (fRestore == 0)
+		ack = ACK_Nil;
+	
+	SetAloRestorePositionAck(palo, ack);
 }
 
 void SetAloRestorePositionAck(ALO* palo, ACK ack)
 {
+	EnsureAloActRestore(palo);
 
+	palo->pactRestore->ackPos = ack;
+	palo->pvtalo->pfnRecacheAloActList(palo);
 }
 
 void SetAloPositionSpring(ALO* palo, float r)
 {
+	CLQ clq{
+	   g_clqPosSpringDefault.g0 * r,
+	   g_clqPosSpringDefault.g1 * r,
+	   g_clqPosSpringDefault.g2 * r,
+	   g_clqPosSpringDefault.gUnused * r
+	};
 
+	SetAloPositionSpringDetail(palo, &clq);
 }
 
 void SetAloPositionSpringDetail(ALO* palo, CLQ* pclq)
 {
+	if (palo->pclqPosSpring.get() == &g_clqPosSpringDefault)
+		palo->pclqPosSpring = std::make_shared<CLQ>();
 
+	*palo->pclqPosSpring = *pclq;
 }
 
 void SetAloPositionDamping(ALO* palo, float r)
 {
+	CLQ clq{
+		g_clqPosDampingDefault.g0 * r,
+		g_clqPosDampingDefault.g1 * r,
+		g_clqPosDampingDefault.g2 * r,
+		g_clqPosDampingDefault.gUnused * r
+	};
 
+	SetAloPositionDampingDetail(palo, &clq);
 }
 
 void SetAloPositionDampingDetail(ALO* palo, CLQ* pclq)
 {
+	if (palo->pclqPosDamping.get() == &g_clqPosDampingDefault)
+		palo->pclqPosDamping = std::make_shared <CLQ>();
 
+	*palo->pclqPosDamping = *pclq;
 }
 
 void SetAloRestoreRotation(ALO* palo, int fRestore)
 {
+	ACK ack = ACK_Spring;
 
+	if (fRestore == 0)
+		ack = ACK_Nil;
+
+	SetAloRestoreRotationAck(palo, ack);
 }
 
 void SetAloRestoreRotationAck(ALO* palo, ACK ack)
 {
+	EnsureAloActRestore(palo);
 
+	palo->pactRestore->ackRot = ack;
+	palo->pvtalo->pfnRecacheAloActList(palo);
+}
+
+void SetAloActPriority(ALO* palo, int nPriority)
+{
+	EnsureAloActRestore(palo);
+	palo->pactRestore->nPriority = nPriority;
+	ResortAloActList(palo);
+}
+
+void SetAloRotationMatchesVelocity(ALO* palo, float uBank, float dtPredict, ACK ackRot)
+{
+	if (palo->pactbank == nullptr) 
+	{
+		palo->pactbank = PactbankNew(palo->psw, palo, &g_vtactbank);
+		InsertAloAct(palo, palo->pactbank.get());
+	}
+
+	palo->pactbank->ackRot = ackRot;
+	palo->pactbank->uBank = uBank;
+	palo->pactbank->dtPredict = dtPredict;
+
+	palo->pvtalo->pfnRecacheAloActList(palo);
 }
 
 void SetAloRotationSpring(ALO* palo, float r)
 {
+	CLQ clq{
+		g_clqRotSpringDefault.g0 * r,
+		g_clqRotSpringDefault.g1 * r,
+		g_clqRotSpringDefault.g2 * r,
+		g_clqRotSpringDefault.gUnused * r
+	};
 
+	SetAloRotationSpringDetail(palo, &clq);
 }
 
 void SetAloRotationSpringDetail(ALO* palo, CLQ* pclq)
 {
+	if (palo->pclqRotSpring.get() == &g_clqRotSpringDefault)
+		palo->pclqRotSpring = std::make_shared<CLQ>();
 
+	*palo->pclqRotSpring = *pclq;
 }
 
 void SetAloRotationDamping(ALO* palo, float r)
 {
+	CLQ clq{
+		g_clqRotDampingDefault.g0 * r,
+		g_clqRotDampingDefault.g1 * r,
+		g_clqRotDampingDefault.g2 * r,
+		g_clqRotDampingDefault.gUnused * r
+	};
 
+	SetAloRotationDampingDetail(palo, &clq);
 }
 
 void SetAloRotationDampingDetail(ALO* palo, CLQ* pclq)
 {
+	if (palo->pclqRotDamping.get() == &g_clqRotDampingDefault)
+		palo->pclqRotDamping = std::make_shared<CLQ>();
 
+	*palo->pclqRotDamping = *pclq;
 }
 
 void SetAloPositionSmooth(ALO* palo, float r)
 {
+	SMPA smpa{};
+	smpa.svFast = g_smpaPosDefault.svFast * r;
+	smpa.svSlow = g_smpaPosDefault.svSlow * r;
+	smpa.dtFast = g_smpaPosDefault.dtFast;
+	smpa.sdvMax = g_smpaPosDefault.sdvMax * r;
 
+	SetAloPositionSmoothDetail(palo, &smpa);
 }
 
 void SetAloPositionSmoothDetail(ALO* palo, SMPA* psmpa)
 {
+	if (palo->psmpaPos.get() == &g_smpaPosDefault)
+		palo->psmpaPos = std::make_shared<SMPA>();
 
+	*palo->psmpaPos = *psmpa;
 }
 
 void SetAloRotationSmooth(ALO* palo, float r)
 {
+	SMPA smpa{};
+	smpa.svFast = g_smpaRotDefault.svFast * r;
+	smpa.svSlow = g_smpaRotDefault.svSlow * r;
+	smpa.dtFast = g_smpaRotDefault.dtFast;
+	smpa.sdvMax = g_smpaRotDefault.sdvMax * r;
 
+	SetAloRotationSmoothDetail(palo, &smpa);
 }
 
 void SetAloRotationSmoothDetail(ALO* palo, SMPA* psmpa)
 {
+	if (palo->psmpaRot.get() == &g_smpaRotDefault)
+		palo->psmpaRot = std::make_shared<SMPA>();
 
+	*palo->psmpaRot = *psmpa;
 }
 
 void SetAloPositionSmoothMaxAccel(ALO* palo, float r)
 {
+	SMPA smpa = *palo->psmpaPos;
 
+	smpa.sdvMax = (r * (smpa.svFast - smpa.svSlow)) / smpa.dtFast;
+
+	SetAloPositionSmoothDetail(palo, &smpa);
 }
 
 void SetAloRotationSmoothMaxAccel(ALO* palo, float r)
 {
+	SMPA smpa = *palo->psmpaRot;
 
+	smpa.sdvMax = (r * (smpa.svFast - smpa.svSlow)) / smpa.dtFast;
+
+	SetAloRotationSmoothDetail(palo, &smpa);
 }
 
 void SetAloDefaultAckPos(ALO* palo, ACK ack)
 {
-
+	palo->ackPos = ack;
 }
 
 void SetAloDefaultAckRot(ALO* palo, ACK ack)
 {
-
+	palo->ackRot = ack;
 }
 
 void SetAloLookAt(ALO* palo, ACK ack)
 {
+	EnsureAloActla(palo);
 
+	if (ack == ACK_Smooth) 
+		ack = ACK_SmoothNoLock;
+
+	palo->pactla->ackRot = ack;
+	palo->pvtalo->pfnRecacheAloActList(palo);
 }
 
 void SetAloLookAtIgnore(ALO* palo, float sIgnore)
 {
-
+	EnsureAloActla(palo);
+	palo->pactla->sIgnore = sIgnore;
 }
 
 void SetAloLookAtPanFunction(ALO* palo, CLQ* pclq)
 {
+	EnsureAloActla(palo);
 
+	palo->pactla->clqPanToPan = *pclq;
 }
 
 void SetAloLookAtPanLimits(ALO* palo, LM* plm)
 {
+	EnsureAloActla(palo);
 
+    palo->pactla->lmPan = *plm;
 }
 
 void SetAloLookAtTiltFunction(ALO* palo, CLQ* pclq)
 {
+	EnsureAloActla(palo);
 
+	palo->pactla->clqTiltToTilt = *pclq;
 }
 
 void SetAloLookAtTiltLimits(ALO* palo, LM* plm)
 {
+	EnsureAloActla(palo);
 
+    palo->pactla->lmTilt = *plm;
 }
 
 void SetAloLookAtEnabledPriority(ALO* palo, int nPriority)
 {
-
+	EnsureAloActla(palo);
+	palo->pactla->nPriorityEnabled = nPriority;
 }
 
 void SetAloLookAtDisabledPriority(ALO* palo, int nPriority)
 {
+	EnsureAloActla(palo);
+	palo->pactla->nPriorityDisabled = nPriority;
+}
 
+TARGET* PtargetEnsureAlo(ALO* palo)
+{
+	TARGET *ptarget = (TARGET*)PloFindSwObject(palo->psw, 258, (OID)554, palo);
+
+	if (ptarget == nullptr) 
+		ptarget = (TARGET*)PloNew(CID_TARGET, palo->psw, palo, (OID)554, -1);
+
+	return ptarget;
 }
 
 void SetAloTargetAttacks(ALO* palo, int grftak)
 {
+	TARGET *ptarget = PtargetEnsureAlo(palo);
 
+	if (grftak != -1) 
+		ptarget->grftak = grftak;
 }
 
 void SetAloTargetRadius(ALO* palo, float sRadiusTarget)
 {
+	TARGET *ptarget = PtargetEnsureAlo(palo);
+	ptarget->sRadiusTarget = sRadiusTarget;
+}
 
+void SetAloTargetHitTest(ALO* palo, int fHitTest)
+{
+	TARGET *ptarget = PtargetEnsureAlo(palo);
+	ptarget->fHitTest = fHitTest;
+}
+
+void EnsureAloThrob(ALO *palo)
+{
+	if (palo->pthrob == nullptr)
+	{
+		palo->pthrob  = std::make_shared <THROB>();
+		*palo->pthrob = s_mpthrobkthrob[4];
+		palo->pthrob->throbk = THROBK_Nil;
+	}
 }
 
 void SetAloThrobKind(ALO* palo, THROBK throbk)
 {
+	EnsureAloThrob(palo);
+	palo->pthrob->throbk = throbk;
 
+	if (throbk != THROBK_Nil)
+		*palo->pthrob = s_mpthrobkthrob[throbk];
 }
 
 void SetAloThrobInColor(ALO* palo, glm::vec3* phsvInColor)
 {
-
+	EnsureAloThrob(palo);
+	palo->pthrob->hsvIn = *phsvInColor;
 }
 
-void SetAloThrobOutColor(ALO* palo, glm::vec3* phsvOutColor)
+void SetAloThrobOutColor(ALO *palo, glm::vec3 *phsvOutColor)
 {
-
+	EnsureAloThrob(palo);
+	palo->pthrob->hsvOut = *phsvOutColor;
 }
 
 void SetAloThrobDtInOut(ALO* palo, float dtInOut)
 {
+	EnsureAloThrob(palo);
+	palo->pthrob->dtInOut = dtInOut;
+}
 
+void NewSfx(std::shared_ptr <SFX> &psfx)
+{
+	psfx = std::make_shared<SFX>();
+
+	psfx->sfxid = SFXID_Nil;
+	psfx->sStart = 3000.0f;
+	psfx->sFull = 300.0f;
+	psfx->uVol = 1.0f;
+	psfx->uPitch = 0.0f;
+	psfx->pamb = nullptr;
+	psfx->lmRepeat.gMin = -1.0f;
+	psfx->uDoppler = 0.0f;
+}
+
+void EnsureAloSfx(ALO* palo)
+{
+	if (palo->psfx == nullptr) 
+		NewSfx(palo->psfx);
 }
 
 void SetAloSfxid(ALO* palo, SFXID sfxid)
 {
-
+	EnsureAloSfx(palo);
+	palo->psfx->sfxid = sfxid;
 }
 
 void SetAloSStart(ALO* palo, float sStart)
 {
-
+	EnsureAloSfx(palo);
+	palo->psfx->sStart = sStart;
 }
 
 void SetAloSFull(ALO* palo, float sFull)
 {
-
+	EnsureAloSfx(palo);
+	palo->psfx->sFull = sFull;
 }
 
 void SetAloUVolumeSpl(ALO* palo, float uVol)
 {
+	if (palo->psfx == nullptr)
+		return;
 
+	AMB* pamb = palo->psfx->pamb;
+
+	if (pamb == nullptr)
+		return;
+
+	SetPambVol(pamb, uVol);
 }
 
 void SetAloUVolume(ALO* palo, float uVol)
 {
-
+	EnsureAloSfx(palo);
+	palo->psfx->uVol = uVol;
 }
 
 void SetAloUPitchSpl(ALO* palo, float uPitch)
 {
+	if (palo->psfx == nullptr)
+		return;
 
+	AMB* pamb = palo->psfx->pamb;
+
+	if (pamb == nullptr)
+		return;
+
+	SetPambFrq(pamb, uPitch);
 }
 
 void SetAloUPitch(ALO* palo, float uPitch)
 {
-
+	EnsureAloSfx(palo);
+	palo->psfx->uPitch = uPitch;
 }
 
-void SetAloSndRepeat(ALO* palo, LM* plm)
+void SetAloSndRepeat(ALO* palo, LM plm)
 {
+	EnsureAloSfx(palo);
 
+	palo->psfx->lmRepeat = plm;
 }
 
 void SetAloUDoppler(ALO* palo, float uDoppler)
 {
-
+	EnsureAloSfx(palo);
+	palo->psfx->uDoppler = uDoppler;
 }
 
 void SetAloInteractCane(ALO* palo, int grfic)
 {
+	uint8_t value = (uint8_t)grfic;
 
+	palo->ficg.grficSweep = value;
+	palo->ficg.grficSmash = value;
+	palo->ficg.grficRush  = value;
 }
 
 void SetAloInteractCaneSweep(ALO* palo, int grfic)
 {
-
+	palo->ficg.grficSweep = (u8)grfic;
 }
 
 void SetAloInteractCaneRush(ALO* palo, int grfic)
 {
-
+	palo->ficg.grficRush = (u8)grfic;
 }
 
 void SetAloInteractCaneSmash(ALO* palo, int grfic)
 {
-
+	(palo->ficg).grficSmash = (u8)grfic;
 }
 
 void SetAloInteractBomb(ALO* palo, int grfic)
 {
-
+	(palo->ficg).grficBomb = (u8)grfic;
 }
 
 void SetAloInteractShock(ALO* palo, int grfic)
 {
-
+	(palo->ficg).grficShock = (u8)grfic;
 }
 
 void SetAloPoseCombo(ALO* palo, OID oidCombo)
 {
+	bool recache = false;
 
+	if (oidCombo == OID_Nil)
+	{
+		if (palo->pactrefCombo != nullptr)
+		{
+			ACK oldAck = palo->pactrefCombo->ackPose;
+			palo->pactrefCombo->ackPose = ACK_Nil;
+
+			recache = oldAck != ACK_Nil;
+		}
+	}
+	else
+	{
+		POSEC* pposec = nullptr;
+
+		for (int i = 0; i < palo->cposec; i++)
+		{
+			if (palo->aposec[i].oid == oidCombo)
+			{
+				pposec = &palo->aposec[i];
+				break;
+			}
+		}
+
+		if (pposec != nullptr)
+		{
+			if (palo->pactrefCombo == nullptr)
+			{
+				std::shared_ptr <ACTREF> pactref = PactrefNew(palo->psw, palo);
+
+				palo->pactrefCombo = pactref.get();
+				InsertAloAct(palo, static_cast<ACT*>(pactref.get()));
+			}
+
+			ACK oldAck = palo->pactrefCombo->ackPose;
+			palo->pactrefCombo->ackPose = ACK_Smooth;
+
+			recache = oldAck != ACK_Smooth;
+
+			palo->pactrefCombo->pcgPoses = &palo->globset.cpose;
+			palo->pactrefCombo->agPoses = pposec->agPoses.data();
+		}
+	}
+
+	if (recache)
+		palo->pvtalo->pfnRecacheAloActList(palo);
 }
 
 void SetAloForceCameraFade(ALO* palo, int fFade)
 {
+	int fNewFade = (fFade != 0);
+	int fOldFade = palo->fForceCameraFade;
 
+	if (fNewFade == fOldFade)
+		return;
+
+	palo->fForceCameraFade = fNewFade;
+
+	if (FIsLoInWorld(palo)) {
+		if (fNewFade) 
+			AddCmFadeObject(g_pcm, palo);
+		else
+			RemoveCmFadeObject(g_pcm, palo);
+	}
 }
 
 void SetAloCelRgba(ALO* palo, RGBA prgba)
@@ -1305,7 +2572,7 @@ void SetAloOverrideCel(ALO *palo, glm::vec4 *rgba)
 
 void UpdateAloThrob(ALO* palo, float dt)
 {
-	THROB* throb = palo->pthrob;
+	THROB* throb = palo->pthrob.get();
 
 	if (throb->dtInOut <= 0.0f)
 		return;
@@ -1324,9 +2591,36 @@ void UpdateAloThrob(ALO* palo, float dt)
 	SetAloOverrideCel(palo, &overrideCel);
 }
 
-void* GetAloFrozen(ALO* palo)
+void SetAloBlotContext(ALO* palo, BLOT* pblot)
 {
-	return nullptr;
+	for (int i = 0; i < palo->globset.cglob; i++)
+	{
+		GLOB* glob = &palo->globset.aglob[i];
+
+		glob->pblot = pblot;
+		glob->rp = RP_BlotContext;
+	}
+
+	for (ALO* child = palo->dlChild.paloFirst; child != nullptr; child = child->dleChild.paloNext)
+	{
+		if (child->pvtlo->grfcid & 1)
+			SetAloBlotContext(child, pblot);
+	}
+}
+
+void GetAloFrozen(ALO* palo, int* pfFrozen)
+{
+	*pfFrozen = palo->fFrozen;
+}
+
+void SetAloHidden(ALO* palo, int fHidden)
+{
+	palo->fHidden = fHidden != 0;
+}
+
+void GetAloHidden(ALO* palo, int* pfHidden)
+{
+	*pfHidden = palo->fHidden ? 1 : 0;
 }
 
 void* GetAloXfPos(ALO* palo)
@@ -1334,9 +2628,19 @@ void* GetAloXfPos(ALO* palo)
 	return &palo->xf.pos;
 }
 
+void SetAloXfPos(ALO* palo, glm::vec3 value)
+{
+	palo->xf.pos = value;
+}
+
 void* GetAloXfPosOrig(ALO* palo)
 {
 	return &palo->posOrig;
+}
+
+void SetAloXfPosOrig(ALO* palo, glm::vec3 value)
+{
+	palo->posOrig = value;
 }
 
 void* GetAloXfPosWorld(ALO* palo)
@@ -1344,9 +2648,19 @@ void* GetAloXfPosWorld(ALO* palo)
 	return &palo->xf.posWorld;
 }
 
+void SetAloXfPosWorld(ALO* palo, glm::vec3 value)
+{
+	palo->xf.posWorld = value;
+}
+
 void* GetAloXfMat(ALO* palo)
 {
 	return &palo->xf.mat;
+}
+
+void SetAloXfMat(ALO* palo, glm::mat3 value)
+{
+	palo->xf.mat = value;
 }
 
 void* GetAloMatOrig(ALO* palo)
@@ -1354,14 +2668,29 @@ void* GetAloMatOrig(ALO* palo)
 	return &palo->matOrig;
 }
 
+void SetAloMatOrig(ALO* palo, glm::mat3 value)
+{
+	palo->matOrig = value;
+}
+
 void* GetAloXfMatWorld(ALO* palo)
 {
 	return &palo->xf.matWorld;
 }
 
-void* GetAloEuler(ALO* palo)
+void SetAloXfMatWorld(ALO* palo, glm::mat3 value)
 {
-	return nullptr;
+	palo->xf.matWorld = value;
+}
+
+void GetAloEuler(ALO* palo, glm::vec3* peul)
+{
+	glm::mat3 mat = palo->xf.mat;
+	palo->pvtalo->pfnUnadjustAloRotation(palo, &mat);
+
+	glm::vec3 eulRadians{};
+	DecomposeRotateMatrixEuler(glm::mat4(mat), eulRadians);
+	*peul = eulRadians * 57.295776f;
 }
 
 void GetAloVelocityLocal(ALO* palo, glm::vec3* pvec)
@@ -1380,9 +2709,19 @@ void* GetAloXfw(ALO* palo)
 	return &palo->xf.w;
 }
 
+void SetAloXfw(ALO* palo, glm::vec3 value)
+{
+	palo->xf.w = value;
+}
+
 void* GetAloXfdv(ALO* palo)
 {
 	return &palo->xf.dv;
+}
+
+void SetAloXfdv(ALO* palo, glm::vec3 value)
+{
+	palo->xf.dv = value;
 }
 
 void* GetAloXfdw(ALO* palo)
@@ -1397,151 +2736,492 @@ void* GetAloRoot(ALO* palo)
 
 void GetAloFastShadowRadius(ALO* palo, float* psRadius)
 {
-	*psRadius = palo->sFastShadowRadius;
+	*psRadius = palo->sFastShadowRadius * 100.0;
 }
 
 void GetAloFastShadowDepth(ALO* palo, float* psDepth)
 {
-	*psDepth = palo->sFastShadowDepth;
+	*psDepth = palo->sFastShadowDepth * 100.0;
 }
 
 void GetAloCastShadow(ALO* palo, int* pfCastShadow)
 {
-
+	*pfCastShadow = palo->pshadow != nullptr;
 }
 
 void GetAloLookAtIgnore(ALO* palo, float* psIgnore)
 {
-
+	float sIgnore = 0.0;
+	if (palo->pactla != nullptr)
+		sIgnore = palo->pactla->sIgnore;
+	
+	*psIgnore = sIgnore;
 }
 
 void GetAloLookAtPanFunction(ALO* palo, CLQ* pclq)
 {
+	const CLQ* pclqSource;
 
+	if (palo->pactla != nullptr)
+		pclqSource = &palo->pactla->clqPanToPan;
+	else
+		pclqSource = &g_clqZero;
+
+	*pclq = *pclqSource;
 }
 
 void GetAloLookAtPanLimits(ALO* palo, LM* plm)
 {
+	const LM *plmSource{};
 
+	if (palo->pactla != nullptr)
+		plmSource = &palo->pactla->lmPan;
+	else
+		plmSource = &g_lmZeroOne;
+
+	*plm = *plmSource;
 }
 
 void GetAloLookAtTiltFunction(ALO* palo, CLQ* pclq)
 {
+	const CLQ* pclqSource;
 
+	if (palo->pactla != nullptr)
+		pclqSource = &palo->pactla->clqTiltToTilt;
+	else
+		pclqSource = &g_clqZero;
+
+	*pclq = *pclqSource;
 }
 
 void GetAloLookAtTiltLimits(ALO* palo, LM* plm)
 {
+	const LM* plmSource;
 
+	if (palo->pactla != nullptr)
+		plmSource = &palo->pactla->lmTilt;
+	else
+		plmSource = &g_lmZeroOne;
+
+	*plm = *plmSource;
 }
 
 void GetAloLookAtEnabledPriority(ALO* palo, int* pnPriority)
 {
-
+	if (palo->pactla != nullptr)
+		*pnPriority = palo->pactla->nPriorityEnabled;
+	else
+		*pnPriority = 0;
 }
 
 void GetAloLookAtDisabledPriority(ALO* palo, int* pnPriority)
 {
+	int nPriorityDisabled = 0;
 
+	if (palo->pactla != nullptr) 
+		nPriorityDisabled = palo->pactla->nPriorityDisabled;
+
+	*pnPriority = nPriorityDisabled;
 }
 
 int FGetAloChildrenList(ALO* palo, void* pvstate)
 {
-	return 0;
+	DLI dliChild;
+
+	dliChild.m_pdl = &palo->dlChild;
+	dliChild.m_ibDle = palo->dlChild.ibDle;
+	dliChild.m_pdliNext = s_pdliFirst;
+
+	LO* plo = static_cast<LO*>(palo->dlChild.ploFirst);
+
+	while (plo != nullptr)
+	{
+		s_pdliFirst = &dliChild;
+
+		if (!FAppendSpliceListElement(pvstate, &plo))
+		{
+			s_pdliFirst = dliChild.m_pdliNext;
+			return 0;
+		}
+
+		plo = *reinterpret_cast<LO**>(reinterpret_cast<char*>(plo) + dliChild.m_ibDle);
+	}
+
+	s_pdliFirst = dliChild.m_pdliNext;
+	return 1;
 }
 
 void GetAloThrobKind(ALO* palo, THROBK* pthrobk)
 {
+	THROBK throbk = THROBK_Nil;
 
+	if (palo->pthrob != nullptr) 
+		throbk = palo->pthrob->throbk;
+	
+	*pthrobk = throbk;
 }
 
 void GetAloThrobInColor(ALO* palo, glm::vec3* phsvInColor)
 {
-
+	if (palo->pthrob)
+		*phsvInColor = palo->pthrob->hsvIn;
+	else
+		*phsvInColor = glm::vec3(0.0f);
 }
 
 void GetAloThrobOutColor(ALO* palo, glm::vec3* phsvOutColor)
 {
-
+	if (palo->pthrob)
+		*phsvOutColor = palo->pthrob->hsvIn;
+	else
+		*phsvOutColor = glm::vec3(0.0f);
 }
 
 void GetAloThrobDtInOut(ALO* palo, float* pdtInOut)
 {
+	*pdtInOut = palo->pthrob ? palo->pthrob->dtInOut : 0.0f;
+}
 
+void SetAloSfxidSpl(ALO* palo, SFXID sfxid)
+{
+	EnsureAloSfx(palo);
+
+	auto& psfx = palo->psfx;
+
+	StopSound(psfx->pamb, 0);
+	psfx->sfxid = sfxid;
+	StartSound(psfx->sfxid, &psfx->pamb, palo, nullptr, psfx->sStart, psfx->sFull, psfx->uVol, psfx->uPitch, psfx->uDoppler, &psfx->lmRepeat, nullptr);
 }
 
 void GetAloSfxid(ALO* palo, SFXID* psfxid)
 {
+	*psfxid = SFXID_Nil;
 
+	if (palo->psfx)
+		*psfxid = palo->psfx->sfxid;
 }
 
 void GetAloSStart(ALO* palo, float* psStart)
 {
-
+	if (palo->psfx)
+		*psStart = palo->psfx->sStart;
+	else
+		*psStart = 3000.0f;
 }
 
 void GetAloSFull(ALO* palo, float* psFull)
 {
-
+	if (palo->psfx)
+		*psFull = palo->psfx->sFull;
+	else
+		*psFull = 300.0f;
 }
 
 void GetAloUVolume(ALO* palo, float* puVol)
 {
-
+	if (palo->psfx)
+		*puVol = palo->psfx->uVol;
+	else
+		*puVol = 1.0f;
 }
 
 void GetAloUPitch(ALO* palo, float* puPitch)
 {
+	*puPitch = 0.0f;
 
+	if (palo && palo->psfx)
+		*puPitch = palo->psfx->uPitch;
 }
 
 void GetAloSndRepeat(ALO* palo, LM* plmRepeat)
 {
+	if (!plmRepeat)
+		return;
 
+	if (palo && palo->psfx)
+	{
+		*plmRepeat = palo->psfx->lmRepeat;
+		return;
+	}
+
+	plmRepeat->gMax = -1.0f;
+	plmRepeat->gMin = -1.0f;
 }
 
 void GetAloUDoppler(ALO* palo, float* puDoppler)
 {
-
+	if (palo->psfx)
+		*puDoppler = palo->psfx->uDoppler;
+	else
+		*puDoppler = 0.0f;
 }
 
 void GetAloInteractCane(ALO* palo, int* pgrfic)
 {
-
+	*pgrfic = (uint32_t)(palo->ficg).grficSweep;
 }
 
 void GetAloInteractCaneSweep(ALO* palo, int* pgrfic)
 {
-
+	*pgrfic = (uint32_t)(palo->ficg).grficSweep;
 }
 
 void GetAloInteractCaneRush(ALO* palo, int* pgrfic)
 {
-
+	*pgrfic = (uint32_t)(palo->ficg).grficRush;
 }
 
 void GetAloInteractCaneSmash(ALO* palo, int* pgrfic)
 {
-
+	*pgrfic = (uint32_t)(palo->ficg).grficSmash;
 }
 
 void GetAloInteractBomb(ALO* palo, int* pgrfic)
 {
-
+	*pgrfic = (uint32_t)(palo->ficg).grficBomb;
 }
 
 void GetAloInteractShock(ALO* palo, int* pgrfic)
 {
-
+	*pgrfic = (uint32_t)(palo->ficg).grficShock;
 }
 
 void* GetAlofRealClock(ALO* palo)
 {
-	return &palo->fRealClock;;
+	return &palo->fRealClock;
+}
+
+void SetAloRealClock(ALO* palo, int fRealClock)
+{
+	/* Only update if the value is actually changing */
+	if ((fRealClock != 0) == (palo->fRealClock == 0)) 
+	{
+		int fInWorld = FIsLoInWorld(palo);
+
+		if (!fInWorld)
+			palo->fRealClock = fRealClock;
+		else if (palo->paloParent == nullptr) 
+		{
+			palo->pvtlo->pfnRemoveLo(palo);
+			palo->fRealClock = fRealClock;
+			palo->pvtlo->pfnAddLo(palo);
+		}
+		else
+			palo->fRealClock = fRealClock;
+	}
+}
+
+void SetAloScrollingMasterSpeeds(ALO* palo, float svu, float svv)
+{
+	for (int isaa = 0; isaa < palo->globset.cpsaa; isaa++) {
+		SAA* psaa = palo->globset.apsaa[isaa];
+
+		if (psaa->saak == SAAK_Scroller) {
+			SetScrollerMasterSpeeds((SCROLLER*)psaa, svu, svv);
+		}
+	}
+}
+
+void SetAloEyesClosed(ALO* palo, float uClosed)
+{
+	for (int isaa = 0; isaa < palo->globset.cpsaa; isaa++) {
+		SAA* psaa = palo->globset.apsaa[isaa];
+
+		if (psaa->saak == SAAK_Eyes) {
+			SetEyesClosed(reinterpret_cast<EYES*>(psaa), uClosed);
+		}
+	}
+
+	for (ALO* paloChild = palo->dlChild.paloFirst; paloChild != nullptr; paloChild = paloChild->dleChild.paloNext) {
+		if ((paloChild->pvtlo->grfcid & 1) != 0) {
+			SetAloEyesClosed(paloChild, uClosed);
+		}
+	}
+}
+
+void GetAloActlaTarget(ALO* palo, ALO** ppaloTarget)
+{
+	*ppaloTarget = PaloGetActlaTarget(palo->pactla.get());
+}
+
+void SetAloActlaTarget(ALO* palo, ALO* paloTarget)
+{
+	SetActlaTarget(palo->pactla.get(), paloTarget, &g_vecZero);
+}
+
+void ResumeAloActla(ALO* palo)
+{
+	palo->pactla->fPaused = 0;
+}
+
+void PauseAloActla(ALO* palo)
+{
+	palo->pactla->fPaused = 1;
+}
+
+void StartAloSound(ALO* palo, SFXID sfxid, float sStart, float sFull, float uVol, LM* plmRepeat)
+{
+	EnsureAloSfx(palo);
+
+	SFX* psfx = palo->psfx.get();
+
+	psfx->sfxid = sfxid;
+	psfx->sStart = sStart;
+	psfx->sFull = sFull;
+	psfx->uVol = uVol;
+	psfx->lmRepeat = *plmRepeat;
+
+	StopSound(psfx->pamb, 0);
+
+	StartSound(psfx->sfxid, &psfx->pamb, palo, nullptr, psfx->sStart, psfx->sFull, psfx->uVol, psfx->uPitch, psfx->uDoppler, &psfx->lmRepeat, nullptr);
+}
+
+void StopAloSound(ALO* palo)
+{
+	if (palo->psfx != nullptr) {
+		StopSound(palo->psfx->pamb, 0);
+	}
+}
+
+void EnsureAloFader(ALO* palo)
+{
+	if (palo->pfader == nullptr) {
+		palo->pfader = PfaderNew(palo);
+		palo->pfader->uAlpha = FIsLoInWorld(palo) ? 1.0f : 0.0f;
+	}
+}
+
+void FadeAloIn(ALO* palo, float dtFade)
+{
+	if (!FIsLoInWorld(palo) || palo->pfader != nullptr) 
+	{
+		EnsureAloFader(palo);
+		palo->pvtlo->pfnAddLo(palo);
+
+		if (dtFade == 0.0f) {
+			palo->pfader->duAlpha = glm::max(1.0f - palo->pfader->uAlpha + 0.0001f, 0.0f);
+		}
+		else {
+			palo->pfader->duAlpha = 1.0f / dtFade;
+		}
+	}
+}
+
+void FadeAloOut(ALO* palo, float dtFade)
+{
+	if (FIsLoInWorld(palo)) {
+		EnsureAloFader(palo);
+
+		if (dtFade == 0.0f) {
+			palo->pfader->duAlpha = glm::min(-palo->pfader->uAlpha - 0.0001f, 0.0f);
+		}
+		else {
+			palo->pfader->duAlpha = -1.0f / dtFade;
+		}
+	}
+}
+
+void CalculateAloDrive(ALO* palo, CLQ* pclqHoming, LM* plmHoming, float dt, float radPanCur, float* pradPanTarget, float* pradTiltTarget, float* psvTarget)
+{
+	if (pclqHoming == nullptr) {
+		pclqHoming = &s_clqHomingSpeed;
+	}
+
+	if (plmHoming == nullptr) {
+		plmHoming = &s_lmHomingSpeed;
+	}
+
+	glm::vec3 posGoal;
+	glm::vec3 vGoal;
+	glm::mat3 matGoal;
+	glm::vec3 wGoal;
+
+	ACT* pactPos = palo->pactPos;
+	ACT* pactRot = palo->pactRot;
+
+	if (pactPos == nullptr) {
+		posGoal = palo->xf.pos;
+		vGoal = glm::vec3(0.0f);
+	}
+	else {
+		pactPos->pvtact->pfnGetActPositionGoal(pactPos, 0.0f, &posGoal, &vGoal);
+	}
+
+	if (pactRot == nullptr) {
+		matGoal = palo->xf.mat;
+		wGoal = glm::vec3(0.0f);
+	}
+	else {
+		pactRot->pvtact->pfnGetActRotationGoal(pactRot, 0.0f, &matGoal, &wGoal);
+	}
+
+	glm::vec3 dpos = posGoal - palo->xf.pos;
+
+	if (pradTiltTarget == nullptr) {
+		dpos.z = 0.0f;
+	}
+
+	float sToGoal = glm::length(dpos);
+	float svGoal = glm::length(vGoal);
+
+	if (palo->dms == 0) {
+		if (sToGoal < 25.0f && svGoal < 10.0f) {
+			palo->dms = 1;
+		}
+	}
+	else if (palo->dms == 1) {
+		if (sToGoal > 50.0f || svGoal > 10.0f) {
+			palo->dms = 0;
+		}
+	}
+
+	if (palo->dms == 0) {
+		glm::vec3 vHoming(0.0f);
+
+		if (sToGoal > 0.0001f) {
+			float svHoming = pclqHoming->g0 + sToGoal * (pclqHoming->g1 + sToGoal * pclqHoming->g2);
+			svHoming = glm::clamp(svHoming, plmHoming->gMin, plmHoming->gMax);
+			vHoming = dpos * (svHoming / sToGoal);
+		}
+
+		glm::vec3 v = vHoming + vGoal;
+		DecomposeSphere(&v, nullptr, pradPanTarget, pradTiltTarget, psvTarget);
+	}
+	else if (palo->dms == 1) {
+		if (pactRot == nullptr) {
+			*pradPanTarget = radPanCur;
+
+			if (pradTiltTarget != nullptr) {
+				*pradTiltTarget = 0.0f;
+			}
+
+			*psvTarget = 0.0f;
+		}
+		else {
+			glm::vec3 vRot = matGoal[0];
+			DecomposeSphere(&vRot, nullptr, pradPanTarget, pradTiltTarget, nullptr);
+			*psvTarget = 0.0f;
+		}
+	}
 }
 
 void CalculateAloMovement(ALO* paloLeaf, ALO* paloBasis, glm::vec3& pos, glm::vec3* pv, glm::vec3* pw, glm::vec3* pdv, glm::vec3* pdw)
 {
+	// A null leaf represents a stationary world-space basis.  Several loading
+	// and proxy paths intentionally call this routine that way.
+	if (paloLeaf == nullptr)
+	{
+		if (pv != nullptr)
+			*pv = glm::vec3(0.0f);
+		if (pw != nullptr)
+			*pw = glm::vec3(0.0f);
+		if (pdv != nullptr)
+			*pdv = glm::vec3(0.0f);
+		if (pdw != nullptr)
+			*pdw = glm::vec3(0.0f);
+		return;
+	}
+
 	glm::vec3 angularVelocitySum(0.0f);
 	glm::vec3 angularAccelSum(0.0f);
 
@@ -1553,30 +3233,32 @@ void CalculateAloMovement(ALO* paloLeaf, ALO* paloBasis, glm::vec3& pos, glm::ve
 		*pdv = glm::vec3(0.0f);
 	}
 
-	std::vector<ALO*> chain;
-	chain.reserve(16);
+	// Match the original fixed scratch array.  Nodes carrying the special 0xC
+	// ALOX flags are omitted from the accumulated movement, but traversal still
+	// continues through the ordinary parent link.
+	ALO* chain[16]{};
+	int chainCount = 0;
 
-	for (ALO* node = paloLeaf; node != paloBasis && node != nullptr; node = node->paloParent) {
+	for (ALO* node = paloLeaf; node != paloBasis && node != nullptr; node = node->paloParent)
+	{
 		const std::shared_ptr<ALOX>& palox = node->palox;
-
-		if (!palox || (palox->grfalox & 0xCu) == 0) {
-			chain.push_back(node);
-		}
+		if ((palox == nullptr || (palox->grfalox & 0xCu) == 0) && chainCount < 16)
+			chain[chainCount++] = node;
 	}
 
-	for (int i = static_cast<int>(chain.size()) - 1; i >= 0; --i) {
+	for (int i = chainCount - 1; i >= 0; --i) {
 		ALO* node = chain[i];
-		ALO* parent = node->paloParent;
+		ALO* paloFrom = node->paloParent;
 
 		if (pv || pw || pdv) {
 			glm::vec3 w(0.0f);
-			ConvertAloVec(parent, paloBasis, &node->xf.w, &w);
+			ConvertAloVec(paloFrom, paloBasis, &node->xf.w, &w);
 			angularVelocitySum += w;
 		}
 
 		if (pdw || pdv) {
 			glm::vec3 dw(0.0f);
-			ConvertAloVec(parent, paloBasis, &node->xf.dw, &dw);
+			ConvertAloVec(paloFrom, paloBasis, &node->xf.dw, &dw);
 			angularAccelSum += dw;
 		}
 
@@ -1594,7 +3276,7 @@ void CalculateAloMovement(ALO* paloLeaf, ALO* paloBasis, glm::vec3& pos, glm::ve
 				*pv += glm::cross(angularVelocitySum, offset);
 
 				glm::vec3 v(0.0f);
-				ConvertAloVec(parent, paloBasis, &node->xf.v, &v);
+				ConvertAloVec(paloFrom, paloBasis, &node->xf.v, &v);
 				*pv += v;
 			}
 
@@ -1603,10 +3285,11 @@ void CalculateAloMovement(ALO* paloLeaf, ALO* paloBasis, glm::vec3& pos, glm::ve
 				*pdv += glm::cross(angularAccelSum, offset);
 
 				glm::vec3 dv(0.0f);
-				ConvertAloVec(parent, paloBasis, &node->xf.dv, &dv);
+				ConvertAloVec(paloFrom, paloBasis, &node->xf.dv, &dv);
 				*pdv += dv;
 			}
 		}
+
 	}
 
 	if (pw) {
@@ -1618,41 +3301,155 @@ void CalculateAloMovement(ALO* paloLeaf, ALO* paloBasis, glm::vec3& pos, glm::ve
 	}
 }
 
+void CalculateAloTransformAdjust(ALO* paloLeaf, ALO* paloBasis, glm::vec3* ppos, glm::mat3* pmat, glm::vec3* pv, glm::vec3* pw)
+{
+	glm::vec3 posBasis = glm::vec3(0.0f);
+	glm::mat3 matBasis = glm::mat3(1.0f);
+	glm::vec3 vBasis = glm::vec3(0.0f);
+	glm::vec3 wBasis = glm::vec3(0.0f);
+
+	glm::vec3* pposBasis = (ppos != nullptr || pv != nullptr) ? &posBasis : nullptr;
+	glm::vec3* pvBasis = (pv != nullptr) ? &vBasis : nullptr;
+	glm::vec3* pwBasis = (pw != nullptr || pv != nullptr) ? &wBasis : nullptr;
+
+	CalculateAloTransform(paloLeaf, paloBasis, 1, pposBasis, &matBasis, pvBasis, pwBasis);
+
+	glm::vec3 r = glm::vec3(0.0f);
+
+	if (ppos != nullptr) {
+		r = matBasis * *ppos;
+		*ppos = posBasis + r;
+	}
+
+	if (pv != nullptr) {
+		glm::vec3 v = matBasis * *pv;
+		*pv = vBasis + v + glm::cross(wBasis, r);
+	}
+
+	if (pw != nullptr) {
+		glm::vec3 w = matBasis * *pw;
+		*pw = wBasis + w;
+	}
+
+	if (pmat != nullptr) {
+		*pmat = matBasis * *pmat;
+	}
+}
+
+void CalculateAloTransform(ALO* paloLeaf, ALO* paloBasis, int cpaloPredict, glm::vec3* apos, glm::mat3* amat, glm::vec3* av, glm::vec3* aw)
+{
+	ALO* apalo[16];
+	int cpalo = 0;
+
+	for (ALO* palo = paloLeaf; palo != paloBasis; palo = palo->paloParent) {
+		apalo[cpalo++] = palo;
+	}
+
+	glm::vec3 posSum(0.0f);
+	glm::mat3 matSum(1.0f);
+	glm::vec3 vSum(0.0f);
+	glm::vec3 wSum(0.0f);
+
+	for (int i = cpalo; i < cpaloPredict; ++i) {
+		if (apos != nullptr) {
+			apos[i] = glm::vec3(0.0f);
+		}
+
+		if (amat != nullptr) {
+			amat[i] = glm::mat3(1.0f);
+		}
+
+		if (av != nullptr) {
+			av[i] = glm::vec3(0.0f);
+		}
+
+		if (aw != nullptr) {
+			aw[i] = glm::vec3(0.0f);
+		}
+	}
+
+	for (int i = cpalo - 1; i >= 0; --i) {
+		ALO* palo = apalo[i];
+
+		glm::vec3 r(0.0f);
+
+		if (apos != nullptr || av != nullptr) {
+			r = matSum * palo->xf.pos;
+			posSum += r;
+
+			if (av != nullptr) {
+				vSum += matSum * palo->xf.v;
+				vSum += glm::cross(wSum, r);
+			}
+		}
+
+		if (aw != nullptr || av != nullptr) {
+			wSum += matSum * palo->xf.w;
+		}
+
+		matSum = matSum * palo->xf.mat;
+
+		if (i < cpaloPredict) {
+			if (apos != nullptr) {
+				apos[i] = posSum;
+			}
+
+			if (amat != nullptr) {
+				amat[i] = matSum;
+			}
+
+			if (av != nullptr) {
+				av[i] = vSum;
+			}
+
+			if (aw != nullptr) {
+				aw[i] = wSum;
+			}
+		}
+	}
+}
+
+ACTSEG *PactsegNewAlo(ALO* palo)
+{
+	return PactsegNew(palo->psw, palo);
+}
+
 void AddAloHierarchy(ALO* palo)
 {
-	DLI it{};
+	DLI dliChild{};
 
-	it.m_pdl = &palo->dlChild;
-	it.m_ibDle = palo->dlChild.ibDle;
-	it.m_pdliNext = s_pdliFirst;
+	dliChild.m_pdl = &palo->dlChild;
+	dliChild.m_ibDle = palo->dlChild.ibDle;
+	dliChild.m_pdliNext = s_pdliFirst;
+	dliChild.m_ppv = reinterpret_cast<void**>(dliChild.m_pdl);
 
-	s_pdliFirst = &it;
+	s_pdliFirst = &dliChild;
 
-	it.m_ppv = (void**)it.m_pdl;
-
-	// Start with the parent
-	LO* current = (LO*)palo;
+	/*
+	 * The original calls OnLoAdd directly only for this object.
+	 */
+	palo->pvtlo->pfnOnLoAdd(palo);
 
 	while (true)
 	{
-		// Call OnLoAdd for the CURRENT object (parent first, then each child)
-		current->pvtlo->pfnOnLoAdd(current);
+		LO* child = static_cast<LO*>(*dliChild.m_ppv);
 
-		// Load next child pointer from the current "next field"
-		void* next = *it.m_ppv;
-		if (next == nullptr)
+		if (child == nullptr)
 			break;
 
-		// Advance iterator to the "next pointer field" inside that next object
-		it.m_ppv = (void**)((uintptr_t)next + it.m_ibDle);
+		dliChild.m_ppv = reinterpret_cast<void**>(
+			reinterpret_cast<char*>(child) + dliChild.m_ibDle);
 
-		// Move to the next object so we don't keep calling the parent
-		current = (LO*)next;
+		/*
+		 * Call AddLoHierarchy, not OnLoAdd. This recursively processes
+		 * the child's descendants.
+		 */
+		child->pvtlo->pfnAddLoHierarchy(child);
 	}
 
-	// palo->pvtlo->pfnSendLoMessage(palo, 1, palo);
+	palo->pvtlo->pfnSendLoMessage(palo, MSGID_added, palo);
 
-	s_pdliFirst = it.m_pdliNext;
+	s_pdliFirst = dliChild.m_pdliNext;
 }
 
 void LoadAloFromBrx(ALO* palo, CBinaryInputStream* pbis)
@@ -1670,12 +3467,12 @@ void LoadAloFromBrx(ALO* palo, CBinaryInputStream* pbis)
 	palo->sRadiusRenderSelf = pbis->F32Read();
 	palo->sRadiusRenderAll = pbis->F32Read();
 
-	if (palo->sMRD == 3.402823e+38f)
+	if (palo->sMRD == FLT_MAX)
 		palo->sMRD = 1.0e+10f;
 
-	if (palo->sCelBorderMRD == 3.402823e+38f)
+	if (palo->sCelBorderMRD == FLT_MAX)
 		palo->sCelBorderMRD = (palo->sMRD > 2000.0f) ? 2000.0f : palo->sMRD;
-
+	
 	LoadOptionsFromBrx(palo, pbis);
 	LoadGlobsetFromBrx(&palo->globset, palo, pbis);
 	LoadAloAloxFromBrx(palo, pbis);
@@ -1701,57 +3498,104 @@ void LoadAloFromBrx(ALO* palo, CBinaryInputStream* pbis)
 
 void LoadAloAloxFromBrx(ALO* palo, CBinaryInputStream* pbis)
 {
-	const uint32_t grfalox = pbis->U32Read();
+	const GRFALOX grfalox = static_cast<GRFALOX>(pbis->U32Read());
 
-	if (grfalox == 0)
+	if (grfalox == 0) {
 		return;
-
-	ALOX alox;
-	palo->palox = std::make_shared <ALOX>(alox);
-
-	palo->palox->grfalox = grfalox;
-
-	int unk_1;
-
-	if (grfalox & 0x01)
-		palo->palox->matPreRotation = pbis->ReadMatrix();
-
-	if (grfalox & 0x02)
-		palo->palox->matPostRotation = pbis->ReadMatrix();
-
-	if ((grfalox & 0x0C) != 0)
-	{
-		int16_t schRotId = pbis->S16Read();
-
-		if (schRotId != -1)
-			palo->palox->scj.paloSchRot = static_cast<ALO*>(PloFindSwObject(palo->psw, 3, (OID)schRotId, palo));
 	}
 
-	if (grfalox & 0x10)
-		palo->palox->scj.ipaloRot = static_cast<int16_t>(pbis->S16Read());
+	palo->palox = std::make_shared<ALOX>();
+	ALOX* alox = palo->palox.get();
 
-	if ((grfalox & 0x20) != 0)
-	{
-		unk_1 = pbis->S16Read();
-		pbis->ReadVector(); // Read Vector
-		pbis->ReadVector(); // Read Vector
-		pbis->F32Read();
+	alox->matPreRotation = glm::mat3(1.0f);
+	alox->matPostRotation = glm::mat3(1.0f);
+	alox->grfalox = grfalox;
+
+	if ((grfalox & 0x01) != 0) {
+		alox->matPreRotation = pbis->ReadMatrix();
 	}
 
-	if ((grfalox & 0x40) != 0)
-	{
-		unk_1 = pbis->S16Read();
-		unk_1 = pbis->S16Read();
+	if ((grfalox & 0x02) != 0) {
+		alox->matPostRotation = pbis->ReadMatrix();
 	}
 
-	if ((grfalox & 0x80) != 0)
-	{
-		pbis->U8Read();
+	if ((grfalox & 0x0c) != 0) {
+		OID oidSchRot = static_cast<OID>(pbis->S16Read());
+
+		if (oidSchRot != OID_Nil) {
+			alox->scj.paloSchRot = static_cast<ALO*>(PloFindSwObject(palo->psw, 3, oidSchRot, palo));
+		}
 	}
+
+	if ((grfalox & 0x10) != 0) {
+		alox->ikj.oidIkh = static_cast<OID>(pbis->S16Read());
+	}
+
+	if ((grfalox & 0x20) != 0) {
+		alox->ikh.oidElbow = static_cast<OID>(pbis->S16Read());
+		alox->ikh.posIkh = pbis->ReadVector();
+		alox->ikh.posWrist = pbis->ReadVector();
+
+		float radTwist = RadNormalize(pbis->F32Read());
+		alox->ikh.grfik = 0;
+		alox->ikh.radTwist = radTwist;
+		alox->ikh.radTwistOrig = radTwist;
+	}
+
+	if ((grfalox & 0x40) != 0) {
+		alox->joint.oidParent = static_cast<OID>(pbis->S16Read());
+		alox->joint.oidChild  = static_cast<OID>(pbis->S16Read());
+	}
+
+	if ((grfalox & 0x80) != 0) {
+		alox->joint.fSsc = pbis->U8Read();
+	}
+}
+
+void SetAloIkhTarget(ALO* palo, ALO* ploTarget)
+{
+	//SetActlaTarget(palo->pikh, ploTarget, &g_vecZero);
 }
 
 void BindAloAlox(ALO* palo)
 {
+	if (palo == nullptr || palo->palox == nullptr)
+		return;
+	
+	ALOX* palox = palo->palox.get();
+	const GRFALOX grfalox = palox->grfalox;
+
+	palox->grfalox = static_cast<GRFALOX>(grfalox | 0x8000);
+
+	if ((grfalox & 0x10) != 0)
+	{
+		const OID oidIkh = palox->ikj.oidIkh;
+
+		palox->ikj.paloIkh = static_cast<ALO*>(PloFindSwNearest(palo->psw, oidIkh, palo));
+		palox->ikj.fInvalid = 1;
+	}
+
+	if ((grfalox & 0x20) != 0)
+	{
+		const OID oidElbow = palox->ikh.oidElbow;
+		palox->ikh.paloElbow = static_cast<ALO*>(PloFindSwNearest(palo->psw, oidElbow, palo));
+
+		if (palox->ikh.paloElbow != nullptr)
+		{
+			palox->ikh.paloShoulder = palox->ikh.paloElbow->paloParent;
+			palox->ikh.paloCommon = PaloFindLoCommonParent(palo, palox->ikh.paloShoulder);
+		}
+
+	}
+
+	if ((grfalox & 0x40) != 0)
+	{
+		const OID oidParent = palox->joint.oidParent;
+		const OID oidChild = palox->joint.oidChild;
+
+		palox->joint.paloParent = static_cast<ALO*>(PloFindSwNearest(palo->psw, oidParent, palo));
+		palox->joint.paloChild = static_cast<ALO*>(PloFindSwNearest(palo->psw, oidChild, palo));
+	}
 
 }
 
@@ -1788,12 +3632,25 @@ void SnipAloObjects(ALO* palo, int csnip, SNIP* asnip)
 
 void PostAloLoad(ALO* palo)
 {
+	DLI dli;
+	dli.m_pdl = &palo->dlChild;
+	dli.m_ibDle = palo->dlChild.ibDle;
+	dli.m_pdliNext = s_pdliFirst;
+	s_pdliFirst = &dli;
+	dli.m_ppv = reinterpret_cast<void**>(dli.m_pdl);
+
 	PostLoLoad(palo);
+
+	// ASEG post-load callback
+	if (palo->pasegd != nullptr && (palo->pasegd->paseg != nullptr || palo->pasegd->oidAseg != OID_Nil))
+		PostSwCallback(palo->psw, (PFNMQ)PostAloLoadCallback, palo, MSGID_callback, nullptr);
+
 	PostGlobsetLoad(&palo->globset, palo);
 
+	// Shadow setup
 	if (palo->pshadow != nullptr)
 	{
-		SHADOW *pshadow = palo->pshadow.get();
+		SHADOW* pshadow = palo->pshadow.get();
 
 		if (!FShadowRadiusSet(pshadow))
 		{
@@ -1803,41 +3660,115 @@ void PostAloLoad(ALO* palo)
 
 		if (pshadow->oidDysh != OID_Nil)
 		{
-			pshadow->pdysh = reinterpret_cast<DYSH*>(PloFindSwNearest(palo->psw, pshadow->oidDysh, palo));
+			DYSH *pdysh = (DYSH*)PloFindSwNearest(palo->psw, pshadow->oidDysh, palo);
+			
+			pshadow->pdysh = pdysh;
 
-			if (pshadow->pdysh != nullptr)
-				SetDyshShadow(pshadow->pdysh, pshadow);
+			if (pdysh != nullptr)
+				SetDyshShadow(pdysh, pshadow);
 		}
 
 		PostShadowLoad(pshadow);
 	}
 
-	// --- Iterate children DL and call each entry's fn at vtbl+0x50 (was inlined dl.h) ---
-	DLI dlBusyWalker{};
-
-	dlBusyWalker.m_ibDle = palo->dlChild.ibDle;
-	dlBusyWalker.m_pdliNext = s_pdliFirst;
-	dlBusyWalker.m_pdl = &palo->dlChild;
-
-	ALO* currentObject = palo->dlChild.paloFirst;
-
-	// Only valid if we have a first element
-	dlBusyWalker.m_ppv = currentObject ? (void**)((uintptr_t)currentObject + dlBusyWalker.m_ibDle) : nullptr;
-
-	s_pdliFirst = &dlBusyWalker;
-
-	while (currentObject != nullptr)
+	// Sound effect setup
+	if (palo->psfx != nullptr)
 	{
-		if (currentObject->pvtalo->pfnPostAloLoad)
-			currentObject->pvtalo->pfnPostAloLoad(currentObject);
+		SFX* psfx = palo->psfx.get();
 
-		currentObject = (ALO*)*dlBusyWalker.m_ppv;
-
-		// Guard before computing next pointer-field address
-		dlBusyWalker.m_ppv = currentObject ? (void**)((uintptr_t)currentObject + dlBusyWalker.m_ibDle) : nullptr;
+		if (psfx->sfxid == SFXID_Nil)
+			palo->psfx = nullptr;
+		else
+			StartSound(psfx->sfxid, &psfx->pamb, palo, nullptr, psfx->sStart, psfx->sFull, psfx->uVol, psfx->uPitch, psfx->uDoppler, &psfx->lmRepeat, nullptr);
 	}
 
-	s_pdliFirst = dlBusyWalker.m_pdliNext;
+	// Allocate pose ACT pointer array
+	if (palo->globset.cpose != 0)
+		palo->apactPose.resize(palo->globset.cpose, nullptr);
+
+	// Process deferred child removals
+	for (DLR* pdlr = palo->pdlrFirst.get(); pdlr != nullptr; pdlr = pdlr->pdlrNext.get())
+	{
+		LO* ploChild = nullptr;
+
+		if (FMatchesLoName((LO*)palo, pdlr->oidChild))
+			ploChild = (LO*)palo;
+		else
+			ploChild = PloFindSwObject(palo->psw, 1, pdlr->oidChild, (LO*)palo);
+
+		if (ploChild == nullptr)
+			continue;
+
+		if (FIsLoInWorld(ploChild) && ploChild != (LO*)palo)
+			ploChild->pvtlo->pfnPostLoLoad(ploChild);
+
+		ploChild->pvtlo->pfnRemoveLo(ploChild);
+	}
+
+	palo->pdlrFirst.reset();
+
+	// Walk child list and post-load each child
+	void** ppv = dli.m_ppv;
+	void* pv = *ppv;
+	dli.m_ppv = reinterpret_cast<void**>(reinterpret_cast<uint8_t*>(pv) + dli.m_ibDle);
+
+	while (pv != nullptr)
+	{
+		LO* ploChild = reinterpret_cast<LO*>(pv);
+		ploChild->pvtlo->pfnPostLoLoad(ploChild);
+
+		ppv = dli.m_ppv;
+		pv = *ppv;
+		dli.m_ppv = reinterpret_cast<void**>(reinterpret_cast<uint8_t*>(pv) + dli.m_ibDle);
+	}
+
+	s_pdliFirst = dli.m_pdliNext;
+}
+
+void PostAloLoadCallback(ALO* palo, MSGID msgid, void* pvData)
+{
+	ASEGD* pasegd = palo->pasegd.get();
+	ASEG* paseg = pasegd->paseg;
+	float tLocal;
+	OVR ovr;
+
+	if (paseg == nullptr) {
+		paseg = (ASEG*)PloFindSwObject(palo->psw, 260, pasegd->oidAseg, palo);
+	}
+	if (paseg == nullptr) {
+		return;
+	}
+
+	switch (pasegd->iak) {
+		case IAK_Proportion:
+		tLocal = pasegd->tLocal;
+
+		if (tLocal < 0.0f) {
+			tLocal = 0.0f;
+		}
+		else if (tLocal > 1.0f) {
+			tLocal = 1.0f;
+		}
+
+		tLocal *= paseg->tMax;
+		break;
+
+		case IAK_Time:
+		tLocal = pasegd->tLocal;
+		break;
+
+		case IAK_Nearest:
+		FindAsegClosestPoint(paseg, palo, &palo->xf.pos, 0.0f, &tLocal, nullptr, nullptr);
+		break;
+
+		default:
+		return;
+	}
+
+	ovr.oid = (OID)paseg->oidRoot;
+	ovr.palo = palo;
+
+	ApplyAsegOvr(paseg, palo, 1,  &ovr, tLocal, pasegd->svtLocal, 0, nullptr);
 }
 
 void UpdateAlo(ALO* palo, float dt)
@@ -1849,6 +3780,33 @@ void UpdateAlo(ALO* palo, float dt)
 
 	if (palo->pthrob != nullptr)
 		UpdateAloThrob(palo, dt);
+
+	DLI dli{};
+
+	dli.m_pdl = &palo->dlAct;
+	dli.m_ibDle = palo->dlAct.ibDle;
+	dli.m_pdliNext = s_pdliFirst;
+
+	ACT* pact = palo->dlAct.pactFirst;
+
+	dli.m_ppv = pact != nullptr ? reinterpret_cast<void**>(reinterpret_cast<std::byte*>(pact) + dli.m_ibDle) : nullptr;
+
+	s_pdliFirst = &dli;
+
+	while (pact != nullptr)
+	{
+		if (pact->pvtact != nullptr && pact->pvtact->pfnUpdateAct != nullptr)
+			pact->pvtact->pfnUpdateAct(pact, dt);
+
+		pact = dli.m_ppv != nullptr ? static_cast<ACT*>(*dli.m_ppv) : nullptr;
+
+		dli.m_ppv = pact != nullptr ? reinterpret_cast<void**>(reinterpret_cast<std::byte*>(pact) + dli.m_ibDle) : nullptr;
+	}
+
+	s_pdliFirst = dli.m_pdliNext;
+
+	void* pvArgs = &dt;
+	HandleLoSpliceEvent(palo, 1, 1, &pvArgs);
 }
 
 void RenderFastShadow(ALO* palo, CM* pcm, RO* pro)
@@ -1857,15 +3815,10 @@ void RenderFastShadow(ALO* palo, CM* pcm, RO* pro)
 	DupAloRo(palo, pro, &ro);
 
 	glm::vec3 shadowScale(palo->sFastShadowRadius * 0.01f, palo->sFastShadowRadius * 0.01f, palo->sFastShadowDepth * 0.01f);
-
 	glm::vec3 pos = glm::vec3(ro.model[3]);
+	ro.model = glm::translate(glm::mat4(1.0f), pos) * glm::mat4_cast(glm::quat_cast(glm::mat3(1.0f))) * glm::scale(glm::mat4(1.0f), shadowScale);
 
-	ro.model =
-		glm::translate(glm::mat4(1.0f), pos) *
-		glm::mat4_cast(glm::quat_cast(glm::mat3(1.0f))) *
-		glm::scale(glm::mat4(1.0f), shadowScale);
-
-	ALO* pShadowLo = (ALO*)palo->psw->aploStock[0x11];
+	ALO* pShadowLo = (ALO*)palo->psw->aploStock[17];
 
 	if (pShadowLo != nullptr && pShadowLo->pvtalo != nullptr && pShadowLo->pvtalo->pfnRenderAloSelf != nullptr)
 		pShadowLo->pvtalo->pfnRenderAloSelf(pShadowLo, pcm, &ro);
@@ -1873,57 +3826,50 @@ void RenderFastShadow(ALO* palo, CM* pcm, RO* pro)
 
 void RenderAloAll(ALO* palo, CM* pcm, RO* pro)
 {
-	// hidden / disabled bit
 	if (palo->fHidden != 0)
 		return;
 
-	// zone visibility
-	if (palo->viss == 2)
+	// Kept behind g_fBsp for debugging.
+	if (g_fBsp != 0 && palo->grfzon != 0 && palo->viss == 2 &&
+		(palo->grfzon & pcm->grfzon) != pcm->grfzon)
+		return;
+
+	RO ro{};
+	RO roChild{};
+
+	RO* proOrig = pro;
+
+	/*
+	 * Whole-ALO distance and frustum culling.
+	 */
+	if (palo->mrds == 2)
 	{
-		if (g_fBsp != 0)
-		{
-			if ((palo->grfzon & pcm->grfzon) != pcm->grfzon)
-				return;
-		}
-	}
+		// Retail uses the render override's translation when one is supplied.
+		const glm::vec3 posWorld =
+			pro != nullptr
+			? glm::vec3(pro->model[3])
+			: palo->xf.posWorld;
 
-	float uAlpha = 1.0f;
-	RO roLocal{};
-	RO* proFinal = pro;
-
-	auto ensureLocal = [&]()
-	{
-			if (proFinal == &roLocal)
-				return;
-
-			DupAloRo(palo, proFinal, &roLocal);
-			proFinal = &roLocal;
-	};
-
-	//if (palo->mrds == 2)
-	//{
-		glm::vec3 posWorld;
-
-		if (pro != nullptr)
-			posWorld = glm::vec3(pro->model[3]);
-		else
-			posWorld = palo->xf.posWorld;
-
-		// Original does object position - camera position.
-		glm::vec3 dpos = posWorld - pcm->pos;
-
-		if (!SphereInFrustum(pcm->frustum, posWorld, palo->sRadiusRenderAll))
+		const glm::vec3 dpos = posWorld - pcm->pos;
+		const bool inFrustum = SphereInFrustum(pcm->frustum, posWorld, palo->sRadiusRenderAll);
+		if (!inFrustum)
 			return;
+
+		float uAlpha = 1.0f;
 
 		if (!FInsideCmMrd(pcm, dpos, palo->sRadiusRenderAll, palo->sMRD, uAlpha))
 			return;
 
 		if (uAlpha != 1.0f)
 		{
-			ensureLocal();
-			proFinal->uAlpha *= uAlpha;
+			DupAloRo(palo, pro, &ro);
+			ro.uAlpha *= uAlpha;
+			proOrig = &ro;
 		}
 
+		/*
+		 * Cel borders can have a shorter render distance.
+		 */
 		if (palo->sCelBorderMRD < palo->sMRD)
 		{
 			float uAlphaCelBorder = 1.0f;
@@ -1933,130 +3879,199 @@ void RenderAloAll(ALO* palo, CM* pcm, RO* pro)
 
 			if (uAlphaCelBorder != 1.0f)
 			{
-				ensureLocal();
-				proFinal->uAlphaCelBorder *= uAlphaCelBorder;
+				DupAloRo(palo, proOrig, &ro);
+				ro.uAlphaCelBorder *= uAlphaCelBorder;
+				proOrig = &ro;
 			}
 		}
-	//}
-
-	// pfader alpha
-	if (palo->pfader != nullptr)
-	{
-		ensureLocal();
-		//proFinal->uAlpha *= palo->pfader->uAlpha;
 	}
 
-	// ---- SSC scale-compensation block (the big ugly mid-function chunk) ----
-	// The original logic:
-	//   If proFinal != null and palo has ALOX with (grfalox & 0x400) and joint.fSsc
-	//   then try to use parent's pactScale (with parent having ALOX & 0x400 too)
-	//   and pre-multiply by inverse parent scale before rendering this ALO.
-	//
-	// Net effect: compensate for parent scale when SSC is active.
-	ACT* scaleAct = palo->pactScale;
-	RO* proForSelf = proFinal;
-
-	//if (proFinal != nullptr)
-	//{
-	//	const bool sscActive =
-	//		(palo->palox != nullptr) &&
-	//		((palo->palox->grfalox & 0x400u) != 0) &&
-	//		(palo->palox->joint.fSsc != 0);
-
-	//	if (sscActive && palo->paloParent != nullptr)
-	//	{
-	//		ALO* parent = palo->paloParent;
-
-	//		const bool parentSscOk =
-	//			(parent->pactScale != nullptr) &&
-	//			(parent->palox != nullptr) &&
-	//			((parent->palox->grfalox & 0x400u) != 0);
-
-	//		if (parentSscOk)
-	//		{
-	//			// get parent scale vector (the decomp loads it into roChild.mat + 0x10,
-	//			// then inverts X/Y/Z)
-	//			glm::vec3 parentScale(1.0f);
-	//			parent->pactScale->GetScale(parentScale); // <-- adapt to your ACT API
-	//			glm::vec3 invParentScale(
-	//				parentScale.x != 0.0f ? 1.0f / parentScale.x : 1.0f,
-	//				parentScale.y != 0.0f ? 1.0f / parentScale.y : 1.0f,
-	//				parentScale.z != 0.0f ? 1.0f / parentScale.z : 1.0f
-	//			);
-
-	//			// Build inverse-scale matrix
-	//			glm::mat4 invScale = glm::mat4(1.0f);
-	//			invScale[0][0] = invParentScale.x;
-	//			invScale[1][1] = invParentScale.y;
-	//			invScale[2][2] = invParentScale.z;
-
-	//			// We need a local RO to modify matrix safely
-	//			ensureLocal();
-
-	//			// Apply: roLocal.model = roLocal.model * invScale
-	//			// (this matches the original: post-multiply by inverse scale)
-	//			roLocal.model = roLocal.model * invScale;
-
-	//			proForSelf = &roLocal;
-	//		}
-	//	}
-	//}
-
-	// ---- Render self ----
-	palo->pvtalo->pfnRenderAloSelf(palo, pcm, proForSelf);
-
-	// ---- Render children ----
-	for (ALO* child = palo->dlChild.paloFirst; child; child = child->dleChild.paloNext)
+	/*
+	 * Apply object fading.
+	 */
+	if (palo->pfader != nullptr)
 	{
-		if ((child->pvtlo->grfcid & 1u) == 0)
+		DupAloRo(palo, proOrig, &ro);
+		ro.uAlpha *= palo->pfader->uAlpha;
+		proOrig = &ro;
+	}
+
+	/*
+	 * Segment scale compensation.
+	 *
+	 * The release build uses GRFALOX bit 0x80.
+	 */
+	if (proOrig != nullptr &&
+		palo->palox != nullptr &&
+		(palo->palox->grfalox & 0x80U) != 0 &&
+		palo->palox->joint.fSsc != 0)
+	{
+		ALO* parent = palo->paloParent;
+
+		if (parent != nullptr &&
+			parent->pactScale != nullptr &&
+			parent->palox != nullptr &&
+			(parent->palox->grfalox & 0x80U) != 0)
+		{
+			glm::mat3 inverseParentScale(1.0f);
+			parent->pactScale->pvtact->pfnGetActScale(parent->pactScale, &inverseParentScale);
+
+			/*
+			 * The release function reciprocates only the diagonal
+			 * components of the parent scale matrix.
+			 */
+			if (inverseParentScale[0][0] != 0.0f)
+				inverseParentScale[0][0] = 1.0f / inverseParentScale[0][0];
+
+			if (inverseParentScale[1][1] != 0.0f)
+				inverseParentScale[1][1] = 1.0f / inverseParentScale[1][1];
+
+			if (inverseParentScale[2][2] != 0.0f)
+				inverseParentScale[2][2] = 1.0f / inverseParentScale[2][2];
+
+			DupAloRo(palo, proOrig, &ro);
+
+			glm::vec3 position = glm::vec3(ro.model[3]);
+			glm::mat3 currentRotation = glm::mat3(ro.model);
+
+			// The SSC matrix is applied on the left in the release code.
+			glm::mat3 correctedRotation = inverseParentScale * currentRotation;
+
+			LoadMatrixFromPosRot(&position, &correctedRotation, &ro.model);
+			proOrig = &ro;
+		}
+	}
+
+	/*
+	 * Apply this ALO's animated scale.
+	 */
+	ACT* pactScale = palo->pactScale;
+
+	if (pactScale != nullptr)
+	{
+		glm::mat3 matScale(1.0f);
+		pactScale->pvtact->pfnGetActScale(pactScale, &matScale);
+
+		glm::mat4 scaleMatrix;
+		LoadMatrixFromPosRot(&g_vecZero, &matScale, &scaleMatrix);
+
+		DupAloRo(palo, proOrig, &ro);
+
+		// Normal object scale is applied on the right.
+		ro.model = ro.model * scaleMatrix;
+		proOrig = &ro;
+	}
+
+	/*
+	 * Render this object.
+	 */
+	if (palo->pvtalo != nullptr && palo->pvtalo->pfnRenderAloSelf != nullptr)
+	{
+		palo->pvtalo->pfnRenderAloSelf(palo, pcm, proOrig);
+	}
+
+	/*
+	 * Recursively render child ALOs.
+	 */
+	DLI dliChild{};
+	dliChild.m_pdl = &palo->dlChild;
+	dliChild.m_ibDle = palo->dlChild.ibDle;
+	dliChild.m_pdliNext = s_pdliFirst;
+	dliChild.m_ppv = reinterpret_cast<void**>(dliChild.m_pdl);
+	s_pdliFirst = &dliChild;
+
+	while (true)
+	{
+		ALO* child = static_cast<ALO*>(*dliChild.m_ppv);
+
+		if (child == nullptr)
+			break;
+
+		// Point at this child's next-link before dispatch. RemoveDlEntry can
+		// then repair the iterator if rendering reparents or removes the child.
+		dliChild.m_ppv = reinterpret_cast<void**>(
+			reinterpret_cast<char*>(child) + dliChild.m_ibDle);
+
+		if (child->pvtlo == nullptr || (child->pvtlo->grfcid & 1U) == 0)
 			continue;
 
-		// If we have no RO, original just calls child with null
-		if (proForSelf == nullptr)
+		if (child->pvtalo == nullptr || child->pvtalo->pfnRenderAloAll == nullptr)
+			continue;
+
+		/*
+		 * With no render override, children resolve their own world
+		 * transforms when RenderAloAll is called.
+		 */
+		if (proOrig == nullptr)
 		{
 			child->pvtalo->pfnRenderAloAll(child, pcm, nullptr);
 			continue;
 		}
 
-		// match original gate: child palox and (grfalox & 0xC) != 0
-		const bool useWorldProxy = (child->palox != nullptr) && ((child->palox->grfalox & 0xCu) != 0);
+		glm::mat4 childMatrix;
+		glm::mat4 parentMatrix;
 
-		// 1) Build child's local matrix source
-		glm::mat4 childMat(1.0f);
-		if (!useWorldProxy)
-			childMat = glm::translate(glm::mat4(1.0f), child->xf.pos) * glm::mat4(child->xf.mat);
-		else
-			childMat = glm::translate(glm::mat4(1.0f), child->xf.posWorld) * glm::mat4(child->xf.matWorld);
+		const bool useWorldTransform =
+			child->palox != nullptr &&
+			(child->palox->grfalox & 0x0CU) != 0;
 
-		// 2) Choose parent matrix for child
-		glm::mat4 parentForChild = proForSelf->model;
-
-		if (useWorldProxy)
+		if (!useWorldTransform)
 		{
-			glm::mat4 parentWorldTR = glm::translate(glm::mat4(1.0f), palo->xf.posWorld) * glm::mat4(palo->xf.matWorld);
-			glm::mat4 invParentWorldTR = glm::inverse(parentWorldTR);
-			parentForChild = proForSelf->model * invParentWorldTR;
+			/*
+			 * Normal child: parent render matrix multiplied by the
+			 * child's local transform.
+			 */
+			LoadMatrixFromPosRot(&child->xf.pos, &child->xf.mat, &childMatrix);
+			parentMatrix = proOrig->model;
+		}
+		else
+		{
+			/*
+			 * Special child: convert its resolved world transform
+			 * into the current overridden parent render space.
+			 */
+			glm::mat4 parentWorldInverse;
+
+			LoadMatrixFromPosRot(&child->xf.posWorld, &child->xf.matWorld, &childMatrix);
+			LoadMatrixFromPosRotInverse(&palo->xf.posWorld, &palo->xf.matWorld, &parentWorldInverse);
+
+			parentMatrix = proOrig->model * parentWorldInverse;
 		}
 
-		// 3) Final child model
-		RO roChild{};
-		roChild.model = parentForChild * childMat;
+		roChild = {};
+		roChild.model = parentMatrix * childMatrix;
+		roChild.uAlpha = proOrig->uAlpha;
+		roChild.uAlphaCelBorder = proOrig->uAlphaCelBorder;
+		roChild.fDynamicLight = proOrig->fDynamicLight;
 
-		// 4) Inherit alpha
-		roChild.uAlpha = proForSelf->uAlpha;
-		roChild.uAlphaCelBorder = proForSelf->uAlphaCelBorder;
-
-		// recurse
 		child->pvtalo->pfnRenderAloAll(child, pcm, &roChild);
 	}
 
-	// ---- Fast shadow ----
-	/*if (palo->sFastShadowRadius > 0.0f)
-		RenderFastShadow(palo, pcm, proForSelf);*/
+	s_pdliFirst = dliChild.m_pdliNext;
+
+	/*
+	 * The release build submits fast shadows whenever the radius is
+	 * positive. Use your singular function name if that is the function
+	 * currently present in your port.
+	 */
+	if (palo->sFastShadowRadius > 0.0f)
+		RenderFastShadow(palo, pcm, proOrig);
 }
 
 void RenderAloSelf(ALO* palo, CM* pcm, RO* pro)
 {
+	palo->pvtalo->pfnUpdateAloConstraints(palo);
+
+	if (palo->palox != nullptr && (palo->palox->grfalox & 0x80) != 0) {
+		if (pro == nullptr) {
+			palo->palox->joint.fMatInfluence = 0;
+		}
+		else {
+			palo->palox->joint.fMatInfluence = 1;
+			palo->palox->joint.matInfluence = pro->model;
+		}
+	}
+
 	palo->pvtalo->pfnRenderAloGlobset(palo, pcm, pro);
 }
 
@@ -2067,14 +4082,12 @@ void FreezeAlo(ALO* palo, int fFreeze)
 		// Unfreeze.
 		palo->fFrozen = false;
 
-		/*palo->pvtalo->pfnSetAloVelocityVec(palo, &palo->frz.v);
+		palo->pvtalo->pfnSetAloVelocityVec(palo, &palo->frz.v);
 
 		palo->pvtalo->pfnSetAloAngularVelocityVec(palo, &palo->frz.w);
 
 		if (palo->psfx)
-		{
 			StartSound(palo->psfx->sfxid, &palo->psfx->pamb, palo, nullptr, palo->psfx->sStart, palo->psfx->sFull, palo->psfx->uVol, palo->psfx->uPitch, palo->psfx->uDoppler, &palo->psfx->lmRepeat, nullptr);
-		}*/
 
 		return;
 	}
@@ -2085,12 +4098,12 @@ void FreezeAlo(ALO* palo, int fFreeze)
 
 	palo->dtUpdatePause = 0.0f;
 
-	/*if (palo->psfx)
-		StopSound(palo->psfx->pamb, 0);*/
+	if (palo->psfx)
+		StopSound(palo->psfx->pamb, 0);
 
-		// 0x28aff0 is almost certainly the global zero VECTOR.
-		/*palo->pvtalo->pfnSetAloVelocityVec(palo, (VECTOR*)0x28aff0);
-		palo->pvtalo->pfnSetAloAngularVelocityVec(palo, (VECTOR*)0x28aff0);*/
+		
+	palo->pvtalo->pfnSetAloVelocityVec(palo, &g_vecZero);
+	palo->pvtalo->pfnSetAloAngularVelocityVec(palo, &g_vecZero);
 
 	palo->fFrozen = true;
 }
@@ -2099,8 +4112,7 @@ void DupAloRo(ALO* palo, RO* proOrig, RO* proDup)
 {
 	if (proOrig == nullptr)
 	{
-		glm::vec3 vecScale = glm::vec3(1.0);
-		LoadMatrixFromPosRotScale(palo->xf.posWorld, palo->xf.matWorld, vecScale, proDup->model);
+		LoadMatrixFromPosRotScale(&palo->xf.posWorld, &palo->xf.matWorld, &g_vecOne, &proDup->model);
 		proDup->uAlpha = 1.0;
 		proDup->uAlphaCelBorder = 1.0;
 	}
@@ -2111,6 +4123,7 @@ void DupAloRo(ALO* palo, RO* proOrig, RO* proDup)
 			proDup->model = proOrig->model;
 			proDup->uAlpha = proOrig->uAlpha;
 			proDup->uAlphaCelBorder = proOrig->uAlphaCelBorder;
+			proDup->fDynamicLight = proOrig->fDynamicLight;
 		}
 	}
 }
@@ -2119,7 +4132,7 @@ void RenderAloGlobset(ALO* palo, CM* pcm, RO* pro)
 {
 	RPL    rpl{};
 	RPLCEL rplCel{};
-
+	
 	DupAloRo(palo, pro, &rpl.ro);
 
 	const glm::mat4 baseModel = rpl.ro.model;
@@ -2128,13 +4141,13 @@ void RenderAloGlobset(ALO* palo, CM* pcm, RO* pro)
 
 	bool fGlobsetVisible = false;
 	const bool doPerGlobMrd = (palo->mrds == 1);
-
+	
 	for (int i = 0; i < palo->globset.cglob; ++i)
 	{
 		auto& glob = palo->globset.aglob[i];
 		auto* pglobi = (palo->globset.aglobi.empty() ? nullptr : &palo->globset.aglobi[i]);
 
-		if (g_fBsp != 0 && pglobi != nullptr && palo->viss == 1)
+		if (g_fBsp != 0 && pglobi != nullptr && pglobi->grfzon != 0 && palo->viss == 1)
 		{
 			if ((pglobi->grfzon & pcm->grfzon) != pcm->grfzon)
 				continue;
@@ -2210,16 +4223,16 @@ void RenderAloGlobset(ALO* palo, CM* pcm, RO* pro)
 		{
 			glm::vec3 v = glm::mat3(rpl.ro.model) * glob.gleam->normal;
 
-			const float len2 = glm::dot(v, v);
-			glm::vec3 dir = (len2 < 1e-8f) ? glm::vec3(0.0f) : v * glm::inversesqrt(len2);
+			const float length = glm::length(v);
+			const glm::vec3 dir = length < 0.0001f ? glm::vec3(0.0f) : v / length;
 
-			const glm::vec3 camBasis = glm::vec3(g_pcm->mat[2]);
-			const float intensity = std::abs(glm::dot(dir, camBasis));
+			const glm::vec3 cameraX = glm::vec3(g_pcm->mat[0]);
+			const float intensity = std::abs(glm::dot(dir, cameraX));
 
-			const auto& c = glob.gleam->clqc;
-			float gain = c.g0 + intensity * (c.g1 + intensity * (c.g2 + intensity * c.g3));
+			const CLQC& clqc = glob.gleam->clqc;
+			float gain = clqc.g0 + intensity * (clqc.g1 + intensity * (clqc.g2 + intensity * clqc.g3));
+
 			gain = GLimitLm(&g_lmZeroOne, gain);
-
 			rpl.ro.uAlpha *= gain;
 		}
 
@@ -2256,7 +4269,7 @@ void RenderAloGlobset(ALO* palo, CM* pcm, RO* pro)
 		else
 			rpl.z = glm::dot(dpos3, dpos3);
 
-		rpl.ro.uAlphaCelBorder *= rpl.ro.uAlpha;
+		rpl.ro.uAlphaCelBorder = 0.0f;
 
 		if (rpl.ro.uAlpha != 1.0f)
 		{
@@ -2289,13 +4302,8 @@ void RenderAloGlobset(ALO* palo, CM* pcm, RO* pro)
 
 		if (!sortT)
 		{
-			if (rpl.rp == RP_Background ||
-				rpl.rp == RP_Cutout ||
-				rpl.rp == RP_CutoutAfterProjVolume ||
-				rpl.rp == RP_Translucent)
-			{
+			if (rpl.rp == RP_Background || rpl.rp == RP_Cutout || rpl.rp == RP_CutoutAfterProjVolume || rpl.rp == RP_Translucent)
 				sortT = glob.fTransluscentSort;
-			}
 		}
 
 		rpl.fTransluscentSort = sortT;
@@ -2305,13 +4313,35 @@ void RenderAloGlobset(ALO* palo, CM* pcm, RO* pro)
 		else
 			rpl.ro.fDynamicLight = 0;
 
-		rpl.ro.trlk = glob.trlk;
+		if (pglobi != nullptr && glob.fThreeWay == 1 && glob.fDynamic == 0 &&
+			glob.pwarpGlob == nullptr &&
+			pglobi->cframeStaticLights < g_cframeStaticLightsInvalid)
+		{
+			glob.trlk = TRLK_Relight;
+		}
+
+		if (glob.trlk == TRLK_Relight)
+		{
+			rpl.ro.trlk = TRLK_Relight;
+			glob.trlk = TRLK_BakePending;
+
+			if (pglobi != nullptr)
+				pglobi->cframeStaticLights = g_cframe;
+		}
+		else if (glob.trlk == TRLK_BakePending)
+		{
+			// The cache-writing packet is still in a deferred render list.
+			// Fully light this additional packet instead of reading that cache.
+			rpl.ro.trlk = TRLK_Dynamic;
+		}
+		else
+		{
+			rpl.ro.trlk = glob.trlk;
+		}
 
 		if (glob.fDynamic == 1 || glob.pwarpGlob != nullptr)
 			rpl.ro.trlk = TRLK_Dynamic;
 
-		const bool bakedThisFrame = (glob.trlk == TRLK_Relight);
-		
 		if (glob.psaa != nullptr)
 		{
 			if (glob.psaa && glob.psaa->pvtlooker && glob.psaa->pvtlooker->pfnNotifyLookerRender)
@@ -2329,9 +4359,6 @@ void RenderAloGlobset(ALO* palo, CM* pcm, RO* pro)
 		rpl.ro.model = submitModel;
 
 		SubmitRpl(&rpl);
-
-		if (glob.trlk == TRLK_Relight && bakedThisFrame)
-			glob.trlk = TRLK_Baked;
 
 		if (g_fRenderCelBorders > 0 && glob.csubcel > 0)
 		{
@@ -2351,43 +4378,56 @@ void RenderAloGlobset(ALO* palo, CM* pcm, RO* pro)
 
 			if (cb > 0.0f)
 			{
+				//rplCel.pglob = &glob;
 				rplCel.rocel.model = submitModel;
 				rplCel.rocel.celRgba = ((palo->globset.grfglobset & 2) == 0) ? g_rgbaCel : palo->globset.rgbaCel;
 
-				rplCel.rp = glob.rp;
-
-				if (rpl.ro.uAlpha != 1.0f)
+				// The cel geometry is a second submission.  It does not inherit the
+				// surface's render phase verbatim: the PS2 renderer partitions it into
+				// the corresponding cel-border phase.
+				switch (rpl.rp)
 				{
-					if (rplCel.rp == RP_CelBorder || rplCel.rp == RP_CelBorderAfterProjVolume)
-						rplCel.rp = RP_TranslucentCelBorder;
-				}
+					case RP_OpaqueAfterProjVolume:
+					case RP_CutoutAfterProjVolume:
+					rplCel.rp = RP_CelBorderAfterProjVolume;
+					break;
 
-				rplCel.edgeCount = glob.edgeCount;
-				rplCel.edgeSSBO  = glob.edgeSSBO;
+					case RP_Translucent:
+					case RP_TranslucentCelBorder:
+					rplCel.rp = RP_TranslucentCelBorder;
+					break;
+
+					default:
+					rplCel.rp = RP_CelBorder;
+					break;
+				}
 				rplCel.rocel.uAlphaCelBorder = cb;
+				rplCel.palo = palo;
+				rplCel.pglob = &glob;
 
 				SubmitRplCel(&rplCel);
 			}
 		}
 	}
 
-	/*
-	if (fGlobsetVisible && palo->apactPose != nullptr && palo->globset.cpose > 0)
+	if (fGlobsetVisible)
 	{
 		if (palo->pvtalo != nullptr && palo->pvtalo->pfnUpdateAloInfluences != nullptr)
 			palo->pvtalo->pfnUpdateAloInfluences(palo, pro);
 
-		for (int pose = 0; pose < palo->globset.cpose; ++pose)
+		if (!palo->apactPose.empty() && palo->globset.cpose > 0)
 		{
-			ACT* pact = palo->apactPose[pose];
+			for (int ipose = 0; ipose < palo->globset.cpose; ++ipose)
+			{
+				ACT* pact = palo->apactPose[ipose];
 
-			if (pact == nullptr)
-				palo->globset.agPoses[pose] = palo->globset.agPosesOrig[pose];
-			else
-				ProjectActPose(pact, pose);
+				if (pact == nullptr)
+					palo->globset.agPoses[ipose] = palo->globset.agPosesOrig[ipose];
+				else
+					ProjectActPose(pact, ipose);
+			}
 		}
 	}
-	*/
 }
 
 void RenderAloLine(ALO* palo, CM* pcm, glm::vec3* ppos0, glm::vec3* ppos1, float rWidth, float uAlpha)
@@ -2440,7 +4480,7 @@ void RenderAloLine(ALO* palo, CM* pcm, glm::vec3* ppos0, glm::vec3* ppos1, float
 	rot[2] = axis2;
 
 	glm::mat4 model(1.0f);
-	LoadMatrixFromPosRot(p0, rot, model);
+	LoadMatrixFromPosRot(&p0, &rot, &model);
 
 	RO ro{};
 	ro.model = model;
@@ -2452,25 +4492,52 @@ void RenderAloLine(ALO* palo, CM* pcm, glm::vec3* ppos0, glm::vec3* ppos1, float
 
 void DeleteModel(ALO* palo)
 {
-	for (int i = 0; i < palo->globset.aglob.size(); i++)
+	std::unordered_set<GLuint> deletedBuffers;
+	std::unordered_set<GLuint> deletedVertexArrays;
+
+	auto DeleteBuffer = [&](GLuint& buffer)
 	{
-		GLOB& glob = palo->globset.aglob[i];
+		if (buffer != 0 && deletedBuffers.insert(buffer).second)
+			glDeleteBuffers(1, &buffer);
 
-		if (glob.VAO != 0)
-		{
-			glDeleteVertexArrays(1, &glob.VAO);
-			glDeleteBuffers(1, &glob.VBO);
-			glDeleteBuffers(1, &glob.EBO);
-		}
+		buffer = 0;
+	};
 
-		if (glob.pwarpGlob != nullptr && glob.pwarpGlob->ssboState != 0)
-			glDeleteBuffers(1, &glob.pwarpGlob->ssboState);
+	auto DeleteVertexArray = [&](GLuint& vertexArray)
+	{
+		if (vertexArray != 0 && deletedVertexArrays.insert(vertexArray).second)
+			glDeleteVertexArrays(1, &vertexArray);
 
-		if (glob.ssboCachedMaterial != 0)
-			glDeleteBuffers(1, &glob.ssboCachedMaterial);
+		vertexArray = 0;
+	};
 
-		if (glob.edgeSSBO != 0)
-			glDeleteBuffers(1, &glob.edgeSSBO);
+	DeleteBuffer(palo->globset.boneMatrixSSBO);
+
+	for (GLOB& glob : palo->globset.aglob)
+	{
+		DeleteVertexArray(glob.VAO);
+		DeleteBuffer(glob.VBO);
+		DeleteBuffer(glob.EBO);
+		DeleteBuffer(glob.ssboCachedMaterial);
+		DeleteBuffer(glob.poseDposSSBO);
+		DeleteBuffer(glob.poseDnormalSSBO);
+		DeleteBuffer(glob.edgeSSBO);
+		DeleteBuffer(glob.edgeBoneIndicesSSBO);
+		DeleteBuffer(glob.edgeBoneWeightsSSBO);
+		DeleteBuffer(glob.edgePoseDposSSBO);
+
+		if (glob.pwarpGlob != nullptr)
+			DeleteBuffer(glob.pwarpGlob->ssboState);
+
+		glob.poseDpos.clear();
+		glob.poseDnormal.clear();
+		glob.edgeBoneIndices.clear();
+		glob.edgeBoneWeights.clear();
+		glob.edgePoseDpos.clear();
+
+		glob.poseCount = 0;
+		glob.poseVertexCount = 0;
+		glob.edgeCount = 0;
 	}
 }
 
@@ -2485,3 +4552,21 @@ void DeleteAlo(ALO* palo)
 }
 
 std::vector <ALO*> allSWAloObjs;
+THROB s_mpthrobkthrob[6] =
+{
+	THROBK_Pipe,  glm::vec3(120.0, 190.0, 115.0), glm::vec3(120.0, 190.0, 60.0), 2.0,
+	THROBK_Ninja, glm::vec3(0.0f, 0.0, 255.0f),   glm::vec3(0.0, 0.0, 0.0),      2.0,
+	THROBK_Rail,  glm::vec3(120.0, 255.0, 255.0), glm::vec3(120.0, 0.0, 0.0),    2.0,
+	THROBK_Hide,  glm::vec3(240.0, 255.0, 255.0), glm::vec3(240.0, 0.0, 0.0),    2.0,
+	THROBK_Foo,   glm::vec3(0.0, 255.0, 255.0),   glm::vec3(0.0, 0.0, 0.0),      2.0,
+	THROBK_Bar,   glm::vec3(300.0, 255.0, 255.0), glm::vec3(300.0, 0.0, 0.0),    2.0
+};
+
+CLQ g_clqPosSpringDefault  = {0.0, 15.0, 0.015, 0.0};
+CLQ g_clqPosDampingDefault = {0.0, 2.5, 0.0024999999, 0.0};
+CLQ g_clqRotSpringDefault  = {0.0, 15.0, 1.5, 0.0};
+CLQ g_clqRotDampingDefault = {0.0, 2.5, 0.25, 0.0};
+SMPA g_smpaPosDefault = {1500.0, 0.0, 0.5, 4500.0};
+SMPA g_smpaRotDefault ={15.0, 0.0, 0.5, 45.0};
+CLQ s_clqHomingSpeed = { -50.0, 4.0, 0.0 };
+LM s_lmHomingSpeed = { 0.0, 400.0 };

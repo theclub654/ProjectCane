@@ -15,6 +15,12 @@ void InitWr(WR* pwr)
 	pwr->imatHalf = -1;
 }
 
+void HandleWrMessage(WR* pwr, MSGID msgid, void* pv)
+{
+	if ((msgid < MSGID_Max) && (MSGID_damaged < msgid))
+		pwr->iwreCur = (int)pv;
+}
+
 void CloneWr(WR* pwr, WR* pwrBase)
 {
 	pwr->tLastUpdate = pwrBase->tLastUpdate;
@@ -161,11 +167,11 @@ void AddOnzOnze(ONZ* ponz, float uAmpl, float gFreq, float gPhase, float uRandom
 	if (ponz->conze >= 4)
 		return;
 
-	ONZE* onze = &ponz->aonze[ponz->conze++];
+	ONZE* onze    = &ponz->aonze[ponz->conze++];
 	onze->uRandom = uRandom;
-	onze->uAmpl = uAmpl;
-	onze->gFreq = gFreq;
-	onze->gPhase = gPhase;
+	onze->uAmpl   = uAmpl;
+	onze->gFreq   = gFreq;
+	onze->gPhase  = gPhase;
 }
 
 glm::vec4* PwreGetWrBendNormalSwivel(WR* pwr, ENSK ensk)
@@ -228,6 +234,26 @@ void GetWrWavelength(WR* pwr, float* psWavelength)
 	*psWavelength = wavelength;
 }
 
+void GetWrBounds(WR* pwr, glm::vec3* pdpos)
+{
+	glm::vec3 dposSum(0.0f);
+
+	for (int i = 0; i < pwr->cwre; ++i)
+	{
+		const WRE& wre = pwr->awre[i];
+
+		if (wre.wrek != 0)
+			continue;
+
+		const glm::vec3 a = glm::vec3(wre.circle.awref[0].dpos);
+		const glm::vec3 b = glm::vec3(wre.circle.awref[1].dpos);
+
+		dposSum += glm::sqrt(a * a + b * b);
+	}
+
+	*pdpos = dposSum;
+}
+
 int  GetWrSize()
 {
 	return sizeof(WR);
@@ -242,7 +268,7 @@ void ApplyWrGlob(WR* pwr, ALO* palo, GLOB* pglob)
 	if (!wrbg) return;
 
 	// already attached?
-	if (wrbg->pwr == pwr) return;
+	//if (wrbg->pwr == pwr) return;
 
 	// already in WR list?
 	for (auto it = pwr->pwrbgFirst; it; it = it->pwrbgNextWr)
@@ -346,6 +372,69 @@ float Hash01(uint32_t n)
 	return (float)(((x * (x * x * 0x3D73u + 0xC0AE5u) + 0x5208DD0Du) & 0x7FFFFFFFu)) * 4.656613e-10f;
 }
 
+void WarpWrTransform(WR* pwr, float sWavelengthMin, const glm::vec3* pposSrc, const glm::mat3* pmatSrc, glm::vec3* pposDst, glm::mat3* pmatDst, glm::vec3* pvDst)
+{
+	glm::vec3 pos = *pposSrc;
+	glm::vec3 vel = glm::vec3(0.0f);
+
+	for (int i = 0; i < pwr->cwre; ++i) 
+	{
+		WRE* pwre = &pwr->awre[i];
+
+		if (pwre->wrek != WREK_Circle) {
+			continue;
+		}
+
+		const auto& circle = pwre->circle;
+
+		float wavelength = 0.0f;
+
+		if (circle.rgDot != 0.0f) {
+			wavelength = 1.0f / circle.rgDot;
+		}
+
+		if (wavelength < sWavelengthMin) {
+			continue;
+		}
+
+		glm::vec3 normal(circle.normal.x, circle.normal.y, circle.normal.z);
+		float dot = glm::dot(*pposSrc, normal);
+		float phase = (dot * circle.rgDot + g_clock.t * circle.gFrequency + circle.uPhase) * glm::two_pi<float>();
+
+		float gSin;
+		float gCos;
+		CalculateSinCos(phase, &gSin, &gCos);
+
+		glm::vec3 dpos0(circle.awref[0].dpos.x, circle.awref[0].dpos.y, circle.awref[0].dpos.z);
+		glm::vec3 dpos1(circle.awref[1].dpos.x, circle.awref[1].dpos.y, circle.awref[1].dpos.z);
+
+		pos += dpos0 * gCos + dpos1 * gSin;
+
+		if (pvDst != nullptr) {
+			vel += dpos1 * gCos - dpos0 * gSin;
+		}
+	}
+
+	if (pposDst != nullptr) {
+		*pposDst = pos;
+	}
+
+	if (pvDst != nullptr) {
+		*pvDst = vel;
+	}
+
+	if (pmatSrc != nullptr && pmatDst != nullptr) {
+		for (int i = 0; i < 3; ++i) {
+			glm::vec3 basisPos = *pposSrc + (*pmatSrc)[i];
+			glm::vec3 warpedBasisPos;
+
+			WarpWrTransform(pwr, sWavelengthMin, &basisPos, nullptr, &warpedBasisPos, nullptr, nullptr);
+
+			(*pmatDst)[i] = warpedBasisPos - pos;
+		}
+	}
+}
+
 void UpdateWrStateVectors(WR* pwr)
 {
 	auto pwrbg = pwr ? pwr->pwrbgFirst : nullptr;
@@ -357,7 +446,7 @@ void UpdateWrStateVectors(WR* pwr)
 
 	while (pwrbg)
 	{
-		ALO* palo = pwrbg->palo;
+		ALO*  palo  = pwrbg->palo;
 		GLOB* pglob = pwrbg->pglob;
 
 		if (!palo || !pglob)
@@ -403,7 +492,7 @@ void UpdateWrStateVectors(WR* pwr)
 		// ------------------------------------------------------------
 		// 2) Build CLQ + LM clamp range
 		// ------------------------------------------------------------
-		float lmMin = 1.0f, lmMax = 1.0f;
+		float lmMin  = 1.0f, lmMax = 1.0f;
 		float clq_g0 = 0.0f, clq_g1 = 0.0f;
 
 		if (weki.wek != WEK_Nil)
@@ -449,8 +538,7 @@ void UpdateWrStateVectors(WR* pwr)
 		// ------------------------------------------------------------
 		// 5) worldPosBend = alo.posWorld + (alo.rot * posBendLocal)
 		// ------------------------------------------------------------
-		const glm::vec3 worldPosBend =
-			palo->xf.posWorld + (glm::mat3(palo->xf.matWorld) * posBendLocal);
+		const glm::vec3 worldPosBend = palo->xf.posWorld + (glm::mat3(palo->xf.matWorld) * posBendLocal);
 
 		// ------------------------------------------------------------
 		// 6) Ensure state sized & cleared
@@ -600,10 +688,10 @@ void UpdateWrMatrixes(WR* pwr)
 				continue;
 
 			// Clear only the touched columns to avoid stale values in z/w etc.
-			mDpos[is] = glm::vec4(0.0f);
+			mDpos[is]     = glm::vec4(0.0f);
 			mDpos[is + 1] = glm::vec4(0.0f);
-			mDuv[is] = glm::vec4(0.0f);
-			mDuv[is + 1] = glm::vec4(0.0f);
+			mDuv[is]      = glm::vec4(0.0f);
+			mDuv[is + 1]  = glm::vec4(0.0f);
 
 			const glm::vec3 ref0Pos(wre.circle.awref[0].dpos.x, wre.circle.awref[0].dpos.y, wre.circle.awref[0].dpos.z);
 			const glm::vec3 ref1Pos(wre.circle.awref[1].dpos.x, wre.circle.awref[1].dpos.y, wre.circle.awref[1].dpos.z);
@@ -634,7 +722,7 @@ void UpdateWrMatrixes(WR* pwr)
 			// Clear the whole matrix so untouched lanes don't keep old junk.
 			mDpos = glm::mat4(0.0f);
 
-			const float radBend = GFromOnz(&wre.bend.onzRadBend);
+			const float radBend   = GFromOnz(&wre.bend.onzRadBend);
 			const float radSwivel = GFromOnz(&wre.bend.onzRadSwivel);
 
 			glm::vec3 normalSwivel(wre.bend.normalSwivel.x, wre.bend.normalSwivel.y, wre.bend.normalSwivel.z);

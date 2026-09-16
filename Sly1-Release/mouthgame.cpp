@@ -41,6 +41,11 @@ void LoadMgcFromBrx(MGC* pmgc, CBinaryInputStream* pbis)
 	LoadAloFromBrx(pmgc, pbis);
 }
 
+void HandleMgvMessage(MGV* pmgv, MSGID msgid, void* pv)
+{
+    HandlePoMessage((PO*)pmgv, msgid, pv);
+}
+
 void DeleteMgc(MGC* pmgc)
 {
 	delete pmgc;

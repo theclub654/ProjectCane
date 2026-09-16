@@ -7,13 +7,18 @@ SCROLLER* NewScroller()
 
 void LoadScrollerFromBrx(SCROLLER* pscroller, CBinaryInputStream* pbis)
 {
-    pscroller->svu = pbis->F32Read();
-    pscroller->svv = pbis->F32Read();
+    pscroller->svu   = pbis->F32Read();
+    pscroller->svv   = pbis->F32Read();
     pscroller->duMod = pbis->F32Read();
     pscroller->dvMod = pbis->F32Read();
+    pbis->F32Read();
+    pbis->F32Read();
+}
 
-    pbis->F32Read();
-    pbis->F32Read();
+void SetScrollerMasterSpeeds(SCROLLER* pscroller, float svu, float svv)
+{
+    pscroller->svvMaster = svv;
+    pscroller->svuMaster = svu;
 }
 
 void InitScroller(SCROLLER* pscroller, SAAF* psaaf)

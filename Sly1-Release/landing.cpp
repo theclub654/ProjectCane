@@ -29,9 +29,11 @@ void OnLandingRemove(LANDING* planding)
 
 void CloneLanding(LANDING* planding, LANDING* plandingBase)
 {
+	DLE dleLanding = planding->dleLanding;
+
 	CloneShape(planding, plandingBase);
 
-	planding->dleLanding = plandingBase->dleLanding;
+	planding->dleLanding = dleLanding;
 }
 
 void DeleteLanding(LANDING* planding)

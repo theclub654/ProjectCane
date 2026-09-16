@@ -1,4 +1,8 @@
 #include "binoc.h"
+#include "aseg.h"
+#include "totals.h"
+#include "pzo.h"
+#include "tv.h"
 
 void StartupBinoc(BINOC* pbinoc)
 {
@@ -16,6 +20,7 @@ void InitBinoc(BINOC* pbinoc, BLOTK blotk)
     pbinoc->dx = g_gl.width;
     pbinoc->dy = g_gl.height;
     pbinoc->svch = 15.0;
+    pbinoc->rgbaText = glm::vec4(1.0f, 1.0f, 1.0f, 128.0f / 255.0f);
 
     InitBlot(pbinoc, blotk);
 }
@@ -33,9 +38,11 @@ void PostBinocLoad(BINOC* pbinoc)
     // Clone and assign base font with custom scale
     pbinoc->pfont = pbinoc->pfont->PfontClone(0.75f, 0.8f);
 
-    // Setup edge font if available
-    pbinoc->pte = &g_teBinoc;
-    g_teBinoc.m_pfont = &g_afontBrx[2];
+    if (FFontLoaded(2))
+    {
+        pbinoc->pte = &g_teBinoc;
+        pbinoc->pte->m_pfont = PfontFromFont(2);
+    }
 
     //Calculate max width of point labels
     g_dxPointsMax = pbinoc->pfontCompass->DxFromPchz((char*)g_aachzPoints[0]);
@@ -73,6 +80,44 @@ void PostBinocLoad(BINOC* pbinoc)
 
     glEnableVertexAttribArray(1); // a_texcoord
     glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)(2 * sizeof(float)));
+
+    glBindVertexArray(0);
+
+    glGenVertexArrays(1, &pbinoc->binocIndicatorVAO);
+    glGenBuffers(1, &pbinoc->binocIndicatorVBO);
+
+    glBindVertexArray(pbinoc->binocIndicatorVAO);
+    glBindBuffer(GL_ARRAY_BUFFER, pbinoc->binocIndicatorVBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(float) * 12, nullptr, GL_DYNAMIC_DRAW);
+
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), nullptr);
+
+    glDisableVertexAttribArray(1);
+    glVertexAttrib2f(1, 0.0f, 0.0f);
+
+    glDisableVertexAttribArray(2);
+    glVertexAttrib4f(2, 1.0f, 1.0f, 1.0f, 1.0f);
+
+    glBindVertexArray(0);
+
+    // Dynamic position/color quad used by the reticle strips and ruler ticks.
+    glGenVertexArrays(1, &pbinoc->reticleVAO);
+    glGenBuffers(1, &pbinoc->reticleVBO);
+
+    glBindVertexArray(pbinoc->reticleVAO);
+    glBindBuffer(GL_ARRAY_BUFFER, pbinoc->reticleVBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(float) * 36, nullptr, GL_DYNAMIC_DRAW);
+
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 6 * sizeof(float), nullptr);
+
+    glDisableVertexAttribArray(1);
+    glVertexAttrib2f(1, 0.0f, 0.0f);
+
+    glEnableVertexAttribArray(2);
+    glVertexAttribPointer(2, 4, GL_FLOAT, GL_FALSE, 6 * sizeof(float),
+        reinterpret_cast<void*>(2 * sizeof(float)));
 
     glBindVertexArray(0);
 }
@@ -144,126 +189,455 @@ float GEvaluateBei(const BEI& bei, int iseg)
 
 void GetBinocReticleFocus(BINOC* pbinoc, float* px, float* py)
 {
-    *px = pbinoc->dxReticle + (g_gl.width * 0.5);
-    *py = pbinoc->dyReticle + (g_gl.height / 2) - 90;
+    // Reticle geometry is authored in the original 640 x 492.8 UI space.
+    // DrawBinocReticle performs the conversion to framebuffer pixels.
+    *px = pbinoc->dxReticle + 320.0f;
+    *py = pbinoc->dyReticle + 180.40001f;
 }
 
-void SetBinocLookat(BINOC* pbinoc, ALO* paloLookat)
+void OnBinocPush(BINOC* pbinoc)
 {
-    pbinoc->paloLookat = paloLookat;
-}
+    DIALOG* pdialog = pbinoc->pdialogPlaying;
 
-void OnBinocActive(BINOC* pbinoc, int fActive)
-{
-    // Only process if the desired active state differs from the current one
-    if (fActive != static_cast<bool>(pbinoc->fActive))
+    if (pdialog == nullptr)
     {
-        // Case 1: No dialog is playing
-        if (pbinoc->pdialogPlaying == nullptr)
+        SetBinocBinocs(pbinoc, BINOCS_Peek);
+        return;
+    }
+
+    switch (pdialog->dialogk)
+    {
+        case DIALOGK_Binoc:
+        SetBinocBinocs(pbinoc, BINOCS_Dialog);
+        break;
+
+        case DIALOGK_Instruct:
+        SetBinocBinocs(pbinoc, BINOCS_Instruct);
+        break;
+
+        case DIALOGK_Confront:
+        SetBinocBinocs(pbinoc, BINOCS_Confront);
+        break;
+
+        default:
+        break;
+    }
+
+    SetDialogDialogs(pdialog, DIALOGS_Playing);
+}
+
+void OnBinocPop(BINOC* pbinoc)
+{
+    if (pbinoc->pdialogPlaying == nullptr)
+        SetBinocBinocs(pbinoc, BINOCS_None);
+    else
+        SetDialogDialogs(pbinoc->pdialogPlaying, DIALOGS_Calling);
+}
+
+void SetBinocBinocs(BINOC* pbinoc, BINOCS binocs)
+{
+    if (binocs == pbinoc->binocs)
+        return;
+
+    const BINOCS binocsPrev = pbinoc->binocs;
+
+    if (binocsPrev == BINOCS_Peek)
+        StartSound((SFXID)143, nullptr, nullptr, nullptr, 3000.0f, 300.0f, 1.0f, 0.0f, 0.0f, nullptr, nullptr);
+    else if (binocsPrev == BINOCS_None)
+        ResetBinoc(pbinoc);
+
+    if (binocs == BINOCS_Peek)
+        StartSound((SFXID)142, nullptr, nullptr, nullptr, 3000.0f, 300.0f, 1.0f, 0.0f, 0.0f, nullptr, nullptr);
+    else if (binocs == BINOCS_Confront)
+    {
+        g_totals.fDrawOverLetterbox = 0;
+        g_totals.pvtblot->pfnHideBlot(&g_totals);
+    }
+
+    pbinoc->binocs = binocs;
+    pbinoc->tBinocs = g_clock.t;
+}
+
+void SetBinocBlots(BINOC* pbinoc, BLOTS blots)
+{
+    if (blots == pbinoc->blots)
+        return;
+
+    if (pbinoc->blots == BLOTS_Hidden)
+    {
+        ASEG* pasegCredits = reinterpret_cast<ASEG*>(PloFindSwObject(g_psw, 261, (OID)1173, nullptr));
+
+        if (pasegCredits)
         {
-            pbinoc->fActive = fActive;
-        }
-        // Case 2: A dialog is currently playing
-        else if (pbinoc->pdialogPlaying->dialogs == DIALOGS_Playing)
-        {
-            if (!fActive)
+            DLI dli;
+            dli.m_pdl = &pasegCredits->dlAsega;
+            dli.m_ibDle = pasegCredits->dlAsega.ibDle;
+            dli.m_pdliNext = s_pdliFirst;
+
+            ASEGA* pasega = reinterpret_cast<ASEGA*>(pasegCredits->dlAsega.paloFirst);
+
+            while (pasega)
             {
-                //PauseVag();             // Pause dialog audio
-                pbinoc->fActive = false;
+                s_pdliFirst = &dli;
+
+                dli.m_ppv = reinterpret_cast<void**>(reinterpret_cast<uint8_t*>(pasega) + dli.m_ibDle);
+                ASEGA* pasegaNext = static_cast<ASEGA*>(*dli.m_ppv);
+
+                SetAsegaSpeed(pasega, 0.0f);
+                pasega = pasegaNext;
+            }
+
+            s_pdliFirst = dli.m_pdliNext;
+        }
+    }
+
+    if (blots == BLOTS_Hidden)
+    {
+        ASEG* pasegCredits = reinterpret_cast<ASEG*>(PloFindSwObject(g_psw, 261, (OID)1173, nullptr));
+
+        if (pasegCredits)
+        {
+            DLI dli;
+            dli.m_pdl = &pasegCredits->dlAsega;
+            dli.m_ibDle = pasegCredits->dlAsega.ibDle;
+            dli.m_pdliNext = s_pdliFirst;
+
+            ASEGA* pasega = reinterpret_cast<ASEGA*>(pasegCredits->dlAsega.paloFirst);
+
+            while (pasega)
+            {
+                s_pdliFirst = &dli;
+
+                dli.m_ppv = reinterpret_cast<void**>(reinterpret_cast<uint8_t*>(pasega) + dli.m_ibDle);
+                ASEGA* pasegaNext = static_cast<ASEGA*>(*dli.m_ppv);
+
+                SetAsegaSpeed(pasega, 1.0f);
+                pasega = pasegaNext;
+            }
+
+            s_pdliFirst = dli.m_pdliNext;
+        }
+    }
+
+    SetBlotBlots(pbinoc, blots);
+}
+
+int NCmpSlo(const SLO* pslo1, const SLO* pslo2)
+{
+    const bool fInWorld1 = FIsLoInWorld(pslo1->plo) != 0;
+    const bool fInWorld2 = FIsLoInWorld(pslo2->plo) != 0;
+
+    if (fInWorld1 != fInWorld2)
+        return fInWorld1 ? -1 : 1;
+
+    if (pslo1->s < pslo2->s)
+        return -1;
+
+    if (pslo1->s > pslo2->s)
+        return 1;
+
+    return 0;
+}
+
+int NCmpClueSlo(const SLO* pslo1, const SLO* pslo2)
+{
+    uint32_t fCollected1 = 0;
+    uint32_t fCollected2 = 0;
+
+    GetClueCollected(reinterpret_cast<CLUE*>(pslo1->plo), &fCollected1);
+    GetClueCollected(reinterpret_cast<CLUE*>(pslo2->plo), &fCollected2);
+
+    if (fCollected1 != fCollected2)
+        return fCollected1 ? 1 : -1;
+
+    if (!fCollected1 && !fCollected2)
+        return pslo1->s < pslo2->s ? -1 : 1;
+
+    return 1;
+}
+
+void UpdateFilterRose(BINOC* pbinoc, CID cid, PFNSPHERE pfnSphere, PFNROSE pfnRose, int cploMax, float sMax, ALO* paloRender)
+{
+    SLO aslo[128];
+    LO* aplo[128];
+
+    const int cplo = CploFindSwObjectsByClass(g_psw, 261, cid, nullptr, 128, aplo);
+
+    for (int i = 0; i < cplo; ++i)
+    {
+        SLO& slo = aslo[i];
+
+        slo.plo = aplo[i];
+        pfnSphere(slo.plo, &slo.pos, &slo.sRadius);
+        slo.s = glm::distance(slo.pos, g_pcm->pos) - slo.sRadius;
+    }
+
+    if (cid == 46)
+        std::sort(aslo, aslo + cplo, [](const SLO& a, const SLO& b) { return NCmpClueSlo(&a, &b) < 0; });
+    else
+        std::sort(aslo, aslo + cplo, [](const SLO& a, const SLO& b) { return NCmpSlo(&a, &b) < 0; });
+
+    std::memset(pbinoc->mpinormalf, 0, sizeof(pbinoc->mpinormalf));
+
+    bool fCanCreateRose = g_clock.t - pbinoc->tLastRose > DT_BinocRoseInterval;
+
+    for (int i = 0; i < cplo; ++i)
+    {
+        SLO& slo = aslo[i];
+
+        bool fCandidate = false;
+
+        if (pbinoc->binocs == BINOCS_Peek && i < cploMax && slo.s < sMax)
+        {
+            if (cid == 46)
+            {
+                uint32_t fCollected = 0;
+                GetClueCollected(reinterpret_cast<CLUE*>(slo.plo), &fCollected);
+                fCandidate = fCollected == 0;
             }
             else
+                fCandidate = FIsLoInWorld(slo.plo) != 0;
+        }
+
+        const glm::vec3 dpos = slo.pos - g_pcm->pos;
+        const bool fInsideFrustum = SphereInFrustum(g_pcm->frustum, dpos, slo.sRadius);
+
+        if (fCandidate && !fInsideFrustum)
+        {
+            const float radPan = std::atan2(dpos.y, dpos.x);
+            const float sXY = std::sqrt(dpos.x * dpos.x + dpos.y * dpos.y);
+            const float radTilt = std::atan2(dpos.z, sXY);
+
+            const float dradPan = RadNormalize(radPan - g_pcm->cplook.radPan);
+            const float dradTilt = RadNormalize(radTilt - g_pcm->cplook.radTilt);
+            const float radFOV = g_pcm->radFOV;
+
+            if (dradPan > radFOV * g_pcm->rAspect * 0.45f)
+                pbinoc->mpinormalf[0] = 1;
+            else if (dradPan < radFOV * g_pcm->rAspect * -0.45f)
+                pbinoc->mpinormalf[1] = 1;
+            else if (dradTilt > radFOV * 0.45f)
+                pbinoc->mpinormalf[2] = 1;
+            else if (dradTilt < radFOV * -0.45f)
+                pbinoc->mpinormalf[3] = 1;
+        }
+
+        ROSE* prose = nullptr;
+        int ibre = 0;
+
+        for (; ibre < pbinoc->cbre; ++ibre)
+        {
+            if (pbinoc->abre[ibre].plo == slo.plo)
             {
-                //ContinueVag();          // Resume dialog audio
-                pbinoc->fActive = true;
+                prose = pbinoc->abre[ibre].prose;
+                break;
             }
         }
-        // Case 3: Dialog is not in playing state, just set flag
-        else
-        {
-            pbinoc->fActive = fActive;
-        }
 
-        // Always reset targeting when toggling
-        pbinoc->fTargeting = 0;
-
-        if (!fActive)
+        if (!prose)
         {
-            // Deactivating: save previous bfk state and clear it
-            pbinoc->bfkPrev = pbinoc->bfk;
-            //SetBinocBfk(pbinoc, BFK_None, true);
-        }
-        else
-        {
-            // Activating: only restore previous bfk if vault flags match
-            /*GRFVAULT blueprintVaultFlags = {};
-            GetBlueprintInfo(&blueprintVaultFlags, nullptr);
-
-            if ((g_pgsCur->grfvault & blueprintVaultFlags) &&
-                (g_pgsCur->grfvault & s_mpbfkgrfvault[pbinoc->bfkPrev]))
+            if (fCandidate && fCanCreateRose && fInsideFrustum)
             {
-                SetBinocBfk(pbinoc, pbinoc->bfkPrev, true);
-            }*/
+                prose = reinterpret_cast<ROSE*>(PripNewRipg(RIPT_Rose, nullptr));
+
+                if (prose)
+                {
+                    fCanCreateRose = false;
+
+                    prose->pvtrip->pfnInitRip(prose, &slo.pos, 1.0f, nullptr);
+                    prose->paloRender = paloRender;
+                    prose->pfnrose = pfnRose;
+                    prose->pv = slo.plo;
+
+                    SetRoseRoses(prose, ROSES_Closing);
+
+                    pbinoc->tLastRose = g_clock.t;
+                    pbinoc->abre[pbinoc->cbre].plo = slo.plo;
+                    pbinoc->abre[pbinoc->cbre].prose = prose;
+                    ++pbinoc->cbre;
+                }
+            }
         }
+        else if (!fCandidate)
+        {
+            SetRoseRoses(prose, ROSES_Opening);
+
+            std::memmove(&pbinoc->abre[ibre], &pbinoc->abre[ibre + 1], static_cast<size_t>(pbinoc->cbre - ibre - 1) * sizeof(pbinoc->abre[0]));
+            --pbinoc->cbre;
+        }
+    }
+}
+
+void GetSoSphere(LO* plo, glm::vec3* ppos, float* psRadius)
+{
+    SO* pso = static_cast<SO*>(plo);
+
+    *ppos = pso->xf.posWorld;
+    *psRadius = pso->sRadiusAll;
+}
+
+int ChpFillAlo(void* pv, int chpMax, HP* ahp)
+{
+    ALO* palo = static_cast<ALO*>(pv);
+
+    if (!palo || !ahp || chpMax < 1)
+        return 0;
+
+    ahp[0].pos = glm::vec4(glm::vec3(palo->xf.posWorld), 1.0f);
+
+    return ChpBuildConvexHullScreen(&palo->xf.posWorld, 1, ahp);
+}
+
+void SetBinocBfk(BINOC* pbinoc, BFK bfk, int fImmediate)
+{
+    if (bfk == pbinoc->bfk)
+        return;
+
+    for (int ibre = 0; ibre < pbinoc->cbre; ++ibre)
+    {
+        ROSE* prose = pbinoc->abre[ibre].prose;
+
+        if (fImmediate)
+            RemoveRip(prose);
+        else
+            SetRoseRoses(prose, ROSES_Opening);
+    }
+
+    if (fImmediate && pbinoc->cbre > 0)
+        std::memset(pbinoc->mpinormalu, 0, sizeof(pbinoc->mpinormalu));
+
+    pbinoc->cbre = 0;
+    pbinoc->tLastRose = 0.0f;
+    std::memset(pbinoc->mpinormalf, 0, sizeof(pbinoc->mpinormalf));
+    pbinoc->bfk = bfk;
+}
+
+void UpdateBinocActiveFilter(BINOC* pbinoc, JOY* pjoy)
+{
+    GRFVAULT grfvault[4]{};
+    GetBlueprintInfo(grfvault, 0);
+
+    const GRFVAULT grfvaultAvailable = GetAvailableVaultFlags();
+
+    if ((grfvaultAvailable & grfvault[0]) == 0)
+    {
+        SetBinocBfk(pbinoc, static_cast<BFK>(0), 1);
+        return;
+    }
+
+    SetBinocBfk(pbinoc, BFK_Clue, 0);
+
+    if (pbinoc->bfk == BFK_Clue)
+    {
+        const float sMax = FLT_MAX;
+
+        UpdateFilterRose(pbinoc, static_cast<CID>(46), GetSoSphere, ChpFillAlo, 5, sMax, (ALO*)g_psw->aploStock[23]);
+        UpdateFilterRose(pbinoc, static_cast<CID>(33), GetSoSphere, ChpFillAlo, 5, sMax, (ALO*)g_psw->aploStock[27]);
     }
 }
 
 void UpdateBinocActive(BINOC* pbinoc, JOY* pjoy)
 {
+    if (pbinoc->binocs == BINOCS_Peek)
+    {
+        SMP smpReticle =
+        {
+            80.0f,
+            50.0f,
+            0.5f
+        };
 
+        SMP smpReticleFast =
+        {
+            250.0f,
+            200.0f,
+            0.1f
+        };
+
+        float xReticle = std::clamp(pjoy->x + pjoy->x2, -1.0f, 1.0f);
+        float yReticle = std::clamp(pjoy->y, -1.0f, 1.0f);
+
+        if ((g_pgsCur->grfgs & 512U) != 0)
+            yReticle = -yReticle;
+
+        glm::vec3 posCur(pbinoc->dxReticle, pbinoc->dyReticle, 0.0f);
+        glm::vec3 posTarget(xReticle * 50.0f, yReticle * 50.0f, 0.0f);
+
+        SMP* psmp = pjoy->uDeflect + pjoy->uDeflect2 > 0.0001f ? &smpReticle : &smpReticleFast;
+
+        glm::vec3 posNew;
+        PosSmooth(posCur, posTarget, g_clock.dt, psmp, &posNew);
+
+        pbinoc->dxReticle = posNew.x;
+        pbinoc->dyReticle = posNew.y;
+        pbinoc->uCompassBarOffset = GModPositive(pbinoc->uCompassBarOffset - xReticle * 0.08f, 1.0f);
+    }
+    else if (pbinoc->binocs == BINOCS_Sniper)
+        pbinoc->dyReticle = 50.0f;
+
+    UpdateBinocActiveFilter(pbinoc, pjoy);
+}
+
+void OnBinocActive(BINOC* pbinoc, int fActive)
+{
+    const bool fWasActive = pbinoc->fActive != 0;
+    const bool fActivate = fActive != 0;
+
+    if (fActivate == fWasActive)
+        return;
+
+    if (pbinoc->pdialogPlaying && pbinoc->pdialogPlaying->dialogs == DIALOGS_Playing)
+    {
+        if (fActivate)
+        {
+            ContinueVag();
+        }
+        else
+        {
+            PauseVag();
+        }
+    }
+
+    pbinoc->fActive = fActive;
+    pbinoc->fTargeting = 0;
+
+    if (!fActivate)
+    {
+        SetBinocBlots(pbinoc, BLOTS_Hidden);
+
+        pbinoc->bfkPrev = pbinoc->bfk;
+        SetBinocBfk(pbinoc, BFK_None, 1);
+        return;
+    }
+
+    SetBinocBlots(pbinoc, BLOTS_Visible);
+
+    GRFVAULT grfvault[4]{};
+    GetBlueprintInfo(grfvault, 0);
+
+    const GRFVAULT grfvaultAvailable = GetAvailableVaultFlags();
+
+    if ((grfvaultAvailable & grfvault[0]) != 0 && (grfvaultAvailable & s_mpbfkgrfvault[pbinoc->bfkPrev]) != 0)
+        SetBinocBfk(pbinoc, pbinoc->bfkPrev, 1);
+
+    if ((grfvaultAvailable & 0x800) != 0)
+    {
+        SCAN* apscan[256];
+
+        int cpscan = CploFindSwObjectsByClass(g_psw, 517, CID_SCAN, nullptr, 256, reinterpret_cast<LO**>(apscan));
+        cpscan = std::min(cpscan, 256);
+
+        for (int i = 0; i < cpscan; ++i)
+            InitializeScanDisplay(apscan[i]);
+    }
 }
 
 void OnBinocReset(BINOC* pbinoc)
 {
     OnBlotReset(pbinoc);
-    if (pbinoc->pdialogPlaying != nullptr) {
-        //SetDialogDialogs(pbinoc->pdialogPlaying, DIALOGS_Disabled);
-    }
-    g_pdialogCalling = nullptr;
-    g_pdialogPlaying = nullptr;
-    g_pdialogTriggered = nullptr;
-}
 
-void OnBinocPush(BINOC* pbinoc)
-{
-    // 1. Set Binoc UI to appear (state = Appearing)
-    pbinoc->pvtblot->pfnSetBlotBlots(pbinoc, BLOTS_Visible);
-    // 2. If there's no dialog currently playing
-    if (!pbinoc->pdialogPlaying) {
-        // Default binocular view
-        //SetBinocBinocs(pbinoc, BINOCS_Peek);
-        return;
-    }
-
-    // 3. Get the type of dialog currently playing
-    DIALOGK type = pbinoc->pdialogPlaying->dialogk;
-
-    // 4. Choose binocular mode based on dialog type
-    switch (type) {
-        case DIALOGK_Binoc:
-        //SetBinocBinocs(pbinoc, BINOCS_Dialog);
-        break;
-        case DIALOGK_Instruct:
-        //SetBinocBinocs(pbinoc, BINOCS_Instruct);
-        break;
-        case DIALOGK_Confront:
-        //SetBinocBinocs(pbinoc, BINOCS_Confront);
-        break;
-        default:
-        // Unknown or other dialog type: just continue playing
-        break;
-    }
-
-    // 5. Resume dialog playback if it's paused
-    //SetDialogDialogs(pbinoc->pdialogPlaying, DIALOGS_Playing);
-}
-
-void OnBinocPop(BINOC* pbinoc)
-{
-    pbinoc->pvtblot->pfnSetBlotBlots(pbinoc, BLOTS_Hidden);
-    if (pbinoc->pdialogPlaying != nullptr) {
-        //SetDialogDialogs(pbinoc->pdialogPlaying, DIALOGS_Enabled);
-        pbinoc->pdialogPlaying = nullptr;
-    }
+    if (pbinoc->pdialogPlaying != nullptr) 
+        SetDialogDialogs(pbinoc->pdialogPlaying, DIALOGS_Unavailable);
 }
 
 void SetBinocAchzDraw(BINOC* pbinoc, char* pchz)
@@ -304,17 +678,37 @@ void SetBinocAchzDraw(BINOC* pbinoc, char* pchz)
     pbinoc->tAchzSet = g_clock.t;
 }
 
+int FDoneBinocAchz(BINOC* pbinoc)
+{
+    if (pbinoc->achzDraw[0] == '\0')
+        return true;
+
+    CRichText rt(pbinoc->achzDraw, pbinoc->pfont);
+    return static_cast<int>((g_clock.t - pbinoc->tAchzSet) * pbinoc->svch) >= rt.Cch();
+}
+
+void SetBinocLookat(BINOC* pbinoc, ALO* paloLookat)
+{
+    pbinoc->paloLookat = paloLookat;
+}
+
+void SetBinocZoom(BINOC* pbinoc, float zoomPercent)
+{
+    pbinoc->uZoom = glm::clamp(zoomPercent * 0.01f, 0.0f, 1.0f);
+}
+
 float DtAppearBinoc(BINOC* pbinoc)
 {
     float dt;
 
-    switch (pbinoc->binocs) {
-    case BINOCS_Peek:
-    case BINOCS_Dialog:
-    case BINOCS_Sniper:
+    switch (pbinoc->binocs)
+    {
+        case BINOCS_Peek:
+        case BINOCS_Dialog:
+        case BINOCS_Sniper:
         dt = 0.0;
         break;
-    default:
+        default:
         dt = DtAppearBlot(pbinoc);
     }
     return dt;
@@ -324,21 +718,17 @@ float DtDisappearBinoc(BINOC* pbinoc)
 {
     float dt;
 
-    switch (pbinoc->binocs) {
-    case BINOCS_Peek:
-    case BINOCS_Dialog:
-    case BINOCS_Sniper:
+    switch (pbinoc->binocs)
+    {
+        case BINOCS_Peek:
+        case BINOCS_Dialog:
+        case BINOCS_Sniper:
         dt = 0.0;
         break;
-    default:
+        default:
         dt = DtDisappearBlot(pbinoc);
     }
     return dt;
-}
-
-void SetBinocBlots(BINOC* pbinoc, BLOTS blots)
-{
-    SetBlotBlots(pbinoc, blots);
 }
 
 void BuildBinocBackGround(BINOC* pbinoc)
@@ -390,7 +780,8 @@ void BuildBinocBackGround(BINOC* pbinoc)
 
     // Evaluator wrapper to emulate original: interior indices are 1..23.
     // If your GEvaluateBei already supports 0..24, this still works.
-    auto evalBei = [&](const BEI& bei, int colIndex) -> float {
+    auto evalBei = [&](const BEI& bei, int colIndex) -> float 
+    {
         // Clamp to [0..24]
         if (colIndex < 0) colIndex = 0;
         if (colIndex > 24) colIndex = 24;
@@ -398,7 +789,7 @@ void BuildBinocBackGround(BINOC* pbinoc)
         // Original loop used i=1..23; endpoints were explicit.
         // If your evaluator expects 1..24, this still clamps safely.
         return GEvaluateBei(bei, colIndex);
-        };
+    };
 
     // ---------- Upper band ----------
     for (int s = 0; s < segments; ++s)
@@ -480,9 +871,11 @@ void BuildBinocOutline(BINOC* pbinoc)
     {
         glDeleteVertexArrays(1, &pbinoc->outlineVAO);
         glDeleteBuffers(1, &pbinoc->outlineVBO);
+        glDeleteBuffers(1, &pbinoc->outlineColorVBO);
         glDeleteBuffers(1, &pbinoc->outlineEBO);
         pbinoc->outlineVAO = 0;
         pbinoc->outlineVBO = 0;
+        pbinoc->outlineColorVBO = 0;
         pbinoc->outlineEBO = 0;
     }
 
@@ -504,66 +897,66 @@ void BuildBinocOutline(BINOC* pbinoc)
     indices.clear();
 
     auto pushQuad = [&](uint16_t base)
-        {
-            indices.push_back(base + 0);
-            indices.push_back(base + 1);
-            indices.push_back(base + 2);
-            indices.push_back(base + 0);
-            indices.push_back(base + 2);
-            indices.push_back(base + 3);
-        };
+    {
+        indices.push_back(base + 0);
+        indices.push_back(base + 1);
+        indices.push_back(base + 2);
+        indices.push_back(base + 0);
+        indices.push_back(base + 2);
+        indices.push_back(base + 3);
+    };
 
-    auto evalBei = [&](const BEI& bei, int colIndex) -> float {
+    auto evalBei = [&](const BEI& bei, int colIndex) -> float 
+    {
         if (colIndex < 0) colIndex = 0;
         if (colIndex > 24) colIndex = 24;
         return GEvaluateBei(bei, colIndex);
-        };
+    };
 
     auto emitBand = [&](const BEI& bei, float direction, float offset0, float offset1)
+    {
+        for (int s = 0; s < segments; ++s)
         {
-            for (int s = 0; s < segments; ++s)
-            {
-                int c0 = s;
-                int c1 = s + 1;
+            int c0 = s;
+            int c1 = s + 1;
 
-                float t0 = float(c0) / 24.0f;
-                float t1 = float(c1) / 24.0f;
+            float t0 = float(c0) / 24.0f;
+            float t1 = float(c1) / 24.0f;
 
-                float x0 = t0 * Vw;
-                float x1 = t1 * Vw;
+            float x0 = t0 * Vw;
+            float x1 = t1 * Vw;
 
-                float y0Curve = evalBei(bei, c0);
-                float y1Curve = evalBei(bei, c1);
+            float y0Curve = evalBei(bei, c0);
+            float y1Curve = evalBei(bei, c1);
 
-                float y0a = y0Curve + offset0 * direction;
-                float y1a = y1Curve + offset0 * direction;
+            float y0a = y0Curve + offset0 * direction;
+            float y1a = y1Curve + offset0 * direction;
 
-                float y0b = y0Curve + offset1 * direction;
-                float y1b = y1Curve + offset1 * direction;
+            float y0b = y0Curve + offset1 * direction;
+            float y1b = y1Curve + offset1 * direction;
 
-                uint16_t base = (uint16_t)vertices.size();
+            uint16_t base = (uint16_t)vertices.size();
 
-                vertices.push_back({ {x0, y0a}, {t0, 0.0f} });
-                vertices.push_back({ {x1, y1a}, {t1, 0.0f} });
-                vertices.push_back({ {x1, y1b}, {t1, 1.0f} });
-                vertices.push_back({ {x0, y0b}, {t0, 1.0f} });
+            vertices.push_back({ {x0, y0a}, {t0, 0.0f} });
+            vertices.push_back({ {x1, y1a}, {t1, 0.0f} });
+            vertices.push_back({ {x1, y1b}, {t1, 1.0f} });
+            vertices.push_back({ {x0, y0b}, {t0, 1.0f} });
 
-                pushQuad(base);
-            }
-        };
+            pushQuad(base);
+        }
+    };
 
-    // Top outlines (direction +1)
+    // Original emits two four-pixel strips on each edge. Colors are supplied
+    // dynamically so each strip interpolates between the animated phases.
     emitBand(s_beiUpper, +1.0f, 0.0f, 4.0f);
-    emitBand(s_beiUpper, +1.0f, 4.0f, 0.0f);
-    emitBand(s_beiUpper, +1.0f, 0.0f, 8.0f);
+    emitBand(s_beiUpper, +1.0f, 4.0f, 8.0f);
 
-    // Bottom outlines (direction -1)
     emitBand(s_beiLower, -1.0f, 0.0f, 4.0f);
-    emitBand(s_beiLower, -1.0f, 4.0f, 0.0f);
-    emitBand(s_beiLower, -1.0f, 0.0f, 8.0f);
+    emitBand(s_beiLower, -1.0f, 4.0f, 8.0f);
 
     glGenVertexArrays(1, &pbinoc->outlineVAO);
     glGenBuffers(1, &pbinoc->outlineVBO);
+    glGenBuffers(1, &pbinoc->outlineColorVBO);
     glGenBuffers(1, &pbinoc->outlineEBO);
 
     glBindVertexArray(pbinoc->outlineVAO);
@@ -580,164 +973,230 @@ void BuildBinocOutline(BINOC* pbinoc)
     glEnableVertexAttribArray(1);
     glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, uv));
 
+    std::vector<glm::vec4> colors(vertices.size(), glm::vec4(1.0f));
+    glBindBuffer(GL_ARRAY_BUFFER, pbinoc->outlineColorVBO);
+    glBufferData(GL_ARRAY_BUFFER, colors.size() * sizeof(glm::vec4), colors.data(), GL_DYNAMIC_DRAW);
+    glEnableVertexAttribArray(2);
+    glVertexAttribPointer(2, 4, GL_FLOAT, GL_FALSE, sizeof(glm::vec4), nullptr);
+
     glBindVertexArray(0);
 }
 
 void DrawBinocReticle(BINOC* pbinoc)
 {
-    // Spin animation
+    JOY* pjoy = (g_grfjoyt & 2U) != 0 ? &g_joy : &g_joyZero;
+
     float spinSpeed = 3.0f;
-    if (g_joy.stick > 0.0f)      spinSpeed = 6.0f;
-    else if (g_joy.stick < 0.0f) spinSpeed = -6.0f;
+    if (pjoy->y2 > 0.0f)
+        spinSpeed = 6.0f;
+    else if (pjoy->y2 < 0.0f)
+        spinSpeed = -6.0f;
 
     pbinoc->radReticle = RadNormalize(pbinoc->radReticle + g_clock.dt * spinSpeed);
 
-    float zoom = g_pcm->cplook.uZoom + 1.0f;
-    float alphaZoom = glm::clamp(zoom * 25.0f, 0.0f, 255.0f) / 255.0f;
+    const float uZoom = g_pcm->cplook.uZoom;
+    const float scale = uZoom + 1.0f;
+    const float alpha = glm::clamp(48.0f + uZoom * 24.999f, 0.0f, 255.0f) / 255.0f;
 
-    // Base colors
-    glm::vec4 DarkBlue = glm::vec4(RGBA_DarkBlue.r, RGBA_DarkBlue.g, RGBA_DarkBlue.b, alphaZoom);
-    glm::vec4 LightBlue = glm::vec4(RGBA_LightBlue.r, RGBA_LightBlue.g, RGBA_LightBlue.b, alphaZoom);
-    glm::vec4 DarkRed = glm::vec4(RGBA_DarkRed.r, RGBA_DarkRed.g, RGBA_DarkRed.b, alphaZoom);
-    glm::vec4 LightRed = glm::vec4(RGBA_LightRed.r, RGBA_LightRed.g, RGBA_LightRed.b, alphaZoom);
+    const glm::vec4 darkBlue(RGBA_DarkBlue.r, RGBA_DarkBlue.g, RGBA_DarkBlue.b, alpha);
+    const glm::vec4 lightBlue(RGBA_LightBlue.r, RGBA_LightBlue.g, RGBA_LightBlue.b, alpha);
+    const glm::vec4 darkRed(RGBA_DarkRed.r, RGBA_DarkRed.g, RGBA_DarkRed.b, alpha);
+    const glm::vec4 lightRed(RGBA_LightRed.r, RGBA_LightRed.g, RGBA_LightRed.b, alpha);
+    const glm::vec4 rgbaDark = pbinoc->fTargeting != 0 ? darkRed : darkBlue;
+    const glm::vec4 rgbaLight = pbinoc->fTargeting != 0 ? lightRed : lightBlue;
 
-    glm::vec4 rgbaDark = pbinoc->fTargeting ? DarkRed : DarkBlue;
-    glm::vec4 rgbaLight = pbinoc->fTargeting ? LightRed : LightBlue;
-
-    // Animated color shift
-    float tOuter = 0.5f - std::cos(pbinoc->radReticle - 0.196f) * 0.5f;
-    float tInner = 0.5f - std::cos(pbinoc->radReticle - 0.4417f) * 0.5f;
-    glm::vec4 rgbaOuter = glm::mix(rgbaDark, rgbaLight, tOuter);
-    glm::vec4 rgbaInner = glm::mix(rgbaDark, rgbaLight, tInner);
+    const float outerPhase = 0.5f - 0.5f * std::cos(pbinoc->radReticle - 0.19634955f);
+    const float innerPhase = 0.5f - 0.5f * std::cos(pbinoc->radReticle - 0.44178647f);
+    const glm::vec4 rgbaOuter = glm::mix(rgbaDark, rgbaLight, outerPhase);
+    const glm::vec4 rgbaInner = glm::mix(rgbaDark, rgbaLight, innerPhase);
 
     float xFocus;
     float yFocus;
-
     GetBinocReticleFocus(pbinoc, &xFocus, &yFocus);
-    glm::vec2 focus(xFocus, yFocus);
 
-    // Set shader and VAO
+    constexpr float kUiWidth = 640.0f;
+    constexpr float kUiHeight = 492.80002f;
+    const float targetWidth = static_cast<float>(g_gl.width);
+    const float targetHeight = static_cast<float>(g_gl.height);
+    const float uiScale = glm::min(targetWidth / kUiWidth, targetHeight / kUiHeight);
+    const float uiOriginX = (targetWidth - kUiWidth * uiScale) * 0.5f;
+    const float uiOriginY = (targetHeight - kUiHeight * uiScale) * 0.5f;
+
+    struct ReticleVertex
+    {
+        float x;
+        float y;
+        float r;
+        float g;
+        float b;
+        float a;
+    };
+
+    std::vector<ReticleVertex> reticleVertices;
+    reticleVertices.reserve((24 * 2 + 64 * 2 + 32 * 2) * 6);
+
+    auto vertex = [&](const glm::vec2& pos, const glm::vec4& color)
+    {
+        return ReticleVertex{
+            uiOriginX + pos.x * uiScale,
+            uiOriginY + pos.y * uiScale,
+            color.r, color.g, color.b, color.a
+        };
+    };
+
     glBlotShader.Use();
     glUniformMatrix4fv(u_projectionLoc, 1, GL_FALSE, glm::value_ptr(g_gl.blotProjection));
-    glBindVertexArray(g_gl.gao);
-
+    const glm::mat4 model(1.0f);
+    glUniformMatrix4fv(u_modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+    glUniform4f(uvRectLoc, 0.0f, 0.0f, 1.0f, 1.0f);
     glUniformHandleui64ARB(u_fontTexLoc, whiteHandle);
+	// The fragment shader multiplies blotColor by the per-vertex reticle
+	// colors. DrawBinocBackground leaves this set to RGBA_Overlay, so reset it
+	// here or the reticle inherits the dark overlay tint.
+	glUniform4f(blotColorLoc, 1.0f, 1.0f, 1.0f, 1.0f);
+    glUniform1i(u_useVertexColorLoc, 1);
 
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
     glDisable(GL_DEPTH_TEST);
 
-    int numTicks = 24;
-    float arcWidth = 70.0f * zoom;
-    float arcHalf = arcWidth * 0.5f;
-    float barHeight = 5.0f * zoom;
-    float barWidth = glm::max(3.0f * zoom, 2.0f);
-
-    for (int i = 0; i < numTicks; ++i)
+    auto drawQuad = [&](const glm::vec2& p0, const glm::vec2& p1,
+                        const glm::vec2& p2, const glm::vec2& p3,
+                        const glm::vec4& c0, const glm::vec4& c1,
+                        const glm::vec4& c2, const glm::vec4& c3)
     {
-        float t = float(i + 0.5f) / numTicks; // center of bar
-        float xOffset = t * arcWidth - arcHalf;
-        float yOffset = GEvaluateBei(s_beiReticle, i + 0.5f) * zoom;
+        reticleVertices.push_back(vertex(p0, c0));
+        reticleVertices.push_back(vertex(p1, c1));
+        reticleVertices.push_back(vertex(p2, c2));
+        reticleVertices.push_back(vertex(p0, c0));
+        reticleVertices.push_back(vertex(p2, c2));
+        reticleVertices.push_back(vertex(p3, c3));
+    };
 
-        for (int side = -1; side <= 1; side += 2) {
-            glm::vec2 posTop = glm::vec2(xFocus + side * xOffset, yFocus - yOffset);
-            glm::vec2 posBot = glm::vec2(xFocus + side * xOffset, yFocus + yOffset);
+    // The center reticle is two 24-segment curved strips. Each strip fades
+    // between the two independently phased colors across its thickness.
+    const float xLeft = xFocus - scale * 35.0f;
+    glm::vec2 upperInnerPrev(xLeft, yFocus - scale * 8.0f);
+    glm::vec2 upperOuterPrev(xLeft, yFocus - scale * 3.0f);
+    glm::vec2 lowerInnerPrev(xLeft, yFocus + scale * 8.0f);
+    glm::vec2 lowerOuterPrev(xLeft, yFocus + scale * 3.0f);
 
-            posTop = glm::round(posTop);
-            posBot = glm::round(posBot);
+    for (int i = 1; i <= 24; ++i)
+    {
+        const float x = xLeft + scale * (static_cast<float>(i) / 24.0f) * 70.0f;
+        const float curve = scale * GEvaluateBei(s_beiReticle, i);
+        const float edge = (i == 24) ? 4.0f : 5.0f;
+        const glm::vec2 upperInner(x, yFocus + curve);
+        const glm::vec2 upperOuter(x, yFocus + curve + scale * edge);
+        const glm::vec2 lowerInner(x, yFocus - curve);
+        const glm::vec2 lowerOuter(x, yFocus - curve - scale * edge);
 
-            // Top bar (outer)
-            glm::mat4 model = glm::translate(glm::mat4(1.0f), glm::vec3(posTop, 0.0f));
-            model = glm::scale(model, glm::vec3(barWidth, barHeight, 1.0f));
-            glUniformMatrix4fv(u_modelLoc, 1, GL_FALSE, glm::value_ptr(model));
-            glUniform4fv(blotColorLoc, 1, glm::value_ptr(rgbaOuter));
-            glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_SHORT, 0);
+        drawQuad(upperInnerPrev, upperOuterPrev, upperOuter, upperInner,
+            rgbaInner, rgbaOuter, rgbaOuter, rgbaInner);
+        drawQuad(lowerInnerPrev, lowerOuterPrev, lowerOuter, lowerInner,
+            rgbaInner, rgbaOuter, rgbaOuter, rgbaInner);
 
-            // Top bar (inner)
-            model = glm::translate(glm::mat4(1.0f), glm::vec3(posTop.x, posTop.y + barHeight * 0.1f, 0.0f));
-            model = glm::scale(model, glm::vec3(barWidth, barHeight * 0.8f, 1.0f));
-            glUniformMatrix4fv(u_modelLoc, 1, GL_FALSE, glm::value_ptr(model));
-            glUniform4fv(blotColorLoc, 1, glm::value_ptr(rgbaInner));
-            glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_SHORT, 0);
-
-            // Bottom bar (outer)
-            model = glm::translate(glm::mat4(1.0f), glm::vec3(posBot, 0.0f));
-            model = glm::scale(model, glm::vec3(barWidth, barHeight, 1.0f));
-            glUniformMatrix4fv(u_modelLoc, 1, GL_FALSE, glm::value_ptr(model));
-            glUniform4fv(blotColorLoc, 1, glm::value_ptr(rgbaOuter));
-            glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_SHORT, 0);
-
-            // Bottom bar (inner)
-            model = glm::translate(glm::mat4(1.0f), glm::vec3(posBot.x, posBot.y + barHeight * 0.1f, 0.0f));
-            model = glm::scale(model, glm::vec3(barWidth, barHeight * 0.8f, 1.0f));
-            glUniformMatrix4fv(u_modelLoc, 1, GL_FALSE, glm::value_ptr(model));
-            glUniform4fv(blotColorLoc, 1, glm::value_ptr(rgbaInner));
-            glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_SHORT, 0);
-        }
+        upperInnerPrev = upperInner;
+        upperOuterPrev = upperOuter;
+        lowerInnerPrev = lowerInner;
+        lowerOuterPrev = lowerOuter;
     }
 
     if (pbinoc->binocs != BINOCS_Sniper)
     {
-        float tickWidth = 2.5f * zoom;
-        float tickHeight = 10.0f * zoom;
-
-        float dxStart = 41.0f;
-        float dxStep = 8.0f;
-        float dxMax = (g_gl.width * 0.5f) / zoom;
-
-        for (float dx = dxStart; dx <= dxMax; dx += dxStep)
+        // Original fixed horizontal ruler: 64 mirrored pairs, dx 41..545.
+        for (int i = 0; i < 64; ++i)
         {
-            float angle = pbinoc->radReticle + (dx / 256.0f) * glm::pi<float>();
-            float t = 0.5f - cosf(angle) * 0.5f;
-            glm::vec4 rgbaTick = glm::mix(rgbaDark, rgbaLight, t);
+            const float dx = 41.0f + static_cast<float>(i) * 8.0f;
+            const float phase = 0.5f - 0.5f * std::cos(
+                pbinoc->radReticle + (dx / 256.0f) * glm::pi<float>());
+            const glm::vec4 color = glm::mix(rgbaDark, rgbaLight, phase);
+            const float y = yFocus - scale * 5.0f;
 
-            for (int side = -1; side <= 1; side += 2)
-            {
-                float x = xFocus + zoom * dx * float(side);
-                float y = yFocus + zoom * -5.0f;
+            glm::vec2 p0(xFocus + scale * dx, y);
+            glm::vec2 p1 = p0 + glm::vec2(scale * 2.0f, 0.0f);
+            glm::vec2 p2 = p0 + glm::vec2(scale * 2.0f, scale * 10.0f);
+            glm::vec2 p3 = p0 + glm::vec2(0.0f, scale * 10.0f);
+            drawQuad(p0, p1, p2, p3, color, color, color, color);
 
-                glm::vec2 pos = glm::round(glm::vec2(x, y));
-                glm::mat4 model = glm::translate(glm::mat4(1.0f), glm::vec3(pos, 0.0f));
-                model = glm::scale(model, glm::vec3(tickWidth, tickHeight, 1.0f));
-                glUniformMatrix4fv(u_modelLoc, 1, GL_FALSE, glm::value_ptr(model));
-                glUniform4fv(blotColorLoc, 1, glm::value_ptr(rgbaTick));
-                glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_SHORT, 0);
-            }
+            p0 = glm::vec2(xFocus - scale * dx, y);
+            p1 = p0 - glm::vec2(scale * 2.0f, 0.0f);
+            p2 = p1 + glm::vec2(0.0f, scale * 10.0f);
+            p3 = p0 + glm::vec2(0.0f, scale * 10.0f);
+            drawQuad(p0, p1, p2, p3, color, color, color, color);
         }
 
-        // === Vertical arc ===
-        float dyStart = 24.0f;
-        float dyStep = 8.0f;
-        float dyMax = (g_gl.height * 0.4) / zoom;
+        // The GS clips the ruler to the curved BINOC aperture. Determine the
+        // aperture at the ruler's current X so the horizontal tick marks do
+        // not continue into the black/dialog region below the lens.
+        const int focusSegment = std::clamp(
+            static_cast<int>(std::round((xFocus / 640.0f) * 24.0f)), 0, 24);
+        const float apertureY0 = GEvaluateBei(s_beiUpper, focusSegment);
+        const float apertureY1 = GEvaluateBei(s_beiLower, focusSegment);
+        const float apertureTop = std::min(apertureY0, apertureY1);
+        const float apertureBottom = std::max(apertureY0, apertureY1);
 
-        for (float dy = dyStart; dy <= dyMax; dy += dyStep)
+        // Original fixed vertical ruler: 32 mirrored pairs, dy 24..272.
+        for (int i = 0; i < 32; ++i)
         {
-            float angle = pbinoc->radReticle + (dy / 128.0f) * glm::pi<float>();
-            float t = 0.5f - cosf(angle) * 0.5f;
-            glm::vec4 rgbaTick = glm::mix(rgbaDark, rgbaLight, t);
+            const float dy = 24.0f + static_cast<float>(i) * 8.0f;
+            const float phase = 0.5f - 0.5f * std::cos(
+                pbinoc->radReticle + (dy / 128.0f) * glm::pi<float>());
+            const glm::vec4 color = glm::mix(rgbaDark, rgbaLight, phase);
+            const float x = xFocus - scale * 5.0f;
 
-            for (int side = -1; side <= 1; side += 2)
+            const float yPositive = yFocus + scale * dy;
+            if (yPositive >= apertureTop && yPositive + scale * 2.0f <= apertureBottom)
             {
-                float y = yFocus + zoom * dy * float(side);
-                float x = xFocus + zoom * -5.0f;
+                glm::vec2 p0(x, yPositive);
+                glm::vec2 p1 = p0 + glm::vec2(scale * 10.0f, 0.0f);
+                glm::vec2 p2 = p0 + glm::vec2(scale * 10.0f, scale * 2.0f);
+                glm::vec2 p3 = p0 + glm::vec2(0.0f, scale * 2.0f);
+                drawQuad(p0, p1, p2, p3, color, color, color, color);
+            }
 
-                glm::vec2 pos = glm::round(glm::vec2(x, y));
-                glm::mat4 model = glm::translate(glm::mat4(1.0f), glm::vec3(pos, 0.0f));
-                model = glm::scale(model, glm::vec3(tickHeight, tickWidth, 1.0f)); // horizontal bar
-                glUniformMatrix4fv(u_modelLoc, 1, GL_FALSE, glm::value_ptr(model));
-                glUniform4fv(blotColorLoc, 1, glm::value_ptr(rgbaTick));
-                glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_SHORT, 0);
+            const float yNegative = yFocus - scale * dy;
+            if (yNegative - scale * 2.0f >= apertureTop && yNegative <= apertureBottom)
+            {
+                glm::vec2 p0(x, yNegative);
+                glm::vec2 p1 = p0 + glm::vec2(scale * 10.0f, 0.0f);
+                glm::vec2 p2 = p1 - glm::vec2(0.0f, scale * 2.0f);
+                glm::vec2 p3 = p0 - glm::vec2(0.0f, scale * 2.0f);
+                drawQuad(p0, p1, p2, p3, color, color, color, color);
             }
         }
     }
 
+    // Retail submits the complete reticle in one GIF packet. Keep the same
+    // ownership model here: upload only this frame's completed geometry, then
+    // issue one draw. Repeatedly overwriting a six-vertex streaming buffer
+    // between queued draws can leave more than one reticle position visible
+    // while the focus is moving.
+    if (!reticleVertices.empty())
+    {
+        glBindVertexArray(pbinoc->reticleVAO);
+        glBindBuffer(GL_ARRAY_BUFFER, pbinoc->reticleVBO);
+        glBufferData(GL_ARRAY_BUFFER,
+            static_cast<GLsizeiptr>(reticleVertices.size() * sizeof(ReticleVertex)),
+            reticleVertices.data(), GL_STREAM_DRAW);
+        glDrawArrays(GL_TRIANGLES, 0, static_cast<GLsizei>(reticleVertices.size()));
+    }
+
+    glBindVertexArray(0);
+    glUniform1i(u_useVertexColorLoc, 0);
     glDisable(GL_BLEND);
     glEnable(GL_DEPTH_TEST);
 }
 
 void DrawBinocBackground(BINOC* pbinoc)
 {
+    GLint previousDepthFunction = GL_LESS;
+    GLboolean previousDepthMask = GL_TRUE;
+    const GLboolean depthTestWasEnabled = glIsEnabled(GL_DEPTH_TEST);
+
+    glGetIntegerv(GL_DEPTH_FUNC, &previousDepthFunction);
+    glGetBooleanv(GL_DEPTH_WRITEMASK, &previousDepthMask);
+
     glBlotShader.Use();
 
     glUniformMatrix4fv(u_projectionLoc, 1, GL_FALSE, glm::value_ptr(g_gl.blotProjection));
@@ -748,6 +1207,10 @@ void DrawBinocBackground(BINOC* pbinoc)
 
     glm::mat4 model(1.0f);
     model = glm::scale(model, glm::vec3(sx, sy, 1.0f));
+
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glDisable(GL_DEPTH_TEST);
     glUniformMatrix4fv(u_modelLoc, 1, GL_FALSE, glm::value_ptr(model));
 
     glUniform4f(uvRectLoc, 0, 0, 1, 1);
@@ -756,14 +1219,28 @@ void DrawBinocBackground(BINOC* pbinoc)
 
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    glDisable(GL_DEPTH_TEST);
+
+    // The original BINOC overlay is submitted after the TV speaker, but
+    // PostTvContext seals successful speaker pixels at the overlay depth.
+    // Keeping the depth test enabled makes this tint cover the world while
+    // rejecting those protected TV pixels. Disabling depth here caused the
+    // overlay to darken the speaker portraits as well.
+    glEnable(GL_DEPTH_TEST);
+    glDepthFunc(GL_LESS);
+    glDepthMask(GL_FALSE);
 
     glBindVertexArray(pbinoc->backGroundBinocVAO);
     glDrawElements(GL_TRIANGLES, (GLsizei)pbinoc->backGroundBinocIndices.size(), GL_UNSIGNED_SHORT, 0);
     glBindVertexArray(0);
 
     glDisable(GL_BLEND);
-    glEnable(GL_DEPTH_TEST);
+    glDepthMask(previousDepthMask);
+    glDepthFunc(previousDepthFunction);
+
+    if (depthTestWasEnabled)
+        glEnable(GL_DEPTH_TEST);
+    else
+        glDisable(GL_DEPTH_TEST);
 }
 
 inline float FadeChannel(float base, float target, float t)
@@ -850,7 +1327,14 @@ void DrawBinocCompass(BINOC* pbinoc)
     // --- COMPASS TEXT LAYOUT (match original) ---
     const float spacingV = g_dxPointsMax + 4.0f;
 
-    float yaw = GModPositive(g_pcm->cplook.radPan + 0.3926991f, 6.283185f);
+    // Use the orientation that was actually applied to the camera.  During the
+    // smooth binoc transition cplook.radPan is the controller target and can
+    // lag behind (or remain unchanged while another look mode drives pcm).
+    float cameraPan = 0.0f;
+    float cameraTilt = 0.0f;
+    DecomposeRotateMatrixPanTilt(&g_pcm->mat, &cameraPan, &cameraTilt);
+
+    float yaw = GModPositive(cameraPan + 0.3926991f, 6.283185f);
     int   idx = (int)(yaw / 0.7853982f) & 7;
     float interp = GModPositive(yaw, 0.7853982f) / 0.7853982f;
 
@@ -918,10 +1402,17 @@ void DrawBinocCompass(BINOC* pbinoc)
 
 void DrawBinocZoom(BINOC* pbinoc)
 {
+    const glm::mat4 model(1.0f);
+
     glBlotShader.Use();
     glUniformHandleui64ARB(u_fontTexLoc, whiteHandle);
-    glBindVertexArray(g_gl.gao);
     glUniformMatrix4fv(u_projectionLoc, 1, GL_FALSE, glm::value_ptr(g_gl.blotProjection));
+    glUniformMatrix4fv(u_modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+    glUniform4f(uvRectLoc, 0.0f, 0.0f, 1.0f, 1.0f);
+    glUniform1i(u_useVertexColorLoc, 0);
+
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glDisable(GL_DEPTH_TEST);
 
     const float zoom = g_pcm->cplook.uZoom;
@@ -945,26 +1436,74 @@ void DrawBinocZoom(BINOC* pbinoc)
 
         float halfTop = (1.0f - t0) * 55.0f - 9.0f;
         float halfBottom = (1.0f - t1) * 55.0f + 1.0f - 9.0f;
-        float halfAvg = 0.5f * (halfTop + halfBottom);
-
         float yTop = 372.8f - t0 * 60.0f;
         float yBottom = 372.8f - t1 * 60.0f;
 
-        float x0 = (xCenter - halfAvg) * sx;
-        float x1 = (xCenter + halfAvg) * sx;
-        float y0 = yBottom * sy;
-        float y1 = yTop * sy;
+        const float xTopLeft = (xCenter - halfTop) * sx;
+        const float xTopRight = (xCenter + halfTop) * sx;
+        const float xBottomLeft = (xCenter - halfBottom) * sx;
+        const float xBottomRight = (xCenter + halfBottom) * sx;
+        const float yTopScreen = yTop * sy;
+        const float yBottomScreen = yBottom * sy;
 
-        // model draws a rectangle covering [x0..x1] x [y0..y1]
-        glm::mat4 model = glm::translate(glm::mat4(1.0f), glm::vec3(x0, y0, 0.0f));
-        model = glm::scale(model, glm::vec3((x1 - x0), (y1 - y0), 1.0f));
+        // Original is a four-vertex strip. Expand it to two triangles while
+        // retaining the independently authored top and bottom widths.
+        const float vertices[] =
+        {
+            xTopLeft,     yTopScreen,
+            xTopRight,    yTopScreen,
+            xBottomRight, yBottomScreen,
 
-        glUniformMatrix4fv(u_modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+            xTopLeft,     yTopScreen,
+            xBottomRight, yBottomScreen,
+            xBottomLeft,  yBottomScreen
+        };
+
+        glBindVertexArray(pbinoc->binocIndicatorVAO);
+        glBindBuffer(GL_ARRAY_BUFFER, pbinoc->binocIndicatorVBO);
+        glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(vertices), vertices);
         glUniform4fv(blotColorLoc, 1, glm::value_ptr(color));
-        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_SHORT, 0);
+        glDrawArrays(GL_TRIANGLES, 0, 6);
     }
 
+    glBindVertexArray(0);
     glEnable(GL_DEPTH_TEST);
+    glDisable(GL_BLEND);
+
+    if (pbinoc->binocs == BINOCS_Peek)
+    {
+        JOY* pjoy = (g_grfjoyt & 2U) != 0 ? &g_joy : &g_joyZero;
+        CFontBrx* joyFont = g_pfontJoy != nullptr ? g_pfontJoy : PfontFromFont(1);
+
+        if (joyFont != nullptr)
+        {
+            CTextBox tbx;
+            tbx.SetPos(0.0f, 0.0f);
+            tbx.SetSize(static_cast<float>(g_gl.width), static_cast<float>(g_gl.height));
+
+            glm::vec4 color(128.0f / 255.0f, 128.0f / 255.0f, 128.0f / 255.0f, 1.0f);
+            tbx.SetTextColor(&color);
+            tbx.SetHorizontalJust(JH_Center);
+            tbx.SetVerticalJust(JV_Center);
+            tbx.m_dx = 0.0f;
+            tbx.m_dy = 0.0f;
+
+            auto drawStick = [&](char glyph, float xVirtual, float deflection)
+            {
+                const float scale = ((pbinoc->fActive != 0) && deflection != 0.0f) ? 0.5f : 0.4f;
+                const char text[2] = { glyph, '\0' };
+
+                joyFont->PushScaling(scale * sy, scale * sy);
+                tbx.m_x = xVirtual * sx;
+                tbx.m_y = 390.80002f * sy;
+                joyFont->DrawPchz(const_cast<char*>(text), &tbx);
+                joyFont->PopScaling();
+            };
+
+            drawStick('(', 265.0f, pjoy->uDeflect);
+            drawStick(')', 375.0f, pjoy->uDeflect2);
+        }
+    }
 }
 
 void DrawBinocOutline(BINOC* pbinoc)
@@ -1001,27 +1540,36 @@ void DrawBinocOutline(BINOC* pbinoc)
     glUniformHandleui64ARB(u_fontTexLoc, whiteHandle);
     glBindVertexArray(pbinoc->outlineVAO);
 
-    // --- index ranges per band ---
-    const int segments = 24;                 // matches BuildBinocOutline
-    const int indicesPerBand = segments * 6; // 6 indices per quad
-    const size_t indexSize = sizeof(uint16_t);
+    constexpr int segments = 24;
+    constexpr int verticesPerBand = segments * 4;
+    constexpr int bandCount = 4;
 
-    auto drawBand = [&](int bandIndex, const glm::vec4& color)
+    std::vector<glm::vec4> colors(verticesPerBand * bandCount);
+    auto colorBand = [&](int band, const glm::vec4& edge0, const glm::vec4& edge1)
+    {
+        const int first = band * verticesPerBand;
+        for (int segment = 0; segment < segments; ++segment)
         {
-            glUniform4fv(blotColorLoc, 1, glm::value_ptr(color));
-            const void* offset = (const void*)((size_t)bandIndex * (size_t)indicesPerBand * indexSize);
-            glDrawElements(GL_TRIANGLES, indicesPerBand, GL_UNSIGNED_SHORT, offset);
-        };
+            const int vertex = first + segment * 4;
+            colors[vertex + 0] = edge0;
+            colors[vertex + 1] = edge0;
+            colors[vertex + 2] = edge1;
+            colors[vertex + 3] = edge1;
+        }
+    };
 
-    // top: outer, mid, inner
-    drawBand(0, rgbaOuter);
-    drawBand(1, rgbaMid);
-    drawBand(2, rgbaInner);
+    colorBand(0, rgbaOuter, rgbaMid);
+    colorBand(1, rgbaMid, rgbaInner);
+    colorBand(2, rgbaOuter, rgbaMid);
+    colorBand(3, rgbaMid, rgbaInner);
 
-    // bottom: outer, mid, inner
-    drawBand(3, rgbaOuter);
-    drawBand(4, rgbaMid);
-    drawBand(5, rgbaInner);
+    glBindBuffer(GL_ARRAY_BUFFER, pbinoc->outlineColorVBO);
+    glBufferSubData(GL_ARRAY_BUFFER, 0, colors.size() * sizeof(glm::vec4), colors.data());
+
+    glUniform1i(u_useVertexColorLoc, 1);
+    glUniform4f(blotColorLoc, 1.0f, 1.0f, 1.0f, 1.0f);
+    glDrawElements(GL_TRIANGLES, static_cast<GLsizei>(pbinoc->outlineIndices.size()), GL_UNSIGNED_SHORT, nullptr);
+    glUniform1i(u_useVertexColorLoc, 0);
 
     glBindVertexArray(0);
 
@@ -1030,137 +1578,596 @@ void DrawBinocOutline(BINOC* pbinoc)
     glDisable(GL_BLEND);
 }
 
+int NCmpScanDistance(const void* pv0, const void* pv1)
+{
+    const SCAN* pscan0 = *static_cast<SCAN* const*>(pv0);
+    const SCAN* pscan1 = *static_cast<SCAN* const*>(pv1);
+
+    glm::vec3 pos0;
+    glm::vec3 pos1;
+
+    GetPntPos(reinterpret_cast<PNT*>(const_cast<SCAN*>(pscan0)), &pos0);
+    GetPntPos(reinterpret_cast<PNT*>(const_cast<SCAN*>(pscan1)), &pos1);
+
+    const glm::vec3 cameraPos(g_pcm->pos);
+
+    const float distanceSq0 = glm::distance2(cameraPos, pos0);
+    const float distanceSq1 = glm::distance2(cameraPos, pos1);
+
+    return distanceSq0 < distanceSq1 ? 1 : -1;
+}
+
+void DrawBinocScan(BINOC* pbinoc)
+{
+    constexpr int kScanMax = 32;
+    constexpr float kScanDistanceMax = 4000.0f;
+    constexpr float kScreenWidth = 640.0f;
+    constexpr float kScreenHeight = 492.80002f;
+
+    SCAN* scans[kScanMax];
+
+    int scanCount = CploFindSwObjectsByClass(g_psw, 5, CID_SCAN, nullptr, kScanMax, reinterpret_cast<LO**>(scans));
+
+    scanCount = std::clamp(scanCount, 0, kScanMax);
+
+    const glm::vec3 cameraPosition(g_pcm->pos.x, g_pcm->pos.y, g_pcm->pos.z);
+
+    // Original comparator at 0x00134AA0 sorts farthest to nearest.
+    std::sort(scans, scans + scanCount, [&](SCAN* scan0, SCAN* scan1)
+    {
+        glm::vec3 pos0;
+        glm::vec3 pos1;
+
+        GetPntPos(reinterpret_cast<PNT*>(scan0), &pos0);
+        GetPntPos(reinterpret_cast<PNT*>(scan1), &pos1);
+
+        const glm::vec3 p0(pos0.x, pos0.y, pos0.z);
+        const glm::vec3 p1(pos1.x, pos1.y, pos1.z);
+
+        return glm::distance2(cameraPosition, p0) > glm::distance2(cameraPosition, p1);
+    });
+
+    int visibleCount = 0;
+    SCAN* selectedScan = nullptr;
+    float selectedDistance = s_scanSelectionDistanceMax;
+
+    // Filter scans by distance and camera frustum.
+    for (int i = 0; i < scanCount; ++i)
+    {
+        SCAN* scan = scans[i];
+
+        glm::vec3 posWorld;
+        GetPntPos(reinterpret_cast<PNT*>(scan), &posWorld);
+
+        const glm::vec3 worldPosition(posWorld.x, posWorld.y, posWorld.z);
+
+        if (glm::distance2(cameraPosition, worldPosition) > kScanDistanceMax * kScanDistanceMax)
+            continue;
+
+        // The original frustum test uses a radius of zero.
+        if (!SphereInFrustum(g_pcm->frustum, worldPosition, 0.0f))
+        {
+            InitializeScanDisplay(scan);
+            continue;
+        }
+
+        // Compact the visible scans into the beginning of the array.
+        scans[visibleCount++] = scan;
+
+        glm::vec3 posScreen;
+        ConvertCmWorldToScreen(g_pcm, &posWorld, &posScreen);
+
+        const glm::vec2 screenPosition(posScreen.x, posScreen.y);
+
+        const float distanceFromSelection =
+            glm::distance(screenPosition, s_scanSelectionCenter);
+
+        if (distanceFromSelection < selectedDistance)
+        {
+            selectedDistance = distanceFromSelection;
+            selectedScan = scan;
+        }
+    }
+
+    if (visibleCount == 0)
+        return;
+
+    for (int i = 0; i < visibleCount; ++i)
+    {
+        SCAN* scan = scans[i];
+
+        glm::vec3 posWorld;
+        glm::vec3 posScreen;
+
+        GetPntPos(reinterpret_cast<PNT*>(scan), &posWorld);
+        ConvertCmWorldToScreen(g_pcm, &posWorld, &posScreen);
+
+        char scanText[256];
+
+        int writeIndex = 0;
+
+        if (scan->pchzScan.c_str() != nullptr)
+        {
+            while (scan->pchzScan[writeIndex] != '\0' &&
+                writeIndex < static_cast<int>(sizeof(scanText)) - 1)
+            {
+                const char ch = scan->pchzScan[writeIndex];
+                scanText[writeIndex] = ch == '_' ? ' ' : ch;
+                ++writeIndex;
+            }
+        }
+
+        scanText[writeIndex] = '\0';
+
+        /*
+         * posScreen is in the original normalized camera-screen space.
+         *
+         * X: [-1, 1] -> [0, 640]
+         * Y: [-1, 1] -> [492.8, 0]
+         */
+        const glm::vec2 anchorPosition(posScreen.x* (kScreenWidth * 0.5f) + (kScreenWidth * 0.5f), posScreen.y * -(kScreenHeight * 0.5f) + (kScreenHeight * 0.5f));
+        // DrawBinocScan at 0x00134e1c uses vmul.xy followed by vaddy.x,
+        // so scan visibility is based only on normalized screen X/Y.  Including
+        // camera-space Z makes the fade distance enormous and hides the label.
+        const float screenRadius = glm::length(glm::vec2(posScreen.x, posScreen.y));
+
+        float alpha = s_scanAlphaBase + screenRadius * (s_scanAlphaLinear + screenRadius * s_scanAlphaQuadratic);
+        alpha = glm::clamp(alpha, 0.0f, 1.0f);
+
+        if (scan != selectedScan)
+            alpha *= s_scanInactiveAlpha;
+
+        scan->uScan = GSmooth(scan->uScan, alpha, g_clock.dtReal, &s_smpScanAlpha, nullptr);
+
+        const float targetScale = scan == selectedScan ? s_scanSelectedScale : s_scanInactiveScale;
+        scan->uScanTarget = GSmooth(scan->uScanTarget, targetScale, g_clock.dtReal, &s_smpScanScale, nullptr);
+
+        const float scale = scan->uScanTarget;
+
+        pbinoc->pfont->PushScaling(scale, scale);
+
+        const float textWidth = s_scanTextWidth * scale;
+        const float textHeight = pbinoc->pfont->DyWrapPchz(scanText, textWidth);
+
+        // Everything above is measured in the original 640 x 492.8 space.
+        pbinoc->pfont->PopScaling();
+
+        const glm::vec2 textPosition(anchorPosition.x + s_scanTextOffsetX * scale, anchorPosition.y + s_scanTextOffsetY * scale - textHeight);
+        const auto UiPosition = [](const glm::vec2& position)
+        {
+            return g_gl.uiOrigin + position * g_gl.uiScale;
+        };
+
+        const glm::vec2 drawTextPosition = UiPosition(textPosition);
+
+        CTextBox textBox;
+        textBox.SetPos(drawTextPosition.x, drawTextPosition.y);
+        textBox.SetSize(textWidth * g_gl.uiScale, textHeight * g_gl.uiScale);
+
+        glm::vec4 textColor(128.0f / 255.0f, 128.0f / 255.0f, 128.0f / 255.0f, scan->uScan);
+
+        textBox.SetTextColor(&textColor);
+        textBox.SetHorizontalJust(JH_Left);
+        textBox.SetVerticalJust(JV_Top);
+
+        pbinoc->pfont->PushScaling(scale * g_gl.uiScale, scale * g_gl.uiScale);
+
+        // The retail scan label uses its own edge descriptor initialized by
+        // FUN_00136fe8.  It is deliberately much roomier than g_teBinoc;
+        // reusing the ordinary Binocucom text edge makes the dossier collapse
+        // into a tiny box around the glyphs.
+        CFontBrx* pfontScanEdge = PfontFromFont(2);
+
+        if (pfontScanEdge != nullptr)
+        {
+            CTextEdge teScan{};
+            teScan.m_pfont = pfontScanEdge;
+            teScan.m_ch = '-';
+            teScan.m_dxExtra = 32.0f;
+            teScan.m_dyExtra = 16.0f;
+            teScan.m_rxScaling = 0.3f * g_gl.uiScale;
+            teScan.m_ryScaling = 0.3f * g_gl.uiScale;
+            teScan.m_rgba = glm::vec4(
+                0.0f,
+                75.0f / 255.0f,
+                125.0f / 255.0f,
+                scan->uScan);
+
+            pfontScanEdge->EdgeRect(&teScan, &textBox);
+        }
+
+        pbinoc->pfont->DrawPchz(scanText, &textBox);
+
+        /*
+         * Draw the line from the scan label to its screen-space anchor.
+         * This uses the same position-only dynamic VBO as the filter arrows.
+         */
+        const glm::vec2 lineStart = UiPosition(glm::vec2(
+            textPosition.x + s_scanLineOffsetX * scale,
+            textPosition.y + textHeight + s_scanLineOffsetY * scale));
+        const glm::vec2 lineEnd = UiPosition(anchorPosition);
+
+        const float lineVertices[] =
+        {
+            lineStart.x, lineStart.y,
+            lineEnd.x,   lineEnd.y
+        };
+
+        glm::vec4 lineColor = pbinoc->pte != nullptr
+            ? pbinoc->pte->m_rgba
+            : glm::vec4(0.5f, 0.5f, 0.5f, 1.0f);
+
+        lineColor.a *= scan->uScan;
+
+        glBlotShader.Use();
+
+        const glm::mat4 model(1.0f);
+
+        glUniformMatrix4fv(u_projectionLoc, 1, GL_FALSE, glm::value_ptr(g_gl.blotProjection));
+        glUniformMatrix4fv(u_modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+        glUniform4f(uvRectLoc, 0.0f, 0.0f, 1.0f, 1.0f);
+
+        glUniform1i(u_useVertexColorLoc, 0);
+        glUniform4fv(blotColorLoc, 1, glm::value_ptr(lineColor));
+
+        // Bindless resident 1x1 white texture.
+        glUniformHandleui64ARB(u_fontTexLoc, whiteHandle);
+
+        glBindVertexArray(pbinoc->binocIndicatorVAO);
+        glBindBuffer(GL_ARRAY_BUFFER, pbinoc->binocIndicatorVBO);
+        glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(lineVertices), lineVertices);
+        glDrawArrays(GL_LINES, 0, 2);
+        glBindVertexArray(0);
+
+        pbinoc->pfont->PopScaling();
+    }
+}
+
 void DrawBinocFilter(BINOC* pbinoc)
 {
+    if (pbinoc->binocs != BINOCS_Peek)
+        return;
 
+    const GRFVAULT grfvaultAvailable = GetAvailableVaultFlags();
+
+    if ((grfvaultAvailable & 0x800) != 0)
+        DrawBinocScan(pbinoc);
+
+    GRFVAULT grfvaultBlueprint = 0;
+    GetBlueprintInfo(&grfvaultBlueprint, 0);
+
+    if ((grfvaultAvailable & grfvaultBlueprint) == 0)
+        return;
+
+    const glm::vec4 colorActive(128.0f / 255.0f, 128.0f / 255.0f, 64.0f / 255.0f, 1.0f);
+    const glm::vec4 colorActiveDim(96.0f / 255.0f, 96.0f / 255.0f, 64.0f / 255.0f, 1.0f);
+    const glm::vec4 colorInactive(64.0f / 255.0f, 64.0f / 255.0f, 64.0f / 255.0f, 1.0f);
+
+    const glm::vec2 center(320.0f, 415.80002f);
+    const float pulse = std::cos(g_clock.t * s_loFinderPulse) * 0.5f + 0.5f;
+
+    // Finder geometry is authored in the same 640x492.8 virtual space as
+    // the Binocucom zoom ladder and analog-stick prompts.
+    const float sx = static_cast<float>(g_gl.width) / 640.0f;
+    const float sy = static_cast<float>(g_gl.height) / 492.8f;
+    
+    glBlotShader.Use();
+
+    glm::mat4 model(1.0f);
+    model = glm::scale(model, glm::vec3(sx, sy, 1.0f));
+
+    // Draw this as a 2D overlay regardless of the state left by the outline.
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glDisable(GL_DEPTH_TEST);
+
+    glUniformMatrix4fv(u_projectionLoc, 1, GL_FALSE, glm::value_ptr(g_gl.blotProjection));
+    glUniformMatrix4fv(u_modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+    glUniform4f(uvRectLoc, 0.0f, 0.0f, 1.0f, 1.0f);
+    glUniform1i(u_useVertexColorLoc, 0);
+
+    glUniformHandleui64ARB(u_fontTexLoc, whiteHandle);
+
+    glBindVertexArray(pbinoc->binocIndicatorVAO);
+    glBindBuffer(GL_ARRAY_BUFFER, pbinoc->binocIndicatorVBO);
+
+    for (int i = 0; i < 4; ++i)
+    {
+        const float target = pbinoc->mpinormalf[i] != 0 ? 1.0f : 0.0f;
+
+        pbinoc->mpinormalu[i] = GSmooth(pbinoc->mpinormalu[i], target, g_clock.dt, &s_smpLoFinderAlpha, nullptr);
+
+        const float active = pbinoc->mpinormalu[i];
+
+        glm::vec4 color =
+            colorInactive * (1.0f - active) +
+            colorActiveDim * (active * pulse) +
+            colorActive * (active * (1.0f - pulse));
+
+        color.a *= 0.5f;
+
+        const glm::vec2 v0 = center + s_aBinocDirectionVertices[i][0];
+        const glm::vec2 v1 = center + s_aBinocDirectionVertices[i][1];
+        const glm::vec2 v2 = center + s_aBinocDirectionVertices[i][2];
+        const glm::vec2 v3 = center + s_aBinocDirectionVertices[i][3];
+
+        // The original primitive is a triangle fan:
+        // v0-v1-v2 and v0-v2-v3.
+        const float vertices[] =
+        {
+            v0.x, v0.y,
+            v1.x, v1.y,
+            v2.x, v2.y,
+
+            v0.x, v0.y,
+            v2.x, v2.y,
+            v3.x, v3.y
+        };
+
+        glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(vertices), vertices);
+        glUniform4fv(blotColorLoc, 1, glm::value_ptr(color));
+        glDrawArrays(GL_TRIANGLES, 0, 6);
+    }
+
+    glBindVertexArray(0);
+    glEnable(GL_DEPTH_TEST);
+    glDepthFunc(GL_LESS);
+    glDisable(GL_BLEND);
 }
 
 void DrawBinoc(BINOC* pbinoc)
 {
-    if (g_wipe.wipes != WIPES_Idle) return;
+    if (!FCanDrawBinoc())
+        return;
 
-    //BINOCS state = pbinoc->binocs;
-
-    pbinoc->binocs = BINOCS_Dialog;
-
-    BINOCS state = pbinoc->binocs;
+    const BINOCS state = pbinoc->binocs;
 
     if (state > BINOCS_None && state < BINOCS_Instruct)
     {
-        DrawBinocReticle(pbinoc);
         DrawBinocBackground(pbinoc);
+        DrawBinocReticle(pbinoc);
         DrawBinocCompass(pbinoc);
         DrawBinocZoom(pbinoc);
         DrawBinocOutline(pbinoc);
-        //DrawBinocFilter(pbinoc);
+        DrawBinocFilter(pbinoc);
     }
-    else if (state == BINOCS_Sniper) {
+    else if (state == BINOCS_Sniper)
+    {
         DrawBinocReticle(pbinoc);
     }
 
-    const char* text = pbinoc->achzDraw;
-    if (!text || text[0] == '\0') return;
+    if (state == BINOCS_Instruct && pbinoc->achzDraw[0] == '\0')
+        return;
 
-    float scale = (state == BINOCS_Confront) ? 0.8f : 1.0f;
-    pbinoc->pfont->PushScaling(scale, scale);
+    constexpr float kUiWidth = 640.0f;
+    constexpr float kUiHeight = 492.80002f;
+
+    const float targetWidth = static_cast<float>(g_gl.width);
+    const float targetHeight = static_cast<float>(g_gl.height);
+    // Keep the BINOC text in the same 640 x 492.8 virtual space as the
+    // resized TV panels.  Height-only scaling lets the text grow underneath
+    // the TVs on narrow window aspect ratios.
+    const float uiScale = glm::min(targetWidth / kUiWidth, targetHeight / kUiHeight);
+    const float uiOriginX = (targetWidth - kUiWidth * uiScale) * 0.5f;
+    const float uiOriginY = targetHeight - kUiHeight * uiScale;
+
+    const auto UiX = [uiOriginX, uiScale](float x) { return uiOriginX + x * uiScale; };
+    const auto UiY = [uiOriginY, uiScale](float y) { return uiOriginY + y * uiScale; };
+    const auto UiSize = [uiScale](float value) { return value * uiScale; };
+
+    float offsetX = 0.0f;
+    float offsetY = 0.0f;
+    float boxWidthVirtual = 280.0f;
+    int visibleLineCount = 3;
+
+    if (state == BINOCS_Instruct)
+    {
+        offsetY = -8.0f;
+    }
+    else if (state == BINOCS_Confront)
+    {
+        offsetX = -50.0f;
+        offsetY = 40.0f;
+        boxWidthVirtual = 380.0f;
+        visibleLineCount = 2;
+    }
+
+    const float baseFontScale = state == BINOCS_Confront ? 0.8f : 1.0f;
+    const float fontScale = baseFontScale * uiScale;
+
+    pbinoc->pfont->PushScaling(fontScale, fontScale);
 
     glm::vec4 colorText = pbinoc->rgbaText;
-    glm::vec4 colorEdge = pbinoc->pte ? pbinoc->pte->m_rgba : glm::vec4(0.0f);
+    glm::vec4 colorEdge = pbinoc->pte != nullptr ? pbinoc->pte->m_rgba : glm::vec4(0.0f);
 
-    CRichText rt((char*)text, pbinoc->pfont);
-    int totalChars = rt.Cch();
+    const float textHeight = static_cast<float>(pbinoc->pfont->m_dyUnscaled) * pbinoc->pfont->m_ryScale;
+    const float boxWidth = UiSize(boxWidthVirtual);
+    const float boxHeight = textHeight * static_cast<float>(visibleLineCount);
+    const float clipX = UiX(180.0f + offsetX);
+    const float clipY = UiY(386.80002f + offsetY);
 
-    float textHeight = pbinoc->pfont->m_dyUnscaled * pbinoc->pfont->m_ryScale;
-    float boxWidth = (state == BINOCS_Confront) ? 380.0f : 280.0f;
-    float boxHeight = textHeight * ((state == BINOCS_Confront) ? 2.0f : 3.0f);
-    float offsetX = (state == BINOCS_Confront) ? -50.0f : 0.0f;
-    float offsetY = (state == BINOCS_Confront) ? 40.0f : ((state == BINOCS_Instruct) ? -8.0f : 0.0f);
+    CTextBox tbxClip;
+    tbxClip.SetPos(clipX, clipY);
+    tbxClip.SetSize(boxWidth, boxHeight);
 
+    glm::vec4 colorClip(128.0f / 255.0f, 128.0f / 255.0f, 128.0f / 255.0f, 1.0f);
 
-    float screenWidth = static_cast<float>(g_gl.width);
-    float screenHeight = static_cast<float>(g_gl.height);
+    tbxClip.SetTextColor(&colorClip);
+    tbxClip.SetHorizontalJust(JH_Left);
+    tbxClip.SetVerticalJust(JV_Top);
 
-    float posX = (screenWidth - boxWidth) * 0.5f + offsetX;
-    float posY = screenHeight - 128.0f + offsetY;  // adjust this to taste
+    float uText = 1.0f;
 
-    CTextBox tbx;
-    tbx.SetPos(posX, posY);
-    tbx.SetSize(boxWidth, boxHeight);
-    glm::vec4 rgba = glm::vec4(0.5f, 0.5f, 0.5f, 1.0f);
-    tbx.SetTextColor(&rgba); // gray
-    tbx.SetHorizontalJust(JH_Left);
-    tbx.SetVerticalJust(JV_Top);
+    if (g_tvLeft.pspeaker != nullptr)
+        uText = std::min(uText, g_tvLeft.uOn);
 
-    // Fade alpha
-    if (pbinoc->uOn < 1.0f) {
-        colorText.a *= pbinoc->uOn;
-        colorEdge.a *= pbinoc->uOn;
+    if (g_tvRight.pspeaker != nullptr)
+        uText = std::min(uText, g_tvRight.uOn);
+
+    if (uText < 1.0f)
+    {
+        colorText.a *= uText;
+        colorEdge.a *= uText;
     }
 
-    // Draw edge if present
-    if (state == BINOCS_Instruct && pbinoc->pte && pbinoc->pte->m_pfont) {
+    if (state == BINOCS_Instruct && pbinoc->pte != nullptr && pbinoc->pte->m_pfont != nullptr)
+    {
+        const glm::vec4 colorEdgePrevious = pbinoc->pte->m_rgba;
+
         pbinoc->pte->m_rgba = colorEdge;
-        pbinoc->pte->m_pfont->EdgeRect(pbinoc->pte, &tbx);
+        pbinoc->pte->m_pfont->EdgeRect(pbinoc->pte, &tbxClip);
+        pbinoc->pte->m_rgba = colorEdgePrevious;
     }
 
-    if (totalChars > 0) {
+    if (pbinoc->achzDraw[0] != '\0')
+    {
+        CRichText rt(pbinoc->achzDraw, pbinoc->pfont);
+
+        const int totalChars = rt.Cch();
         int visibleChars = static_cast<int>((g_clock.t - pbinoc->tAchzSet) * pbinoc->svch);
-        visibleChars = std::min(visibleChars, totalChars);
+        visibleChars = std::clamp(visibleChars, 0, totalChars);
 
         int scrollSegment = 0;
-        for (int i = 0; i < pbinoc->cichLR && pbinoc->aichLR[i] <= visibleChars; ++i)
-            scrollSegment = i + 1;
 
-        float scrollInterp = 0.0f;
-        if (scrollSegment < pbinoc->cichLR) {
-            float t0 = static_cast<float>(pbinoc->aichLR[scrollSegment - 1]) / pbinoc->svch;
-            float t1 = static_cast<float>(pbinoc->aichLR[scrollSegment]) / pbinoc->svch;
-            float current = g_clock.t - pbinoc->tAchzSet;
-            scrollInterp = (current - t0) / (t1 - t0);
+        if (pbinoc->cichLR > 0 && pbinoc->aichLR[0] <= visibleChars)
+        {
+            scrollSegment = 1;
+
+            while (scrollSegment < pbinoc->cichLR && pbinoc->aichLR[scrollSegment] <= visibleChars)
+                ++scrollSegment;
+        }
+
+        float scrollInterpolation = 0.0f;
+
+        if (scrollSegment > 0 && scrollSegment < pbinoc->cichLR && pbinoc->svch > 0.0f)
+        {
+            const float t0 = static_cast<float>(pbinoc->aichLR[scrollSegment - 1]) / pbinoc->svch;
+            const float t1 = static_cast<float>(pbinoc->aichLR[scrollSegment]) / pbinoc->svch;
+            const float duration = t1 - t0;
+
+            if (duration > 0.0f)
+                scrollInterpolation = ((g_clock.t - pbinoc->tAchzSet) - t0) / duration;
         }
 
         char achzPartial[512];
-        strcpy(achzPartial, text);
+        std::strncpy(achzPartial, pbinoc->achzDraw, sizeof(achzPartial) - 1);
+        achzPartial[sizeof(achzPartial) - 1] = '\0';
 
         CRichText rtPartial(achzPartial, pbinoc->pfont);
         rtPartial.Trim(visibleChars);
 
-        if (visibleChars == totalChars && ((int)(g_clock.t * 4.0f) & 1)) {
-            strcat(achzPartial, "&.~ffffff|");
+        const bool drawCursor = visibleChars < totalChars || ((static_cast<int>(g_clock.t * 4.0f) & 1) != 0);
+
+        if (drawCursor)
+        {
+            constexpr char cursorText[] = "&.~ffffff|";
+            constexpr std::size_t cursorLength = sizeof(cursorText) - 1;
+            const std::size_t textLength = std::strlen(achzPartial);
+
+            if (textLength + cursorLength < sizeof(achzPartial))
+                std::strcat(achzPartial, cursorText);
         }
 
-        float scrollOffset = ((float)(scrollSegment + 1) + scrollInterp) * textHeight;
+        const float visibleHeight = (static_cast<float>(scrollSegment + 1) + scrollInterpolation) * textHeight;
+        const float heightOverflow = visibleHeight - boxHeight;
+        const float scrollOffset = heightOverflow >= 0.0f ? static_cast<float>(static_cast<int>(heightOverflow)) : 0.0f;
 
-        CTextBox tbxScroll;
-        tbxScroll.SetPos(tbx.m_x, tbx.m_y - scrollOffset);
-        tbxScroll.SetSize(boxWidth, scrollOffset);
-        tbxScroll.SetTextColor(&colorText);
-        tbxScroll.SetHorizontalJust(JH_Left);
-        tbxScroll.SetVerticalJust(JV_Top);
+        CTextBox tbxText;
+        tbxText.SetPos(clipX, clipY - scrollOffset);
+        tbxText.SetSize(boxWidth, visibleHeight);
+        tbxText.SetTextColor(&colorText);
+        tbxText.SetHorizontalJust(JH_Left);
+        tbxText.SetVerticalJust(JV_Top);
 
-        rtPartial.Draw(&tbx);
+        rtPartial.Draw(&tbxText, &tbxClip);
     }
 
     pbinoc->pfont->PopScaling();
 
-    if (pbinoc->chPause != '\0') {
-        float t = RadNormalize(g_clock.t * 10.0f);
-        float blink = cosf(t) * 0.5f + 0.5f;
-        float scaleJoy = glm::mix(0.3f, 0.4f, blink);
+    if (pbinoc->chPause != '\0')
+    {
+        const float phase = RadNormalize(g_clock.t * 10.0f);
+        const float pulse = std::cos(phase) * 0.5f + 0.5f;
+        const float pauseScale = glm::mix(0.3f, 0.4f, pulse) * uiScale;
 
-        g_pfontJoy->PushScaling(scaleJoy, scaleJoy);
+        float pauseXVirtual;
+        float pauseYVirtual;
 
-        CTextBox tbxPause;
-        tbxPause.SetPos(180.0f + 302.0f, 386.8f + 86.0f);
-        tbxPause.SetSize(0.0f, 0.0f);
-        glm::vec4 color = glm::vec4(0.5f, 0.5f, 0.5f, 1.0f);
-        tbxPause.SetTextColor(&color);
-        tbxPause.SetHorizontalJust(JH_Left);
-        tbxPause.SetVerticalJust(JV_Top);
+        if (state == BINOCS_Confront)
+        {
+            pauseXVirtual = 532.0f;
+            pauseYVirtual = 472.80002f;
+        }
+        else
+        {
+            pauseXVirtual = offsetX + 482.0f;
+            pauseYVirtual = offsetY + 472.80002f;
+        }
 
-        g_pfontJoy->DrawPchz(&pbinoc->chPause, &tbxPause);
+        const float pauseX = UiX(pauseXVirtual);
+        const float pauseY = UiY(pauseYVirtual);
 
-        g_pfontJoy->PopScaling();
+        char achzPause[2] = { pbinoc->chPause, '\0' };
+        CFontBrx* pfontJoy = PfontFromFont(1);
+
+        if (pfontJoy != nullptr)
+        {
+            pfontJoy->PushScaling(pauseScale, pauseScale);
+
+            CTextBox tbxPause;
+            tbxPause.SetPos(pauseX, pauseY);
+            tbxPause.SetSize(0.0f, 0.0f);
+
+            glm::vec4 colorPause(128.0f / 255.0f, 128.0f / 255.0f, 128.0f / 255.0f, 1.0f);
+
+            tbxPause.SetTextColor(&colorPause);
+            tbxPause.SetHorizontalJust(JH_Left);
+            tbxPause.SetVerticalJust(JV_Top);
+
+            pfontJoy->DrawPchz(achzPause, &tbxPause);
+            pfontJoy->PopScaling();
+        }
+    }
+}
+void FreeBinocGL(BINOC* pbinoc)
+{
+    if (!pbinoc)
+        return;
+
+    if (pbinoc->triangleBinocVBO != 0)
+    {
+        glDeleteBuffers(1, &pbinoc->triangleBinocVBO);
+        pbinoc->triangleBinocVBO = 0;
+    }
+
+    if (pbinoc->triangleBinocVAO != 0)
+    {
+        glDeleteVertexArrays(1, &pbinoc->triangleBinocVAO);
+        pbinoc->triangleBinocVAO = 0;
+    }
+
+    if (pbinoc->binocIndicatorVBO != 0)
+    {
+        glDeleteBuffers(1, &pbinoc->binocIndicatorVBO);
+        pbinoc->binocIndicatorVBO = 0;
+    }
+
+    if (pbinoc->binocIndicatorVAO != 0)
+    {
+        glDeleteVertexArrays(1, &pbinoc->binocIndicatorVAO);
+        pbinoc->binocIndicatorVAO = 0;
+    }
+
+    if (pbinoc->reticleVBO != 0)
+    {
+        glDeleteBuffers(1, &pbinoc->reticleVBO);
+        pbinoc->reticleVBO = 0;
+    }
+
+    if (pbinoc->reticleVAO != 0)
+    {
+        glDeleteVertexArrays(1, &pbinoc->reticleVAO);
+        pbinoc->reticleVAO = 0;
     }
 }
 
@@ -1177,14 +2184,19 @@ int GetScanSize()
 void CloneScan(SCAN* pscan, SCAN* pscanBase)
 {
     ClonePnt(pscan, pscanBase);
-
-    pscan->tbidCaption = pscanBase->tbidCaption;
+    pscan->pchzScan = pscanBase->pchzScan;
 }
 
 void LoadScanFromBrx(SCAN* pscan, CBinaryInputStream* pbis)
 {
     LoadPntFromBrx(pscan, pbis);
-    pbis->ReadStringSw();
+    pscan->pchzScan = pbis->ReadStringSw();
+}
+
+void InitializeScanDisplay(SCAN* pscan)
+{
+    pscan->uScanTarget = 0.5;
+    pscan->uScan = 0.5;
 }
 
 void DeleteScan(SCAN* pscan)
@@ -1218,3 +2230,5 @@ glm::vec4 RGBA_LightRed = glm::vec4(0.494f, 0.157f, 0.039f, 0.502f);
 glm::vec4 RGBA_Green = glm::vec4(0.184f, 0.447f, 0.243f, 0.502f);
 glm::vec4 RGBA_LightBlue = glm::vec4(0.000f, 0.322f, 0.494f, 0.502f);
 glm::vec4 RGBA_Overlay = glm::vec4(0.000f, 0.000f, 0.000f, 0.75f);
+float DT_BinocRoseInterval = 0.25;
+int s_mpbfkgrfvault[2] = { 0xF0000000, 0xF0000000};

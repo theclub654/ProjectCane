@@ -13,19 +13,19 @@ enum ROPEK
 class ROPE : public ALO
 {
 	public:
-        ROPEK ropek;
-        OID oidOther;
-        struct PNT* ppntOther;
-        OID oidShd;
-        struct SHD* pshd;
-        float sLength;
-        float dsSlack;
-        float r;
-        int cLength;
-        int cAxis;
-        float sRadius;
-        float vMax;
-        CLQ clqSToUMax;
+    ROPEK ropek;
+    OID oidOther;
+    struct PNT* ppntOther;
+    OID oidShd;
+    struct SHD* pshd;
+    float sLength;
+    float dsSlack;
+    float r;
+    int cLength;
+    int cAxis;
+    float sRadius;
+    float vMax;
+    CLQ clqSToUMax;
 };
 
 ROPE*NewRope();

@@ -9,12 +9,13 @@ struct LIFECTR;
 struct COINCTR;
 struct GOLDCTR;
 struct TRUNKCTR;
+struct TRUNKCTR;
 struct CRUSHERCTR;
 struct LAPCTR;
 struct BOOSTCTR;
 struct PLACECTR;
 struct CLUECTR;
-struct BOSSCTR;
+struct BOSS;
 struct TV;
 struct PUFFCHARGERCTR;
 struct TIMER;
@@ -27,21 +28,28 @@ struct PROMPT;
 struct BINOC;
 struct LGNR;
 struct SCORES;
+struct VAN;
 struct LOGO;
 struct ATTRACT;
 struct LETTERBOX;
 struct CREDIT;
+extern CTR g_securitycodectr;
+extern CTR g_mgvhealthctr;
 struct DEBUGMENU;
+struct SAVEBLOT;
+struct FMVMENU;
 struct JOY;
+struct LS;
 enum PRP;
 enum PRK;
 enum RESPK;
 enum BLOTS;
 enum BLOTK;
 enum UIS;
+enum MTSSTATE;
 
-using PFNSMACK = void(*)(void);
-using PFNTN = void(*)(void);
+using PFNSMACK = void(*)(void*);
+using PFNTN = void(*)(void*, int);
 
 void PostCtrLoad(CTR* pctr);
 void UpdateCtr(CTR* pctr);
@@ -49,6 +57,8 @@ float DtVisibleCtr(CTR* pctr);
 void DrawCtr(CTR* pctr);
 
 void StartupLetterbox(LETTERBOX* pletterbox);
+void PostLetterBoxLoad(LETTERBOX* pletterbox);
+void SetLetterboxBlots(LETTERBOX* pletterbox, BLOTS blots);
 void DrawLetterBox(LETTERBOX* pletterbox);
 
 void StartupBinoc(BINOC* pbinoc);
@@ -90,9 +100,10 @@ void StartupBoostCtr(BOOSTCTR* pboostctr);
 
 void StartupPlaceCtr(PLACECTR* placectr);
 
-void StartupBossCtr(BOSSCTR* bossctr);
-void PostBossctrLoad(BOSSCTR* pbossctr);
-void DrawBossCtr(BOSSCTR* pbossctr);
+void StartupBoss(BOSS* pboss);
+void PostBossLoad(BOSS* pboss);
+void DecrementBossHealth(BOSS* pboss);
+void DrawBoss(BOSS* pboss);
 
 void StartupPuffChargerCtr(PUFFCHARGERCTR* ppuffchargerctr);
 float DtVisiblePuffchargerctr(PUFFCHARGERCTR* ppuffchargectr);
@@ -107,15 +118,25 @@ void PostTitleLoad(TITLE* ptitle);
 int  FIncludeTitleForPeg(TITLE* ptitle, BLOT* pblotOther);
 void SetTitleAchzDraw(TITLE* ptitle, char* pchz);
 void SetTitleBlots(TITLE* ptitle, BLOTS blots);
+void ShowTitle(TITLE* ptitle);
+void HideTitle(TITLE* ptitle);
 void DrawTitle(TITLE* ptitle);
 
 void StartupTotals(TOTALS* ptotals);
 void PostTotalsLoad(TOTALS* ptotals);
+void SetTotalsAchzDraw(TOTALS* ptotal, char* pchz);
+void FormatTotalsTasks(char* pchzText, LS* pls, uint32_t grfTasks);
+void SetTotalsDestinationText(TOTALS* ptotals, int levelId);
+void SetTotalsLevelText(TOTALS* ptotals, int worldId, int levelIndex);
+void SetTotalsWorldText(TOTALS* ptotals, int worldId);
 void SetTotalsBlots(TOTALS* ptotals, BLOTS blots);
+void ShowTotals(TOTALS* ptotals);
+void HideTotals(TOTALS* ptotals);
 void DrawTotals(TOTALS* ptotals);
 
 void StartupCall(CALL* pcall);
 void PostCallLoad(CALL* pcall);
+void UpdateCall(CALL* pcall);
 void DrawCall(CALL* pcall);
 
 void StartupWmc(WMC* pwmc);
@@ -126,8 +147,8 @@ void DrawWmc(WMC* pwmc);
 
 void StartupPrompt(PROMPT* pprompt);
 void PostPromptLoad(PROMPT* pprompt);
-void SetPrompt(PROMPT* pprompt, PRP prp, PRK prk);
-void SetPromptPrk(PROMPT* pprompt, PRK prk);
+void SetPrompt(PROMPT* pprompt, int prp, PRK prk);
+void SetPromptPrk(PROMPT* pprompt);
 void ExecutePrompt(PROMPT* pprompt);
 void SetPromptBlots(PROMPT* pprompt, BLOTS blots);
 const char* AchzFromRespk(RESPK respk);
@@ -136,19 +157,25 @@ void UpdatePromptActive(PROMPT* pprompt, JOY* pjoy);
 void CancelPrompt(PROMPT* pprompt);
 void DrawPrompt(PROMPT* pprompt);
 
+enum TVGS;
 void StartupTvLeft(TV* ptvleft);
 void StartupTvRight(TV* ptvright);
 void InitTv(TV* ptv, BLOTK blotk);
 void PostTvLoad(TV* ptv);
+void GetTvItvbMinMax(TV* ptv, int* pitvbDrawMin, int* pitvbDrawMax);
 void OnTvReset(TV* ptv);
 void SetTvBlots(TV* ptv, BLOTS blots);
+void SetTvTvgs(TV* ptv, TVGS tvgs);
+void AcceptTvSpeaker(TV* ptv);
 void UpdateTv(TV* ptv);
+void RenderTv(TV* ptv);
 void DrawTv(TV* ptv);
+void DrawTvArea(TV* ptv);
+void DrawTvBands(TV* ptv);
+void DrawTvOutline(TV* ptv);
 
 void StartupScores(SCORES* pscores);
-void PostScoresLoad(SCORES* pscores);
-void UpdateScores(SCORES* pscores);
-void DrawScores(SCORES* pscores);
+void StartupVan(VAN* pvan);
 
 void StartupLogo(LOGO* plogo);
 void PostLogoLoad(LOGO* plogo);
@@ -163,7 +190,10 @@ void DrawAttract(ATTRACT* pattract);
 
 void StartupNote(NOTE* pnote);
 void PostNoteLoad(NOTE* pnote);
+void UpdateNote(NOTE* pnote);
+void SetNoteMtsState(NOTE* pnote, MTSSTATE mtsState);
 void DrawNote(NOTE* pnote);
+void FinishNoteSprint(NOTE* pnote);
 
 void StartupCredit(CREDIT* pcredit);
 void InitCredit(CREDIT* pcredit, BLOTK blotk);
@@ -178,10 +208,30 @@ void UpdateDebugmenuActive(DEBUGMENU* pdebugmenu, JOY* pjoy);
 void OnDebugmenuReset(DEBUGMENU* pdebugmenu);
 void DrawDebugMenu(DEBUGMENU* pdebugmenu);
 
+struct SAVEBLOT;
+void StartupSaveBlot(SAVEBLOT* psaveblot);
+void PostAutoSaveLoad(SAVEBLOT* psaveblot);
+void SetSaveBlots(SAVEBLOT* psaveblot, BLOTS blots);
+
+extern SAVEBLOT g_autosave;
+
+struct PERCENTCTR;
+extern PERCENTCTR g_percentctr;
+
+struct HUBBLOT;
+struct VTHUBBLOT;
+
+void StartupHubBlot(HUBBLOT* phublot);
+extern VTHUBBLOT g_vthubblot;
+extern HUBBLOT g_hubblot;
+
+void StartupFmvMenu(FMVMENU* pfmvmenu);
+extern FMVMENU g_fmvmenu;
+
 void StartupUi();
 void InitUi(UI* pui);
 void PostUiLoad(UI* pui);
-void SetUiUis(UI* pui, UIS uis);
+void SetUiUis(UI* pui, int uis);
 void SetUiUPause(UI* pui, float uPause);
 void PushUiActiveBlot(UI* pui, BLOT* pblot);
 void PopUiActiveBlot(UI* pui);
@@ -197,7 +247,7 @@ extern LAPCTR g_lapctr;
 extern BOOSTCTR g_boostctr;
 extern PLACECTR g_placectr;
 extern CLUECTR g_cluectr;
-extern BOSSCTR g_bossctr;
+extern BOSS g_boss;
 extern TV g_tvRight;
 extern PUFFCHARGERCTR g_puffchargectr;
 extern TIMER g_timer;
@@ -210,6 +260,7 @@ extern PROMPT g_prompt;
 extern BINOC g_binoc;
 extern LGNR g_lgnr;
 extern SCORES g_scores;
+extern VAN g_van;
 extern LOGO g_logo;
 extern ATTRACT g_attract;
 extern LETTERBOX g_letterbox;

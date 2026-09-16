@@ -3,7 +3,7 @@
 
 struct MGCO
 {
-    struct ALO* palo;
+    class ALO* palo;
     struct ASEGA* pasegaPath;
     int fGood;
     DLE dle;
@@ -11,7 +11,7 @@ struct MGCO
 
 struct TMBL 
 {
-    struct ALO* palo;
+    class ALO* palo;
     struct SM* psmDial;
     struct SMA* psmaDial;
 };
@@ -19,7 +19,6 @@ struct TMBL
 class MGC : public ALO
 {
 	public:
-
     struct SM* psmGenerate;
     struct SMA* psmaGenerate;
     struct SM* psmCollect;
@@ -40,4 +39,5 @@ void InitMgc(MGC* pmgc);
 int  GetMgcSize();
 void CloneMgc(MGC* pmgc, MGC* pmgcBase);
 void LoadMgcFromBrx(MGC* pmgc, CBinaryInputStream* pbis);
+void HandleMgvMessage(MGV* pmgv, MSGID msgid, void* pv);
 void DeleteMgc(MGC* pmgc);

@@ -1,0 +1,17 @@
+#include "resource1.h"
+#include <winres.h>
+
+IDR_SHADER_SCREEN_VERT    RCDATA "screen.vert"
+IDR_SHADER_SCREEN_FRAG    RCDATA "screen.frag"
+IDR_SHADER_DYSH_VERT      RCDATA "dysh.vert"
+IDR_SHADER_DYSH_FRAG      RCDATA "dysh.frag"
+IDR_SHADER_GLOB_VERT      RCDATA "glob.vert"
+IDR_SHADER_GLOB_FRAG      RCDATA "glob.frag"
+IDR_SHADER_CELBORDER_VERT RCDATA "celborder.vert"
+IDR_SHADER_CELBORDER_FRAG RCDATA "celborder.frag"
+IDR_SHADER_GEOM_VERT      RCDATA "geom.vert"
+IDR_SHADER_GEOM_FRAG      RCDATA "geom.frag"
+IDR_SHADER_BLOT_VERT      RCDATA "blot.vert"
+IDR_SHADER_BLOT_FRAG      RCDATA "blot.frag"
+IDR_SHADER_BLIP_VERT      RCDATA "blip.vert"
+IDR_SHADER_BLIP_FRAG      RCDATA "blip.frag"

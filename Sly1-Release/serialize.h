@@ -1,4 +1,8 @@
 #pragma once
-#include "bis.h"
+#include "pair.h"
+#include "lo.h"
 
-void PpairSerializeIn(CBinaryInputStream *pbis);
+std::shared_ptr <CPair> PpairSerializeIn(CBinaryInputStream *pbis);
+
+
+extern int g_fLoadDebugInfo;

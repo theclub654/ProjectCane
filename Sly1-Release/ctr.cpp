@@ -1,39 +1,56 @@
 #include "ctr.h"
+#include "scores.h"
+#include "van.h"
+#include "suv.h"
 
 void PostCtrLoad(CTR* pctr)
 {
     PostBlotLoad(pctr);
 
-    pctr->pfont = &g_afontBrx[2];
+    pctr->pfont = PfontFromFont(2);
     pctr->nDisplay = -1;
-    pctr->dgDisplayMax = 6000.0;
+    pctr->dgDisplayMax = 6000.0f;
 
-    //GOTTA COME BACK TO THIS
-    switch (pctr->blotk)
+    switch (static_cast<int>(pctr->blotk))
     {
-        case BLOTK_Clue:
+        case 3:
+        pctr->pnActual = &g_pgsCur->clife;
+        break;
+
+        case 4:
+        pctr->pnActual = &g_plsCur->abitClue.m_cbitSet;
         pctr->pnTotal = &g_psw->cclueAll;
         break;
 
-        case BLOTK_Trunk:
+        case 5:
+        pctr->pnActual = &g_pwsCur->ckey;
         break;
 
-        case BLOTK_Crusher:
+        case 6:
+        pctr->pnActual = &g_pgsCur->ccoin;
         break;
 
-        case BLOTK_Lap:
+        case 7:
+        case 8:
+        case 9:
+        case 10:
+        case 11:
+        case 12:
+        case 13:
+        case 14:
+        case 15:
+        pctr->pnActual = &pctr->nDisplay;
         break;
 
-        case BLOTK_Boost:
+        case BLOTK_VanComputer:
+        pctr->pnActual = &g_cCpuCollected;
         break;
 
-        case BLOTK_Place:
+        case BLOTK_Scores:
+        pctr->pnActual = &g_scores.cCpuCollected;
         break;
 
-        case BLOTK_Boss:
-        break;
-
-        case BLOTK_PuffCharge:
+        case BLOTK_Percent:
         pctr->pnActual = &pctr->nDisplay;
         break;
 
@@ -46,201 +63,199 @@ void PostCtrLoad(CTR* pctr)
 float DtVisibleCtr(CTR* pctr)
 {
     float dt = 0.0;
-    if (g_clock.fEnabled != 0) {
+    if (g_clock.fEnabled != 0)
         dt = 2.5;
-    }
+
     return dt;
 }
 
 void UpdateCtr(CTR* pctr)
 {
     UpdateBlot(pctr);
-    
-    int display = pctr->nDisplay;
-    int actual{};
 
     if (pctr->pnActual == nullptr)
-    {
-        actual = 0;
-    }
+        return;
+
+    const int display = pctr->nDisplay;
+    const int actual = *pctr->pnActual;
+
+    if (display == actual)
+        return;
+
+    if (display < 0)
+        pctr->nDisplay = actual;
     else
-        actual = *pctr->pnActual;
+    {
+        const float updateAmount = g_clock.dt * pctr->dgDisplayMax + pctr->uRemain;
+        const int delta = static_cast<int>(updateAmount);
 
-    if (display != actual) {
-        if (display < 0) {
-            pctr->nDisplay = actual; // Hard reset
-        }
-        else {
-            // Smoothly update nDisplay toward actual
-            float updateAmount = g_clock.dt * pctr->dgDisplayMax + pctr->uRemain;
-            int delta = (int)updateAmount;
-            pctr->uRemain = updateAmount - delta;
+        pctr->uRemain = updateAmount - static_cast<float>(delta);
 
-            int nextDisplay = display;
-            if (actual < display) {
-                int dec = display - delta;
-                nextDisplay = (actual < dec) ? dec : actual;
-            }
-            else {
-                int inc = display + delta;
-                nextDisplay = (inc < actual) ? inc : actual;
-            }
+        const int target = *pctr->pnActual;
 
-            pctr->nDisplay = nextDisplay;
-        }
-
-        // If we've arrived at the target and a callback is set, invoke it
-        //if (pctr->nDisplay == *pctr->pnActual && pctr->pfnsmack) {
-        //    //pctr->pfnsmack(pctr->pv);
-        //    pctr->pfnsmack = nullptr;
-        //    pctr->pv = nullptr;
-        //}
-        
-        RebuildCtrAchzDraw(pctr); // Rebuild string (likely turns number into string)
-
-        // Adjust size of the counter's BLOT area
-        if (pctr->achzDraw[0] == '\0') {
-            ResizeBlot(pctr, 0.0f, 0.0f);
-        }
-        else {
-            pctr->pfont->PushScaling(pctr->rFontScale, pctr->rFontScale);
-            CRichText rtxt(pctr->achzDraw, pctr->pfont);
-
-            float dx = pctr->pfont->DxFromPchz(pctr->achzDraw);
-            float dy = pctr->pfont->m_dyUnscaled * pctr->pfont->m_ryScale;
-            ResizeBlot(pctr, dx, dy);
-            pctr->pfont->PopScaling();
-        }
+        if (target < display)
+            pctr->nDisplay = std::max(display - delta, target);
+        else
+            pctr->nDisplay = std::min(display + delta, target);
     }
+
+    if (pctr->nDisplay == *pctr->pnActual && pctr->pfnsmack != nullptr)
+    {
+        pctr->pfnsmack(pctr->pv);
+        pctr->pfnsmack = nullptr;
+        pctr->pv = nullptr;
+    }
+
+    RebuildCtrAchzDraw(pctr);
+
+    if (pctr->achzDraw[0] == '\0')
+    {
+        ResizeBlot(pctr, 0.0f, 0.0f);
+        return;
+    }
+
+    pctr->pfont->PushScaling(pctr->rFontScale, pctr->rFontScale);
+
+    CRichText rtxt(pctr->achzDraw, pctr->pfont);
+
+    const float dx = rtxt.Dx();
+    const float dy = pctr->pfont->m_dyUnscaled * pctr->pfont->m_ryScale;
+
+    ResizeBlot(pctr, dx, dy);
+    pctr->pfont->PopScaling();
 }
 
-void RebuildCtrAchzDraw(CTR *pctr)
+void RebuildCtrAchzDraw(CTR* pctr)
 {
-    switch (pctr->blotk) 
+    switch (static_cast<int>(pctr->blotk))
     {
-        case BLOTK_Lives:
-        pctr->achzDraw[0] = 'L';
-        pctr->achzDraw[1] = '0';
-
+        case 3:
+        std::snprintf(pctr->achzDraw, sizeof(pctr->achzDraw), "%c%d", 'L', pctr->nDisplay);
         break;
 
-        case BLOTK_Clue:
-        if (*pctr->pnTotal == 0) {
-            pctr->achzDraw[0] = '\0';
-        }
-        else {
-            std::string numClues = std::to_string(*pctr->pnTotal);
+        case 4:
+        {
+            const int total = *pctr->pnTotal;
 
-            pctr->achzDraw[0] = '0';
-            pctr->achzDraw[1] = '/';
-            int stringLength = numClues.length();
-
-            int idxClues = 0;
-            int idxDraw  = 0;
-
-            for (int i = 0; i < stringLength; i++)
+            if (total == 0)
             {
-                pctr->achzDraw[2 + idxDraw] = numClues[idxClues];
-                idxClues++;
-                idxDraw++;
+                pctr->achzDraw[0] = '\0';
+                break;
             }
 
-            pctr->achzDraw[2 + idxDraw] = '?';
+            const char suffix = pctr->nDisplay >= total ? '!' : '?';
+            std::snprintf(pctr->achzDraw, sizeof(pctr->achzDraw), "%d/%d%c", pctr->nDisplay, total, suffix);
+            break;
         }
+
+        case 5:
+        if (static_cast<unsigned int>(g_pgsCur->gameWorldCur + GAMEWORLD_Nil) < 4)
+            std::snprintf(pctr->achzDraw, sizeof(pctr->achzDraw), "%d%c", pctr->nDisplay, 'K');
+        else
+            pctr->achzDraw[0] = '\0';
         break;
 
-        case BLOTK_Key:
-        pctr->achzDraw[0] = '&';   // start font switch
-        pctr->achzDraw[1] = '3';   // font index (switch to font 3)
-        pctr->achzDraw[2] = 'K';   // glyph 'K' drawn with font #3
-        pctr->achzDraw[3] = '&';   // start restore
-        pctr->achzDraw[4] = '.';   // restore to base font
-        pctr->achzDraw[5] = '0';   // glyph '3' drawn with base font
+        case 6:
+        if (g_psw->fDprizeEnabled)
+            std::snprintf(pctr->achzDraw, sizeof(pctr->achzDraw), "%c%d", 'C', pctr->nDisplay);
+        else
+            pctr->achzDraw[0] = '\0';
         break;
 
-        case BLOTK_Gold:
-
+        case 7:
+        std::snprintf(pctr->achzDraw, sizeof(pctr->achzDraw), "%d/%d%c", pctr->nDisplay, *pctr->pnTotal, 'V');
         break;
 
-        case BLOTK_Coin:
-        pctr->achzDraw[0] = '&';   // start font switch
-        pctr->achzDraw[1] = '3';   // font index (switch to font 3)
-        pctr->achzDraw[2] = 'C';   // glyph 'C' drawn with font #3
-        pctr->achzDraw[3] = '&';   // start restore
-        pctr->achzDraw[4] = '.';   // restore to base font
-        pctr->achzDraw[5] = '0';   // glyph '3' drawn with base font
+        case 8:
+        std::snprintf(pctr->achzDraw, sizeof(pctr->achzDraw), "%d/%d%c", pctr->nDisplay, *pctr->pnTotal, 'N');
         break;
 
-        case BLOTK_Trunk:
-
+        case 9:
+        std::snprintf(pctr->achzDraw, sizeof(pctr->achzDraw), "%c%d/%d", 'F', pctr->nDisplay, *pctr->pnTotal);
         break;
 
-        case BLOTK_Crusher:
-        
+        case 10:
+        std::snprintf(pctr->achzDraw, sizeof(pctr->achzDraw), "%c%d", 'N', pctr->nDisplay);
         break;
 
-        case BLOTK_Lap:
-        pctr->achzDraw[0] = '3';
-        pctr->achzDraw[1] = '0';
-        pctr->achzDraw[2] = '2';
-        pctr->achzDraw[3] = 'F';
-        pctr->achzDraw[4] = '3';
-        pctr->achzDraw[5] = '0';
-        pctr->achzDraw[6] = '4';
-        pctr->achzDraw[7] = '8';
+        case 11:
+        std::snprintf(pctr->achzDraw, sizeof(pctr->achzDraw), "%d/%d%c", pctr->nDisplay, *pctr->pnTotal, 'V');
         break;
 
-        case BLOTK_Boost:
-        
+        case 12:
+        std::snprintf(pctr->achzDraw, sizeof(pctr->achzDraw), "%d/%d%c", pctr->nDisplay, *pctr->pnTotal, 'd');
         break;
 
-        case BLOTK_Place:
-        
+        case 13:
+        {
+            const int count = pctr->nDisplay;
+            const char slot0 = count >= 1 ? 'b' : 'm';
+            const char slot1 = count >= 2 ? 'b' : 'm';
+            const char slot2 = count >= 3 ? 'b' : 'm';
+            const char slot3 = count >= 4 ? 'b' : 'm';
+            const char slot4 = count >= 5 ? 'b' : 'm';
+
+            std::snprintf(pctr->achzDraw, sizeof(pctr->achzDraw), "%c%c%c%c%c%c",
+                's', slot0, slot1, slot2, slot3, slot4);
+            break;
+        }
+
+        case 14:
+        std::snprintf(pctr->achzDraw, sizeof(pctr->achzDraw), "rstuv");
         break;
 
-        case BLOTK_Boss:
-        
+        case 15:
+        std::snprintf(pctr->achzDraw, sizeof(pctr->achzDraw), "%c%d/5", 'F', pctr->nDisplay);
         break;
 
-        case BLOTK_PuffCharge:
-        
+        case BLOTK_VanComputer:
+        std::snprintf(pctr->achzDraw, sizeof(pctr->achzDraw), "%d/%d%c", pctr->nDisplay, N_SuvChaseWin, 'V');
+        break;
+
+        case BLOTK_Scores:
+        std::snprintf(pctr->achzDraw, sizeof(pctr->achzDraw), "%c%d/%d", 'N', pctr->nDisplay, N_SuvChaseWin);
+        break;
+
+        case BLOTK_Percent:
+        std::snprintf(pctr->achzDraw, sizeof(pctr->achzDraw), "%d%%", pctr->nDisplay);
         break;
     }
+
+    FormatBlotRichText(pctr);
 }
 
 void DrawCtr(CTR* pctr)
 {
-    if (!pctr || pctr->achzDraw[0] == '\0') return;
+    if (pctr->achzDraw[0] == '\0')
+        return;
 
-    // Pause overlay fade: only apply when pause UI is visible
-    float fade = 1.0f;
-    /*if (g_prompt.blots != BLOTS_Hidden) {
-        fade = g_promptFade;
-    }*/
+    float alpha = 1.0f;
 
-    // Text box
+    if (g_prompt.blots != BLOTS_Hidden)
+        alpha = g_prompt.alpha;
+
+    glm::vec4 rgba = pctr->rgba;
+    rgba.a = pctr->rgba.a * alpha;
+
     CTextBox tbx;
+
     tbx.SetPos(pctr->x, pctr->y);
     tbx.SetSize(pctr->dx, pctr->dy);
-    tbx.SetTextColor(&pctr->rgba);
+    tbx.SetTextColor(&rgba);
     tbx.SetHorizontalJust(JH_Left);
     tbx.SetVerticalJust(JV_Top);
 
-    // Color with pause alpha modulation
-    glm::vec4 mod = pctr->rgba;
-
-    // multiply alpha by fade (clamped to 0–1)
-    mod.a *= fade;
-    if (mod.a > 1.0f) mod.a = 1.0f;
-    if (mod.a < 0.0f) mod.a = 0.0f;
-
-    tbx.SetTextColor(&mod);
-
-    // Scale & draw rich text
     pctr->pfont->PushScaling(pctr->rFontScale, pctr->rFontScale);
-    
+
     CRichText rtxt(pctr->achzDraw, pctr->pfont);
-    rtxt.Draw(&tbx);
+    rtxt.Draw(&tbx, nullptr);
 
     pctr->pfont->PopScaling();
 }
+
+void StartupPercentCtr(PERCENTCTR* ppercentctr)
+{
+    ppercentctr->pvtctr = &g_vtctr;
+}
+
+PERCENTCTR g_percentctr;

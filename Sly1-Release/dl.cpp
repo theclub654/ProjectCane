@@ -30,8 +30,20 @@ void AppendDlEntry(DL *pdl, void *pv)
 {
 	DLE* node = PdleFromDlEntry(pdl, pv);
 
+	// Appending an entry that is already in this intrusive list makes the
+	// previous tail point to itself when it is also the current tail.  Several
+	// post-load paths can be revisited, so preserve the existing membership
+	// instead of corrupting the chain.
+	if (node->pvNext != nullptr || node->pvPrev != nullptr || pdl->pvFirst == pv || pdl->pvLast == pv)
+		return;
+
+	node->pvNext = nullptr;
+
 	if (pdl->pvLast == nullptr)
+	{
+		node->pvPrev = nullptr;
 		pdl->pvFirst = pv;
+	}
 	else
 	{
 		DLE* lastNode = PdleFromDlEntry(pdl, pdl->pvLast);
@@ -46,10 +58,12 @@ void PrependDlEntry(DL* pdl, void* pv)
 {
 	// Loading entry from DL
 	DLE *entry0 = PdleFromDlEntry(pdl, pv);
+	entry0->pvPrev = nullptr;
 
 	// Storing data in DL list if DL list is empty
 	if (pdl->pvFirst == nullptr)
 	{
+		entry0->pvNext = nullptr;
 		pdl->pvFirst = pv;
 		pdl->pvLast  = pv;
 	}
@@ -63,6 +77,28 @@ void PrependDlEntry(DL* pdl, void* pv)
 		entry1->pvPrev = pv;
 		// Storing data in first DL list since where tryna insert in front
 		pdl->pvFirst = pv;
+	}
+}
+
+void InsertDlEntryBefore(DL* pdl, void* pvNext, void* pv)
+{
+	if (pvNext == nullptr)
+		AppendDlEntry(pdl, pv);
+	else if (pvNext == pdl->pvFirst)
+		PrependDlEntry(pdl, pv);
+	else
+	{
+		DLE* entry = PdleFromDlEntry(pdl, pv);
+		DLE* next  = PdleFromDlEntry(pdl, pvNext);
+
+		void* pvPrev = next->pvPrev;
+		DLE* prev    = PdleFromDlEntry(pdl, pvPrev);
+
+		entry->pvPrev = pvPrev;
+		entry->pvNext = pvNext;
+
+		next->pvPrev = pv;
+		prev->pvNext = pv;
 	}
 }
 
@@ -144,8 +180,8 @@ void MergeDl(DL* dst, DL* src)
 	if (dst->pvFirst == nullptr)
 	{
 		dst->pvFirst = src->pvFirst;
-		dst->pvLast = src->pvLast;
-		dst->ibDle = src->ibDle;
+		dst->pvLast  = src->pvLast;
+		dst->ibDle   = src->ibDle;
 
 		ClearDl(src);
 		return;
@@ -155,7 +191,7 @@ void MergeDl(DL* dst, DL* src)
 	DLE* dstLast  = PdleFromDlEntry(dst, dst->pvLast);
 	DLE* srcFirst = PdleFromDlEntry(src, src->pvFirst);
 
-	dstLast->pvNext = src->pvFirst;
+	dstLast->pvNext  = src->pvFirst;
 	srcFirst->pvPrev = dst->pvLast;
 
 	dst->pvLast = src->pvLast;

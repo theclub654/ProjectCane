@@ -1,4 +1,6 @@
 #include "ms.h"
+#include "wr.h"
+#include "render.h"
 
 MS* NewMs()
 {
@@ -12,213 +14,206 @@ int GetMsSize()
 
 void RenderMsGlobset(MS* pms, CM* pcm, RO* pro)
 {
-    RPL rpl{};
-    glm::mat4 baseModelMatrix{};
-    LoadMatrixFromPosRot(pms->xf.posWorld, pms->xf.matWorld, baseModelMatrix);
+	RPL rpl{};
 
-    for (int i = 0; i < pms->globset.cglob; ++i)
-    {
-        auto& glob  = pms->globset.aglob[i];
-        auto& globi = pms->globset.aglobi[i];
+	glm::mat4 baseModelMatrix{};
+	LoadMatrixFromPosRot(&pms->xf.posWorld, &pms->xf.matWorld, &baseModelMatrix);
 
-        // Zone mask gate (matches: (*puVar4 & grfzonCamera) == grfzonCamera)
-        if (g_fBsp != 0)
-        {
-            if ((globi.grfzon & pcm->grfzon) != pcm->grfzon)
-                continue;
-        }
+	for (int i = 0; i < pms->globset.cglob; ++i)
+	{
+		auto& glob  = pms->globset.aglob[i];
+		auto& globi = pms->globset.aglobi[i];
 
-        // Fast frustum sphere test
-        if (!SphereInFrustum(pcm->frustum, glob.posCenter, glob.sRadius))
-            continue;
+		if (g_fBsp != 0 && globi.grfzon != 0)
+		{
+			if ((globi.grfzon & pcm->grfzon) != pcm->grfzon)
+				continue;
+		}
 
-        // MRD test: original uses (posCenter - camPos)
-        float dummy = 1.0f;
-        const glm::vec4 dpos = glm::vec4(glob.posCenter, 1.0f) - glm::vec4(pcm->pos, 1.0f);
-        if (!FInsideCmMrd(pcm, dpos, glob.sRadius, glob.sMRD, dummy))
-            continue;
+		const glm::vec3 dpos3 = glob.posCenter - pcm->pos;
+		const glm::vec4 dpos = glm::vec4(dpos3, 0.0f);
 
-        // Base defaults per-glob like the original rpl reuse would imply
-        rpl = {};
-        rpl.pglob = &glob;
+		if (!SphereInFrustum(pcm->frustum, glob.posCenter, glob.sRadius))
+			continue;
 
-        // Unfade smoothing (target 0.5 until tUnfade, else 1.0)
-        float target = (g_clock.tReal < globi.tUnfade) ? 0.5f : 1.0f;
-        if (globi.uAlpha != target)
-            globi.uAlpha = GSmooth(globi.uAlpha, target, g_clock.dt, &s_smpFade, nullptr);
+		float dummy = 1.0f;
 
-        // Alpha combine (matches: uAlpha * fade * global)
-        const float alpha = 1.0f * globi.uAlpha * g_uAlpha;
-        if (alpha <= 0.0f)
-            continue;
+		if (!FInsideCmMrd(pcm, dpos, glob.sRadius, glob.sMRD, dummy))
+			continue;
 
-        // Fill RPL fields used by DrawGlob / sorting
-        rpl.palo = pms;
-        rpl.ro.posCenter = glm::vec4(glob.posCenter, 1.0f);
-        rpl.ro.uAlpha = alpha;
-        rpl.ro.uFog = glob.uFog;
-        rpl.rp = glob.rp;
+		rpl = {};
 
-        // Darken selection (yours was fine; keep)
-        rpl.ro.darken = ((glob.grfglob & 4U) == 0) ? g_psw->rDarken : 1.0f;
+		rpl.palo = pms;
+		rpl.pglob = &glob;
 
-        // Warp data (keep your logic)
-        if (glob.pwarpGlob != nullptr)
-        {
-            rpl.ro.warpType = glob.pwrbg->warpType;
-            rpl.ro.warpCmat = glob.pwarpGlob->pwr->cmat;
-            rpl.ro.warpCvtx = glob.pwarpGlob->vertexCount;
-            
-            const size_t count = (size_t)glob.pwrbg->cmat;
+		rpl.ro.model = baseModelMatrix;
+		rpl.ro.posCenter = glm::vec4(glob.posCenter, 1.0f);
 
-            switch (rpl.ro.warpType)
-            {
-                case WARP_POS:
-                std::memcpy(rpl.ro.amatDpos, glob.pwrbg->pwr->amatDpos, count * sizeof(*rpl.ro.amatDpos));
-                break;
+		rpl.ro.uAlpha = 1.0f;
+		rpl.ro.uAlphaCelBorder = 1.0f;
 
-                case WARP_UV:
-                std::memcpy(rpl.ro.amatDuv, glob.pwrbg->pwr->amatDuv, count * sizeof(*rpl.ro.amatDuv));
-                break;
+		if (glob.csubcel != 0)
+		{
+			if (glob.sCelBorderMRD < glob.sMRD)
+			{
+				float dummyCB = 1.0f;
 
-                case WARP_BOTH:
-                std::memcpy(rpl.ro.amatDpos, glob.pwrbg->pwr->amatDpos, count * sizeof(*rpl.ro.amatDpos));
-                std::memcpy(rpl.ro.amatDuv,  glob.pwrbg->pwr->amatDuv,  count * sizeof(*rpl.ro.amatDuv));
-                break;
+				if (!FInsideCmMrd(pcm, dpos, glob.sRadius, glob.sCelBorderMRD, dummyCB))
+					rpl.ro.uAlphaCelBorder = 0.0f;
+			}
+			else
+				rpl.ro.uAlphaCelBorder = 1.0f;
+		}
+		else
+			rpl.ro.uAlphaCelBorder = 0.0f;
 
-                default:
-                rpl.ro.warpType = WARP_NONE;
-                break;
-            }
-        }
-        else
-            rpl.ro.warpType = WARP_NONE;
+		float target = (g_clock.tReal < globi.tUnfade) ? 0.5f : 1.0f;
 
-        // Z order (matches: if FLT_MAX compute squared distance)
-        if (glob.gZOrder != FLT_MAX)
-            rpl.z = glob.gZOrder;
-        else
-        {
-            glm::vec3 d = glob.posCenter - pcm->pos;
-            rpl.z = glm::dot(d, d);
-        }
+		if (globi.uAlpha != target)
+			globi.uAlpha = GSmooth(globi.uAlpha, target, g_clock.dt, &s_smpFade, nullptr);
 
-        // RP remap when alpha < 1 (original also handles CelBorder -> TranslucentCelBorder)
-        if (alpha < 1.0f)
-        {
-            switch (rpl.rp)
-            {
-                case RP_Opaque:
-                case RP_Cutout:
-                case RP_OpaqueAfterProjVolume:
-                case RP_CutoutAfterProjVolume:
-                rpl.rp = RP_Translucent;
-                break;
+		rpl.ro.uAlpha *= globi.uAlpha * g_uAlpha;
 
-                case RP_CelBorder:
-                case RP_CelBorderAfterProjVolume:
-                rpl.rp = RP_TranslucentCelBorder;
-                break;
+		if (rpl.ro.uAlpha <= 0.0f)
+			continue;
 
-                default:
-                break;
-            }
-        }
+		rpl.ro.uAlphaCelBorder *= rpl.ro.uAlpha;
 
-        // Original multiplies cel-border alpha by final alpha
-        rpl.ro.uAlphaCelBorder *= rpl.ro.uAlpha;
+		rpl.ro.uFog = glob.uFog;
+		rpl.ro.darken = ((glob.grfglob & 4U) == 0) ? g_psw->rDarken : 1.0f;
+		rpl.ro.fDynamic = glob.fDynamic;
+		rpl.ro.sRadius = glob.sRadius;
+		rpl.ro.grfglob = glob.grfglob;
 
-        // Translucent sort flag (keep your scheme)
-        int sortT = 0;
-        if (alpha < 1.0f)
-        {
-            // already mapped above; alpha<1 implies "always sort" behavior for these types
-            if (rpl.rp == RP_Translucent || rpl.rp == RP_TranslucentCelBorder)
-                sortT = 1;
-        }
-        if (!sortT)
-        {
-            if (rpl.rp == RP_Background ||
-                rpl.rp == RP_Cutout ||
-                rpl.rp == RP_CutoutAfterProjVolume ||
-                rpl.rp == RP_Translucent)
-            {
-                sortT = glob.fTransluscentSort;
-            }
-        }
-        rpl.fTransluscentSort = sortT;
+		if (glob.pwarpGlob)
+		{
+			rpl.ro.warpType = glob.pwrbg->warpType;
+			rpl.ro.warpCmat = glob.pwarpGlob->pwr->cmat;
+			rpl.ro.warpCvtx = glob.pwarpGlob->vertexCount;
 
-        // Per-glob RO flags
-        rpl.ro.fDynamic = glob.fDynamic;
-        rpl.ro.sRadius  = glob.sRadius;
+			const size_t count = static_cast<size_t>(glob.pwrbg->pwr->cmat);
 
-        rpl.ro.grfglob = glob.grfglob;
+			switch (rpl.ro.warpType)
+			{
+				case WARP_POS:
+				std::memcpy(rpl.ro.amatDpos, glob.pwrbg->pwr->amatDpos, count * sizeof(*rpl.ro.amatDpos));
+				break;
 
-        // Model matrix (base * pdmat if present)
-        rpl.ro.model = baseModelMatrix;
+				case WARP_UV:
+				std::memcpy(rpl.ro.amatDuv, glob.pwrbg->pwr->amatDuv, count * sizeof(*rpl.ro.amatDuv));
+				break;
 
-        if (glob.pdmat != nullptr)
-            rpl.ro.model = baseModelMatrix * *glob.pdmat;
+				case WARP_BOTH:
+				std::memcpy(rpl.ro.amatDpos, glob.pwrbg->pwr->amatDpos, count * sizeof(*rpl.ro.amatDpos));
+				std::memcpy(rpl.ro.amatDuv,  glob.pwrbg->pwr->amatDuv,  count * sizeof(*rpl.ro.amatDuv));
+				break;
 
-        // SAA notify hook (missing in your version)
-        // Original: if (psaa && psaa->...->pfnNotifySaaRender) call it (may mutate rpl)
-        if (glob.psaa != nullptr)
-        {
-            if (glob.psaa && glob.psaa->pvtlooker && glob.psaa->pvtlooker->pfnNotifyLookerRender)
-			    glob.psaa->pvtlooker->pfnNotifyLookerRender((LOOKER*)glob.psaa, pms, &rpl);
-        }
+				default:
+				rpl.ro.warpType = WARP_NONE;
+				break;
+			}
+		}
+		else
+			rpl.ro.warpType = WARP_NONE;
 
-        // RTCK adjustment after pdmat (original does this after optional pdmat multiply)
-        if (glob.rtck != RTCK_None)
-            AdjustAloRtckMat(pms, pcm, glob.rtck, &glob.posCenter, rpl.ro.model);
+		if (glob.gZOrder != FLT_MAX)
+			rpl.z = glob.gZOrder;
+		else
+			rpl.z = glm::dot(dpos3, dpos3);
 
-        // Dynamic light pick (keep yours)
-        if (!allSwDynamicLights.empty())
-        {
-            if (glob.fThreeWay == 1)
-                rpl.ro.fDynamicLight = FindSwDynamicLights(&glob.posCenter, glob.sRadius);
-            else
-                rpl.ro.fDynamicLight = 0;
-        }
-        else
-            rpl.ro.fDynamicLight = 0;
+		rpl.rp = glob.rp;
 
-        // TRLK selection (keep yours)
-        rpl.ro.trlk = glob.trlk;
+		if (rpl.ro.uAlpha < 1.0f)
+		{
+			switch (rpl.rp)
+			{
+				case RP_Opaque:
+				case RP_Cutout:
+				case RP_OpaqueAfterProjVolume:
+				case RP_CutoutAfterProjVolume:
+				rpl.rp = RP_Translucent;
+				break;
 
-        if (glob.fDynamic == 1 || glob.pwarpGlob != nullptr)
-            rpl.ro.trlk = TRLK_Dynamic;
+				case RP_CelBorder:
+				case RP_CelBorderAfterProjVolume:
+				rpl.rp = RP_TranslucentCelBorder;
+				break;
 
-        bool bakedThisFrame = (glob.trlk == TRLK_Relight);;
+				default:
+				break;
+			}
+		}
 
-        // Submit
-        SubmitRpl(&rpl);
+		int sortT = 0;
 
-        if (glob.trlk == TRLK_Relight && bakedThisFrame)
-            glob.trlk = TRLK_Baked;
+		if (rpl.ro.uAlpha < 1.0f)
+		{
+			if (rpl.rp == RP_Translucent || rpl.rp == RP_TranslucentCelBorder)
+				sortT = 1;
+		}
 
-        // Cel border alpha default (original sets this only when csubcel != 0)
-        rpl.ro.uAlphaCelBorder = 1.0f;
+		if (!sortT)
+		{
+			if (rpl.rp == RP_Background ||
+				rpl.rp == RP_Cutout ||
+				rpl.rp == RP_CutoutAfterProjVolume ||
+				rpl.rp == RP_Translucent)
+			{
+				sortT = glob.fTransluscentSort;
+			}
+		}
 
-        // Cel-border MRD logic (missing in your version)
-        if (g_fRenderCelBorders > 0 && glob.csubcel > 0)
-        {
-            if (glob.sCelBorderMRD < glob.sMRD)
-            {
-                float dummy2 = 1.0f;
-                if (!FInsideCmMrd(pcm, dpos, glob.sRadius, glob.sCelBorderMRD, dummy2))
-                    rpl.ro.uAlphaCelBorder = 0.0f;
-            }
-            else
-                rpl.ro.uAlphaCelBorder = 1.0f;
-        }
+		rpl.fTransluscentSort = sortT;
 
-        // NOTE: PS2 version resets the matrix back to identity if it modified it, because it reuses one RPL.
-        // You rebuild rpl.ro.model every iteration, so no reset needed here.
-    }
+		if (glob.psaa != nullptr)
+		{
+			if (glob.psaa->pvtlooker != nullptr && glob.psaa->pvtlooker->pfnNotifyLookerRender != nullptr)
+				glob.psaa->pvtlooker->pfnNotifyLookerRender((LOOKER*)glob.psaa, (ALO*)pms, &rpl);
+		}
+
+		if (glob.pdmat != nullptr)
+			rpl.ro.model = baseModelMatrix * (*glob.pdmat);
+
+		if (glob.rtck != RTCK_None)
+			AdjustAloRtckMat(pms, pcm, glob.rtck, &glob.posCenter, rpl.ro.model);
+
+		if (!allSwDynamicLights.empty() && glob.fThreeWay == 1)
+			rpl.ro.fDynamicLight = FindSwDynamicLights(&glob.posCenter, glob.sRadius);
+		else
+			rpl.ro.fDynamicLight = 0;
+
+		if (glob.fThreeWay == 1 && glob.fDynamic == 0 &&
+			glob.pwarpGlob == nullptr &&
+			globi.cframeStaticLights < g_cframeStaticLightsInvalid)
+		{
+			glob.trlk = TRLK_Relight;
+		}
+
+		if (glob.trlk == TRLK_Relight)
+		{
+			rpl.ro.trlk = TRLK_Relight;
+			glob.trlk = TRLK_BakePending;
+			globi.cframeStaticLights = g_cframe;
+		}
+		else if (glob.trlk == TRLK_BakePending)
+		{
+			// The cache-writing packet is still deferred.  Do not let another
+			// packet read from the SSBO until DrawGlob completes that write.
+			rpl.ro.trlk = TRLK_Dynamic;
+		}
+		else
+		{
+			rpl.ro.trlk = glob.trlk;
+		}
+
+		if (glob.fDynamic == 1 || glob.pwarpGlob != nullptr)
+			rpl.ro.trlk = TRLK_Dynamic;
+
+		SubmitRpl(&rpl);
+	}
 }
 
-void DeleteMs(MS* pms)
+void DeleteMs(MS *pms)
 {
 	delete pms;
 }

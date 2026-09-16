@@ -34,41 +34,42 @@ struct SWAP
 class UBG : public GOMER
 {
 	public:
-        struct SM* psmWorld;
-        struct SMA* psmaWorld;
-        OID oidPatrolGoal;
-        int cJump;
-        struct XFM* pxfmMiddle;
-        struct SO* apsoPads[6];
-        struct SO* psoLastDunk;
-        int aichk[4];
-        int nBossctr;
+    struct SM* psmWorld;
+    struct SMA* psmaUbg;
+    struct SMA* psmaWorld;
+    short oidPatrolGoal;
+    int cJump;
+    struct XFM* pxfmMiddle;
+    class SO* apsoPads[6];
+    class SO* psoLastDunk;
+    int aichk[4];
+    int nBossctr;
 };
 
 class UBP : public SO
 {
 	public:
-        struct UBV* pubv;
-        UBPS ubps;
-        float tUbps;
-        struct ACTVAL* pactval;
-        struct BOMB* pbomb;
+    struct UBV* pubv;
+    UBPS ubps;
+    float tUbps;
+    struct ACTVAL* pactval;
+    struct BOMB* pbomb;
 };
 
 class UBV : public SO
 {
     public:
-        UBVS ubvs;
-        float tUbvs;
-        struct UBP* apubp[12];
-        struct UBP* apubpBase[2];
-        glm::vec3 dposPadRow;
-        glm::vec3 dposPadCol;
-        glm::vec3 dposBase;
-        int cswap;
-        int iswap;
-        SWAP aswap[24];
-        int mprowcolSafe[4];
+    UBVS ubvs;
+    float tUbvs;
+    struct UBP* apubp[12];
+    struct UBP* apubpBase[2];
+    glm::vec3 dposPadRow;
+    glm::vec3 dposPadCol;
+    glm::vec3 dposBase;
+    int cswap;
+    int iswap;
+    SWAP aswap[24];
+    int mprowcolSafe[4];
 };
 
 UBG* NewUbg();
@@ -76,13 +77,25 @@ void InitUbg(UBG* pubg);
 int  GetUbgSize();
 void CloneUbg(UBG* pubg, UBG* pubgBase);
 void PostUbgLoad(UBG* pubg);
-void RenderUbpAll(UBP* pubp, CM* pcm, RO* pro);
+SO*  PsoPadUbgClosest(UBG* pubg, glm::vec3* ppos);
+void OnUbgEnteringSgs(UBG* pubg, SGS sgsPrev, ASEG* pasegOverride);
+SGS  SgsNextUbgAI(UBG* pubg);
+bool FDetectUbg(UBG* pubg);
+int FDetectUbgStepguard(UBG* pubg);
+int  FCanUbgAttack(UBG* pubg);
+void DoUbgFreefallJump(UBG* pubg);
+void DoUbgFreefallLanding(UBG* pubg);
+void UpdateUbgGoal(UBG* pubg, int fEnter);
+void UpdateUbgSgs(UBG* pubg); 
+void UpdateUbgBlot();
+int  FIgnoreUbgIntersection(UBG* pubg, SO* psoOther);
 void DeleteUbg(UBG *pubg);
 
 UBP* NewUbp();
 int  GetUbpSize();
 void CloneUbp(UBP* pubp, UBP* pubpBase);
 void PostUbpLoad(UBP* pubp);
+void RenderUbpAll(UBP* pubp, CM* pcm, RO* pro);
 void DeleteUbp(UBP *pubp);
 
 UBV* NewUbv();
@@ -90,3 +103,5 @@ int  GetUbvSize();
 void CloneUbv(UBV* pubv, UBV* pubvBase);
 void PostUbvLoad(UBV* pubv);
 void DeleteUbv(UBV *pubv);
+
+extern SNIP s_asnipUbg[8];

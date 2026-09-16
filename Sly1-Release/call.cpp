@@ -1,4 +1,5 @@
 #include "call.h"
+#include "jt.h"
 
 void StartupCall(CALL* pcall)
 {
@@ -7,48 +8,53 @@ void StartupCall(CALL* pcall)
 
 void PostCallLoad(CALL* pcall)
 {
-    // Initialize base UI object
     PostBlotLoad(pcall);
 
-    // Clone font at 1:1 scale
-    pcall->pfont = &g_afontBrx[2];
+    CFontBrx* pfontBase = PfontFromFont(2);
+    pcall->pfont = pfontBase->PfontClone(1.0f, 1.0f);
 
-    // Set default string (e.g. "B")
-    SetBlotAchzDraw(pcall, (char*)"B");
+    pcall->pvtblot->pfnSetBlotAchzDraw(pcall, (char*)"B");
+    pcall->pdialogTriggered = nullptr;
+}
+
+void UpdateCall(CALL* pcall)
+{
+    UpdateBlot(pcall);
+
+    const bool fDialogAvailable = pcall->pdialogTriggered != nullptr;
+    const bool fPlayerCanCall = g_pjt == nullptr || g_pjt->jts != 6;
+    const bool fUiCanShowCall = g_ui.uis == UIS_Playing && g_ui.cpblotActive < 2;
+
+    if (fDialogAvailable && fPlayerCanCall && fUiCanShowCall)
+        pcall->pvtblot->pfnShowBlot(pcall);
+    else
+        pcall->pvtblot->pfnHideBlot(pcall);
 }
 
 void DrawCall(CALL* pcall)
 {
-    // 1. Draw background
     DrawBlot(pcall);
-    
-    // 2. Pulsing scale
-    float pulse = cosf(g_clock.tReal * 8.0f);
-    float scale = (pulse * 0.5f + 0.5f) * 0.1f + 0.5f;
-    
-    float textWidth  = g_pfontJoy->DxFromPchz((char*)"L");
-    float textHeight = g_pfontJoy->m_dyUnscaled * g_pfontJoy->m_ryScale;
 
-    // 5. Center it in the CALL box
-    float cx = pcall->x + pcall->dx * 0.5f;
-    float cy = pcall->y + pcall->dy * 0.5f;
+    const float scale = 0.55f + std::cos(RadNormalize(g_clock.tReal * 8.0f)) * 0.05f;
 
-    float x = cx - textWidth  + 55.0;
-    float y = cy - textHeight + 65.0;
+    CFontBrx* pfont = PfontFromFont(1);
+    pfont->PushScaling(scale, scale);
 
-    // 6. Setup textbox
+    const float dxText = pfont->DxFromPchz((char*)"L");
+    const float dyText = static_cast<float>(pfont->m_dyUnscaled) * pfont->m_ryScale;
+
     CTextBox tbx;
-    tbx.SetPos(x, y);
-    tbx.SetSize(textWidth, textHeight);
+    tbx.SetPos(pcall->x + 2.0f + pcall->dx * 0.5f - dxText * 0.5f, pcall->y + 14.0f + pcall->dy * 0.5f - dyText * 0.5f);
+    tbx.SetSize(dxText, dyText);
+
     glm::vec4 color = glm::vec4(0.5f, 0.5f, 0.5f, 1.0f);
+
     tbx.SetTextColor(&color);
     tbx.SetHorizontalJust(JH_Left);
     tbx.SetVerticalJust(JV_Top);
 
-    // 7. Apply scale and draw
-    g_pfontJoy->PushScaling(scale, scale);
-    g_pfontJoy->DrawPchz((char*)"L", &tbx);
-    g_pfontJoy->PopScaling();
+    pfont->DrawPchz((char*)"L", &tbx);
+    pfont->PopScaling();
 }
 
 CALL g_call;

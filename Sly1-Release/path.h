@@ -1,6 +1,17 @@
 #pragma once
 #include "lo.h"
 
+struct LSG;
+
+enum CBSK 
+{
+    CBSK_Nil = -1,
+    CBSK_Pos = 0,
+    CBSK_Neg = 1,
+    CBSK_On = 2,
+    CBSK_Max = 3
+};
+
 struct CBSP 
 {
     glm::vec3 normal;
@@ -35,34 +46,54 @@ struct CGV
 {
     glm::vec3 pos;
     int cpcge;
-    struct CGE** apcge;
+    std::vector <CGE*> apcge;
 };
 
 struct CG 
 {
     int ccgv;
-    struct std::vector <CGV> acgv;
+    std::vector <CGV> acgv;
     int ccge;
     int ccgeBoundary;
     std::vector <CGE> acge;
     int ccgt;
     std::vector <CGT> acgt;
     int ccbsp;
-    struct CBSP* acbsp;
+    std::vector <CBSP> acbsp;
 };
 
 class PATHZONE : public LO
 {
 	public:
-		CG cg;
-		DLE dlePathzone;
+	CG cg;
+	DLE dlePathzone;
 };
 
-PATHZONE*NewPathzone();
-void InitSwPathzoneDl(SW* psw);
-int  GetPathzoneSize();
-void OnPathzoneAdd(PATHZONE* ppathzone);
-void OnPathzoneRemove(PATHZONE* ppathzone);
+
+PATHZONE* NewPathzone();
+CBSP* PcbspExtract(CBSP* pcbspMod);
+CGT* PcgtExtract(CGT* pcgtMod);
+CGT* PcgtPointInCbspQuick(CBSP* pcbsp, const glm::vec3* ppos);
+CGT* PcgtPointInCbspSafe(CBSP* pcbsp, const glm::vec3* ppos);
+CBSK CbskFromG(float g);
+int  ClsgClipEdgeToCbsp(CBSP* pcbspRoot, const glm::vec3* ppos1, const glm::vec3* ppos2, int clsgMax, LSG* alsg);
+bool FClipEdgeToCbsp(CBSP* pcbspRoot, const glm::vec3* ppos1, const glm::vec3* ppos2);
+int  IcgvFromPcgv(CG* pcg, CGV* pcgv);
+void FindPathAStar(CG* pcg, CGV* pcgvStart, CGV* pcgvEnd, int cpcgvMax, int* pcpcgv, CGV** apcgv);
+void SimplifyApcgvNeighbor(CBSP* pcbsp, int* pcpcgv, CGV** apcgv);
+int  CposFindPath(CG* pcg, glm::vec3* pposStart, glm::vec3* pposEnd, int cposMax, glm::vec3* apos);
+void FindClosestPointInCg(CG* pcg, glm::vec3* ppos, glm::vec3* pposClosest);
 void LoadPathZoneFromBrx(PATHZONE* ppathzone, CBinaryInputStream* pbis);
 void ClonePathzone(PATHZONE* ppathzone, PATHZONE* ppathzoneBase);
+void HookupCg(CG* pcg);
+int  CposFindPathzonePath(PATHZONE* ppathzone, glm::vec3* pposStart, glm::vec3* pposEnd, int cposMax, glm::vec3* apos);
+void FindPathzoneClosestPoint(PATHZONE* ppathzone, glm::vec3* ppos, glm::vec3* pposClosest);
+int  ClipPathzoneToBsp(PATHZONE* ppathzone, const glm::vec3* pposStart, const glm::vec3* pposEnd, glm::vec3* pposClip, float* pu);
+void ClipPathzoneDirection(float s, PATHZONE* ppathzone, const glm::vec3* pposStart, glm::vec3* pdir);
+void ChoosePathzoneRandomPoint(PATHZONE* ppathzone, glm::vec3* ppos);
+void OnPathzoneAdd(PATHZONE* ppathzone);
+void OnPathzoneRemove(PATHZONE* ppathzone);
+int  GetPathzoneSize();
 void DeletePathzone(PATHZONE* ppathzone);
+
+extern float s_arad[11];

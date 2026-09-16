@@ -3,6 +3,7 @@
 
 void RemergeSwObject(SW* psw, ALO* palo);
 void MergeSwGroup(SW *psw, MRG *pmrg);
+void AddSwMergeGroup(SW* psw, MRG* pmrg);
 void RemoveFromArray(int* count, void** items, void* item);
 void RemoveSwMergeGroup(SW* psw, MRG* pmrg);
 void RemergeSwObjects(SW* psw);

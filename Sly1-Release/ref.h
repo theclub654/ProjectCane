@@ -1,4 +1,7 @@
 #pragma once
+#include <vector>
+#include "dec.h"
+#include "proc.h"
 
 typedef char s8;
 typedef short s16;
@@ -10,6 +13,7 @@ typedef unsigned int u32;
 typedef unsigned long u64;
 typedef float f32;
 typedef u32 SYMID;
+using PFNTHUNK = CRef(*)(BASIC* basic, int argc, CRef* argv);
 
 enum TAGK 
 {
@@ -182,26 +186,59 @@ enum BIFK {
     BIFK_Max = 125
 };
 
-class CREF 
+struct CMethod 
+{
+    struct BASIC* m_pbasic;
+    PFNTHUNK m_pfnthunk;
+    int m_crefReq;
+};
+
+class CRef
 {
     public:
-        TAGK m_tagk;
+    TAGK m_tagk = TAGK_Nil;
 
-        union 
-        {
-            s32 m_n;
-            f32 m_g;
-            int m_bool;
-            SYMID m_symid;
-            BIFK m_bifk;
-            struct CPair* m_ppair;
-            struct CProc* m_pproc;
-            struct VECTOR* m_pvector;
-            struct MATRIX4* m_pmatrix;
-            struct CLQ* m_pclq;
-            struct LM* m_plm;
-            struct SMP* m_psmp;
-            struct BASIC* m_pbasic;
-            struct CMethod* m_pmethod;
-        };
+    s32 m_n = 0;
+    f32 m_g = 0.0f;
+    int m_bool = 0;
+    SYMID m_symid = 0;
+    BIFK m_bifk = {};
+
+    std::shared_ptr <CPair> m_ppair;
+    std::shared_ptr <CProc> m_pproc;
+
+    glm::vec3 m_vector{};
+    glm::vec4 m_vector4{};
+    glm::mat4 m_matrix{ 1.0f };
+
+    CLQ m_clq{};
+    LM  m_lm{};
+    SMP m_smp{};
+
+    BASIC *m_pbasic = nullptr;
+    std::shared_ptr <CMethod> m_pmethod;
+
+    void SetTag(TAGK tagk);
+    void SetS32(s32 n);
+    void SetF32(f32 g);
+    void SetBool(int fBool);
+    void SetSymid(SYMID symid);
+    void SetBifk(BIFK bifk);
+    void SetPair(std::shared_ptr <CPair> ppair);
+    void SetProc(std::shared_ptr <CProc> pproc);
+    void SetVector(const glm::vec3& vector);
+    void SetVector4(const glm::vec4& vector);
+    void SetMatrix(const glm::mat4& matrix);
+    void SetClq(const CLQ& clq);
+    void SetLm(const LM& lm);
+    void SetSmp(const SMP& smp);
+    void SetBasic(BASIC *pbasic);
+    void SetMethod(std::shared_ptr <CMethod> method);
+    SYMID GetSymid() const;
+    bool operator==(const CRef& other) const;
+    CRef RefCoerceS32() const;
+    CRef RefCoerceF32() const;
+    void CloneTo(CRef* prefClone, CFrame* pframeClone);
 };
+
+#include "pair.h"

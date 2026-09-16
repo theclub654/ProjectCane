@@ -7,19 +7,17 @@ LOOP* NewLoop()
 
 void LoadLoopFromBrx(LOOP* ploop, CBinaryInputStream* pbis)
 {
-    ploop->dtLoopMin = pbis->F32Read();
-    ploop->dtLoopMax = pbis->F32Read();
+    ploop->dtLoopMin  = pbis->F32Read();
+    ploop->dtLoopMax  = pbis->F32Read();
     ploop->dtPauseMin = pbis->F32Read();
     ploop->dtPauseMax = pbis->F32Read();
-    pbis->F32Read();
+    ploop->gframe     = pbis->F32Read();
     pbis->F32Read();
 }
 
 void InitLoop(LOOP* ploop, SAAF* psaaf)
 {
     InitSaa(ploop, psaaf);
-
-    ploop->gframe = 0.0;
 }
 
 void PostLoopLoad(LOOP* ploop)

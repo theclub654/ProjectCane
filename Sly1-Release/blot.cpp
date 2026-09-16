@@ -1,4 +1,5 @@
 #include "blot.h"
+#include "totals.h"
 
 void InitBlot(BLOT* pblot, BLOTK blotk)
 {
@@ -14,10 +15,14 @@ void InitBlot(BLOT* pblot, BLOTK blotk)
 
 void PostBlotsLoad()
 {
-    for (int i = 0; i < 29; i++)
-        s_apblot[i]->pvtblot->pfnPostBlotLoad(s_apblot[i]);
+    for (int i = 0; i < BLOTK_Max; i++)
+    {
+        BLOT* pblot = PblotFromBlotk(i);
+        if (pblot)
+            pblot->pvtblot->pfnPostBlotLoad(pblot);
+    }
 
-    SetBlotFontScale((BLOT*)&g_debugmenu, 0.75);
+    //SetBlotFontScale((BLOT*)&g_debugmenu, 0.75);
 }
 
 void PostBlotLoad(BLOT* pblot)
@@ -62,6 +67,66 @@ void SetBlotAchzDraw(BLOT *pblot, char *pchz)
     pblot->pfont->PopScaling();
 }
 
+char* FormatBlotRichText(BLOT* pblot)
+{
+    char formatted[512]{};
+
+    const char* src = pblot->achzDraw;
+    char* dst = formatted;
+
+    while (*src != '\0')
+    {
+        const char ch = *src;
+
+        if (!pblot->pfont->FValid(ch))
+        {
+            CFontBrx* fallbackFont = PfontFromFont(3);
+            char fontCode = '3';
+
+            if (fallbackFont == nullptr || !fallbackFont->FValid(ch))
+            {
+                fallbackFont = PfontFromFont(4);
+                fontCode = '4'; // DAT_00262254
+            }
+
+            if (fallbackFont != nullptr && fallbackFont->FValid(ch))
+            {
+                // Format string at 0x0024CBD0.
+                dst += std::sprintf(dst, "&%c%c&.", fontCode, ch);
+                ++src;
+                continue;
+            }
+
+            // Character wasn't found in any fallback font.
+            *dst++ = ch;
+            ++src;
+            continue;
+        }
+
+        if (ch == '/' && std::isdigit(static_cast<unsigned char>(src[1])))
+        {
+            // Format string at 0x0024CBD8 begins denominator formatting.
+            dst += std::sprintf(dst, "%s", "^05~b2a83d/");
+
+            // Skip the original slash.
+            ++src;
+
+            while (*src != '\0' && std::isdigit(static_cast<unsigned char>(*src)))
+                *dst++ = *src++;
+
+            // Format string at 0x0024CBE8 restores normal formatting.
+            dst += std::sprintf(dst, "%s", "~.^.");
+            continue;
+        }
+
+        *dst++ = ch;
+        ++src;
+    }
+
+    *dst = '\0';
+    return std::strcpy(pblot->achzDraw, formatted);
+}
+
 void OnBlotActive(BLOT* pblot, int fActive)
 {
 
@@ -93,6 +158,16 @@ void HideBlot(BLOT* pblot)
 {
     if ((pblot->blots < BLOTS_Disappearing) && (BLOTS_Hidden < pblot->blots)) {
         pblot->pvtblot->pfnSetBlotBlots(pblot, BLOTS_Disappearing);
+    }
+}
+
+void ForceHideBlots()
+{
+    for (int i = 28; i >= 0; --i)
+    {
+        BLOT* pblot = PblotFromBlotk(i);
+        if (pblot)
+            pblot->pvtblot->pfnSetBlotBlots(pblot, BLOTS_Hidden);
     }
 }
 
@@ -225,13 +300,13 @@ void ResizeBlot(BLOT* pblot, float dx, float dy)
 
 void RepositionBlotDependents(BLOT* pblot)
 {
-    for (int i = 0; i < 29; ++i) 
+    for (int i = 0; i < BLOTK_Max; ++i)
     {
-        BLOT* dependent = s_apblot[i];
+        BLOT* dependent = PblotFromBlotk(i);
         if (!dependent || !dependent->pbloti) continue;
 
         BLOTK pegKey = dependent->pbloti->blotkPeg;
-        if (pegKey != BLOTK_Nil && s_apblot[pegKey] == pblot)
+        if (pegKey >= 0 && pegKey < BLOTK_Max && PblotFromBlotk(pegKey) == pblot)
         {
             RepositionBlot(dependent);
         }
@@ -242,7 +317,8 @@ void RepositionBlot(BLOT* pblot)
 {
     if (!pblot || !pblot->pbloti) return;
 
-    BLOTI* bloti = pblot->pbloti;
+    BLOTI* const placement = pblot->pbloti;
+    BLOTI* bloti = placement;
 
     float left = 0.0f;
     float right = g_gl.width;
@@ -250,9 +326,13 @@ void RepositionBlot(BLOT* pblot)
     float top = g_gl.height;
 
     // Traverse peg chain
-    while (bloti->blotkPeg != BLOTK_Nil) {
+    int pegDepth = 0;
+    while (bloti->blotkPeg != BLOTK_Nil && pegDepth++ < BLOTK_Max) {
         BLOTK pegKey = bloti->blotkPeg;
-        BLOT* pegBlot = s_apblot[pegKey];
+        if (pegKey < 0 || pegKey >= BLOTK_Max)
+            break;
+
+        BLOT* pegBlot = PblotFromBlotk(pegKey);
 
         if (pegBlot && pegBlot->pvtblot->pfnFIncludeBlotForPeg(pegBlot, pblot)) {
             BLOTE edge = bloti->blotePeg;
@@ -287,12 +367,15 @@ void RepositionBlot(BLOT* pblot)
 
         // Advance to next peg in chain
         pegKey = bloti->blotkPeg;
-        if (s_abloti[pegKey].blotkPeg == BLOTK_Nil) break;
-        bloti = &s_abloti[s_abloti[pegKey].blotkPeg];
+        const BLOTK nextPegKey = s_abloti[pegKey].blotkPeg;
+        if (nextPegKey < 0 || nextPegKey >= BLOTK_Max)
+            break;
+
+        bloti = &s_abloti[nextPegKey];
     }
 
     // Compute horizontal position
-    float xHint = pblot->pbloti->x;
+    float xHint = placement->x;
     if (xHint == 0.0f) {
         pblot->xOn = left + (right - left - pblot->dx) * 0.5f;
     }
@@ -304,7 +387,7 @@ void RepositionBlot(BLOT* pblot)
     }
 
     // Compute vertical position
-    float yHint = pblot->pbloti->y;
+    float yHint = placement->y;
     if (yHint == 0.0f) {
         pblot->yOn = bottom + (top - bottom - pblot->dy) * 0.5f;
     }
@@ -316,7 +399,9 @@ void RepositionBlot(BLOT* pblot)
     }
 
     // Apply edge anchoring offset
-    switch (bloti->blote) {
+    // The peg-chain walk above may leave bloti pointing at an ancestor.
+    // Off-screen motion belongs to this blot's own placement descriptor.
+    switch (placement->blote) {
         case BLOTE_Left:
         pblot->xOff = -pblot->dx;
         pblot->yOff = pblot->yOn;
@@ -344,9 +429,17 @@ void RepositionBlot(BLOT* pblot)
         pblot->x = pblot->xOff;
         pblot->y = pblot->yOff;
     }
-    else {
+    else if (pblot->blots == BLOTS_Visible) {
         pblot->x = pblot->xOn;
         pblot->y = pblot->yOn;
+    }
+    else {
+        // Preserve an appear/disappear animation when a resize rebuilds its
+        // endpoints instead of snapping it to one side of the screen.
+        const float u = std::clamp(pblot->uOn, 0.0f, 1.0f);
+        const float smooth = u * (2.0f - u);
+        pblot->x = pblot->xOff + smooth * (pblot->xOn - pblot->xOff);
+        pblot->y = pblot->yOff + smooth * (pblot->yOn - pblot->yOff);
     }
 
     // Recursively reposition any dependents
@@ -355,8 +448,8 @@ void RepositionBlot(BLOT* pblot)
 
 void RepositionAllBlots()
 {
-    for (int i = 0; i < 29; i++)
-        RepositionBlot(s_apblot[i]);
+    for (int i = 0; i < BLOTK_Max; i++)
+        RepositionBlot(PblotFromBlotk(i));
 }
 
 int FIncludeBlotForPeg(BLOT* pblot, BLOT* pblotOther)
@@ -376,7 +469,7 @@ int FIncludeBlotForPeg(BLOT* pblot, BLOT* pblotOther)
 
 void OnBlotReset(BLOT* pblot)
 {
-    pblot->pvtblot->pfnSetBlotBlots(pblot, BLOTS_Hidden);
+    SetBlotBlots(pblot, BLOTS_Hidden);
 }
 
 void UpdateBlot(BLOT* pblot)
@@ -386,8 +479,10 @@ void UpdateBlot(BLOT* pblot)
     float now = *pblot->ptNow;
     float uOn = pblot->uOn;
 
-    switch (oldState) {
-    case BLOTS_Visible: {
+    switch (oldState) 
+    {
+    case BLOTS_Visible: 
+    {
         float duration = ((VTBLOT*)pblot->pvtblot)->pfnDtVisibleBlot(pblot);
         if (duration == 0.0f || (now - pblot->tBlots) < duration) {
             break;
@@ -454,11 +549,14 @@ void UpdateBlotActive(BLOT* pblot, JOY* pjoy)
 
 void UpdateBlots()
 {
-    for (int i = 0; i < 29; i++)
+    for (int i = 0; i < BLOTK_Max; ++i)
     {
-        if (s_apblot[i]->pvtblot->pfnUpdateBlot != nullptr)
-            s_apblot[i]->pvtblot->pfnUpdateBlot(s_apblot[i]);
+        BLOT* pblot = PblotFromBlotk(i);
+        if (pblot && pblot->pvtblot->pfnUpdateBlot != nullptr)
+            pblot->pvtblot->pfnUpdateBlot(pblot);
     }
+
+    UpdateWipe(&g_wipe, &g_joy);
 }
 
 void DrawBlot(BLOT* pblot)
@@ -489,19 +587,38 @@ void DrawBlot(BLOT* pblot)
     pblot->pfont->PopScaling();
 }
 
+void RenderBlots()
+{
+    for (int i = 0; i < BLOTK_Max; ++i)
+    {
+        BLOT* pblot = PblotFromBlotk(i);
+
+        if (pblot && pblot->blots != BLOTS_Hidden && pblot->pvtblot->pfnRenderBlot != nullptr)
+            pblot->pvtblot->pfnRenderBlot(pblot);
+    }
+}
+
 void DrawBlots()
 {
-    for (int i = 0; i < 29; i++)
+    for (int i = 0; i < BLOTK_Max; ++i)
     {
-        if (s_apblot[i]->blots != BLOTS_Hidden)
-            s_apblot[i]->pvtblot->pfnDrawBlot(s_apblot[i]);
+        BLOT* pblot = PblotFromBlotk(i);
+        if (pblot && pblot->blots != BLOTS_Hidden)
+            pblot->pvtblot->pfnDrawBlot(pblot);
     }
+
+    DrawWipe(&g_wipe);
+    DrawAutoSave(&g_autosave);
 }
 
 void ResetBlots()
 {
-    for (int i = 0; i < 29; i++)
-        s_apblot[i]->pvtblot->pfnOnBlotReset(s_apblot[i]);
+    for (int i = 0; i < BLOTK_Max; ++i)
+    {
+        BLOT* pblot = PblotFromBlotk(i);
+        if (pblot)
+            pblot->pvtblot->pfnOnBlotReset(pblot);
+    }
 }
 
 VTLIFECTR g_vtlifectr;
@@ -526,11 +643,52 @@ VTTV g_vttv;
 VTPLACECTR g_vtplacectr;
 VTDEBUGMENU g_vtdebugmenu;
 VTLOGO g_vtlogo;
-VTBOSSCTR g_vtbossctr;
+VTBOSS g_vtboss;
 VTNOTE g_vtnote;
 VTCALL g_vtcall;
 VTSCORES g_vtscores;
+VTVAN g_vtvan;
 VTLGNR g_vtlgnr;
 VTGOLDCTR g_vtgoldctr;
 VTLAPCTR g_vtlapctr;
 VTPROMPT g_vtprompt;
+BLOTI s_abloti[37] =
+{
+    {  0.0f,   0.0f, static_cast<BLOTE>(-1), static_cast<BLOTK>(-1), static_cast<BLOTE>(-1) },
+    {  0.0f,   0.0f, static_cast<BLOTE>(-1), static_cast<BLOTK>(-1), static_cast<BLOTE>(-1) },
+    {  0.0f,   0.0f, static_cast<BLOTE>(-1), static_cast<BLOTK>(-1), static_cast<BLOTE>(-1) },
+    {  0.0f,  20.0f, static_cast<BLOTE>(2), static_cast<BLOTK>(-1), static_cast<BLOTE>(-1) },
+    {-18.0f,  20.0f, static_cast<BLOTE>(1), static_cast<BLOTK>(-1), static_cast<BLOTE>(-1) },
+    {-18.0f,  20.0f, static_cast<BLOTE>(1), static_cast<BLOTK>(4), static_cast<BLOTE>(2) },
+    { 18.0f,  20.0f, static_cast<BLOTE>(0), static_cast<BLOTK>(-1), static_cast<BLOTE>(-1) },
+    {-18.0f,  20.0f, static_cast<BLOTE>(1), static_cast<BLOTK>(5), static_cast<BLOTE>(2) },
+    {-18.0f,  20.0f, static_cast<BLOTE>(1), static_cast<BLOTK>(-1), static_cast<BLOTE>(-1) },
+    { 18.0f,  20.0f, static_cast<BLOTE>(2), static_cast<BLOTK>(6), static_cast<BLOTE>(2) },
+    {  0.0f,  20.0f, static_cast<BLOTE>(2), static_cast<BLOTK>(3), static_cast<BLOTE>(2) },
+    {-18.0f,  20.0f, static_cast<BLOTE>(2), static_cast<BLOTK>(5), static_cast<BLOTE>(2) },
+    {-18.0f,  20.0f, static_cast<BLOTE>(2), static_cast<BLOTK>(5), static_cast<BLOTE>(2) },
+    { 18.0f,  20.0f, static_cast<BLOTE>(2), static_cast<BLOTK>(6), static_cast<BLOTE>(2) },
+    { 18.0f,  20.0f, static_cast<BLOTE>(0), static_cast<BLOTK>(-1), static_cast<BLOTE>(-1) },
+    { 18.0f,  20.0f, static_cast<BLOTE>(0), static_cast<BLOTK>(-1), static_cast<BLOTE>(-1) },
+    { 18.0f, -20.0f, static_cast<BLOTE>(0), static_cast<BLOTK>(-1), static_cast<BLOTE>(-1) },
+    { 18.0f, -20.0f, static_cast<BLOTE>(0), static_cast<BLOTK>(16), static_cast<BLOTE>(3) },
+    { 18.0f, -20.0f, static_cast<BLOTE>(-1), static_cast<BLOTK>(-1), static_cast<BLOTE>(-1) },
+    {-18.0f, -20.0f, static_cast<BLOTE>(1), static_cast<BLOTK>(-1), static_cast<BLOTE>(-1) },
+    {-18.0f, -20.0f, static_cast<BLOTE>(1), static_cast<BLOTK>(19), static_cast<BLOTE>(3) },
+    { 18.0f, -20.0f, static_cast<BLOTE>(0), static_cast<BLOTK>(18), static_cast<BLOTE>(3) },
+    { 18.0f, -20.0f, static_cast<BLOTE>(-1), static_cast<BLOTK>(-1), static_cast<BLOTE>(-1) },
+    {  0.0f, -40.0f, static_cast<BLOTE>(-1), static_cast<BLOTK>(-1), static_cast<BLOTE>(-1) },
+    {  0.0f,   0.0f, static_cast<BLOTE>(-1), static_cast<BLOTK>(-1), static_cast<BLOTE>(-1) },
+    {  0.0f,   0.0f, static_cast<BLOTE>(-1), static_cast<BLOTK>(-1), static_cast<BLOTE>(-1) },
+    {  1.0f, -20.0f, static_cast<BLOTE>(0), static_cast<BLOTK>(-1), static_cast<BLOTE>(-1) },
+    { -1.0f, -20.0f, static_cast<BLOTE>(1), static_cast<BLOTK>(-1), static_cast<BLOTE>(-1) },
+    {-18.0f,  20.0f, static_cast<BLOTE>(2), static_cast<BLOTK>(-1), static_cast<BLOTE>(-1) },
+    { 18.0f,  20.0f, static_cast<BLOTE>(2), static_cast<BLOTK>(-1), static_cast<BLOTE>(-1) },
+    { 18.0f,  20.0f, static_cast<BLOTE>(2), static_cast<BLOTK>(-1), static_cast<BLOTE>(-1) },
+    {-18.0f, -20.0f, static_cast<BLOTE>(3), static_cast<BLOTK>(-1), static_cast<BLOTE>(-1) },
+    { 18.0f,  20.0f, static_cast<BLOTE>(-1), static_cast<BLOTK>(-1), static_cast<BLOTE>(-1) },
+    { 18.0f, -20.0f, static_cast<BLOTE>(2), static_cast<BLOTK>(-1), static_cast<BLOTE>(-1) },
+    { 18.0f, -20.0f, static_cast<BLOTE>(2), static_cast<BLOTK>(-1), static_cast<BLOTE>(-1) },
+    { 18.0f, -20.0f, static_cast<BLOTE>(3), static_cast<BLOTK>(-1), static_cast<BLOTE>(-1) },
+    {  0.0f, -20.0f, static_cast<BLOTE>(3), static_cast<BLOTK>(-1), static_cast<BLOTE>(-1) }
+};

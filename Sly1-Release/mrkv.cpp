@@ -8,6 +8,39 @@ MRKV* NewMrkv()
 void InitMrkv(MRKV* pmrkv)
 {
 	InitSo(pmrkv);
+
+	pmrkv->fNoXpsSelf = true;
+	SetSoConstraints(pmrkv, CT_Locked, nullptr, CT_Locked, nullptr);
+}
+
+void* GetMrkvNormal(MRKV* pmrkv)
+{
+	return &pmrkv->normal;
+}
+
+void SetMrkvNormal(MRKV* pmrkv, glm::vec3 normal)
+{
+	pmrkv->normal = normal;
+}
+
+void* GetMrkvSDepth(MRKV* pmrkv)
+{
+	return &pmrkv->sDepth;
+}
+
+void SetMrkvSDepth(MRKV* pmrkv, float sDepth)
+{
+	pmrkv->sDepth = sDepth;
+}
+
+void* GetMrkvLmAlpha(MRKV* pmrkv)
+{
+	return &pmrkv->lmAlpha;
+}
+
+void SetMrkvLmAlpha(MRKV* pmrkv, LM lmAlpha)
+{
+	pmrkv->lmAlpha = lmAlpha;
 }
 
 int GetMrkvSize()

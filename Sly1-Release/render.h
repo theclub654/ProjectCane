@@ -4,7 +4,7 @@
 #include "light.h"
 #include "debug.h"
 
-void SetRpCount(GLOB* pglob, int fTransluscent);
+void SetGlobDraw(GLOB* pglob);
 void AllocateRpl();
 // Loops through all objects in a level to see which object is in camera view and other conditions and stores all objects
 // in a render list
@@ -19,6 +19,7 @@ void SortRenderRpl();
 inline bool compareZ(const RPL& prpl0, const RPL& prpl1);
 // Loops through that render list of objects to be rendered on the screen
 void DrawSw(SW* psw, CM* pcm);
+void FillScreenRect(int r, int g, int b, int alpha, float xLeft, float yTop, float xRight, float yBottom, bool fAdditive = false);
 void DrawDysh(RPL* prpl);
 void DrawGlob(RPL* prpl);
 void DrawCelBorder(RPLCEL* prplcel);
@@ -29,6 +30,7 @@ void DrawProjVolumeAdd(int baseVertex, int firstIndex, int indexCount);
 void DrawMurkClear(int baseVertex, int firstIndex, int indexCount);
 void DrawMurkFill(int baseVertex, int firstIndex, int indexCount);
 void DrawTranslucent(int baseVertex, int firstIndex, int indexCount);
+void DrawBlip(RPL* prplblip);
 // Draws all collision models in SW
 void DrawSwCollisionAll(CM* pcm);
 
@@ -40,6 +42,10 @@ extern int g_cFrameGlobs;
 extern int g_cFrameCelGlobs;
 
 extern int g_cframe;
+
+// Frame at which world/static illumination was last changed. Static three-way
+// caches older than this generation must be rebuilt before they are reused.
+extern int g_cframeStaticLightsInvalid;
 
 extern int g_boundVAO;
 
@@ -124,3 +130,6 @@ extern int g_maxCount;
 extern std::vector <RPL> g_maxPrpl;
 
 extern bool g_fVsync;
+
+extern int g_fDisableSkin;
+extern int g_fDisablePoses;

@@ -10,6 +10,7 @@ struct ATTRACT : public BLOT
 
 void StartupAttract(ATTRACT* pattract);
 void PostAttractLoad(ATTRACT* pattract);
+void UpdateAttractText(ATTRACT* pattract);
 void SetAttractAchzDraw(ATTRACT* pattract, char* pchz);
 void SetAttractBlots(ATTRACT* pattract, BLOTS blots);
 void UpdateAttract(ATTRACT* pattract);

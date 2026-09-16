@@ -4,13 +4,13 @@
 class DSP : public SO
 {
 	public:
-        struct SM* psm;
-        struct SMA* psma;
-        OID oidDispense;
-        int cpso;
-        struct SO** apso;
-        struct SO* psoCur;
-        struct TARGET* ptargetCur;
+    struct SM* psm;
+    struct SMA* psma;
+    OID oidDispense;
+    int cpso;
+    class SO** apso;
+    class SO* psoCur;
+    struct TARGET* ptargetCur;
 };
 
 DSP* NewDsp();

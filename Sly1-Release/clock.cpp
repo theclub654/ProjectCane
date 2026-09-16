@@ -1,4 +1,5 @@
 #include "clock.h"
+#include <chrono>
 
 void StartupClock()
 {
@@ -17,17 +18,15 @@ void SetClockRate(float rt)
 
 TICK TickNow()
 {
-    uint32_t current = Count.load();  // Simulating hardware counter read
+    using HostClock = std::chrono::steady_clock;
+    static const HostClock::time_point s_epoch = HostClock::now();
 
-    // Detect rollover (32-bit counter wrapping around)
-    if (current < s_tickLastRaw) {
-        ++s_tickWrapCount;
-    }
-
-    s_tickLastRaw = current;
-
-    // Combine wrap count and current tick to simulate a 64-bit timer
-    return (static_cast<uint64_t>(s_tickWrapCount) << 32) | current;
+    // MarkClockTick converts ticks with 3.390842e-9, matching the PS2's
+    // 294.912 MHz timing base. Count was never advanced by the PC port, so
+    // using it made every frame fall back to the minimum timestep.
+    constexpr double kTicksPerSecond = 294912000.0;
+    const std::chrono::duration<double> elapsed = HostClock::now() - s_epoch;
+    return static_cast<TICK>(elapsed.count() * kTicksPerSecond);
 }
 
 void MarkClockTick(CLOCK* pclock)
@@ -47,8 +46,10 @@ void MarkClockTick(CLOCK* pclock)
 
     float dt = dtTicks * 3.390842e-09f;
 
-    // clamp to [1/60, 1/30]
-    if (dt < 0.00833333) dt = 0.00833333;
+    // Keep the engine's minimum update step synchronized with the selected
+    // presentation rate (30, 60, or 120 Hz).
+    const float kDtMin = 1.0f / static_cast<float>(g_targetFrameRate);
+    if (dt < kDtMin) dt = kDtMin;
     else if (dt > 0.03333334f) dt = 0.03333334f;
 
     pclock->dtReal = dt;
@@ -56,7 +57,7 @@ void MarkClockTick(CLOCK* pclock)
     float enabledDt = (pclock->fEnabled != 0) ? dt : 0.0f;
     float adjusted = enabledDt * g_rtClockDebug * g_rtClockPowerUp * g_rtClock;
 
-    if (adjusted >= 0.00833333)
+    if (adjusted >= kDtMin)
         pclock->dtReal = adjusted;
 
     pclock->tickFrame = now;
@@ -83,3 +84,4 @@ std::atomic<uint32_t> Count{ 0 };
 float g_rtClockDebug = 1.0;
 float g_rtClockPowerUp = 1.0;
 float g_rtClock = 1.0;
+int g_targetFrameRate = 120;

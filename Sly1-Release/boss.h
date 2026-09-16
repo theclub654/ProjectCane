@@ -1,14 +1,32 @@
 #pragma once
-#include "ctr.h"
+#include "blot.h"
 
-struct BOSSCTR : public CTR
+struct BOSS : public BLOT
 {
-	float gDisplay;
+	int cPhaseMax;
+	int cHealthPerPhase;
+	int cHealthTotal;
+	int cPhasesRemaining;
+	int cHealthCurrent;
+
+	float uHealthDisplay;
+	float uHealthTarget;
+	float tHealthChanged;
+
+	float xHealthBar;
+	float yHealthBar;
+	float dxHealthBar;
+	float dyHealthBar;
+
+	float xPhaseCount;
+	float yPhaseCount;
 };
 
-void StartupBossCtr(BOSSCTR* bossctr);
-void PostBossctrLoad(BOSSCTR* pbossctr);
-void DrawBossCtr(BOSSCTR* pbossctr);
+void StartupBoss(BOSS* pboss);
+void PostBossLoad(BOSS* pboss);
+void DecrementBossHealth(BOSS* pboss);
+void DrawBoss(BOSS* pboss);
 
-extern BOSSCTR g_bossctr;
+extern BOSS g_boss;
 extern SMP s_smpBossctrSlide;
+extern SMP BossHealthDisplay;

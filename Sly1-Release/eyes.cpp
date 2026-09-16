@@ -103,6 +103,23 @@ void UpdateEyes(EYES* peyes, float dt)
     SetSaiIframe(&peyes->saiOther, (int)peyes->gframe);
 }
 
+void SetEyesClosed(EYES* peyes, float uClosed)
+{
+    peyes->uClosed = uClosed;
+
+    if (uClosed >= 1.0f)
+        SetEyesEyess(peyes, EYESS_Closed);
+    else
+    {
+        // Original explicitly clears state first.
+        peyes->eyess = EYESS_Nil;
+        SetEyesEyess(peyes, EYESS_Open);
+    }
+
+    SetSaiIframe(&peyes->sai, static_cast<int>(peyes->gframe));
+    SetSaiIframe(&peyes->saiOther, static_cast<int>(peyes->gframe));
+}
+
 SAI* PsaiFromEyesShd(EYES* peyes, SHD* pshd)
 {
     SAI* psai = PsaiFromSaaShd(peyes, pshd);

@@ -13,28 +13,28 @@ enum CANS
 class CAN : public BREAK
 {
 	public:
-        CANS cans;
-        struct RWM* prwm;
-        struct SO* psoTurret;
-        int fLeadTarget;
-        LM lmRange;
-        LM lmActivate;
-        LM lmDeactivate;
-        float radPanMax;
-        float dradFireThreshold;
-        float dtFireInterval;
-        float tLastFire;
-        float dzAim;
-        float swTumble;
-        SMP smpTracking;
-        int fFireEnabled;
-        int cuFireAccuracy;
-        float auFireAccuracy[5];
-        glm::vec3 posTarget;
-        struct PNT* ppntMuzzle;
-        struct SM* psm;
-        struct SMA* psma;
-        int cFired;
+    CANS cans;
+    struct RWM* prwm;
+    class SO* psoTurret;
+    int fLeadTarget;
+    LM lmRange;
+    LM lmActivate;
+    LM lmDeactivate;
+    float radPanMax;
+    float dradFireThreshold;
+    float dtFireInterval;
+    float tLastFire;
+    float dzAim;
+    float swTumble;
+    SMP smpTracking;
+    int fFireEnabled;
+    int cuFireAccuracy;
+    float auFireAccuracy[5];
+    glm::vec3 posTarget;
+    struct PNT* ppntMuzzle;
+    class SM* psm;
+    struct SMA* psma;
+    int cFired;
 };
 
 CAN* NewCan();

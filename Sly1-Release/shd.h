@@ -204,6 +204,12 @@ struct TEX : public TEXF
 
     std::vector <BMP*>  abmp;
     std::vector <CLUT*> aclut;
+
+    // World-map layers can share indexed BMP pixels while selecting different
+    // CLUTs. Their resolved textures therefore belong to TEX, not BMP.
+    std::vector<GLuint> glDiffuseMap;
+    std::vector<uint64_t> hDiffuseMap;
+    std::vector<std::vector<byte>> diffuseTexture;
 };
 
 // Shader property's

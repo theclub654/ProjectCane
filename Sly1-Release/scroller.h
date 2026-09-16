@@ -13,6 +13,7 @@ struct SCROLLER : public SAA
 
 SCROLLER* NewScroller();
 void  LoadScrollerFromBrx(SCROLLER* pscroller, CBinaryInputStream* pbis);
+void  SetScrollerMasterSpeeds(SCROLLER* pscroller, float svu, float svv);
 void  InitScroller(SCROLLER* pscroller, SAAF* psaaf);
 void  UpdateScroller(SCROLLER* pscroller, float dt);
 float UCompleteScroller(SCROLLER* pscroller);

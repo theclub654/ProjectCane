@@ -12,7 +12,6 @@ enum TIMERS
 
 struct TIMER : public BLOT
 {
-
     TIMERS timers;
     float tTimers;
     float dt;
@@ -31,6 +30,13 @@ struct TIMER : public BLOT
 void StartupTimer(TIMER *ptimer);
 void PostTimerLoad(TIMER *ptimer);
 void SetTimerTimers(TIMER *ptimer, TIMERS timers);
+void StopTimer(TIMER* ptimer);
+void RebuildTimerAchzDraw(TIMER* ptimer, float dt);
+void SetTimer(TIMER* ptimer, float dt);
+void SetTimerSpeed(TIMER* ptimer, float svt);
+void SetTimerThreshold(TIMER* ptimer, float dt, uint32_t rgba, PFNTN pfntn);
+void SetTimerExpire(TIMER* ptimer, float dt, PFNTN pfntn);
+void StartTimer(TIMER* ptimer);
 void UpdateTimer(TIMER* ptimer);
 void DrawTimer(TIMER* ptimer);
 
