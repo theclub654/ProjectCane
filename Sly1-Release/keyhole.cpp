@@ -2,9 +2,19 @@
 #include "render.h"
 #include "po.h"
 
+KEYHOLEGL::~KEYHOLEGL()
+{
+    if (ebo != 0)
+        glDeleteBuffers(1, &ebo);
+    if (vbo != 0)
+        glDeleteBuffers(1, &vbo);
+    if (vao != 0)
+        glDeleteVertexArrays(1, &vao);
+}
+
 KEYHOLE* NewKeyhole()
 {
-    return new KEYHOLE{};
+    return NewWorldObject<KEYHOLE>();
 }
 
 void InitKeyhole(KEYHOLE *pkeyhole)
@@ -61,24 +71,27 @@ void LoadKeyholeFromBrx(KEYHOLE *pkeyhole, CBinaryInputStream *pbis)
         if (ks.ctri == 0)
             continue;
 
-        if (ks.vao == 0)
-            glGenVertexArrays(1, &ks.vao);
+        if (!ks.pgl)
+            ks.pgl = std::make_shared<KEYHOLEGL>();
 
-        if (ks.vbo == 0)
-            glGenBuffers(1, &ks.vbo);
+        if (ks.pgl->vao == 0)
+            glGenVertexArrays(1, &ks.pgl->vao);
 
-        if (ks.ebo == 0)
-            glGenBuffers(1, &ks.ebo);
+        if (ks.pgl->vbo == 0)
+            glGenBuffers(1, &ks.pgl->vbo);
 
-        glBindVertexArray(ks.vao);
+        if (ks.pgl->ebo == 0)
+            glGenBuffers(1, &ks.pgl->ebo);
 
-        glBindBuffer(GL_ARRAY_BUFFER, ks.vbo);
+        glBindVertexArray(ks.pgl->vao);
+
+        glBindBuffer(GL_ARRAY_BUFFER, ks.pgl->vbo);
         glBufferData(GL_ARRAY_BUFFER, pkeyhole->apos.size() * sizeof(glm::vec4), pkeyhole->apos.data(), GL_STATIC_DRAW);
 
         glEnableVertexAttribArray(0);
         glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(glm::vec4), nullptr);
 
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ks.ebo);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ks.pgl->ebo);
         glBufferData(GL_ELEMENT_ARRAY_BUFFER, ks.atri.size() * sizeof(TRI), ks.atri.data(), GL_STATIC_DRAW);
 
         glDisableVertexAttribArray(1);
@@ -138,7 +151,7 @@ void DrawKeyholeMask(KEYHOLE* pkeyhole, float x, float y, float rScale, float uA
     {
         const KS& ks = pkeyhole->mpkpks[ikpks];
 
-        if (ks.ctri <= 0 || ks.vao == 0)
+        if (ks.ctri <= 0 || !ks.pgl || ks.pgl->vao == 0)
             continue;
 
         const glm::vec4& baseColor = ikpks >= 3 ? g_rgbaKeyholeEyes : g_rgbaKeyholeMask;
@@ -146,7 +159,7 @@ void DrawKeyholeMask(KEYHOLE* pkeyhole, float x, float y, float rScale, float uA
 
         glUniform4fv(blotColorLoc, 1, glm::value_ptr(color));
 
-        glBindVertexArray(ks.vao);
+        glBindVertexArray(ks.pgl->vao);
         glDrawElements(GL_TRIANGLES, static_cast<GLsizei>(ks.ctri * 3), GL_UNSIGNED_INT, nullptr);
     }
 
@@ -227,12 +240,12 @@ void DrawKeyhole(KEYHOLE* pkeyhole, float uClosed)
         if (ikpks == 0)
             backgroundColor = color;
 
-        if (ks.ctri <= 0 || ks.vao == 0)
+        if (ks.ctri <= 0 || !ks.pgl || ks.pgl->vao == 0)
             continue;
 
         glUniform4fv(blotColorLoc, 1, glm::value_ptr(color));
 
-        glBindVertexArray(ks.vao);
+        glBindVertexArray(ks.pgl->vao);
         glDrawElements(GL_TRIANGLES, static_cast<GLsizei>(ks.ctri * 3), GL_UNSIGNED_INT, nullptr);
     }
 
@@ -274,7 +287,7 @@ void DrawKeyhole(KEYHOLE* pkeyhole, float uClosed)
 
 void DeleteKeyhole(KEYHOLE* pkeyhole)
 {
-    delete pkeyhole;
+    ReleaseWorldObject(pkeyhole);
 }
 
 // Release keyhole.c static initializer:

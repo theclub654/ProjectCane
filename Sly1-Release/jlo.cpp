@@ -8,7 +8,7 @@
 
 JLOVOL* NewJlovol()
 {
-	return new JLOVOL{};
+	return NewWorldObject<JLOVOL>();
 }
 
 void InitJlovol(JLOVOL* pjlovol)
@@ -109,12 +109,12 @@ void HandleJlovolMessage(JLOVOL* pjlovol, MSGID msgid, void* pv)
 
 void DeleteJlovol(JLOVOL* pjlovol)
 {
-	delete pjlovol;
+	ReleaseWorldObject(pjlovol);
 }
 
 JLO* NewJlo()
 {
-	return new JLO{};
+	return NewWorldObject<JLO>();
 }
 
 void InitJlo(JLO* pjlo)
@@ -732,12 +732,12 @@ void DeactivateJlo()
 
 void DeleteJlo(JLO *pjlo)
 {
-	delete pjlo;
+	ReleaseWorldObject(pjlo);
 }
 
 JLOC* NewJloc()
 {
-	return new JLOC{};
+	return NewWorldObject<JLOC>();
 }
 
 void InitJloc(JLOC* pjloc)
@@ -926,7 +926,7 @@ XFM* PxfmChooseJloc(JLOC* pjloc)
 
 void DeleteJloc(JLOC* pjloc)
 {
-	delete pjloc;
+	ReleaseWorldObject(pjloc);
 }
 
 JLO* g_pjloCur;

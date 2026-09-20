@@ -75,6 +75,7 @@ void SetTvSpeaker(TV* ptv, SPEAKER* pspeaker);
 void DrawTvArea(TV* ptv);
 void DrawTvBands(TV* ptv);
 void DrawTvOutline(TV* ptv);
+void FreeTvGL();
 
 extern TV g_tvRight;
 extern TV g_tvLeft;

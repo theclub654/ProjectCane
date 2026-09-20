@@ -1,5 +1,6 @@
 #include "bsp.h"
 #include "mark.h"
+#include "so.h"
 
 void ReadBspc(GEOM *pgeom, BSPC *pbspc, CBinaryInputStream *pbis)
 {
@@ -788,6 +789,22 @@ int ClsgClipLineToSphere(const glm::vec3* pposCenter, float radius, const glm::v
 
     plsg->lsgk = LSGK_EdgeToSphere;
     return 1;
+}
+
+int PbspPointInBspQuick(SO* pso, glm::vec3* ppos)
+{
+    if (pso->fSphere)
+    {
+        const glm::vec3 dpos = *ppos - pso->xf.posWorld;
+
+        if (glm::length(dpos) < pso->sRadiusSelf)
+            return 1;
+    }
+
+    if (pso->bspc.absp.empty())
+        return 0;
+
+    return PbspPointInBspQuick(ppos, pso->bspc.absp.data()) != nullptr;
 }
 
 BSP* PbspPointInBspQuick(glm::vec3* ppos, BSP* pbsp)

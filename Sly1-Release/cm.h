@@ -211,8 +211,6 @@ extern float R_SetCmSpring;
 extern float s_acCmClearSamples[9];
 extern glm::vec3 s_dposCmSquishMin;
 extern glm::vec3 s_dposCmSquishMax;
-extern float SV_CmSquishEyeSlack;
-extern float S_CmSquishEye;
 extern SMP s_smpSquishEye;
 extern SMPA s_smpaRadFOV;
 extern float g_uFogMax;

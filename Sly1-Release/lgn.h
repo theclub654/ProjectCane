@@ -97,7 +97,6 @@ void SetLgnLgns(LGN* plgn, LGNS lgns);
 void DeleteLgn(LGN* plgn);
 
 void StartupLgnr(LGNR* plgnr);
-//GOTTA COME BACK TO THIS
 void DrawLgnr(LGNR* plgnr);
 void UpdateLgnrAim(LGNR* plgnr, JOY* pjoy);
 

@@ -2,7 +2,7 @@
 
 HND* NewHnd()
 {
-	return new HND{};
+	return NewWorldObject<HND>();
 }
 
 void InitHnd(HND* phnd)
@@ -111,5 +111,5 @@ void LoadHndFromBrx(HND* phnd, CBinaryInputStream* pbis)
 
 void DeleteHnd(HND* phnd)
 {
-	delete phnd;
+	ReleaseWorldObject(phnd);
 }

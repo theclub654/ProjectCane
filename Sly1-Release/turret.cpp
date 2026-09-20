@@ -8,7 +8,7 @@
 
 TURRET* NewTurret()
 {
-	return new TURRET{};
+	return NewWorldObject<TURRET>();
 }
 
 int GetTurretSize()
@@ -23,7 +23,7 @@ void InitTurret(TURRET* pturret)
     pturret->lookk = LOOKK_Sniper;
 
     pturret->apsoTarget.resize(16);
-    pturret->aoidTarget.resize(16);
+    pturret->aoidTarget.reserve(16);
 
     pturret->lmTilt.gMin = -0.7;
     pturret->lmTilt.gMax = 0.7;
@@ -34,10 +34,10 @@ void InitTurret(TURRET* pturret)
 
 void AddTurretTargetOid(TURRET* pturret, int oidTarget)
 {
-    if (pturret->aoidTarget.size() < 16) 
+    if (pturret->cpsoTarget < 16)
     {
         pturret->aoidTarget.push_back(oidTarget);
-        pturret->cpsoTarget = (int)pturret->aoidTarget.size();
+        ++pturret->cpsoTarget;
     }
 }
 
@@ -104,6 +104,9 @@ void CloneTurret(TURRET* pturret, TURRET* pturretBase)
     pturret->fSetCameraMatrix = pturretBase->fSetCameraMatrix;
     pturret->field_0x630 = pturretBase->field_0x630;
     pturret->fTrack = pturretBase->fTrack;
+    pturret->cpsoTarget = pturretBase->cpsoTarget;
+    pturret->aoidTarget = pturretBase->aoidTarget;
+    pturret->apsoTarget.resize(16);
 }
 
 void PostTurretLoad(TURRET* pturret)
@@ -151,12 +154,12 @@ void UpdateTurret(TURRET* pturret, float dt)
 {
     UpdatePo(pturret, dt);
 
-    MURRAY* pmurray = pturret->pmurray;
+    JT* pjt = pturret->pjt;
 
-    if (pmurray == nullptr)
+    if (pjt == nullptr)
         return;
 
-    int hitReactionState = pmurray->pvtmurray->pfnJthsCurrentMurray(pmurray);
+    int hitReactionState = pjt->pvtjt->pfnJthsCurrentJt(pjt);
 
     if (hitReactionState == 0)
     {
@@ -172,7 +175,7 @@ void UpdateTurret(TURRET* pturret, float dt)
     {
         STEPGUARD* pstepguard = apstepguard[istepguard];
 
-        if (pstepguard != static_cast<STEPGUARD*>(pmurray) && pstepguard->sgs != SGS_Dying)
+        if (pstepguard != reinterpret_cast<STEPGUARD*>(pjt) && pstepguard->sgs != SGS_Dying)
             SetStepguardSgs(pstepguard, SGS_Taunt, nullptr);
     }
 
@@ -418,7 +421,7 @@ ALO* PloGetTurretFocus(TURRET* pturret)
 
 void DeleteTurret(TURRET *pturret)
 {
-	delete pturret;
+	ReleaseWorldObject(pturret);
 }
 
 SNIP s_asnipTurret[3] = 

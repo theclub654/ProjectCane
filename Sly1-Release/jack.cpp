@@ -178,6 +178,9 @@ JACKF* NewJackf()
 void InitJackf(JACKF* pjackf)
 {
 	InitAlo(pjackf);
+	pjackf->ajeRim = nullptr;
+	pjackf->ajepRim = nullptr;
+	pjackf->ajeGap = nullptr;
 }
 
 int GetJackfSize()
@@ -188,6 +191,12 @@ int GetJackfSize()
 void CloneJackf(JACKF* pjackf, JACKF* pjackfBase)
 {
     CloneAlo(pjackf, pjackfBase);
+
+    // CloneAlo copies the source fields wholesale. These arrays are owned by
+    // the JACKF instance, so never leave a clone pointing at the base arrays.
+    pjackf->ajeRim = nullptr;
+    pjackf->ajepRim = nullptr;
+    pjackf->ajeGap = nullptr;
 
     pjackf->pjack = pjackfBase->pjack;
     pjackf->cjeRim = pjackfBase->cjeRim;
@@ -237,5 +246,11 @@ void RenderJackfSelf(JACKF* pjackf, CM* pcm, RO* pro)
 
 void DeleteJackf(JACKF* pjackf)
 {
+	delete[] pjackf->ajeRim;
+	delete[] pjackf->ajepRim;
+	delete[] pjackf->ajeGap;
+	pjackf->ajeRim = nullptr;
+	pjackf->ajepRim = nullptr;
+	pjackf->ajeGap = nullptr;
 	delete pjackf;
 }

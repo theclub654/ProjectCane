@@ -106,6 +106,7 @@ int ClsgMergeAlsg(int clsg, LSG* alsg);
 int ClsgClipEdgeToObjects(glm::vec3* ppos0, glm::vec3* ppos1, std::vector<SO*>* papso, int clsgMax, LSG* alsg);
 int ClsgClipEdgeToObject(SO* pso, glm::vec3* ppos0, glm::vec3* ppos1, int clsgMax, LSG* alsg);
 int ClsgClipLineToSphere(const glm::vec3* pposCenter, float radius, const glm::vec3* ppos0, const glm::vec3* ppos1, int clsgMax, LSG* plsg);
+int PbspPointInBspQuick(SO* pso, glm::vec3* ppos);
 BSP* PbspPointInBspQuick(glm::vec3* ppos, BSP* pbsp);
 
 extern BSP  s_bspAlwaysPos;

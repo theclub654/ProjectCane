@@ -98,6 +98,8 @@ static constexpr float SVZ_JtFromWaterJump = 900.0f;
 static constexpr float SVZ_JtEdgeJump = 800.0f;
 static CLQ s_clqVzToVz = { 682.0f, 0.5f, 0.0f };
 static LM s_lmVz = { -FLT_MAX, 682.0f };
+static CLQ s_clqVzToVzBoost = { 682.0f, 1.0f, 0.0f };
+static LM s_lmVzBoost = { -FLT_MAX, 682.0f };
 
 inline constexpr float DT_JtJumpInit = 0.15f;    // 0x00263E50
 inline constexpr float SVXY_JtJumpMatchHeading = 300.0f;   // 0x00263E54

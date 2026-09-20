@@ -6,7 +6,7 @@
 
 RCHM* NewRchm()
 {
-    return new RCHM{};
+    return NewWorldObject<RCHM>();
 }
 
 void InitRchm(RCHM* prchm)
@@ -597,7 +597,7 @@ void TrackJtPipe(JT* pjt, RCHM* prchm, PIPE* ppipe, float* psPipe)
 
 void DeleteRchm(RCHM* prchm)
 {
-    delete prchm;
+    ReleaseWorldObject(prchm);
 }
 
 OID s_mprchsoid[2] =

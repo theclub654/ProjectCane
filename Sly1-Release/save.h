@@ -27,6 +27,9 @@ struct VIDEOSAVESETTINGS
     int windowMode;
     int vsyncEnabled;
     int aspectMode;
+    float guiScale;
+    int keyboardBindings[BTN_MAX];
+    int gamepadBindings[BTN_MAX];
 };
 
 struct SAVEDATA
@@ -37,8 +40,6 @@ struct SAVEDATA
     GS* pgsCurrentSave;
     GS* pgsAttractSave;
     GS* pgsSelectedSave;
-    VIDEOSAVESETTINGS videoSettings[SAVE_SLOT_COUNT];
-    bool hasVideoSettings[SAVE_SLOT_COUNT];
 };
 
 void StartupSaveBlot(SAVEBLOT* psaveblot);
@@ -47,6 +48,7 @@ void SetSaveBlots(SAVEBLOT* psaveblot, BLOTS blots);
 void DrawAutoSave(SAVEBLOT* psaveblot);
 
 void StartupSaveData(SAVEDATA* psaveData);
+bool SaveSystemSettings();
 bool SaveCurrentGameToDisk(SAVEDATA* psaveData);
 bool DeleteSaveSlotFromDisk(SAVEDATA* psaveData, int slot);
 void AutosaveCurrentGame(SAVEDATA* psaveData);

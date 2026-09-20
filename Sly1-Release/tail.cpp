@@ -2,13 +2,14 @@
 
 TAIL* NewTail()
 {
-	return new TAIL{};
+	return NewWorldObject<TAIL>();
 }
 
 void InitTail(TAIL* ptail)
 {
 	InitAlo(ptail);
     ptail->posTip = s_posTipDefault;
+    ptail->tUpdateConstraints = -1.0f;
 }
 
 void SetTailRSpring(TAIL* ptail, float rSpring)
@@ -112,6 +113,7 @@ void CloneTail(TAIL* ptail, TAIL* ptailBase)
     ptail->dvGravity = ptailBase->dvGravity;
     ptail->fUnlockRot = ptailBase->fUnlockRot;
     ptail->posTip = ptailBase->posTip;
+    ptail->tUpdateConstraints = -1.0f;
 }
 
 void PostTailLoad(TAIL* ptail)
@@ -185,6 +187,15 @@ void UpdateTailConstraints(TAIL* ptail)
 	if (ptail->atsd.empty() || ptail->ctsd <= 1)
 		return;
 
+	// A root tail can be reached through more than one constraint traversal.
+	// Retail advances its TSD chain once per game-clock tick; advancing it on
+	// every traversal applies the same dt repeatedly and makes the tail run at
+	// several times normal speed.
+	if (ptail->tUpdateConstraints == g_clock.t)
+		return;
+
+	ptail->tUpdateConstraints = g_clock.t;
+
 	const int itsdMic = ptail->fUnlockRot != 0 ? 1 : 2;
 	const int itsdFirstRot = itsdMic - 1;
 
@@ -252,7 +263,8 @@ void UpdateTailConstraints(TAIL* ptail)
 				TSD& tsd = ptail->atsd[i];
 
 				glm::vec3 dpos = tsd.pos - tsdPrev.pos;
-				const glm::vec3 dvLocal = tsd.v - tsdPrev.v;
+				const glm::vec3 vCurrent = tsd.v;
+				const glm::vec3 dvLocal = vCurrent - tsdPrev.v;
 
 				glm::vec3 normal;
 				const float rad = RadBetweenVectors(&dpos, &dposPrev, &normal);
@@ -270,9 +282,14 @@ void UpdateTailConstraints(TAIL* ptail)
 				const float rDampingLocal = std::min(1.0f, -ptail->rDampingLocal * dtStep);
 				const float rDampingWorld = std::min(1.0f, -ptail->rDampingWorld * dtStep);
 
-				tsd.v += dvLocal * rDampingLocal;
-				tsd.v += tsd.v * rDampingWorld;
-				tsd.v += dvSpring * (ptail->rSpring * rad * dtStep);
+				// Retail accumulates local damping, world damping, and spring
+				// acceleration from the same pre-step velocity. Applying these
+				// sequentially feeds the local term back through world damping and
+				// can make the tail oscillate violently during rapid reversals.
+				tsd.v = vCurrent
+					+ dvLocal * rDampingLocal
+					+ vCurrent * rDampingWorld
+					+ dvSpring * (ptail->rSpring * rad * dtStep);
 				tsd.pos += tsd.v * dtStep;
 
 				dposPrev = dpos;
@@ -355,7 +372,7 @@ void MatchTailOtherObject(TAIL* ptail, ALO* paloOther)
 
 void DeleteTail(TAIL* ptail)
 {
-	delete ptail;
+	ReleaseWorldObject(ptail);
 }
 
 glm::vec3 s_posTipDefault = {100.0, 0.0, 0.0};

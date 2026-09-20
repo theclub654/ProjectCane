@@ -1,6 +1,11 @@
 #include "boss.h"
 #include "render.h"
 
+namespace
+{
+    constexpr float kBossHudSize = 0.8f;
+}
+
 void StartupBoss(BOSS* pboss)
 {
 	pboss->pvtboss = &g_vtboss;
@@ -13,7 +18,7 @@ void PostBossLoad(BOSS* pboss)
     pboss->pfont = PfontFromFont(4);
     // The retail UI coordinates are expanded by the PS2 display path.  Blots
     // rendered directly in window pixels need that scale applied explicitly.
-    pboss->rFontScale = 1.5f;
+    pboss->rFontScale = 1.5f * kBossHudSize;
     pboss->uHealthDisplay = 0.0f;
     pboss->uHealthTarget = 1.0f;
 
@@ -104,6 +109,21 @@ void DecrementBossHealth(BOSS* pboss)
 
 void DrawBoss(BOSS* pboss)
 {
+    const float uiScale = (static_cast<float>(g_gl.height) / 480.0f) * kBossHudSize;
+    pboss->rFontScale = uiScale;
+    pboss->xHealthBar = 18.0f * uiScale;
+    pboss->yHealthBar = 8.0f * uiScale;
+    pboss->dxHealthBar = 26.0f * uiScale;
+    pboss->dyHealthBar = 340.0f * uiScale;
+
+    pboss->pfont->PushScaling(uiScale, uiScale);
+    const float dyPhaseCount = static_cast<float>(pboss->pfont->m_dyUnscaled) *
+        pboss->pfont->m_ryScale;
+    const float dyHealthGlyph = pboss->pfont->DxFromCh('z');
+    const float sSpacing = 5.0f * uiScale;
+    const float dyBoss = dyHealthGlyph + dyPhaseCount + sSpacing;
+    const float yPhaseCount = dyHealthGlyph + sSpacing + dyPhaseCount * 0.5f;
+
     float uFlash = 0.0f;
     bool fShake = false;
 
@@ -122,9 +142,12 @@ void DrawBoss(BOSS* pboss)
     const float dyHealthFilled = pboss->uHealthDisplay * pboss->dyHealthBar;
     const float dyHealthEmpty = pboss->dyHealthBar - dyHealthFilled;
 
+    // A left-edge boss blot is centered vertically as one group: the tall
+    // health meter followed by the phase icon beneath it.
+    const float yBoss = (static_cast<float>(g_gl.height) - dyBoss) * 0.5f;
     const float xHealthLeft = pboss->x + pboss->xHealthBar;
     const float xHealthRight = xHealthLeft + pboss->dxHealthBar;
-    const float yHealthTop = pboss->y + pboss->yHealthBar;
+    const float yHealthTop = yBoss + pboss->yHealthBar;
     const float yHealthFilled = yHealthTop + dyHealthEmpty;
     const float yHealthBottom = yHealthFilled + dyHealthFilled;
 	const float sHealthBorder = 2.0f * pboss->rFontScale;
@@ -153,8 +176,6 @@ void DrawBoss(BOSS* pboss)
 
     FillScreenRect(red, green, blue, alpha, xHealthLeft, yHealthFilled, xHealthRight, yHealthBottom);
 
-    pboss->pfont->PushScaling(pboss->rFontScale, pboss->rFontScale);
-
     float dxShake = 0.0f;
     float dyShake = 0.0f;
 
@@ -170,8 +191,12 @@ void DrawBoss(BOSS* pboss)
         '\0'
     };
 
+    const float dxPhaseCount = pboss->pfont->DxFromCh(achzPhaseCount[0]);
+    const float xPhaseCount = xHealthLeft +
+        (pboss->dxHealthBar - dxPhaseCount) * 0.5f;
+
     CTextBox tbxPhaseCount{};
-    tbxPhaseCount.SetPos(pboss->x + pboss->xPhaseCount + dxShake, pboss->y + pboss->yPhaseCount + dyShake);
+    tbxPhaseCount.SetPos(xPhaseCount + dxShake, yBoss + yPhaseCount + dyShake);
     tbxPhaseCount.SetSize(0.0f, 0.0f);
     tbxPhaseCount.SetTextColor(&pboss->rgba);
     tbxPhaseCount.SetHorizontalJust(JH_Left);

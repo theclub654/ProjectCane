@@ -6,7 +6,7 @@
 
 BRK* NewBrk()
 {
-	return new BRK{};
+	return NewWorldObject<BRK>();
 }
 
 void InitBrk(BRK* pbrk)
@@ -737,12 +737,12 @@ int FCheckBrkTouchObject(BRK* pbrk, SO* psoRoot)
 
 void DeleteBrk(BRK *pbrk)
 {
-	delete pbrk;
+	ReleaseWorldObject(pbrk);
 }
 
 BRKP* NewBrkp()
 {
-	return new BRKP{};
+	return NewWorldObject<BRKP>();
 }
 
 void SetBrkpDtMaxLifetime(BRKP* pbrkp, float dtMaxLifetime)
@@ -861,12 +861,12 @@ void* GetBrkpBrkps(BRKP* pbrkp)
 
 void DeleteBrkp(BRKP* pbrkp)
 {
-	delete pbrkp;
+	ReleaseWorldObject(pbrkp);
 }
 
 BREAK* NewBreak()
 {
-	return new BREAK{};
+	return NewWorldObject<BREAK>();
 }
 
 void InitBreak(BREAK* pbreak)
@@ -889,12 +889,12 @@ void CloneBreak(BREAK* pbreak, BREAK* pbreakBase)
 
 void DeleteBreak(BREAK* pbreak)
 {
-	delete pbreak;
+	ReleaseWorldObject(pbreak);
 }
 
 FRAGILE* NewFragile()
 {
-	return new FRAGILE{};
+	return NewWorldObject<FRAGILE>();
 }
 
 void InitFragile(FRAGILE* pfragile)
@@ -989,12 +989,12 @@ void CloneFragile(FRAGILE* pfragile, FRAGILE* pfragileBase)
 
 void DeleteFragile(FRAGILE* pfragile)
 {
-	delete pfragile;
+	ReleaseWorldObject(pfragile);
 }
 
 ZAPBREAK* NewZapbreak()
 {
-	return new ZAPBREAK{};
+	return NewWorldObject<ZAPBREAK>();
 }
 
 int GetZapbreakSize()
@@ -1053,5 +1053,5 @@ void UpdateZapbreak(ZAPBREAK* pzapbreak, float dt)
 
 void DeleteZapbreak(ZAPBREAK* pzapbreak)
 {
-	delete pzapbreak;
+	ReleaseWorldObject(pzapbreak);
 }

@@ -33,7 +33,7 @@ namespace
 
 THNDFLASH* NewThndFlash()
 {
-    return new THNDFLASH{};
+    return NewWorldObject<THNDFLASH>();
 }
 
 int GetThndFlashSize()
@@ -115,5 +115,5 @@ void DrawThndFlash(RPL* prpl)
 
 void DeleteThndFlash(THNDFLASH* pthndflash)
 {
-    delete pthndflash;
+    ReleaseWorldObject(pthndflash);
 }

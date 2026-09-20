@@ -8,7 +8,7 @@
 
 BUTTON* NewButton()
 {
-	return new BUTTON{};
+	return NewWorldObject<BUTTON>();
 }
 
 void InitButton(BUTTON* pbutton)
@@ -624,7 +624,7 @@ int FAbsorbButtonWkr(BUTTON* pbutton, WKR* pwkr)
 
 void DeleteButton(BUTTON *pbutton)
 {
-	delete pbutton;
+	ReleaseWorldObject(pbutton);
 }
 
 void PostAshLoad(SW* psw, ASH* pash, ALO* paloOwner)
@@ -797,16 +797,16 @@ void TriggerRsmg(SW* psw, int crsmg, RSMG* arsmg, LO* ploContext, int fTrigger)
     {
         RSMG* prsmg = &arsmg[irsmg];
         LO* ploRoot = nullptr;
+		const int found = CploFindSwObjects(psw, 772, prsmg->oidRoot, ploContext, 1, &ploRoot);
+		const OID oidGoal = fTrigger ? prsmg->oidTriggerGoal : prsmg->oidUntriggerGoal;
 
-        if (CploFindSwObjects(psw, 772, prsmg->oidRoot, ploContext, 1, &ploRoot) != 1)
+        if (found != 1)
             return;
 
         SMA* psma = PsmaFindAlo((ALO*)ploRoot, prsmg->oidSM);
 
         if (psma == nullptr)
             continue;
-
-        OID oidGoal = fTrigger ? prsmg->oidTriggerGoal : prsmg->oidUntriggerGoal;
 
         if (oidGoal != OID_Nil)
             SetSmaGoal(psma, oidGoal);
@@ -883,7 +883,7 @@ void UntriggerBtn(BTN* pbtn, int fSeekToEnd)
 
 VOLBTN* NewVolbtn()
 {
-	return new VOLBTN{};
+	return NewWorldObject<VOLBTN>();
 }
 
 void InitVolbtn(VOLBTN* pvolbtn)
@@ -1190,7 +1190,7 @@ int FGetVolbtnPushObjectsWithinList(VOLBTN* pvolbtn, void* pvstate)
 
 void DeleteVolbtn(VOLBTN* pvolbtn)
 {
-	delete pvolbtn;
+	ReleaseWorldObject(pvolbtn);
 }
 
 void AddBtnAseg(BTN* pbtn, ALO* palo, OID oid)

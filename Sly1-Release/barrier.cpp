@@ -5,7 +5,7 @@
 
 BARRIER* NewBarrier()
 {
-	return new BARRIER{};
+	return NewWorldObject<BARRIER>();
 }
 
 void InitBarrier(BARRIER* pbarrier)
@@ -174,6 +174,9 @@ void NotifyBarrierImpact(BARRIER* pbarrier, XP* pxp, int ixpd)
 {
     HandleLoSpliceEvent((LO*)pbarrier, 2, 0, nullptr);
 
+    void* apvArgs[1] = { &pxp->axpd[1 - ixpd].psoLeaf };
+    HandleLoSpliceEvent((LO*)pbarrier, 29, 1, apvArgs);
+
     if (pbarrier->barwarp.bwk == BWK_None || pbarrier->psoWarp != nullptr) {
         return;
     }
@@ -228,5 +231,5 @@ int GetBarrierSize()
 
 void DeleteBarrier(BARRIER* pbarrier)
 {
-	delete pbarrier;
+	ReleaseWorldObject(pbarrier);
 }

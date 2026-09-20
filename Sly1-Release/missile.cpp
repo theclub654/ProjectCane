@@ -2,7 +2,7 @@
 
 MISSILE* NewMissile()
 {
-	return new MISSILE{};
+	return NewWorldObject<MISSILE>();
 }
 
 void InitMissile(MISSILE* pmissile)
@@ -84,6 +84,17 @@ void CloneMissile(MISSILE* pmissile, MISSILE* pmissileBase)
 	pmissile->pasegFire = pmissileBase->pasegFire;
 	pmissile->pasegaCur = pmissileBase->pasegaCur;
 	pmissile->fFollowTrajectory = pmissileBase->fFollowTrajectory;
+	pmissile->coidIgnore = pmissileBase->coidIgnore;
+
+	for (int i = 0; i < 4; ++i)
+		pmissile->aoidIgnore[i] = pmissileBase->aoidIgnore[i];
+
+	pmissile->ccidIgnore = pmissileBase->ccidIgnore;
+
+	for (int i = 0; i < 4; ++i)
+		pmissile->acidIgnore[i] = pmissileBase->acidIgnore[i];
+
+	pmissile->psoIgnore = pmissileBase->psoIgnore;
 }
 
 void ProjectMissileTransform(MISSILE* pmissile, float dt, int fParentDirty)
@@ -196,12 +207,12 @@ void AddMissileIgnoreClass(MISSILE* pmissile, CID cid)
 
 void DeleteMissile(MISSILE *pmissile)
 {
-	delete pmissile;
+	ReleaseWorldObject(pmissile);
 }
 
 ACCMISS* NewAccmiss()
 {
-	return new ACCMISS{};
+	return NewWorldObject<ACCMISS>();
 }
 
 void InitAccmiss(ACCMISS* paccmiss)
@@ -248,12 +259,12 @@ void PresetAccmissAccel(ACCMISS* paccmiss, float dt)
 
 void DeleteAccmiss(ACCMISS* paccmiss)
 {
-	delete paccmiss;
+	ReleaseWorldObject(paccmiss);
 }
 
 TARMISS* NewTarmiss()
 {
-	return new TARMISS{};
+	return NewWorldObject<TARMISS>();
 }
 
 void InitTarmiss(TARMISS* ptarmiss)
@@ -420,7 +431,7 @@ void ProjectTarmissTransform(TARMISS* ptarmiss, float dt, int fParentDirty)
 
 void DeleteTarmiss(TARMISS *ptarmiss)
 {
-	delete ptarmiss;
+	ReleaseWorldObject(ptarmiss);
 }
 
 SPLMISS* NewSplmiss()

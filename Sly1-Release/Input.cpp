@@ -1,27 +1,108 @@
 #include "Input.h"
 
-bool JOY::FindGamepad()
+namespace
 {
-    if (gamepadConnected && joystickId >= GLFW_JOYSTICK_1 && joystickId <= GLFW_JOYSTICK_LAST &&
-        glfwJoystickPresent(joystickId) && glfwJoystickIsGamepad(joystickId))
+constexpr std::array<int, BTN_MAX> kDefaultKeyboardBindings =
+{
+    GLFW_KEY_W, GLFW_KEY_S, GLFW_KEY_A, GLFW_KEY_D,
+    GLFW_KEY_J, GLFW_KEY_L, GLFW_KEY_K, GLFW_KEY_I,
+    GLFW_KEY_ENTER, GLFW_KEY_BACKSPACE,
+    GLFW_KEY_Q, GLFW_KEY_E, GLFW_KEY_Z, GLFW_KEY_C,
+    GLFW_KEY_UNKNOWN, GLFW_KEY_UNKNOWN
+};
+
+constexpr std::array<int, BTN_MAX> kDefaultGamepadBindings =
+{
+    GLFW_GAMEPAD_BUTTON_DPAD_UP, GLFW_GAMEPAD_BUTTON_DPAD_DOWN,
+    GLFW_GAMEPAD_BUTTON_DPAD_LEFT, GLFW_GAMEPAD_BUTTON_DPAD_RIGHT,
+    GLFW_GAMEPAD_BUTTON_X, GLFW_GAMEPAD_BUTTON_B,
+    GLFW_GAMEPAD_BUTTON_A, GLFW_GAMEPAD_BUTTON_Y,
+    GLFW_GAMEPAD_BUTTON_START, GLFW_GAMEPAD_BUTTON_BACK,
+    GLFW_GAMEPAD_BUTTON_LEFT_BUMPER, GLFW_GAMEPAD_BUTTON_RIGHT_BUMPER,
+    GAMEPAD_BINDING_LEFT_TRIGGER, GAMEPAD_BINDING_RIGHT_TRIGGER,
+    GLFW_GAMEPAD_BUTTON_LEFT_THUMB, GLFW_GAMEPAD_BUTTON_RIGHT_THUMB
+};
+
+float GamepadActivity(const GLFWgamepadstate& state)
+{
+    float activity = 0.0f;
+
+    for (int button = 0; button <= GLFW_GAMEPAD_BUTTON_LAST; ++button)
     {
-        return true;
+        if (state.buttons[button] == GLFW_PRESS)
+            activity = (std::max)(activity, 2.0f);
     }
 
-    joystickId = JOYID_Nil;
-    gamepadConnected = false;
+    activity = (std::max)(activity, std::abs(state.axes[GLFW_GAMEPAD_AXIS_LEFT_X]));
+    activity = (std::max)(activity, std::abs(state.axes[GLFW_GAMEPAD_AXIS_LEFT_Y]));
+    activity = (std::max)(activity, std::abs(state.axes[GLFW_GAMEPAD_AXIS_RIGHT_X]));
+    activity = (std::max)(activity, std::abs(state.axes[GLFW_GAMEPAD_AXIS_RIGHT_Y]));
 
-    for (int jid = GLFW_JOYSTICK_1; jid <= GLFW_JOYSTICK_LAST; ++jid)
+    // GLFW trigger axes rest at -1. Convert them to a zero-to-one range so
+    // an untouched trigger does not make every connected pad look active.
+    activity = (std::max)(activity,
+        (state.axes[GLFW_GAMEPAD_AXIS_LEFT_TRIGGER] + 1.0f) * 0.5f);
+    activity = (std::max)(activity,
+        (state.axes[GLFW_GAMEPAD_AXIS_RIGHT_TRIGGER] + 1.0f) * 0.5f);
+
+    return activity;
+}
+
+const char* PchzKeyboardKeyNameInternal(int key)
+{
+    switch (key)
     {
-        if (glfwJoystickPresent(jid) && glfwJoystickIsGamepad(jid))
-        {
-            joystickId = jid;
-            gamepadConnected = true;
-            return true;
-        }
+    case GLFW_KEY_UNKNOWN: return "Unbound";
+    case GLFW_KEY_SPACE: return "Space";
+    case GLFW_KEY_ENTER: return "Enter";
+    case GLFW_KEY_TAB: return "Tab";
+    case GLFW_KEY_BACKSPACE: return "Backspace";
+    case GLFW_KEY_LEFT_SHIFT: return "Left Shift";
+    case GLFW_KEY_RIGHT_SHIFT: return "Right Shift";
+    case GLFW_KEY_LEFT_CONTROL: return "Left Ctrl";
+    case GLFW_KEY_RIGHT_CONTROL: return "Right Ctrl";
+    case GLFW_KEY_LEFT_ALT: return "Left Alt";
+    case GLFW_KEY_RIGHT_ALT: return "Right Alt";
+    case GLFW_KEY_UP: return "Up Arrow";
+    case GLFW_KEY_DOWN: return "Down Arrow";
+    case GLFW_KEY_LEFT: return "Left Arrow";
+    case GLFW_KEY_RIGHT: return "Right Arrow";
+    default:
+        if (const char* name = glfwGetKeyName(key, 0))
+            return name;
+        return "Key";
     }
+}
+}
 
-    return false;
+const char* PchzKeyboardKeyName(int key)
+{
+    return PchzKeyboardKeyNameInternal(key);
+}
+
+const char* PchzGamepadBindingName(int binding)
+{
+    switch (binding)
+    {
+    case GLFW_GAMEPAD_BUTTON_A: return "A / Cross";
+    case GLFW_GAMEPAD_BUTTON_B: return "B / Circle";
+    case GLFW_GAMEPAD_BUTTON_X: return "X / Square";
+    case GLFW_GAMEPAD_BUTTON_Y: return "Y / Triangle";
+    case GLFW_GAMEPAD_BUTTON_LEFT_BUMPER: return "Left Bumper";
+    case GLFW_GAMEPAD_BUTTON_RIGHT_BUMPER: return "Right Bumper";
+    case GLFW_GAMEPAD_BUTTON_BACK: return "Back / Select";
+    case GLFW_GAMEPAD_BUTTON_START: return "Start";
+    case GLFW_GAMEPAD_BUTTON_GUIDE: return "Guide";
+    case GLFW_GAMEPAD_BUTTON_LEFT_THUMB: return "Left Stick";
+    case GLFW_GAMEPAD_BUTTON_RIGHT_THUMB: return "Right Stick";
+    case GLFW_GAMEPAD_BUTTON_DPAD_UP: return "D-Pad Up";
+    case GLFW_GAMEPAD_BUTTON_DPAD_RIGHT: return "D-Pad Right";
+    case GLFW_GAMEPAD_BUTTON_DPAD_DOWN: return "D-Pad Down";
+    case GLFW_GAMEPAD_BUTTON_DPAD_LEFT: return "D-Pad Left";
+    case GAMEPAD_BINDING_LEFT_TRIGGER: return "Left Trigger";
+    case GAMEPAD_BINDING_RIGHT_TRIGGER: return "Right Trigger";
+    default: return "Unbound";
+    }
 }
 
 void JOY::Update(GLFWwindow* window)
@@ -33,20 +114,12 @@ void JOY::Update(GLFWwindow* window)
     for (int button = 0; button < BTN_MAX; ++button)
         current[static_cast<JOY_BUTTON>(button)] = false;
 
-    current[BTN_UP] = glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS;
-    current[BTN_DOWN] = glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS;
-    current[BTN_LEFT] = glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS;
-    current[BTN_RIGHT] = glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS;
-    current[BTN_SQUARE] = glfwGetKey(window, GLFW_KEY_J) == GLFW_PRESS;
-    current[BTN_CROSS] = glfwGetKey(window, GLFW_KEY_K) == GLFW_PRESS;
-    current[BTN_CIRCLE] = glfwGetKey(window, GLFW_KEY_L) == GLFW_PRESS;
-    current[BTN_TRIANGLE] = glfwGetKey(window, GLFW_KEY_I) == GLFW_PRESS;
-    current[BTN_START] = glfwGetKey(window, GLFW_KEY_ENTER) == GLFW_PRESS;
-    current[BTN_SELECT] = glfwGetKey(window, GLFW_KEY_BACKSPACE) == GLFW_PRESS;
-    current[BTN_L1] = glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS;
-    current[BTN_R1] = glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS;
-    current[BTN_L2] = glfwGetKey(window, GLFW_KEY_Z) == GLFW_PRESS;
-    current[BTN_R2] = glfwGetKey(window, GLFW_KEY_C) == GLFW_PRESS;
+    for (int button = 0; button < BTN_MAX; ++button)
+    {
+        const int key = g_keyboardBindings[button];
+        if (key != GLFW_KEY_UNKNOWN)
+            current[static_cast<JOY_BUTTON>(button)] = glfwGetKey(window, key) == GLFW_PRESS;
+    }
 
     float xRaw = 0.0f;
     float yRaw = 0.0f;
@@ -54,25 +127,52 @@ void JOY::Update(GLFWwindow* window)
     float y2Raw = 0.0f;
 
     GLFWgamepadstate state{};
+    bool haveGamepadState = false;
+    int activeJoystickId = JOYID_Nil;
+    float bestActivity = -1.0f;
 
-    if (FindGamepad() && glfwGetGamepadState(joystickId, &state))
+    // Steam may leave an idle virtual gamepad in a lower joystick slot than
+    // the physical controller. Poll every mapped gamepad and prefer a device
+    // that is actually receiving input instead of permanently binding to the
+    // first slot returned by GLFW.
+    for (int jid = GLFW_JOYSTICK_1; jid <= GLFW_JOYSTICK_LAST; ++jid)
     {
-        current[BTN_UP] = current[BTN_UP] || state.buttons[GLFW_GAMEPAD_BUTTON_DPAD_UP] == GLFW_PRESS;
-        current[BTN_DOWN] = current[BTN_DOWN] || state.buttons[GLFW_GAMEPAD_BUTTON_DPAD_DOWN] == GLFW_PRESS;
-        current[BTN_LEFT] = current[BTN_LEFT] || state.buttons[GLFW_GAMEPAD_BUTTON_DPAD_LEFT] == GLFW_PRESS;
-        current[BTN_RIGHT] = current[BTN_RIGHT] || state.buttons[GLFW_GAMEPAD_BUTTON_DPAD_RIGHT] == GLFW_PRESS;
-        current[BTN_CROSS] = current[BTN_CROSS] || state.buttons[GLFW_GAMEPAD_BUTTON_A] == GLFW_PRESS;
-        current[BTN_CIRCLE] = current[BTN_CIRCLE] || state.buttons[GLFW_GAMEPAD_BUTTON_B] == GLFW_PRESS;
-        current[BTN_SQUARE] = current[BTN_SQUARE] || state.buttons[GLFW_GAMEPAD_BUTTON_X] == GLFW_PRESS;
-        current[BTN_TRIANGLE] = current[BTN_TRIANGLE] || state.buttons[GLFW_GAMEPAD_BUTTON_Y] == GLFW_PRESS;
-        current[BTN_L1] = current[BTN_L1] || state.buttons[GLFW_GAMEPAD_BUTTON_LEFT_BUMPER] == GLFW_PRESS;
-        current[BTN_R1] = current[BTN_R1] || state.buttons[GLFW_GAMEPAD_BUTTON_RIGHT_BUMPER] == GLFW_PRESS;
-        current[BTN_SELECT] = current[BTN_SELECT] || state.buttons[GLFW_GAMEPAD_BUTTON_BACK] == GLFW_PRESS;
-        current[BTN_START] = current[BTN_START] || state.buttons[GLFW_GAMEPAD_BUTTON_START] == GLFW_PRESS;
-        current[BTN_L3] = state.buttons[GLFW_GAMEPAD_BUTTON_LEFT_THUMB] == GLFW_PRESS;
-        current[BTN_R3] = state.buttons[GLFW_GAMEPAD_BUTTON_RIGHT_THUMB] == GLFW_PRESS;
-        current[BTN_L2] = current[BTN_L2] || state.axes[GLFW_GAMEPAD_AXIS_LEFT_TRIGGER] > 0.25f;
-        current[BTN_R2] = current[BTN_R2] || state.axes[GLFW_GAMEPAD_AXIS_RIGHT_TRIGGER] > 0.25f;
+        if (!glfwJoystickPresent(jid) || !glfwJoystickIsGamepad(jid))
+            continue;
+
+        GLFWgamepadstate candidate{};
+        if (!glfwGetGamepadState(jid, &candidate))
+            continue;
+
+        float activity = GamepadActivity(candidate);
+        if (jid == joystickId)
+            activity += 0.01f;
+
+        if (!haveGamepadState || activity > bestActivity)
+        {
+            state = candidate;
+            activeJoystickId = jid;
+            bestActivity = activity;
+            haveGamepadState = true;
+        }
+    }
+
+    if (haveGamepadState)
+    {
+        joystickId = activeJoystickId;
+        gamepadConnected = true;
+        for (int button = 0; button < BTN_MAX; ++button)
+        {
+            const int binding = g_gamepadBindings[button];
+            bool held = false;
+            if (binding >= 0 && binding <= GLFW_GAMEPAD_BUTTON_LAST)
+                held = state.buttons[binding] == GLFW_PRESS;
+            else if (binding == GAMEPAD_BINDING_LEFT_TRIGGER)
+                held = state.axes[GLFW_GAMEPAD_AXIS_LEFT_TRIGGER] > 0.25f;
+            else if (binding == GAMEPAD_BINDING_RIGHT_TRIGGER)
+                held = state.axes[GLFW_GAMEPAD_AXIS_RIGHT_TRIGGER] > 0.25f;
+            current[static_cast<JOY_BUTTON>(button)] = current[static_cast<JOY_BUTTON>(button)] || held;
+        }
 
         xRaw = state.axes[GLFW_GAMEPAD_AXIS_LEFT_X];
         // STEP/JT expects the original PlayStation convention: forward is
@@ -312,3 +412,5 @@ JOY g_joyZero{};
 int g_grfjoyt;
 GRFUSR g_grfusr;
 int vibrationSetting = 1;
+std::array<int, BTN_MAX> g_keyboardBindings = kDefaultKeyboardBindings;
+std::array<int, BTN_MAX> g_gamepadBindings = kDefaultGamepadBindings;

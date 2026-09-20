@@ -487,7 +487,10 @@ void PostFmvMenuLoad(FMVMENU* pfmvmenu)
     }
 
     if (pfmvmenu->pfont != nullptr)
-        pfmvmenu->pfont = pfmvmenu->pfont->PfontClone(1.0f, 1.0f);
+    {
+        pfmvmenu->pfontOwned = pfmvmenu->pfont->PfontClone(1.0f, 1.0f);
+        pfmvmenu->pfont = pfmvmenu->pfontOwned.get();
+    }
 
     pfmvmenu->rgba = glm::vec4(127.0f / 255.0f, 127.0f / 255.0f,
                                127.0f / 255.0f, 223.0f / 255.0f);

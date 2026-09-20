@@ -5,6 +5,8 @@
 #include "util.h"
 #include "clock.h"
 #include <bitset>
+#include <memory>
+#include <vector>
 class CFrame;
 
 enum MSGID
@@ -156,6 +158,19 @@ class LO : public BASIC
     std::shared_ptr <PXR> ppxr;
 };
 
+extern std::vector<std::shared_ptr<LO>> allWorldObjs;
+
+template <class T>
+T* NewWorldObject()
+{
+    auto pobj = std::make_shared<T>();
+    T* pobjRaw = pobj.get();
+    allWorldObjs.emplace_back(std::move(pobj));
+    return pobjRaw;
+}
+
+void ReleaseWorldObject(LO* plo);
+
 // Creates a new local object
 LO* NewLo();
 // Initializes Local Object
@@ -211,7 +226,6 @@ void UnsubscribeLoStruct(LO* plo, void* pfnmq, void* pvContext);
 int  GetLoSize();
 void DeleteLo(LO* plo);
 
-extern std::vector <LO*> allWorldObjs;
 extern OTYP s_aotypEvtParm[44];
 extern int  s_aiEvtParm[27];
 #if !defined(ALO_BUILDING) && !defined(CPLCY_BUILDING)

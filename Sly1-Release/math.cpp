@@ -95,15 +95,24 @@ void DecomposeRotateMatrixRad(glm::mat3* pmat, float* prad, glm::vec3* pnormal)
 		return;
 	}
 
-	float x = std::sqrt(std::max(0.0f, std::abs((m[0][0] - c) / (1.0f - c))));
-	float y = std::sqrt(std::max(0.0f, std::abs((m[1][1] - c) / (1.0f - c))));
-	float z = std::sqrt(std::max(0.0f, 1.0f - x * x - y * y));
+	// Match retail's sequential reconstruction. Each squared component is
+	// limited by the unit-axis length left by the preceding components.
+	float remaining = 1.0f;
+	const float x2 = std::clamp(std::abs((m[0][0] - c) / (1.0f - c)), 0.0f, remaining);
+	const float x = std::sqrt(x2);
+	remaining -= x2;
+
+	const float y2 = std::clamp(std::abs((m[1][1] - c) / (1.0f - c)), 0.0f, remaining);
+	const float y = std::sqrt(y2);
+	remaining -= y2;
+
+	const float z = std::sqrt(remaining);
 
 	*pnormal = glm::vec3(x, y, z);
 
-	if (c >= -0.999999f)
+	if (c >= -0.9999f)
 	{
-		*prad = std::acos(c);
+		*prad = std::acos(std::clamp(c, -1.0f, 1.0f));
 
 		if (m[0][1] < m[1][0])
 			pnormal->z = -pnormal->z;

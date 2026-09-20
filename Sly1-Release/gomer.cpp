@@ -6,7 +6,7 @@
 
 GOMER* NewGomer()
 {
-	return new GOMER{};
+	return NewWorldObject<GOMER>();
 }
 
 void InitGomer(GOMER* pgomer)
@@ -248,5 +248,5 @@ int FDetectGomer(GOMER* pgomer)
 }
 void DeleteGomer(GOMER* pgomer)
 {
-	delete pgomer;
+	ReleaseWorldObject(pgomer);
 }

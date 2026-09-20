@@ -4,11 +4,14 @@
 #include "alarm.h"
 #include "actla.h"
 #include "loop.h"
+#include <cstdio>
+#include <unordered_map>
+#include <unordered_set>
 
 
 SENSOR* NewSensor()
 {
-	return new SENSOR{};
+	return NewWorldObject<SENSOR>();
 }
 
 void InitSensor(SENSOR* psensor)
@@ -270,12 +273,12 @@ void AddSensorNoTriggerClass(SENSOR* psensor, int cid)
 
 void DeleteSensor(SENSOR* psensor)
 {
-	delete psensor;
+	ReleaseWorldObject(psensor);
 }
 
 LASEN* NewLasen()
 {
-	return new LASEN{};
+	return NewWorldObject<LASEN>();
 }
 
 void InitSwLasenDl(SW* psw)
@@ -1049,12 +1052,12 @@ void ExtendLasen(LASEN* plasen, float dtExpand)
 
 void DeleteLasen(LASEN* plasen)
 {
-	delete plasen;
+	ReleaseWorldObject(plasen);
 }
 
 CAMSEN* NewCamsen()
 {
-	return new CAMSEN{};
+	return NewWorldObject<CAMSEN>();
 }
 
 void InitCamsen(CAMSEN* pcamsen)
@@ -1437,23 +1440,9 @@ void SenseCamsen(CAMSEN* pcamsen, SENSORS* psensors)
 		return;
 	}
 
-	bool fInsideSensor = false;
 	glm::vec3 posJt = g_pjt->xf.posWorld;
-	const float sDistance = glm::length(posJt - pcamsen->xf.posWorld);
-	bool fInsideBsp = false;
 
-	if (pcamsen->fSphere != 0) {
-		if (sDistance < pcamsen->sRadiusSelf) {
-			fInsideSensor = true;
-		}
-	}
-
-	if (!fInsideSensor && pcamsen->bspc.absp.size() != 0) {
-		fInsideBsp = PbspPointInBspQuick(&posJt, pcamsen->bspc.absp.data()) != nullptr;
-		fInsideSensor = fInsideBsp;
-	}
-
-	if (!fInsideSensor) {
+	if (!PbspPointInBspQuick(pcamsen, &posJt)) {
 		return;
 	}
 
@@ -1483,6 +1472,10 @@ void SenseCamsen(CAMSEN* pcamsen, SENSORS* psensors)
 		// Release values: jthk 2 is the basket and jtbs 16 is its stationary
 		// hide state. The proto-named JTBS_Hide_Stand value is shifted here.
 		if ((int)g_pjt->jthk == 2 && (int)g_pjt->jtbs == 16) {
+			return;
+		}
+
+		if ((int)g_pjt->jthk == 3) {
 			return;
 		}
 	}
@@ -1592,12 +1585,12 @@ void SetCamsenCsdts(CAMSEN* pcamsen, CSDTS csdts)
 
 void DeleteCamsen(CAMSEN* pcamsen)
 {
-	delete pcamsen;
+	ReleaseWorldObject(pcamsen);
 }
 
 PRSEN* NewPrsen()
 {
-	return new PRSEN{};
+	return NewWorldObject<PRSEN>();
 }
 
 void InitPrsen(PRSEN* pprsen)
@@ -1802,8 +1795,18 @@ void ClonePrsen(PRSEN* pprsen, PRSEN* pprsenBase)
 	pprsen->tSensePrev = pprsenBase->tSensePrev;
 	pprsen->fTriggered = pprsenBase->fTriggered;
 
-	// Shallow copy of pointer members
-	pprsen->ploop = pprsenBase->ploop;
+	// CloneGlob duplicates instanced shader animations.  Resolve the runtime
+	// PRSEN loop from this clone's globset; retaining the base pointer makes all
+	// cloned sensors overwrite the same animation frame.
+	pprsen->ploop = nullptr;
+	for (SAA* saa : pprsen->globset.apsaa)
+	{
+		if (saa != nullptr && saa->saak == SAAK_Loop && saa->sai.pshd != nullptr)
+		{
+			pprsen->ploop = static_cast<LOOP*>(saa);
+			break;
+		}
+	}
 }
 
 void PostPrsenLoad(PRSEN* pprsen)
@@ -1989,9 +1992,9 @@ void OnPrsenAlarmTriggered(PRSEN* pprsen)
 
 void SetPrsenSensors(PRSEN* pprsen, SENSORS sensors)
 {
-	if (pprsen->sensors == sensors) {
-		return;
-	}
+    if (pprsen->sensors == sensors) {
+        return;
+    }
 
 	switch (pprsen->sensors) 
 	{
@@ -2029,11 +2032,11 @@ void SetPrsenSensors(PRSEN* pprsen, SENSORS sensors)
 		break;
 	}
 
-	SetSensorSensors(pprsen, sensors);
+    SetSensorSensors(pprsen, sensors);
 
-	if (!pprsen->fTriggered) {
-		return;
-	}
+    if (!pprsen->fTriggered) {
+        return;
+    }
 
 	switch (sensors) 
 	{
@@ -2047,9 +2050,10 @@ void SetPrsenSensors(PRSEN* pprsen, SENSORS sensors)
 		pprsen->sensors = SENSORS_DamageEnabled;
 		break;
 
-		default:
-		break;
-	}
+        default:
+        break;
+    }
+
 }
 
 void UpdatePrsenLoopShader(PRSEN* pprsen)
@@ -2176,7 +2180,7 @@ void UpdatePrsenLoopShader(PRSEN* pprsen)
 
 void DeletePrsen(PRSEN* ppprsen)
 {
-	delete ppprsen;
+	ReleaseWorldObject(ppprsen);
 }
 
 SNIP s_asnipLasen[2] =

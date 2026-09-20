@@ -5,11 +5,11 @@
 #include "gl.h"
 #include "tv.h"
 #include "thndflash.h"
+#include "sensor.h"
+#include "wm.h"
 #include <algorithm>
-#include <cfloat>
 #include <cmath>
 #include <cstring>
-#include <cstdio>
 #include <vector>
 
 void SetGlobDraw(GLOB* pglob)
@@ -477,6 +477,11 @@ void DrawSw(SW* psw, CM* pcm)
 
 	if (g_dynamicTextureCount > 0)
 	{
+		// Do not leave the array simultaneously attached and bound for sampling.
+		glActiveTexture(GL_TEXTURE0 + SHADOW_TEXTURE_UNIT);
+		glBindTexture(GL_TEXTURE_2D_ARRAY, 0);
+		glActiveTexture(GL_TEXTURE0);
+
 		glBindFramebuffer(GL_FRAMEBUFFER, g_gl.dyshFbo);
 		glViewport(0, 0, g_gl.dyshWidth, g_gl.dyshHeight);
 
@@ -503,6 +508,10 @@ void DrawSw(SW* psw, CM* pcm)
 
 		g_dynamicTextureCount = 0;
 	}
+
+	// Dynamic maps have now been rendered. Bind the shared projected-shadow
+	// array once before regular geometry is submitted.
+	BindSwShadowTextures(psw);
 
 	if (g_backGroundCount > 0)
 	{
@@ -894,6 +903,40 @@ void DrawSw(SW* psw, CM* pcm)
 		glDepthMask(false);
 		glDepthFunc(GL_ALWAYS);
 
+		// Every world-map presentation uses the original 4:3 frame, including
+		// SELECT and the automatic map shown while entering or leaving a level.
+		// Hide the paused 3D world in the unused widescreen area.
+		constexpr float mapAspect = 4.0f / 3.0f;
+		const float screenWidth = static_cast<float>(g_gl.width);
+		const float screenHeight = static_cast<float>(g_gl.height);
+		const float mapWidth = screenHeight * mapAspect;
+		float pillarboxOpacity = 1.0f;
+		WM* const pwm = g_wmc.pwmCurrent;
+
+		if (pwm != nullptr)
+		{
+			if (pwm->wms == WMS_Appearing && pwm->pasegOpen != nullptr && pwm->pasegOpen->tMax > 0.0f)
+			{
+				pillarboxOpacity = std::clamp(
+					(g_clock.tReal - pwm->tWms) / pwm->pasegOpen->tMax, 0.0f, 1.0f);
+			}
+			else if (pwm->wms == WMS_Disappearing && pwm->pasegClose != nullptr && pwm->pasegClose->tMax > 0.0f)
+			{
+				pillarboxOpacity = 1.0f - std::clamp(
+					(g_clock.tReal - pwm->tWms) / pwm->pasegClose->tMax, 0.0f, 1.0f);
+			}
+		}
+
+		if (screenWidth > mapWidth)
+		{
+			const float xMapLeft = (screenWidth - mapWidth) * 0.5f;
+			const float xMapRight = xMapLeft + mapWidth;
+			const int pillarboxAlpha = static_cast<int>(pillarboxOpacity * 255.0f);
+			FillScreenRect(0, 0, 0, pillarboxAlpha, 0.0f, 0.0f, xMapLeft, screenHeight);
+			FillScreenRect(0, 0, 0, pillarboxAlpha, xMapRight, 0.0f, screenWidth, screenHeight);
+			glGlobShader.Use();
+		}
+
 		for (int i = 0; i < g_worldMapCount; i++)
 		{
 			g_worldMapPrpl[i].PFNDRAWRPL(&g_worldMapPrpl[i]);
@@ -980,7 +1023,11 @@ void DrawDysh(RPL *prpl)
 {
 	DYSH *pdysh = prpl->pdysh;
 
-	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, pdysh->shadowTex, 0);
+	if (pdysh == nullptr || pdysh->shadowTex == 0 || pdysh->shadowLayer < 0)
+		return;
+
+	glFramebufferTextureLayer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0,
+		pdysh->shadowTex, 0, pdysh->shadowLayer);
 
 	glClearColor(0.f, 0.f, 0.f, 0.f);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -1010,6 +1057,24 @@ void DrawDysh(RPL *prpl)
 	}
 
 	glUniform1i(glslDyshfSkin, 0);
+}
+
+void BindGlobOneWayTexture(GLuint diffuseTexture)
+{
+	glActiveTexture(GL_TEXTURE1);
+	glBindTexture(GL_TEXTURE_2D, diffuseTexture != 0 ? diffuseTexture : whiteTex);
+	glActiveTexture(GL_TEXTURE0);
+}
+
+void BindGlobThreeWayTextures(GLuint ambientTexture, GLuint diffuseTexture, GLuint saturateTexture)
+{
+	const GLuint textures[3] = { ambientTexture, diffuseTexture, saturateTexture };
+	for (int unit = 0; unit < 3; ++unit)
+	{
+		glActiveTexture(GL_TEXTURE0 + unit);
+		glBindTexture(GL_TEXTURE_2D, textures[unit] != 0 ? textures[unit] : whiteTex);
+	}
+	glActiveTexture(GL_TEXTURE0);
 }
 
 void DrawGlob(RPL* prpl)
@@ -1103,6 +1168,45 @@ void DrawGlob(RPL* prpl)
 
 		SHD* pshd = sub.pshd;
 
+		// The visible projected-color packet uses PRIM 0x6c (TME=0), so its
+		// PackRGBA bytes are ordinary 0..255 framebuffer color. The earlier
+		// textured packet only participates in constructing the volume mask.
+		// GS alpha uses 0x80 as full strength and is quantized again after the
+		// VU applies the object's fade.
+		if (pshd != nullptr && pshd->shdk == SHDK_ProjectedVolume)
+		{
+			auto SourceByte = [](float channel)
+			{
+				return std::clamp(static_cast<int>(channel * 255.0f + 0.5f), 0, 255);
+			};
+
+			// PackRGBA stores (source + 1) >> 1.
+			constexpr float colorDivisor = 255.0f;
+			const float packedRed = static_cast<float>((SourceByte(pshd->rgbaVolume.r) + 1) >> 1);
+			const float packedGreen = static_cast<float>((SourceByte(pshd->rgbaVolume.g) + 1) >> 1);
+			const float packedBlue = static_cast<float>((SourceByte(pshd->rgbaVolume.b) + 1) >> 1);
+
+			// DrawVolume scales the packed alpha byte in-place and truncates it.
+			// Compensate for DrawOneWay's later op.uAlpha multiply so the final
+			// source alpha equals that exact GS byte divided by 0x80.
+			const int packedAlpha = (SourceByte(pshd->rgbaVolume.a) + 1) >> 1;
+			const float objectAlpha = std::clamp(prpl->ro.uAlpha, 0.0f, 1.0f);
+			const int fadedAlpha = static_cast<int>(packedAlpha * objectAlpha);
+			const float projectedAlpha = objectAlpha > 0.0f
+				? (static_cast<float>(fadedAlpha) / 128.0f) / objectAlpha
+				: 0.0f;
+
+			glUniform4f(glslProjectedVolumeColor,
+				packedRed / colorDivisor,
+				packedGreen / colorDivisor,
+				packedBlue / colorDivisor,
+				projectedAlpha);
+		}
+		else
+		{
+			glUniform4f(glslProjectedVolumeColor, 1.0f, 1.0f, 1.0f, 1.0f);
+		}
+
 		if (pshd != nullptr && !pshd->atex.empty() && !pshd->atex[0].abmp.empty())
 		{
 			if (iframe >= static_cast<int>(pshd->atex[0].abmp.size()))
@@ -1116,18 +1220,31 @@ void DrawGlob(RPL* prpl)
 				{
 					glUniform1i(glslRko, 0);
 					const TEX& tex = pshd->atex[0];
-					const uint64_t diffuseHandle =
-						iframe < static_cast<int>(tex.hDiffuseMap.size()) && tex.hDiffuseMap[iframe] != 0
-						? tex.hDiffuseMap[iframe]
-						: pbmp->hDiffuseMap;
-					glUniformHandleui64ARB(glslDiffuseMap, diffuseHandle);
+					GLuint diffuseTexture =
+						iframe < static_cast<int>(tex.glDiffuseMap.size())
+						? tex.glDiffuseMap[iframe]
+						: pbmp->glDiffuseMap;
+
+					// The retail projected-volume packet binds a texture only when
+					// grfshd bit 1 is set. Untextured volumes use their packed
+					// volume RGBA directly.
+					if (pshd->shdk == SHDK_ProjectedVolume &&
+						(pshd->grfshd & 2) == 0)
+						diffuseTexture = whiteTex;
+
+					BindGlobOneWayTexture(diffuseTexture);
 				}
 				else
 				{
 					glUniform1i(glslRko, 1);
-					glUniformHandleui64ARB(glslAmbientMap, pbmp->hShadowMap);
-					glUniformHandleui64ARB(glslDiffuseMap, pbmp->hDiffuseMap);
-					glUniformHandleui64ARB(glslSaturateMap, pbmp->hSaturateMap);
+					const TEX& tex = pshd->atex[0];
+					const GLuint ambientTexture =
+						iframe < static_cast<int>(tex.glShadowMap.size()) ? tex.glShadowMap[iframe] : 0;
+					const GLuint diffuseTexture =
+						iframe < static_cast<int>(tex.glDiffuseMap.size()) ? tex.glDiffuseMap[iframe] : 0;
+					const GLuint saturateTexture =
+						iframe < static_cast<int>(tex.glSaturateMap.size()) ? tex.glSaturateMap[iframe] : 0;
+					BindGlobThreeWayTextures(ambientTexture, diffuseTexture, saturateTexture);
 				}
 			}
 		}
@@ -1223,8 +1340,7 @@ void DrawProjVolume(int baseVertex, int firstIndex, int indexCount)
 	glDrawElementsBaseVertex(GL_TRIANGLES, (GLsizei)indexCount, GL_UNSIGNED_INT, (void*)(uintptr_t)(firstIndex * sizeof(uint32_t)), (GLint)baseVertex);
 
 	glDepthFunc(GL_ALWAYS);
-	// Bit 6 marks cel-border pixels.  Projection volumes use bit 7, and may
-	// shade only pixels where the border-protection bit remains clear.
+	// Bit 6 protects cel-border pixels; bit 7 contains the volume mask.
 	glStencilFunc(GL_EQUAL, 128, 0xC0);
 	glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP);
 	glFrontFace(GL_CW);
@@ -1242,12 +1358,14 @@ void DrawProjVolumeAlphaAdd(int baseVertex, int firstIndex, int indexCount)
 	glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE, GL_ONE, GL_ZERO);
 	glDrawElementsBaseVertex(GL_TRIANGLES, (GLsizei)indexCount, GL_UNSIGNED_INT, (void*)(uintptr_t)(firstIndex * sizeof(uint32_t)), (GLint)baseVertex);
 
+	glBlendFuncSeparate(GL_ZERO, GL_ONE, GL_ONE, GL_ZERO);
 	glColorMask(1, 1, 1, 1);
 	glStencilOp(GL_KEEP, GL_NONE, GL_KEEP);
 	glFrontFace(GL_CCW);
 	glDrawElementsBaseVertex(GL_TRIANGLES, (GLsizei)indexCount, GL_UNSIGNED_INT, (void*)(uintptr_t)(firstIndex * sizeof(uint32_t)), (GLint)baseVertex);
 
 	glDepthFunc(GL_ALWAYS);
+	// Bit 6 protects cel-border pixels; bit 7 contains the volume mask.
 	glStencilFunc(GL_EQUAL, 128, 0xC0);
 	glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP);
 	glFrontFace(GL_CW);
@@ -1275,15 +1393,30 @@ void DrawProjVolumeAdd(int baseVertex, int firstIndex, int indexCount)
 	glFrontFace(GL_CW);
 	glDrawElementsBaseVertex(GL_TRIANGLES, (GLsizei)indexCount, GL_UNSIGNED_INT, (void*)(uintptr_t)(firstIndex * sizeof(uint32_t)), (GLint)baseVertex);
 
+	// DrawVolume interleaves the static packet headers through several XGKICKs.
+	// For textured additive volumes, this back-facing kick is the visible cone
+	// shell and retains packet one's additive ALPHA state. Untextured volumes
+	// use the color-preserving mask path.
+	if ((g_grfshd & 2) != 0)
+		glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE, GL_ONE, GL_ZERO);
+	else
+		glBlendFuncSeparate(GL_ZERO, GL_ONE, GL_ONE, GL_ZERO);
 	glColorMask(1, 1, 1, 1);
 	glStencilOp(GL_KEEP, GL_ZERO, GL_KEEP);
 	glFrontFace(GL_CCW);
 	glDrawElementsBaseVertex(GL_TRIANGLES, (GLsizei)indexCount, GL_UNSIGNED_INT, (void*)(uintptr_t)(firstIndex * sizeof(uint32_t)), (GLint)baseVertex);
 
 	glDepthFunc(GL_ALWAYS);
+	// Bit 6 protects cel-border pixels; bit 7 contains the volume mask.
 	glStencilFunc(GL_EQUAL, 128, 0xC0);
 	glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP);
 	glFrontFace(GL_CW);
+
+	// Packet three uses PRIM 0x6c, which has texture mapping disabled even
+	// when packet one used the CAMSEN texture to construct the volume.
+	if ((g_grfshd & 2) != 0)
+		BindGlobOneWayTexture(whiteTex);
+
 	glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE, GL_ONE, GL_ZERO);
 	glDrawElementsBaseVertex(GL_TRIANGLES, (GLsizei)indexCount, GL_UNSIGNED_INT, (void*)(uintptr_t)(firstIndex * sizeof(uint32_t)), (GLint)baseVertex);
 }
@@ -1338,7 +1471,9 @@ void DrawBlip(RPL* prplblip)
 	BLIPG* pblipg = prplblip->pblipg;
 	if (pblipg->pshd == nullptr || pblipg->pshd->atex.empty() ||
 		pblipg->pshd->atex[0].abmp.empty() || pblipg->cblipe <= 0)
+	{
 		return;
+	}
 
 	// DrawBlipg selected between the PS2's normal and clamped-add GIF
 	// packets from shader flag bit 0.  Applying additive blending to every
@@ -1407,7 +1542,8 @@ void DrawBlip(RPL* prplblip)
 		// LoadShadersFromBrx. The underlying BMP can be shared by TEX records
 		// with different CLUTs, so its GL texture fields are intentionally zero.
 		const GLuint textureId = threeWay
-			? pframeBmp->glShadowMap
+			? (iframe < static_cast<int>(tex.glShadowMap.size())
+				? tex.glShadowMap[iframe] : 0)
 			: (iframe < static_cast<int>(tex.glDiffuseMap.size())
 				? tex.glDiffuseMap[iframe] : 0);
 		if (textureId == 0)
@@ -1509,7 +1645,9 @@ void DrawBlip(RPL* prplblip)
 	}
 
 	if (uploadInstances.empty())
+	{
 		return;
+	}
 
 	BLIPGROUPGPU groupGpu{};
 	groupGpu.model = prplblip->ro.model;

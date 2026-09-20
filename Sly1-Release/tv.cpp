@@ -4,6 +4,20 @@
 #include "speaker.h"
 #include "render.h"
 
+struct TVGLCACHE
+{
+    GLuint contextVao = 0;
+    GLuint contextVbo = 0;
+    GLuint areaVao = 0;
+    GLuint areaVbo = 0;
+    GLuint bandsVao = 0;
+    GLuint bandsVbo = 0;
+    GLuint outlineVao = 0;
+    GLuint outlineVbo = 0;
+};
+
+static TVGLCACHE s_tvGl;
+
 static float TvUiScale()
 {
     // TV authoring coordinates are based on the PS2's 640 x 492.8 display.
@@ -701,15 +715,12 @@ static void DrawTvContextRect(const TV* ptv)
         glm::vec2 pos;
     };
 
-    static GLuint vao = 0;
-    static GLuint vbo = 0;
-
-    if (vao == 0)
+    if (s_tvGl.contextVao == 0)
     {
-        glGenVertexArrays(1, &vao);
-        glGenBuffers(1, &vbo);
-        glBindVertexArray(vao);
-        glBindBuffer(GL_ARRAY_BUFFER, vbo);
+        glGenVertexArrays(1, &s_tvGl.contextVao);
+        glGenBuffers(1, &s_tvGl.contextVbo);
+        glBindVertexArray(s_tvGl.contextVao);
+        glBindBuffer(GL_ARRAY_BUFFER, s_tvGl.contextVbo);
         glBufferData(GL_ARRAY_BUFFER, sizeof(TvContextVertex) * 4, nullptr, GL_DYNAMIC_DRAW);
         glEnableVertexAttribArray(0);
         glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE,
@@ -734,12 +745,12 @@ static void DrawTvContextRect(const TV* ptv)
     const glm::mat4 model(1.0f);
     glUniformMatrix4fv(u_modelLoc, 1, GL_FALSE, glm::value_ptr(model));
     glUniformMatrix4fv(u_projectionLoc, 1, GL_FALSE, glm::value_ptr(g_gl.blotProjection));
-    glUniformHandleui64ARB(u_fontTexLoc, whiteHandle);
+    BindBlotTexture(whiteTex);
     glUniform4f(uvRectLoc, 0.0f, 0.0f, 1.0f, 1.0f);
     glUniform4f(blotColorLoc, 1.0f, 1.0f, 1.0f, 1.0f);
 
-    glBindVertexArray(vao);
-    glBindBuffer(GL_ARRAY_BUFFER, vbo);
+    glBindVertexArray(s_tvGl.contextVao);
+    glBindBuffer(GL_ARRAY_BUFFER, s_tvGl.contextVbo);
     glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(vertices), vertices);
     glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
     glBindVertexArray(0);
@@ -900,18 +911,15 @@ void DrawTvArea(TV* ptv)
         glm::vec2 pos;
     };
 
-    static GLuint vao = 0;
-    static GLuint vbo = 0;
-
     constexpr int MAX_VERTICES = 2 + 57 * 2;
 
-    if (vao == 0)
+    if (s_tvGl.areaVao == 0)
     {
-        glGenVertexArrays(1, &vao);
-        glGenBuffers(1, &vbo);
+        glGenVertexArrays(1, &s_tvGl.areaVao);
+        glGenBuffers(1, &s_tvGl.areaVbo);
 
-        glBindVertexArray(vao);
-        glBindBuffer(GL_ARRAY_BUFFER, vbo);
+        glBindVertexArray(s_tvGl.areaVao);
+        glBindBuffer(GL_ARRAY_BUFFER, s_tvGl.areaVbo);
 
         glBufferData(GL_ARRAY_BUFFER, sizeof(TvAreaVertex) * MAX_VERTICES, nullptr, GL_DYNAMIC_DRAW);
 
@@ -999,12 +1007,12 @@ void DrawTvArea(TV* ptv)
 
     glUniformMatrix4fv(u_projectionLoc, 1, GL_FALSE, glm::value_ptr(g_gl.blotProjection));
 
-    glUniformHandleui64ARB(u_fontTexLoc, whiteHandle);
+    BindBlotTexture(whiteTex);
     glUniform4f(uvRectLoc, 0.0f, 0.0f, 1.0f, 1.0f);
     glUniform4f(blotColorLoc, 1.0f, 1.0f, 1.0f, 1.0f);
 
-    glBindVertexArray(vao);
-    glBindBuffer(GL_ARRAY_BUFFER, vbo);
+    glBindVertexArray(s_tvGl.areaVao);
+    glBindBuffer(GL_ARRAY_BUFFER, s_tvGl.areaVbo);
 
     glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(TvAreaVertex) * vertexCount, vertices);
 
@@ -1024,21 +1032,15 @@ void DrawTvBands(TV* ptv)
         glm::vec2 uv;
     };
 
-    static GLuint vao = 0;
-    static GLuint vbo = 0;
-    static bool initialized = false;
-
     constexpr int kMaxDistortionPoints = 57 * 5;
 
-    if (!initialized)
+    if (s_tvGl.bandsVao == 0)
     {
-        initialized = true;
+        glGenVertexArrays(1, &s_tvGl.bandsVao);
+        glGenBuffers(1, &s_tvGl.bandsVbo);
 
-        glGenVertexArrays(1, &vao);
-        glGenBuffers(1, &vbo);
-
-        glBindVertexArray(vao);
-        glBindBuffer(GL_ARRAY_BUFFER, vbo);
+        glBindVertexArray(s_tvGl.bandsVao);
+        glBindBuffer(GL_ARRAY_BUFFER, s_tvGl.bandsVbo);
 
         glBufferData(GL_ARRAY_BUFFER, sizeof(TvBandVertex) * kMaxDistortionPoints, nullptr, GL_DYNAMIC_DRAW);
 
@@ -1071,11 +1073,11 @@ void DrawTvBands(TV* ptv)
     glUniformMatrix4fv(u_projectionLoc, 1, GL_FALSE, glm::value_ptr(g_gl.blotProjection));
 
     glUniform4f(uvRectLoc, 0.0f, 0.0f, 1.0f, 1.0f);
-    glUniformHandleui64ARB(u_fontTexLoc, whiteHandle);
+    BindBlotTexture(whiteTex);
     glUniform1i(u_useVertexColorLoc, 0);
 
-    glBindVertexArray(vao);
-    glBindBuffer(GL_ARRAY_BUFFER, vbo);
+    glBindVertexArray(s_tvGl.bandsVao);
+    glBindBuffer(GL_ARRAY_BUFFER, s_tvGl.bandsVbo);
 
     TvBandVertex verts[4];
 
@@ -1170,21 +1172,15 @@ void DrawTvOutline(TV* ptv)
         glm::vec2 uv;
     };
 
-    static GLuint vao = 0;
-    static GLuint vbo = 0;
-    static bool initialized = false;
-
     constexpr int MAX_VERTS = 256;
 
-    if (!initialized)
+    if (s_tvGl.outlineVao == 0)
     {
-        initialized = true;
+        glGenVertexArrays(1, &s_tvGl.outlineVao);
+        glGenBuffers(1, &s_tvGl.outlineVbo);
 
-        glGenVertexArrays(1, &vao);
-        glGenBuffers(1, &vbo);
-
-        glBindVertexArray(vao);
-        glBindBuffer(GL_ARRAY_BUFFER, vbo);
+        glBindVertexArray(s_tvGl.outlineVao);
+        glBindBuffer(GL_ARRAY_BUFFER, s_tvGl.outlineVbo);
 
         glBufferData(GL_ARRAY_BUFFER, sizeof(TvOutlineVertex) * MAX_VERTS, nullptr, GL_DYNAMIC_DRAW);
 
@@ -1283,17 +1279,39 @@ void DrawTvOutline(TV* ptv)
     glUniformMatrix4fv(u_projectionLoc, 1, GL_FALSE, glm::value_ptr(g_gl.blotProjection));
 
     glUniform4f(uvRectLoc, 0.0f, 0.0f, 1.0f, 1.0f);
-    glUniformHandleui64ARB(u_fontTexLoc, whiteHandle);
+    BindBlotTexture(whiteTex);
     glUniform4fv(blotColorLoc, 1, glm::value_ptr(color));
     glUniform1i(u_useVertexColorLoc, 0);
 
-    glBindVertexArray(vao);
-    glBindBuffer(GL_ARRAY_BUFFER, vbo);
+    glBindVertexArray(s_tvGl.outlineVao);
+    glBindBuffer(GL_ARRAY_BUFFER, s_tvGl.outlineVbo);
 
     glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(TvOutlineVertex) * count, verts);
     glDrawArrays(GL_TRIANGLE_STRIP, 0, count);
 
     glBindVertexArray(0);
+}
+
+void FreeTvGL()
+{
+    const GLuint buffers[] =
+    {
+        s_tvGl.contextVbo,
+        s_tvGl.areaVbo,
+        s_tvGl.bandsVbo,
+        s_tvGl.outlineVbo
+    };
+    glDeleteBuffers(4, buffers);
+
+    const GLuint vertexArrays[] =
+    {
+        s_tvGl.contextVao,
+        s_tvGl.areaVao,
+        s_tvGl.bandsVao,
+        s_tvGl.outlineVao
+    };
+    glDeleteVertexArrays(4, vertexArrays);
+    s_tvGl = {};
 }
 
 TV g_tvRight;

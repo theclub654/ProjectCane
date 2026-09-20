@@ -5,7 +5,7 @@
 
 UBG* NewUbg()
 {
-	return new UBG{};
+	return NewWorldObject<UBG>();
 }
 
 void InitUbg(UBG* pubg)
@@ -367,7 +367,7 @@ int FIgnoreUbgIntersection(UBG* pubg, SO* psoOther)
 
 void DeleteUbg(UBG* pubg)
 {
-	delete pubg;
+	ReleaseWorldObject(pubg);
 }
 
 UBP* NewUbp()

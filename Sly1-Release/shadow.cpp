@@ -1,6 +1,107 @@
 #include "shadow.h"
 #include "dysh.h"
-#include "dysh.h"
+#include <algorithm>
+#include <cmath>
+#include <iostream>
+
+namespace
+{
+	GLuint shadowTextureArray = 0;
+	int shadowTextureLayerCount = 0;
+
+	void CreateShadowTextureArray(int layerCount)
+	{
+		shadowTextureLayerCount = layerCount;
+		if (layerCount <= 0)
+			return;
+
+		glGenTextures(1, &shadowTextureArray);
+		glBindTexture(GL_TEXTURE_2D_ARRAY, shadowTextureArray);
+		glTexStorage3D(GL_TEXTURE_2D_ARRAY, 1, GL_RGBA8,
+			g_gl.dyshWidth, g_gl.dyshHeight, layerCount);
+		glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+		glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+		const float borderColor[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
+		glTexParameterfv(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_BORDER_COLOR, borderColor);
+		glBindTexture(GL_TEXTURE_2D_ARRAY, 0);
+	}
+
+	bool CopyTextureToShadowLayer(GLuint sourceTexture, int layer)
+	{
+		if (sourceTexture == 0 || shadowTextureArray == 0 ||
+			layer < 0 || layer >= shadowTextureLayerCount)
+			return false;
+
+		GLint sourceWidth = 0;
+		GLint sourceHeight = 0;
+		glBindTexture(GL_TEXTURE_2D, sourceTexture);
+		glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_WIDTH, &sourceWidth);
+		glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_HEIGHT, &sourceHeight);
+		glBindTexture(GL_TEXTURE_2D, 0);
+
+		if (sourceWidth <= 0 || sourceHeight <= 0)
+			return false;
+
+		GLint previousReadFbo = 0;
+		GLint previousDrawFbo = 0;
+		glGetIntegerv(GL_READ_FRAMEBUFFER_BINDING, &previousReadFbo);
+		glGetIntegerv(GL_DRAW_FRAMEBUFFER_BINDING, &previousDrawFbo);
+
+		GLuint readFbo = 0;
+		GLuint drawFbo = 0;
+		glGenFramebuffers(1, &readFbo);
+		glGenFramebuffers(1, &drawFbo);
+		glBindFramebuffer(GL_READ_FRAMEBUFFER, readFbo);
+		glFramebufferTexture2D(GL_READ_FRAMEBUFFER, GL_COLOR_ATTACHMENT0,
+			GL_TEXTURE_2D, sourceTexture, 0);
+		glReadBuffer(GL_COLOR_ATTACHMENT0);
+		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, drawFbo);
+		glFramebufferTextureLayer(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0,
+			shadowTextureArray, 0, layer);
+		glDrawBuffer(GL_COLOR_ATTACHMENT0);
+
+		const bool complete =
+			glCheckFramebufferStatus(GL_READ_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE &&
+			glCheckFramebufferStatus(GL_DRAW_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE;
+
+		if (complete)
+		{
+			glBlitFramebuffer(0, 0, sourceWidth, sourceHeight,
+				0, 0, g_gl.dyshWidth, g_gl.dyshHeight,
+				GL_COLOR_BUFFER_BIT, GL_LINEAR);
+		}
+
+		glBindFramebuffer(GL_READ_FRAMEBUFFER, previousReadFbo);
+		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, previousDrawFbo);
+		glDeleteFramebuffers(1, &readFbo);
+		glDeleteFramebuffers(1, &drawFbo);
+		return complete;
+	}
+
+	bool HasFiniteProjection(const SHADOWBLK& shadow)
+	{
+		const auto finiteValues = [](const float* values, int count)
+		{
+			for (int i = 0; i < count; ++i)
+			{
+				if (!std::isfinite(values[i]))
+					return false;
+			}
+			return true;
+		};
+
+		return finiteValues(glm::value_ptr(shadow.matWorldToUv), 16) &&
+			finiteValues(glm::value_ptr(shadow.rgba), 4) &&
+			std::isfinite(shadow.wMin) &&
+			std::isfinite(shadow.wMax) &&
+			std::isfinite(shadow.wFadeMin) &&
+			finiteValues(glm::value_ptr(shadow.posEffect), 4) &&
+			std::isfinite(shadow.sRadiusEffect);
+	}
+
+}
 
 void InitSwShadowDl(SW* psw)
 {
@@ -14,6 +115,10 @@ void InitShadow(SHADOW* pshadow)
 	pshadow->sNearCast = 100.0f;
 	pshadow->sFarCast = 400.0f;
 	pshadow->oidDysh = OID_Nil;
+	pshadow->ssboIndex = -1;
+	pshadow->textureSlot = -1;
+	pshadow->glTexture = 0;
+	pshadow->rsh.textureSlot = -1;
 
 	// Initialize up vector to g_normalY
 	pshadow->vecUp = glm::vec3(0.0, 1.0, 0.0);
@@ -354,33 +459,77 @@ void RebuildShadow(SHADOW* pshadow)
 		const BMP* pbmp = tex.abmp[0];
 
 		// Resolved non-three-way textures are owned by TEX because the same
-		// indexed BMP can be referenced with different CLUTs.  Do not read the
-		// legacy BMP handle first: it is intentionally left empty in that case.
-		// Keep the fallback for three-way/older loading paths which still own
-		// their resolved texture on BMP.
-		const GLuint64 handle = !tex.hDiffuseMap.empty() && tex.hDiffuseMap[0] != 0
-			? tex.hDiffuseMap[0]
-			: pbmp->hDiffuseMap;
-
-		pshadow->rsh.textureHandle[0] = uint32_t(handle & 0xFFFFFFFFull);
-		pshadow->rsh.textureHandle[1] = uint32_t(handle >> 32);
+		// indexed BMP can be referenced with different CLUTs. Prefer its OpenGL
+		// texture name, with the legacy BMP-owned texture as a fallback.
+		pshadow->glTexture = !tex.glDiffuseMap.empty() && tex.glDiffuseMap[0] != 0
+			? tex.glDiffuseMap[0]
+			: (pbmp != nullptr ? pbmp->glDiffuseMap : 0);
 	}
+	else if (pshadow->pdysh != nullptr)
+	{
+		pshadow->glTexture = pshadow->pdysh->shadowTex;
+	}
+
+	pshadow->rsh.textureSlot = pshadow->textureSlot;
 }
 
 void AllocateShadows(SW* psw)
 {
+	shadowBlk.clear();
+	activeShadows = {};
+
+	int requestedLayers = 0;
+	for (SHADOW* pshadow = psw->dlShadow.pshadowFirst; pshadow; pshadow = pshadow->dle.pshadowNext)
+		++requestedLayers;
+
+	GLint hardwareLayers = 0;
+	glGetIntegerv(GL_MAX_ARRAY_TEXTURE_LAYERS, &hardwareLayers);
+	const int layerCount = std::min(requestedLayers,
+		std::min(hardwareLayers, MAX_PROJECTED_SHADOW_LAYERS));
+	CreateShadowTextureArray(layerCount);
+
 	SHADOW* pshadow = psw->dlShadow.pshadowFirst;
-	int idx = 0;
+	int slot = 0;
+	int ignoredCount = 0;
 
 	while (pshadow != nullptr)
 	{
-		RebuildShadow(pshadow);
+		pshadow->ssboIndex = -1;
+		pshadow->textureSlot = -1;
+		pshadow->rsh.textureSlot = -1;
 
-		pshadow->ssboIndex = idx;
-		shadowBlk.push_back(pshadow->rsh);
+		if (slot < layerCount)
+		{
+			pshadow->ssboIndex = slot;
+			pshadow->textureSlot = slot;
+			RebuildShadow(pshadow);
+
+			if (pshadow->rsh.fDynamic != 0 && pshadow->pdysh != nullptr)
+			{
+				pshadow->pdysh->shadowTex = shadowTextureArray;
+				pshadow->pdysh->shadowLayer = slot;
+				pshadow->glTexture = shadowTextureArray;
+			}
+			else if (!CopyTextureToShadowLayer(pshadow->glTexture, slot))
+			{
+				pshadow->glTexture = 0;
+			}
+
+			shadowBlk.push_back(pshadow->rsh);
+			++slot;
+		}
+		else
+		{
+			++ignoredCount;
+		}
 
 		pshadow = pshadow->dle.pshadowNext;
-		++idx;
+	}
+
+	if (ignoredCount > 0)
+	{
+		std::cout << "Projected shadow array layer limit reached; ignored "
+			<< ignoredCount << " shadow(s).\n";
 	}
 
 	// ------------------------------------------------------------
@@ -424,12 +573,16 @@ void PrepareSwShadows(SW *psw, CM *pcm)
 
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, shadowSsbo);
 
-	int idx = 0;
-
-	for (SHADOW* pshadow = psw->dlShadow.pshadowFirst; pshadow; pshadow = pshadow->dle.pshadowNext, ++idx)
+	for (SHADOW* pshadow = psw->dlShadow.pshadowFirst; pshadow; pshadow = pshadow->dle.pshadowNext)
 	{
-		if (idx >= MAX_SHADOWS)
-			break;
+		if (pshadow->ssboIndex < 0 || pshadow->textureSlot < 0)
+			continue;
+
+		// DYSH owns the render target for a dynamic projected shadow. Once that
+		// owner is deleted, the SHADOW can remain linked in the world for a short
+		// time, but it no longer has a valid image to project.
+		if (pshadow->rsh.fDynamic != 0 && pshadow->pdysh == nullptr)
+			continue;
 
 		// A frozen dynamic-shadow owner no longer contributes its projected
 		// shadow. Static projected shadows have no DYSH owner and are unaffected.
@@ -472,12 +625,25 @@ void PrepareSwShadows(SW *psw, CM *pcm)
 		// Rebuild this shadow's CPU-side GPU struct
 		RebuildShadow(pshadow);
 
+		// A disappearing or temporarily degenerate caster can produce a NaN
+		// world-to-UV matrix. Sending it to the fragment shader poisons the
+		// projected coordinates and can black out every intersecting object.
+		// Treat that frame exactly like a shadow which was not submitted.
+		if (!HasFiniteProjection(pshadow->rsh))
+			continue;
+
+		// Never expose an unbound sampler as an active projected shadow. OpenGL
+		// commonly returns alpha 1 for an incomplete texture, which this shader
+		// interprets as a fully opaque shadow over every intersecting object.
+		if (shadowTextureArray == 0 || pshadow->glTexture == 0)
+			continue;
+
 		// Update only this shadow's slot in the main shadow SSBO
-		GLsizeiptr offset = headerSize + GLsizeiptr(idx) * sizeof(SHADOWBLK);
+		GLsizeiptr offset = headerSize + GLsizeiptr(pshadow->ssboIndex) * sizeof(SHADOWBLK);
 		glBufferSubData(GL_SHADER_STORAGE_BUFFER, offset,  sizeof(SHADOWBLK), &pshadow->rsh);
 
 		// Store original global shadow index
-		activeShadows.shadowsIndices[activeShadows.numShadows++] = idx;
+		activeShadows.shadowsIndices[activeShadows.numShadows++] = pshadow->ssboIndex;
 	}
 
 	// Update active shadow list
@@ -486,14 +652,66 @@ void PrepareSwShadows(SW *psw, CM *pcm)
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 }
 
+void BindSwShadowTextures(SW* psw)
+{
+	(void)psw;
+	glActiveTexture(GL_TEXTURE0 + SHADOW_TEXTURE_UNIT);
+	glBindTexture(GL_TEXTURE_2D_ARRAY, shadowTextureArray);
+
+	// Material rendering expects texture unit zero to be active.
+	glActiveTexture(GL_TEXTURE0);
+
+}
+
 void DeallocateSwShadows()
 {
-	glDeleteBuffers(1, &activeShadowsSsbo);
+	// Break both sides of every dynamic owner link while SHADOW and DYSH
+	// objects are still alive. Their world-object destruction order is not a
+	// safe lifetime contract for raw cross-pointers.
+	if (g_psw != nullptr)
+	{
+		for (SHADOW* pshadow = g_psw->dlShadow.pshadowFirst;
+			pshadow; pshadow = pshadow->dle.pshadowNext)
+		{
+			if (pshadow->pdysh != nullptr)
+			{
+				pshadow->pdysh->shadowTex = 0;
+				pshadow->pdysh->shadowLayer = -1;
+				pshadow->pdysh->pshadowGen = nullptr;
+				pshadow->pdysh = nullptr;
+			}
+			pshadow->glTexture = 0;
+		}
+	}
+
+	// Drop the shared array binding before world-owned shadow state is reset.
+	glActiveTexture(GL_TEXTURE0 + SHADOW_TEXTURE_UNIT);
+	glBindTexture(GL_TEXTURE_2D_ARRAY, 0);
+	glActiveTexture(GL_TEXTURE0);
+
+	if (shadowSsbo != 0)
+	{
+		glDeleteBuffers(1, &shadowSsbo);
+		shadowSsbo = 0;
+	}
+
+	if (activeShadowsSsbo != 0)
+	{
+		glDeleteBuffers(1, &activeShadowsSsbo);
+		activeShadowsSsbo = 0;
+	}
+
+	if (shadowTextureArray != 0)
+	{
+		glDeleteTextures(1, &shadowTextureArray);
+		shadowTextureArray = 0;
+	}
+	shadowTextureLayerCount = 0;
 
 	shadowBlk.clear();
 	shadowBlk.shrink_to_fit();
+	activeShadows = {};
 }
-
 GLuint shadowSsbo = 0;
 GLuint activeShadowsSsbo = 0;
 std::vector <SHADOWBLK> shadowBlk;

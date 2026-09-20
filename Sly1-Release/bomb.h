@@ -92,8 +92,6 @@ void SetBombLmMass(BOMB* pbomb, LM lmMass);
 void*GetBombLmMass(BOMB* pbomb);
 void SetBombRExplodeScale(BOMB* pbomb, float rExplodeScale);
 void*GetBombRExplodeScale(BOMB* pbomb);
-void SetBombRExplodeScale(BOMB* pbomb, float rExplodeScale);
-void*GetBombRExplodeScale(BOMB* pbomb);
 void SetBombFExplodeEffects(BOMB* pbomb, int fExplodeEffects);
 void*GetBombFExplodeEffects(BOMB* pbomb);
 void SetBombFReclaim(BOMB* pbomb, int fReclaim);

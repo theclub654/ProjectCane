@@ -1,5 +1,6 @@
 #pragma once
 #include "unordered_map"
+#include <array>
 #include "gl.h"
 #include "game.h"
 
@@ -91,7 +92,6 @@ struct JOY
     bool gamepadConnected = false;
 
     void Update(GLFWwindow* window);
-    bool FindGamepad();
     bool IsPressed(JOY_BUTTON button);
     bool IsHeld(JOY_BUTTON button);
     bool IsReleased(JOY_BUTTON button);
@@ -137,3 +137,11 @@ extern JOY g_joyZero;
 extern int g_grfjoyt;
 extern GRFUSR g_grfusr;
 extern int vibrationSetting;
+extern std::array<int, BTN_MAX> g_keyboardBindings;
+extern std::array<int, BTN_MAX> g_gamepadBindings;
+
+inline constexpr int GAMEPAD_BINDING_LEFT_TRIGGER = 1000;
+inline constexpr int GAMEPAD_BINDING_RIGHT_TRIGGER = 1001;
+
+const char* PchzKeyboardKeyName(int key);
+const char* PchzGamepadBindingName(int binding);

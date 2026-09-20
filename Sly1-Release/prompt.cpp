@@ -12,12 +12,126 @@
 #include "screen.h"
 #include "gl.h"
 #include <algorithm>
+#include <cmath>
 #include <cstdio>
 #include <iterator>
 #include <vector>
 
 namespace
 {
+int s_iKeyboardBindingCapture = -1;
+bool s_fKeyboardBindingCaptureArmed = false;
+bool s_fControllerBindingCapture = false;
+
+constexpr const char* s_apchzKeyboardActions[BTN_MAX] =
+{
+    "Move Up", "Move Down", "Move Left", "Move Right",
+    "Square", "Circle", "Cross", "Triangle",
+    "Start", "Select", "L1", "R1", "L2", "R2", "L3", "R3"
+};
+
+int KeyboardKeyPressed(GLFWwindow* window)
+{
+    for (int key = GLFW_KEY_0; key <= GLFW_KEY_9; ++key)
+        if (glfwGetKey(window, key) == GLFW_PRESS) return key;
+    for (int key = GLFW_KEY_A; key <= GLFW_KEY_Z; ++key)
+        if (glfwGetKey(window, key) == GLFW_PRESS) return key;
+    for (int key = GLFW_KEY_F1; key <= GLFW_KEY_F25; ++key)
+        if (glfwGetKey(window, key) == GLFW_PRESS) return key;
+    for (int key = GLFW_KEY_KP_0; key <= GLFW_KEY_KP_EQUAL; ++key)
+        if (glfwGetKey(window, key) == GLFW_PRESS) return key;
+
+    constexpr int specialKeys[] =
+    {
+        GLFW_KEY_SPACE, GLFW_KEY_APOSTROPHE, GLFW_KEY_COMMA, GLFW_KEY_MINUS,
+        GLFW_KEY_PERIOD, GLFW_KEY_SLASH, GLFW_KEY_SEMICOLON, GLFW_KEY_EQUAL,
+        GLFW_KEY_LEFT_BRACKET, GLFW_KEY_BACKSLASH, GLFW_KEY_RIGHT_BRACKET,
+        GLFW_KEY_GRAVE_ACCENT, GLFW_KEY_ENTER, GLFW_KEY_TAB, GLFW_KEY_BACKSPACE,
+        GLFW_KEY_INSERT, GLFW_KEY_DELETE, GLFW_KEY_RIGHT, GLFW_KEY_LEFT,
+        GLFW_KEY_DOWN, GLFW_KEY_UP, GLFW_KEY_PAGE_UP, GLFW_KEY_PAGE_DOWN,
+        GLFW_KEY_HOME, GLFW_KEY_END, GLFW_KEY_CAPS_LOCK, GLFW_KEY_SCROLL_LOCK,
+        GLFW_KEY_NUM_LOCK, GLFW_KEY_PRINT_SCREEN, GLFW_KEY_PAUSE,
+        GLFW_KEY_LEFT_SHIFT, GLFW_KEY_LEFT_CONTROL, GLFW_KEY_LEFT_ALT,
+        GLFW_KEY_LEFT_SUPER, GLFW_KEY_RIGHT_SHIFT, GLFW_KEY_RIGHT_CONTROL,
+        GLFW_KEY_RIGHT_ALT, GLFW_KEY_RIGHT_SUPER, GLFW_KEY_MENU
+    };
+
+    for (int key : specialKeys)
+        if (glfwGetKey(window, key) == GLFW_PRESS) return key;
+    return GLFW_KEY_UNKNOWN;
+}
+
+int GamepadBindingPressed()
+{
+    if (g_joy.joystickId < GLFW_JOYSTICK_1 || g_joy.joystickId > GLFW_JOYSTICK_LAST)
+        return -1;
+
+    GLFWgamepadstate state{};
+    if (!glfwGetGamepadState(g_joy.joystickId, &state))
+        return -1;
+
+    for (int button = 0; button <= GLFW_GAMEPAD_BUTTON_LAST; ++button)
+        if (state.buttons[button] == GLFW_PRESS) return button;
+    if (state.axes[GLFW_GAMEPAD_AXIS_LEFT_TRIGGER] > 0.25f)
+        return GAMEPAD_BINDING_LEFT_TRIGGER;
+    if (state.axes[GLFW_GAMEPAD_AXIS_RIGHT_TRIGGER] > 0.25f)
+        return GAMEPAD_BINDING_RIGHT_TRIGGER;
+    return -1;
+}
+
+bool FGamepadAvailable()
+{
+    for (int jid = GLFW_JOYSTICK_1; jid <= GLFW_JOYSTICK_LAST; ++jid)
+    {
+        if (glfwJoystickPresent(jid) && glfwJoystickIsGamepad(jid))
+            return true;
+    }
+    return false;
+}
+
+bool FMappingPrompt(PRK prk)
+{
+	return prk == PRK_KeyboardMapping || prk == PRK_ControllerMapping;
+}
+
+PRD& PrdPrompt(PRK prk)
+{
+	// Keep PC-only mapping descriptors out of the release descriptor table.
+	// The rest of the prompt system can still treat them exactly like a PRD,
+	// without indexing beyond the original table storage in stale/incremental
+	// builds.
+	static PRD keyboardMapping =
+	{
+		"Keyboard Mapping", 0.8f, 0.55f, 1,
+		static_cast<int>(std::size(s_arespkKeyboardMapping)),
+		s_arespkKeyboardMapping
+	};
+	static PRD controllerMapping =
+	{
+		"Controller Mapping", 0.8f, 0.55f, 1,
+		static_cast<int>(std::size(s_arespkKeyboardMapping)),
+		s_arespkKeyboardMapping
+	};
+
+	if (prk == PRK_KeyboardMapping)
+		return keyboardMapping;
+	if (prk == PRK_ControllerMapping)
+		return controllerMapping;
+	return s_mpprkprd[prk];
+}
+
+RESPK* ArespkPrompt(PRK prk, const PRD& prd)
+{
+	return FMappingPrompt(prk) ? s_arespkKeyboardMapping : prd.arespk;
+}
+
+int CrespkPrompt(PRK prk, const PRD& prd)
+{
+	return FMappingPrompt(prk)
+		? static_cast<int>(std::size(s_arespkKeyboardMapping))
+		: prd.crespk;
+}
+
 GLFWmonitor* ActiveMonitor()
 {
     if (GLFWmonitor* monitor = glfwGetWindowMonitor(g_gl.window))
@@ -91,7 +205,7 @@ void SelectNextSupportedFrameRate()
 
 void SelectNextInternalResolution()
 {
-    constexpr int resolutions[] = { 0, 720, 1080, 1440, 2160 };
+    constexpr int resolutions[] = { 0, 360, 480, 720, 1080, 1440, 2160 };
     auto current = std::find(std::begin(resolutions), std::end(resolutions),
         g_internalResolutionHeight);
 
@@ -100,6 +214,23 @@ void SelectNextInternalResolution()
 
     g_internalResolutionHeight = *current;
     ApplyInternalResolutionSettings();
+}
+
+void SelectNextGuiScale()
+{
+    constexpr float scales[] = { 0.75f, 1.0f, 1.25f, 1.5f };
+    auto next = std::upper_bound(std::begin(scales), std::end(scales),
+        g_guiScale + 0.001f);
+
+    if (next == std::end(scales))
+        next = std::begin(scales);
+
+    g_guiScale = *next;
+
+    int width = 0;
+    int height = 0;
+    glfwGetFramebufferSize(g_gl.window, &width, &height);
+    FrameBufferSizeCallBack(g_gl.window, width, height);
 }
 
 void SelectNextDrawDistance()
@@ -339,7 +470,7 @@ void SetPromptPrk(PROMPT* pprompt)
                 break;
             }
 
-            if (include && prd.crespk < 8)
+            if (include && prd.crespk < static_cast<int>(std::size(s_arespkPauseMenu)))
                 prd.arespk[prd.crespk++] = response;
         }
     }
@@ -368,6 +499,20 @@ void SetPromptPrk(PROMPT* pprompt)
         }
     }
 
+	else if (prk == PRK_ControlsMenu)
+	{
+		PRD& prd = s_mpprkprd[PRK_ControlsMenu];
+		prd.arespk = s_arespkControlsMenu;
+		prd.crespk = 0;
+		const bool gamepadAvailable = FGamepadAvailable();
+
+		for (RESPK response : s_arespkControlsMenuAll)
+		{
+			if (response == RESPK_ControllerMapping && !gamepadAvailable)
+				continue;
+			prd.arespk[prd.crespk++] = response;
+		}
+	}
     // -------------------------------------------------------------------------
     // Rebuild dynamic response strings
     // -------------------------------------------------------------------------
@@ -403,17 +548,30 @@ void SetPromptPrk(PROMPT* pprompt)
     std::snprintf(g_achzRespk24, sizeof(g_achzRespk24), "%s", s_apchzRespk24[(g_pgsCur->grfgs & 0x200U) != 0 ? 1 : 0]);
     std::snprintf(g_achzRespk25, sizeof(g_achzRespk25), "%s", s_apchzRespk25[(g_pgsCur->grfgs & 0x400U) != 0 ? 1 : 0]);
     std::snprintf(g_achzRespk26, sizeof(g_achzRespk26), "%s", s_apchzRespk26[(g_pgsCur->grfgs & 0x800U) != 0 ? 1 : 0]);
+	std::snprintf(g_achzRespk41, sizeof(g_achzRespk41), "%s", s_apchzRespk41[(g_pgsCur->grfgs & 0x1000U) != 0 ? 1 : 0]);
+	for (int button = 0; button < BTN_MAX; ++button)
+	{
+		const char* bindingName = prk == PRK_ControllerMapping
+			? PchzGamepadBindingName(g_gamepadBindings[button])
+			: PchzKeyboardKeyName(g_keyboardBindings[button]);
+		std::snprintf(g_aachzKeyboardBindings[button], sizeof(g_aachzKeyboardBindings[button]),
+			"%s: %s", s_apchzKeyboardActions[button], bindingName);
+	}
     if (g_fMsaa)
         std::snprintf(g_achzRespk27, sizeof(g_achzRespk27), "MSAA: %dx", g_msaaSamples);
     else
         std::snprintf(g_achzRespk27, sizeof(g_achzRespk27), "MSAA: Off");
     std::snprintf(g_achzRespk28, sizeof(g_achzRespk28), "Frame Rate: %d FPS", g_targetFrameRate);
     if (g_internalResolutionHeight == 0)
-        std::snprintf(g_achzRespk30, sizeof(g_achzRespk30), "Internal Resolution: Native");
-    else if (g_internalResolutionHeight == 2160)
-        std::snprintf(g_achzRespk30, sizeof(g_achzRespk30), "Internal Resolution: 4K");
+    {
+        std::snprintf(g_achzRespk30, sizeof(g_achzRespk30),
+            "Resolution: Native (%d x %d)", g_gl.renderWidth, g_gl.renderHeight);
+    }
     else
-        std::snprintf(g_achzRespk30, sizeof(g_achzRespk30), "Internal Resolution: %dp", g_internalResolutionHeight);
+    {
+        std::snprintf(g_achzRespk30, sizeof(g_achzRespk30),
+            "Resolution: %d x %d", g_gl.renderWidth, g_gl.renderHeight);
+    }
 
     const char* fogName = g_fogType == 2 ? "PS3 Style" : "PS2 Style";
     std::snprintf(g_achzRespk31, sizeof(g_achzRespk31), "Fog: %s", fogName);
@@ -449,7 +607,13 @@ void SetPromptPrk(PROMPT* pprompt)
         aspectRatioName = "16:10";
     else if (g_gl.aspectMode == Fixed_4_3)
         aspectRatioName = "4:3";
+    else if (g_gl.aspectMode == PS2_4_3)
+        aspectRatioName = "4:3 (PS2)";
+    else if (g_gl.aspectMode == PS2_16_9)
+        aspectRatioName = "16:9 (PS2)";
     std::snprintf(g_achzRespk35, sizeof(g_achzRespk35), "Aspect Ratio: %s", aspectRatioName);
+    std::snprintf(g_achzRespk40, sizeof(g_achzRespk40), "GUI Scale: %d%%",
+        static_cast<int>(std::lround(g_guiScale * 100.0f)));
 
     // -------------------------------------------------------------------------
     // Choose initial response
@@ -460,6 +624,7 @@ void SetPromptPrk(PROMPT* pprompt)
     switch (prk)
     {
         case PRK_QuitConfirm:
+		case PRK_ExitToDesktopConfirm:
         case PRK_MemcardFormatConfirm:
         case PRK_MemcardCreateConfirm:
         case PRK_MemcardOverwriteConfirm:
@@ -503,7 +668,9 @@ void SetPromptPrk(PROMPT* pprompt)
     // Measure prompt
     // -------------------------------------------------------------------------
 
-    PRD& prd = s_mpprkprd[prk];
+    PRD& prd = PrdPrompt(prk);
+	RESPK* const promptResponses = ArespkPrompt(prk, prd);
+	const int promptResponseCount = CrespkPrompt(prk, prd);
 
     float titleWidth = 0.0f;
     float titleHeight = 0.0f;
@@ -521,14 +688,16 @@ void SetPromptPrk(PROMPT* pprompt)
     pprompt->pfont->PushScaling(prd.rScaleRespk, prd.rScaleRespk);
 
     const float lineHeight = static_cast<float>(pprompt->pfont->m_dyUnscaled) * pprompt->pfont->m_ryScale;
-    float responseHeight = prd.fVertical != 0 ? lineHeight * static_cast<float>(prd.crespk) : lineHeight;
+    const bool isBindingMenu = FMappingPrompt(prk);
+    const int visibleResponseCount = isBindingMenu ? std::min(promptResponseCount, 9) : promptResponseCount;
+    float responseHeight = prd.fVertical != 0 ? lineHeight * static_cast<float>(visibleResponseCount) : lineHeight;
 
-    if (prd.crespk == 0)
+    if (promptResponseCount == 0)
         responseHeight = prd.fVertical != 0 ? 0.0f : lineHeight;
 
-    for (int i = 0; i < prd.crespk; ++i)
+    for (int i = 0; i < promptResponseCount; ++i)
     {
-        const RESPK response = prd.arespk[i];
+        const RESPK response = promptResponses[i];
 
         if (response == RESPK_Nil)
             break;
@@ -573,6 +742,7 @@ void SetPromptPrk(PROMPT* pprompt)
     pprompt->pfont->PopScaling();
 
     ResizeBlot(pprompt, std::max(titleWidth, responseWidth) + 10.0f, titleHeight + responseHeight);
+
 }
 
 void ChangePromptPrk(PROMPT* pprompt, PRK prk)
@@ -581,17 +751,37 @@ void ChangePromptPrk(PROMPT* pprompt, PRK prk)
         SetPromptPrk(pprompt);
 }
 
+void OpenMappingPrompt(PROMPT* pprompt, PRK prk)
+{
+    if (pprompt == nullptr)
+        return;
+
+    const PRK oldPrk = pprompt->prk;
+    pprompt->mpprpprk[PRP_Basic] = prk;
+    pprompt->fReshow = 0;
+    pprompt->prkReshow = PRK_Nil;
+    HandlePromptPrkTransition(pprompt, oldPrk, prk);
+    ChangePromptPrk(pprompt, prk);
+
+    // Mapping pages are PC-only menus and do not need retail's full
+    // hide/reshow transition. Opening them directly also prevents a held
+    // confirm input from leaving the prompt at its collapsed animation size.
+    SetBlotBlots(pprompt, BLOTS_Visible);
+}
+
 void ExecutePrompt(PROMPT* pprompt)
 {
     if (pprompt == nullptr || pprompt->prk < PRK_PauseMenu || pprompt->prk >= PRK_Max)
         return;
 
-    const PRD& promptData = s_mpprkprd[pprompt->prk];
+    const PRD& promptData = PrdPrompt(pprompt->prk);
+	RESPK* const promptResponses = ArespkPrompt(pprompt->prk, promptData);
+	const int promptResponseCount = CrespkPrompt(pprompt->prk, promptData);
 
     RESPK response = RESPK_Nil;
 
-    if (promptData.arespk != nullptr && pprompt->irespk >= 0 && pprompt->irespk < promptData.crespk)
-        response = promptData.arespk[pprompt->irespk];
+    if (promptResponses != nullptr && pprompt->irespk >= 0 && pprompt->irespk < promptResponseCount)
+        response = promptResponses[pprompt->irespk];
 
     if (response == RESPK_Back)
     {
@@ -611,10 +801,25 @@ void ExecutePrompt(PROMPT* pprompt)
 
     const auto writeSelectedSave = [&]()
     {
-        SetPrompt(pprompt, PRP_Memcard,
-            SaveCurrentGameToDisk(&g_saveData)
-                ? PRK_MemcardSlotSaved
-                : PRK_Unknown15);
+        const bool fQuitToTitle = pprompt->prkSaveContext == PRK_QuitConfirm;
+
+        if (!SaveCurrentGameToDisk(&g_saveData))
+        {
+            SetPrompt(pprompt, PRP_Memcard, PRK_Unknown15);
+            return;
+        }
+
+        // Retail clears MemcardSlotSaving as soon as the memory-card
+        // operation completes successfully.  The PC save is synchronous, so
+        // complete the same transition here instead of introducing a second
+        // SlotSaved/Continue prompt.
+        SetPrompt(pprompt, PRP_Memcard, PRK_Nil);
+
+        if (fQuitToTitle)
+        {
+            SetPrompt(pprompt, PRP_Basic, PRK_Nil);
+            WipeToTitleScreen();
+        }
     };
 
     const auto getSaveSlotIndex = [](RESPK slotResponse) -> int
@@ -678,6 +883,10 @@ void ExecutePrompt(PROMPT* pprompt)
 
                 case RESPK_Quit:
                 SetPrompt(pprompt, PRP_Basic, PRK_QuitConfirm);
+                return;
+
+                case RESPK_ExitToDesktop:
+				SetPrompt(pprompt, PRP_Basic, PRK_ExitToDesktopConfirm);
                 return;
 
                 case RESPK_RestartRace:
@@ -756,32 +965,44 @@ void ExecutePrompt(PROMPT* pprompt)
                 g_fMsaa = false;
 
             ApplyMsaaSettings();
+            SaveSystemSettings();
             rebuildPromptKeepingSelection();
             return;
 
             case RESPK_FrameRate:
             SelectNextSupportedFrameRate();
+            SaveSystemSettings();
             rebuildPromptKeepingSelection();
             return;
 
             case RESPK_InternalResolution:
             SelectNextInternalResolution();
+            SaveSystemSettings();
+            rebuildPromptKeepingSelection();
+            return;
+
+            case RESPK_GuiScale:
+            SelectNextGuiScale();
+            SaveSystemSettings();
             rebuildPromptKeepingSelection();
             return;
 
             case RESPK_DrawDistance:
             SelectNextDrawDistance();
+            SaveSystemSettings();
             rebuildPromptKeepingSelection();
             return;
 
             case RESPK_WindowMode:
             SelectNextWindowMode();
+            SaveSystemSettings();
             rebuildPromptKeepingSelection();
             return;
 
             case RESPK_Vsync:
             g_fVsync = !g_fVsync;
             glfwSwapInterval(g_fVsync ? 1 : 0);
+            SaveSystemSettings();
             rebuildPromptKeepingSelection();
             return;
 
@@ -798,10 +1019,17 @@ void ExecutePrompt(PROMPT* pprompt)
                 ApplyAspectRatioSettings(Fixed_4_3);
                 break;
                 case Fixed_4_3:
+                ApplyAspectRatioSettings(PS2_4_3);
+                break;
+                case PS2_4_3:
+                ApplyAspectRatioSettings(PS2_16_9);
+                break;
+                case PS2_16_9:
                 default:
                 ApplyAspectRatioSettings(FitToScreen);
                 break;
             }
+            SaveSystemSettings();
             rebuildPromptKeepingSelection();
             return;
 
@@ -838,11 +1066,19 @@ void ExecutePrompt(PROMPT* pprompt)
                 else
                 {
                     writeSelectedSave();
+                    return;
                 }
             }
 
             break;
         }
+
+		case PRK_ExitToDesktopConfirm:
+		if (response == RESPK_Yes)
+			fQuitGame = true;
+		else
+			SetPrompt(pprompt, PRP_Basic, PRK_PauseMenu);
+		return;
 
         case PRK_MemcardMissing:
         case PRK_MemcardFormatError:
@@ -958,6 +1194,19 @@ void ExecutePrompt(PROMPT* pprompt)
                 return;
 
             g_saveData.pgsCurrentSave = &g_saveData.saveData[slot];
+
+            // Retail sends both occupied saves and the "New Game" entries in
+            // the Load Game menu through this selection path. An empty slot
+            // starts a fresh game instead of being rejected as a failed load.
+            if (g_saveData.saveData[slot].dt == 0.0f)
+            {
+                SetPrompt(pprompt, PRP_Basic, PRK_Nil);
+                InitGameState(g_pgsCur);
+                SaveCurrentGameToDisk(&g_saveData);
+                ReloadCurrentLevel();
+                return;
+            }
+
             if (!LoadCurrentSave(&g_saveData))
             {
                 playInvalidSelectionSound();
@@ -1051,6 +1300,7 @@ void ExecutePrompt(PROMPT* pprompt)
                 g_fogType = g_fogType == 1 ? 2 : 1;
                 glGlobShader.Use();
                 glUniform1i(glslFogType, g_fogType);
+                SaveSystemSettings();
                 rebuildPromptKeepingSelection();
                 return;
 
@@ -1092,6 +1342,20 @@ void ExecutePrompt(PROMPT* pprompt)
         case PRK_ControlsMenu:
         switch (response)
         {
+			case RESPK_KeyboardMapping:
+			s_fControllerBindingCapture = false;
+			OpenMappingPrompt(pprompt, PRK_KeyboardMapping);
+			return;
+
+			case RESPK_ControllerMapping:
+			s_fControllerBindingCapture = true;
+			OpenMappingPrompt(pprompt, PRK_ControllerMapping);
+			return;
+
+			case RESPK_CameraInvert:
+			g_pgsCur->grfgs ^= 0x1000;
+			break;
+
             case RESPK_BinocInvert:
             g_pgsCur->grfgs ^= 0x200;
             break;
@@ -1110,6 +1374,26 @@ void ExecutePrompt(PROMPT* pprompt)
 
         rebuildPromptKeepingSelection();
         return;
+
+		case PRK_KeyboardMapping:
+		case PRK_ControllerMapping:
+		if (response == RESPK_Back)
+		{
+			s_iKeyboardBindingCapture = -1;
+			SetPrompt(pprompt, PRP_Basic, PRK_ControlsMenu);
+			return;
+		}
+
+		if (response >= RESPK_KeyUp && response <= RESPK_KeyR3)
+		{
+			s_iKeyboardBindingCapture = static_cast<int>(response) - static_cast<int>(RESPK_KeyUp);
+			s_fKeyboardBindingCaptureArmed = false;
+			std::snprintf(g_aachzKeyboardBindings[s_iKeyboardBindingCapture],
+				sizeof(g_aachzKeyboardBindings[s_iKeyboardBindingCapture]),
+				"%s: Press %s", s_apchzKeyboardActions[s_iKeyboardBindingCapture],
+				s_fControllerBindingCapture ? "a button" : "a key");
+		}
+		return;
 
         default:
         return;
@@ -1334,8 +1618,51 @@ void UpdatePromptActive(PROMPT* pprompt, JOY* pjoy)
     if (prk < PRK_PauseMenu || prk >= PRK_Max)
         return;
 
+	if ((prk == PRK_KeyboardMapping || prk == PRK_ControllerMapping) &&
+		s_iKeyboardBindingCapture >= 0 && g_gl.window != nullptr)
+	{
+		// Escape is reserved for leaving menus and is never assignable.
+		if (glfwGetKey(g_gl.window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
+		{
+			const int selection = pprompt->irespk;
+			s_iKeyboardBindingCapture = -1;
+			s_fKeyboardBindingCaptureArmed = false;
+			SetPromptPrk(pprompt);
+			pprompt->irespk = selection;
+			return;
+		}
+
+		const int key = s_fControllerBindingCapture
+			? GamepadBindingPressed()
+			: KeyboardKeyPressed(g_gl.window);
+		const int noBinding = s_fControllerBindingCapture ? -1 : GLFW_KEY_UNKNOWN;
+		if (!s_fKeyboardBindingCaptureArmed)
+		{
+			if (key == noBinding)
+				s_fKeyboardBindingCaptureArmed = true;
+			return;
+		}
+
+		if (key != noBinding)
+		{
+			const int selection = pprompt->irespk;
+			if (s_fControllerBindingCapture)
+				g_gamepadBindings[s_iKeyboardBindingCapture] = key;
+			else
+				g_keyboardBindings[s_iKeyboardBindingCapture] = key;
+			SaveSystemSettings();
+			s_iKeyboardBindingCapture = -1;
+			s_fKeyboardBindingCaptureArmed = false;
+			SetPromptPrk(pprompt);
+			pprompt->irespk = selection;
+		}
+		return;
+	}
+
     const int levelId = (static_cast<int>(g_pgsCur->gameWorldCur) << 8) | static_cast<int>(g_pgsCur->worldLevelCur);
-    const PRD& promptData = s_mpprkprd[prk];
+    const PRD& promptData = PrdPrompt(prk);
+	RESPK* const promptResponses = ArespkPrompt(prk, promptData);
+	const int promptResponseCount = CrespkPrompt(prk, promptData);
 
     const bool isHudExcludedLevel =
         levelId == 262 ||
@@ -1386,20 +1713,20 @@ void UpdatePromptActive(PROMPT* pprompt, JOY* pjoy)
         pprompt->blots == BLOTS_Visible &&
         g_clock.tReal - pprompt->tBlots > 0.1f;
 
-    if (promptData.crespk > 0)
+    if (promptResponseCount > 0)
     {
         const int selectionDelta = promptData.fVertical != 0 ? pjoy->DySelectionJoy(g_clock.tReal) : pjoy->DxSelectionJoy(g_clock.tReal);
 
         if (selectionDelta > 0)
         {
-            pprompt->irespk = (pprompt->irespk + 1) % promptData.crespk;
+            pprompt->irespk = (pprompt->irespk + 1) % promptResponseCount;
             StartSound(static_cast<SFXID>(121), nullptr, nullptr, nullptr, 3000.0f, 300.0f, 1.0f, 0.0f, 0.0f, nullptr, nullptr);
             return;
         }
 
         if (selectionDelta < 0)
         {
-            pprompt->irespk = (pprompt->irespk + promptData.crespk - 1) % promptData.crespk;
+            pprompt->irespk = (pprompt->irespk + promptResponseCount - 1) % promptResponseCount;
             StartSound(static_cast<SFXID>(121), nullptr, nullptr, nullptr, 3000.0f, 300.0f, 1.0f, 0.0f, 0.0f, nullptr, nullptr);
             return;
         }
@@ -1421,10 +1748,10 @@ void UpdatePromptActive(PROMPT* pprompt, JOY* pjoy)
         pjoy->SetHandled(BTN_SQUARE);
 
         if (prk == PRK_MemcardChooseLoadSlot &&
-            promptData.arespk != nullptr &&
+            promptResponses != nullptr &&
             pprompt->irespk >= 0 && pprompt->irespk < SAVE_SLOT_COUNT)
         {
-            const RESPK response = promptData.arespk[pprompt->irespk];
+            const RESPK response = promptResponses[pprompt->irespk];
             int slot = -1;
 
             for (int i = 0; i < SAVE_SLOT_COUNT; ++i)
@@ -1468,6 +1795,7 @@ void CancelPrompt(PROMPT* pprompt)
         break;
 
         case PRK_QuitConfirm:
+		case PRK_ExitToDesktopConfirm:
         SetPrompt(pprompt, PRP_Basic, PRK_PauseMenu);
         break;
 
@@ -1478,6 +1806,13 @@ void CancelPrompt(PROMPT* pprompt)
         case PRK_VideoMenu:
         SetPrompt(pprompt, PRP_Basic, PRK_OptionsMenu);
         break;
+
+		case PRK_KeyboardMapping:
+		case PRK_ControllerMapping:
+		s_iKeyboardBindingCapture = -1;
+		s_fKeyboardBindingCaptureArmed = false;
+		SetPrompt(pprompt, PRP_Basic, PRK_ControlsMenu);
+		break;
 
         case PRK_MemcardSlotSaved:
         case PRK_MemcardOverwriteConfirm:
@@ -1510,17 +1845,23 @@ void DrawPrompt(PROMPT* pprompt)
     if (pprompt->prk < PRK_PauseMenu || pprompt->prk >= PRK_Max)
         return;
 
-    PRD& prd = s_mpprkprd[pprompt->prk];
+    PRD& prd = PrdPrompt(pprompt->prk);
+	RESPK* const promptResponses = ArespkPrompt(pprompt->prk, prd);
+	const int promptResponseCount = CrespkPrompt(pprompt->prk, prd);
 
     const float uOn = pprompt->uOn;
-    const float dx = pprompt->dx * uOn;
-    const float dy = pprompt->dy * uOn;
+    const float dxUnscaled = pprompt->dx * uOn;
+    const float dyUnscaled = pprompt->dy * uOn;
 
     const float centerX = pprompt->xOn + pprompt->dx * 0.5f;
     const float centerY = pprompt->yOn + pprompt->dy * 0.5f;
 
-    const float x = pprompt->xOn * uOn + centerX * (1.0f - uOn);
-    float y = pprompt->yOn * uOn + centerY * (1.0f - uOn);
+    const float xUnscaled = pprompt->xOn * uOn + centerX * (1.0f - uOn);
+    const float yUnscaled = pprompt->yOn * uOn + centerY * (1.0f - uOn);
+    const float dx = dxUnscaled * g_guiScale;
+    const float dy = dyUnscaled * g_guiScale;
+    const float x = centerX + (xUnscaled - centerX) * g_guiScale;
+    float y = centerY + (yUnscaled - centerY) * g_guiScale;
 
     const float pulse = std::sin(g_clock.tReal * 10.0f) * 0.5f + 0.5f;
     const float pulseSquared = pulse * pulse;
@@ -1565,13 +1906,21 @@ void DrawPrompt(PROMPT* pprompt)
         glm::vec4 edgeColor = savedEdgeColor;
         edgeColor.a = alpha;
 
-        if (prd.crespk == 0)
+        if (promptResponseCount == 0)
             edgeColor = glm::mix(edgeColor, edgePulseTarget, pulseSquared);
 
         pprompt->pte->m_rgba = edgeColor;
 
         if (pprompt->pte->m_pfont != nullptr)
+        {
+            const float savedEdgeScaleX = pprompt->pte->m_rxScaling;
+            const float savedEdgeScaleY = pprompt->pte->m_ryScaling;
+            pprompt->pte->m_rxScaling *= g_guiScale;
+            pprompt->pte->m_ryScaling *= g_guiScale;
             pprompt->pte->m_pfont->EdgeRect(pprompt->pte, &textBox);
+            pprompt->pte->m_rxScaling = savedEdgeScaleX;
+            pprompt->pte->m_ryScaling = savedEdgeScaleY;
+        }
 
         pprompt->pte->m_rgba = savedEdgeColor;
     }
@@ -1582,7 +1931,7 @@ void DrawPrompt(PROMPT* pprompt)
 
     if (prd.pchz != nullptr)
     {
-        const float titleScale = prd.rScaleTitle * uOn;
+        const float titleScale = prd.rScaleTitle * uOn * g_guiScale;
 
         pprompt->pfont->PushScaling(titleScale, titleScale);
 
@@ -1606,7 +1955,7 @@ void DrawPrompt(PROMPT* pprompt)
     // Responses
     // -------------------------------------------------------------------------
 
-    const float responseScale = prd.rScaleRespk * uOn;
+    const float responseScale = prd.rScaleRespk * uOn * g_guiScale;
 
     pprompt->pfont->PushScaling(responseScale, responseScale);
 
@@ -1616,17 +1965,29 @@ void DrawPrompt(PROMPT* pprompt)
     float cursorX = x;
     float cursorY = y;
 
+    // The original prompt was designed for short menus. Keep mapping menus
+    // within that layout and scroll the visible window around the selection.
+    int firstResponse = 0;
+    int lastResponse = promptResponseCount;
+    if (FMappingPrompt(pprompt->prk))
+    {
+        constexpr int visibleBindings = 9;
+        firstResponse = std::clamp(pprompt->irespk - visibleBindings / 2,
+            0, std::max(0, promptResponseCount - visibleBindings));
+        lastResponse = std::min(promptResponseCount, firstResponse + visibleBindings);
+    }
+
     // Measure the complete horizontal response row.
     if (prd.fVertical == 0)
     {
         float totalWidth = 0.0f;
 
-        for (int i = 0; i < prd.crespk; ++i)
+        for (int i = firstResponse; i < lastResponse; ++i)
         {
             if (i > 0)
                 totalWidth += spaceWidth * 2.0f;
 
-            const RESPK response = prd.arespk[i];
+            const RESPK response = promptResponses[i];
 
             if (response == RESPK_Nil)
                 continue;
@@ -1644,9 +2005,9 @@ void DrawPrompt(PROMPT* pprompt)
         cursorX = x + (dx - totalWidth) * 0.5f;
     }
 
-    for (int i = 0; i < prd.crespk; ++i)
+    for (int i = firstResponse; i < lastResponse; ++i)
     {
-        const RESPK response = prd.arespk[i];
+        const RESPK response = promptResponses[i];
 
         if (response == RESPK_Nil)
             continue;
@@ -1702,7 +2063,7 @@ void DrawPrompt(PROMPT* pprompt)
     // Title/response divider
     // -------------------------------------------------------------------------
 
-    if (prd.pchz != nullptr && prd.crespk > 0)
+    if (prd.pchz != nullptr && promptResponseCount > 0)
     {
         const glm::vec4 dividerColor(95.0f / 255.0f, 95.0f / 255.0f, 95.0f / 255.0f, alpha);
 

@@ -2,7 +2,7 @@
 
 void* NewUnk11()
 {
-	return new UNK11;
+	return NewWorldObject<UNK11>();
 }
 
 void InitUnk11(UNK11* punk11)
@@ -23,5 +23,5 @@ void CloneUnk11(UNK11* punk11, UNK11* punk11Base)
 
 void DeleteUnk11(UNK11* punk11)
 {
-	delete punk11;
+	ReleaseWorldObject(punk11);
 }

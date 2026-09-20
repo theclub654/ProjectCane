@@ -2,7 +2,7 @@
 
 SKY* NewSky()
 {
-	return new SKY{};
+	return NewWorldObject<SKY>();
 }
 
 int GetSkySize()
@@ -51,5 +51,5 @@ void UpdateSky(SKY* psky, float dt)
 
 void DeleteSky(SKY* psky)
 {
-	delete psky;
+	ReleaseWorldObject(psky);
 }

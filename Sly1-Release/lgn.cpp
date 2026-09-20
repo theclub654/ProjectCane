@@ -8,7 +8,7 @@
 
 LGN* NewLgn()
 {
-	return new LGN{};
+	return NewWorldObject<LGN>();
 }
 
 void InitLgn(LGN* plgn)
@@ -284,8 +284,15 @@ void OnLgnActive(LGN* plgn, int fActive)
 	}
 	else 
 	{
+		// Begin aiming at screen center.  The 2000-unit value is the initial
+		// screen-space depth used by ConvertCmScreenToWorld, not an X position.
+		// Putting it in X clamps the reticle to the far-right edge on its first
+		// update.  Also discard velocity/target state retained by the global LGNR
+		// from an earlier activation.
+		g_lgnr.vScreen = glm::vec3(0.0f);
+		g_lgnr.posScreen = glm::vec3(0.0f, 0.0f, 2000.0f);
+		g_lgnr.ptargetCur = nullptr;
 		g_lgnr.pvtblot->pfnSetBlotBlots(&g_lgnr, BLOTS_Visible);
-		g_lgnr.posScreen = glm::vec4(2000.0f, 0.0f, 0.0f, 0.0f);
 	}
 }
 
@@ -310,7 +317,7 @@ void RenderLgnAll(LGN* plgn, CM* pcm, RO* pro)
 		rgbaCel = glm::mix(g_rgbaCel, rgbaFlash, uCel);
 	}
 
-	SetAloOverrideCel(plgn, &rgbaCel);
+	SetAloOverrideCelFloat(plgn, &rgbaCel);
 	RenderAloAll(plgn, pcm, pro);
 }
 
@@ -488,7 +495,7 @@ void SetLgnLgns(LGN* plgn, LGNS lgns)
 
 void DeleteLgn(LGN *plgn)
 {
-	delete plgn;
+	ReleaseWorldObject(plgn);
 }
 
 void StartupLgnr(LGNR* plgnr)
@@ -661,7 +668,7 @@ void DeleteLgnb(LGNB *plgnb)
 
 SWP* NewSwp()
 {
-	return new SWP{};
+	return NewWorldObject<SWP>();
 }
 
 void InitSwp(SWP* pswp)
@@ -944,7 +951,7 @@ void SetSwpShape(SWP* pswp, SHAPE* pshape, float tMax)
 
 void DeleteSwp(SWP *pswp)
 {
-	delete pswp;
+	ReleaseWorldObject(pswp);
 }
 
 LGNR g_lgnr;

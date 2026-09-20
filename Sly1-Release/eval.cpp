@@ -1139,7 +1139,6 @@ CRef RefEvalModule(SW* psw, int isplice)
     {
         splc.pframe = PframeNew();
         refRet = RefEval(splc.ppairCompile.get(), splc.pframe.get());
-
     }
 
     refRet.SetTag(TAGK_Void);

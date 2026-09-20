@@ -120,7 +120,8 @@ struct BLOT
         struct VTJTICON* pvtjticon;
 
     };
-    CFontBrx* pfont;          // Font to draw with
+    CFontBrx* pfont;          // Non-owning font pointer used by the original drawing API
+    std::shared_ptr<CFontBrx> pfontOwned; // Retains cloned fonts
     char achzDraw[512];       // Text or formatted string to draw
     glm::vec4 rgba;           // Text color (or overlay color)
     float rFontScale;         // Font scaling factor
@@ -178,6 +179,7 @@ void  UpdateBlot(BLOT* pblot);
 void  UpdateBlotActive(BLOT* pblot, JOY* pjoy);
 void  UpdateBlots();
 void  DrawBlot(BLOT *pblot);
+void  GetGuiScaledBlotRect(BLOT* pblot, float* px, float* py, float* pdx, float* pdy);
 void  RenderBlots();
 void  DrawBlots();
 void  ResetBlots();

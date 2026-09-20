@@ -4,7 +4,7 @@
 
 DART* NewDart()
 {
-	return new DART{};
+	return NewWorldObject<DART>();
 }
 
 void InitSwDartFreeDl(SW* psw)
@@ -319,7 +319,7 @@ void UpdateDartAirborne(DART* pdart, float dt)
 
 void DeleteDart(DART *pdart)
 {
-	delete pdart;
+	ReleaseWorldObject(pdart);
 }
 
 SNIP s_asnipDartLoad = 

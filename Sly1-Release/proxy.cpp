@@ -3,7 +3,7 @@
 
 PROXY* NewProxy()
 {
-	return new PROXY{};
+	return NewWorldObject<PROXY>();
 }
 
 void InitProxy(PROXY *pproxy)
@@ -272,5 +272,5 @@ void DeleteProxy(PROXY *pproxy)
 
 	//pproxy->apxrProxyRoot.clear();
 
-	delete pproxy;
+	ReleaseWorldObject(pproxy);
 }

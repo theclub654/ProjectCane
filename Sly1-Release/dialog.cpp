@@ -16,7 +16,7 @@
 
 DIALOG* NewDialog()
 {
-	return new DIALOG{};
+	return NewWorldObject<DIALOG>();
 }
 
 void InitDialog(DIALOG* pdialog)
@@ -405,79 +405,74 @@ bool FPauseDialog(DIALOG* pdialog)
 		JOY* pjoy = (g_grfjoyt & 4u) != 0 ? &g_joy : &g_joyZero;
 		DPK dpk = pdialog->dp.dpk;
 		bool fInputReceived = false;
-
-		if (grfdp == DPF_PlayerInput)
+		auto FPressedForDialog = [pjoy](JOY_BUTTON button)
 		{
-			JOY* pjoy = (g_grfjoyt & 4u) != 0 ? &g_joy : &g_joyZero;
-			DPK dpk = pdialog->dp.dpk;
-			bool fInputReceived = false;
+			// Dialog prompts use the raw button edge. Gameplay may mark the same
+			// edge handled before UpdateDialog runs (for example, Square firing a
+			// projectile), but retail still lets that edge satisfy the prompt.
+			return pjoy->current[button] && !pjoy->previous[button];
+		};
 
-			switch (dpk)
-			{
-			case DPK_None:
-			case DPK_X:
-				fInputReceived = pjoy->IsPressed(BTN_CROSS);
-				break;
+		switch (dpk)
+		{
+		case DPK_None:
+		case DPK_X:
+			fInputReceived = FPressedForDialog(BTN_CROSS);
+			break;
 
-			case DPK_Square:
-				fInputReceived = pjoy->IsPressed(BTN_SQUARE);
-				break;
+		case DPK_Square:
+			fInputReceived = FPressedForDialog(BTN_SQUARE);
+			break;
 
-			case DPK_Circle:
-				fInputReceived = pjoy->IsPressed(BTN_CIRCLE);
-				break;
+		case DPK_Circle:
+			fInputReceived = FPressedForDialog(BTN_CIRCLE);
+			break;
 
-			case DPK_Triangle:
-				fInputReceived = pjoy->IsPressed(BTN_TRIANGLE);
-				break;
+		case DPK_Triangle:
+			fInputReceived = FPressedForDialog(BTN_TRIANGLE);
+			break;
 
-			case DPK_L1:
-				fInputReceived = pjoy->IsPressed(BTN_L1);
-				break;
+		case DPK_L1:
+			fInputReceived = FPressedForDialog(BTN_L1);
+			break;
 
-			case DPK_R1:
-				fInputReceived = pjoy->IsPressed(BTN_R1);
-				break;
+		case DPK_R1:
+			fInputReceived = FPressedForDialog(BTN_R1);
+			break;
 
-			case DPK_JoyLeft:
-				fInputReceived = pjoy->uDeflect > 0.8f;
-				break;
+		case DPK_JoyLeft:
+			fInputReceived = pjoy->uDeflect > 0.8f;
+			break;
 
-			case DPK_JoyRight:
-				fInputReceived = pjoy->uDeflect2 > 0.8f;
-				break;
+		case DPK_JoyRight:
+			fInputReceived = pjoy->uDeflect2 > 0.8f;
+			break;
 
-			case DPK_JoyLeftX:
-				fInputReceived = std::abs(pjoy->x) > 0.8f;
-				break;
+		case DPK_JoyLeftX:
+			fInputReceived = std::abs(pjoy->x) > 0.8f;
+			break;
 
-			case DPK_JoyLeftY:
-				fInputReceived = std::abs(pjoy->y) > 0.8f;
-				break;
+		case DPK_JoyLeftY:
+			fInputReceived = std::abs(pjoy->y) > 0.8f;
+			break;
 
-			case DPK_DoubleJump:
-				fInputReceived = g_pjt != nullptr && g_pjt->jts == JTS_Jump && g_pjt->jtbs == JTBS_Jump_Boost;
-				break;
+		case DPK_DoubleJump:
+			fInputReceived = g_pjt != nullptr && g_pjt->jts == JTS_Jump && g_pjt->jtbs == JTBS_Jump_Boost;
+			break;
 
-			case DPK_VaultOpen:
-				fInputReceived = g_plsCur != nullptr && (g_plsCur->grfls & 4u) != 0;
-				break;
+		case DPK_VaultOpen:
+			fInputReceived = g_plsCur != nullptr && (g_plsCur->grfls & 4u) != 0;
+			break;
 
-			default:
-				fInputReceived = false;
-				break;
-			}
-
-			if (fInputReceived)
-				grfdp = 0;
-			else if (dpk >= DPK_None && dpk < DPK_Max)
-				g_binoc.chPause = s_mpdpkchPause[dpk];
+		default:
+			break;
 		}
 
 		if (fInputReceived)
 			grfdp = 0;
-		else
+		else if (dpk >= DPK_None && dpk < DPK_Max)
 			g_binoc.chPause = s_mpdpkchPause[dpk];
+
 	}
 
 	pdialog->dp.grfdp = grfdp;
@@ -937,7 +932,7 @@ void HandleDialogEvent(DIALOG* pdialog, DE* pde)
 
 void DeleteDialog(DIALOG* pdialog)
 {
-	delete pdialog;
+	ReleaseWorldObject(pdialog);
 }
 
 int g_cdialogTriggered = 0;

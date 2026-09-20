@@ -357,7 +357,7 @@ RIPG* PripgNew(SW* psw, RIPGT ripgt)
 
 RIPG* NewRipg()
 {
-	return new RIPG{};
+	return NewWorldObject<RIPG>();
 }
 
 RIP* PripNewRipg(RIPT ript, RIPG* pripg)
@@ -938,7 +938,6 @@ int FRenderRipPosMat(RIP* prip, CM* pcm, glm::vec3* ppos, glm::mat3* pmat)
 		return 0;
 
 	ALO* const palo = prip->paloRender;
-
 	if (palo == nullptr || prip->dtLifetime <= 0.0f)
 		return 0;
 
@@ -1128,7 +1127,7 @@ void EmitRips(EMITB* pemitb, EMITG* pemitg, int crip, glm::vec3* apos, glm::vec3
 
 void DeleteRipg(RIPG* pripg)
 {
-	delete pripg;
+	ReleaseWorldObject(pripg);
 }
 
 float DT_RipFadeWater = 1.0;

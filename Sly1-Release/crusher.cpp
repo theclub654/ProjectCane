@@ -80,7 +80,7 @@ float DtVisibleCrusherctr(CRUSHERCTR* pcrusherctr)
 
 CRFODB* NewCrfodb()
 {
-	CRFODB* pcrfodb = new CRFODB{};
+	CRFODB* pcrfodb = NewWorldObject<CRFODB>();
     pcrfodb->fKillReported = false;
     return pcrfodb;
 }
@@ -234,24 +234,21 @@ int FDetectCrfodb(CRFODB* pcrfodb)
         return false;
     }
 
-    glm::vec2 dpos = glm::vec2(pcrfodb->xf.posWorld - psoTarget->xf.posWorld);
-    float dist = glm::length(dpos);
+    const glm::vec3 dpos = pcrfodb->xf.posWorld - psoTarget->xf.posWorld;
+    const float dist = glm::length(dpos);
 
     if (!pcrfodb->fDetectLatch) {
         if (dist < 900.0) {
-            glm::vec2 vTarget = glm::vec2(psoTarget->xf.v);
-            glm::vec2 dirToCrfodb = dpos;
+            const float speed = glm::length(psoTarget->xf.v);
+            const glm::vec3 vTarget = speed < 0.0001f
+                ? g_normalX
+                : psoTarget->xf.v / speed;
+            const glm::vec3 dirToCrfodb = dist < 0.0001f
+                ? g_normalX
+                : dpos / dist;
 
-            if (glm::length(vTarget) >= 0.0001f &&
-                glm::length(dirToCrfodb) >= 0.0001f)
-            {
-                vTarget = glm::normalize(vTarget);
-                dirToCrfodb = glm::normalize(dirToCrfodb);
-
-                if (glm::dot(vTarget, dirToCrfodb) > 0.3f) {
-                    pcrfodb->fDetectLatch = true;
-                }
-            }
+            if (glm::dot(vTarget, dirToCrfodb) > 0.3f)
+                pcrfodb->fDetectLatch = true;
         }
     }
     else {
@@ -280,12 +277,12 @@ int FAbsorbCrfodbWkr(CRFODB* pcrfodb, WKR* pwkr)
 
 void DeleteCrfodb(CRFODB* pcrfodb)
 {
-	delete pcrfodb;
+	ReleaseWorldObject(pcrfodb);
 }
 
 CRFOD* NewCrfod()
 {
-	return new CRFOD{};
+	return NewWorldObject<CRFOD>();
 }
 
 void InitSwCrfodDl(SW* psw)
@@ -301,17 +298,6 @@ void OnCrfodAdd(CRFOD* pcrfod)
 
 void OnCrfodRemove(CRFOD* pcrfod)
 {
-	// A spawned chicken can be removed immediately after its death animation
-	// without delivering the expected state callback.  Preserve the original
-	// spawned-object notification at this guaranteed lifecycle point.
-	if (FIsBasicDerivedFrom(pcrfod, CID_CRFODB)) {
-		CRFODB* pcrfodb = static_cast<CRFODB*>(pcrfod);
-		if (pcrfodb->sgs == SGS_Dying && !pcrfodb->fKillReported && g_pcrfodkSpawner != nullptr) {
-			pcrfodb->fKillReported = true;
-			OnCrfodkSpawnedDestroyed(g_pcrfodkSpawner, pcrfodb);
-		}
-	}
-
 	OnStepguardRemove(pcrfod);
 	RemoveDlEntry(&pcrfod->psw->dlCrfod, pcrfod);
 }
@@ -321,19 +307,21 @@ void OnCrfodbEnteringSgs(CRFODB* pcrfodb, SGS sgsPrev, ASEG* pasegTargetOverride
     OnStepguardEnteringSgs((STEPGUARD*)pcrfodb, sgsPrev, pasegTargetOverride);
 
     if (pcrfodb->sgs == SGS_Dying) {
-        if (!pcrfodb->fKillReported && g_pcrfodkSpawner != nullptr) {
-            pcrfodb->fKillReported = true;
+        if (g_pcrfodkSpawner != nullptr)
             OnCrfodkSpawnedDestroyed(g_pcrfodkSpawner, pcrfodb);
+
+        if (pcrfodb->pcrfodkSlot != nullptr) {
+            pcrfodb->pcrfodkSlot->pcrfodb = nullptr;
+            pcrfodb->pcrfodkSlot = nullptr;
         }
     }
-    else if (pcrfodb->sgs == SGS_Pursue && g_pcrfodkSpawner != nullptr) {
-        SetAsegaSpeed(pcrfodb->pasegaSgs, g_pcrfodkSpawner->anotherDifficulty);
-    }
-
-    if ((pcrfodb->sgs == SGS_Dying || pcrfodb->sgs == SGS_Pursue) && pcrfodb->pcrfodkSlot != nullptr) {
-        pcrfodb->pcrfodkSlot->pasegaSpawn = nullptr;
-        pcrfodb->pcrfodkSlot->pcrfodb = nullptr;
-        pcrfodb->pcrfodkSlot = nullptr;
+    else if (pcrfodb->sgs == SGS_Pursue) {
+        if (pcrfodb->pcrfodkSlot != nullptr) {
+            pcrfodb->pcrfodkSlot->pcrfodb = nullptr;
+            pcrfodb->pcrfodkSlot = nullptr;
+        }
+        if (g_pcrfodkSpawner != nullptr)
+            SetAsegaSpeed(pcrfodb->pasegaSgs, g_pcrfodkSpawner->anotherDifficulty);
     }
 }
 
@@ -351,12 +339,12 @@ int GetCrfodSize()
 
 void DeleteCrfod(CRFOD* pcrfod)
 {
-	delete pcrfod;
+	ReleaseWorldObject(pcrfod);
 }
 
 CRFODK* NewCrfodk()
 {
-	CRFODK* pcrfodk = new CRFODK{};
+	CRFODK* pcrfodk = NewWorldObject<CRFODK>();
 	// Every ordinary chicken contributes one point unless its template
 	// explicitly replaces this value while loading.
 	pcrfodk->cKillValue = 1;
@@ -461,17 +449,12 @@ void OnCrfodkEnteringSgs(CRFODK* pcrfodk, SGS sgsPrev, ASEG* pasegTargetOverride
         }
 
         if (pcrfodk->pcrfodkSlot != nullptr) {
-            // Normally MSGID_asega_retracted releases this lock.  State entry
-            // is a safe fallback for an animation that completed without the
-            // subscription message reaching the spawner.
-            pcrfodk->pcrfodkSlot->pasegaSpawn = nullptr;
             pcrfodk->pcrfodkSlot->pcrfodk = nullptr;
             pcrfodk->pcrfodkSlot = nullptr;
         }
     }
     else if (pcrfodk->sgs == SGS_Pursue) {
         if (pcrfodk->pcrfodkSlot != nullptr) {
-            pcrfodk->pcrfodkSlot->pasegaSpawn = nullptr;
             pcrfodk->pcrfodkSlot->pcrfodk = nullptr;
             pcrfodk->pcrfodkSlot = nullptr;
         }
@@ -482,12 +465,12 @@ void OnCrfodkEnteringSgs(CRFODK* pcrfodk, SGS sgsPrev, ASEG* pasegTargetOverride
 
 void DeleteCrfodk(CRFODK* pcrfodk)
 {
-	delete pcrfodk;
+	ReleaseWorldObject(pcrfodk);
 }
 
 CRFODKSPAWN* NewCrfodkSpawn()
 {
-    return new CRFODKSPAWN{};
+    return NewWorldObject<CRFODKSPAWN>();
 }
 
 void InitCrfodkSpawn(CRFODKSPAWN* pspawn)
@@ -512,6 +495,7 @@ void InitCrfodkSpawn(CRFODKSPAWN* pspawn)
     // the first regular spawn.  FLT_MAX belongs only to tRespawn here.
     pspawn->tSpawnNext = 0.0f;
     pspawn->cRespawnMax = 2;
+    pspawn->fThresholdReached = 0;
     g_pcrfodkSpawner = pspawn;
 }
 
@@ -534,7 +518,7 @@ void DeleteCrfodkSpawn(CRFODKSPAWN* pspawn)
 {
     if (g_pcrfodkSpawner == pspawn)
         g_pcrfodkSpawner = nullptr;
-    delete pspawn;
+    ReleaseWorldObject(pspawn);
 }
 
 void AddCrfodkSpawnSlot(CRFODKSPAWN* pspawn, OID oidSlot)
@@ -545,7 +529,7 @@ void AddCrfodkSpawnSlot(CRFODKSPAWN* pspawn, OID oidSlot)
 
 CRFODKTUNE* PcrfodkSpawnerDifficultyData(CRFODKSPAWN* pspawn)
 {
-    return (&pspawn->tuneNormal) + glm::clamp(pspawn->iDifficultyData, 0, 2);
+    return (&pspawn->tuneNormal) + pspawn->iDifficultyData;
 }
 
 void RecalcCrfodkSpawnerDifficulty(CRFODKSPAWN* pspawn)
@@ -602,8 +586,7 @@ void NotifyCrfodkDied(CRFODKSPAWN* pspawner)
         pspawner->tRespawn = g_clock.t + dtRespawn;
     }
 
-    if (pspawner->cActive > 0)
-        --pspawner->cActive;
+    --pspawner->cActive;
 }
 
 static bool FireCrfodkIntoSlot(CRFODKSPAWN* pspawn, RWM* prwm, CRFODKSLOT& slot)
@@ -676,29 +659,64 @@ void RespawnCrfodk(CRFODKSPAWN* pspawn)
         pspawn->tRespawn = FLT_MAX;
         return;
     }
-    // The special/red chickens come from the separate RWM at original offset
-    // 0x420. Normal chickens are emitted by prwmSpawn at 0x424.
+
+    PO* ppo = PpoCur();
+    if (ppo == nullptr)
+        return;
+
+    glm::vec3 firstSpawnPos(0.0f);
+    bool haveFirstSpawnPos = false;
+
+    // Retail first searches for the best off-screen slot. It only permits an
+    // on-screen spawn on the second pass when no off-screen slot is available.
     while (pspawn->cActive < pspawn->cRespawnMax) {
-        CRFODKSLOT* freeSlots[16];
-        int count = 0;
-        for (int i = 0; i < pspawn->cslot && count < (int)std::size(freeSlots); ++i) {
-            CRFODKSLOT& slot = pspawn->aslot[i];
-            if (slot.pcrfodb == nullptr && slot.pasegaSpawn == nullptr)
-                freeSlots[count++] = &slot;
+        CRFODKSLOT* bestSlot = nullptr;
+        glm::vec3 bestSpawnPos(0.0f);
+
+        for (int pass = 0; pass < 2 && bestSlot == nullptr; ++pass) {
+            float bestScore = -1.0f;
+            for (int i = 0; i < pspawn->cslot; ++i) {
+                CRFODKSLOT& slot = pspawn->aslot[i];
+                if (slot.pcrfodb != nullptr || slot.pasegaSpawn != nullptr ||
+                    slot.palo == nullptr || slot.pxfmSpawn == nullptr)
+                    continue;
+
+                glm::vec3 spawnPos;
+                GetXfmPos(slot.pxfmSpawn, &spawnPos);
+
+                if (pass == 0) {
+                    glm::vec3 screen;
+                    ConvertCmWorldToScreen(g_pcm, &slot.palo->xf.posWorld, &screen);
+                    if (screen.x >= -1.0f && screen.x <= 1.0f &&
+                        screen.y >= -1.0f && screen.y <= 1.0f)
+                        continue;
+                }
+
+                float score = glm::length(ppo->xf.posWorld - spawnPos);
+                if (haveFirstSpawnPos)
+                    score += glm::length(firstSpawnPos - spawnPos);
+
+                if (score > bestScore) {
+                    bestScore = score;
+                    bestSlot = &slot;
+                    bestSpawnPos = spawnPos;
+                }
+            }
         }
 
-        if (count == 0)
+        if (bestSlot == nullptr)
             return;
 
-        CRFODKSLOT& slot = *freeSlots[NRandInRange(0, count - 1)];
-        if (!FireCrfodkIntoSlot(pspawn, pspawn->prwmRespawn, slot))
+        if (!FireCrfodkIntoSlot(pspawn, pspawn->prwmRespawn, *bestSlot))
             return;
 
+        if (!haveFirstSpawnPos) {
+            firstSpawnPos = bestSpawnPos;
+            haveFirstSpawnPos = true;
+        }
         ++pspawn->cActive;
         pspawn->tRespawn = g_clock.t + GRandInRange(pspawn->dtRespawnMin, pspawn->dtRespawnMax);
     }
-
-    pspawn->tRespawn = FLT_MAX;
 }
 
 void UpdateCrfodkSpawnerDeathDifficulty(CRFODKSPAWN* pspawn)
@@ -752,26 +770,30 @@ void UpdateCrfodkSpawnerBlot(CRFODKSPAWN* pspawn)
 
 void OnCrfodkSpawnedDestroyed(CRFODKSPAWN* pspawn, CRFODB* pcrfodb)
 {
-    const int killValue = pcrfodb->cpoint > 0 ? pcrfodb->cpoint : 1;
-    const bool releasedSpawnSlot = pspawn->cSpawned > 0;
-    pspawn->cKilled = glm::clamp(pspawn->cKilled + killValue, 0, pspawn->cKillGoal);
+    pspawn->cKilled = glm::clamp(pspawn->cKilled + pcrfodb->cpoint, 0, pspawn->cKillGoal);
     if (pspawn->cKilled >= pspawn->cKillGoal) {
         OID cur, goal;
         GetSmaCur(pspawn->psma, &cur);
         GetSmaGoal(pspawn->psma, &goal);
         PO* ppo = PpoCur();
-        if (cur != (OID)1023 && goal != (OID)1023 && (ppo == nullptr || ppo->pvtpo->pfnJthsCurrentPo(ppo) != (JTHS)2))
+        if (cur != (OID)1023 && goal != (OID)1023 && ppo != nullptr && ppo->pvtpo->pfnJthsCurrentPo(ppo) != (JTHS)2) {
             SetSmaGoal(pspawn->psma, (OID)1022);
+
+            STEPGUARD* apstepguard[32]{};
+            const int cstepguard = CploFindSwObjectsByClass(
+                pspawn->psw, static_cast<GRFFSO>(5), CID_CRFODK, nullptr,
+                static_cast<int>(std::size(apstepguard)), reinterpret_cast<LO**>(apstepguard));
+
+            for (int i = 0; i < cstepguard; ++i)
+                SetStepguardSgs(apstepguard[i], SGS_Dying, nullptr);
+        }
         StopTimer(&g_timer);
     }
-    if (releasedSpawnSlot)
-        --pspawn->cSpawned;
-
     RecalcCrfodkSpawnerDifficulty(pspawn);
-    // SpawnCrfodk parks this timer at FLT_MAX when the live quota is full.
-    // Re-arm it as soon as a dying chicken releases a quota entry.
-    if (releasedSpawnSlot && pspawn->cKilled < pspawn->cKillGoal)
+
+    if (pspawn->cSpawned == pspawn->cActiveMax)
         pspawn->tSpawnNext = g_clock.t + GRandInRange(pspawn->dtSpawnMin, pspawn->dtSpawnMax);
+    --pspawn->cSpawned;
 }
 
 void HandleCrfodkSpawnMessage(CRFODKSPAWN* pspawn, MSGID msgid, void* pv)
@@ -786,8 +808,6 @@ void HandleCrfodkSpawnMessage(CRFODKSPAWN* pspawn, MSGID msgid, void* pv)
         OID state;
         GetSmaCur(pspawn->psma, &state);
         if (state == (OID)1021) {
-            if (pspawn->tSpawnNext == FLT_MAX)
-                pspawn->tSpawnNext = g_clock.t;
             g_puffchargectr.pnTotal = &pspawn->cKillGoal;
             g_puffchargectr.pnActual = &pspawn->cKilled;
             SetSwGameplayHud(pspawn->psw, pspawn);

@@ -6,7 +6,7 @@ int g_fDrawEmitterGroupSelf = 0;
 
 BLIPG* NewBlipg()
 {
-	return new BLIPG{};
+	return NewWorldObject<BLIPG>();
 }
 
 void InitSwBlipgDl(SW* psw)
@@ -184,7 +184,18 @@ void SetBlipgEmitb(BLIPG* pblipg, EMITB* pemitb)
     pblipg->crgba = std::max(pblipg->crgba, 0);
 
     for (int i = 0; i < pblipg->crgba; ++i)
-        pblipg->argba[i] = emitblip.argba[i];
+    {
+        // SetBlipgEmitb in the retail game stores each GS colour channel as
+        // (channel + 1) >> 1.  Preserve normalized alpha here: GS alpha uses
+        // 0x80 as fully opaque, whereas OpenGL uses 1.0/0xff.  Halving alpha
+        // a second time would therefore make the blend contribution wrong.
+        const glm::vec4& source = emitblip.argba[i];
+        pblipg->argba[i] = glm::vec4(
+            source.r * 0.5f,
+            source.g * 0.5f,
+            source.b * 0.5f,
+            source.a);
+    }
 
     pblipg->fColorRanges = emitblip.fColorRanges;
 
@@ -655,7 +666,7 @@ void RenderBlipgSelf(BLIPG* pblipg, CM* pcm, RO* pro)
 
 void DeleteBlipg(BLIPG* pblipg)
 {
-	delete pblipg;
+	ReleaseWorldObject(pblipg);
 }
 
 BLIP* PblipNew(BLIPG* pblipg)

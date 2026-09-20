@@ -8,7 +8,7 @@
 
 CHKPNT* NewChkpnt()
 {
-	return new CHKPNT{};
+	return NewWorldObject<CHKPNT>();
 }
 
 void InitChkpnt(CHKPNT* pchkpnt)
@@ -315,7 +315,7 @@ void SetChkpntWarp(CHKPNT* pchkpnt, OID oidWarp)
 
 void DeleteChkpnt(CHKPNT *pchkpnt)
 {
-	delete pchkpnt;
+	ReleaseWorldObject(pchkpnt);
 }
 
 void ResetChkmgrCheckPoints(CHKMGR* pchkmgr)
@@ -430,7 +430,7 @@ void ClearChkmgrIchk(CHKMGR* pchkmgr, int ichk)
 
 VOL* NewVol()
 {
-	return new VOL;
+	return NewWorldObject<VOL>();
 }
 
 int GetVolSize()
@@ -465,7 +465,7 @@ void CloneVol(VOL* pvol, VOL* pvolBase)
 
 void DeleteVol(VOL* pvol)
 {
-	delete pvol;
+	ReleaseWorldObject(pvol);
 }
 
 CHKMGR g_chkmgr;

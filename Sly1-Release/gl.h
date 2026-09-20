@@ -18,6 +18,8 @@ enum AspectMode
 	Fixed_4_3,
 	Fixed_16_9,
 	Fixed_16_10,
+	PS2_4_3,
+	PS2_16_9,
 };
 
 enum WindowMode
@@ -192,6 +194,7 @@ extern GLuint glslFogColor;
 extern GLuint glslfAlphaTest;
 extern GLuint glslAlphaCutOff;
 extern GLuint glslRko;
+extern GLuint glslProjectedVolumeColor;
 extern GLuint glslfAnimateUv;
 extern GLuint glsluvOffsets;
 extern GLuint glslUnSelfIllum;
@@ -212,6 +215,7 @@ extern int g_msaaSamples;
 extern bool g_fMsaa;
 extern bool g_fVsync;
 extern int g_internalResolutionHeight;
+extern float g_guiScale;
 extern WindowMode g_windowMode;
 extern float g_drawDistanceMultiplier;
 extern int g_frames;

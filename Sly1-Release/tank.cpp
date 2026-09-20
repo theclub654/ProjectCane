@@ -7,7 +7,7 @@
 
 TANK* NewTank()
 {
-	return new TANK{};
+	return NewWorldObject<TANK>();
 }
 
 void InitTank(TANK* ptank)
@@ -361,7 +361,7 @@ void RenderTankAll(TANK* ptank, CM* pcm, RO* pro)
     glm::vec4 overrideCel[4] = {};
     overrideCel[0] = cel;
 
-    SetAloOverrideCel(ptank, overrideCel);
+    SetAloOverrideCelFloat(ptank, overrideCel);
     RenderAloAll(ptank, pcm, pro);
 }
 
@@ -610,7 +610,7 @@ JTHS JthsCurrentTank(TANK* ptank)
 
 void DeleteTank(TANK* ptank)
 {
-	delete ptank;
+	ReleaseWorldObject(ptank);
 }
 
 CLQ s_clqDtDamageToUMu = {2.0, 0.0, 0.0};
@@ -630,9 +630,9 @@ SNIP s_asnipTank[9] =
     4, (OID)0x60,  offsetof(TANK, paloGut),
     4, (OID)0x50,  offsetof(TANK, paloHead),
     4, (OID)0x34E, offsetof(TANK, paloJt),
-    2, (OID)0x161, offsetof(TANK, pzi.mpccharmpaloCharm[2]),
-    2, (OID)0x162, offsetof(TANK, pzi.mpccharmpaloCharm[3]),
-    2, (OID)0x163, offsetof(TANK, pzi.mpccharmpaloCharm[4]),
+    2, (OID)0x161, offsetof(TANK, pzi.mpccharmpaloCharm[1]),
+    2, (OID)0x162, offsetof(TANK, pzi.mpccharmpaloCharm[2]),
+    2, (OID)0x163, offsetof(TANK, pzi.mpccharmpaloCharm[3]),
     4, (OID)0x160, offsetof(TANK, pzi.mpccharmpaloCharm[0]),
 };
 float g_fTankFireBlocked = 0.0;

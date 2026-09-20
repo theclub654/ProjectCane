@@ -6,7 +6,7 @@
 
 PATHZONE* NewPathzone()
 {
-    return new PATHZONE{};
+    return NewWorldObject<PATHZONE>();
 }
 
 CBSP* PcbspExtract(CBSP* pcbspMod)
@@ -943,7 +943,7 @@ int GetPathzoneSize()
 
 void DeletePathzone(PATHZONE* ppathzone)
 {
-    delete ppathzone;
+    ReleaseWorldObject(ppathzone);
 }
 
 float s_arad[11] =

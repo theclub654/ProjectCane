@@ -1,6 +1,4 @@
 #version 430 core
-#extension GL_ARB_bindless_texture : require
-
 #define RKO_OneWay   0
 #define RKO_ThreeWay 1
 
@@ -8,11 +6,12 @@
 #define FOG_PS2  1
 #define FOG_PS3  2
 
-#define MAX_OBJECT_SHADOWS 16
+#define MAX_OBJECT_SHADOWS 12
 
 uniform sampler2D ambientMap;
 uniform sampler2D diffuseMap;
 uniform sampler2D saturateMap;
+uniform sampler2DArray shadowTextureArray;
 
 struct SWP
 {
@@ -35,8 +34,10 @@ struct SHADOW
     float wMax;
     float gReserved;
     float wFadeMin;
-    uvec2 textureHandle;
-    uvec2 _pad0;
+    int   textureSlot;
+    int   padTexture0;
+    int   padTexture1;
+    int   padTexture2;
     vec4  posEffect;
     float sRadiusEffect;
     int   fDynamic;
@@ -82,6 +83,7 @@ layout(std430, binding = 4) readonly buffer SHADOWBLK
 uniform int   fAlphaTest;
 uniform float alphaCutOff;
 uniform int   rko;
+uniform vec4  projectedVolumeColor;
 
 in vec4 worldPos;
 in vec3 worldNormal;
@@ -100,6 +102,7 @@ void DrawOneWay();
 void DrawThreeWay();
 bool ShadowIntersectsSphere(vec3 objectCenter, float objectRadius, vec3 shadowCenter, float shadowRadius);
 vec3 ApplyProjectedShadow(SHADOW shadow);
+float SampleShadowTexture(int layer, vec2 uv);
 void ApplyFog();
 
 void main()
@@ -137,9 +140,9 @@ void DrawOneWay()
 {
     vec4 diffuseTex = texture(diffuseMap, texcoord);
 
-    FragColor.rgb = (vertexColor.rgb * diffuseTex.rgb) * op.darken;
+    FragColor.rgb = (vertexColor.rgb * diffuseTex.rgb) * projectedVolumeColor.rgb * op.darken;
 
-    float alpha = diffuseTex.a * vertexColor.a;
+    float alpha = diffuseTex.a * vertexColor.a * projectedVolumeColor.a;
 
     if (alpha > 0.9)
     {
@@ -187,6 +190,11 @@ vec3 ApplyProjectedShadow(SHADOW shadow)
 {
     vec4 proj = shadow.matWorldToUv * vec4(worldPos.xyz, 1.0);
 
+    // A caster may disappear between shadow preparation and geometry drawing.
+    // Never allow an invalid projection to contaminate the material color.
+    if (any(isnan(proj)) || any(isinf(proj)))
+        return vec3(1.0);
+
     vec4 rgba = clamp(shadow.rgba, 0.0, 1.0);
 
     float q = proj.w;
@@ -217,12 +225,26 @@ vec3 ApplyProjectedShadow(SHADOW shadow)
             rgba.a = 0.0;
     }
 
+    if (isnan(depth) || isinf(depth) || abs(depth) < 0.00001)
+        return vec3(1.0);
+
     vec2 uv = uvq / depth;
+
+    if (any(isnan(uv)) || any(isinf(uv)))
+        return vec3(1.0);
     
-    float mask = texture(sampler2D(shadow.textureHandle), uv).a;
+    float mask = SampleShadowTexture(shadow.textureSlot, uv);
     float As = mask * rgba.a;
 
     return (shadow.fDynamic == 1) ? vec3(1.0 - As) : vec3(1.0 + As);
+}
+
+float SampleShadowTexture(int layer, vec2 uv)
+{
+    if (layer < 0)
+        return 0.0;
+
+    return texture(shadowTextureArray, vec3(uv, float(layer))).a;
 }
 
 void ApplyFog()

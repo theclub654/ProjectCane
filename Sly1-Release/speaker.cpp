@@ -16,7 +16,7 @@ glm::vec4 NormalizeSpeakerTextColor(const RGBA& rgba)
 
 SPEAKER* NewSpeaker()
 {
-	return new SPEAKER{};
+	return NewWorldObject<SPEAKER>();
 }
 
 void InitSpeaker(SPEAKER* pspeaker)
@@ -225,5 +225,5 @@ void* GetSpeakerSmIdle(SPEAKER* pspeaker)
 
 void DeleteSpeaker(SPEAKER* pspeaker)
 {
-	delete pspeaker;
+	ReleaseWorldObject(pspeaker);
 }

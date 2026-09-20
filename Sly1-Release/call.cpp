@@ -11,7 +11,8 @@ void PostCallLoad(CALL* pcall)
     PostBlotLoad(pcall);
 
     CFontBrx* pfontBase = PfontFromFont(2);
-    pcall->pfont = pfontBase->PfontClone(1.0f, 1.0f);
+    pcall->pfontOwned = pfontBase->PfontClone(1.0f, 1.0f);
+    pcall->pfont = pcall->pfontOwned.get();
 
     pcall->pvtblot->pfnSetBlotAchzDraw(pcall, (char*)"B");
     pcall->pdialogTriggered = nullptr;

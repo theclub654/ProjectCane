@@ -5,7 +5,7 @@
 
 MURRAY* NewMurray()
 {
-	return new MURRAY{};
+	return NewWorldObject<MURRAY>();
 }
 
 void InitMurray(MURRAY* pmurray)
@@ -358,7 +358,7 @@ void HandleMurrayMessage(MURRAY* pmurray, MSGID msgid, void* pv)
 
 void DeleteMurray(MURRAY* pmurray)
 {
-	delete pmurray;
+	ReleaseWorldObject(pmurray);
 }
 
 SNIP a_snipPostMurray[2] =

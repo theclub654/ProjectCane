@@ -1,14 +1,38 @@
 #include "dysh.h"
 #include "shadow.h"
 
+namespace
+{
+    void ReleaseDyshTexture(DYSH* pdysh)
+    {
+        if (pdysh == nullptr)
+            return;
+
+        // The projected-shadow array is world-owned. DYSH only references one
+        // of its layers and must never delete the shared texture.
+        pdysh->shadowTex = 0;
+        pdysh->shadowLayer = -1;
+
+        if (pdysh->pshadowGen != nullptr)
+        {
+            pdysh->pshadowGen->glTexture = 0;
+
+            if (pdysh->pshadowGen->pdysh == pdysh)
+                pdysh->pshadowGen->pdysh = nullptr;
+        }
+    }
+}
+
 DYSH* NewDysh()
 {
-	return new DYSH{};
+	return NewWorldObject<DYSH>();
 }
 
 void InitDysh(DYSH* pdysh)
 {
 	InitAlo(pdysh);
+	pdysh->shadowTex = 0;
+	pdysh->shadowLayer = -1;
 
 	g_dynamicTextureCount++;
 }
@@ -22,13 +46,19 @@ void CloneDysh(DYSH *pdysh, DYSH *pdyshBase)
 {
 	CloneAlo(pdysh, pdyshBase);
 
-    pdysh->shadowTex  = pdyshBase->shadowTex;
+	// The render texture is instance-owned.  Copying its OpenGL name would make
+	// the source and clone delete the same texture and would leak it when the
+	// clone receives its own texture in SetDyshShadow.
+	pdysh->shadowTex = 0;
+	pdysh->shadowLayer = -1;
 	pdysh->pshadowGen = pdyshBase->pshadowGen;
 }
 
 void SetDyshShadow(DYSH *pdysh, SHADOW *pshadow)
 {
-    pdysh->pshadowGen = pshadow;
+	ReleaseDyshTexture(pdysh);
+
+	pdysh->pshadowGen = pshadow;
 
     if (!pshadow)
         return;
@@ -36,33 +66,10 @@ void SetDyshShadow(DYSH *pdysh, SHADOW *pshadow)
     pshadow->pdysh = pdysh;
     pshadow->rsh.fDynamic = 1;
 
-    const int w = g_gl.dyshWidth;
-    const int h = g_gl.dyshHeight;
-
-    glGenTextures(1, &pdysh->shadowTex);
-    glBindTexture(GL_TEXTURE_2D, pdysh->shadowTex);
-
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
-
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
-
-    float borderColor[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
-    glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
-
-    std::vector <uint8_t> clearData(w * h * 4, 0);
-    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, w, h, GL_RGBA, GL_UNSIGNED_BYTE, clearData.data());
-
-    GLuint64 handle = glGetTextureHandleARB(pdysh->shadowTex);
-    glMakeTextureHandleResidentARB(handle);
-
-    pshadow->rsh.textureHandle[0] = uint32_t(handle & 0xFFFFFFFFull);
-    pshadow->rsh.textureHandle[1] = uint32_t(handle >> 32);
-
-    glBindTexture(GL_TEXTURE_2D, 0);
+    // AllocateShadows assigns the shared array and layer after every shadow
+    // object has been loaded.
+    pshadow->glTexture = 0;
+    pshadow->rsh.textureSlot = pshadow->textureSlot;
 }
 
 void RenderDyshSelf(DYSH* pdysh, CM* pcm, RO* pro)
@@ -84,15 +91,9 @@ void RenderDyshSelf(DYSH* pdysh, CM* pcm, RO* pro)
 
 void DeleteDysh(DYSH *pdysh)
 {
-    if (pdysh->shadowTex)
-    {
-        GLuint64 handle = glGetTextureHandleARB(pdysh->shadowTex);
+	ReleaseDyshTexture(pdysh);
 
-        glMakeTextureHandleNonResidentARB(handle);
-        glDeleteTextures(1, &pdysh->shadowTex);
-    }
-
-	delete pdysh;
+	ReleaseWorldObject(pdysh);
 }
 
 glm::mat4 g_uvToClip =

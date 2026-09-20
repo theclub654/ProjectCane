@@ -4,7 +4,7 @@
 
 MS* NewMs()
 {
-	return new MS{};
+	return NewWorldObject<MS>();
 }
 
 int GetMsSize()
@@ -215,5 +215,5 @@ void RenderMsGlobset(MS* pms, CM* pcm, RO* pro)
 
 void DeleteMs(MS *pms)
 {
-	delete pms;
+	ReleaseWorldObject(pms);
 }

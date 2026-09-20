@@ -2,7 +2,7 @@
 
 EXPLG* NewExplg()
 {
-	return new EXPLG{};
+	return NewWorldObject<EXPLG>();
 }
 
 int GetExplgSize()
@@ -105,5 +105,5 @@ void ExplodeExplgExplso(EXPLG* pexplg, EXPLSO* pexplso)
 
 void DeleteExplg(EXPLG* pexplg)
 {
-	delete pexplg;
+	ReleaseWorldObject(pexplg);
 }

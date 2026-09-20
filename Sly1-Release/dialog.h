@@ -14,10 +14,14 @@ enum DIALOGS
     DIALOGS_Nil = -1,
     DIALOGS_Enabled = 0,
     DIALOGS_Triggered = 1,
-    DIALOGS_Playing = 2,
-    DIALOGS_Calling = 3,
-    DIALOGS_UnableToCall = 4,
-    DIALOGS_Unavailable = 5,
+    // Retail reserves state 2.  Dialog playback starts in state 3; keeping
+    // the later states shifted down made script-side dialog state tests and
+    // CANCEL_DIALOG disagree with the original executable.
+    DIALOGS_Reserved = 2,
+    DIALOGS_Playing = 3,
+    DIALOGS_Calling = 4,
+    DIALOGS_UnableToCall = 5,
+    DIALOGS_Unavailable = 6,
     DIALOGS_Max = 6
 };
 

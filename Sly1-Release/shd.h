@@ -155,15 +155,12 @@ struct BMP
 
     std::vector <byte> shadowTexture;
     GLuint glShadowMap;
-    uint64_t hShadowMap;
 
     std::vector <byte> diffuseTexture;
     GLuint glDiffuseMap;
-    uint64_t hDiffuseMap;
 
     std::vector <byte> saturateTexture;
     GLuint glSaturateMap;
-    uint64_t hSaturateMap;
 
 };
 
@@ -208,8 +205,14 @@ struct TEX : public TEXF
     // World-map layers can share indexed BMP pixels while selecting different
     // CLUTs. Their resolved textures therefore belong to TEX, not BMP.
     std::vector<GLuint> glDiffuseMap;
-    std::vector<uint64_t> hDiffuseMap;
     std::vector<std::vector<byte>> diffuseTexture;
+
+    // Three-way shaders can share indexed BMP pixels while using different
+    // ambient, diffuse, and saturate CLUTs. Keep every resolved map per TEX.
+    std::vector<GLuint> glShadowMap;
+    std::vector<std::vector<byte>> shadowTexture;
+    std::vector<GLuint> glSaturateMap;
+    std::vector<std::vector<byte>> saturateTexture;
 };
 
 // Shader property's
@@ -246,7 +249,7 @@ std::vector <byte> MakeBmp(BMP* pbmp, CBinaryInputStream* pbis);
 // Make color pallete
 std::vector <byte> MakePallete(CLUT* pclut, CBinaryInputStream* pbis);
 // Make texture
-void MakeTexture(GLuint& textureReference, uint64_t& textureHandle, TEX* ptex, BMP* pbmp, std::vector <byte>& texture, CLUT* pclut, bool fFlip, bool fMipMap, CBinaryInputStream* pbis);
+void MakeTexture(GLuint& textureReference, BMP* pbmp, std::vector <byte>& texture, CLUT* pclut, bool fFlip, bool fMipMap, CBinaryInputStream* pbis);
 void UpdateShaders(float dt);
 
 // Global variable which holds the number of CLUT's in a binary file

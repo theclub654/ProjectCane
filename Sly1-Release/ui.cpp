@@ -489,17 +489,19 @@ void ResetUi(UI* pui)
 
     ResetBlots();
 
-    glDeleteVertexArrays(1, &g_binoc.backGroundBinocVAO);
-    glDeleteBuffers(1, &g_binoc.backGroundBinocVBO);
-    glDeleteBuffers(1, &g_binoc.backGroundBinocEBO);
+    FreeBinocGL(&g_binoc);
 
-    glDeleteVertexArrays(1, &g_binoc.triangleBinocVAO);
-    glDeleteBuffers(1, &g_binoc.triangleBinocVBO);
-    glDeleteBuffers(1, &g_binoc.triangleBinocEBO);
+    if (g_wmc.gboWmFan != 0)
+    {
+        glDeleteBuffers(1, &g_wmc.gboWmFan);
+        g_wmc.gboWmFan = 0;
+    }
 
-    glDeleteVertexArrays(1, &g_binoc.outlineVAO);
-    glDeleteBuffers(1, &g_binoc.outlineVBO);
-    glDeleteBuffers(1, &g_binoc.outlineEBO);
+    if (g_wmc.gaoWmFan != 0)
+    {
+        glDeleteVertexArrays(1, &g_wmc.gaoWmFan);
+        g_wmc.gaoWmFan = 0;
+    }
 }
 
 UI g_ui;

@@ -14,7 +14,42 @@
 namespace
 {
 constexpr char kSaveMagic[8] = { 'P', 'C', 'A', 'N', 'E', 'S', 'A', 'V' };
-constexpr uint32_t kSaveVersion = 2;
+constexpr uint32_t kSaveVersion = 3;
+constexpr char kSettingsMagic[8] = { 'P', 'C', 'A', 'N', 'E', 'S', 'Y', 'S' };
+constexpr uint32_t kSettingsVersion = 4;
+
+struct VideoSaveSettingsV1
+{
+    int fogType;
+    int msaaEnabled;
+    int msaaSamples;
+    int frameRate;
+    int internalResolutionHeight;
+    float drawDistance;
+    int windowMode;
+    int vsyncEnabled;
+    int aspectMode;
+};
+
+struct VideoSaveSettingsV2
+{
+    int fogType;
+    int msaaEnabled;
+    int msaaSamples;
+    int frameRate;
+    int internalResolutionHeight;
+    float drawDistance;
+    int windowMode;
+    int vsyncEnabled;
+    int aspectMode;
+    float guiScale;
+};
+
+struct VideoSaveSettingsV3
+{
+    VideoSaveSettingsV2 video;
+    int keyboardBindings[BTN_MAX];
+};
 
 struct SaveFileHeader
 {
@@ -24,10 +59,54 @@ struct SaveFileHeader
     uint32_t checksum;
 };
 
-struct SavePayload
+struct SavePayloadV2
 {
     GS gameState;
-    VIDEOSAVESETTINGS video;
+    VideoSaveSettingsV1 video;
+};
+
+VIDEOSAVESETTINGS UpgradeVideoSettings(const VideoSaveSettingsV1& oldSettings)
+{
+    VIDEOSAVESETTINGS settings{};
+    settings.fogType = oldSettings.fogType;
+    settings.msaaEnabled = oldSettings.msaaEnabled;
+    settings.msaaSamples = oldSettings.msaaSamples;
+    settings.frameRate = oldSettings.frameRate;
+    settings.internalResolutionHeight = oldSettings.internalResolutionHeight;
+    settings.drawDistance = oldSettings.drawDistance;
+    settings.windowMode = oldSettings.windowMode;
+    settings.vsyncEnabled = oldSettings.vsyncEnabled;
+    settings.aspectMode = oldSettings.aspectMode;
+    settings.guiScale = 1.0f;
+	std::copy(g_keyboardBindings.begin(), g_keyboardBindings.end(), settings.keyboardBindings);
+	std::copy(g_gamepadBindings.begin(), g_gamepadBindings.end(), settings.gamepadBindings);
+    return settings;
+}
+
+VIDEOSAVESETTINGS UpgradeVideoSettings(const VideoSaveSettingsV2& oldSettings)
+{
+	VIDEOSAVESETTINGS settings{};
+	std::memcpy(&settings, &oldSettings, sizeof(oldSettings));
+	std::copy(g_keyboardBindings.begin(), g_keyboardBindings.end(), settings.keyboardBindings);
+	std::copy(g_gamepadBindings.begin(), g_gamepadBindings.end(), settings.gamepadBindings);
+	return settings;
+}
+
+VIDEOSAVESETTINGS UpgradeVideoSettings(const VideoSaveSettingsV3& oldSettings)
+{
+	VIDEOSAVESETTINGS settings = UpgradeVideoSettings(oldSettings.video);
+	std::copy(std::begin(oldSettings.keyboardBindings), std::end(oldSettings.keyboardBindings),
+		settings.keyboardBindings);
+	std::copy(g_gamepadBindings.begin(), g_gamepadBindings.end(), settings.gamepadBindings);
+	return settings;
+}
+
+struct SettingsFileHeader
+{
+    char magic[8];
+    uint32_t version;
+    uint32_t payloadSize;
+    uint32_t checksum;
 };
 
 uint32_t SaveChecksum(const void* data, size_t size)
@@ -56,6 +135,9 @@ VIDEOSAVESETTINGS CaptureVideoSettings()
     settings.windowMode = static_cast<int>(g_windowMode);
     settings.vsyncEnabled = g_fVsync ? 1 : 0;
     settings.aspectMode = static_cast<int>(g_gl.aspectMode);
+    settings.guiScale = g_guiScale;
+	std::copy(g_keyboardBindings.begin(), g_keyboardBindings.end(), settings.keyboardBindings);
+	std::copy(g_gamepadBindings.begin(), g_gamepadBindings.end(), settings.gamepadBindings);
     return settings;
 }
 
@@ -81,9 +163,25 @@ void ValidateVideoSettings(VIDEOSAVESETTINGS& settings)
         static_cast<int>(WindowMode_Windowed), static_cast<int>(WindowMode_Fullscreen));
     settings.vsyncEnabled = settings.vsyncEnabled != 0;
     settings.aspectMode = std::clamp(settings.aspectMode,
-        static_cast<int>(FitToScreen), static_cast<int>(Fixed_16_10));
+        static_cast<int>(FitToScreen), static_cast<int>(PS2_16_9));
+    settings.guiScale = std::clamp(settings.guiScale, 0.75f, 1.5f);
+	for (int button = 0; button < BTN_MAX; ++button)
+	{
+		const int key = settings.keyboardBindings[button];
+		if (key < GLFW_KEY_SPACE || key > GLFW_KEY_LAST || key == GLFW_KEY_ESCAPE)
+			settings.keyboardBindings[button] = g_keyboardBindings[button];
+	}
+	for (int button = 0; button < BTN_MAX; ++button)
+	{
+		const int binding = settings.gamepadBindings[button];
+		if (!((binding >= 0 && binding <= GLFW_GAMEPAD_BUTTON_LAST) ||
+			binding == GAMEPAD_BINDING_LEFT_TRIGGER || binding == GAMEPAD_BINDING_RIGHT_TRIGGER))
+		{
+			settings.gamepadBindings[button] = g_gamepadBindings[button];
+		}
+	}
 
-    const int validInternalResolutions[] = { 0, 720, 1080, 1440, 2160 };
+    const int validInternalResolutions[] = { 0, 360, 480, 720, 1080, 1440, 2160 };
     if (std::find(std::begin(validInternalResolutions), std::end(validInternalResolutions),
         settings.internalResolutionHeight) == std::end(validInternalResolutions))
     {
@@ -128,6 +226,11 @@ void ApplySavedVideoSettings(VIDEOSAVESETTINGS settings)
     g_msaaSamples = settings.msaaSamples;
     g_fogType = settings.fogType;
     g_drawDistanceMultiplier = settings.drawDistance;
+    g_guiScale = settings.guiScale;
+	std::copy(std::begin(settings.keyboardBindings), std::end(settings.keyboardBindings),
+		g_keyboardBindings.begin());
+	std::copy(std::begin(settings.gamepadBindings), std::end(settings.gamepadBindings),
+		g_gamepadBindings.begin());
 
     ApplyAspectRatioSettings(static_cast<AspectMode>(settings.aspectMode));
     ApplyMsaaSettings();
@@ -155,7 +258,12 @@ std::filesystem::path SaveSlotPath(int slot)
     return SaveDirectory() / (L"slot" + std::to_wstring(slot + 1) + L".sav");
 }
 
-bool WriteSaveSlot(int slot, const GS& save, const VIDEOSAVESETTINGS& video)
+std::filesystem::path SystemSettingsPath()
+{
+    return SaveDirectory() / L"system_settings.dat";
+}
+
+bool WriteSaveSlot(int slot, const GS& save)
 {
     std::error_code ec;
     std::filesystem::create_directories(SaveDirectory(), ec);
@@ -164,7 +272,7 @@ bool WriteSaveSlot(int slot, const GS& save, const VIDEOSAVESETTINGS& video)
 
     const std::filesystem::path path = SaveSlotPath(slot);
     const std::filesystem::path temporary = path.wstring() + L".tmp";
-    const SavePayload payload{ save, video };
+    const GS payload = save;
     const SaveFileHeader header{ { 'P', 'C', 'A', 'N', 'E', 'S', 'A', 'V' }, kSaveVersion,
         static_cast<uint32_t>(sizeof(payload)), SaveChecksum(&payload, sizeof(payload)) };
 
@@ -183,9 +291,9 @@ bool WriteSaveSlot(int slot, const GS& save, const VIDEOSAVESETTINGS& video)
         MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH) != FALSE;
 }
 
-bool ReadSaveSlot(int slot, GS* save, VIDEOSAVESETTINGS* video, bool* hasVideo)
+bool ReadSaveSlot(int slot, GS* save, VIDEOSAVESETTINGS* legacyVideo, bool* hasLegacyVideo)
 {
-    if (save == nullptr || video == nullptr || hasVideo == nullptr)
+    if (save == nullptr || legacyVideo == nullptr || hasLegacyVideo == nullptr)
         return false;
 
     std::ifstream stream(SaveSlotPath(slot), std::ios::binary);
@@ -194,8 +302,8 @@ bool ReadSaveSlot(int slot, GS* save, VIDEOSAVESETTINGS* video, bool* hasVideo)
         std::memcmp(header.magic, kSaveMagic, sizeof(kSaveMagic)) != 0)
     {
         *save = {};
-        *video = {};
-        *hasVideo = false;
+        *legacyVideo = {};
+        *hasLegacyVideo = false;
         return false;
     }
 
@@ -207,29 +315,137 @@ bool ReadSaveSlot(int slot, GS* save, VIDEOSAVESETTINGS* video, bool* hasVideo)
             return false;
 
         *save = loaded;
-        *video = {};
-        *hasVideo = false;
+        *legacyVideo = {};
+        *hasLegacyVideo = false;
         return true;
     }
 
-    if (header.version == kSaveVersion && header.payloadSize == sizeof(SavePayload))
+    if (header.version == 2 && header.payloadSize == sizeof(SavePayloadV2))
     {
-        SavePayload payload{};
+        SavePayloadV2 payload{};
         if (!stream.read(reinterpret_cast<char*>(&payload), sizeof(payload)) ||
             SaveChecksum(&payload, sizeof(payload)) != header.checksum)
             return false;
 
         *save = payload.gameState;
-        *video = payload.video;
-        *hasVideo = true;
+        *legacyVideo = UpgradeVideoSettings(payload.video);
+        *hasLegacyVideo = true;
+        return true;
+    }
+
+    if (header.version == kSaveVersion && header.payloadSize == sizeof(GS))
+    {
+        GS loaded{};
+        if (!stream.read(reinterpret_cast<char*>(&loaded), sizeof(loaded)) ||
+            SaveChecksum(&loaded, sizeof(loaded)) != header.checksum)
+            return false;
+
+        *save = loaded;
+        *legacyVideo = {};
+        *hasLegacyVideo = false;
         return true;
     }
 
     *save = {};
-    *video = {};
-    *hasVideo = false;
+    *legacyVideo = {};
+    *hasLegacyVideo = false;
     return false;
 }
+
+bool LoadSystemSettings(VIDEOSAVESETTINGS* settings)
+{
+    if (settings == nullptr)
+        return false;
+
+    std::ifstream stream(SystemSettingsPath(), std::ios::binary);
+    SettingsFileHeader header{};
+    if (!stream.read(reinterpret_cast<char*>(&header), sizeof(header)) ||
+        std::memcmp(header.magic, kSettingsMagic, sizeof(kSettingsMagic)) != 0)
+    {
+        *settings = {};
+        return false;
+    }
+
+    if (header.version == 1 && header.payloadSize == sizeof(VideoSaveSettingsV1))
+    {
+        VideoSaveSettingsV1 oldSettings{};
+        if (!stream.read(reinterpret_cast<char*>(&oldSettings), sizeof(oldSettings)) ||
+            SaveChecksum(&oldSettings, sizeof(oldSettings)) != header.checksum)
+        {
+            *settings = {};
+            return false;
+        }
+
+        *settings = UpgradeVideoSettings(oldSettings);
+        return true;
+    }
+
+	if (header.version == 2 && header.payloadSize == sizeof(VideoSaveSettingsV2))
+	{
+		VideoSaveSettingsV2 oldSettings{};
+		if (!stream.read(reinterpret_cast<char*>(&oldSettings), sizeof(oldSettings)) ||
+			SaveChecksum(&oldSettings, sizeof(oldSettings)) != header.checksum)
+		{
+			*settings = {};
+			return false;
+		}
+
+		*settings = UpgradeVideoSettings(oldSettings);
+		return true;
+	}
+
+	if (header.version == 3 && header.payloadSize == sizeof(VideoSaveSettingsV3))
+	{
+		VideoSaveSettingsV3 oldSettings{};
+		if (!stream.read(reinterpret_cast<char*>(&oldSettings), sizeof(oldSettings)) ||
+			SaveChecksum(&oldSettings, sizeof(oldSettings)) != header.checksum)
+		{
+			*settings = {};
+			return false;
+		}
+
+		*settings = UpgradeVideoSettings(oldSettings);
+		return true;
+	}
+
+    if (header.version != kSettingsVersion || header.payloadSize != sizeof(*settings) ||
+        !stream.read(reinterpret_cast<char*>(settings), sizeof(*settings)) ||
+        SaveChecksum(settings, sizeof(*settings)) != header.checksum)
+    {
+        *settings = {};
+        return false;
+    }
+
+    return true;
+}
+}
+
+bool SaveSystemSettings()
+{
+    std::error_code ec;
+    std::filesystem::create_directories(SaveDirectory(), ec);
+    if (ec)
+        return false;
+
+    const VIDEOSAVESETTINGS settings = CaptureVideoSettings();
+    const SettingsFileHeader header{ { 'P', 'C', 'A', 'N', 'E', 'S', 'Y', 'S' },
+        kSettingsVersion, static_cast<uint32_t>(sizeof(settings)),
+        SaveChecksum(&settings, sizeof(settings)) };
+    const std::filesystem::path path = SystemSettingsPath();
+    const std::filesystem::path temporary = path.wstring() + L".tmp";
+    std::ofstream stream(temporary, std::ios::binary | std::ios::trunc);
+    if (!stream)
+        return false;
+
+    stream.write(reinterpret_cast<const char*>(&header), sizeof(header));
+    stream.write(reinterpret_cast<const char*>(&settings), sizeof(settings));
+    stream.flush();
+    if (!stream)
+        return false;
+    stream.close();
+
+    return MoveFileExW(temporary.c_str(), path.c_str(),
+        MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH) != FALSE;
 }
 
 void StartupSaveBlot(SAVEBLOT* psaveblot)
@@ -296,7 +512,9 @@ void DrawAutoSave(SAVEBLOT* psaveblot)
     const int percent = CalculatePercentCompletion(g_pgsCur);
 
     char achz[32];
-    std::snprintf(achz, sizeof(achz), "%c %d%%", chPrompt, percent);
+    // The animated autosave icon lives in font 1, while the percentage glyphs
+    // live in the normal counter font. Rich-text code &1 selects that font.
+    std::snprintf(achz, sizeof(achz), "%c &1%d%%&.", chPrompt, percent);
 
     psaveblot->pfont->PushScaling(psaveblot->rFontScale, psaveblot->rFontScale);
 
@@ -322,9 +540,29 @@ void StartupSaveData(SAVEDATA* psaveData)
 
     *psaveData = {};
 
+    VIDEOSAVESETTINGS settings{};
+    bool hasSystemSettings = LoadSystemSettings(&settings);
+
     for (int slot = 0; slot < SAVE_SLOT_COUNT; ++slot)
-        ReadSaveSlot(slot, &psaveData->saveData[slot], &psaveData->videoSettings[slot],
-            &psaveData->hasVideoSettings[slot]);
+    {
+        VIDEOSAVESETTINGS legacySettings{};
+        bool hasLegacySettings = false;
+        ReadSaveSlot(slot, &psaveData->saveData[slot], &legacySettings, &hasLegacySettings);
+
+        // Migrate the first old per-slot video block when no global settings
+        // file exists yet. New game saves never carry system options.
+        if (!hasSystemSettings && hasLegacySettings)
+        {
+            settings = legacySettings;
+            hasSystemSettings = true;
+        }
+    }
+
+    if (hasSystemSettings)
+    {
+        ApplySavedVideoSettings(settings);
+        SaveSystemSettings();
+    }
 
     for (GS& save : psaveData->saveData)
     {
@@ -354,13 +592,10 @@ bool SaveCurrentGameToDisk(SAVEDATA* psaveData)
     snapshot.cbThis = sizeof(GS);
     snapshot.nChecksum = sizeof(GS);
 
-    const VIDEOSAVESETTINGS video = CaptureVideoSettings();
-    if (!WriteSaveSlot(static_cast<int>(slot), snapshot, video))
+    if (!WriteSaveSlot(static_cast<int>(slot), snapshot))
         return false;
 
     psaveData->saveData[slot] = snapshot;
-    psaveData->videoSettings[slot] = video;
-    psaveData->hasVideoSettings[slot] = true;
     psaveData->pgsCurrentSave = &psaveData->saveData[slot];
     if (psaveData->pgsAttractSave == nullptr)
         psaveData->pgsAttractSave = psaveData->pgsCurrentSave;
@@ -390,8 +625,6 @@ bool DeleteSaveSlotFromDisk(SAVEDATA* psaveData, int slot)
         psaveData->pgsSelectedSave = nullptr;
 
     *erasedSave = {};
-    psaveData->videoSettings[slot] = {};
-    psaveData->hasVideoSettings[slot] = false;
 
     if (psaveData->pgsAttractSave == nullptr)
     {
@@ -431,9 +664,6 @@ int LoadCurrentSave(SAVEDATA* psaveData)
 
     // GS is entirely persistent value data; it contains no runtime pointers.
     *g_pgsCur = *src;
-    const ptrdiff_t slot = src - psaveData->saveData;
-    if (slot >= 0 && slot < SAVE_SLOT_COUNT && psaveData->hasVideoSettings[slot])
-        ApplySavedVideoSettings(psaveData->videoSettings[slot]);
     ApplyVibrationSetting(g_pgsCur);
     return 1;
 }

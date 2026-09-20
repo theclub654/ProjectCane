@@ -8,6 +8,13 @@
 #include "save.h"
 #include "fmv.h"
 #include "sound.h"
+#include "tv.h"
+#include <iostream>
+
+#ifdef _WIN32
+#define GLFW_EXPOSE_NATIVE_WIN32
+#include <GLFW/glfw3native.h>
+#endif
 
 namespace
 {
@@ -93,6 +100,134 @@ private:
     Clock::time_point m_deadline;
     int m_frameRate = 60;
 };
+
+bool s_runningFrame = false;
+
+void RunGameFrame()
+{
+    if (s_runningFrame)
+        return;
+
+    s_runningFrame = true;
+
+    // Retail leaves the movie queued while the outgoing wipe is visible.
+    // Once the screen reaches black, play the movie before executing the
+    // transition that replaces the current world.
+    if (FCutscenePending() && g_wipe.wipes != WIPES_WipingOut)
+        ExecutePendingCutscenes();
+
+    if (g_transition.m_fPending != 0)
+        g_transition.Execute(file);
+
+    if (FCutscenePending() && g_wipe.wipes != WIPES_WipingOut)
+        ExecutePendingCutscenes();
+
+    g_sceneFbo = g_fMsaa ? g_gl.fboMSAA : g_gl.fbo;
+    glBindFramebuffer(GL_FRAMEBUFFER, g_sceneFbo);
+
+    glViewport(0, 0, g_gl.renderWidth, g_gl.renderHeight);
+    glClearColor(rgbaSky.r, rgbaSky.g, rgbaSky.b, rgbaSky.a);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+    glEnable(GL_DEPTH_TEST);
+
+    g_joy.Update(g_gl.window);
+    RenderMenuGui(g_psw);
+
+    if (g_psw != nullptr)
+    {
+        UpdateUi(&g_ui);
+        UpdateGameState(g_clock.dt);
+
+        SetupCm(g_pcm);
+        OpenFrame();
+        MarkClockTick(&g_clock);
+        UpdateSw(g_psw, g_clock.dt);
+
+        if (g_fRenderModels == true)
+        {
+            RenderSw(g_psw, g_pcm);
+            RenderUi(&g_ui);
+            DrawSw(g_psw, g_pcm);
+        }
+
+        if (g_fRenderCollision == true)
+            DrawSwCollisionAll(g_pcm);
+
+        DrawUi(&g_ui);
+    }
+
+    if (g_fMsaa)
+    {
+        glBindFramebuffer(GL_READ_FRAMEBUFFER, g_gl.fboMSAA);
+        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, g_gl.fbo);
+        glBlitFramebuffer(0, 0, g_gl.renderWidth, g_gl.renderHeight,
+            0, 0, g_gl.renderWidth, g_gl.renderHeight, GL_COLOR_BUFFER_BIT, GL_NEAREST);
+    }
+
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    glViewport(g_gl.presentX, g_gl.presentY, g_gl.presentWidth, g_gl.presentHeight);
+
+    glClearColor(0, 0, 0, 0);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+    glDisable(GL_DEPTH_TEST);
+    glDisable(GL_BLEND);
+
+    glScreenShader.Use();
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, g_gl.fbc);
+    glBindVertexArray(g_gl.sao);
+    glDrawArrays(GL_TRIANGLES, 0, 6);
+
+    ImGui::Render();
+    ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+    glfwSwapBuffers(g_gl.window);
+
+    ++g_cframe;
+    s_runningFrame = false;
+}
+
+#ifdef _WIN32
+WNDPROC s_glfwWindowProc = nullptr;
+constexpr UINT_PTR kLiveResizeTimer = 0x5043;
+
+LRESULT CALLBACK LiveResizeWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
+{
+    switch (message)
+    {
+        case WM_ENTERSIZEMOVE:
+        {
+            const UINT intervalMs = static_cast<UINT>((std::max)(1, 1000 / (std::max)(1, g_targetFrameRate)));
+            SetTimer(hwnd, kLiveResizeTimer, intervalMs, nullptr);
+            break;
+        }
+
+        case WM_TIMER:
+        if (wParam == kLiveResizeTimer)
+        {
+            RunGameFrame();
+            return 0;
+        }
+        break;
+
+        case WM_EXITSIZEMOVE:
+        case WM_DESTROY:
+        KillTimer(hwnd, kLiveResizeTimer);
+        break;
+    }
+
+    return CallWindowProcW(s_glfwWindowProc, hwnd, message, wParam, lParam);
+}
+
+void InstallLiveResizeWindowProc()
+{
+    HWND hwnd = glfwGetWin32Window(g_gl.window);
+    if (hwnd == nullptr)
+        return;
+
+    s_glfwWindowProc = reinterpret_cast<WNDPROC>(GetWindowLongPtrW(hwnd, GWLP_WNDPROC));
+    SetWindowLongPtrW(hwnd, GWLP_WNDPROC, reinterpret_cast<LONG_PTR>(LiveResizeWindowProc));
+}
+#endif
 }
 
 #ifdef NDEBUG
@@ -104,107 +239,26 @@ int main(int cphzArgs, char* aphzArgs[])
     Startup();
     SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_ABOVE_NORMAL);
     FramePacer framePacer;
+#ifdef _WIN32
+	InstallLiveResizeWindowProc();
+#endif
 
     while (!glfwWindowShouldClose(g_gl.window) && fQuitGame != true)
     {
-        // Retail leaves the movie queued while the outgoing wipe is visible.
-        // Once the screen reaches black, play the movie before executing the
-        // transition that replaces the current world.
-        if (FCutscenePending() && g_wipe.wipes != WIPES_WipingOut)
-            ExecutePendingCutscenes();
-
-        if (g_transition.m_fPending != 0)
-            g_transition.Execute(file);
-
-        if (FCutscenePending() && g_wipe.wipes != WIPES_WipingOut)
-            ExecutePendingCutscenes();
-
-        // 1) Render scene to MSAA (or resolved if MSAA off)
-        g_sceneFbo = g_fMsaa ? g_gl.fboMSAA : g_gl.fbo;
-        glBindFramebuffer(GL_FRAMEBUFFER, g_sceneFbo);
-
-        glViewport(0, 0, g_gl.renderWidth, g_gl.renderHeight);
-        glClearColor(rgbaSky.r, rgbaSky.g, rgbaSky.b, rgbaSky.a);
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
-        glEnable(GL_DEPTH_TEST);
-
-        g_joy.Update(g_gl.window);
-
-        RenderMenuGui(g_psw);
-
-        if (g_psw != nullptr)
-        {
-            UpdateUi(&g_ui);
-            UpdateGameState(g_clock.dt);
-
-            SetupCm(g_pcm);
-            OpenFrame();
-            MarkClockTick(&g_clock);
-            UpdateSw(g_psw, g_clock.dt);
-            //UpdateCpman(g_gl.window, &g_pcm->cpman, nullptr, g_clock.dt);
-
-            if (g_fRenderModels == true)
-            {
-                RenderSw(g_psw, g_pcm);
-                RenderUi(&g_ui);
-                //RenderSwGlobset(g_psw, g_pcm);
-                DrawSw(g_psw, g_pcm);
-            }
-
-            if (g_fRenderCollision == true)
-                DrawSwCollisionAll(g_pcm);
-
-            DrawUi(&g_ui);
-        }
-
-        // 2) Resolve MSAA -> resolved texture FBO (ONLY if MSAA)
-        if (g_fMsaa)
-        {
-            glBindFramebuffer(GL_READ_FRAMEBUFFER, g_gl.fboMSAA);
-            glBindFramebuffer(GL_DRAW_FRAMEBUFFER, g_gl.fbo);
-            glBlitFramebuffer(0, 0, g_gl.renderWidth, g_gl.renderHeight,
-                0, 0, g_gl.renderWidth, g_gl.renderHeight, GL_COLOR_BUFFER_BIT, GL_NEAREST);
-        }
-
-        // 3) Present: draw fullscreen quad sampling resolved texture
-        glBindFramebuffer(GL_FRAMEBUFFER, 0);
-        glViewport(g_gl.presentX, g_gl.presentY, g_gl.presentWidth, g_gl.presentHeight);
-
-        glClearColor(0, 0, 0, 0);
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
-
-        glDisable(GL_DEPTH_TEST);
-
-        // g_gl.fbc is the completed scene, not another translucent layer.
-        // Present it by replacement. In particular, world-map textures write
-        // their source alpha into the scene target; blending this fullscreen
-        // quad again would turn their transparent rectangular bounds black.
-        glDisable(GL_BLEND);
-
-        glScreenShader.Use();
-
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, g_gl.fbc);
-
-        glBindVertexArray(g_gl.sao);
-        glDrawArrays(GL_TRIANGLES, 0, 6);
-
-        ImGui::Render();
-        ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
-
-        glfwSwapBuffers(g_gl.window);
-        glfwPollEvents();
+		RunGameFrame();
+		glfwPollEvents();
 
         // This remains authoritative with VSync on or off. VSync controls
         // presentation; it no longer changes the game's update frequency.
         framePacer.Wait();
 
-        g_cframe++;
     }
 
     if (g_psw != nullptr)
         DeleteWorld(g_psw);
 
+    ShutdownSound();
+    FreeTvGL();
     g_gl.TerminateGL();
     return 0;
 }

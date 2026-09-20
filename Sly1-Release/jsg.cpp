@@ -10,7 +10,7 @@
 
 JSG* NewJsg()
 {
-	return new JSG{};
+	return NewWorldObject<JSG>();
 }
 
 void InitJsg(JSG* pjsg)
@@ -914,5 +914,5 @@ int GetJsgSize()
 
 void DeleteJsg(JSG* pjsg)
 {
-	delete pjsg;
+	ReleaseWorldObject(pjsg);
 }

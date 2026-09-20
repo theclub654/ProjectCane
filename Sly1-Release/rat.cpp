@@ -6,7 +6,7 @@
 
 RAT* NewRat()
 {
-	return new RAT{};
+	return NewWorldObject<RAT>();
 }
 
 void InitSwRatDl(SW* psw)
@@ -234,7 +234,7 @@ void PresetRatAccel(RAT* prat, float dt)
         ConvertAloPos(prat->prathole->paloParent, nullptr, &prat->prathole->posLocal, &posTarget);
     else
     {
-        AccelSoTowardMatSpring(prat, nullptr, nullptr, &g_vecZero, prat->pclqRotSpring.get(), dt);
+        AccelSoTowardMatSpring(prat, nullptr, nullptr, &g_vecZero, prat->pclqRotDamping.get(), dt);
         return;
     }
 
@@ -698,12 +698,12 @@ void SetRatRats(RAT* prat, RATS rats)
 
 void DeleteRat(RAT *prat)
 {
-	delete prat;
+	ReleaseWorldObject(prat);
 }
 
 RATHOLE* NewRathole()
 {
-	return new RATHOLE{};
+	return NewWorldObject<RATHOLE>();
 }
 
 void InitSwRatholeDl(SW* psw)
@@ -737,7 +737,7 @@ void OnRatholeAdd(RATHOLE* prathole)
 
 void DeleteRathole(RATHOLE* prathole)
 {
-	delete prathole;
+	ReleaseWorldObject(prathole);
 }
 
 SNIP s_asnipRat = 

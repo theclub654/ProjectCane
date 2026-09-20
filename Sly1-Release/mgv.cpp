@@ -81,7 +81,7 @@ SNIP s_asnipMgv[12] =
 
 MGV* NewMgv()
 {
-	return new MGV{};
+	return NewWorldObject<MGV>();
 }
 
 void InitMgv(MGV* pmgv)
@@ -220,7 +220,7 @@ void UpdateMgv(MGV* pmgv, float dt)
         rgbaCel = glm::mix(rgbaCel, rgbaFlash, blend);
     }
 
-    SetAloOverrideCel(pmgv, &rgbaCel);
+    SetAloOverrideCelFloat(pmgv, &rgbaCel);
 
     if (pmgv->pblipgController) {
         pmgv->pblipgController->clqScale.g2 = pmgv->uAim * pmgv->gAimControllerX;
@@ -487,5 +487,5 @@ void RespawnMgvObject(MGV* pmgv, LO* plo)
 
 void DeleteMgv(MGV *pmgv)
 {
-	delete pmgv;
+	ReleaseWorldObject(pmgv);
 }

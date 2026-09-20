@@ -4,7 +4,7 @@
 
 STEP* NewStep()
 {
-	return new STEP{};
+	return NewWorldObject<STEP>();
 }
 
 void InitStep(STEP* pstep)
@@ -864,7 +864,7 @@ void SetStepGravityRatio(STEP* pstep, float rGravity)
 
 void DeleteStep(STEP* pstep)
 {
-	delete pstep;
+	ReleaseWorldObject(pstep);
 }
 
 SMP s_smpSpinStepDefault{25.0, 0.0, 0.25};

@@ -6,7 +6,7 @@
 
 HUBSEL* NewHubSel()
 {
-    return new HUBSEL{};
+    return NewWorldObject<HUBSEL>();
 }
 
 void CloneHubSel(HUBSEL* phubsel, HUBSEL* phubselBase)
@@ -324,14 +324,37 @@ void SetHubselSelection(HUBSEL* phubsel, GAMEWORLD gameworld, int fAccepted)
 
 void UnlockAllHubWorlds()
 {
-    if (g_pgsCur == nullptr)
+    g_fUnlockAllHubWorlds = true;
+
+    // If the cheat is enabled while the hideout selector is already open,
+    // expose its remaining world models immediately.  Do not modify FWS_Visited:
+    // this is a session-only availability override, not saved progression.
+    HUBSEL* phubsel = g_ui.uisPlaying == UIS_Hub ? g_hubblot.phubsel : nullptr;
+    if (phubsel == nullptr)
         return;
 
-    for (int iWorld = 0; iWorld < 6; ++iWorld)
-        g_pgsCur->aws[iWorld].fws = FWS_Visited;
+    phubsel->gameWorldMax = GAMEWORLD_Clockwerk;
+
+    for (GAMEWORLD gameWorld = GAMEWORLD_Underwater;
+         gameWorld <= GAMEWORLD_Clockwerk;
+         gameWorld = static_cast<GAMEWORLD>(gameWorld + 1))
+    {
+        const int worldIndex = static_cast<int>(gameWorld) - static_cast<int>(GAMEWORLD_Underwater);
+        ALO* paloWorld = phubsel->apaloWorld[worldIndex];
+        if (paloWorld != nullptr)
+            paloWorld->pvtlo->pfnAddLo(paloWorld);
+    }
+
+    phubsel->gameWorldDisplay = GAMEWORLD_Intro;
+    if (phubsel->psmaDisplay0 != nullptr)
+        SeekSma(phubsel->psmaDisplay0, (OID)g_aoidHubselState[GAMEWORLD_Intro][0]);
+    if (phubsel->psmaDisplay1 != nullptr)
+        SeekSma(phubsel->psmaDisplay1, (OID)g_aoidHubselState[GAMEWORLD_Intro][0]);
 }
+
+bool g_fUnlockAllHubWorlds = false;
 
 void DeleteHubSel(HUBSEL* phubsel)
 {
-    delete phubsel;
+    ReleaseWorldObject(phubsel);
 }

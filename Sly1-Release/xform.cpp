@@ -11,7 +11,7 @@
 
 XFM* NewXfm()
 {
-	return new XFM{};
+	return NewWorldObject<XFM>();
 }
 
 void InitXfm(XFM* pxfm)
@@ -100,12 +100,12 @@ void ConvertXfmWorldToLocal(XFM* pxfm, glm::vec3* pposWorld, glm::vec3* pposLoca
 
 void DeleteXfm(XFM* pxfm)
 {
-	delete pxfm;
+	ReleaseWorldObject(pxfm);
 }
 
 WARP* NewWarp()
 {
-	return new WARP{};
+	return NewWorldObject<WARP>();
 }
 
 int GetWarpSize()
@@ -420,12 +420,12 @@ void TeleportSwPlayer(SW* psw, OID oidWarp, OID oidWarpContext)
 
 void DeleteWarp(WARP* pwarp)
 {
-	delete pwarp;
+	ReleaseWorldObject(pwarp);
 }
 
 EXIT* NewExit()
 {
-	return new EXIT{};
+	return NewWorldObject<EXIT>();
 }
 
 int GetExitSize()
@@ -968,12 +968,12 @@ void UpdateExit(EXIT* pexit, float dt)
 
 void DeleteExit(EXIT* pexit)
 {
-	delete pexit;
+	ReleaseWorldObject(pexit);
 }
 
 CAMERA* NewCamera()
 {
-	return new CAMERA{};
+	return NewWorldObject<CAMERA>();
 }
 
 void InitCamera(CAMERA* pcamera)
@@ -1078,5 +1078,5 @@ void DisableCamera(CAMERA* pcamera)
 
 void DeleteCamera(CAMERA *pcamera)
 {
-	delete pcamera;
+	ReleaseWorldObject(pcamera);
 }

@@ -1,15 +1,24 @@
 ﻿#include "gl.h"
 #include "render.h"
 #include "sqtr.h"
+#include "shadow.h"
 #include "tv.h"
 #include "game.h"
 #include <cmath>
+#include <cstdlib>
+
+#ifdef _WIN32
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+#include <Windows.h>
+#endif
 
 #ifdef _WIN32
 extern "C"
 {
 	__declspec(dllexport) unsigned long NvOptimusEnablement = 0x00000001;
-	__declspec(dllexport) int NvidiaPowerXpressRequestHighPerformance = 1;
+	__declspec(dllexport) int AmdPowerXpressRequestHighPerformance = 1;
 }
 #endif
 
@@ -99,8 +108,19 @@ void GL::InitGL()
 	if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
 	{
 		std::cout << "Failed to initialize GLAD" << std::endl;
-		while (true);
+		#ifdef _WIN32
+		MessageBoxA(nullptr, "OpenGL could not be initialized. Update your graphics driver and try again.",
+			"ProjectCane graphics error", MB_OK | MB_ICONERROR);
+		#endif
+		std::exit(EXIT_FAILURE);
 	}
+
+	const char* glVendor = reinterpret_cast<const char*>(glGetString(GL_VENDOR));
+	const char* glRenderer = reinterpret_cast<const char*>(glGetString(GL_RENDERER));
+	const char* glVersion = reinterpret_cast<const char*>(glGetString(GL_VERSION));
+	std::cout << "OpenGL vendor: " << (glVendor != nullptr ? glVendor : "unknown") << '\n'
+		<< "OpenGL renderer: " << (glRenderer != nullptr ? glRenderer : "unknown") << '\n'
+		<< "OpenGL version: " << (glVersion != nullptr ? glVersion : "unknown") << std::endl;
 
 	// ========== ImGui Setup ==========
 	IMGUI_CHECKVERSION();
@@ -239,8 +259,6 @@ void GL::InitGL()
 	glScreenShader.Init("screen.vert", NULL, "screen.frag");
 	glScreenShader.Use();
 	glUniform1i(glGetUniformLocation(glScreenShader.ID, "screenTexture"), 0);
-	//glslScreenSampler = glGetUniformLocation(glScreenShader.ID, "screenTexture");
-	//glUniformHandleui64ARB(glslScreenSampler, fbc);
 
 	glDyshadow.Init("dysh.vert", NULL, "dysh.frag");
 	glDyshadow.Use();
@@ -269,6 +287,7 @@ void GL::InitGL()
 	glslAlphaCutOff = glGetUniformLocation(glGlobShader.ID, "alphaCutOff");
 
 	glslRko              = glGetUniformLocation(glGlobShader.ID, "rko");
+	glslProjectedVolumeColor = glGetUniformLocation(glGlobShader.ID, "projectedVolumeColor");
 	glslfAnimateUv       = glGetUniformLocation(glGlobShader.ID, "fAnimateUv");
 	glsluvOffsets		 = glGetUniformLocation(glGlobShader.ID, "uvOffsets");
 	glslUnSelfIllum		 = glGetUniformLocation(glGlobShader.ID, "unSelfIllum");
@@ -278,6 +297,11 @@ void GL::InitGL()
 	glslAmbientMap  = glGetUniformLocation(glGlobShader.ID, "ambientMap");
 	glslDiffuseMap  = glGetUniformLocation(glGlobShader.ID, "diffuseMap");
 	glslSaturateMap = glGetUniformLocation(glGlobShader.ID, "saturateMap");
+	glUniform1i(glslAmbientMap, 0);
+	glUniform1i(glslDiffuseMap, 1);
+	glUniform1i(glslSaturateMap, 2);
+
+	glUniform1i(glGetUniformLocation(glGlobShader.ID, "shadowTextureArray"), SHADOW_TEXTURE_UNIT);
 
 	glCelBorderShader.Init("celborder.vert", NULL, "celborder.frag");
 	rcbStream.bindIndex = 1;
@@ -298,6 +322,7 @@ void GL::InitGL()
 	glUniform1i(u_useVertexColorLoc, 0);
 	blotColorLoc    = glGetUniformLocation(glBlotShader.ID, "blotColor");
 	u_fontTexLoc    = glGetUniformLocation(glBlotShader.ID, "u_fontTex");
+	glUniform1i(u_fontTexLoc, 0);
 
 	glUniformMatrix4fv(u_projectionLoc, 1, GL_FALSE, glm::value_ptr(g_gl.blotProjection));
 
@@ -352,9 +377,6 @@ void GL::InitGL()
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 
-	whiteHandle = glGetTextureHandleARB(whiteTex);
-	glMakeTextureHandleResidentARB(whiteHandle);
-
 	glBindTexture(GL_TEXTURE_2D, 0);
 
 	glslDyshfSkin = glGetUniformLocation(glDyshadow.ID, "fSkin");
@@ -381,12 +403,13 @@ void GL::CreateFramebuffers(int w, int h)
 	if (rboColorMSAA) glDeleteRenderbuffers(1, &rboColorMSAA);
 	if (rboDepthStencilMSAA) glDeleteRenderbuffers(1, &rboDepthStencilMSAA);
 
+	if (dyshFbo) glDeleteFramebuffers(1, &dyshFbo);
+	if (dyshFbc) glDeleteTextures(1, &dyshFbc);
+	if (dyshRbo) glDeleteRenderbuffers(1, &dyshRbo);
+
 	fbo = fbc = rbo = 0;
 	fboMSAA = rboColorMSAA = rboDepthStencilMSAA = 0;
-
-	dyshFbo = 0;
-	dyshFbc = 0;
-	dyshRbo = 0;
+	dyshFbo = dyshFbc = dyshRbo = 0;
 
 	// resolved FBO (texture)
 	glGenFramebuffers(1, &fbo);
@@ -546,12 +569,6 @@ void GL::UpdateGLProjections()
 
 void GL::TerminateGL()
 {
-	if (whiteHandle)
-	{
-		glMakeTextureHandleNonResidentARB(whiteHandle);
-		whiteHandle = 0;
-	}
-
 	if (whiteTex)
 	{
 		glDeleteTextures(1, &whiteTex);
@@ -562,7 +579,7 @@ void GL::TerminateGL()
 	glDeleteRenderbuffers(1, &rbo);
 	
 	glDeleteFramebuffers(1, &fboMSAA);
-	glDeleteTextures(1, &rboColorMSAA);
+	glDeleteRenderbuffers(1, &rboColorMSAA);
 	glDeleteRenderbuffers(1, &rboDepthStencilMSAA);
 
 	glDeleteFramebuffers(1, &dyshFbo);
@@ -838,6 +855,8 @@ void ApplyAspectRatioSettings(AspectMode mode)
 		case Fixed_4_3: g_gl.aspectRatio = 4.0f / 3.0f; break;
 		case Fixed_16_10: g_gl.aspectRatio = 16.0f / 10.0f; break;
 		case Fixed_16_9: g_gl.aspectRatio = 16.0f / 9.0f; break;
+		case PS2_4_3: g_gl.aspectRatio = 4.0f / 3.0f; break;
+		case PS2_16_9: g_gl.aspectRatio = 16.0f / 9.0f; break;
 		case FitToScreen:
 		default: break;
 	}
@@ -861,9 +880,9 @@ void FrameBufferSizeCallBack(GLFWwindow* window, int width, int height)
 	const int outputW = std::max(1, width);
 	const int outputH = std::max(1, int(std::ceil(float(height) - imguiOffset)));
 	float targetAspect = static_cast<float>(outputW) / static_cast<float>(outputH);
-	if (g_gl.aspectMode == Fixed_4_3)
+	if (g_gl.aspectMode == Fixed_4_3 || g_gl.aspectMode == PS2_4_3)
 		targetAspect = 4.0f / 3.0f;
-	else if (g_gl.aspectMode == Fixed_16_9)
+	else if (g_gl.aspectMode == Fixed_16_9 || g_gl.aspectMode == PS2_16_9)
 		targetAspect = 16.0f / 9.0f;
 	else if (g_gl.aspectMode == Fixed_16_10)
 		targetAspect = 16.0f / 10.0f;
@@ -947,6 +966,7 @@ GLuint glslFogColor = 0;
 GLuint glslfAlphaTest = 0;
 GLuint glslAlphaCutOff = 0;
 GLuint glslRko = 0;
+GLuint glslProjectedVolumeColor = 0;
 GLuint glslfAnimateUv = 0;
 GLuint glsluvOffsets = 0;
 GLuint glslUnSelfIllum = 0;
@@ -966,6 +986,7 @@ GLuint g_sceneFbo = 0;
 int g_msaaSamples = 4;
 bool g_fMsaa = false;
 int g_internalResolutionHeight = 0;
+float g_guiScale = 1.0f;
 WindowMode g_windowMode = WindowMode_Windowed;
 float g_drawDistanceMultiplier = 1.0f;
 int g_frames = 3;

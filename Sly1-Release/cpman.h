@@ -13,7 +13,7 @@ struct CPMAN : public CPLCY
 
 void SetCpmanCpmt(CPMAN* pcpman, CPMT cpmt);
 // Update manual camera
-void UpdateCpman(GLFWwindow* window, CPMAN* pcpman, CPDEFI* pcpdefi, float dt);
+void UpdateCpman(CPMAN* pcpman, CPDEFI* pcpdefi, JOY* pjoy, float dt);
 
 struct VTCPMAN
 {
@@ -21,7 +21,7 @@ struct VTCPMAN
     void (*pfnDeactivateCplcy)() = nullptr;
     void (*pfnSetCplcy)() = nullptr;
     void (*pfnRevokeCplcy)() = nullptr;
-    void (*UpdateCpman)(CPMAN*, CPDEFI*, float) = UpdateCpman;
+    void (*UpdateCpman)(CPMAN*, CPDEFI*, JOY*, float) = UpdateCpman;
 };
 
 inline VTCPMAN g_vtcpman;

@@ -58,3 +58,4 @@
 #include "jetpack.h"
 #include "clkwork.h"
 #include "thndflash.h"
+#include "binoc.h"

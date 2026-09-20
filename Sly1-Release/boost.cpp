@@ -3,7 +3,7 @@
 
 BOOST* NewBoost()
 {
-	return new BOOST{};
+	return NewWorldObject<BOOST>();
 }
 
 void CloneBoost(BOOST* pboost, BOOST* pboostBase)

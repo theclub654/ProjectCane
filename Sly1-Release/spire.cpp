@@ -2,7 +2,7 @@
 
 SPIRE* NewSpire()
 {
-	return new SPIRE{};
+	return NewWorldObject<SPIRE>();
 }
 
 void InitSpire(SPIRE* pspire)
@@ -63,5 +63,5 @@ void CloneSpire(SPIRE* pspire, SPIRE* pspireBase)
 
 void DeleteSpire(SPIRE* pspire)
 {
-	delete pspire;
+	ReleaseWorldObject(pspire);
 }

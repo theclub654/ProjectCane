@@ -18,7 +18,8 @@ void PostTitleLoad(TITLE* ptitle)
     PostBlotLoad(ptitle);
 
     // Clone and rescale font (0.95f x 0.95f)
-    ptitle->pfont = ptitle->pfont->PfontClone(0.9f, 0.9f);
+    ptitle->pfontOwned = ptitle->pfont->PfontClone(0.9f, 0.9f);
+    ptitle->pfont = ptitle->pfontOwned.get();
     ptitle->rgba = glm::vec4(127.0f / 255.0f, 127.0f / 255.0f, 127.0f / 255.0f, 223.0f / 255.0f);
 
     if (FFontLoaded(2))

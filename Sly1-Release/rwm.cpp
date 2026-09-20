@@ -6,9 +6,10 @@
 #include "missile.h"
 #include "pnt.h"
 
+
 RWM* NewRwm()
 {
-	return new RWM{};
+	return NewWorldObject<RWM>();
 }
 
 void InitRwm(RWM* prwm)
@@ -1232,5 +1233,5 @@ int GetRwmSize()
 
 void DeleteRwm(RWM* prwm)
 {
-	delete prwm;
+	ReleaseWorldObject(prwm);
 }

@@ -11,8 +11,13 @@ void LoadLoopFromBrx(LOOP* ploop, CBinaryInputStream* pbis)
     ploop->dtLoopMax  = pbis->F32Read();
     ploop->dtPauseMin = pbis->F32Read();
     ploop->dtPauseMax = pbis->F32Read();
-    ploop->gframe     = pbis->F32Read();
-    pbis->F32Read();
+
+	// Retail SAAF::loopf stores the initial frame as a signed 16-bit value,
+	// followed by two bytes and one word of padding.  Reading it as F32 keeps
+	// the stream aligned but corrupts the initial animation frame.
+	ploop->gframe = static_cast<float>(pbis->S16Read());
+	pbis->U16Read();
+	pbis->U32Read();
 }
 
 void InitLoop(LOOP* ploop, SAAF* psaaf)

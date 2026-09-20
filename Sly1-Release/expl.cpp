@@ -76,7 +76,7 @@ namespace
 
 EXPL* NewExpl()
 {
-	return new EXPL{};
+	return NewWorldObject<EXPL>();
 }
 
 int GetExplSize()
@@ -334,12 +334,16 @@ void FireExplsExplso(EXPLS* pexpls, EXPLSO* pexplso)
 
 void ExplodeExpl(EXPL* pexpl)
 {
+    if (pexpl == nullptr || pexpl->pvtexpl == nullptr || pexpl->pvtexpl->pfnExplodeExplExplso == nullptr)
+        return;
 	EXPLSO explso{};
 	pexpl->pvtexpl->pfnExplodeExplExplso((EXPLO*)pexpl, &explso);
 }
 
 void ExplodeExplParams(EXPL* pexpl, GRFEXPLSO grfexplso, ALO* paloReference, const glm::vec3* pvec, const glm::vec3* pposOrigin, float rScale, float sRadius)
 {
+    if (pexpl == nullptr || pexpl->pvtexpl == nullptr || pexpl->pvtexpl->pfnExplodeExplExplso == nullptr || pvec == nullptr || pposOrigin == nullptr)
+        return;
 	EXPLSO explso{};
 
 	explso.grfexplso = grfexplso;
@@ -354,5 +358,5 @@ void ExplodeExplParams(EXPL* pexpl, GRFEXPLSO grfexplso, ALO* paloReference, con
 
 void DeleteExpl(EXPL* pexpl)
 {
-	delete pexpl;
+	ReleaseWorldObject(pexpl);
 }

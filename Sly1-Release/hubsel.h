@@ -72,4 +72,4 @@ static const int g_aoidHubselState[GAMEWORLD_Max][2] =
     { 1284, 1290 }, // Clockwerk
 };
 
-static constexpr bool g_fUnlockAllHubWorlds = false;
+extern bool g_fUnlockAllHubWorlds;

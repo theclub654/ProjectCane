@@ -13,7 +13,8 @@ void PostLogoLoad(LOGO* plogo)
     // Clone the font with logo-specific scale
     if (plogo->pfont)
     {
-        plogo->pfont = plogo->pfont->PfontClone(RX_LogoText, RY_LogoText);
+        plogo->pfontOwned = plogo->pfont->PfontClone(RX_LogoText, RY_LogoText);
+        plogo->pfont = plogo->pfontOwned.get();
     }
 
     if (PfontFromFont(2))

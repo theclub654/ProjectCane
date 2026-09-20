@@ -3,6 +3,7 @@
 #include "bbmark.h"
 #include "po.h"
 #include "hide.h"
+#include "cm.h"
 
 void UpdateSw(SW* psw, float dt)
 {
@@ -92,10 +93,13 @@ void UpdateSw(SW* psw, float dt)
         ProcessSwCallbacks(psw);
         UpdateShaders(g_clock.dt);
 
-        // The game camera belongs to the game-clock update.  Pausing leaves
-        // dt at zero, so its policy and focus smoothing must not be advanced.
-		UpdateCmLast(g_pcm, 1, g_clock.dt);
 	}
+
+    // Retail continues evaluating the active camera policy while gameplay is
+    // paused. UpdateCptn keeps game-driven movement on the zero game dt, but
+    // applies manual orbit input with dtReal so the camera can still rotate
+    // behind the pause menu.
+    UpdateCmLast(g_pcm, 1, g_clock.dt);
 
 	// 989SND continues servicing voices and adaptive music while the gameplay
 	// clock is paused. The pause UI only ducks MVGK groups to 60 percent.
@@ -211,7 +215,10 @@ void UpdateSwObjects(SW* psw, float dt)
 
     if (ppo && ppo->pvtpo->pfnUpdatePoActive)
     {
-        JOY* pjoy = (g_grfjoyt & 2) ? &g_joy : &g_joyZero;
+		const bool fManualFreeCamera = g_pcm != nullptr && g_pcm->ccpr > 0 &&
+			g_pcm->acpr[0].cpp == CPP_ManualOverride &&
+			g_pcm->acpr[0].pcplcy == &g_pcm->cpman;
+		JOY* pjoy = (g_grfjoyt & 2) && !fManualFreeCamera ? &g_joy : &g_joyZero;
         ppo->pvtpo->pfnUpdatePoActive(ppo, pjoy, dt);
     }
 

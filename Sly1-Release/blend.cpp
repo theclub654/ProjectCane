@@ -71,7 +71,8 @@ void EnsureAsegBlendDynamic(ALO* palo, int cbBl, int cbl, void* abl, int cmrsgc,
         if (plo == nullptr)
             return false;
 
-        return std::find(allWorldObjs.begin(), allWorldObjs.end(), plo) != allWorldObjs.end();
+        return std::find_if(allWorldObjs.begin(), allWorldObjs.end(),
+            [plo](const std::shared_ptr<LO>& pobj) { return pobj.get() == plo; }) != allWorldObjs.end();
     };
 
     auto IsValidAseg = [&IsKnownObject](ASEG* paseg) -> bool

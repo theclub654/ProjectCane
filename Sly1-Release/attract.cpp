@@ -19,7 +19,8 @@ void PostAttractLoad(ATTRACT* pattract)
 {
     PostBlotLoad(pattract);
 
-    pattract->pfont = pattract->pfont->PfontClone(RX_Attract, RY_Attract);
+    pattract->pfontOwned = pattract->pfont->PfontClone(RX_Attract, RY_Attract);
+    pattract->pfont = pattract->pfontOwned.get();
 
     if (CFontBrx* pfontEdge = PfontFromFont(2))
     {

@@ -15,7 +15,7 @@
 
 SUV* NewSuv()
 {
-	return new SUV{};
+	return NewWorldObject<SUV>();
 }
 
 int GetSuvSize()
@@ -501,8 +501,14 @@ void PresetSuvAccel(SUV* psuv, float dt)
     glm::vec3 vPred = psuv->xf.v + psuv->xf.dv * dt;
     glm::vec3 vLocal = glm::transpose(psuv->xf.mat) * vPred;
 
-    float uTargetSpeed = glm::clamp(psuv->svTarget / psuv->svMax, 0.0f, 1.0f);
-    float uSpeed = vLocal.x / psuv->svMax;
+    float uTargetSpeed = 0.0f;
+    float uSpeed = 0.0f;
+
+    if (fabsf(psuv->svMax) > 0.0001f)
+    {
+        uTargetSpeed = glm::clamp(psuv->svTarget / psuv->svMax, 0.0f, 1.0f);
+        uSpeed = vLocal.x / psuv->svMax;
+    }
 
     float rSpeed = CLQ_SuvSpeedToDrive.g0 + uSpeed * (CLQ_SuvSpeedToDrive.g1 + uSpeed * CLQ_SuvSpeedToDrive.g2);
     rSpeed = glm::clamp(rSpeed, 0.0f, 1.0f);
@@ -835,7 +841,7 @@ void UpdateSuvWheels(SUV* psuv)
     float radCurrent = atan2f(psuv->xf.mat[0][1], psuv->xf.mat[0][0]);
     float radWheelTarget = RadNormalize(psuv->radTarget - radCurrent);
 
-    radWheelTarget = GLimitAbs(radWheelTarget, RAD_SuvWheelMax);
+    radWheelTarget = GLimitAbs(R_SuvWheelHeading * radWheelTarget, RAD_SuvWheelMax);
     psuv->radFront = RadSmooth(psuv->radFront, radWheelTarget, g_clock.dt, &s_smpWheelTurn, nullptr);
 
     for (int i = 0; i < 4; ++i) {
@@ -1221,6 +1227,8 @@ void UpdateSuvActive(SUV* psuv, JOY* pjoy)
 
         if (pjoy->IsPressed(BTN_SQUARE))
         {
+            pjoy->SetHandled(BTN_SQUARE);
+
             if (psuv->suvgk == SUVGK_Chase)
             {
                 if (psuv->psmPuncher != nullptr)
@@ -1853,7 +1861,7 @@ void ResetSuv(SUV* psuv)
 
 void DeleteSuv(SUV* psuv)
 {
-	delete psuv;
+	ReleaseWorldObject(psuv);
 }
 
 void StartupLapCtr(LAPCTR* plapctr)
@@ -1949,6 +1957,7 @@ SMP s_smpLine = {1125.0, 0.0, 0.1};
 float DS_SuvNext = 750.0;
 float R_SuvTurnDrive = 1.0;
 float RAD_SuvWheelMax = 0.69999999;
+float R_SuvWheelHeading = 0.5f;
 SMP s_smpWheelTurn = {20.0, 0.0, 0.25};
 CLQ CLQ_SuvDtToRDensity = {1.0f, -1.0f, 0.0f};
 LM LM_SuvRadStick = {0.4, 1.0};

@@ -6,6 +6,7 @@ class DYSH : public ALO
 	public:
 
 	GLuint shadowTex;
+	int shadowLayer;
 	SHADOW* pshadowGen;
 };
 

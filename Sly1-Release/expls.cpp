@@ -3,7 +3,7 @@
 
 EXPLS* NewExpls()
 {
-	return new EXPLS{};
+	return NewWorldObject<EXPLS>();
 }
 
 void InitExpls(EXPLS* pexpls)
@@ -295,7 +295,7 @@ void BindExpls(EXPLS* pexpls)
 {
 	BindExplo(pexpls);
 
-	if (pexpls->oidRender == OID_Nil && pexpls->oidNextRender == OID_Nil && pexpls->oidTouch == OID_Nil)
+    if (pexpls->oidRender == OID_Nil && pexpls->oidNextRender == OID_Nil && pexpls->oidTouch == OID_Nil)
 		return;
 
 	EMITB* pemitb = PemitbEnsureExplo(pexpls, ENSK_Set);
@@ -370,5 +370,5 @@ SFX* PsfxEnsureExpls(EXPLS* pexpls, ENSK ensk)
 
 void DeleteExpls(EXPLS* pexpls)
 {
-	delete pexpls;
+	ReleaseWorldObject(pexpls);
 }

@@ -2,7 +2,7 @@
 
 FRZG* NewFrzg()
 {
-	return new FRZG{};
+	return NewWorldObject<FRZG>();
 }
 
 int GetFrzgSize()
@@ -50,5 +50,5 @@ void AddFrzgObject(FRZG* pfrzg, OID oid)
 
 void DeleteFrzg(FRZG* pfrzg)
 {
-	delete pfrzg;
+	ReleaseWorldObject(pfrzg);
 }

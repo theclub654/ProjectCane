@@ -2,7 +2,7 @@
 
 FLASH* NewFlash()
 {
-	return new FLASH{};
+	return NewWorldObject<FLASH>();
 }
 
 void InitFlash(FLASH* pflash)
@@ -75,5 +75,5 @@ int FPosFlashWithin(FLASH* pflash, glm::vec3* ppos)
 
 void DeleteFlash(FLASH* pflash)
 {
-	delete pflash;
+	ReleaseWorldObject(pflash);
 }

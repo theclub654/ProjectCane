@@ -674,4 +674,4 @@ LEVELINFO g_levelTable[46] =
 };
 
 int g_percentCompletion;
-int g_fDebugMode = 0;
+int g_fDebugMode = 1;

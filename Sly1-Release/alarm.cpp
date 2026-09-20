@@ -9,7 +9,7 @@
 
 ALARM*NewAlarm()
 {
-	return new ALARM{};
+	return NewWorldObject<ALARM>();
 }
 
 void InitAlarm(ALARM* palarm)
@@ -54,22 +54,17 @@ void CloneAlarm(ALARM* palarm, ALARM* palarmBase)
     int ichkDisabled = palarm->ichkDisabled;
     CloneSo(palarm, palarmBase);
 
-    palarm->alarms = palarmBase->alarms;
-    palarm->tAlarms = palarmBase->tAlarms;
-    palarm->psm = palarmBase->psm;
-    palarm->psma = palarmBase->psma;
+    // Retail CloneAlarm relies on the engine's shallow clone, then restores
+    // the checkpoint allocated by InitAlarm.  Copy authored alarm data here,
+    // but never inherit runtime links from the base instance: PostAlarmLoad
+    // rebuilds those links for this clone.
     palarm->dtReset = palarmBase->dtReset;
     palarm->calbrks = palarmBase->calbrks;
     std::memcpy(palarm->aoidAlbrks, palarmBase->aoidAlbrks, sizeof(palarm->aoidAlbrks));
     palarm->coidSensors = palarmBase->coidSensors;
     std::memcpy(palarm->aoidSensors, palarmBase->aoidSensors, sizeof(palarm->aoidSensors));
-    palarm->cpsensors = palarmBase->cpsensors;
-    std::memcpy(palarm->apsensors, palarmBase->apsensors, sizeof(palarm->apsensors));
     palarm->coidStepguards = palarmBase->coidStepguards;
     std::memcpy(palarm->aoidStepguards, palarmBase->aoidStepguards, sizeof(palarm->aoidStepguards));
-    palarm->calbrksDisabled = palarmBase->calbrksDisabled;
-    palarm->pambSiren = palarmBase->pambSiren;
-    palarm->pexc = palarmBase->pexc;
     palarm->fSilent = palarmBase->fSilent;
     palarm->crsmg = palarmBase->crsmg;
     std::memcpy(palarm->arsmg, palarmBase->arsmg, sizeof(palarm->arsmg));
@@ -387,12 +382,12 @@ void UpdateAlarm(ALARM* palarm, float dt)
 
 void DeleteAlarm(ALARM* palarm)
 {
-	delete palarm;
+	ReleaseWorldObject(palarm);
 }
 
 ALBRK*NewAlbrk()
 {
-	return new ALBRK{};
+	return NewWorldObject<ALBRK>();
 }
 
 int GetAlbrkSize()
@@ -427,5 +422,5 @@ void BreakAlbrk(ALBRK* palbrk)
 
 void DeleteAlbrk(ALBRK* palbrk)
 {
-	delete palbrk;
+	ReleaseWorldObject(palbrk);
 }

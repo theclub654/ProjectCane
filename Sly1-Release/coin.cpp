@@ -14,7 +14,7 @@
 
 DPRIZE* NewDprize()
 {
-	return new DPRIZE{};
+	return NewWorldObject<DPRIZE>();
 }
 
 void InitSwDprizeDl(SW* psw)
@@ -251,7 +251,8 @@ void ProjectDprizeTransform(DPRIZE* pdprize, float dt, int fParentDirty)
 
 			glm::vec3 posTarget = s_posTarget;
 
-			float radTarget = std::atan2(ppzi->paloCollect->xf.matWorld[0].y, ppzi->paloCollect->xf.matWorld[0].x);
+			ALO* paloCharmGold = ppzi->mpccharmpaloCharm[3];
+			float radTarget = std::atan2(paloCharmGold->xf.matWorld[0].y, paloCharmGold->xf.matWorld[0].x);
 			radTarget = RadNormalize(radTarget);
 			radTarget += 15.707964f;
 
@@ -265,14 +266,7 @@ void ProjectDprizeTransform(DPRIZE* pdprize, float dt, int fParentDirty)
 			for (int i = 0; i < 3; ++i)
 				pdprize->posCenter[i] = GSmoothA(pdprize->posCenter[i], pdprize->vCenter[i], posTarget[i], dt, &s_asmpaSwirl[i], &pdprize->vCenter[i]);
 
-			// The release gives the swirl a fixed one-second presentation window.
-			// GSmoothA approaches the target but is not guaranteed to land within
-			// an exact 0.0001 epsilon on a variable PC frame step, which left the
-			// charm permanently hovering above Sly. The elapsed-time condition is
-			// the authoritative completion condition; the epsilon merely permits
-			// an early finish if all three channels settle first.
-			if (g_clock.t - pdprize->tDprizes >= DT_DprizeSwirl ||
-				glm::all(glm::epsilonEqual(pdprize->posCenter, posTarget, 0.0001f)))
+			if (glm::all(glm::epsilonEqual(pdprize->posCenter, posTarget, 0.0001f)))
 				pdprize->fSwirlDone = true;
 
 			glm::vec3 posOffset;
@@ -718,8 +712,8 @@ void UpdateDprize(DPRIZE* pdprize, float dt)
 				break;
 			}
 
-			ALO* paloCollect = ppzi->paloCollect;
-			glm::vec3 vReject = paloCollect->xf.mat * s_vReject + paloCollect->xf.v;
+			ALO* paloCharmGold = ppzi->mpccharmpaloCharm[3];
+			glm::vec3 vReject = paloCharmGold->xf.mat * s_vReject + paloCharmGold->xf.v;
 
 			pdprize->pvtalo->pfnSetAloVelocityVec(pdprize, &vReject);
 			pdprize->pvtdprize->pfnSetDprizeDprizes(pdprize, DPRIZES_Fall);
@@ -922,7 +916,7 @@ void SetDprizeDprizes(DPRIZE* pdprize, DPRIZES dprizes)
 
 void DeleteDprize(DPRIZE* pdprize)
 {
-	delete pdprize;
+	ReleaseWorldObject(pdprize);
 }
 
 int CpdprizeFindSwDprizes(SW* psw, CID cid, int cpdprizeMax, DPRIZE** apdprize)
@@ -962,7 +956,11 @@ int CpdprizeFindSwDprizes(SW* psw, CID cid, int cpdprizeMax, DPRIZE** apdprize)
 
 	std::sort(candidates.begin(), candidates.end(), [](const SDPRIZE& lhs, const SDPRIZE& rhs)
 		{
-			return lhs.sDist < rhs.sDist;
+			// Removed prizes use FLT_MAX and must be consumed before any prize
+			// that is still active.  If the reusable pool is exhausted, recycle
+			// the active prize farthest from the player so a nearby drop is not
+			// visibly teleported and launched again by the next broken object.
+			return lhs.sDist > rhs.sDist;
 		});
 
 	const int cpdprize = std::min(cpdprizeMax, static_cast<int>(candidates.size()));
@@ -975,7 +973,7 @@ int CpdprizeFindSwDprizes(SW* psw, CID cid, int cpdprizeMax, DPRIZE** apdprize)
 
 CHARM* NewCharm()
 {
-	return new CHARM{};
+	return NewWorldObject<CHARM>();
 }
 
 void InitCharm(CHARM* pcharm)
@@ -1018,7 +1016,7 @@ void SetCharmDprizes(CHARM* pcharm, DPRIZES dprizes)
 
 void DeleteCharm(CHARM* pcharm)
 {
-	delete pcharm;
+	ReleaseWorldObject(pcharm);
 }
 
 void StartupCoinCtr(COINCTR* pcoinctr)
@@ -1028,7 +1026,7 @@ void StartupCoinCtr(COINCTR* pcoinctr)
 
 COIN* NewCoin()
 {
-	return new COIN{};
+	return NewWorldObject<COIN>();
 }
 
 void InitCoin(COIN* pcoin)
@@ -1219,7 +1217,7 @@ void SetCoinDprizes(COIN* pcoin, DPRIZES dprizes)
 }
 void DeleteCoin(COIN* pcoin)
 {
-	delete pcoin;
+	ReleaseWorldObject(pcoin);
 }
 
 void StartupLifeCtr(LIFECTR* plifectr)
@@ -1229,7 +1227,7 @@ void StartupLifeCtr(LIFECTR* plifectr)
 
 LIFETKN* NewLifetkn()
 {
-	return new LIFETKN{};
+	return NewWorldObject<LIFETKN>();
 }
 
 void InitLifeTkn(LIFETKN* plifetkn)
@@ -1381,7 +1379,7 @@ void SetLifetknDprizes(LIFETKN* plifetkn, DPRIZES dprizes)
 
 void DeleteLifetkn(LIFETKN* plifetkn)
 {
-	delete plifetkn;
+	ReleaseWorldObject(plifetkn);
 }
 
 void StartupKeyCtr(KEYCTR* pkeyctr)
@@ -1391,7 +1389,7 @@ void StartupKeyCtr(KEYCTR* pkeyctr)
 
 KEY* NewKey()
 {
-	return new KEY{};
+	return NewWorldObject<KEY>();
 }
 
 void InitKey(KEY* pkey)
@@ -1453,7 +1451,7 @@ void SetKeyDprizes(KEY* pkey, DPRIZES dprizes)
 
 void DeleteKey(KEY* pkey)
 {
-	delete pkey;
+	ReleaseWorldObject(pkey);
 }
 
 void StartupGoldCtr(GOLDCTR* pgoldctr)
@@ -1463,7 +1461,7 @@ void StartupGoldCtr(GOLDCTR* pgoldctr)
 
 GOLD* NewGold()
 {
-	return new GOLD{};
+	return NewWorldObject<GOLD>();
 }
 
 void InitGold(GOLD* pgold)
@@ -1571,7 +1569,7 @@ void SetGoldDprizes(GOLD* pgold, DPRIZES dprizes)
 
 void DeleteGold(GOLD* pgold)
 {
-	delete pgold;
+	ReleaseWorldObject(pgold);
 }
 
 int CpdprizeAttractSwDprizes(SW* psw, CID cid, glm::vec3* pposCenter, int cpdprizeMax, DPRIZE** apdprize)

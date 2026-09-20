@@ -8,7 +8,7 @@
 
 PO* NewPo()
 {
-	return new PO{};
+	return NewWorldObject<PO>();
 }
 
 void InitPo(PO* ppo)
@@ -363,8 +363,8 @@ void HandleDialogButtons(JOY* pjoy)
 	JOY* pjoyDialog = (g_grfjoyt & 4U) != 0 ? &g_joy : &g_joyZero;
 
 	const bool fDialogButtonPressed =
-		pjoyDialog->IsPressed(BTN_L1) ||
-		pjoyDialog->IsPressed(BTN_R1);
+		(pjoyDialog->current[BTN_L1] && !pjoyDialog->previous[BTN_L1]) ||
+		(pjoyDialog->current[BTN_R1] && !pjoyDialog->previous[BTN_R1]);
 
 	bool fDialogSkipped = false;
 
@@ -379,11 +379,15 @@ void HandleDialogButtons(JOY* pjoy)
 	}
 
 	const bool fTriggerButtonPressed =
-		pjoy->IsPressed(BTN_L1) ||
-		pjoy->IsPressed(BTN_R1);
+		(pjoy->current[BTN_L1] && !pjoy->previous[BTN_L1]) ||
+		(pjoy->current[BTN_R1] && !pjoy->previous[BTN_R1]);
 
 	if (!fDialogSkipped && fTriggerButtonPressed && g_call.pdialogTriggered != nullptr)
 		SetDialogDialogs(g_call.pdialogTriggered, DIALOGS_Triggered);
+
+	// Retail handles the L1/R1 mask after testing both dialog actions.
+	pjoy->SetHandled(BTN_L1);
+	pjoy->SetHandled(BTN_R1);
 }
 
 void UpdatePoCharmVisibility(PO* ppo)
@@ -549,7 +553,7 @@ int GetPoSize()
 
 void DeletePo(PO* ppo)
 {
-	delete ppo;
+	ReleaseWorldObject(ppo);
 }
 
 int g_ippoCur = -1;

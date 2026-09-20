@@ -2,7 +2,7 @@
 
 IKH* NewIkh()
 {
-	return new IKH{};
+	return NewWorldObject<IKH>();
 }
 
 int GetIkhSize()
@@ -37,7 +37,7 @@ void RenderIkhSelf(IKH* pikh, CM* pcm, RO* pro)
 
 void DeleteIkh(IKH *pikh)
 {
-	delete pikh;
+	ReleaseWorldObject(pikh);
 }
 
 LIKH* NewLikh()

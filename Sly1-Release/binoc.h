@@ -83,6 +83,7 @@ struct BINOC : public BLOT
     float dyReticle;
     float radReticle;
     struct CFontBrx *pfontCompass;
+    std::shared_ptr<CFontBrx> pfontCompassOwned;
     float uCompassBarOffset;
     int fTargeting;
     struct DIALOG *pdialogPlaying;

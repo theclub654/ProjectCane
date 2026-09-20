@@ -22,6 +22,10 @@ class VOLZP : public TZP
 
 };
 
+// Debug-menu traversal cheat. This only suppresses pit/death-plane volumes;
+// ordinary damage and electric zap volumes continue to work.
+extern bool g_fDisableDeathBarriers;
+
 TZP* NewTzp();
 void InitTzp(TZP *ptzp);
 void*GetTzpZpk(TZP* ptzp);

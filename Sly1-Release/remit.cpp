@@ -3,7 +3,7 @@
 
 void PostRemitEmit(REMIT* premit, EMITB* pemitb)
 {
-    premit->pexpls = static_cast<EXPLS*>(PloFindSwObject(g_psw, CID_EXPLS, pemitb->emitx.remit.oidExpls, pemitb->emito.paloReference));
+    premit->pexpls = static_cast<EXPLS*>(PloFindSwObject(g_psw, 260, pemitb->emitx.remit.oidExpls, pemitb->emito.paloReference));
     premit->svcParticle = pemitb->emitx.remit.svcParticle;
 }
 

@@ -15,7 +15,7 @@
 
 #define MAX_LIGHTS 256
 #define MAX_SHADOWS 255
-#define MAX_OBJECT_SHADOWS 16
+#define MAX_OBJECT_SHADOWS 12
 
 #define TRLK_Relight 0
 #define TRLK_Baked   1
@@ -50,7 +50,7 @@ struct LIGHT
 {
     int   lightk;
     int   fExcludeDynamicObjects;
-    int   pad2;
+    int   fActive;
     int   fDynamic;
     vec4  pos;
     vec4  dir;
@@ -75,8 +75,10 @@ struct SHADOW
     float wMax;
     float gReserved;
     float wFadeMin;
-    uvec2 textureHandle;
-    uvec2 _pad0;
+    int   textureSlot;
+    int   padTexture0;
+    int   padTexture1;
+    int   padTexture2;
     vec4  posEffect;
     float sRadiusEffect;
     int   fDynamic;
@@ -482,9 +484,12 @@ void InitGlobLighting()
 
 void ApplyStaticLightsRelight()
 {
+    // A relight result is cached on the glob and can outlive the camera's
+    // current BSP zone.  Build that persistent cache from the complete GPU
+    // light table instead of the camera-zone-filtered active-light list.
     for (int i = 0; i < numLights; ++i)
     {
-        if (lights[i].fDynamic > 0)
+        if (lights[i].fActive == 0 || lights[i].fDynamic != 0)
             continue;
 
         switch (lights[i].lightk)

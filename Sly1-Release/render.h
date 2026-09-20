@@ -22,6 +22,8 @@ void DrawSw(SW* psw, CM* pcm);
 void FillScreenRect(int r, int g, int b, int alpha, float xLeft, float yTop, float xRight, float yBottom, bool fAdditive = false);
 void DrawDysh(RPL* prpl);
 void DrawGlob(RPL* prpl);
+void BindGlobOneWayTexture(GLuint diffuseTexture);
+void BindGlobThreeWayTextures(GLuint ambientTexture, GLuint diffuseTexture, GLuint saturateTexture);
 void DrawCelBorder(RPLCEL* prplcel);
 void DrawSubGlob(int baseVertex, int firstIndex, int indexCount);
 void DrawProjVolume(int baseVertex, int firstIndex, int indexCount);

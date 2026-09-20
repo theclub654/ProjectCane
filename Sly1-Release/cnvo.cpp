@@ -3,7 +3,7 @@
 
 CNVO* NewCnvo()
 {
-	return new CNVO{};
+	return NewWorldObject<CNVO>();
 }
 
 void InitCnvo(CNVO* pcnvo)
@@ -93,5 +93,5 @@ void MatchCnvoScrollerToBeltSpeed(CNVO* pcnvo)
 
 void DeleteCnvo(CNVO *pcnvo)
 {
-	delete pcnvo;
+	ReleaseWorldObject(pcnvo);
 }

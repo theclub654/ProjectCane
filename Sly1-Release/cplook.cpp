@@ -386,12 +386,48 @@ void UpdateCplook(CPLOOK* pcplook, CPDEFI* pcpdefi, JOY* pjoy, float dt)
 		if (tiltAcceleration * pcplook->swTilt <= 0.0f)
 			pcplook->swTilt = 0.0f;
 
-		pcplook->swPan   = GSmooth(pcplook->swPan, 0.0f, dt, &s_smpSwCplook, nullptr);
-		pcplook->swTilt  = GSmooth(pcplook->swTilt, 0.0f, dt, &s_smpSwCplook, nullptr);
-		pcplook->swPan   = GLimitAbs(pcplook->swPan + panAcceleration * dt, pcm->radFOV * 1.3f * 0.9f);
-		pcplook->swTilt  = GLimitAbs(pcplook->swTilt + tiltAcceleration * dt, pcm->radFOV * 1.3f * 0.8f);
-		pcplook->radPan  = RadNormalize(pcplook->radPan + pcplook->swPan * dt);
-		pcplook->radTilt = glm::clamp(pcplook->radTilt + pcplook->swTilt * dt, -1.0f, 1.0f);
+		if (lookk == LOOKK_Sniper)
+		{
+			// The retail integration is semi-implicit: it updates angular velocity,
+			// then advances the angle with that new velocity.  Running that once per
+			// rendered frame makes large frame steps turn farther than small ones,
+			// which made turret sensitivity decrease as the frame rate increased.
+			// Small, bounded simulation steps plus trapezoidal angle integration keep
+			// the same acceleration and damping while making the result independent
+			// of the presentation rate.
+			float remaining = glm::max(dt, 0.0f);
+			constexpr float maxLookStep = 1.0f / 120.0f;
+
+			while (remaining > 0.0f)
+			{
+				const float step = glm::min(remaining, maxLookStep);
+				const float swPanPrev = pcplook->swPan;
+				const float swTiltPrev = pcplook->swTilt;
+
+				pcplook->swPan = GSmooth(pcplook->swPan, 0.0f, step, &s_smpSwCplook, nullptr);
+				pcplook->swTilt = GSmooth(pcplook->swTilt, 0.0f, step, &s_smpSwCplook, nullptr);
+				pcplook->swPan = GLimitAbs(pcplook->swPan + panAcceleration * step,
+					pcm->radFOV * 1.3f * 0.9f);
+				pcplook->swTilt = GLimitAbs(pcplook->swTilt + tiltAcceleration * step,
+					pcm->radFOV * 1.3f * 0.8f);
+
+				pcplook->radPan = RadNormalize(pcplook->radPan +
+					(swPanPrev + pcplook->swPan) * 0.5f * step);
+				pcplook->radTilt = glm::clamp(pcplook->radTilt +
+					(swTiltPrev + pcplook->swTilt) * 0.5f * step, -1.0f, 1.0f);
+
+				remaining -= step;
+			}
+		}
+		else
+		{
+			pcplook->swPan   = GSmooth(pcplook->swPan, 0.0f, dt, &s_smpSwCplook, nullptr);
+			pcplook->swTilt  = GSmooth(pcplook->swTilt, 0.0f, dt, &s_smpSwCplook, nullptr);
+			pcplook->swPan   = GLimitAbs(pcplook->swPan + panAcceleration * dt, pcm->radFOV * 1.3f * 0.9f);
+			pcplook->swTilt  = GLimitAbs(pcplook->swTilt + tiltAcceleration * dt, pcm->radFOV * 1.3f * 0.8f);
+			pcplook->radPan  = RadNormalize(pcplook->radPan + pcplook->swPan * dt);
+			pcplook->radTilt = glm::clamp(pcplook->radTilt + pcplook->swTilt * dt, -1.0f, 1.0f);
+		}
 
 		PosCplookEye(pcplook, &posEye);
 

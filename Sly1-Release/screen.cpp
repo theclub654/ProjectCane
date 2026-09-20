@@ -83,7 +83,7 @@ void DrawLineScreen(float x1, float y1, float z1, float x2, float y2, float z2, 
     glUniform4fv(blotColorLoc, 1, glm::value_ptr(blotColor));
     glUniform1i(u_useVertexColorLoc, 1);
 
-    glUniformHandleui64ARB(u_fontTexLoc, whiteHandle);
+    BindBlotTexture(whiteTex);
 
     glBindVertexArray(lineVao);
     glBindBuffer(GL_ARRAY_BUFFER, lineVbo);

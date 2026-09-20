@@ -23,7 +23,7 @@
 
 ALO* NewAlo()
 {
-	return new ALO{};
+	return NewWorldObject<ALO>();
 }
 
 void InitAlo(ALO* palo)
@@ -2554,10 +2554,14 @@ void SetAloCelRgba(ALO* palo, RGBA prgba)
 	palo->globset.grfglobset = palo->globset.grfglobset | 2;
 }
 
-void SetAloOverrideCel(ALO *palo, glm::vec4 *rgba)
+void SetAloOverrideCel(ALO* palo, RGBA rgba)
 {
 	palo->globset.grfglobset |= 0x2;
-	palo->globset.rgbaCel = *rgba;
+	palo->globset.rgbaCel = glm::vec4(
+		rgba.bRed / 255.0f,
+		rgba.bGreen / 255.0f,
+		rgba.bBlue / 255.0f,
+		rgba.bAlpha / 255.0f);
 
 	ALO *child = palo->dlChild.paloFirst;
 
@@ -2570,25 +2574,37 @@ void SetAloOverrideCel(ALO *palo, glm::vec4 *rgba)
 	}
 }
 
+void SetAloOverrideCelFloat(ALO* palo, const glm::vec4* rgba)
+{
+	const glm::vec4 color = glm::clamp(*rgba, 0.0f, 1.0f) * 255.0f;
+	RGBA packed{};
+	packed.bRed = static_cast<byte>(color.r);
+	packed.bGreen = static_cast<byte>(color.g);
+	packed.bBlue = static_cast<byte>(color.b);
+	packed.bAlpha = static_cast<byte>(color.a);
+	SetAloOverrideCel(palo, packed);
+}
+
 void UpdateAloThrob(ALO* palo, float dt)
 {
+	(void)dt;
 	THROB* throb = palo->pthrob.get();
-
-	if (throb->dtInOut <= 0.0f)
-		return;
 
 	float t = std::fmod(g_clock.t, throb->dtInOut);
 	float wave = std::sin((t * glm::two_pi<float>()) / throb->dtInOut);
-	float blend = wave * 0.5f + 0.5f; // 0..1
+	float blend = wave * 0.5f + 0.5f;
 
 	glm::vec3 hsv = throb->hsvIn * blend + throb->hsvOut * (1.0f - blend);
 
 	glm::vec3 rgb{};
 	ConvertUserHsvToUserRgb(hsv, rgb);
 
-	glm::vec4 overrideCel(rgb, 0.5f); // 0x80 / 255 ~= 0.502
-
-	SetAloOverrideCel(palo, &overrideCel);
+	RGBA rgba{};
+	rgba.bRed = static_cast<byte>(rgb.r);
+	rgba.bGreen = static_cast<byte>(rgb.g);
+	rgba.bBlue = static_cast<byte>(rgb.b);
+	rgba.bAlpha = 128;
+	SetAloOverrideCel(palo, rgba);
 }
 
 void SetAloBlotContext(ALO* palo, BLOT* pblot)
@@ -3723,6 +3739,7 @@ void PostAloLoad(ALO* palo)
 	}
 
 	s_pdliFirst = dli.m_pdliNext;
+
 }
 
 void PostAloLoadCallback(ALO* palo, MSGID msgid, void* pvData)
@@ -4548,7 +4565,7 @@ int GetAloSize()
 
 void DeleteAlo(ALO* palo)
 {
-	delete palo;
+	ReleaseWorldObject(palo);
 }
 
 std::vector <ALO*> allSWAloObjs;

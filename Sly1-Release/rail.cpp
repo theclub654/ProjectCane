@@ -2,7 +2,7 @@
 
 RAIL* NewRail()
 {
-	return new RAIL{};
+	return NewWorldObject<RAIL>();
 }
 
 void InitRail(RAIL* prail)
@@ -118,5 +118,5 @@ void PostRailLoad(RAIL* prail)
 
 void DeleteRail(RAIL* prail)
 {
-	delete prail;
+	ReleaseWorldObject(prail);
 }

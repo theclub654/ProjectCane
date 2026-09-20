@@ -56,7 +56,7 @@ SNIP s_asnipClkwrkDmg[3] = {
 
 CLKWORK* NewClkwork() 
 { 
-    return new CLKWORK{}; 
+    return NewWorldObject<CLKWORK>();
 }
 
 void InitClkWork(CLKWORK* pclkwork) 
@@ -90,7 +90,7 @@ void CloneClkwork(CLKWORK* pclkwork, CLKWORK* pclkworkBase)
 
 void DeleteClkwork(CLKWORK* pclkwork) 
 { 
-    delete pclkwork; 
+    ReleaseWorldObject(pclkwork);
 }
 
 void PostClkWorkLoad(CLKWORK* pclkwork)
@@ -214,7 +214,7 @@ void PlayClkworkDamageAnimation(CLKWORK* pclkwork)
 
 CLKWRKDMG* NewClkwrkDmg() 
 { 
-    return new CLKWRKDMG{}; 
+    return NewWorldObject<CLKWRKDMG>();
 }
 
 void InitClkwrkDmg(CLKWRKDMG* pclkwrkdmg)
@@ -245,7 +245,7 @@ void CloneClkwrkDmg(CLKWRKDMG* pclkwrkdmg, CLKWRKDMG* pclkwrkdmgBase)
 
 void DeleteClkwrkDmg(CLKWRKDMG* pclkwrkdmg) 
 { 
-    delete pclkwrkdmg; 
+    ReleaseWorldObject(pclkwrkdmg);
 }
 
 void PostClkwrkDmgLoad(CLKWRKDMG* pclkwrkdmg)

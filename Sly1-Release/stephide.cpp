@@ -23,9 +23,12 @@ int JtbsChooseJtHide(JT* pjt, LO* ploForce, int* pjthk)
     HSHAPE* phshapeBest = nullptr;
     HPNT* phpntBest = nullptr;
     HBSK* phbskBest = nullptr;
+    HND* phndBest = nullptr;
+    PIPE* ppipeBest = nullptr;
     VAULT* pvaultBest = nullptr;
 
     float sHshapeBest = 0.0f;
+    float sPipeBest = 0.0f;
 
     for (HSHAPE* phshape = g_dlHshape.phshapeFirst; phshape != nullptr; phshape = phshape->dleHshape.phshapeNext)
     {
@@ -82,16 +85,73 @@ int JtbsChooseJtHide(JT* pjt, LO* ploForce, int* pjthk)
         }
     }
 
-    /*
-     * Release-only searches assign:
-     *
-     * hideType 5: vault
-     * hideType 6: HND reach target
-     * hideType 7: secondary/dynamic HSHAPE reach target
-     *
-     * Keep their existing search code here until the final three jump-table
-     * destinations are recovered.
-     */
+    // Grounded Circle can reach directly for a hook target. Retail scores an
+    // HND by its distance outside a 250-unit cane reach envelope, using the
+    // same best-score value as the ordinary hide candidates above.
+    for (HND* phnd = g_dlTarget.phndFirst; phnd != nullptr; phnd = phnd->dleTarget.phndNext)
+    {
+        if (phnd == pjt->phndUnhook)
+            continue;
+
+        if ((phnd->grftak & 1) == 0)
+            continue;
+
+        if (ploForce != nullptr && reinterpret_cast<LO*>(phnd) != ploForce)
+            continue;
+
+        if (!FIsBasicDerivedFrom(reinterpret_cast<BASIC*>(phnd), CID_HND))
+            continue;
+
+        glm::vec3 posHnd;
+        GetXfmPos(reinterpret_cast<XFM*>(phnd), &posHnd);
+
+        const float score = glm::distance(posHnd, pjt->xf.posWorld) - 250.0f;
+        const bool forced = reinterpret_cast<LO*>(phnd) == ploForce;
+
+        if (score < std::max(distanceBest, 0.0f) || forced)
+        {
+            distanceBest = std::min(distanceBest, score);
+            hideType = 6;
+            phndBest = phnd;
+        }
+    }
+
+    // Grounded Circle also reaches directly for the closest point on a PIPE
+    // curve. Retail uses the same 250-unit reach envelope and candidate score
+    // as the HND search above, then enters the same cane-reach hide state.
+    for (PIPE* ppipe = g_dlPipe.ppipeFirst; ppipe != nullptr; ppipe = ppipe->dlePipe.ppipeNext)
+    {
+        if (ploForce != nullptr && reinterpret_cast<LO*>(ppipe) != ploForce)
+            continue;
+
+        CRV* pcrv = ppipe->pcrv.get();
+        if (pcrv == nullptr)
+            continue;
+
+        glm::vec3 posJtLocal(0.0f);
+        glm::vec3 posClosestLocal(0.0f);
+        glm::vec3 posClosestWorld(0.0f);
+        float sPipe = 0.0f;
+
+        ConvertAloPos(nullptr, ppipe->paloParent, &pjt->xf.posWorld, &posJtLocal);
+
+        if (pcrv->pvtcrv->pfnFindCrvClosestPointAll != nullptr)
+            pcrv->pvtcrv->pfnFindCrvClosestPointAll(
+                pcrv, &posJtLocal, nullptr, &posClosestLocal, nullptr, nullptr, &sPipe);
+
+        ConvertAloPos(ppipe->paloParent, nullptr, &posClosestLocal, &posClosestWorld);
+
+        const float score = glm::distance(posClosestWorld, pjt->xf.posWorld) - 250.0f;
+        const bool forced = reinterpret_cast<LO*>(ppipe) == ploForce;
+
+        if (score < std::max(distanceBest, 0.0f) || forced)
+        {
+            distanceBest = std::min(distanceBest, score);
+            hideType = 7;
+            ppipeBest = ppipe;
+            sPipeBest = sPipe;
+        }
+    }
 
     if (pjt->psw->pvault != nullptr &&
         FCanOpenVault(pjt->psw->pvault) &&
@@ -124,13 +184,39 @@ int JtbsChooseJtHide(JT* pjt, LO* ploForce, int* pjthk)
         return 21;
 
         case 2:
-        *pjthk = JTHK_Basket;
+        // Retail's HBSK hide-selection jump-table case writes raw JTHK 1.
+        // Grounded Circle therefore uses the duck/cover path and positions
+        // Sly outside the barrel via GetHbskClosestHidePos. JTHK_Basket is
+        // reserved for the jump-into-barrel transition.
+        *pjthk = JTHK_Duck;
         pjt->phbsk = phbskBest;
         return 21;
 
         case 5:
         *pjthk = JTHK_Vault;
         pjt->pvaultCur = pvaultBest;
+        return 16;
+
+        case 6:
+        // Retail jump-table case 6 prepares the cane-reach state directly
+        // from the ground; the same target can also be acquired in the air by
+        // JtbsChooseJtLanding.
+        pjt->ptargetCur = phndBest;
+        pjt->phndCur = phndBest;
+        pjt->ppipeCur = nullptr;
+        SetJtJtcs(pjt, 0);
+        UpdateJtCane(pjt);
+        *pjthk = 6;
+        return 16;
+
+        case 7:
+        pjt->sPipeCur = sPipeBest;
+        pjt->ppipeCur = ppipeBest;
+        pjt->phndCur = nullptr;
+        pjt->ptargetCur = nullptr;
+        SetJtJtcs(pjt, 0);
+        UpdateJtCane(pjt);
+        *pjthk = JTHK_Reach;
         return 16;
 
         default:
@@ -899,8 +985,9 @@ int JtbsChooseJtLanding(JT* pjt, LO* ploForce)
 
         ConvertAloPos(phshape->paloParent, nullptr, &posClosestLocal, &posClosestWorld);
 
-        // The release does not bypass this check for a forced HSHAPE.
-        if (pjt->xf.pos.z - posClosestWorld.z > phshape->dzMax)
+        // dzHideMax is the authored vertical allowance used while acquiring
+        // an HSHAPE. dzMax is a separate Boolean behavior flag.
+        if (pjt->xf.pos.z - posClosestWorld.z > phshape->dzHideMax)
             continue;
 
         MJH mjh{};
@@ -934,6 +1021,7 @@ int JtbsChooseJtLanding(JT* pjt, LO* ploForce)
         float dt = 0.0f;
 
         GetHshapeHidePos(phshape, sHshape, &posTarget, nullptr);
+
         MeasureJtJumpToTarget(pjt, &pjt->xf.v, phshape->paloParent, &posTarget, nullptr, &dt, nullptr, &posGoal, &vGoal);
 
         if (!IsForced(phshape) && FFindJtObstruction(pjt, dt, nullptr, nullptr, pjt->pposBase, &pjt->xf.v, &posGoal, &vGoal, nullptr))

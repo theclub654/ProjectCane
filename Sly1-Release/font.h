@@ -1,5 +1,6 @@
 #pragma once
 #include <unordered_map>
+#include <memory>
 #include "shd.h"
 #include "gl.h"
 
@@ -129,7 +130,7 @@ class CFontBrx : public CFont
     // Calculates and returns the total width of a string
     float DxFromPchz(char* pchz);
     float DxFromCh(char ch);
-    CFontBrx* PfontClone(float rx, float ry);
+    std::shared_ptr<CFontBrx> PfontClone(float rx, float ry);
     bool FValid(char ch);
     void SetupDraw();
     float DxDrawCh(char ch, float xChar, float yChar, glm::vec4& rgba);
@@ -204,6 +205,9 @@ extern GLuint uvRectLoc;
 extern GLuint u_useVertexColorLoc;
 extern GLuint blotColorLoc;
 extern GLuint whiteTex;
-extern uint64_t whiteHandle;
+
+// The blot shader uses conventional texture unit 0 for fonts and solid-color
+// UI geometry.
+void BindBlotTexture(GLuint texture);
 
 extern std::array<char, 5> g_achFontSelector;

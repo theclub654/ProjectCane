@@ -8,7 +8,7 @@
 
 WATER* NewWater()
 {
-	return new WATER{};
+	return NewWorldObject<WATER>();
 }
 
 void InitWater(WATER* pwater)
@@ -591,7 +591,7 @@ void WakeSoWater(SO* pso, WATER* pwater, float dt, glm::vec3* pvCurrent, glm::ve
 
 void DeleteWater(WATER *pwater)
 {
-	delete pwater;
+	ReleaseWorldObject(pwater);
 }
 
 CLQ s_clqDampV = {0.0, 3.0, 0.0};

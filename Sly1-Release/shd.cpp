@@ -1,20 +1,39 @@
 #include "shd.h"
 #include "upscale.h"
+#include "sensor.h"
+#include <cstdio>
 
 void UnloadShaders()
 {
+    // World material samplers use texture units 0-2. Detach them before the
+    // backing TEX objects are destroyed so a deleted world cannot leave stale
+    // bindings in the next one.
+    for (int unit = 0; unit < 3; ++unit)
+    {
+        glActiveTexture(GL_TEXTURE0 + unit);
+        glBindTexture(GL_TEXTURE_2D, 0);
+    }
+    glActiveTexture(GL_TEXTURE0);
+
     for (SHD& shd : g_ashd)
     {
         for (TEX& tex : shd.atex)
         {
-            for (uint64_t& handle : tex.hDiffuseMap)
+            for (GLuint& texture : tex.glShadowMap)
             {
-                if (handle != 0)
-                    glMakeTextureHandleNonResidentARB(handle);
-                handle = 0;
+                if (texture != 0)
+                    glDeleteTextures(1, &texture);
+                texture = 0;
             }
 
             for (GLuint& texture : tex.glDiffuseMap)
+            {
+                if (texture != 0)
+                    glDeleteTextures(1, &texture);
+                texture = 0;
+            }
+
+            for (GLuint& texture : tex.glSaturateMap)
             {
                 if (texture != 0)
                     glDeleteTextures(1, &texture);
@@ -25,34 +44,16 @@ void UnloadShaders()
 
     for (int i = 0; i < g_cbmp; i++)
     {
-        if (g_abmp[i].hShadowMap != 0)
-        {
-            glMakeTextureHandleNonResidentARB(g_abmp[i].hShadowMap);
-            g_abmp[i].hShadowMap = 0;
-        }
-
         if (g_abmp[i].glShadowMap != 0)
         {
             glDeleteTextures(1, &g_abmp[i].glShadowMap);
             g_abmp[i].glShadowMap = 0;
         }
 
-        if (g_abmp[i].hDiffuseMap != 0)
-        {
-            glMakeTextureHandleNonResidentARB(g_abmp[i].hDiffuseMap);
-            g_abmp[i].hDiffuseMap = 0;
-        }
-
         if (g_abmp[i].glDiffuseMap != 0)
         {
             glDeleteTextures(1, &g_abmp[i].glDiffuseMap);
             g_abmp[i].glDiffuseMap = 0;
-        }
-
-        if (g_abmp[i].hSaturateMap != 0)
-        {
-            glMakeTextureHandleNonResidentARB(g_abmp[i].hSaturateMap);
-            g_abmp[i].hSaturateMap = 0;
         }
 
         if (g_abmp[i].glSaturateMap != 0)
@@ -300,11 +301,15 @@ void LoadShadersFromBrx(CBinaryInputStream* pbis)
             // texture also depends on this TEX's CLUT.  Keep that resolved
             // texture on TEX so shaders which share a BMP cannot overwrite
             // one another's palette selection.
-            if (shd.shdk != SHDK_ThreeWay)
+            tex.glDiffuseMap.resize(tex.abmp.size(), 0);
+            tex.diffuseTexture.resize(tex.abmp.size());
+
+            if (shd.shdk == SHDK_ThreeWay)
             {
-                tex.glDiffuseMap.resize(tex.abmp.size(), 0);
-                tex.hDiffuseMap.resize(tex.abmp.size(), 0);
-                tex.diffuseTexture.resize(tex.abmp.size());
+                tex.glShadowMap.resize(tex.abmp.size(), 0);
+                tex.shadowTexture.resize(tex.abmp.size());
+                tex.glSaturateMap.resize(tex.abmp.size(), 0);
+                tex.saturateTexture.resize(tex.abmp.size());
             }
 
             for (int iframe = 0; iframe < (int)tex.abmp.size(); iframe++)
@@ -319,7 +324,7 @@ void LoadShadersFromBrx(CBinaryInputStream* pbis)
                 int maxDim = std::max(width, height);
                 int mipLevels = 1 + (int)std::floor(std::log2((double)maxDim));
 
-                auto SetupTexture = [&](GLuint& glTex, uint64_t& handle)
+                auto SetupTexture = [&](GLuint& glTex)
                 {
                     if (glTex != 0)
                         return;
@@ -343,18 +348,16 @@ void LoadShadersFromBrx(CBinaryInputStream* pbis)
 
                     glTexStorage2D(GL_TEXTURE_2D, mipLevels, GL_RGBA8, width, height);
 
-                    handle = glGetTextureHandleARB(glTex);
-                    glMakeTextureHandleResidentARB(handle);
                 };
 
                 if (shd.shdk == SHDK_ThreeWay)
                 {
-                    SetupTexture(pbmp->glShadowMap,   pbmp->hShadowMap);
-                    SetupTexture(pbmp->glDiffuseMap,  pbmp->hDiffuseMap);
-                    SetupTexture(pbmp->glSaturateMap, pbmp->hSaturateMap);
+                    SetupTexture(tex.glShadowMap[iframe]);
+                    SetupTexture(tex.glDiffuseMap[iframe]);
+                    SetupTexture(tex.glSaturateMap[iframe]);
                 }
                 else
-                    SetupTexture(tex.glDiffuseMap[iframe], tex.hDiffuseMap[iframe]);
+                    SetupTexture(tex.glDiffuseMap[iframe]);
             }
         }
 
@@ -464,8 +467,6 @@ void LoadShadersFromBrx(CBinaryInputStream* pbis)
 
             glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGBA8, width, height);
 
-            pbmp->hDiffuseMap = glGetTextureHandleARB(pbmp->glDiffuseMap);
-            glMakeTextureHandleResidentARB(pbmp->hDiffuseMap);
         }
     }
 
@@ -544,9 +545,9 @@ void LoadTexturesFromBrx(CBinaryInputStream* pbis)
                 if (clutBase + 2 < (int)tex.aclut.size())
                     saturateClut = tex.aclut[clutBase + 2];
 
-                MakeTexture(pbmp->glShadowMap,   pbmp->hShadowMap,   &tex, pbmp, pbmp->shadowTexture,   ambientClut,  false, true, pbis);
-                MakeTexture(pbmp->glDiffuseMap,  pbmp->hDiffuseMap,  &tex, pbmp, pbmp->diffuseTexture,  diffuseClut,  false, true, pbis);
-                MakeTexture(pbmp->glSaturateMap, pbmp->hSaturateMap, &tex, pbmp, pbmp->saturateTexture, saturateClut, false, true, pbis);
+                MakeTexture(tex.glShadowMap[iframe],   pbmp, tex.shadowTexture[iframe],   ambientClut,  false, true, pbis);
+                MakeTexture(tex.glDiffuseMap[iframe],  pbmp, tex.diffuseTexture[iframe],  diffuseClut,  false, true, pbis);
+                MakeTexture(tex.glSaturateMap[iframe], pbmp, tex.saturateTexture[iframe], saturateClut, false, true, pbis);
             }
             else
             {
@@ -557,21 +558,27 @@ void LoadTexturesFromBrx(CBinaryInputStream* pbis)
 
                 if (iframe < static_cast<int>(tex.glDiffuseMap.size()))
                 {
-                    MakeTexture(tex.glDiffuseMap[iframe], tex.hDiffuseMap[iframe],
-                        &tex, pbmp, tex.diffuseTexture[iframe], clut, false, true, pbis);
+                    MakeTexture(tex.glDiffuseMap[iframe], pbmp,
+                        tex.diffuseTexture[iframe], clut, false, true, pbis);
 
                 }
                 else
                 {
-                    MakeTexture(pbmp->glDiffuseMap, pbmp->hDiffuseMap,
-                        &tex, pbmp, pbmp->diffuseTexture, clut, false, true, pbis);
+                    MakeTexture(pbmp->glDiffuseMap, pbmp,
+                        pbmp->diffuseTexture, clut, false, true, pbis);
                 }
             }
         }
+
     }
 
     for (int i = 0; i < g_cfontBrx; i++)
-        MakeTexture(g_afontBrx[i].m_pbmp->glDiffuseMap, g_afontBrx[i].m_pbmp->hDiffuseMap, nullptr, g_afontBrx[i].m_pbmp, g_afontBrx[i].m_pbmp->diffuseTexture, g_afontBrx[i].m_pclut, true, false, pbis);
+    {
+        BMP* pbmp = g_afontBrx[i].m_pbmp;
+        MakeTexture(pbmp->glDiffuseMap, pbmp, pbmp->diffuseTexture,
+            g_afontBrx[i].m_pclut, true, false, pbis);
+
+    }
 
 }
 
@@ -612,7 +619,7 @@ std::vector <byte> MakePallete(CLUT *pclut, CBinaryInputStream *pbis)
     return palleteBuffer;
 }
 
-void MakeTexture(GLuint& textureReference, uint64_t& textureHandle, TEX* ptex, BMP* pbmp, std::vector<byte>& texture, CLUT* pclut, bool fFlip, bool fMipMap, CBinaryInputStream* pbis)
+void MakeTexture(GLuint& textureReference, BMP* pbmp, std::vector<byte>& texture, CLUT* pclut, bool fFlip, bool fMipMap, CBinaryInputStream* pbis)
 {
     if (pbmp == nullptr || pclut == nullptr || textureReference == 0)
         return;
@@ -703,6 +710,7 @@ void UpdateShaders(float dt)
             continue;
 
         vtsaa->pfnUpdateScroller((SCROLLER*)saa, dt);
+
     }
 }
 

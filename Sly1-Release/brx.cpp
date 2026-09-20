@@ -43,9 +43,6 @@ LO* PloNew(CID cid, SW* psw, ALO* paloParent, OID oid, int isplice)
 	// Initializing local object
 	plo->pvtlo->pfnInitLo(plo);
 
-	// Storing pointer to object in global vector
-	allWorldObjs.push_back(plo);
-
 	// Returining newly made objects
 	return plo;
 }

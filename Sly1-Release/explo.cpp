@@ -2,7 +2,7 @@
 
 EXPLO* NewExplo()
 {
-	return new EXPLO{};
+	return NewWorldObject<EXPLO>();
 }
 
 void InitExplo(EXPLO* pexplo)
@@ -302,5 +302,5 @@ void StandardSmokeCloud(glm::vec3* ppos, float sRadius)
 
 void DeleteExplo(EXPLO* pexplo)
 {
-	delete pexplo;
+	ReleaseWorldObject(pexplo);
 }

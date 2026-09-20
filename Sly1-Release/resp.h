@@ -60,8 +60,29 @@ enum RESPK
     RESPK_Slot4 = 36,
     RESPK_Slot5 = 37,
     RESPK_Slot6 = 38,
+    RESPK_ExitToDesktop = 39,
+    RESPK_GuiScale = 40,
+	RESPK_CameraInvert = 41,
+	RESPK_KeyboardMapping = 42,
+	RESPK_ControllerMapping = 43,
+	RESPK_KeyUp = 44,
+	RESPK_KeyDown,
+	RESPK_KeyLeft,
+	RESPK_KeyRight,
+	RESPK_KeySquare,
+	RESPK_KeyCircle,
+	RESPK_KeyCross,
+	RESPK_KeyTriangle,
+	RESPK_KeyStart,
+	RESPK_KeySelect,
+	RESPK_KeyL1,
+	RESPK_KeyR1,
+	RESPK_KeyL2,
+	RESPK_KeyR2,
+	RESPK_KeyL3,
+	RESPK_KeyR3,
 
-    RESPK_Max = 39
+	RESPK_Max = 60
 };
 
 // -----------------------------------------------------------------------------
@@ -108,8 +129,11 @@ enum PRK
     PRK_ControlsMenu = 31,
     PRK_Unknown32 = 32,
     PRK_VideoMenu = 33,
+	PRK_ExitToDesktopConfirm = 34,
+	PRK_KeyboardMapping = 35,
+	PRK_ControllerMapping = 36,
 
-    PRK_Max = 34
+	PRK_Max = 37
 };
 
 // -----------------------------------------------------------------------------
@@ -252,19 +276,33 @@ inline RESPK s_arespkSlots[7] =
     RESPK_Back
 };
 
-inline RESPK s_arespkControlsMenu[4] =
+inline const RESPK s_arespkControlsMenuAll[7] =
 {
+	RESPK_CameraInvert,
     RESPK_BinocInvert,
     RESPK_TurretInvert,
     RESPK_JetpackInvert,
+	RESPK_KeyboardMapping,
+	RESPK_ControllerMapping,
     RESPK_Back
+};
+
+inline RESPK s_arespkControlsMenu[7]{};
+
+inline RESPK s_arespkKeyboardMapping[17] =
+{
+	RESPK_KeyUp, RESPK_KeyDown, RESPK_KeyLeft, RESPK_KeyRight,
+	RESPK_KeySquare, RESPK_KeyCircle, RESPK_KeyCross, RESPK_KeyTriangle,
+	RESPK_KeyStart, RESPK_KeySelect, RESPK_KeyL1, RESPK_KeyR1,
+	RESPK_KeyL2, RESPK_KeyR2, RESPK_KeyL3, RESPK_KeyR3,
+	RESPK_Back
 };
 
 // -----------------------------------------------------------------------------
 // Pause menu
 // -----------------------------------------------------------------------------
 
-inline const RESPK s_arespkPauseMenuAll[8] =
+inline const RESPK s_arespkPauseMenuAll[9] =
 {
     RESPK_ReturnToGame,
     RESPK_RestartRace,
@@ -273,10 +311,11 @@ inline const RESPK s_arespkPauseMenuAll[8] =
     RESPK_Map,
     RESPK_Options,
     RESPK_ExitLevel,
-    RESPK_Quit
+    RESPK_Quit,
+    RESPK_ExitToDesktop
 };
 
-inline RESPK s_arespkPauseMenu[8]{};
+inline RESPK s_arespkPauseMenu[9]{};
 
 // -----------------------------------------------------------------------------
 // Options menu
@@ -307,6 +346,7 @@ inline RESPK s_arespkVideoMenu[] =
     RESPK_WindowMode,
     RESPK_Vsync,
     RESPK_AspectRatio,
+    RESPK_GuiScale,
     RESPK_Back
 };
 
@@ -335,6 +375,9 @@ inline char g_achzRespk32[64]{};
 inline char g_achzRespk33[64]{};
 inline char g_achzRespk34[64]{};
 inline char g_achzRespk35[64]{};
+inline char g_achzRespk40[64]{};
+inline char g_achzRespk41[64]{};
+inline char g_aachzKeyboardBindings[BTN_MAX][64]{};
 
 // -----------------------------------------------------------------------------
 // Variant response strings
@@ -382,6 +425,12 @@ inline const char* const s_apchzRespk26[2] =
     "Jet Pack: &2(&. Up = Fly Up"
 };
 
+inline const char* const s_apchzRespk41[2] =
+{
+	"Camera: &2(&. Right = Turn Left",
+	"Camera: &2(&. Right = Turn Right"
+};
+
 // -----------------------------------------------------------------------------
 // Response string lookup table
 // -----------------------------------------------------------------------------
@@ -426,7 +475,20 @@ inline const char* s_mprespkachz[RESPK_Max] =
     g_achzRespk35,            // 35 RESPK_AspectRatio
     g_achzSaveSlot4,          // 36 RESPK_Slot4
     g_achzSaveSlot5,          // 37 RESPK_Slot5
-    g_achzSaveSlot6           // 38 RESPK_Slot6
+    g_achzSaveSlot6,          // 38 RESPK_Slot6
+    "Exit to Desktop",        // 39 RESPK_ExitToDesktop
+    g_achzRespk40,            // 40 RESPK_GuiScale
+	g_achzRespk41,             // 41 RESPK_CameraInvert
+	"Keyboard Mapping...",    // 42 RESPK_KeyboardMapping
+	"Controller Mapping...",  // 43 RESPK_ControllerMapping
+	g_aachzKeyboardBindings[0], g_aachzKeyboardBindings[1],
+	g_aachzKeyboardBindings[2], g_aachzKeyboardBindings[3],
+	g_aachzKeyboardBindings[4], g_aachzKeyboardBindings[5],
+	g_aachzKeyboardBindings[6], g_aachzKeyboardBindings[7],
+	g_aachzKeyboardBindings[8], g_aachzKeyboardBindings[9],
+	g_aachzKeyboardBindings[10], g_aachzKeyboardBindings[11],
+	g_aachzKeyboardBindings[12], g_aachzKeyboardBindings[13],
+	g_aachzKeyboardBindings[14], g_aachzKeyboardBindings[15]
 };
 
 // -----------------------------------------------------------------------------
@@ -473,7 +535,16 @@ inline RESPD s_arespd[RESPK_Max] =
     { 0, nullptr },          // 35 RESPK_AspectRatio
     { 0, nullptr },          // 36 RESPK_Slot4
     { 0, nullptr },          // 37 RESPK_Slot5
-    { 0, nullptr }           // 38 RESPK_Slot6
+    { 0, nullptr },          // 38 RESPK_Slot6
+    { 0, nullptr },          // 39 RESPK_ExitToDesktop
+    { 0, nullptr },          // 40 RESPK_GuiScale
+	{ 2, s_apchzRespk41 },    // 41 RESPK_CameraInvert
+	{ 0, nullptr },           // 42 RESPK_KeyboardMapping
+	{ 0, nullptr },           // 43 RESPK_ControllerMapping
+	{ 0, nullptr }, { 0, nullptr }, { 0, nullptr }, { 0, nullptr },
+	{ 0, nullptr }, { 0, nullptr }, { 0, nullptr }, { 0, nullptr },
+	{ 0, nullptr }, { 0, nullptr }, { 0, nullptr }, { 0, nullptr },
+	{ 0, nullptr }, { 0, nullptr }, { 0, nullptr }, { 0, nullptr }
 };
 
 // -----------------------------------------------------------------------------
@@ -484,7 +555,7 @@ inline RESPD s_arespd[RESPK_Max] =
 
 inline PRD s_mpprkprd[PRK_Max] =
 {
-    { "Paused", 1.0f, 1.0f, 1, 8, s_arespkPauseMenu },                                         // 0  PRK_PauseMenu
+    { "Paused", 1.0f, 1.0f, 1, 9, s_arespkPauseMenu },                                         // 0  PRK_PauseMenu
     { "Game Over. Try again?", 1.0f, 1.0f, 0, 2, s_arespkYesNo },                              // 1  PRK_GameOver
     { "Really Quit?", 1.0f, 1.0f, 0, 2, s_arespkYesNo },                                      // 2  PRK_QuitConfirm
     { pchzMemcardSaveCreate, 0.7f, 1.0f, 0, 2, s_arespkYesNo },                               // 3  PRK_MemcardMissing
@@ -515,9 +586,12 @@ inline PRD s_mpprkprd[PRK_Max] =
     { pchzMtsExpired, 0.8f, 1.0f, 0, 2, s_arespkYesNo },                                      // 28 PRK_MtsExpired
     { pchzMtsTimeBeat, 0.8f, 1.0f, 0, 2, s_arespkYesNo },                                     // 29 PRK_MtsBestTime
     { pchzFailedTimeBeat, 0.8f, 1.0f, 0, 2, s_arespkYesNo },                                  // 30 PRK_MtsFailedBestTime
-    { "Controls", 1.0f, 0.8f, 1, 4, s_arespkControlsMenu },                                   // 31 PRK_ControlsMenu
+    { "Controls", 1.0f, 0.8f, 1, static_cast<int>(std::size(s_arespkControlsMenu)), s_arespkControlsMenu }, // 31 PRK_ControlsMenu
     { nullptr, 1.0f, 1.0f, 1, 0, nullptr },                                                   // 32 PRK_Unknown32
-    { "Video", 1.0f, 1.0f, 1, static_cast<int>(std::size(s_arespkVideoMenu)), s_arespkVideoMenu } // 33 PRK_VideoMenu
+	{ "Video", 1.0f, 1.0f, 1, static_cast<int>(std::size(s_arespkVideoMenu)), s_arespkVideoMenu }, // 33 PRK_VideoMenu
+	{ "Are you sure?", 1.0f, 1.0f, 0, 2, s_arespkYesNo },                                     // 34 PRK_ExitToDesktopConfirm
+	{ "Keyboard Mapping", 0.8f, 0.55f, 1, static_cast<int>(std::size(s_arespkKeyboardMapping)), s_arespkKeyboardMapping }, // 35
+	{ "Controller Mapping", 0.8f, 0.55f, 1, static_cast<int>(std::size(s_arespkKeyboardMapping)), s_arespkKeyboardMapping } // 36
 };
 
 static_assert(sizeof(s_mpprkprd) / sizeof(s_mpprkprd[0]) == PRK_Max);

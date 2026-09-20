@@ -1,6 +1,41 @@
 #include "glob.h"
 #include "wr.h"
 #include "render.h"
+#include "loop.h"
+#include "pingpong.h"
+#include "shuffle.h"
+#include "hologram.h"
+#include "eyes.h"
+#include "scroller.h"
+#include "circler.h"
+#include "looker.h"
+
+static SAA* CloneInstancedSaa(SAA* saaBase)
+{
+    SAA* saa = nullptr;
+
+    switch (saaBase->saak)
+    {
+        case SAAK_Loop:     saa = new LOOP(*static_cast<LOOP*>(saaBase)); break;
+        case SAAK_PingPong: saa = new PINGPONG(*static_cast<PINGPONG*>(saaBase)); break;
+        case SAAK_Shuffle:  saa = new SHUFFLE(*static_cast<SHUFFLE*>(saaBase)); break;
+        case SAAK_Hologram: saa = new HOLOGRAM(*static_cast<HOLOGRAM*>(saaBase)); break;
+        case SAAK_Eyes:     saa = new EYES(*static_cast<EYES*>(saaBase)); break;
+        case SAAK_Scroller: saa = new SCROLLER(*static_cast<SCROLLER*>(saaBase)); break;
+        case SAAK_Circler:  saa = new CIRCLER(*static_cast<CIRCLER*>(saaBase)); break;
+        case SAAK_Looker:   saa = new LOOKER(*static_cast<LOOKER*>(saaBase)); break;
+        default: return nullptr;
+    }
+
+    // An instance receives private animation state and must not inherit links
+    // belonging to the source SAI update queue.
+    saa->sai.psaiNext = nullptr;
+    if (saa->saak == SAAK_Eyes)
+        static_cast<EYES*>(saa)->saiOther.psaiNext = nullptr;
+
+    g_apsaaSw.push_back(saa);
+    return saa;
+}
 
 void LoadGlobsetFromBrx(GLOBSET* pglobset, ALO* palo, CBinaryInputStream* pbis)
 {
@@ -640,10 +675,9 @@ void BuildSubGlob(GLOB* pglob, SUBGLOB* psubglob, SHD* pshd, std::vector <glm::v
 
         if (pshd->shdk == SHDK_ProjectedVolume)
         {
-            if ((indexes[i].bMisc & 0x7F) == 0x7F)
-                psubglob->vertices[i].color = pshd->rgbaVolume;
-            else
-                psubglob->vertices[i].color = colors[indexes[i].bMisc & 0x7F] * pshd->rgbaVolume;
+            // Projected-volume color and alpha come from the packet state.
+            // Mesh vertex modulation makes CAMSEN cones collapse to a thin cap.
+            psubglob->vertices[i].color = glm::vec4(1.0f);
         }
         else
         {
@@ -854,7 +888,33 @@ void CloneGlob(GLOBSET* pglobset, GLOB* pglob, GLOBI* pglobi)
         return;
 
     if (pglob->psaa)
+    {
         pglobset->cpsaa++;
+
+        // Retail CloneGlob duplicates the SAA when it is marked instanced, or
+        // when the glob has WR deformation state.  The clone must then point
+        // its subglobs at the duplicated SAI instead of the source object's.
+        if ((pglob->psaa->sai.grfsai & 0x04) != 0 || pglob->pwrbg != nullptr)
+        {
+            SAA* saaBase = pglob->psaa;
+            SAA* saa = CloneInstancedSaa(saaBase);
+
+            if (saa != nullptr)
+            {
+                pglob->psaa = saa;
+
+                for (SUBGLOB& subglob : pglob->asubglob)
+                {
+                    SAI* sai = saa->pvtsaa->pfnPsaiFromSaaShd(saa, subglob.pshd);
+                    if (sai != nullptr)
+                    {
+                        subglob.uvSai = sai;
+                        subglob.usesUvAnim = (sai->grfsai & 0x02) != 0;
+                    }
+                }
+            }
+        }
+    }
 
     if (pglob->pwrbg)
     {
@@ -942,9 +1002,35 @@ void CloneGlobset(GLOBSET* pglobset, ALO* palo, GLOBSET* pglobsetBase)
             pglobset->pwrbgFirst = glob.pwrbg;
         }
 
-        // Recount SAA array.
+        // Retail CloneGlob gives every instanced shader animation private
+        // state and redirects the cloned subglobs to that state.  The C++
+        // vector copy above otherwise leaves clones sharing the base SAA,
+        // so one object's LOOP update overwrites another object's requested
+        // frame (notably the roulette alarm sensors).
         if (glob.psaa)
+        {
             pglobset->cpsaa++;
+
+            if ((glob.psaa->sai.grfsai & 0x04) != 0 || glob.pwrbg != nullptr)
+            {
+                SAA* saa = CloneInstancedSaa(glob.psaa);
+
+                if (saa != nullptr)
+                {
+                    glob.psaa = saa;
+
+                    for (SUBGLOB& subglob : glob.asubglob)
+                    {
+                        SAI* sai = saa->pvtsaa->pfnPsaiFromSaaShd(saa, subglob.pshd);
+                        if (sai != nullptr)
+                        {
+                            subglob.uvSai = sai;
+                            subglob.usesUvAnim = (sai->grfsai & 0x02) != 0;
+                        }
+                    }
+                }
+            }
+        }
 
         if (glob.fThreeWay == 1 && glob.fDynamic == 0 && glob.pwarpGlob == nullptr)
         {
@@ -1025,6 +1111,7 @@ void UpdateGlobset(GLOBSET* pglobset, ALO* palo, float dt)
             continue;
 
         vtsaa->pfnUpdateScroller((SCROLLER*)saa, dt);
+
     }
 
     // 2) Update WR matrices (driven by WRBG list)

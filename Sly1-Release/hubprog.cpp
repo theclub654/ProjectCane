@@ -3,7 +3,7 @@
 
 HUBPROG* NewHubProg()
 {
-    return new HUBPROG{};
+    return NewWorldObject<HUBPROG>();
 }
 
 void CloneHubProg(HUBPROG* phubprog, HUBPROG* phubprogBase)
@@ -51,5 +51,5 @@ void PostHubProgLoad(HUBPROG* phubprog)
 
 void DeleteHubProg(HUBPROG* phubprog)
 {
-    delete phubprog;
+    ReleaseWorldObject(phubprog);
 }

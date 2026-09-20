@@ -12,7 +12,7 @@ void ResetPipeList()
 
 PIPE* NewPipe()
 {
-	return new PIPE{};
+	return NewWorldObject<PIPE>();
 }
 
 void InitPipe(PIPE* ppipe)
@@ -149,7 +149,7 @@ void PostPipeLoad(PIPE* ppipe)
 
 void DeletePipe(PIPE* ppipe)
 {
-	delete ppipe;
+	ReleaseWorldObject(ppipe);
 }
 
 DL g_dlPipe;

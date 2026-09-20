@@ -679,9 +679,9 @@ float CFontBrx::DxFromCh(char ch)
 	return static_cast<float>(pGlyph->dx + 1) * m_rxScale;
 }
 
-CFontBrx* CFontBrx::PfontClone(float rx, float ry)
+std::shared_ptr<CFontBrx> CFontBrx::PfontClone(float rx, float ry)
 {
-	CFontBrx* fontclone = new CFontBrx();
+	auto fontclone = std::make_shared<CFontBrx>();
 
 	fontclone->m_dxCharUnscaled = this->m_dxCharUnscaled;
 	fontclone->m_dxSpaceUnscaled = this->m_dxSpaceUnscaled;
@@ -712,7 +712,7 @@ void CFontBrx::SetupDraw()
 {
 	glUniformMatrix4fv(u_projectionLoc, 1, GL_FALSE, glm::value_ptr(g_gl.blotProjection));
 
-	glUniformHandleui64ARB(u_fontTexLoc, m_pbmp->hDiffuseMap);
+	BindBlotTexture(m_pbmp != nullptr ? m_pbmp->glDiffuseMap : 0);
 	// The shared blot VAO has no per-vertex color attribute.  Other UI paths
 	// may leave this enabled, which multiplies font/preview RGB by the generic
 	// attribute's default zero value and turns colored FMV glyphs black.
@@ -1130,7 +1130,12 @@ GLuint uvRectLoc = 0;
 GLuint u_useVertexColorLoc = 0;
 GLuint blotColorLoc = 0;
 GLuint whiteTex = 0;
-uint64_t whiteHandle = 0;
+
+void BindBlotTexture(GLuint texture)
+{
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, texture != 0 ? texture : whiteTex);
+}
 
 std::array<char, 5> g_achFontSelector =
 {

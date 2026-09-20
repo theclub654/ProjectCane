@@ -1,15 +1,17 @@
 #include "light.h"
 #include "tv.h"
 #include <algorithm>
+#include "render.h"
 
 // Stable correspondence between a LIGHT object and its slot in lightBlk/the
 // GPU SSBO. SW::dlLight is mutable, so its traversal index cannot be used as
 // an SSBO index after a light is removed.
 static std::vector<LIGHT*> s_lightSlotOwners;
+static void UpdateLightGpuSlot(LIGHT* plight);
 
 LIGHT* NewLight()
 {
-	return new LIGHT{};
+	return NewWorldObject<LIGHT>();
 }
 
 void InitSwLightDl(SW* psw)
@@ -209,8 +211,10 @@ void CloneLight(LIGHT* plight, LIGHT* plightBase)
 void AddLightToSw(LIGHT* plight)
 {
 	AppendDlEntry(&plight->psw->dlLight, plight);
+	g_cframeStaticLightsInvalid = g_cframe;
 
 	plight->pvtalo->pfnUpdateAloXfWorld(plight);
+	UpdateLightGpuSlot(plight);
 }
 
 void FitLinearFunction(float x0, float y0, float x1, float y1, float& pdu, float& pru)
@@ -532,6 +536,7 @@ void SetLightDynamic(LIGHT* plight, int fDynamic)
 	if (fDynamic != plight->fDynamic)
 	{
 		plight->fDynamic = fDynamic;
+		g_cframeStaticLightsInvalid = g_cframe;
 		RebuildLight(plight);
 		allSwDynamicLights.push_back(plight);
 	}
@@ -598,6 +603,8 @@ void SetLightFrustrumUp(LIGHT* plight, glm::vec3& pvecUpLocal)
 
 void RemoveLightFromSw(LIGHT* plight)
 {
+	g_cframeStaticLightsInvalid = g_cframe;
+	UpdateLightGpuSlot(plight);
 	RemoveDlEntry(&plight->psw->dlLight, plight);
 }
 
@@ -608,6 +615,7 @@ static void BuildLightBlk(LIGHT* plight, LIGHTBLK* pblk)
 	LIGHTBLK blk{};
 	blk.lightk = plight->lightk;
 	blk.fExcludeDynamicObjects = plight->fExcludeDynamicObjects;
+	blk.fActive = FIsLoInWorld(plight) != 0;
 	blk.fDynamic = plight->fDynamic;
 	blk.color = glm::vec4(plight->rgbaColor, 1.0f);
 	blk.ru = glm::vec4(plight->ltfn.ruShadow, plight->ltfn.ruMidtone,
@@ -654,6 +662,28 @@ static void BuildLightBlk(LIGHT* plight, LIGHTBLK* pblk)
 	}
 
 	*pblk = blk;
+}
+
+static void UpdateLightGpuSlot(LIGHT* plight)
+{
+	if (plight == nullptr || g_lightSsbo == 0)
+		return;
+
+	const auto slotIt = std::find(s_lightSlotOwners.begin(), s_lightSlotOwners.end(), plight);
+	if (slotIt == s_lightSlotOwners.end())
+		return;
+
+	const int idx = static_cast<int>(std::distance(s_lightSlotOwners.begin(), slotIt));
+	if (idx < 0 || idx >= static_cast<int>(lightBlk.size()))
+		return;
+
+	BuildLightBlk(plight, &lightBlk[idx]);
+
+	const GLsizeiptr offset = sizeof(LightSSBOHeader) +
+		static_cast<GLsizeiptr>(sizeof(LIGHTBLK)) * idx;
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, g_lightSsbo);
+	glBufferSubData(GL_SHADER_STORAGE_BUFFER, offset, sizeof(LIGHTBLK), &lightBlk[idx]);
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 }
 
 void AllocateLightBlkList()
@@ -880,8 +910,15 @@ void DeallocateLightBlkList()
 	lightBlk.clear();
 	lightBlk.shrink_to_fit();
 
+	allSwLights.clear();
+	allSwLights.shrink_to_fit();
+
 	allSwDynamicLights.clear();
 	allSwDynamicLights.shrink_to_fit();
+
+	s_lightSlotOwners.clear();
+	s_lightSlotOwners.shrink_to_fit();
+	numSwLights = 0;
 
 	glDeleteBuffers(1, &g_lightSsbo);
 	glDeleteBuffers(1, &g_activeLightsSsbo);
@@ -893,7 +930,7 @@ void DeallocateLightBlkList()
 
 void DeleteLight(LIGHT* plight)
 {
-	delete plight;
+	ReleaseWorldObject(plight);
 }
 
 void DeallocateLightVector()

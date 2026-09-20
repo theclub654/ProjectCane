@@ -4,7 +4,7 @@
 
 DECOY* NewDecoy()
 {
-	return new DECOY{};
+	return NewWorldObject<DECOY>();
 }
 
 void* GetDecoyCHitsRemaining(DECOY* pdecoy)
@@ -183,5 +183,5 @@ void HandleDecoyMessage(DECOY* pdecoy, int msgid, void* pv)
 
 void DeleteDecoy(DECOY* pdecoy)
 {
-    delete pdecoy;
+    ReleaseWorldObject(pdecoy);
 }

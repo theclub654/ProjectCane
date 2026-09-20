@@ -2956,9 +2956,11 @@ void SetAttractVolume(bool fMuted)
 	SetMvgkRvol(fMuted ? 0.0f : 1.0f, 3, 1);
 }
 
-void SetAttractSoundOption(bool fEnabled)
+void SetAttractSoundOption(bool fMono)
 {
-	s_stereoOutputEnabled = fEnabled;
+	// GRFGS 0x40 is the retail "mono" option bit: clear selects stereo,
+	// set selects mono.  Keep the renderer flag in the opposite sense.
+	s_stereoOutputEnabled = !fMono;
 }
 
 void StopVag()
@@ -3444,6 +3446,33 @@ void StartupSound()
 	s_effectReverbDepth = 0;
 	EnsureEffectReverb();
 	ApplyCurrentEffectReverb();
+}
+
+void ShutdownSound()
+{
+	// World teardown normally closes these first, but make final shutdown
+	// independently safe for startup failures and exits without a loaded world.
+	CloseMusicVoice();
+	CloseVagStream();
+	UnloadEffectBank();
+
+	if (s_effectReverbVoice != nullptr)
+	{
+		s_effectReverbVoice->DestroyVoice();
+		s_effectReverbVoice = nullptr;
+	}
+
+	if (s_musicMasterVoice != nullptr)
+	{
+		s_musicMasterVoice->DestroyVoice();
+		s_musicMasterVoice = nullptr;
+	}
+
+	if (s_xaudio2 != nullptr)
+	{
+		s_xaudio2->Release();
+		s_xaudio2 = nullptr;
+	}
 }
 
 void InitializeSoundOptions()

@@ -229,6 +229,7 @@ void UpdateCptn(CPTN* pcptn, CPDEFI* pcpdefi, JOY* pjoy, float dt)
 
 	if (pjoy->IsPressed(BTN_R3) && (grftnd & FTND_Manual) != 0)
 	{
+		pjoy->SetHandled(BTN_R3);
 		StartSound((SFXID)3, nullptr, nullptr, nullptr, 3000.0f, 300.0f, 1.0f, 0.0f, 0.0f, nullptr, nullptr);
 
 		pcptn->fHome = 1;
@@ -246,7 +247,8 @@ void UpdateCptn(CPTN* pcptn, CPDEFI* pcpdefi, JOY* pjoy, float dt)
 
 		if (pcptn->fHome == 0)
 		{
-			const float swTarget = pjoy->x2 * std::abs(pjoy->x2) * SW_CptnOrbitMax;
+			const float xCamera = (g_pgsCur->grfgs & 0x1000U) != 0 ? -pjoy->x2 : pjoy->x2;
+			const float swTarget = xCamera * std::abs(xCamera) * SW_CptnOrbitMax;
 			const float swMin = pcptn->swOrbit - DSW_CptnOrbit * dtInput;
 			const float swMax = pcptn->swOrbit + DSW_CptnOrbit * dtInput;
 
@@ -291,10 +293,12 @@ void UpdateCptn(CPTN* pcptn, CPDEFI* pcpdefi, JOY* pjoy, float dt)
 		if (cameraDistance >= 0.0001f)
 			swFollow = GLimitAbs(glm::dot(vFollow, vMeasure) / cameraDistance, 2.5f);
 
-		// Retail s_clqYJoyToUSpin and its [0, 1] output limit.
-		const float uSpin = std::clamp(1.0f + joy.y * (-1.0f + joy.y * 0.0f), 0.0f, 1.0f);
+		// SCUS_971.98: CLQ at 0x00275a40 is (1, -2, -2), with the
+		// output limited by the LM at 0x00275a50 to [1, 2].
+		const float uSpin = std::clamp(1.0f + joy.y * (-2.0f + joy.y * -2.0f), 1.0f, 2.0f);
 		const float dtOrbit = g_clock.t - pcptn->tLastOrbit;
-		const float uOrbitFollow = std::clamp(dtOrbit * 0.1f, 0.0f, 1.0f);
+		// SCUS_971.98: CLQ at 0x00275a70 is (0, 1, 0).
+		const float uOrbitFollow = std::clamp(dtOrbit, 0.0f, 1.0f);
 
 		radManual = RadNormalize(radManual + swFollow * pcptn->uFollowCur * uSpin * uOrbitFollow * dt);
 
@@ -379,7 +383,8 @@ void UpdateCptn(CPTN* pcptn, CPDEFI* pcpdefi, JOY* pjoy, float dt)
 				}
 			}
 
-			SMP smpAuto = {4.0f * uLock, s_sffRun.au[0] * uLock, 0.5f};
+			// SCUS_971.98: 0x00275a58 = 0.5 and 0x00275a60 = 0.5.
+			SMP smpAuto = {0.5f * uLock, s_sffRun.au[0] * uLock, 0.5f};
 
 			// Retail smooths from the angle at the start of the frame, then picks
 			// whichever result (follow rotation or auto rotation) is closer to the
@@ -417,7 +422,7 @@ void UpdateCptn(CPTN* pcptn, CPDEFI* pcpdefi, JOY* pjoy, float dt)
 					}
 				}
 
-				if (pcptn->ftnd == FTND_Manual && (grftnd & FTND_Reverse) != 0)
+				if ((grftnd & FTND_Reverse) != 0)
 				{
 					const float dradPrev = RadNormalize(pcptn->radManual - pcptn->radRevPrev);
 					const float dradNow = RadNormalize(radManual - radRev);
@@ -544,10 +549,17 @@ void UpdateCptn(CPTN* pcptn, CPDEFI* pcpdefi, JOY* pjoy, float dt)
 
 	glm::vec3 posEye = posFocus + vecEye;
 
-	if (pcm->fCut == 0 && g_fDisableSquish == 0 &&
-		(ptn == nullptr || ptn->fNoSquish == 0))
+	if (ptn == nullptr || ptn->fNoSquish == 0)
 	{
-		ClipCmEye(pcm, &pcptn->posEyePrev, &posEye, &posEye);
+		if (pcm->fCut == 0)
+		{
+			if (g_fDisableSquish == 0)
+				ClipCmEye(pcm, &pcptn->posEyePrev, &posEye, &posEye);
+		}
+		else if (pcm->fRadCut == 0)
+		{
+			FindCptnClearEyePosition(pcptn, &posFocus, &posEye, &posEye);
+		}
 	}
 
 	DecomposeCylind(&posEye, &posFocus, &rad, &xy, &z);
@@ -572,6 +584,7 @@ void UpdateCptn(CPTN* pcptn, CPDEFI* pcpdefi, JOY* pjoy, float dt)
 	UpdateCmFade(pcm);
 
 	pcptn->fActivate = 0;
+	UpdateCptnSquishCut(pcptn);
 }
 
 void UpdateCptnClosestPoint(CPTN* pcptn, CPDEFI* pcpdefi)

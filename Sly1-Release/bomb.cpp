@@ -5,10 +5,11 @@
 #include "bbmark.h"
 #include "target.h"
 #include "missile.h"
+#include "frame.h"
 
 BOMB*NewBomb()
 {
-	return new BOMB{};
+	return NewWorldObject<BOMB>();
 }
 
 void InitBomb(BOMB* pbomb)
@@ -232,10 +233,10 @@ void CloneBomb(BOMB* pbomb, BOMB* pbombBase)
     pbomb->fExplodeEffects = pbombBase->fExplodeEffects;
     pbomb->fReclaim = pbombBase->fReclaim;
     pbomb->zpk = pbombBase->zpk;
-    pbomb->psfxDet = pbombBase->psfxDet;
-
     if (pbombBase->psfxDet != nullptr)
-        pbomb->psfxDet = std::make_shared<SFX>();
+        pbomb->psfxDet = std::make_shared<SFX>(*pbombBase->psfxDet);
+    else
+        pbomb->psfxDet.reset();
 }
 
 
@@ -426,7 +427,9 @@ int FAbsorbBombWkr(BOMB* pbomb, WKR* pwkr)
 {
     const int fAbsorbed = FAbsorbSoWkr(pbomb, pwkr);
 
-    if (fAbsorbed && (pwkr->grftak & 16U) != 0) 
+    // Retail checks the interaction response selected by FAbsorbSoWkr, not
+    // the incoming attack category. Bit 0x10 means the bomb should prime.
+    if (fAbsorbed && (pwkr->grfic & 16U) != 0)
     {
         const float speed = glm::length(pwkr->v);
         const glm::vec3 normal = speed < 0.0001f ? g_normalZ : pwkr->v / speed;
@@ -554,6 +557,13 @@ void DetonateBomb(BOMB* pbomb)
     }
 
     for (SO* pso : apso) {
+        // The intersection/contact list is a snapshot. Earlier detonations in
+        // the same frame can remove an object before this list is consumed.
+        // Retail's world query does not feed stale entries into damage or
+        // bomb-chain handling.
+        if (pso == nullptr || !FIsLoInWorld(pso))
+            continue;
+
         if (pso->paloRoot == pbomb->paloRoot || pso->oid == OID__MERGED_STATICS)
             continue;
 
@@ -654,8 +664,17 @@ void DetonateBomb(BOMB* pbomb)
     pbomb->pvtalo->pfnSetAloAngularVelocityVec(pbomb, &pbomb->wDetonate);
 
     if (pbomb->fExplodeEffects) {
-        if (pbomb->pexpl == nullptr) 
-            StandardSmokeCloud(&pbomb->xf.posWorld, pbomb->sDetonateRadius);
+        if (pbomb->pexpl == nullptr)
+        {
+            // The CRFODK carried bomb uses a gameplay damage radius expressed
+            // at 100x the visual-radius unit expected by StandardSmokeCloud.
+            // Passing 20000 directly made stock smoke shader 1816 start at a
+            // 10000-unit sprite scale instead of the intended 100-unit scale.
+            const float smokeRadius = pbomb->oid == 1555
+                ? pbomb->sDetonateRadius * 0.01f
+                : pbomb->sDetonateRadius;
+            StandardSmokeCloud(&pbomb->xf.posWorld, smokeRadius);
+        }
         else 
         {
             EXPLSO explso{};
@@ -719,7 +738,7 @@ SFX* PsfxEnsureBomb(BOMB* pbomb, ENSK ensk)
 
 void DeleteBomb(BOMB *pbomb)
 {
-	delete pbomb;
+	ReleaseWorldObject(pbomb);
 }
 
 LM s_lmMassDefault = {50.0, 5000};

@@ -20,7 +20,7 @@ void ResetHideList()
 
 HBSK* NewHbsk()
 {
-	return new HBSK{};
+	return NewWorldObject<HBSK>();
 }
 
 void InitHbsk(HBSK* phbsk)
@@ -240,12 +240,12 @@ void GetHbskClosestHidePos(HBSK* phbsk, glm::vec3* ppos, float* prad)
 
 void DeleteHbsk(HBSK *phbsk)
 {
-	delete phbsk;
+	ReleaseWorldObject(phbsk);
 }
 
 HSHAPE* NewHshape()
 {
-	return new HSHAPE{};
+	return NewWorldObject<HSHAPE>();
 }
 
 void InitHshape(HSHAPE* phshape)
@@ -433,13 +433,16 @@ void GetHshapeClosestHidePos(HSHAPE* phshape, float* psParamHshape, glm::vec3* p
 	if (pcrv->pvtcrv->pfnFindCrvClosestPointAll != nullptr)
 		pcrv->pvtcrv->pfnFindCrvClosestPointAll(pcrv, &pos, &constr, nullptr, nullptr, nullptr, &sParam);
 
-	float sMax = pcrv->pvtcrv->pfnSMaxCrv(pcrv);
-	float sParamMax = sMax - 30.0f;
-
-	if (sParam < 30.0f)
-		sParam = 30.0f;
-	else if (sParam > sParamMax)
-		sParam = sParamMax;
+	// Retail only reserves 30 units at each end of an open curve.  A closed
+	// hide curve must remain free to wrap through its seam.
+	if (pcrv->fClosed == 0)
+	{
+		const float sMax = pcrv->pvtcrv->pfnSMaxCrv(pcrv);
+		if (sParam < 30.0f)
+			sParam = 30.0f;
+		else if (sParam > sMax - 30.0f)
+			sParam = sMax - 30.0f;
+	}
 
 	GetHshapeHidePos(phshape, sParam, pposHide, pradTarget);
 
@@ -448,12 +451,12 @@ void GetHshapeClosestHidePos(HSHAPE* phshape, float* psParamHshape, glm::vec3* p
 
 void DeleteHshape(HSHAPE* phshape)
 {
-	delete phshape;
+	ReleaseWorldObject(phshape);
 }
 
 HPNT* NewHpnt()
 {
-	return new HPNT{};
+	return NewWorldObject<HPNT>();
 }
 
 void InitHpnt(HPNT* phpnt)
@@ -621,7 +624,7 @@ void GetHpntHidePos(HPNT* phpnt, float sParam, glm::vec3* pposHide, float* pradT
 
 void DeleteHpnt(HPNT* phpnt)
 {
-	delete phpnt;
+	ReleaseWorldObject(phpnt);
 }
 
 DL g_dlHbsk;

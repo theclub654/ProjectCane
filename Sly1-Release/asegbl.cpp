@@ -2,7 +2,7 @@
 
 ASEGBL* NewAsegbl()
 {
-    return new ASEGBL;
+    return NewWorldObject<ASEGBL>();
 }
 
 void CloneAsegbl(ASEGBL* pasegbl, ASEGBL* pasegblBase)
@@ -18,5 +18,5 @@ void CloneAsegbl(ASEGBL* pasegbl, ASEGBL* pasegblBase)
 
 void DeleteAsegbl(ASEGBL* pasegbl)
 {
-    delete pasegbl;
+    ReleaseWorldObject(pasegbl);
 }

@@ -31,12 +31,14 @@ void PostBinocLoad(BINOC* pbinoc)
     ResetBinoc(pbinoc);
 
     // Clone and configure compass font
-    pbinoc->pfontCompass = pbinoc->pfont->PfontClone(0.7f, 0.8f);
+    pbinoc->pfontCompassOwned = pbinoc->pfont->PfontClone(0.7f, 0.8f);
+    pbinoc->pfontCompass = pbinoc->pfontCompassOwned.get();
     pbinoc->pfontCompass->m_fGstest = 1;
     pbinoc->pfontCompass->m_gstest = 0x3f001;
 
     // Clone and assign base font with custom scale
-    pbinoc->pfont = pbinoc->pfont->PfontClone(0.75f, 0.8f);
+    pbinoc->pfontOwned = pbinoc->pfont->PfontClone(0.75f, 0.8f);
+    pbinoc->pfont = pbinoc->pfontOwned.get();
 
     if (FFontLoaded(2))
     {
@@ -1049,7 +1051,7 @@ void DrawBinocReticle(BINOC* pbinoc)
     const glm::mat4 model(1.0f);
     glUniformMatrix4fv(u_modelLoc, 1, GL_FALSE, glm::value_ptr(model));
     glUniform4f(uvRectLoc, 0.0f, 0.0f, 1.0f, 1.0f);
-    glUniformHandleui64ARB(u_fontTexLoc, whiteHandle);
+    BindBlotTexture(whiteTex);
 	// The fragment shader multiplies blotColor by the per-vertex reticle
 	// colors. DrawBinocBackground leaves this set to RGBA_Overlay, so reset it
 	// here or the reticle inherits the dark overlay tint.
@@ -1215,7 +1217,7 @@ void DrawBinocBackground(BINOC* pbinoc)
 
     glUniform4f(uvRectLoc, 0, 0, 1, 1);
     glUniform4fv(blotColorLoc, 1, glm::value_ptr(RGBA_Overlay));
-    glUniformHandleui64ARB(u_fontTexLoc, whiteHandle);
+    BindBlotTexture(whiteTex);
 
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -1279,7 +1281,7 @@ void DrawBinocCompass(BINOC* pbinoc)
 
     glUniformMatrix4fv(u_modelLoc, 1, GL_FALSE, glm::value_ptr(model));
     glUniformMatrix4fv(u_projectionLoc, 1, GL_FALSE, glm::value_ptr(g_gl.blotProjection));
-    glUniformHandleui64ARB(u_fontTexLoc, whiteHandle);
+    BindBlotTexture(whiteTex);
     glUniform4f(blotColorLoc, 0.0f, 0.0f, 0.0f, 0.0f);
     glUniform4f(uvRectLoc, 0.0f, 0.0f, 1.0f, 1.0f);
     glBindVertexArray(g_gl.gao);
@@ -1405,7 +1407,7 @@ void DrawBinocZoom(BINOC* pbinoc)
     const glm::mat4 model(1.0f);
 
     glBlotShader.Use();
-    glUniformHandleui64ARB(u_fontTexLoc, whiteHandle);
+    BindBlotTexture(whiteTex);
     glUniformMatrix4fv(u_projectionLoc, 1, GL_FALSE, glm::value_ptr(g_gl.blotProjection));
     glUniformMatrix4fv(u_modelLoc, 1, GL_FALSE, glm::value_ptr(model));
     glUniform4f(uvRectLoc, 0.0f, 0.0f, 1.0f, 1.0f);
@@ -1537,7 +1539,7 @@ void DrawBinocOutline(BINOC* pbinoc)
     glUniformMatrix4fv(u_modelLoc, 1, GL_FALSE, glm::value_ptr(model));
     glUniform4f(uvRectLoc, 0, 0, 1, 1);
 
-    glUniformHandleui64ARB(u_fontTexLoc, whiteHandle);
+    BindBlotTexture(whiteTex);
     glBindVertexArray(pbinoc->outlineVAO);
 
     constexpr int segments = 24;
@@ -1810,8 +1812,7 @@ void DrawBinocScan(BINOC* pbinoc)
         glUniform1i(u_useVertexColorLoc, 0);
         glUniform4fv(blotColorLoc, 1, glm::value_ptr(lineColor));
 
-        // Bindless resident 1x1 white texture.
-        glUniformHandleui64ARB(u_fontTexLoc, whiteHandle);
+        BindBlotTexture(whiteTex);
 
         glBindVertexArray(pbinoc->binocIndicatorVAO);
         glBindBuffer(GL_ARRAY_BUFFER, pbinoc->binocIndicatorVBO);
@@ -1866,7 +1867,7 @@ void DrawBinocFilter(BINOC* pbinoc)
     glUniform4f(uvRectLoc, 0.0f, 0.0f, 1.0f, 1.0f);
     glUniform1i(u_useVertexColorLoc, 0);
 
-    glUniformHandleui64ARB(u_fontTexLoc, whiteHandle);
+    BindBlotTexture(whiteTex);
 
     glBindVertexArray(pbinoc->binocIndicatorVAO);
     glBindBuffer(GL_ARRAY_BUFFER, pbinoc->binocIndicatorVBO);
@@ -2169,11 +2170,53 @@ void FreeBinocGL(BINOC* pbinoc)
         glDeleteVertexArrays(1, &pbinoc->reticleVAO);
         pbinoc->reticleVAO = 0;
     }
+
+    if (pbinoc->backGroundBinocVBO != 0)
+    {
+        glDeleteBuffers(1, &pbinoc->backGroundBinocVBO);
+        pbinoc->backGroundBinocVBO = 0;
+    }
+
+    if (pbinoc->backGroundBinocEBO != 0)
+    {
+        glDeleteBuffers(1, &pbinoc->backGroundBinocEBO);
+        pbinoc->backGroundBinocEBO = 0;
+    }
+
+    if (pbinoc->backGroundBinocVAO != 0)
+    {
+        glDeleteVertexArrays(1, &pbinoc->backGroundBinocVAO);
+        pbinoc->backGroundBinocVAO = 0;
+    }
+
+    if (pbinoc->outlineVBO != 0)
+    {
+        glDeleteBuffers(1, &pbinoc->outlineVBO);
+        pbinoc->outlineVBO = 0;
+    }
+
+    if (pbinoc->outlineColorVBO != 0)
+    {
+        glDeleteBuffers(1, &pbinoc->outlineColorVBO);
+        pbinoc->outlineColorVBO = 0;
+    }
+
+    if (pbinoc->outlineEBO != 0)
+    {
+        glDeleteBuffers(1, &pbinoc->outlineEBO);
+        pbinoc->outlineEBO = 0;
+    }
+
+    if (pbinoc->outlineVAO != 0)
+    {
+        glDeleteVertexArrays(1, &pbinoc->outlineVAO);
+        pbinoc->outlineVAO = 0;
+    }
 }
 
 SCAN* NewScan()
 {
-    return new SCAN{};
+    return NewWorldObject<SCAN>();
 }
 
 int GetScanSize()
@@ -2201,7 +2244,7 @@ void InitializeScanDisplay(SCAN* pscan)
 
 void DeleteScan(SCAN* pscan)
 {
-    delete pscan;
+    ReleaseWorldObject(pscan);
 }
 
 BINOC g_binoc;

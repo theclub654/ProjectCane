@@ -11,7 +11,7 @@
 
 PUFFER* NewPuffer()
 {
-	return new PUFFER{};
+	return NewWorldObject<PUFFER>();
 }
 
 void InitPuffer(PUFFER* ppuffer)
@@ -698,7 +698,7 @@ int GetPufferSize()
 
 void DeletePuffer(PUFFER *ppuffer)
 {
-	delete ppuffer;
+	ReleaseWorldObject(ppuffer);
 }
 
 PUFFB* NewPuffb()
@@ -799,7 +799,7 @@ void DeletePuffv(PUFFV* ppuffv)
 
 PUFFC* NewPuffc()
 {
-	return new PUFFC{};
+	return NewWorldObject<PUFFC>();
 }
 
 int GetPuffcSize()
@@ -1048,12 +1048,12 @@ int FDetectPuffc(PUFFC* ppuffc)
 
 void DeletePuffc(PUFFC* ppuffc)
 {
-	delete ppuffc;
+	ReleaseWorldObject(ppuffc);
 }
 
 PUFFT* NewPufft()
 {
-	return new PUFFT{};
+	return NewWorldObject<PUFFT>();
 }
 
 int GetPufftSize()
@@ -1085,7 +1085,7 @@ void PostPufftLoad(PUFFT* ppufft)
 
 void DeletePufft(PUFFT *ppufft)
 {
-	delete ppufft;
+	ReleaseWorldObject(ppufft);
 }
 
 float ELAS_Puffer = 0.3f;

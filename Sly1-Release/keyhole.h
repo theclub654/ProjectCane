@@ -1,15 +1,22 @@
 #pragma once
 #include "map2d.h"
 
+struct KEYHOLEGL
+{
+	GLuint vao = 0;
+	GLuint vbo = 0;
+	GLuint ebo = 0;
+
+	~KEYHOLEGL();
+};
+
 struct KS 
 {
 	int ctri;
 	std::vector <TRI> atri;
 	glm::vec4 rgba;
 
-	GLuint vao = 0;
-	GLuint vbo = 0;
-	GLuint ebo = 0;
+	std::shared_ptr<KEYHOLEGL> pgl;
 };
 
 class KEYHOLE : public LO

@@ -53,7 +53,10 @@ struct WMW
 struct WMC : public BLOT
 {
     struct WM* pwmCurrent;
-    struct WM* apwm[5];
+    // Indexed directly by GAMEWORLD (Intro == 0 through Clockwerk == 5).
+    // Five entries made the Clockwerk map overwrite uWarp and later supplied
+    // a garbage WM pointer to ShowWm.
+    struct WM* apwm[GAMEWORLD_Max];
     float uWarp;
     float uWarpTarget;
     float uWarpTargetGoal;

@@ -18,7 +18,7 @@
 
 MBG* NewMbg()
 {
-	return new MBG{};
+	return NewWorldObject<MBG>();
 }
 
 void InitMbg(MBG *pmbg)
@@ -574,12 +574,12 @@ void GetMbgAttackBlend(MBG* pmbg, float* pgBlend)
 
 void DeleteMbg(MBG* pmbg)
 {
-	delete pmbg;
+	ReleaseWorldObject(pmbg);
 }
 
 BHG* NewBhg()
 {
-	return new BHG{};
+	return NewWorldObject<BHG>();
 }
 
 void InitBhg(BHG *pbhg)
@@ -714,7 +714,7 @@ void SetBhgHitAnimations(BHG* pbhg, ASEG* pasegHit, ASEG* pasegSweepCounterHit, 
 
 void DeleteBhg(BHG* phg)
 {
-	delete phg;
+	ReleaseWorldObject(phg);
 }
 
 SCENTMAP* NewScentmap()

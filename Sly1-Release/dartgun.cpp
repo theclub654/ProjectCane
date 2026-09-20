@@ -9,7 +9,7 @@
 
 DARTGUN* NewDartgun()
 {
-	return new DARTGUN{};
+	return NewWorldObject<DARTGUN>();
 }
 
 void InitDartgun(DARTGUN* pdartgun)
@@ -549,7 +549,7 @@ void AddDartgunTargetAreaTarget(DARTGUN* pdartgun, ALO* paloTarget)
 
 void DeleteDartgun(DARTGUN* pdartgun)
 {
-	delete pdartgun;
+	ReleaseWorldObject(pdartgun);
 }
 
 SNIP s_asnipDartgun[3] = {

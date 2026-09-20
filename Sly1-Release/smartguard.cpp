@@ -5,7 +5,7 @@
 
 SMARTGUARD* NewSmartguard()
 {
-	return new SMARTGUARD{};
+	return NewWorldObject<SMARTGUARD>();
 }
 
 void InitSmartGuard(SMARTGUARD* psmartguard)
@@ -114,12 +114,12 @@ void SetSmartguardfNoDetect(SMARTGUARD* psmartguard, int fNoDetect)
 
 void* GetSmartguardgrfDetection(SMARTGUARD* psmartguard)
 {
-    return &psmartguard->grfsgsc;
+    return &psmartguard->grfDetection;
 }
 
 void SetSmartguardgrfDetection(SMARTGUARD* psmartguard, int grfDetection)
 {
-    psmartguard->grfsgsc = grfDetection;
+    psmartguard->grfDetection = grfDetection;
 }
 
 int GetSmartguardSize()
@@ -232,27 +232,6 @@ int FFilterSmartguardDetect(SMARTGUARD* psmartguard, SO* pso)
     if (pso->fNoXpsSelf)
         return 0;
 
-    // The visibility segment starts inside the smartguard hierarchy.  Do not
-    // allow the guard (or one of its child collision objects) to occlude its
-    // own sight ray.
-    if (pso == static_cast<SO*>(psmartguard) ||
-        pso->paloRoot == static_cast<ALO*>(psmartguard) ||
-        FFindLoParent(pso, psmartguard))
-    {
-        return 0;
-    }
-
-    // The release filter excludes every PO-derived root.  Until the port's
-    // superclass metadata is repaired safely, explicitly exclude this
-    // guard's enemy so the target itself cannot obstruct its visibility ray.
-    SO* psoEnemy = psmartguard->pvtstepguard->pfnPsoEnemyStepguard(psmartguard);
-
-    if (psoEnemy != nullptr &&
-        (pso == psoEnemy || pso->paloRoot == static_cast<ALO*>(psoEnemy)))
-    {
-        return 0;
-    }
-
     if (FIsBasicDerivedFrom(pso->paloRoot, CID_PO))
         return 0;
 
@@ -314,7 +293,8 @@ int FDetectSmartguard(SMARTGUARD* psmartguard)
     }
 
     glm::vec3 dpos = posEnemy - psmartguard->xf.posWorld;
-    float sEnemy = glm::length(dpos);
+    // Retail computes this range from X/Y only (vmul.xy + vaddy.x).
+    float sEnemy = glm::length(glm::vec2(dpos));
     float zEnemy = fabsf(dpos.z);
 
     int fSneak = 0;
@@ -382,11 +362,18 @@ int FDetectSmartguard(SMARTGUARD* psmartguard)
 
     IntersectSwBoundingBox(psmartguard->psw, nullptr, &posMin, &posMax, (PFNFILTER)FFilterSmartguardDetect, psmartguard, apso);
 
+    int iClear = -1;
+
     for (int i = 0; i < 4; i++) {
         SO* psoHit = PsoHitTestLineObjects(0, &posLookFrom, &aposTestWorld[i], apso, nullptr);
 
-        if (psoHit == nullptr)
-            return 1;
+        if (psoHit == nullptr && iClear < 0) {
+            iClear = i;
+        }
+    }
+
+    if (iClear >= 0) {
+        return 1;
     }
 
     return 0;
@@ -529,7 +516,7 @@ void FreezeSmartguard(SMARTGUARD* psmartguard, int fFreeze)
 
 void DeleteSmartGuard(SMARTGUARD* psmartguard)
 {
-	delete psmartguard;
+	ReleaseWorldObject(psmartguard);
 }
 
 glm::vec3 s_posFlashSelf = { 1000.0f, 0.0f, 0.0f };

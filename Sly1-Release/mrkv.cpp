@@ -2,7 +2,7 @@
 
 MRKV* NewMrkv()
 {
-	return new MRKV{};
+	return NewWorldObject<MRKV>();
 }
 
 void InitMrkv(MRKV* pmrkv)
@@ -59,5 +59,5 @@ void CloneMrkv(MRKV* pmrkv, MRKV* pmrkvBase)
 
 void DeleteMrkv(MRKV *pmrkv)
 {
-	delete pmrkv;
+	ReleaseWorldObject(pmrkv);
 }

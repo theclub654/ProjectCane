@@ -13,7 +13,7 @@
 
 VAULT* NewVault()
 {
-	return new VAULT{};
+	return NewWorldObject<VAULT>();
 }
 
 void InitVault(VAULT* pvault)
@@ -573,7 +573,7 @@ void OpenVault(VAULT* pvault)
 
 void DeleteVault(VAULT* pvault)
 {
-	delete pvault;
+	ReleaseWorldObject(pvault);
 }
 
 void GetBlueprintInfo(GRFVAULT* pgrfvault, int ipdialog)
@@ -605,7 +605,7 @@ void GetBlueprintInfo(GRFVAULT* pgrfvault, int ipdialog)
 
 SPRIZE* NewSprize()
 {
-	return new SPRIZE{};
+	return NewWorldObject<SPRIZE>();
 }
 
 void InitSprize(SPRIZE* psprize)
@@ -878,12 +878,12 @@ void AdjustSprizeNewXp(SPRIZE* psprize, XP* pxp, int ixpd)
 
 void DeleteSprize(SPRIZE *psprize)
 {
-	delete psprize;
+	ReleaseWorldObject(psprize);
 }
 
 SCPRIZE* NewScprize()
 {
-	return new SCPRIZE{};
+	return NewWorldObject<SCPRIZE>();
 }
 
 void InitScprize(SCPRIZE* pscprize)
@@ -925,7 +925,7 @@ void CollectScprize(SCPRIZE* pscprize)
 
 void DeleteScprize(SCPRIZE *pscprize)
 {
-	delete pscprize;
+	ReleaseWorldObject(pscprize);
 }
 
 void StartupClueCtr(CLUECTR* pcluectr)
@@ -935,7 +935,7 @@ void StartupClueCtr(CLUECTR* pcluectr)
 
 CLUE* NewClue()
 {
-	return new CLUE{};
+	return NewWorldObject<CLUE>();
 }
 
 void InitClue(CLUE* pclue)
@@ -1259,12 +1259,12 @@ void CollectAllClues()
 
 void DeleteClue(CLUE *pclue)
 {
-	delete pclue;
+	ReleaseWorldObject(pclue);
 }
 
 LOCK* NewLock()
 {
-	return new LOCK{};
+	return NewWorldObject<LOCK>();
 }
 
 int GetLockSize()
@@ -1295,12 +1295,12 @@ void PostLockLoad(LOCK* plock)
 
 void DeleteLock(LOCK* plock)
 {
-	delete plock;
+	ReleaseWorldObject(plock);
 }
 
 LOCKG* NewLockg()
 {
-	return new LOCKG{};
+	return NewWorldObject<LOCKG>();
 }
 
 int GetLockgSize()
@@ -1380,7 +1380,7 @@ void TriggerLockg(LOCKG* plockg)
 
 void DeleteLockg(LOCKG* plockg)
 {
-	delete plockg;
+	ReleaseWorldObject(plockg);
 }
 
 CLUECTR g_cluectr;

@@ -37,7 +37,7 @@ struct LIGHTBLK
 {
 	int  lightk;
 	int  fExcludeDynamicObjects;
-	int  pad2;
+	int  fActive;
 	int  fDynamic;
 	glm::vec4 pos;
 	glm::vec4 dir;

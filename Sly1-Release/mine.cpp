@@ -3,7 +3,7 @@
 
 MINE* NewMine()
 {
-    return new MINE{};
+    return NewWorldObject<MINE>();
 }
 
 void CloneMine(MINE *pmine, MINE *pmineBase)
@@ -124,5 +124,5 @@ void HandleMineMessage(MINE* pmine, int msgid, void* pv)
 
 void DeleteMine(MINE* pmine)
 {
-    delete pmine;
+    ReleaseWorldObject(pmine);
 }

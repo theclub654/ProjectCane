@@ -12,7 +12,7 @@
 
 ROV* NewRov()
 {
-	return new ROV{};
+	return NewWorldObject<ROV>();
 }
 
 void InitRov(ROV* prov)
@@ -474,12 +474,12 @@ int FIsRovSoundBase()
 
 void DeleteRov(ROV *prov)
 {
-	delete prov;
+	ReleaseWorldObject(prov);
 }
 
 ROH* NewRoh()
 {
-	return new ROH{};
+	return NewWorldObject<ROH>();
 }
 
 void InitRoh(ROH* proh)
@@ -911,12 +911,12 @@ ROC* ProcContactRoh(ROH* proh)
 
 void DeleteRoh(ROH *proh)
 {
-	delete proh;
+	ReleaseWorldObject(proh);
 }
 
 ROC* NewRoc()
 {
-	return new ROC{};
+	return NewWorldObject<ROC>();
 }
 
 void InitRoc(ROC* proc)
@@ -1164,12 +1164,12 @@ void SetRocRocs(ROC* proc, ROCS rocs)
 
 void DeleteRoc(ROC *proc)
 {
-	delete proc;
+	ReleaseWorldObject(proc);
 }
 
 ROST* NewRost()
 {
-	return new ROST{};
+	return NewWorldObject<ROST>();
 }
 
 void InitRost(ROST* prost)
@@ -1269,12 +1269,12 @@ void SetRostRosts(ROST* prost, ROSTS rosts)
 
 void DeleteRost(ROST *prost)
 {
-	delete prost;
+	ReleaseWorldObject(prost);
 }
 
 ROP* NewRop()
 {
-	return new ROP{};
+	return NewWorldObject<ROP>();
 }
 
 void InitRop(ROP* prop)
@@ -1427,12 +1427,12 @@ ROPS RopsNextRop(ROP* prop)
 
 void DeleteRop(ROP *prop)
 {
-	delete prop;
+	ReleaseWorldObject(prop);
 }
 
 ROB* NewRob()
 {
-	return new ROB{};
+	return NewWorldObject<ROB>();
 }
 
 void InitRob(ROB* prob)
@@ -2786,7 +2786,7 @@ RODD* ProddCurRob(ROB* prob, ENSK ensk)
 
 void DeleteRob(ROB *prob)
 {
-	delete prob;
+	ReleaseWorldObject(prob);
 }
 
 SNIP s_asnipLoadRov[2] =

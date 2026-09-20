@@ -1045,8 +1045,6 @@ void AddSoXps(SO* psoRoot, SO* psoOther, int fCenterXp, int cbspPruned, BSP* abs
 
         if (fCenterXp)
         {
-            bool handledCenterXp = false;
-
             if (!pso0->fNoXpsCenter)
             {
                 glm::vec3 dpos = pso0->posWorldPrev - pso0->xf.posWorld;
@@ -1064,12 +1062,16 @@ void AddSoXps(SO* psoRoot, SO* psoOther, int fCenterXp, int cbspPruned, BSP* abs
                     if (hit)
                     {
                         pso0->fCenterXp = 1;
-                        handledCenterXp = true;
+                        // Retail advances to the next physics child once this
+                        // swept-center contact has been accepted.  Generating
+                        // the regular shape contact as well duplicates the
+                        // response for fast, small objects such as the hat mine.
+                        continue;
                     }
                 }
             }
 
-            if (!handledCenterXp && !psoOther->fNoXpsCenter)
+            if (!psoOther->fNoXpsCenter)
             {
                 glm::vec3 dpos = psoOther->posWorldPrev - psoOther->xf.posWorld;
                 float dpos2 = glm::dot(dpos, dpos);

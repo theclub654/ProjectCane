@@ -13,7 +13,8 @@ void PostTotalsLoad(TOTALS* ptotals)
     PostBlotLoad(ptotals);
 
     CFontBrx* pfontBase = PfontFromFont(0);
-    ptotals->pfont = pfontBase->PfontClone(1.0f, 1.0f);
+    ptotals->pfontOwned = pfontBase->PfontClone(1.0f, 1.0f);
+    ptotals->pfont = ptotals->pfontOwned.get();
 
     ptotals->rFontScale = 0.8f;
     ptotals->dtDisappear = 0.5f;

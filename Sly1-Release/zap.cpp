@@ -2,9 +2,11 @@
 #include "jt.h"
 #include "rat.h"
 
+bool g_fDisableDeathBarriers = false;
+
 TZP* NewTzp()
 {
-	return new TZP{};
+	return NewWorldObject<TZP>();
 }
 
 void InitTzp(TZP* ptzp)
@@ -142,12 +144,12 @@ void ResetTzpThrowCount(TZP* ptzp)
 
 void DeleteTzp(TZP *ptzp)
 {
-	delete ptzp;
+	ReleaseWorldObject(ptzp);
 }
 
 VOLZP* NewVolzp()
 {
-	return new VOLZP{};
+	return NewWorldObject<VOLZP>();
 }
 
 void InitVolzp(VOLZP* pvolzp)
@@ -170,6 +172,9 @@ void CloneVolzp(VOLZP* pvolzp, VOLZP* pvolzpBase)
 void UpdateVolzp(VOLZP* pvolzp, float dt)
 {
 	UpdateSo(pvolzp, dt);
+
+	if (g_fDisableDeathBarriers && pvolzp->zpd.zpk == ZPK_Pit)
+		return;
 
 	PO* player = PpoCur();
 
@@ -202,7 +207,9 @@ void UpdateVolzp(VOLZP* pvolzp, float dt)
 		{
 			SBI sbi{};
 
-			if (!CsbiIntersectSphereBsp(&player->xf.posWorld, player->sRadiusSelf, pvolzp->bspc.cbspFull, pvolzp->bspc.absp.data(), nullptr, &pvolzp->geomWorld, 1, &sbi))
+			// A pit volume fires only after the player's sphere is fully inside it.
+			// An intersection here means the sphere still crosses the volume boundary.
+			if (CsbiIntersectSphereBsp(&player->xf.posWorld, player->sRadiusSelf, pvolzp->bspc.cbspFull, pvolzp->bspc.absp.data(), nullptr, &pvolzp->geomWorld, 1, &sbi) > 0)
 				return;
 		}
 		else
@@ -226,17 +233,41 @@ void UpdateVolzp(VOLZP* pvolzp, float dt)
 	}
 	else
 	{
-		if (player->fSphere && pvolzp->fSphere)
-			MarkSoContactsSphereSphere(player, pvolzp, &pxp);
-		else if (player->fSphere)
-			MarkSoContactsSphereBsp(player, &player->xf.posWorld, player->sRadiusSelf, pvolzp, pvolzp->bspc.cbspFull, pvolzp->bspc.absp.data(), nullptr, &pxp);
-		else if (pvolzp->fSphere)
-			MarkSoContactsSphereBsp(pvolzp, &pvolzp->xf.posWorld, pvolzp->sRadiusSelf, player, player->bspc.cbspFull, player->bspc.absp.data(), nullptr, &pxp);
-		else if (pvolzp->bspc.absp.size() != 0)
-			MarkSoContactsBspBsp(player, pvolzp, pvolzp->bspc.cbspFull, pvolzp->bspc.absp.data(), pvolzp->bspc.absp.data(), &pxp);
+		bool centerInside;
 
-		if (pxp == nullptr)
-			return;
+		if (pvolzp->fSphere)
+		{
+			const glm::vec3 dpos = glm::vec3(player->xf.posWorld) - glm::vec3(pvolzp->xf.posWorld);
+			centerInside = glm::length(dpos) < pvolzp->sRadiusSelf;
+		}
+		else
+		{
+			centerInside = PbspPointInBspQuick(&player->xf.posWorld, pvolzp->bspc.absp.data()) != nullptr;
+		}
+
+		// Retail applies the zap immediately when the player's center is in the
+		// volume. Only generate a contact when the center itself is still outside.
+		if (!centerInside)
+		{
+			if (!player->fSphere)
+			{
+				if (pvolzp->fSphere)
+					MarkSoContactsSphereBsp(pvolzp, &pvolzp->xf.posWorld, pvolzp->sRadiusSelf, player, player->bspc.cbspFull, player->bspc.absp.data(), nullptr, &pxp);
+				else if (!pvolzp->bspc.absp.empty())
+					MarkSoContactsBspBsp(player, pvolzp, pvolzp->bspc.cbspFull, pvolzp->bspc.absp.data(), pvolzp->bspc.absp.data(), &pxp);
+			}
+			else if (!pvolzp->fSphere)
+			{
+				MarkSoContactsSphereBsp(player, &player->xf.posWorld, player->sRadiusSelf, pvolzp, pvolzp->bspc.cbspFull, pvolzp->bspc.absp.data(), nullptr, &pxp);
+			}
+			else
+			{
+				MarkSoContactsSphereSphere(player, pvolzp, &pxp);
+			}
+
+			if (pxp == nullptr)
+				return;
+		}
 	}
 
 	ZPR zpr{};
@@ -249,7 +280,7 @@ void UpdateVolzp(VOLZP* pvolzp, float dt)
 
 void DeleteVolzp(VOLZP *pvolzp)
 {
-	delete pvolzp;
+	ReleaseWorldObject(pvolzp);
 }
 
 void InitZpd(ZPD* pzpd, SO* pso)

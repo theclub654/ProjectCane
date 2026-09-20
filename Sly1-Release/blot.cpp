@@ -1,5 +1,6 @@
 #include "blot.h"
 #include "totals.h"
+#include "gl.h"
 
 void InitBlot(BLOT* pblot, BLOTK blotk)
 {
@@ -563,10 +564,13 @@ void DrawBlot(BLOT* pblot)
 {
     if (!pblot || pblot->achzDraw[0] == '\0') return;
 
+    float x, y, dx, dy;
+    GetGuiScaledBlotRect(pblot, &x, &y, &dx, &dy);
+
     // Setup textbox dimensions and color
     CTextBox tbx;
-    tbx.SetPos(pblot->x, pblot->y);
-    tbx.SetSize(pblot->dx, pblot->dy);
+    tbx.SetPos(x, y);
+    tbx.SetSize(dx, dy);
     tbx.SetTextColor(&pblot->rgba);
     tbx.SetHorizontalJust(JH_Left);
     tbx.SetVerticalJust(JV_Top);
@@ -577,7 +581,7 @@ void DrawBlot(BLOT* pblot)
     }
     
     // Push font scale
-    float scale = pblot->rFontScale;
+    float scale = pblot->rFontScale * g_guiScale;
     pblot->pfont->PushScaling(scale, scale);
 
     // Draw the text using the current font and text box
@@ -585,6 +589,32 @@ void DrawBlot(BLOT* pblot)
 
     // Pop font scale
     pblot->pfont->PopScaling();
+}
+
+void GetGuiScaledBlotRect(BLOT* pblot, float* px, float* py, float* pdx, float* pdy)
+{
+    const float dx = pblot->dx * g_guiScale;
+    const float dy = pblot->dy * g_guiScale;
+    float x = pblot->x;
+    float y = pblot->y;
+
+    if (pblot->pbloti != nullptr)
+    {
+        if (pblot->pbloti->x < 0.0f)
+            x -= dx - pblot->dx;
+        else if (pblot->pbloti->x == 0.0f)
+            x -= (dx - pblot->dx) * 0.5f;
+
+        if (pblot->pbloti->y < 0.0f)
+            y -= dy - pblot->dy;
+        else if (pblot->pbloti->y == 0.0f)
+            y -= (dy - pblot->dy) * 0.5f;
+    }
+
+    *px = x;
+    *py = y;
+    *pdx = dx;
+    *pdy = dy;
 }
 
 void RenderBlots()

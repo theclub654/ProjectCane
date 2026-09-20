@@ -262,7 +262,10 @@ void ChangeSuck(DIFFICULTY* pdifficulty, float uSuck)
 
 DIFFICULTYRICH g_aDifficultyRich[] =
 {
-	{ 0.8f, 2, 5 }
+	{ 0.8f,  2,   5 },
+	{ 0.4f,  6,  10 },
+	{ 0.2f, 15,  25 },
+	{ 0.0f, 50, 100 }
 };
 
 constexpr int g_cDifficultyRich =

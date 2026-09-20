@@ -13,7 +13,7 @@
 
 ASEG* NewAseg()
 {
-    return new ASEG{};
+    return NewWorldObject<ASEG>();
 }
 
 void InitAseg(ASEG* paseg)
@@ -1012,5 +1012,5 @@ void StripAsegAlo(ASEG* paseg, ALO* palo)
 
 void DeleteAseg(ASEG *paseg)
 {
-    delete paseg;
+    ReleaseWorldObject(paseg);
 }

@@ -12,8 +12,9 @@ void RecalcSwOxfFilterForObject(SW* psw, SO* pso)
         if (other == pso)
             continue;
 
-        const bool ignoreIntersection = pso->pvtso->pfnFIgnoreSoIntersection(pso, other) ||
-        other->pvtso->pfnFIgnoreSoIntersection(other, pso);
+        const int ignoreFromObject = pso->pvtso->pfnFIgnoreSoIntersection(pso, other);
+        const int ignoreFromOther = other->pvtso->pfnFIgnoreSoIntersection(other, pso);
+        const bool ignoreIntersection = ignoreFromObject || ignoreFromOther;
 
         constexpr OXF OXF_IgnoreIntersection = 0x08;
 

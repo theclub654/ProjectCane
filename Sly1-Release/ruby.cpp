@@ -33,7 +33,7 @@ int s_iRubyMusicSectionPending = 0;
 
 RUBY* NewRuby()
 { 
-    return new RUBY{}; 
+    return NewWorldObject<RUBY>();
 }
 
 void InitRuby(RUBY* pruby)
@@ -683,5 +683,5 @@ int GetRubySize()
 
 void DeleteRuby(RUBY* pruby)
 {
-    delete pruby;
+    ReleaseWorldObject(pruby);
 }

@@ -11,7 +11,7 @@ static void EnsureEmitterGroup(EMITTER* pemitter);
 
 EMITTER* NewEmitter()
 {
-	return new EMITTER{};
+	return NewWorldObject<EMITTER>();
 }
 
 void InitEmitter(EMITTER* pemitter)
@@ -1128,10 +1128,10 @@ void OnEmitterValuesChanged(EMITTER* pemitter)
 
 void EmitParticles(int cParticle, EMITB* pemitb, EMITG* pemitg)
 {
-	if (cParticle == 0)
+	if (cParticle == 0 || pemitb == nullptr)
 		return;
 
-	EMITGEN emitgen{};
+    EMITGEN emitgen{};
 	EMITGEN emitgenTarget{};
 
 	emitgen.fConvertPosVec = 1;
@@ -1954,7 +1954,7 @@ void InheritEmitterGrfzon(EMITTER* pemitter)
 
 void DeleteEmitter(EMITTER *pemitter)
 {
-	delete pemitter;
+	ReleaseWorldObject(pemitter);
 }
 
 void StockSplashBig(glm::vec3* ppos, float gScale, SO* psoTouch)

@@ -320,6 +320,7 @@ extern SMP s_smpLine;
 extern float DS_SuvNext;
 extern float R_SuvTurnDrive;
 extern float RAD_SuvWheelMax;
+extern float R_SuvWheelHeading;
 extern SMP s_smpWheelTurn;
 extern CLQ CLQ_SuvDtToRDensity;
 extern LM LM_SuvRadStick;

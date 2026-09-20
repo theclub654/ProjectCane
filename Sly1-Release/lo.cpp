@@ -3,11 +3,11 @@
 #include "spliceobj.h"
 #include "eval.h"
 #include "clock.h"
-#include <cstdio>
+#include <algorithm>
 
 LO* NewLo()
 {
-	return new LO{};
+	return NewWorldObject<LO>();
 }
 
 void InitLo(LO* plo)
@@ -37,11 +37,9 @@ void SetLoDefaults(LO* plo)
 void AddLo(LO* plo)
 {
 	// Loading objects parent child list
-	DL* objectChildList = &plo->paloParent->dlChild;
-
-	// If object doesnt have a parent load up the static world dlChild
-	if (plo->paloParent == nullptr)
-		objectChildList = &plo->psw->dlChild;
+	DL* objectChildList = plo->paloParent != nullptr
+		? &plo->paloParent->dlChild
+		: &plo->psw->dlChild;
 
 	// Returns if parent LO or SW has a child object or not
 	bool isFound = FFindDlEntry(objectChildList, plo);
@@ -169,7 +167,6 @@ void SendLoMessage(LO* plo, MSGID msgid, void* pv)
 		std::shared_ptr<MQ> pmqNext = pmq->pmqNext;
 		PFNMQ pfnmq = pmq->pfnmq;
 		void* pvContext = pmq->pvContext;
-
 		if (pfnmq != nullptr)
 			pfnmq(static_cast<LO*>(pvContext), msgid, pv);
 
@@ -339,12 +336,12 @@ void HandleLoSpliceEvent(LO* plo, SYMID symidEvent, int cargs, void** ppvargs)
     if (plo == nullptr || plo->pframe == nullptr)
         return;
 
-	CRef refCallback;
+    CRef refCallback;
     const bool hasBinding = plo->pframe->FFindBinding(symidEvent, true, &refCallback) != 0;
     if (!hasBinding)
         return;
 
-	const int fFiltered = FFilterSpliceEvent(static_cast<ALO*>(plo), static_cast<SYMEVID>(symidEvent), cargs, ppvargs);
+    const int fFiltered = FFilterSpliceEvent(static_cast<ALO*>(plo), static_cast<SYMEVID>(symidEvent), cargs, ppvargs);
     if (fFiltered)
     {
         return;
@@ -362,6 +359,14 @@ void HandleLoSpliceEvent(LO* plo, SYMID symidEvent, int cargs, void** ppvargs)
 		{
 			OTYP otypRythmEvent = OTYP_Int;
 			refCallback = RefSetArgListFromPvs(cargs, &otypRythmEvent, ppvargs);
+		}
+		else if (symidEvent == 29 && cargs == 1)
+		{
+			// NotifyBarrierImpact passes XPD::psoLeaf to the barrier's
+			// level-script callback. Retail's event table contains this entry,
+			// but the reconstructed shared table currently ends at event 26.
+			OTYP otypBarrierImpact = OTYP_Basic;
+			refCallback = RefSetArgListFromPvs(cargs, &otypBarrierImpact, ppvargs);
 		}
 		else if (symidEvent >= 0 && symidEvent < SYMEVID_Max)
 		{
@@ -456,14 +461,10 @@ void PostSpliceEventCallback(LO* plo, SYMID symidEvent, void* pvarg)
 {
 	CRef refProc;
 	if (plo == nullptr || plo->pframe == nullptr || !plo->pframe->FFindBinding(symidEvent, true, &refProc))
-	{
 		return;
-	}
 
 	if (refProc.m_tagk != TAGK_Proc || refProc.m_pproc == nullptr)
-	{
 		return;
-	}
 
 	CProc* pproc = refProc.m_pproc.get();
 
@@ -633,10 +634,19 @@ int GetLoSize()
 
 void DeleteLo(LO* plo)
 {
-	delete plo;
+	ReleaseWorldObject(plo);
 }
 
-std::vector <LO*> allWorldObjs;
+std::vector<std::shared_ptr<LO>> allWorldObjs;
+
+void ReleaseWorldObject(LO* plo)
+{
+	const auto it = std::find_if(allWorldObjs.begin(), allWorldObjs.end(),
+		[plo](const std::shared_ptr<LO>& pobj) { return pobj.get() == plo; });
+
+	if (it != allWorldObjs.end())
+		allWorldObjs.erase(it);
+}
 
 OTYP s_aotypEvtParm[44] =
 {

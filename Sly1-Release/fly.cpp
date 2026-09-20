@@ -8,7 +8,7 @@
 
 FLY* NewFly()
 {
-	return new FLY{};
+	return NewWorldObject<FLY>();
 }
 
 void InitFly(FLY* pfly)
@@ -845,7 +845,7 @@ int FCheckFlyOpenSpaceBelow(FLY* pfly)
 
 void DeleteFly(FLY *pfly)
 {
-	delete pfly;
+	ReleaseWorldObject(pfly);
 }
 
 CLQ s_clqArriveAlpha{0.0, 2.0, 0.0, 0.0};

@@ -2,7 +2,7 @@
 
 VISMAP* NewVismap()
 {
-	return new VISMAP{};
+	return NewWorldObject<VISMAP>();
 }
 
 void InitVismap(VISMAP* pvismap)
@@ -200,5 +200,5 @@ void ClipVismapPointNoHop(VISMAP* pvismap, glm::vec3* ppos, GRFZON* pgrfzon)
 
 void DeleteVismap(VISMAP* pvismap)
 {
-	delete pvismap;
+	ReleaseWorldObject(pvismap);
 }

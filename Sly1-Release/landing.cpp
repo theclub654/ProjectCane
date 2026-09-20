@@ -2,7 +2,7 @@
 
 LANDING* NewLanding()
 {
-	return new LANDING{};
+	return NewWorldObject<LANDING>();
 }
 
 void InitSwLandingDl(SW* psw)
@@ -38,5 +38,5 @@ void CloneLanding(LANDING* planding, LANDING* plandingBase)
 
 void DeleteLanding(LANDING* planding)
 {
-	delete planding;
+	ReleaseWorldObject(planding);
 }

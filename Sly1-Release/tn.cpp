@@ -3,7 +3,7 @@
 
 TN* NewTn()
 {
-    return new TN{};
+    return NewWorldObject<TN>();
 }
 
 TNFN* PtnfnFromTn(TN* ptn)
@@ -769,7 +769,7 @@ int FCheckTbspPoint(TBSP* atbsp, glm::vec3* pposLocal)
 
 void DeleteTn(TN *ptn)
 {
-    delete ptn;
+    ReleaseWorldObject(ptn);
 }
 
 TNFN g_tnfnDefault =

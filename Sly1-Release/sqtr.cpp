@@ -241,11 +241,11 @@ void DrawSqtrm(RPL* prpl)
 
     const TEX& tex = psqtrm->pshd->atex[0];
     BMP* pbmp = tex.abmp[0];
-    const GLuint64 diffuseHandle = !tex.hDiffuseMap.empty() && tex.hDiffuseMap[0] != 0
-        ? tex.hDiffuseMap[0]
-        : (pbmp != nullptr ? pbmp->hDiffuseMap : 0);
+    const GLuint diffuseTexture = !tex.glDiffuseMap.empty() && tex.glDiffuseMap[0] != 0
+        ? tex.glDiffuseMap[0]
+        : (pbmp != nullptr ? pbmp->glDiffuseMap : 0);
 
-    if (pbmp == nullptr || diffuseHandle == 0)
+    if (pbmp == nullptr || diffuseTexture == 0)
         return;
 
     constexpr int sqtrCapacity = 64;
@@ -296,14 +296,14 @@ void DrawSqtrm(RPL* prpl)
     if (psqtrm->pshd->shdk == SHDK_ThreeWay)
     {
         glUniform1i(glslRko, 1);
-        glUniformHandleui64ARB(glslAmbientMap, pbmp->hShadowMap);
-        glUniformHandleui64ARB(glslDiffuseMap, diffuseHandle);
-        glUniformHandleui64ARB(glslSaturateMap, pbmp->hSaturateMap);
+        const GLuint ambientTexture = !tex.glShadowMap.empty() ? tex.glShadowMap[0] : pbmp->glShadowMap;
+        const GLuint saturateTexture = !tex.glSaturateMap.empty() ? tex.glSaturateMap[0] : pbmp->glSaturateMap;
+        BindGlobThreeWayTextures(ambientTexture, diffuseTexture, saturateTexture);
     }
     else
     {
         glUniform1i(glslRko, 0);
-        glUniformHandleui64ARB(glslDiffuseMap, diffuseHandle);
+        BindGlobOneWayTexture(diffuseTexture);
     }
     glUniform1i(glslfAlphaTest, 0);
     glUniform1i(glslfAnimateUv, 0);

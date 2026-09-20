@@ -2,6 +2,7 @@
 #include "scores.h"
 #include "van.h"
 #include "suv.h"
+#include "gl.h"
 
 void PostCtrLoad(CTR* pctr)
 {
@@ -239,13 +240,16 @@ void DrawCtr(CTR* pctr)
 
     CTextBox tbx;
 
-    tbx.SetPos(pctr->x, pctr->y);
-    tbx.SetSize(pctr->dx, pctr->dy);
+    float x, y, dx, dy;
+    GetGuiScaledBlotRect(pctr, &x, &y, &dx, &dy);
+
+    tbx.SetPos(x, y);
+    tbx.SetSize(dx, dy);
     tbx.SetTextColor(&rgba);
     tbx.SetHorizontalJust(JH_Left);
     tbx.SetVerticalJust(JV_Top);
 
-    pctr->pfont->PushScaling(pctr->rFontScale, pctr->rFontScale);
+    pctr->pfont->PushScaling(pctr->rFontScale * g_guiScale, pctr->rFontScale * g_guiScale);
 
     CRichText rtxt(pctr->achzDraw, pctr->pfont);
     rtxt.Draw(&tbx, nullptr);

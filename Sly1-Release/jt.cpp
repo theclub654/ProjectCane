@@ -31,6 +31,7 @@
 #include "actseg.h"
 #include "water.h"
 #include "call.h"
+#include "gl.h"
 
 void StartupJtIcon(JTICON* pjticon)
 {
@@ -66,14 +67,16 @@ void DrawJtIcon(JTICON* pjticon)
         iconScale = std::max(0.0f, overshoot + t * t * acceleration);
     }
 
-    iconScale *= pjticon->rFontScale;
+    iconScale *= pjticon->rFontScale * g_guiScale;
     if (iconScale <= 0.0f)
         return;
 
     pjticon->pfont->PushScaling(iconScale, iconScale);
 
     CTextBox tbx;
-    tbx.SetPos(pjticon->x, pjticon->y);
+    float x, y, dx, dy;
+    GetGuiScaledBlotRect(pjticon, &x, &y, &dx, &dy);
+    tbx.SetPos(x, y);
     tbx.SetSize(pjticon->pfont->DxFromPchz(pjticon->achzDraw),
         static_cast<float>(pjticon->pfont->m_dyUnscaled) * pjticon->pfont->m_ryScale);
     tbx.SetTextColor(&pjticon->rgba);
@@ -86,7 +89,7 @@ void DrawJtIcon(JTICON* pjticon)
 
 JT* NewJt()
 {
-	return new JT{};
+	return NewWorldObject<JT>();
 }
 
 void InitJt(JT* pjt)
@@ -1972,9 +1975,10 @@ void GetJtCpdefi(JT* pjt, float dt, CPDEFI* pcpdefi)
         if (pjt->jts == 6 && pjt->jthk == 0)
             GetJtCpdefiFlatten(pjt, pcpdefi);
 
-        glm::vec3 dposTarget = pjt->posBasePrev - pcpdefi->posBase;
-
-        pjt->dposSmoothCpdefi = PosSmooth(pjt->dposSmoothCpdefi, dposTarget, dt, &s_smpSmoothCpdefi, nullptr);
+        // Retail smooths the carried camera offset back toward g_vecZero here.
+        // posBasePrev has already been updated by GetPoCpdefi, so deriving a new
+        // target from it makes the camera follow Sly's vertical jump movement.
+        pjt->dposSmoothCpdefi = PosSmooth(pjt->dposSmoothCpdefi, g_vecZero, dt, &s_smpSmoothCpdefi, nullptr);
         pcpdefi->posBase += pjt->dposSmoothCpdefi;
 
         jts = (JTS)pjt->jts;
@@ -2322,6 +2326,8 @@ void UpdateJtActive(JT* pjt, JOY* pjoy, float dt)
             break;
 
             case 4:
+            pjoy->SetHandled(BTN_CROSS);
+            pjt->tCharmPending = g_clock.t;
             break;
 
             case 6:
@@ -2384,8 +2390,8 @@ void UpdateJtActive(JT* pjt, JOY* pjoy, float dt)
     {
         JOY* pjoyDialog = (g_grfjoyt & 4U) != 0 ? &g_joy : &g_joyZero;
         const bool fDialogButtonPressed =
-            pjoyDialog->IsPressed(BTN_L1) ||
-            pjoyDialog->IsPressed(BTN_R1);
+            (pjoyDialog->current[BTN_L1] && !pjoyDialog->previous[BTN_L1]) ||
+            (pjoyDialog->current[BTN_R1] && !pjoyDialog->previous[BTN_R1]);
         const bool fPeekButtonPressed =
             pjoy->IsPressed(BTN_L1) ||
             pjoy->IsPressed(BTN_R1);
@@ -2405,9 +2411,9 @@ void UpdateJtActive(JT* pjt, JOY* pjoy, float dt)
 
             FinishDialogEvents(g_binoc.pdialogPlaying);
 
-            if (pjoyDialog->IsPressed(BTN_L1))
+            if (pjoyDialog->current[BTN_L1] && !pjoyDialog->previous[BTN_L1])
                 pjoyDialog->SetHandled(BTN_L1);
-            if (pjoyDialog->IsPressed(BTN_R1))
+            if (pjoyDialog->current[BTN_R1] && !pjoyDialog->previous[BTN_R1])
                 pjoyDialog->SetHandled(BTN_R1);
         }
         else if (fCancelPeek != 0 || fPeekButtonPressed)
@@ -2447,12 +2453,19 @@ void UpdateJtActive(JT* pjt, JOY* pjoy, float dt)
         const JTS jtsPrevious = (JTS)pjt->jts;
         const JTBS jtbsPrevious = (JTBS)pjt->jtbs;
         JTS jtsNext = (JTS)pjt->jts;
-        JTBS jtbsNext = (JTBS)pjt->jtbs;
+        int jtbsNext = pjt->jtbs;
 
         switch (pjt->jts)
         {
             case JTS_Stand:
-                if (fJump)
+                // Raw retail cane return states 8 and 9 are hit reactions.
+                // Keep the stand state until the return ASEG finishes and
+                // clears jtcs; otherwise retained run input immediately
+                // changes Sly back to state 1 and discards the reaction.
+                if (pjt->jtcs == 8 || pjt->jtcs == 9)
+                {
+                }
+                else if (fJump)
                 {
                     pjt->jtjk = JTJK_Standing;
                     jtsNext = JTS_Jump;
@@ -2582,6 +2595,8 @@ void UpdateJtActive(JT* pjt, JOY* pjoy, float dt)
                     SetJtJtcs(pjt, JTCS_Nil);
                     jtbsNext = JTBS_Jump_Smash;
                 }
+                else if (fJump)
+                    jtbsNext = 0;
                 else if (fBoost)
                     jtbsNext = JTBS_Jump_Boost;
                 break;
@@ -2905,10 +2920,7 @@ void UpdateJt(JT* pjt, float dt)
         }
 
         case 12:
-        // The look-around policy can remain queued during Peek_Enter. Its pan
-        // is not valid until Peek_Peek begins, so preserve Sly's entry facing.
-        if (pjt->jtbs == JTBS_Peek_Peek)
-            pjt->radTarget = g_pcm->cplook.radPan;
+        pjt->radTarget = g_pcm->cplook.radPan;
         break;
 
         case 13:
@@ -3091,8 +3103,10 @@ void UpdateJtDrive(JT* pjt)
     SetJtJts(pjt, static_cast<JTS>(svTarget > 0.0f), static_cast<JTBS>(-1));
 }
 
-void ChooseJtPhys(JT* pjt, SO* pso)
+void ChooseJtPhys(JT* pjt)
 {
+    SO* pso = nullptr;
+
     if (pjt->jts == 13)
         return;
 
@@ -3306,9 +3320,9 @@ void SetJtJts(JT* pjt, int jts, int jtbs)
                     break;
                 }
 
-                // The original basket branch retains phbsk. JTBS_Jump_In/Out
-                // owns the pointer and clears it when that transition ends.
-                if (pjt->jthk != 2)
+                // Retail clears phbsk only on the default, rail, and spire
+                // paths. Basket (2), hide-shape (6), and vault (7) retain it.
+                if (pjt->jthk != 2 && pjt->jthk != 6 && pjt->jthk != 7)
                     pjt->phbsk = nullptr;
 
                 if (jts == 2)
@@ -3386,7 +3400,7 @@ void SetJtJts(JT* pjt, int jts, int jtbs)
 
             case 12:
             RevokeCmPolicy(g_pcm, 15, CPP_LookAround, &g_pcm->cplook,
-                g_pcm->acpr[0].psoFocus, nullptr);
+                pjt, nullptr);
 
             if (g_binoc.fActive != 0)
                 PopUiActiveBlot(&g_ui);
@@ -4255,11 +4269,7 @@ void SetJtJts(JT* pjt, int jts, int jtbs)
             case 33:
             if (pjt->pasegPeekEnter != nullptr)
                 pasegbl = (ASEGBL*)pjt->pasegPeekEnter;
-            // Retail keeps the outgoing camera policy's focus when the peek
-            // policy is inserted. Scripted level-entry dialogs use that focus
-            // to preserve their authored view of the arena.
-            SetCmPolicy(g_pcm, CPP_LookAround, &g_pcm->cplook,
-                g_pcm->acpr[0].psoFocus, nullptr);
+            SetCmPolicy(g_pcm, CPP_LookAround, &g_pcm->cplook, pjt, nullptr);
             break;
 
             case 34:
@@ -4275,8 +4285,7 @@ void SetJtJts(JT* pjt, int jts, int jtbs)
             case 35:
             if (pjt->pasegPeekExit != nullptr)
                 pasegbl = (ASEGBL*)pjt->pasegPeekExit;
-            RevokeCmPolicy(g_pcm, 15, CPP_LookAround, &g_pcm->cplook,
-                g_pcm->acpr[0].psoFocus, nullptr);
+            RevokeCmPolicy(g_pcm, 15, CPP_LookAround, &g_pcm->cplook, pjt, nullptr);
             SetCmCut(g_pcm, 0);
             break;
 
@@ -4437,7 +4446,7 @@ void SetJtJts(JT* pjt, int jts, int jtbs)
 
     if (pjt->jtbs != jtbs) { pjt->jtbs = jtbs; pjt->tJtbs = g_clock.t; }
 
-    ChooseJtPhys(pjt, nullptr);
+    ChooseJtPhys(pjt);
     EnableJtActadj(pjt, grfjta);
     if (sfxid != -1) StartSound((SFXID)sfxid, nullptr, nullptr, &pjt->xf.posWorld, 3000.0f, 300.0f, 1.0f, 0.0f, 0.0f, nullptr, nullptr);
     if (fKeepAseg) return;
@@ -4652,28 +4661,32 @@ void UpdateJtEffect(JT* pjt)
         if (paloAbsorbed == nullptr)
             continue;
 
-        if ((worker.grfic & 2U) != 0)
+        // Retail UpdateJtEffect uses these raw release masks and states.  Do
+        // not substitute the proto FTAK/JTS/JTCS enum names here: their value
+        // assignments are not authoritative for the retail executable.
+        const uint32_t grfic = worker.grfic;
+        if ((grfic & 2U) != 0)
         {
             if ((grftak & 2U) != 0)
             {
-                SetJtJts(pjt, static_cast<JTS>(0), static_cast<JTBS>(-1));
+                SetJtJts(pjt, 0, -1);
 
                 if (pjt->jtcs == 4 || pjt->jtcs == 6)
-                    SetJtJtcs(pjt, static_cast<JTCS>(8));
+                    SetJtJtcs(pjt, 8);
                 else
-                    SetJtJtcs(pjt, static_cast<JTCS>(9));
+                    SetJtJtcs(pjt, 9);
             }
             else if ((grftak & 4U) != 0)
             {
-                SetJtJts(pjt, static_cast<JTS>(0), static_cast<JTBS>(-1));
-                SetJtJtcs(pjt, static_cast<JTCS>(8));
+                SetJtJts(pjt, 0, -1);
+                SetJtJtcs(pjt, 8);
             }
         }
 
-        if ((worker.grfic & 1U) != 0)
+        if ((grfic & 1U) != 0)
         {
             if (pjt->jtbs == 55)
-                SetJtJts(pjt, static_cast<JTS>(13), static_cast<JTBS>(56));
+                SetJtJts(pjt, 13, 56);
             else
                 psoEffect->pvtlo->pfnRemoveLo(psoEffect);
 
@@ -5246,7 +5259,7 @@ void FindBestJtJumpTarget(JT* pjt, std::vector<LO*>& jumpObjects, JTJUMPTARGET* 
         *ptargetBest = {};
         ptargetBest->pos = pjt->xf.posWorld;
         ptargetBest->pos.z -= 75.0f;
-        *pdtBest = 0.7f;
+        *pdtBest = 0.75f;
     }
 
 }
@@ -5417,7 +5430,7 @@ int GetJtSize()
 
 void DeleteJt(JT* pjt)
 {
-	delete pjt;
+	ReleaseWorldObject(pjt);
 }
 
 JT* g_pjt = nullptr;

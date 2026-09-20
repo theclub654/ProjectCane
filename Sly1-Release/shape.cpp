@@ -2,7 +2,7 @@
 
 SHAPE* NewShape()
 {
-    return new SHAPE{};
+    return NewWorldObject<SHAPE>();
 }
 
 void InitShape(SHAPE* pshape)
@@ -58,5 +58,5 @@ void SetShapeParent(SHAPE* pshape, ALO* paloParent)
 
 void DeleteShape(SHAPE* pshape)
 {
-    delete pshape;
+    ReleaseWorldObject(pshape);
 }

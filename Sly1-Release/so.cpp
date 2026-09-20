@@ -17,7 +17,7 @@
 
 SO* NewSo()
 {
-	return new SO{};
+	return NewWorldObject<SO>();
 }
 
 void InitSwBusySoDl(SW* psw)
@@ -2853,7 +2853,7 @@ void RenderSoSelf(SO* pso, CM* pcm, RO* pro)
 
 void DeleteSo(SO *pso)
 {
-	delete pso;
+	ReleaseWorldObject(pso);
 }
 
 void DeleteSwCollision()
@@ -2861,24 +2861,38 @@ void DeleteSwCollision()
 	for (int i = 0; i < allSWSoObjs.size(); i++)
 	{
 		glDeleteVertexArrays(1, &allSWSoObjs[i]->geomLocal.VAO);
-		glDeleteVertexArrays(1, &allSWSoObjs[i]->geomLocal.VBO);
-		glDeleteVertexArrays(1, &allSWSoObjs[i]->geomLocal.EBO);
+		glDeleteBuffers(1, &allSWSoObjs[i]->geomLocal.VBO);
+		glDeleteBuffers(1, &allSWSoObjs[i]->geomLocal.EBO);
 
 		glDeleteVertexArrays(1, &allSWSoObjs[i]->geomCameraLocal.VAO);
-		glDeleteVertexArrays(1, &allSWSoObjs[i]->geomCameraLocal.VBO);
-		glDeleteVertexArrays(1, &allSWSoObjs[i]->geomCameraLocal.EBO);
+		glDeleteBuffers(1, &allSWSoObjs[i]->geomCameraLocal.VBO);
+		glDeleteBuffers(1, &allSWSoObjs[i]->geomCameraLocal.EBO);
+
+		allSWSoObjs[i]->geomLocal.VAO = 0;
+		allSWSoObjs[i]->geomLocal.VBO = 0;
+		allSWSoObjs[i]->geomLocal.EBO = 0;
+		allSWSoObjs[i]->geomCameraLocal.VAO = 0;
+		allSWSoObjs[i]->geomCameraLocal.VBO = 0;
+		allSWSoObjs[i]->geomCameraLocal.EBO = 0;
 	}
 }
 
 void DeleteSoGeom(SO* pso)
 {
 	glDeleteVertexArrays(1, &pso->geomLocal.VAO);
-	glDeleteVertexArrays(1, &pso->geomLocal.VBO);
-	glDeleteVertexArrays(1, &pso->geomLocal.EBO);
+	glDeleteBuffers(1, &pso->geomLocal.VBO);
+	glDeleteBuffers(1, &pso->geomLocal.EBO);
 
 	glDeleteVertexArrays(1, &pso->geomCameraLocal.VAO);
-	glDeleteVertexArrays(1, &pso->geomCameraLocal.VBO);
-	glDeleteVertexArrays(1, &pso->geomCameraLocal.EBO);
+	glDeleteBuffers(1, &pso->geomCameraLocal.VBO);
+	glDeleteBuffers(1, &pso->geomCameraLocal.EBO);
+
+	pso->geomLocal.VAO = 0;
+	pso->geomLocal.VBO = 0;
+	pso->geomLocal.EBO = 0;
+	pso->geomCameraLocal.VAO = 0;
+	pso->geomCameraLocal.VBO = 0;
+	pso->geomCameraLocal.EBO = 0;
 }
 
 void DeallocateSoVector()

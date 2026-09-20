@@ -1098,13 +1098,23 @@ void UpdateJtJump(JT* pjt)
         case 13: // Jump to HPNT
         {
             const float dtMatch = pjt->pactvalJump->tMatch - g_clock.t;
-            HPNT* phpnt = pjt->jtbs == 12
-                ? reinterpret_cast<HPNT*>(pjt->phshape)
-                : pjt->phpnt;
+            ALO* paloParent;
+            JTHK jthk;
+
+            if (pjt->jtbs == 12)
+            {
+                paloParent = pjt->phshape->paloParent;
+                jthk = pjt->phshape->jthk;
+            }
+            else
+            {
+                paloParent = pjt->phpnt->paloParent;
+                jthk = pjt->phpnt->jthk;
+            }
 
             if (dtMatch < 0.0f)
             {
-                pjt->jthk = phpnt->jthk;
+                pjt->jthk = jthk;
                 SetJtJts(pjt, 6, 16);
                 break;
             }
@@ -1115,10 +1125,10 @@ void UpdateJtJump(JT* pjt)
             else
                 GetHpntClosestHidePos(pjt->phpnt, pjt->radHpnt, &pos, nullptr);
 
-            ConvertAloPos(nullptr, phpnt->paloParent, &pos, &pos);
+            ConvertAloPos(nullptr, paloParent, &pos, &pos);
 
             glm::vec3 velocity(0.0f);
-            PredictAloTransformAdjust(phpnt->paloParent, nullptr, dtMatch, &pos, nullptr, &velocity, nullptr);
+            PredictAloTransformAdjust(paloParent, nullptr, dtMatch, &pos, nullptr, &velocity, nullptr);
 
             pjt->pactvalJump->posGoal = pos;
             pjt->pactvalJump->posGoal.z += 75.0f;
@@ -1231,8 +1241,8 @@ void GetJtJumpBoostVelocity(JT* pjt, glm::vec3* pv)
     *pv = pjt->xf.v;
 
     const float vz = pv->z;
-    const float vzBoost = s_clqVzToVz.g0 + vz * (s_clqVzToVz.g1 + vz * s_clqVzToVz.g2);
-    const float vzClamped = glm::clamp(vzBoost, s_lmVz.gMin, s_lmVz.gMax);
+    const float vzBoost = s_clqVzToVzBoost.g0 + vz * (s_clqVzToVzBoost.g1 + vz * s_clqVzToVzBoost.g2);
+    const float vzClamped = glm::clamp(vzBoost, s_lmVzBoost.gMin, s_lmVzBoost.gMax);
 
     pv->z = std::max(pjt->xf.v.z, vzClamped);
 }
@@ -1249,7 +1259,7 @@ void ResetJmtList()
 
 JMT* NewJmt()
 {
-	return new JMT{};
+	return NewWorldObject<JMT>();
 }
 
 int GetJmtSize()
@@ -1316,7 +1326,7 @@ void PostJmtLoad(JMT* pjmt)
 
 void DeleteJmt(JMT* pjmt)
 {
-	delete pjmt;
+	ReleaseWorldObject(pjmt);
 }
 
 DL g_dlJmt;

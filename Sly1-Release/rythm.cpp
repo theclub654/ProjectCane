@@ -28,7 +28,7 @@ SNIP s_asnipPostRythmLoad[] = {
 
 RYTHM* NewRythm() 
 { 
-    return new RYTHM{}; 
+    return NewWorldObject<RYTHM>();
 }
 
 void InitRythm(RYTHM* prythm)
@@ -345,12 +345,12 @@ int GetRythmSize()
 
 void DeleteRythm(RYTHM* prythm) 
 { 
-    delete prythm; 
+    ReleaseWorldObject(prythm);
 }
 
 RYTHMSEQUENCE* NewRythmSequence()
 {
-    return new RYTHMSEQUENCE{};
+    return NewWorldObject<RYTHMSEQUENCE>();
 }
 
 void InitRythmSequence(RYTHMSEQUENCE* prythmSequence)
@@ -527,6 +527,6 @@ int GetRythmSequenceSize()
 
 void DeleteRythmSequence(RYTHMSEQUENCE* prythmSequence)
 {
-    delete prythmSequence;
+    ReleaseWorldObject(prythmSequence);
 }
 

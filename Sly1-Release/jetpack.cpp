@@ -69,7 +69,7 @@ namespace
 
 JETPACK* NewJetpack()
 {
-    return new JETPACK{};
+    return NewWorldObject<JETPACK>();
 }
 
 void InitJetpack(JETPACK* pjetpack)
@@ -145,6 +145,11 @@ void PresetJetpackAccel(JETPACK* pjetpack, float dt)
     if (pjetpack->jpk < JETPACKS_Dead)
     {
         CalculateJetpackTarget(pjetpack, &posTarget, &vTarget);
+
+		// Retail discards CalculateJetpackTarget's derivative here and transforms
+		// a zero target velocity.  Feeding the derivative into the spring makes
+		// steering track the stick too quickly and removes the original inertia.
+		vTarget = g_vecZero;
         CalculateAloTransformAdjust(pjetpack->paloMovementBasis, nullptr, &posTarget, nullptr, &vTarget, nullptr);
     }
     else
@@ -225,9 +230,9 @@ void UpdateJetpack(JETPACK* pjetpack, float dt)
         dradVisualY /= sum;
     }
 
-    // This project's active-object pass runs before its hierarchy update.
-    // Preserve the steering rates written by UpdateJetpackActive; otherwise
-    // the hierarchy update replaces fresh input with the previous velocity.
+    // ProjectCane's active-object pass runs before its hierarchy update.
+    // Preserve steering rates written from fresh input for the active player;
+    // overwriting them here introduces a full feedback delay when reversing.
     if (PpoCur() != pjetpack || pjetpack->jpk != JETPACKS_Active)
     {
         pjetpack->dradBodyX = dradVisualX;
@@ -247,7 +252,30 @@ void UpdateJetpack(JETPACK* pjetpack, float dt)
 
 void UpdateJetpackActive(JETPACK* pjetpack, JOY* pjoy, float dt)
 {
-    if (pjetpack->psma != nullptr && pjoy->IsHeld(BTN_TRIANGLE))
+    // Retail lets Cross consume the pending lucky charm during the recovery
+    // window. This branch was missing from the port.
+    if (pjetpack->jpk == JETPACKS_Charm && FCharmAvailable())
+    {
+        if (pjetpack->pasegaCur == nullptr || pjetpack->pasegaCur->svtLocal == 0.0f)
+            UseJetpackCharm(pjetpack);
+        else
+        {
+            if (pjoy->IsPressed(BTN_CROSS))
+            {
+                pjoy->SetHandled(BTN_CROSS);
+                pjetpack->tCharmPending = g_clock.t;
+            }
+
+            if (pjetpack->fCharmEnabled != 0 &&
+                g_clock.t - pjetpack->tCharmPending < 0.15f)
+            {
+                UseJetpackCharm(pjetpack);
+            }
+        }
+    }
+
+    // The original raw mask is 0x80 (Square), not Triangle.
+    if (pjetpack->psma != nullptr && pjoy->IsHeld(BTN_SQUARE))
     {
         OID oidState = OID_Nil;
         GetSmaCur(pjetpack->psma, &oidState);
@@ -377,7 +405,7 @@ void RenderJetpackAll(JETPACK* pjetpack, CM* pcm, RO* pro)
         rgbaCel = glm::mix(rgbaCel, glm::vec4(160.0f / 255.0f, 0.0f, 0.0f, rgbaCel.a), blend);
     }
 
-    SetAloOverrideCel(pjetpack, &rgbaCel);
+    SetAloOverrideCelFloat(pjetpack, &rgbaCel);
     RenderAloAll(pjetpack, pcm, pro);
 }
 
@@ -510,5 +538,5 @@ void ResetJetpackTransform(JETPACK* pjetpack)
 
 void DeleteJetpack(JETPACK* pjetpack)
 {
-    delete pjetpack;
+    ReleaseWorldObject(pjetpack);
 }

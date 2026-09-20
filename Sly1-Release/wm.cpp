@@ -3,6 +3,7 @@
 #include "totals.h"
 #include "pnt.h"
 #include "keyhole.h"
+#include "render.h"
 #include <cstdio>
 
 WORLDLEVEL WorldLevelForWmDisplay()
@@ -94,7 +95,7 @@ bool FIsWmLevelAvailable(WM* pwm, WORLDLEVEL worldLevel)
 
 WM* NewWm()
 {
-	return new WM{};
+	return NewWorldObject<WM>();
 }
 
 int GetWmSize()
@@ -164,7 +165,8 @@ void PostWmLoad(WM* pwm)
         break;
     }
 
-    g_wmc.apwm[pwm->gameWorldCur] = pwm;
+    if (pwm->gameWorldCur >= GAMEWORLD_Intro && pwm->gameWorldCur < GAMEWORLD_Max)
+        g_wmc.apwm[pwm->gameWorldCur] = pwm;
 }
 
 void BindWm(WM* pwm)
@@ -390,53 +392,31 @@ void UpdateWm(WM* pwm, float dt)
 
 }
 
-static float WmFullscreenCoverScale()
-{
-    constexpr float kWmAspect = 640.0f / 492.80002f;
-    const float screenHeight = g_gl.height > 0.0f
-        ? static_cast<float>(g_gl.height)
-        : 1.0f;
-    const float screenAspect = static_cast<float>(g_gl.width) / screenHeight;
-
-    return std::max(1.0f, screenAspect / kWmAspect);
-}
-
-static glm::vec2 WmFullscreenScreenPoint(float x, float y)
-{
-    const float scale = WmFullscreenCoverScale();
-    const glm::vec2 center(static_cast<float>(g_gl.width) * 0.5f,
-                           static_cast<float>(g_gl.height) * 0.5f);
-
-    return glm::vec2(center.x + (x - center.x) * scale, y);
-}
-
 void RenderWmAll(WM* pwm, CM* pcm, RO* pro)
 {
+    const float radFov = g_pcm->radFOV;
+    const float radFovTarget = g_pcm->radFOVTarget;
+    SetCmFov(g_pcm, 1.0f);
+
     RO ro;
 
     DupAloRo(pwm, pro, &ro);
     LoadMatrixFromPosRot(&pcm->pos, &pcm->mat, &ro.model);
-
-    const float coverScale = WmFullscreenCoverScale();
+    const glm::mat4 mapWorldToClip = pcm->matWorldToClip;
     const int worldMapFirst = g_worldMapCount;
-
     RenderAloAll(pwm, pcm, &ro);
 
-    // RenderAloAll queues the map for DrawSw rather than drawing immediately.
-    // Conjugating the stretch through the camera matrix makes it operate on
-    // clip-space X, independent of each map object's local orientation.
-    if (coverScale > 1.0f)
-    {
-        glm::mat4 clipScale(1.0f);
-        clipScale[0][0] = coverScale;
+    SetCmFov(g_pcm, radFov);
+    g_pcm->radFOVTarget = radFovTarget;
 
-        const glm::mat4 worldToClipInverse = glm::inverse(pcm->matWorldToClip);
-        const glm::mat4 worldScreenStretch =
-            worldToClipInverse * clipScale * pcm->matWorldToClip;
+    // Retail draws the map immediately while the 1.0-radian FOV is active.
+    // ProjectCane queues RP_WorldMap until DrawSw, after the camera has been
+    // restored, so preserve that fixed projection in each newly queued model.
+    const glm::mat4 queuedProjection =
+        glm::inverse(pcm->matWorldToClip) * mapWorldToClip;
 
-        for (int i = worldMapFirst; i < g_worldMapCount; ++i)
-            g_worldMapPrpl[i].ro.model = worldScreenStretch * g_worldMapPrpl[i].ro.model;
-    }
+    for (int i = worldMapFirst; i < g_worldMapCount; ++i)
+        g_worldMapPrpl[i].ro.model = queuedProjection * g_worldMapPrpl[i].ro.model;
 }
 
 void HandleWmMessage(WM* pwm, MSGID msgid, void* pv)
@@ -768,9 +748,6 @@ void GetWmWorldPosScreen(WM* pwm, WORLDLEVEL worldLevel, bool fSecondary, glm::v
     pposScreen->x = (pposScreen->x * 0.5f  + 0.5f) * screenWidth;
     pposScreen->y = (-pposScreen->y * 0.5f + 0.5f) * screenHeight;
 
-    const glm::vec2 fullscreenPoint = WmFullscreenScreenPoint(pposScreen->x, pposScreen->y);
-    pposScreen->x = fullscreenPoint.x;
-    pposScreen->y = fullscreenPoint.y;
 }
 
 void SetWmCursor(WM* pwm, WORLDLEVEL worldlevel)
@@ -797,7 +774,17 @@ void SetWmCursor(WM* pwm, WORLDLEVEL worldlevel)
 
 void DeleteWm(WM* pwm)
 {
-	delete pwm;
+	if (pwm != nullptr &&
+		pwm->gameWorldCur >= GAMEWORLD_Intro &&
+		pwm->gameWorldCur < GAMEWORLD_Max &&
+		g_wmc.apwm[pwm->gameWorldCur] == pwm)
+	{
+		g_wmc.apwm[pwm->gameWorldCur] = nullptr;
+		if (g_wmc.pwmCurrent == pwm)
+			g_wmc.pwmCurrent = nullptr;
+	}
+
+	ReleaseWorldObject(pwm);
 }
 
 void StartupWmc(WMC* pwmc)
@@ -821,6 +808,18 @@ void StartupWmc(WMC* pwmc)
 
 void PostWmcLoad(WMC* pwmc)
 {
+    if (pwmc->gboWmFan != 0)
+    {
+        glDeleteBuffers(1, &pwmc->gboWmFan);
+        pwmc->gboWmFan = 0;
+    }
+
+    if (pwmc->gaoWmFan != 0)
+    {
+        glDeleteVertexArrays(1, &pwmc->gaoWmFan);
+        pwmc->gaoWmFan = 0;
+    }
+
     // Initialize BLOT base
     PostBlotLoad(pwmc);
 
@@ -1026,9 +1025,8 @@ void DrawWmc(WMC* pwmc)
 
         const float xCursorRaw = (posCursorScreen.x * 0.5f + 0.5f) * static_cast<float>(g_gl.width);
         const float yCursorRaw = (-posCursorScreen.y * 0.5f + 0.5f) * static_cast<float>(g_gl.height);
-        const glm::vec2 cursorPoint = WmFullscreenScreenPoint(xCursorRaw, yCursorRaw);
-        const float xCursor = cursorPoint.x;
-        const float yCursor = cursorPoint.y;
+        const float xCursor = xCursorRaw;
+        const float yCursor = yCursorRaw;
 
         glm::vec4 rgbaCursorStart(0.0f, 0.0f, 0.0f, (145.0f / 255.0f) * uCursor);
         glm::vec4 rgbaCursorEnd(0.0f);
@@ -1160,7 +1158,7 @@ void DrawWmFan(WMC *pwmc, float xCenter, float yCenter, float sRadius, float rad
     glUniform4fv(uvRectLoc, 1, glm::value_ptr(uvRect));
     glUniform4fv(blotColorLoc, 1, glm::value_ptr(color));
     glUniform1i(u_useVertexColorLoc, 1);
-    glUniformHandleui64ARB(u_fontTexLoc, whiteHandle);
+    BindBlotTexture(whiteTex);
 
     // Retail DrawWmFan writes TEST_1 = 0x31001 (ZTE=1, ZTST=ALWAYS).
     // DrawWmc is layered after the 3D world map, so inheriting the map's

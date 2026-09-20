@@ -25,6 +25,7 @@ class TAIL : public ALO
     glm::vec3 dvGravity;
     int fUnlockRot;
     glm::vec3 posTip;
+    float tUpdateConstraints;
 };
 
 TAIL*NewTail();

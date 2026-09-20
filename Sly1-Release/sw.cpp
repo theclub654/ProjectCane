@@ -37,7 +37,7 @@
 
 SW* NewSw()
 {
-	return new SW{};
+	return NewWorldObject<SW>();
 }
 
 int GetSwLevelDataValue(SW* psw, uint32_t worldLevelKey, int key)
@@ -865,6 +865,11 @@ void LoadSwFromBrx(SW* psw, CBinaryInputStream* pbis)
 
 	ProcessSwCallbacks(psw);
 
+	// Retail runs the difficulty post-load pass after every world object has
+	// completed PostLoLoad.  Among its other work, this removes world charm
+	// pickups when Sly already has the maximum (gold) charm count.
+	OnDifficultyWorldPostLoad(&g_difficulty);
+
 	SetupCm(g_pcm);
 	RecalcSwXpAll(psw, 0);
 
@@ -1353,6 +1358,14 @@ void FreeSwStsoList(SW* psw, STSO* pstsoFirst)
 
 void DeleteWorld(SW *psw)
 {
+	// AMBs retain AMB** back-pointers into the world objects which started
+	// them (for example, an object's pamb field).  Stop and detach every sound
+	// before deleting any world object; otherwise DeleteSw may encounter an AMB
+	// after its ppamb owner has already been destroyed and write through a stale
+	// pointer in RemoveAmb.
+	if (psw != nullptr)
+		KillSoundSystem();
+
 	// These frame-pending lists are global, but their entries are owned by the
 	// current SW.  Do not leave their head/tail pointers referring to BLIP and
 	// BLIPG objects that will be destroyed with this world.
@@ -1508,14 +1521,20 @@ void DeleteWorld(SW *psw)
 	g_maxPrpl.shrink_to_fit();
 
 	DeallocateLightBlkList();
+	// Projected shadow maps share an array texture on unit 3. Release that binding
+	// and their SSBOs before deleting DYSH world objects and their textures.
+	DeallocateSwShadows();
 
 	for (int i = 0; i < allSWAloObjs.size(); i++)
 		DeleteModel(allSWAloObjs[i]);
 
 	DeleteSwCollision();
 
-	for (int i = 0; i < allWorldObjs.size(); i++)
-		allWorldObjs[i]->pvtlo->pfnDeleteLo(allWorldObjs[i]);
+	while (!allWorldObjs.empty())
+	{
+		auto pobj = allWorldObjs.back();
+		pobj->pvtlo->pfnDeleteLo(pobj.get());
+	}
 
 	allSWAloObjs.clear();
 	allSWAloObjs.shrink_to_fit();
@@ -1529,15 +1548,21 @@ void DeleteWorld(SW *psw)
 
 	baseRenderDistance = 0.0;
 
-	glDeleteBuffers(1, &cmUBO);
+	if (cmUBO)
+	{
+		glDeleteBuffers(1, &cmUBO);
+		cmUBO = 0;
+	}
 
 	DeleteFrameStream(&ropStream);
 	DeleteFrameStream(&rcbStream);
 	DeleteFrameStream(&blipStream);
 
-	glDeleteBuffers(1, &geomUBO);
-
-	DeallocateSwShadows();
+	if (geomUBO)
+	{
+		glDeleteBuffers(1, &geomUBO);
+		geomUBO = 0;
+	}
 
 	FreeBinocGL(&g_binoc);
 
@@ -1558,7 +1583,7 @@ void DeleteSw(SW* psw)
 
 	KillSoundSystem();
 	DeleteSwRipPool(psw);
-	delete psw;
+	ReleaseWorldObject(psw);
 }
 
 SW* g_psw = nullptr;

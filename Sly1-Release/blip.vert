@@ -101,6 +101,7 @@ void main()
             float c = cos(instanceRoll.x);
             billboardCorner = mat2(c, s, -s, c) * billboardCorner;
         }
+
         worldPos = center + (cameraRight * billboardCorner.x + cameraUp * billboardCorner.y) * scale;
     }
 

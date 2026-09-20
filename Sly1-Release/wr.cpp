@@ -3,7 +3,7 @@
 
 WR* NewWr()
 {
-	return new WR{};
+	return NewWorldObject<WR>();
 }
 
 void InitWr(WR* pwr)
@@ -757,5 +757,5 @@ void UpdateWrMatrixes(WR* pwr)
 
 void DeleteWr(WR* pwr)
 {
-	delete pwr;
+	ReleaseWorldObject(pwr);
 }

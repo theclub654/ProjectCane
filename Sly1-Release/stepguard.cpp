@@ -18,7 +18,7 @@
 
 STEPGUARD* NewStepguard()
 {
-	return new STEPGUARD{};
+	return NewWorldObject<STEPGUARD>();
 }
 
 void InitStepGuard(STEPGUARD* pstepguard)
@@ -644,7 +644,10 @@ int FIgnoreStepguardIntersection(STEPGUARD* pstepguard, SO* psoOther)
 
     if (pstepguard->sgs == SGS_Dying) 
     {
-        if (psoOther->fPhys) 
+        // Retail tests bit 55 of SO::field_0x538 here.  The release
+        // decompilation labels that overlapping bit as fPhys, but the mapped
+        // SO layout identifies it as fLockedAll (fPhys is bit 50).
+        if (psoOther->fLockedAll)
             return 0;
 
         return 1;
@@ -938,10 +941,6 @@ void GetStepguardOnFinalPathSegment(STEPGUARD* pstepguard, int* pfFinalSegment)
 void UpdateStepguard(STEPGUARD* pstepguard, float dt)
 {
     UpdateStep(pstepguard, dt);
-
-    // -------------------------------------------------------------------------
-    // Refresh an explicitly bound enemy
-    // -------------------------------------------------------------------------
 
     if (pstepguard->fRebindEnemy != 0)
         RebindStepguardEnemy(pstepguard);
@@ -2830,7 +2829,7 @@ void SetStepguardEnemyBound(STEPGUARD* pstepguard, SO* pso)
 
 void AdjustStepguardNewXp(STEPGUARD* pstepguard, XP* pxp, int ixpd)
 {
-    if (pstepguard->sgs == SGS_Dying || pstepguard->sgs == SGS_Stun) 
+    if (pstepguard->fIncapacitated != 0)
     {
         pxp->mu = MU_StepguardDying;
         pxp->elas = ELAS_StepguardDying;
@@ -2886,7 +2885,7 @@ void MatchStepguardAnimationPhase(STEPGUARD* pstepguard, OID oid0, OID oid1, OID
 
 void AddStepguardCustomXps(STEPGUARD* pstepguard, SO* psoOther, int cbspPruned, BSP* abspPruned, BSP* pbspPruned, XP** ppxp)
 {
-    if (pstepguard->sgs != SGS_Dying && pstepguard->sgs != SGS_Stun) {
+    if (pstepguard->fIncapacitated == 0) {
         AddStepCustomXpsBase((STEP*)pstepguard, psoOther, pbspPruned, ppxp);
     }
 
@@ -3082,10 +3081,10 @@ int FCheckStepguardEnemyHidden(STEPGUARD* pstepguard)
 {
     JT* pjt = (JT*)pstepguard->pvtstepguard->pfnPsoEnemyStepguard(pstepguard);
 
-    if (!FIsBasicDerivedFrom((BASIC*)pjt, CID_JT)) 
+    if (!FIsBasicDerivedFrom((BASIC*)pjt, (CID)7))
         return 0;
 
-    if (pjt->jts != JTS_Hide) 
+    if ((int)pjt->jts != 6)
         return 0;
     
     glm::vec3 dpos = pjt->xf.posWorld - pstepguard->xf.posWorld;
@@ -3106,7 +3105,7 @@ int FCheckStepguardEnemyHidden(STEPGUARD* pstepguard)
 
             glm::vec3 facing = pjt->xf.matWorld[0];
 
-            return glm::dot(dpos, facing) < 0.0f;
+            return glm::dot(dpos, facing) > 0.0f;
         }
 
         case 1:
@@ -3121,7 +3120,7 @@ int FCheckStepguardEnemyHidden(STEPGUARD* pstepguard)
 
             glm::vec3 facing = pjt->xf.matWorld[0];
 
-            return glm::dot(dpos, facing) > 0.0f;
+            return glm::dot(dpos, facing) < 0.0f;
         }
 
         case 2:
@@ -3159,12 +3158,12 @@ int GetStepguardSize()
 
 void DeleteStepguard(STEPGUARD* pstepguard)
 {
-	delete pstepguard;
+	ReleaseWorldObject(pstepguard);
 }
 
 SGG* NewSgg()
 {
-    return new SGG{};
+    return NewWorldObject<SGG>();
 }
 
 SGG* PsggNew(SW* psw)
@@ -3725,7 +3724,7 @@ void AssignSggSearchPoints(SGG* psgg)
 
 void DeleteSgg(SGG* psgg)
 {
-    delete psgg;
+    ReleaseWorldObject(psgg);
 }
 
 SNIP s_asnipStepguardLoad[1] = {2, (OID)0x195, offsetof(STEPGUARD, mpsgssgp[16].psoPhys)};

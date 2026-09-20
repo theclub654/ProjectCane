@@ -96,25 +96,48 @@ void RecalcCm(CM* pcm)
 {
 	const float framebufferWidth = static_cast<float>(g_gl.width);
 	const float framebufferHeight = static_cast<float>(g_gl.height);
-	const float camAspect = (g_gl.aspectMode == FitToScreen)
+	float renderAspect = (g_gl.aspectMode == FitToScreen)
 		? (framebufferWidth / framebufferHeight)
 		: g_gl.aspectRatio;
+	float renderFov = pcm->radFOV;
+
+	if (g_gl.aspectMode == PS2_4_3)
+	{
+		// The PS2 camera was authored for pcm->rAspect and then displayed on
+		// a 4:3 television. Preserve that slight anamorphic presentation.
+		renderAspect = pcm->rAspect;
+	}
+	else if (g_gl.aspectMode == PS2_16_9)
+	{
+		// Retail-style fake widescreen (Vert-): retain the PS2 horizontal
+		// framing and crop the top and bottom to fill a 16:9 presentation.
+		constexpr float widescreenAspect = 16.0f / 9.0f;
+		renderAspect = widescreenAspect;
+		renderFov = 2.0f * std::atan(
+			std::tan(pcm->radFOV * 0.5f) * pcm->rAspect / widescreenAspect);
+	}
+	// Keep authored camera behavior in the original PS2 camera space.  These
+	// ranges are consumed by SetCm/AdaptCm and sRadiusNearClip is used by the
+	// camera collision solver.  Making them follow a resized window changes the
+	// camera path and inflates its collision sphere on wide windows.
+	const float gameplayAspect = pcm->rAspect;
 	const float yScreenRange = tanf(pcm->radFOV * 0.5f);
 
-	// These values are also the camera's world/screen conversion scale. The
-	// original RecalcCmFrustrum refreshed them whenever the projection changed.
+	// Match RecalcCmFrustum: rAspect remains the fixed authored camera aspect.
 	pcm->yScreenRange = yScreenRange;
-	pcm->xScreenRange = yScreenRange * camAspect;
+	pcm->xScreenRange = yScreenRange * gameplayAspect;
 	pcm->rMRDAdjust = std::max(1.0f, pcm->rMRD * (1.0f / pcm->radFOV));
-	pcm->sRadiusNearClip = yScreenRange * sqrtf(camAspect * camAspect + 1.0f) * pcm->sNearClip + 1.0f;
+	pcm->sRadiusNearClip = yScreenRange * sqrtf(gameplayAspect * gameplayAspect + 1.0f) * pcm->sNearClip + 1.0f;
 
-	BuildProjectionMatrix(pcm->radFOV, camAspect, pcm->sNearClip, pcm->sFarClip, pcm->matProj);
+	// Only rendering and the extracted world-space frustum use the display
+	// aspect, preserving the wider view without altering gameplay camera logic.
+	BuildProjectionMatrix(renderFov, renderAspect, pcm->sNearClip, pcm->sFarClip, pcm->matProj);
 	UpdateCmMat4(pcm);
 }
 
 CM* NewCm()
 {
-	return new CM{};
+	return NewWorldObject<CM>();
 }
 
 void InitCm(CM* pcm)
@@ -471,15 +494,7 @@ void RemoveCmFadeObject(CM* pcm, ALO* palo)
 
 int FFilterCamera(void* pv, SO* pso)
 {
-	// The original tests the complete packed CMK nibble, not only CMK_Fade.
-	// CMK_Nil is -1, so compare against the one zero-valued mode explicitly.
-	if (pso->cmk != CMK_Translucent)
-		return 1;
-
-	if (!pso->mpibspinpg.empty())
-		return 1;
-
-	return !pso->bspcCamera.absp.empty();
+	return pso->cmk == CMK_Fade || !pso->mpibspinpg.empty();
 }
 
 void UpdateCmFade(CM* pcm)
@@ -578,11 +593,15 @@ void UpdateCmLast(CM* pcm, int fClearCut, float dt)
 				psoFocusProcessed = psoFocus;
 			}
 
-			if (pcplcy->pvtcplcy->pfnUpdateCplcy)
-			{
-				JOY* pjoy = (g_grfjoyt & 1) ? &g_joy : &g_joyZero;
+			JOY* pjoy = (g_grfjoyt & 1) ? &g_joy : &g_joyZero;
+
+			// Manual Free Camera reuses the permanent base CPMAN object at a
+			// higher priority. Dispatch it directly so the PC-only mouse/keyboard
+			// controls do not depend on a generic vtable cast.
+			if (pcm->acpr[0].cpp == CPP_ManualOverride && pcplcy == &pcm->cpman)
+				UpdateCpman(&pcm->cpman, pcpdefi, pjoy, dt);
+			else if (pcplcy->pvtcplcy->pfnUpdateCplcy)
 				pcplcy->pvtcplcy->pfnUpdateCplcy(pcplcy, pcpdefi, pjoy, dt);
-			}
 
 			if (pcm->ccpr < 1 || pcm->acpr[0].pcplcy == pcplcy)
 				break;
@@ -1180,6 +1199,18 @@ void FindCmClosestClearPos(float sRadius, int cpso, SO** apso, glm::vec3* ppos, 
 
 void SquishCmEye(glm::vec3* pposEyePrev, float sdposMax, void* pvContext, int cpso, SO** apso, PFNSQUISHCMEYE pfnConstraint, float sRadius, const glm::vec3* pposEyeNext, glm::vec3* pposEyeClip)
 {
+	const auto finiteVec3 = [](const glm::vec3& value)
+	{
+		return std::isfinite(value.x) && std::isfinite(value.y) && std::isfinite(value.z);
+	};
+
+	if (!finiteVec3(*pposEyePrev) || !finiteVec3(*pposEyeNext) ||
+		!std::isfinite(sdposMax) || !std::isfinite(sRadius))
+	{
+		*pposEyeClip = finiteVec3(*pposEyeNext) ? *pposEyeNext : *pposEyePrev;
+		return;
+	}
+
 	SBI asbi[64];
 	int csbi = 0;
 
@@ -1200,10 +1231,9 @@ void SquishCmEye(glm::vec3* pposEyePrev, float sdposMax, void* pvContext, int cp
 	}
 
 	// A tessellated wall commonly reports the same plane through more than one
-	// SURF.  Passing those parallel constraints to SolveInequalities produces a
-	// singular Gram matrix and lets tiny contact-order changes move the camera
-	// between different solutions on consecutive frames.  Retail's active-set
-	// solver effectively keeps one active copy; do that explicitly here.
+	// SURF. Passing those parallel constraints to SolveInequalities produces a
+	// singular Gram matrix. Keep one active copy of each plane, as retail's
+	// active-set solve effectively does.
 	std::vector<glm::vec3> anormal;
 	std::vector<float> asvMin;
 	anormal.reserve(csbi);
@@ -1214,8 +1244,7 @@ void SquishCmEye(glm::vec3* pposEyePrev, float sdposMax, void* pvContext, int cp
 		const glm::vec3 normal = asbi[i].normal;
 		const float svMin = pfnConstraint(pvContext, sRadius, pposEyeNext, &asbi[i]);
 
-		if (!std::isfinite(normal.x) || !std::isfinite(normal.y) ||
-			!std::isfinite(normal.z) || !std::isfinite(svMin))
+		if (!finiteVec3(normal) || !std::isfinite(svMin))
 			continue;
 
 		int iEquivalent = -1;
@@ -1233,18 +1262,15 @@ void SquishCmEye(glm::vec3* pposEyePrev, float sdposMax, void* pvContext, int cp
 			anormal.push_back(normal);
 			asvMin.push_back(svMin);
 		}
-		else
+		else if (svMin < asvMin[iEquivalent])
 		{
 			// A negative value is a violated constraint, so retain the most
-			// negative (most restrictive) copy of a parallel contact.
-			if (svMin < asvMin[iEquivalent])
-				asvMin[iEquivalent] = svMin;
+			// restrictive copy of equivalent parallel contacts.
+			asvMin[iEquivalent] = svMin;
 		}
 	}
 
-	const int cConstraint = static_cast<int>(anormal.size());
-
-	if (cConstraint == 0)
+	if (anormal.empty())
 	{
 		*pposEyeClip = *pposEyeNext;
 		return;
@@ -1252,15 +1278,14 @@ void SquishCmEye(glm::vec3* pposEyePrev, float sdposMax, void* pvContext, int cp
 
 	glm::vec3 dposClip(0.0f);
 
-	// Enforce the same inequalities as the retail active-set solve:
-	//     asvMin[i] + dot(dposClip, normal[i]) >= 0
-	// Projecting onto each violated half-space is deterministic for duplicate
-	// and nearly dependent planes, unlike the port's singular Crout solve.
+	// Project onto each violated half-space. This stays deterministic with
+	// duplicate and nearly dependent BSP planes and cannot require inversion of
+	// a singular contact matrix.
 	for (int iteration = 0; iteration < 8; ++iteration)
 	{
 		bool fAdjusted = false;
 
-		for (int i = 0; i < cConstraint; ++i)
+		for (int i = 0; i < static_cast<int>(anormal.size()); ++i)
 		{
 			const float gConstraint = asvMin[i] + glm::dot(dposClip, anormal[i]);
 			if (gConstraint < -0.0001f)
@@ -1272,6 +1297,12 @@ void SquishCmEye(glm::vec3* pposEyePrev, float sdposMax, void* pvContext, int cp
 
 		if (!fAdjusted)
 			break;
+	}
+
+	if (!finiteVec3(dposClip))
+	{
+		*pposEyeClip = *pposEyeNext;
+		return;
 	}
 
 	float sdposClip = glm::length(dposClip);
@@ -1294,7 +1325,7 @@ float SvSquishCmEyeConstraint(void* pvContext, float sRadius, const glm::vec3* p
 
 	(void)sRadius;
 
-	GSmooth(psbi->gDist, pcm->sRadiusNearClip - S_CmSquishEye, g_clock.dtReal, &s_smpSquishEye, &sv);
+	GSmooth(psbi->gDist, pcm->sRadiusNearClip - s_smpSquishEye.svFast, g_clock.dtReal, &s_smpSquishEye, &sv);
 
 	return glm::dot(*pvEye, psbi->normal) - sv;
 }
@@ -1302,6 +1333,14 @@ float SvSquishCmEyeConstraint(void* pvContext, float sRadius, const glm::vec3* p
 void ClipCmEye(CM* pcm, const glm::vec3* pposEyePrev, glm::vec3* pposEyeNext, glm::vec3* pposEyeClip)
 {
 	const glm::vec3 posEyeRequested = *pposEyeNext;
+	if (!glm::all(glm::isfinite(posEyeRequested)) ||
+		!glm::all(glm::isfinite(*pposEyePrev)) ||
+		!std::isfinite(g_clock.dtReal) || g_clock.dtReal <= 0.000001f)
+	{
+		*pposEyeClip = glm::all(glm::isfinite(posEyeRequested)) ? posEyeRequested : *pposEyePrev;
+		return;
+	}
+
 	glm::vec3 vEye = (posEyeRequested - *pposEyePrev) / g_clock.dtReal;
 
 	glm::vec3 posMin = *pposEyePrev + s_dposCmSquishMin;
@@ -1311,9 +1350,10 @@ void ClipCmEye(CM* pcm, const glm::vec3* pposEyePrev, glm::vec3* pposEyeNext, gl
 	IntersectSwBoundingBox(g_psw, nullptr, &posMin, &posMax, (PFNFILTER)FFilterCamera, nullptr, apso);
 
 	glm::vec3 vEyeClip;
-	SquishCmEye(const_cast<glm::vec3*>(pposEyePrev), glm::length(vEye) + SV_CmSquishEyeSlack, pcm, static_cast<int>(apso.size()), apso.data(), SvSquishCmEyeConstraint, S_CmSquishEye, &vEye, &vEyeClip);
+	SquishCmEye(const_cast<glm::vec3*>(pposEyePrev), glm::length(vEye) + s_smpSquishEye.svSlow, pcm, static_cast<int>(apso.size()), apso.data(), SvSquishCmEyeConstraint, s_smpSquishEye.svFast, &vEye, &vEyeClip);
 
-	*pposEyeClip = *pposEyePrev + vEyeClip * g_clock.dtReal;
+	const glm::vec3 clipped = *pposEyePrev + vEyeClip * g_clock.dtReal;
+	*pposEyeClip = glm::all(glm::isfinite(clipped)) ? clipped : posEyeRequested;
 }
 
 void PushCmLookk(CM* pcm, LOOKK lookk)
@@ -1428,7 +1468,7 @@ bool SphereInFrustum(const FRUSTUM& frustum, const glm::vec3& center, float radi
 
 void DeleteCm(CM *pcm)
 {
-	delete pcm;
+	ReleaseWorldObject(pcm);
 }
 
 CMLK g_cmlk;
@@ -1451,11 +1491,6 @@ float s_acCmClearSamples[9] =
 
 glm::vec3 s_dposCmSquishMin = {-250, -250, -250};
 glm::vec3 s_dposCmSquishMax = {250, 250, 250};
-// Retail data at 0x00261958: { 2500.0f, 0.0f, 0.25f }.
-// svFast is also the camera collision sphere radius, while svSlow is the
-// additional correction-length allowance used by ClipCmEye.
-float SV_CmSquishEyeSlack = 0.0f;
-float S_CmSquishEye = 2500.0f;
 SMP s_smpSquishEye = {2500.0f, 0.0f, 0.25f};
 SMPA s_smpaRadFOV = {0.5, 0.0, 0.1, 10.0};
 float g_uFogMax = 0.5;

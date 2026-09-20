@@ -3,6 +3,11 @@
 
 #define MAX_SHADOWS 255
 
+// Texture units 0-2 are reserved for the ambient, diffuse, and saturate
+// material maps. All projected shadows share one array texture on unit 3.
+inline constexpr int SHADOW_TEXTURE_UNIT = 3;
+inline constexpr int MAX_PROJECTED_SHADOW_LAYERS = 64;
+
 struct SHADOWBLK
 {
     glm::mat4 matWorldToUv;
@@ -12,8 +17,8 @@ struct SHADOWBLK
     float wMax;
     float gReserved;
     float wFadeMin;
-    uint32_t textureHandle[2];
-    uint32_t _pad0[2];
+    int textureSlot;
+    int _pad0[3];
     glm::vec4 posEffect;
     float sRadiusEffect;
     int   fDynamic;
@@ -55,6 +60,8 @@ class SHADOW
     DLE dle;
     SHADOWBLK rsh;
     int ssboIndex;
+    int textureSlot;
+    GLuint glTexture;
 };
 
 void InitSwShadowDl(SW* psw);
@@ -81,6 +88,7 @@ void UpdateShadow(SHADOW* pshadow, float dt);
 void RebuildShadow(SHADOW* pshadow);
 void AllocateShadows(SW* psw);
 void PrepareSwShadows(SW* psw, CM* pcm);
+void BindSwShadowTextures(SW* psw);
 void DeallocateSwShadows();
 
 extern GLuint shadowSsbo;

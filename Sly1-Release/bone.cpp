@@ -2,7 +2,7 @@
 
 BONE* NewBone()
 {
-    return new BONE{};
+    return NewWorldObject<BONE>();
 }
 
 int GetBoneSize()
@@ -23,12 +23,12 @@ void RenderBoneSelf(BONE* pbone, CM* pcm, RO* pro)
 
 void DeleteBone(BONE* pbone)
 {
-    delete pbone;
+    ReleaseWorldObject(pbone);
 }
 
 LBONE* NewLBone()
 {
-    return new LBONE{};
+    return NewWorldObject<LBONE>();
 }
 
 int GetLBoneSize()
@@ -99,7 +99,7 @@ void RenderAloAsBone(ALO* palo, CM* pcm, RO* pro)
 
 void DeleteLBone(LBONE* plbone)
 {
-    delete plbone;
+    ReleaseWorldObject(plbone);
 }
 
 int g_fShowBones = 0;

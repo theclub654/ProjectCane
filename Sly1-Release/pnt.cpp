@@ -2,7 +2,7 @@
 
 PNT* NewPnt()
 {
-	return new PNT{};
+	return NewWorldObject<PNT>();
 }
 
 int GetPntSize()
@@ -51,5 +51,5 @@ void ApplyPntProxy(PNT* ppnt, PROXY* pproxyApply)
 
 void DeletePnt(PNT* ppnt)
 {
-	delete ppnt;
+	ReleaseWorldObject(ppnt);
 }

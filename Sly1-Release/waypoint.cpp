@@ -4,7 +4,7 @@
 
 WAYPOINT* NewWaypoint()
 {
-	return new WAYPOINT{};
+	return NewWorldObject<WAYPOINT>();
 }
 
 void InitWaypoint(WAYPOINT* pwaypoint)
@@ -194,7 +194,7 @@ void EnsureWpsgCallback(WPSG* pwpsg)
 
 void DeleteWaypoint(WAYPOINT* pwaypoint)
 {
-	delete pwaypoint;
+	ReleaseWorldObject(pwaypoint);
 }
 
 VTWPSG g_vtwpsg;

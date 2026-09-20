@@ -55,6 +55,7 @@ bool FInvulnerableJt(JT* pjt, int damageKind);
 void OnJtDead(JT *pjt);
 void DrawJtHaloElectric(RPL* prpl);
 void DrawJtHaloFire(RPL* prpl);
+void DrawJtRollElectic(RPL* prpl);
 void DrawHaloSpks(glm::vec3* pposRoot, int cspks, SPKS* aspks, SPKD* pspkd, RPL* prpl);
 void RenderJtSelfZap(JT* pjt, CM* pcm, RO* pro);
 JTHS JthsCurrentJt(JT* pjt);

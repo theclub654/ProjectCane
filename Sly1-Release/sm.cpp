@@ -3,7 +3,7 @@
 
 SM* NewSm()
 {
-	return new SM{};
+	return NewWorldObject<SM>();
 }
 
 int GetSmSize()
@@ -712,5 +712,5 @@ void NotifySmaSpliceOnEnterState(SMA* psma, int ismsFrom, int ismsTo)
 
 void DeleteSm(SM* psm)
 {
-	delete psm;
+	ReleaseWorldObject(psm);
 }

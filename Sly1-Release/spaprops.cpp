@@ -1579,7 +1579,7 @@ void BuildEopids()
 	g_aeopid[293].optdat.ibSetUser = static_cast<std::intptr_t>(offsetof(ALARM, dtReset));
 	g_aeopid[293].optdat.fDef = 0;
 
-	g_aeopid[294].otyp = OTYP_Sensm;
+	g_aeopid[294].otyp = OTYP_Alarms;
 	g_aeopid[294].grfeopid = 2;
 	g_aeopid[294].optdat.ibGet = static_cast<std::intptr_t>(offsetof(ALARM, alarms));
 
@@ -1641,7 +1641,7 @@ void BuildEopids()
 
 	g_aeopid[306].grfeopid = 2194;
 	g_aeopid[306].optdat.ibGet = static_cast<std::intptr_t>(offsetof(SENSOR, sensorsInitial));
-	g_aeopid[306].otyp = OTYP_Csdts;
+	g_aeopid[306].otyp = OTYP_Sensors;
 	g_aeopid[306].optdat.ibSet = static_cast<std::intptr_t>(offsetof(SENSOR, sensorsInitial));
 	g_aeopid[306].optdat.ibSetUser = static_cast<std::intptr_t>(offsetof(SENSOR, sensorsInitial));
 	g_aeopid[306].optdat.fDef = 1;
@@ -1652,11 +1652,11 @@ void BuildEopids()
 
 	g_aeopid[308].optdat.ibGet = static_cast<std::intptr_t>(offsetof(SENSOR, sensors));
 	g_aeopid[308].grfeopid = 2;
-	g_aeopid[308].otyp = OTYP_Csdts;
+	g_aeopid[308].otyp = OTYP_Sensors;
 
 	g_aeopid[309].optdat.ibGet = static_cast<std::intptr_t>(offsetof(SENSOR, sensm));
 	g_aeopid[309].grfeopid = 2;
-	g_aeopid[309].otyp = OTYP_Lask;
+	g_aeopid[309].otyp = OTYP_Sensm;
 
 	g_aeopid[310].optdat.ibSet = static_cast<std::intptr_t>(offsetof(SENSOR, fRemainDisabledIndefinite));
 	g_aeopid[310].grfeopid = 18;
@@ -1673,7 +1673,7 @@ void BuildEopids()
 	g_aeopid[312].otyp = OTYP_Void;
 	g_aeopid[312].optdat.ibSet = 0;
 
-	g_aeopid[313].otyp = OTYP_Pssat;
+	g_aeopid[313].otyp = OTYP_Lask;
 	g_aeopid[313].grfeopid = 2194;
 	g_aeopid[313].optdat.ibGet = static_cast<std::intptr_t>(offsetof(LASEN, lask));
 	g_aeopid[313].optdat.ibSet = static_cast<std::intptr_t>(offsetof(LASEN, lask));
@@ -1719,7 +1719,7 @@ void BuildEopids()
 	g_aeopid[319].optdat.ibSet = static_cast<std::intptr_t>(offsetof(CAMSEN, dtDamageUnfocus));
 	g_aeopid[319].optdat.ibSetUser = static_cast<std::intptr_t>(offsetof(CAMSEN, dtDamageUnfocus));
 
-	g_aeopid[320].otyp = OTYP_Rchmk;
+	g_aeopid[320].otyp = OTYP_Csdts;
 	g_aeopid[320].grfeopid = 2;
 	g_aeopid[320].optdat.ibGet = static_cast<std::intptr_t>(offsetof(CAMSEN, csdts));
 
@@ -8922,9 +8922,9 @@ CRef RefThunkWarpTRIGGER(BASIC* pbasic, int carg, CRef* aref)
 
 CRef RefThunkExplsEXPLODE(BASIC* pbasic, int carg, CRef* aref)
 {
-	EXPL* pexpl = static_cast<EXPL*>(pbasic);
+    EXPL* pexpl = static_cast<EXPL*>(pbasic);
 
-	ExplodeExpl(pexpl);
+    ExplodeExpl(pexpl);
 
 	CRef ref;
 	ref.SetTag(TAGK_Void);
@@ -8933,9 +8933,9 @@ CRef RefThunkExplsEXPLODE(BASIC* pbasic, int carg, CRef* aref)
 
 CRef RefThunkExplsEXPLODE_OVR(BASIC* pbasic, int carg, CRef* aref)
 {
-	EXPL* pexpl = static_cast<EXPL*>(pbasic);
+    EXPL* pexpl = static_cast<EXPL*>(pbasic);
 
-	const int grfexplso = static_cast<int>(aref[0].RefCoerceS32().m_n);
+    const int grfexplso = static_cast<int>(aref[0].RefCoerceS32().m_n);
 	ALO* paloReference = static_cast<ALO*>(aref[1].m_pbasic);
 	glm::vec3 normal = aref[2].m_vector;
 	glm::vec3 posOrigin = aref[3].m_vector;

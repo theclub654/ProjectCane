@@ -517,6 +517,90 @@ void DrawJtHaloFire(RPL* prpl)
     DrawHaloSpks(&pjt->xf.posWorld, cspks, pjt->aspks.data(), &spkdFire, prpl);
 }
 
+void DrawJtRollElectic(RPL* prpl)
+{
+    if (prpl == nullptr || prpl->palo == nullptr || g_pcm == nullptr)
+        return;
+
+    JT* pjt = static_cast<JT*>(prpl->palo);
+
+    // Retail's Roll barrier uses its own radial spark descriptor and shader
+    // 348. It is submitted by RenderJtSelfZap; psoBallEffect is only the
+    // matching gameplay/collision volume.
+    static SPKD spkdRollElectric = []
+    {
+        SPKD spkd{};
+        spkd.spkk = SPKK_Radial;
+        spkd.uRepeat = 5.0f;
+        spkd.svu = 1.0f;
+
+        spkd.aspkr[0].clq = { 0.0f, 0.0f, 0.0f };
+        spkd.aspkr[0].v = 0.0f;
+        spkd.aspkr[0].dz = 0.0f;
+        spkd.aspkr[0].rgba = glm::vec4(0.0f);
+
+        // DrawHaloSpks in ProjectCane works in pixel-scaled screen space,
+        // unlike retail's normalized GS screen coordinates. Express the
+        // same narrow barrier as scale-plus-pixel-width rings here; using
+        // retail's raw 25.0 coefficient expands the strip across the screen.
+        spkd.aspkr[1].clq = { 0.0f, 0.92f, 0.0f };
+        spkd.aspkr[1].v = 0.5f;
+        spkd.aspkr[1].dz = -96.0f;
+        spkd.aspkr[1].rgba = glm::vec4(1.0f);
+
+        spkd.aspkr[2].clq = { 5.0f, 1.08f, 0.0f };
+        spkd.aspkr[2].v = 1.0f;
+        spkd.aspkr[2].dz = 0.0f;
+        spkd.aspkr[2].rgba = glm::vec4(1.0f);
+        return spkd;
+    }();
+
+    spkdRollElectric.apshd[0] = nullptr;
+    spkdRollElectric.apshd[1] = PshdFindShader((OID)348);
+
+    // DAT_002750a8 in retail is not the normal body SPKS table. It is this
+    // camera-facing 17-point unit circle, scaled to a radius of 60. Reusing
+    // pjt->aspks here makes the convex hull follow Sly's limbs and produces
+    // the large inward spikes seen in ProjectCane.
+    static constexpr glm::vec2 s_avecRollElectric[17] =
+    {
+        {  1.00000000f,  0.00000000f },
+        {  0.93247220f,  0.36124167f },
+        {  0.73900890f,  0.67369560f },
+        {  0.44573835f,  0.89516330f },
+        {  0.09226836f,  0.99573416f },
+        { -0.27366298f,  0.96182567f },
+        { -0.60263460f,  0.79801720f },
+        { -0.85021716f,  0.52643216f },
+        { -0.98297310f,  0.18374951f },
+        { -0.98297310f, -0.18374951f },
+        { -0.85021716f, -0.52643216f },
+        { -0.60263460f, -0.79801720f },
+        { -0.27366298f, -0.96182567f },
+        {  0.09226836f, -0.99573416f },
+        {  0.44573835f, -0.89516330f },
+        {  0.73900890f, -0.67369560f },
+        {  0.93247220f, -0.36124167f }
+    };
+
+    constexpr float sRollElectric = 60.0f;
+    std::array<ALO, 17> aaloPoint{};
+    std::array<SPKS, 17> aspks{};
+
+    for (size_t i = 0; i < aspks.size(); ++i)
+    {
+        aaloPoint[i].xf.posWorld =
+            pjt->xf.posWorld +
+            g_pcm->mat[1] * (s_avecRollElectric[i].x * sRollElectric) +
+            g_pcm->mat[2] * (s_avecRollElectric[i].y * sRollElectric);
+
+        aspks[i].sRadius = 0.0f;
+        aspks[i].palo = &aaloPoint[i];
+    }
+
+    DrawHaloSpks(&pjt->xf.posWorld, static_cast<int>(aspks.size()), aspks.data(), &spkdRollElectric, prpl);
+}
+
 void DrawHaloSpks(glm::vec3* pposRoot, int cspks, SPKS* aspks, SPKD* pspkd, RPL* prpl)
 {
     if (pposRoot == nullptr || aspks == nullptr || pspkd == nullptr || prpl == nullptr || g_pcm == nullptr || cspks <= 0)
@@ -687,9 +771,9 @@ void DrawHaloSpks(glm::vec3* pposRoot, int cspks, SPKS* aspks, SPKD* pspkd, RPL*
 
         TEX& tex = pshd->atex[0];
         BMP* pbmp = tex.abmp[0];
-        const GLuint64 handle = !tex.hDiffuseMap.empty() && tex.hDiffuseMap[0] != 0
-            ? tex.hDiffuseMap[0] : (pbmp != nullptr ? pbmp->hDiffuseMap : 0);
-        if (handle == 0)
+        const GLuint texture = !tex.glDiffuseMap.empty() && tex.glDiffuseMap[0] != 0
+            ? tex.glDiffuseMap[0] : (pbmp != nullptr ? pbmp->glDiffuseMap : 0);
+        if (texture == 0)
             continue;
 
         // Retail emits one strip between two adjacent SPKR rings per shader:
@@ -738,7 +822,7 @@ void DrawHaloSpks(glm::vec3* pposRoot, int cspks, SPKS* aspks, SPKD* pspkd, RPL*
         if (vertices.size() < 6)
             continue;
 
-        glUniformHandleui64ARB(glslDiffuseMap, handle);
+        BindGlobOneWayTexture(texture);
         const GLsizeiptr size = static_cast<GLsizeiptr>(vertices.size() * sizeof(SQTRGPU));
         glBufferData(GL_ARRAY_BUFFER, size, nullptr, GL_STREAM_DRAW);
         glBufferSubData(GL_ARRAY_BUFFER, 0, size, vertices.data());
@@ -753,9 +837,12 @@ void DrawHaloSpks(glm::vec3* pposRoot, int cspks, SPKS* aspks, SPKD* pspkd, RPL*
 
 void RenderJtSelfZap(JT* pjt, CM* pcm, RO* pro)
 {
-    (void)pro;
+    const bool fZapHalo = pjt->jtbs > JTBS_Zap_Blunt && pjt->jtbs < JTBS_Zap_Water;
+    const bool fElectricRoll =
+        pjt->jtbs == 55 &&
+        (GetAvailableVaultFlags() & 0x400U) != 0;
 
-    if (pjt->jtbs > JTBS_Zap_Blunt && pjt->jtbs < JTBS_Zap_Water)
+    if (fZapHalo || fElectricRoll)
     {
         RPL rpl{};
 
@@ -763,7 +850,19 @@ void RenderJtSelfZap(JT* pjt, CM* pcm, RO* pro)
 
         rpl.rp = RP_Translucent;
         rpl.z = glm::dot(dposCamera, pcm->mat[0]);
-        if (pjt->jtbs == JTBS_Zap_Electric)
+        if (fElectricRoll)
+        {
+            rpl.PFNDRAWRPL = DrawJtRollElectic;
+            rpl.palo = pjt;
+            rpl.ro.model = glm::mat4(1.0f);
+            rpl.ro.uAlpha = pro != nullptr ? pro->uAlpha : 1.0f;
+            rpl.ro.darken = 1.0f;
+            rpl.ro.warpType = WARP_NONE;
+
+            if (g_translucentAddCount < static_cast<int>(g_translucentAddPrpl.size()))
+                g_translucentAddPrpl[g_translucentAddCount++] = rpl;
+        }
+        else if (pjt->jtbs == JTBS_Zap_Electric)
         {
             rpl.PFNDRAWRPL = DrawJtHaloElectric;
             rpl.palo = pjt;
@@ -812,7 +911,7 @@ void RenderJtSelfZap(JT* pjt, CM* pcm, RO* pro)
         colorOverride.a = g_rgbaCel.a;
     }
 
-    SetAloOverrideCel(pjt, &colorOverride);
+    SetAloOverrideCelFloat(pjt, &colorOverride);
 }
 
 JTHS JthsCurrentJt(JT* pjt)

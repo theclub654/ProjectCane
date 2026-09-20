@@ -571,7 +571,8 @@ void SetAloInteractShock(ALO* palo, int grfic);
 void SetAloPoseCombo(ALO* palo, OID oidCombo);
 void SetAloForceCameraFade(ALO* palo, int fFade);
 void SetAloCelRgba(ALO* palo, RGBA prgba);
-void SetAloOverrideCel(ALO* palo, glm::vec4* rgba);
+void SetAloOverrideCel(ALO* palo, RGBA rgba);
+void SetAloOverrideCelFloat(ALO* palo, const glm::vec4* rgba);
 void UpdateAloThrob(ALO* palo, float dt);
 void SetAloBlotContext(ALO* palo, BLOT* pblot);
 //GOTTA COME BACK TO THIS

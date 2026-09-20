@@ -12,7 +12,7 @@ void ResetTargetList()
 
 TARGET* NewTarget()
 {
-	return new TARGET{};
+	return NewWorldObject<TARGET>();
 }
 
 void InitTarget(TARGET* ptarget)
@@ -84,7 +84,7 @@ void CloneTarget(TARGET* ptarget, TARGET* ptargetBase)
 
 void DeleteTarget(TARGET* ptarget)
 {
-	delete ptarget;
+	ReleaseWorldObject(ptarget);
 }
 
 DL g_dlTarget;

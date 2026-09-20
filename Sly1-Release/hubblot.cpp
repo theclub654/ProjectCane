@@ -92,7 +92,14 @@ void UpdateHubBlotActive(HUBBLOT* phubblot, JOY* pjoy)
                 if (g_wmc.blots != BLOTS_Hidden)
                     return;
 
-                g_wmc.pwmCurrent = g_wmc.apwm[phubsel->gameWorldSelected];
+                const GAMEWORLD gameWorld = phubsel->gameWorldSelected;
+                if (gameWorld < GAMEWORLD_Underwater || gameWorld >= GAMEWORLD_Max)
+                    return;
+
+                g_wmc.pwmCurrent = g_wmc.apwm[gameWorld];
+                if (g_wmc.pwmCurrent == nullptr)
+                    return;
+
                 PushUiActiveBlot(&g_ui, &g_wmc);
                 return;
             }

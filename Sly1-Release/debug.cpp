@@ -6,6 +6,8 @@
 #include "timer.h"
 #include "steppower.h"
 #include "game.h"
+#include "zap.h"
+#include "hubsel.h"
 
 static bool s_fInfiniteTimer = false;
 static float s_svtTimerBeforeCheat = -1.0f;
@@ -259,13 +261,66 @@ void RenderMenuGui(SW* psw)
 
         if (ImGui::BeginMenu("Cheats"))
         {
+            bool fManualFreeCamera = false;
+
+            if (g_pcm != nullptr)
+            {
+                for (int icpr = 0; icpr < g_pcm->ccpr; ++icpr)
+                {
+                    const CPR& cpr = g_pcm->acpr[icpr];
+                    if (cpr.cpp == CPP_ManualOverride && cpr.pcplcy == &g_pcm->cpman)
+                    {
+                        fManualFreeCamera = true;
+                        break;
+                    }
+                }
+            }
+
+            if (ImGui::MenuItem("Manual Free Camera", nullptr, &fManualFreeCamera,
+                g_pcm != nullptr))
+            {
+                if (fManualFreeCamera)
+                {
+                    // Seed the mouse-look angles from the current camera so
+                    // the first click does not snap to CPMAN's old angles.
+                    const glm::mat3 glBasis = ConvertGameCameraBasisToGl(g_pcm->mat);
+                    const glm::vec3 forward = -glBasis[2];
+                    g_pcm->yaw = glm::degrees(std::atan2(-forward.x, forward.y));
+                    g_pcm->pitch = glm::degrees(std::asin(glm::clamp(forward.z, -1.0f, 1.0f)));
+
+                    SetCpmanCpmt(&g_pcm->cpman, CPMT_Truck);
+                    SetCmPolicy(g_pcm, CPP_ManualOverride, &g_pcm->cpman, nullptr, nullptr);
+                }
+                else
+                {
+                    // Match both the priority and policy so the permanent
+                    // CPP_Base CPMAN entry remains installed.
+                    RevokeCmPolicy(g_pcm, static_cast<GRFRCP>(3),
+                        CPP_ManualOverride, &g_pcm->cpman, nullptr, nullptr);
+
+                    if (g_gl.window != nullptr)
+                        glfwSetInputMode(g_gl.window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+                }
+            }
+
+            if (ImGui::IsItemHovered())
+                g_fDisableInput = true;
+
+            ImGui::Separator();
+
             const bool fCanSetCharms = g_pgsCur != nullptr;
 
-            if (ImGui::MenuItem("Give Sly 1 Charm", nullptr, false, fCanSetCharms))
+            if (ImGui::MenuItem("Give 1 Charm", nullptr, false, fCanSetCharms))
                 SetCcharm(1);
 
-            if (ImGui::MenuItem("Give Sly 2 Charms", nullptr, false, fCanSetCharms))
+            if (ImGui::MenuItem("Give 2 Charms", nullptr, false, fCanSetCharms))
                 SetCcharm(2);
+
+            if (ImGui::MenuItem("Set Coins to 98", nullptr, false, g_pgsCur != nullptr))
+            {
+                g_pgsCur->ccoin = 98;
+                g_coinctr.pvtblot->pfnShowBlot(&g_coinctr);
+            }
 
             const bool fCanUnlockPowerUps = g_pgsCur != nullptr && psw != nullptr;
 
@@ -275,6 +330,14 @@ void RenderMenuGui(SW* psw)
 
                 for (int ifsp = 0; ifsp < FSP_Max; ++ifsp)
                     grfvaultPowerUps |= s_agrfvaultFsp[ifsp];
+
+                // The first 17 retail instruction flags include every
+                // selectable and passive power-up.  Several passives are not
+                // represented in s_agrfvaultFsp, including water safety
+                // (0x0100), rail/rope protection (0x2000), and anti-gravity
+                // pit protection (0x4000).
+                for (int iPowerUp = 0; iPowerUp < 17; ++iPowerUp)
+                    grfvaultPowerUps |= s_agrfvaultInstruct[iPowerUp];
 
                 // Passive Binocucom scan upgrade. Unlike the seven
                 // selectable FSP abilities, this is consumed directly by
@@ -311,7 +374,7 @@ void RenderMenuGui(SW* psw)
             }
 
             bool fInvulnerable = (g_grfcht & 1U) != 0;
-            if (ImGui::MenuItem("Sly Invulnerable", nullptr, &fInvulnerable))
+            if (ImGui::MenuItem("Invulnerable", nullptr, &fInvulnerable))
             {
                 if (fInvulnerable)
                     g_grfcht |= 1U;
@@ -333,33 +396,36 @@ void RenderMenuGui(SW* psw)
                 }
             }
 
+            ImGui::MenuItem("Disable Death Barriers", nullptr, &g_fDisableDeathBarriers);
+
             ImGui::Separator();
 
-            const bool fCanVisitLevels =
-                g_pgsCur != nullptr &&
-                g_pgsCur->gameWorldCur >= GAMEWORLD_Intro &&
-                g_pgsCur->gameWorldCur < GAMEWORLD_Max;
+            const bool fCanVisitLevels = g_pgsCur != nullptr;
 
-            if (ImGui::MenuItem("Mark All Levels Visited (Current World)", nullptr, false, fCanVisitLevels))
+            if (ImGui::MenuItem("Mark All Worlds Visited", nullptr, false, fCanVisitLevels))
             {
-                const GAMEWORLD gameWorld = g_pgsCur->gameWorldCur;
-                WS& worldState = g_pgsCur->aws[gameWorld];
-
-                // Match normal level entry: mark the world and each real level
-                // in its LEVELINFO table visited without granting objectives.
-                worldState.fws |= FWS_Visited;
+                // Match normal world/level entry without granting keys, vaults,
+                // sprints, or completion. Visited worlds are selectable from
+                // the hideout hub selector.
+                for (int gameWorld = GAMEWORLD_Intro; gameWorld < GAMEWORLD_Max; ++gameWorld)
+                    g_pgsCur->aws[gameWorld].fws |= FWS_Visited;
 
                 for (const LEVELINFO& levelInfo : g_levelTable)
                 {
-                    if ((levelInfo.levelID >> 8) != gameWorld)
+                    const int gameWorld = levelInfo.levelID >> 8;
+                    if (gameWorld < GAMEWORLD_Intro || gameWorld >= GAMEWORLD_Max)
                         continue;
 
                     const int worldLevel = levelInfo.levelID & 0xff;
                     if (worldLevel < 0 || worldLevel >= WORLDLEVEL_Max)
                         continue;
 
-                    worldState.als[worldLevel].grfls |= FLS_Visited;
+                    g_pgsCur->aws[gameWorld].als[worldLevel].grfls |= FLS_Visited;
                 }
+
+                // Also refresh an already-open hideout selector instead of
+                // requiring the player to leave and re-enter it.
+                UnlockAllHubWorlds();
             }
 
             const bool fCanUnlockKeys =
