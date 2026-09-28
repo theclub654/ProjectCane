@@ -1,8 +1,8 @@
 #include "hologram.h"
 
-HOLOGRAM* NewHologram()
+std::shared_ptr<HOLOGRAM> NewHologram()
 {
-    return new HOLOGRAM{};
+    return std::make_shared<HOLOGRAM>();
 }
 
 void LoadHologramFromBrx(HOLOGRAM* phologram, CBinaryInputStream* pbis)

@@ -82,9 +82,9 @@ struct SAAF
 };
 
 // Returns size and type of shader animation
-void* NewSaa(SAAK saak);
+std::shared_ptr<SAA> NewSaa(SAAK saak);
 // Loads shader animation from binary file
-SAA* PsaaLoadFromBrx(CBinaryInputStream *pbis);
+std::shared_ptr<SAA> PsaaLoadFromBrx(CBinaryInputStream *pbis);
 VTSAA* PvtsaaFromSaak(SAAK saak);
 void  InitSaa(SAA* psaa, SAAF* psaaf);
 void  PostSaaLoad(SAA* psaa);

@@ -59,7 +59,6 @@ class HPNT : public PNT
 	struct TN* ptnHide;
 	int fTunnel;
 	int fDetect;
-	float dzIgnore;
 	float dzJumpTargetMax;
 	int unkInt;
 };
@@ -134,7 +133,7 @@ void OnHpntRemove(HPNT* phpnt);
 void CloneHpnt(HPNT* phpnt, HPNT* phpntBase);
 void BindHpnt(HPNT* phpnt);
 void GetHpntClosestHidePos(HPNT* phpnt, float sParam, glm::vec3* pposHide, float* pradTarget);
-void GetHpntHidePos(HPNT* phpnt, float sParam, glm::vec3* pposHide, float* pradTarget);
+void GetHpntHidePos(HPNT* phpnt, glm::vec3* pposHide, float* pradTarget);
 void DeleteHpnt(HPNT* phpnt);
 
 extern DL g_dlHbsk;

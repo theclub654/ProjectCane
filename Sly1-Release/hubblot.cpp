@@ -1,10 +1,12 @@
 #include "hubblot.h"
+#include "gui_layout.h"
 #include "hubsel.h"
 #include "sm.h"
 #include "binoc.h"
 #include "wm.h"
 #include "fmv.h"
 #include "totals.h"
+#include "gl.h"
 
 void StartupHubBlot(HUBBLOT* phublot)
 {
@@ -33,7 +35,9 @@ void PostHubBlotLoad(HUBBLOT* phubblot)
 
 	phubblot->phubsel = nullptr;
 
-	phubblot->rgba = glm::vec4(127.0f / 255.0f, 127.0f / 255.0f, 127.0f / 255.0f, 223.0f / 255.0f);
+	// Retail stores PS2 GS colors, where 0x80 is full RGB intensity.
+	phubblot->rgba = glm::vec4(127.0f / 128.0f, 127.0f / 128.0f,
+		127.0f / 128.0f, 223.0f / 255.0f);
 
 	phubblot->fWaitVag = 0;
 	phubblot->tHintLast = -g_dtHubHint;
@@ -168,9 +172,36 @@ void DrawHubBlot(HUBBLOT* phubblot)
 	glm::vec4 color = phubblot->rgba;
 	color.a *= phubblot->uOn;
 
+	// HUBBLOT is authored in the PS2's 640 x 492.8 canvas. It is centered
+	// horizontally and anchored to the bottom, so scale its extents and correct
+	// both anchors without disturbing the BLOT appear/disappear position.
+	const GuiScale guiScale = GetGuiScale();
+	const float scaleX = guiScale.x;
+	const float scaleY = guiScale.y;
+	const float dx = phubblot->dx * scaleX;
+	const float dy = phubblot->dy * scaleY;
+	float x = phubblot->x;
+	float y = phubblot->y;
+
+	if (phubblot->pbloti != nullptr)
+	{
+		if (phubblot->pbloti->x < 0.0f)
+			x -= dx - phubblot->dx;
+		else if (phubblot->pbloti->x == 0.0f)
+			x -= (dx - phubblot->dx) * 0.5f;
+
+		if (phubblot->pbloti->y < 0.0f)
+			y -= dy - phubblot->dy;
+		else if (phubblot->pbloti->y == 0.0f)
+			y -= (dy - phubblot->dy) * 0.5f;
+
+		x += phubblot->pbloti->x * (scaleX - 1.0f);
+		y += phubblot->pbloti->y * (scaleY - 1.0f);
+	}
+
 	CTextBox textBox;
-	textBox.SetPos(phubblot->x, phubblot->y);
-	textBox.SetSize(phubblot->dx, phubblot->dy);
+	textBox.SetPos(x, y);
+	textBox.SetSize(dx, dy);
 	textBox.SetTextColor(&color);
 	textBox.SetHorizontalJust(JH_Center);
 	textBox.SetVerticalJust(JV_Center);
@@ -187,9 +218,9 @@ void DrawHubBlot(HUBBLOT* phubblot)
 	}
 
 	const float pulse = std::sin(g_clock.tReal * 10.0f) * 0.5f + 0.5f;
-	const float scale = phubblot->rFontScale * (0.9f + pulse * 0.1f);
+	const float pulseScale = phubblot->rFontScale * (0.9f + pulse * 0.1f);
 
-	phubblot->pfont->PushScaling(scale, scale);
+	phubblot->pfont->PushScaling(pulseScale * scaleX, pulseScale * scaleY);
 	CRichText richText(phubblot->achzDraw, phubblot->pfont);
 	richText.Draw(&textBox, nullptr);
 	phubblot->pfont->PopScaling();

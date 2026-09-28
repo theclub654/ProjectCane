@@ -1,4 +1,5 @@
 #include "blot.h"
+#include "gui_layout.h"
 #include "totals.h"
 #include "gl.h"
 
@@ -575,14 +576,24 @@ void DrawBlot(BLOT* pblot)
     tbx.SetHorizontalJust(JH_Left);
     tbx.SetVerticalJust(JV_Top);
 
-    // If edge text effect is enabled, draw it
+    const GuiScale guiScale = GetGuiScale();
+    const float scaleX = guiScale.x;
+    const float scaleY = guiScale.y;
+
+    // If edge text effect is enabled, draw it. EdgeRect owns a separate font
+    // scale, so convert that scale from PS2 canvas units as well.
     if (pblot->pte && pblot->pte->m_pfont) {
+        const float edgeScaleX = pblot->pte->m_rxScaling;
+        const float edgeScaleY = pblot->pte->m_ryScaling;
+        pblot->pte->m_rxScaling *= scaleX;
+        pblot->pte->m_ryScaling *= scaleY;
         pblot->pte->m_pfont->EdgeRect(pblot->pte, &tbx);
+        pblot->pte->m_rxScaling = edgeScaleX;
+        pblot->pte->m_ryScaling = edgeScaleY;
     }
-    
-    // Push font scale
-    float scale = pblot->rFontScale * g_guiScale;
-    pblot->pfont->PushScaling(scale, scale);
+
+    pblot->pfont->PushScaling(pblot->rFontScale * scaleX,
+        pblot->rFontScale * scaleY);
 
     // Draw the text using the current font and text box
     pblot->pfont->DrawPchz(pblot->achzDraw, &tbx);
@@ -593,8 +604,11 @@ void DrawBlot(BLOT* pblot)
 
 void GetGuiScaledBlotRect(BLOT* pblot, float* px, float* py, float* pdx, float* pdy)
 {
-    const float dx = pblot->dx * g_guiScale;
-    const float dy = pblot->dy * g_guiScale;
+    const GuiScale guiScale = GetGuiScale();
+    const float scaleX = guiScale.x;
+    const float scaleY = guiScale.y;
+    const float dx = pblot->dx * scaleX;
+    const float dy = pblot->dy * scaleY;
     float x = pblot->x;
     float y = pblot->y;
 
@@ -609,6 +623,106 @@ void GetGuiScaledBlotRect(BLOT* pblot, float* px, float* py, float* pdx, float* 
             y -= dy - pblot->dy;
         else if (pblot->pbloti->y == 0.0f)
             y -= (dy - pblot->dy) * 0.5f;
+
+        // RepositionBlot applies the original PS2 edge margin directly in
+        // output pixels. Scale that authored margin to the active canvas.
+        x += pblot->pbloti->x * (scaleX - 1.0f);
+        y += pblot->pbloti->y * (scaleY - 1.0f);
+
+        // A pegged blot is positioned from an edge of another blot. Account
+        // for that edge's scaled position and extent as well; scaling only the
+        // dependent's own margin causes peg chains (for example key below
+        // clue) to collapse into each other at resolutions above the PS2
+        // canvas size.
+        BLOTI* pegPlacement = pblot->pbloti;
+        int pegDepth = 0;
+        while (pegPlacement->blotkPeg != BLOTK_Nil && pegDepth++ < BLOTK_Max)
+        {
+            const BLOTK pegKey = pegPlacement->blotkPeg;
+            if (pegKey < 0 || pegKey >= BLOTK_Max)
+                break;
+
+            BLOT* pegBlot = PblotFromBlotk(pegKey);
+            if (pegBlot != nullptr &&
+                pegBlot->pvtblot->pfnFIncludeBlotForPeg(pegBlot, pblot))
+            {
+                float pegX, pegY, pegDx, pegDy;
+                GetGuiScaledBlotRect(pegBlot, &pegX, &pegY, &pegDx, &pegDy);
+
+                switch (pegPlacement->blotePeg)
+                {
+                    case BLOTE_Left:
+                    if (pegBlot->dx != 0.0f)
+                        x += (pegX + pegDx) - (pegBlot->x + pegBlot->dx);
+                    break;
+
+                    case BLOTE_Right:
+                    if (pegBlot->dx != 0.0f)
+                        x += pegX - pegBlot->x;
+                    break;
+
+                    case BLOTE_Top:
+                    if (pegBlot->dy != 0.0f)
+                        y += (pegY + pegDy) - (pegBlot->y + pegBlot->dy);
+                    break;
+
+                    case BLOTE_Bottom:
+                    if (pegBlot->dy != 0.0f)
+                        y += pegY - pegBlot->y;
+                    break;
+
+                    default:
+                    break;
+                }
+
+                break;
+            }
+
+            const BLOTK nextPegKey = s_abloti[pegKey].blotkPeg;
+            if (nextPegKey < 0 || nextPegKey >= BLOTK_Max)
+                break;
+
+            pegPlacement = &s_abloti[nextPegKey];
+        }
+
+        if (pblot->blots == BLOTS_Appearing ||
+            pblot->blots == BLOTS_Disappearing)
+        {
+            // RepositionBlot interpolates in authored PS2 units. Rebuild that
+            // interpolation from scaled endpoints so enlarged artwork travels
+            // completely beyond the screen edge before becoming hidden.
+            const float xOn = x + (pblot->xOn - pblot->x);
+            const float yOn = y + (pblot->yOn - pblot->y);
+            float xOff = xOn;
+            float yOff = yOn;
+
+            switch (pblot->pbloti->blote)
+            {
+                case BLOTE_Left:
+                xOff = -dx;
+                break;
+
+                case BLOTE_Right:
+                xOff = g_gl.width;
+                break;
+
+                case BLOTE_Top:
+                yOff = -dy;
+                break;
+
+                case BLOTE_Bottom:
+                yOff = g_gl.height;
+                break;
+
+                default:
+                break;
+            }
+
+            const float u = std::clamp(pblot->uOn, 0.0f, 1.0f);
+            const float smooth = u * (2.0f - u);
+            x = xOff + smooth * (xOn - xOff);
+            y = yOff + smooth * (yOn - yOff);
+        }
     }
 
     *px = x;

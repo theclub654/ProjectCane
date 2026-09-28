@@ -52,9 +52,12 @@ void CTextEdge::SetVerticalJust(JV jv)
 
 }
 
-CRichText::CRichText(char* achz, CFontBrx* pfont)
+CRichText::CRichText(const char* achz, CFontBrx* pfont)
 {
-	m_achz = achz;
+	// Rich-text wrapping and trimming are destructive. Keep a writable copy so
+	// callers may safely pass string literals and other read-only text.
+	m_text = achz != nullptr ? achz : "";
+	m_achz = m_text.data();
 	m_pfontBase = pfont;
 	m_pfontCur = pfont;
 
@@ -117,10 +120,10 @@ int CRichText::ClineWrap(float dx)
 				--wrapPos;
 			}
 
-			// No space found; force wrap at current character
-			*m_pchCur = '\n';
+			// No word boundary exists. Count a hard wrap without writing at
+			// m_pchCur, which points at the next character (or the terminator).
 			++numLines;
-			currentLineWidth = 0.0f;
+			currentLineWidth = charWidth;
 		}
 
 	continue_loop:
@@ -256,7 +259,8 @@ char CRichText::ChNext()
 			if (otherHeight != 0.0f)
 			{
 				const float scale = baseHeight / otherHeight;
-				m_fontOther.PushScaling(scale, scale);
+				m_fontOther.m_rxScale *= scale;
+				m_fontOther.m_ryScale *= scale;
 			}
 
 			m_pfontCur = &m_fontOther;
@@ -336,9 +340,11 @@ char CRichText::ChNext()
 			const uint32_t blue = (rgb & 0xFFU);
 
 			// The PS2 color range is halved with rounding.
-			const float redScaled = static_cast<float>((red + 1U) >> 1) / 255.0f;
-			const float greenScaled = static_cast<float>((green + 1U) >> 1) / 255.0f;
-			const float blueScaled = static_cast<float>((blue + 1U) >> 1) / 255.0f;
+            // Retail halves 8-bit rich-text RGB into the GS 0..128 color
+            // range, where 128 is full intensity rather than 255.
+            const float redScaled = static_cast<float>((red + 1U) >> 1) / 128.0f;
+            const float greenScaled = static_cast<float>((green + 1U) >> 1) / 128.0f;
+            const float blueScaled = static_cast<float>((blue + 1U) >> 1) / 128.0f;
 			const float alpha = m_rgbaCur.a;
 
 			m_rgbaSet = glm::vec4(redScaled, greenScaled, blueScaled, alpha);
@@ -748,6 +754,36 @@ float CFontBrx::DxDrawCh(char ch, float xChar, float yChar, glm::vec4& rgba)
 	glUniform4fv(blotColorLoc, 1, glm::value_ptr(rgba));
 
 	glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_SHORT, 0);
+
+	return glyphW;
+}
+
+float CFontBrx::DxDrawChRotated90(char ch, float xChar, float yChar, glm::vec4& rgba)
+{
+	GLYFF* glyph = PglyffFromCh(ch);
+
+	if (!glyph)
+		return static_cast<float>(m_dxSpaceUnscaled) * m_rxScale;
+
+	const float glyphW = (glyph->dx + 1) * m_rxScale;
+	const float glyphH = m_dyUnscaled * m_ryScale;
+	const float s0 = glyph->x / static_cast<float>(m_pbmp->bmpWidth);
+	const float t0 = (glyph->y + m_dyUnscaled) / static_cast<float>(m_pbmp->bmpHeight);
+	const float s1 = (glyph->x + glyph->dx) / static_cast<float>(m_pbmp->bmpWidth);
+	const float t1 = glyph->y / static_cast<float>(m_pbmp->bmpHeight);
+
+	// The retail boss-meter frame is stored as a horizontal font glyph and the
+	// PS2 path turns it clockwise to surround the vertical health fill.
+	const glm::mat4 model =
+		glm::translate(glm::mat4(1.0f), glm::vec3(xChar + glyphH, yChar, 0.0f)) *
+		glm::rotate(glm::mat4(1.0f), glm::half_pi<float>(), glm::vec3(0.0f, 0.0f, 1.0f)) *
+		glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, glyphH, 0.0f)) *
+		glm::scale(glm::mat4(1.0f), glm::vec3(glyphW, -glyphH, 1.0f));
+
+	glUniformMatrix4fv(u_modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+	glUniform4f(uvRectLoc, s0, t0, s1, t1);
+	glUniform4fv(blotColorLoc, 1, glm::value_ptr(rgba));
+	glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_SHORT, nullptr);
 
 	return glyphW;
 }

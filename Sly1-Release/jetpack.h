@@ -77,7 +77,7 @@ void RenderJetpackAll(JETPACK* pjetpack, CM* pcm, RO* pro);
 void OnJetpackActive(JETPACK* pjetpack, int fActive, PO* ppoOther);
 int FInvulnerableJetpack(JETPACK* pjetpack, ZPK zpk);
 int FTakeJetpackDamage(JETPACK* pjetpack, ZPR* pzpr);
-bool JthsCurrentJetpack(JETPACK* pjetpack);
+int JthsCurrentJetpack(JETPACK* pjetpack);
 void UseJetpackCharm(JETPACK* pjetpack);
 void HandleJetpackMessage(JETPACK* pjetpack, MSGID msgid, void* pv);
 void SetJetpackState(JETPACK* pjetpack, JPK jpk);

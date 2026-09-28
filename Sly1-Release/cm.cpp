@@ -4,6 +4,7 @@
 #include "cpman.h"
 #include "cpaseg.h"
 #include "cptn.h"
+#include "dzg.h"
 #include "jt.h"
 #include <algorithm>
 #include <cmath>
@@ -494,7 +495,7 @@ void RemoveCmFadeObject(CM* pcm, ALO* palo)
 
 int FFilterCamera(void* pv, SO* pso)
 {
-	return pso->cmk == CMK_Fade || !pso->mpibspinpg.empty();
+	return pso->cmk == CMK_Fade || pso->fBspNodeMapAllocated;
 }
 
 void UpdateCmFade(CM* pcm)
@@ -1199,27 +1200,15 @@ void FindCmClosestClearPos(float sRadius, int cpso, SO** apso, glm::vec3* ppos, 
 
 void SquishCmEye(glm::vec3* pposEyePrev, float sdposMax, void* pvContext, int cpso, SO** apso, PFNSQUISHCMEYE pfnConstraint, float sRadius, const glm::vec3* pposEyeNext, glm::vec3* pposEyeClip)
 {
-	const auto finiteVec3 = [](const glm::vec3& value)
-	{
-		return std::isfinite(value.x) && std::isfinite(value.y) && std::isfinite(value.z);
-	};
-
-	if (!finiteVec3(*pposEyePrev) || !finiteVec3(*pposEyeNext) ||
-		!std::isfinite(sdposMax) || !std::isfinite(sRadius))
-	{
-		*pposEyeClip = finiteVec3(*pposEyeNext) ? *pposEyeNext : *pposEyePrev;
-		return;
-	}
-
 	SBI asbi[64];
 	int csbi = 0;
 
-	for (int ipso = 0; ipso < cpso && csbi < 64; ++ipso)
-	{
-		SO* pso = apso[ipso];
+    for (int ipso = 0; ipso < cpso && csbi < 64; ++ipso)
+    {
+        SO* pso = apso[ipso];
 
-		if (pso == nullptr || pso->bspcCamera.absp.size() == 0)
-			continue;
+        if (pso == nullptr || pso->bspcCamera.absp.size() == 0)
+            continue;
 
 		csbi += CsbiIntersectSphereBsp(pposEyePrev, sRadius, pso->bspcCamera.cbspFull, pso->bspcCamera.absp.data(), nullptr, &pso->geomCameraWorld, 64 - csbi, asbi + csbi);
 	}
@@ -1230,85 +1219,56 @@ void SquishCmEye(glm::vec3* pposEyePrev, float sdposMax, void* pvContext, int cp
 		return;
 	}
 
-	// A tessellated wall commonly reports the same plane through more than one
-	// SURF. Passing those parallel constraints to SolveInequalities produces a
-	// singular Gram matrix. Keep one active copy of each plane, as retail's
-	// active-set solve effectively does.
-	std::vector<glm::vec3> anormal;
-	std::vector<float> asvMin;
-	anormal.reserve(csbi);
-	asvMin.reserve(csbi);
+	std::vector<float> aag(csbi * csbi);
+	std::vector<float> ag(csbi);
+	std::vector<float> agSoln(csbi);
 
 	for (int i = 0; i < csbi; ++i)
 	{
-		const glm::vec3 normal = asbi[i].normal;
-		const float svMin = pfnConstraint(pvContext, sRadius, pposEyeNext, &asbi[i]);
+		for (int j = 0; j < csbi; ++j)
+			aag[i * csbi + j] = glm::dot(asbi[i].normal, asbi[j].normal);
 
-		if (!finiteVec3(normal) || !std::isfinite(svMin))
-			continue;
+		ag[i] = pfnConstraint(pvContext, sRadius, pposEyeNext, &asbi[i]);
+	}
 
-		int iEquivalent = -1;
-		for (int j = 0; j < static_cast<int>(anormal.size()); ++j)
+	// Degenerate or duplicated camera collision planes can make the compact
+	// inequality system singular. Do not feed invalid coefficients into DZG:
+	// an unclipped camera step is safer than propagating NaNs into CM, player
+	// steering, and finally every world/view transform.
+	for (float coefficient : aag)
+	{
+		if (!std::isfinite(coefficient))
 		{
-			if (glm::dot(normal, anormal[j]) > 0.9999f)
-			{
-				iEquivalent = j;
-				break;
-			}
-		}
-
-		if (iEquivalent < 0)
-		{
-			anormal.push_back(normal);
-			asvMin.push_back(svMin);
-		}
-		else if (svMin < asvMin[iEquivalent])
-		{
-			// A negative value is a violated constraint, so retain the most
-			// restrictive copy of equivalent parallel contacts.
-			asvMin[iEquivalent] = svMin;
+			*pposEyeClip = *pposEyeNext;
+			return;
 		}
 	}
 
-	if (anormal.empty())
+	for (float constraint : ag)
 	{
-		*pposEyeClip = *pposEyeNext;
-		return;
+		if (!std::isfinite(constraint))
+		{
+			*pposEyeClip = *pposEyeNext;
+			return;
+		}
+	}
+
+	SolveInequalities(csbi, aag.data(), ag.data(), agSoln.data());
+
+	for (float solution : agSoln)
+	{
+		if (!std::isfinite(solution))
+		{
+			*pposEyeClip = *pposEyeNext;
+			return;
+		}
 	}
 
 	glm::vec3 dposClip(0.0f);
+	for (int i = 0; i < csbi; ++i)
+		dposClip += asbi[i].normal * agSoln[i];
 
-	// Project onto each violated half-space. This stays deterministic with
-	// duplicate and nearly dependent BSP planes and cannot require inversion of
-	// a singular contact matrix.
-	for (int iteration = 0; iteration < 8; ++iteration)
-	{
-		bool fAdjusted = false;
-
-		for (int i = 0; i < static_cast<int>(anormal.size()); ++i)
-		{
-			const float gConstraint = asvMin[i] + glm::dot(dposClip, anormal[i]);
-			if (gConstraint < -0.0001f)
-			{
-				dposClip -= anormal[i] * gConstraint;
-				fAdjusted = true;
-			}
-		}
-
-		if (!fAdjusted)
-			break;
-	}
-
-	if (!finiteVec3(dposClip))
-	{
-		*pposEyeClip = *pposEyeNext;
-		return;
-	}
-
-	float sdposClip = glm::length(dposClip);
-
-	if (sdposClip > sdposMax && sdposClip > 0.0001f)
-		dposClip *= sdposMax / sdposClip;
+	LimitVectorLength(&dposClip, sdposMax, &dposClip);
 
 	*pposEyeClip = *pposEyeNext + dposClip;
 }
@@ -1325,35 +1285,31 @@ float SvSquishCmEyeConstraint(void* pvContext, float sRadius, const glm::vec3* p
 
 	(void)sRadius;
 
-	GSmooth(psbi->gDist, pcm->sRadiusNearClip - s_smpSquishEye.svFast, g_clock.dtReal, &s_smpSquishEye, &sv);
+	GSmooth(psbi->gDist, pcm->sRadiusNearClip - S_CmSquishEye, g_clock.dtReal, &s_smpSquishEye, &sv);
 
 	return glm::dot(*pvEye, psbi->normal) - sv;
 }
 
 void ClipCmEye(CM* pcm, const glm::vec3* pposEyePrev, glm::vec3* pposEyeNext, glm::vec3* pposEyeClip)
 {
-	const glm::vec3 posEyeRequested = *pposEyeNext;
-	if (!glm::all(glm::isfinite(posEyeRequested)) ||
-		!glm::all(glm::isfinite(*pposEyePrev)) ||
-		!std::isfinite(g_clock.dtReal) || g_clock.dtReal <= 0.000001f)
+	if (!std::isfinite(g_clock.dtReal) || g_clock.dtReal <= 0.0f)
 	{
-		*pposEyeClip = glm::all(glm::isfinite(posEyeRequested)) ? posEyeRequested : *pposEyePrev;
+		*pposEyeClip = *pposEyeNext;
 		return;
 	}
 
-	glm::vec3 vEye = (posEyeRequested - *pposEyePrev) / g_clock.dtReal;
+	glm::vec3 vEye = (*pposEyeNext - *pposEyePrev) / g_clock.dtReal;
 
 	glm::vec3 posMin = *pposEyePrev + s_dposCmSquishMin;
 	glm::vec3 posMax = *pposEyePrev + s_dposCmSquishMax;
 
-	std::vector <SO*> apso;
-	IntersectSwBoundingBox(g_psw, nullptr, &posMin, &posMax, (PFNFILTER)FFilterCamera, nullptr, apso);
+    std::vector <SO*> apso;
+    IntersectSwBoundingBox(g_psw, nullptr, &posMin, &posMax, (PFNFILTER)FFilterCamera, nullptr, apso);
 
 	glm::vec3 vEyeClip;
-	SquishCmEye(const_cast<glm::vec3*>(pposEyePrev), glm::length(vEye) + s_smpSquishEye.svSlow, pcm, static_cast<int>(apso.size()), apso.data(), SvSquishCmEyeConstraint, s_smpSquishEye.svFast, &vEye, &vEyeClip);
+	SquishCmEye(const_cast<glm::vec3*>(pposEyePrev), glm::length(vEye) + s_smpSquishEye.svSlow, pcm, static_cast<int>(apso.size()), apso.data(), SvSquishCmEyeConstraint, S_CmSquishEye, &vEye, &vEyeClip);
 
-	const glm::vec3 clipped = *pposEyePrev + vEyeClip * g_clock.dtReal;
-	*pposEyeClip = glm::all(glm::isfinite(clipped)) ? clipped : posEyeRequested;
+	*pposEyeClip = *pposEyePrev + vEyeClip * g_clock.dtReal;
 }
 
 void PushCmLookk(CM* pcm, LOOKK lookk)
@@ -1491,6 +1447,7 @@ float s_acCmClearSamples[9] =
 
 glm::vec3 s_dposCmSquishMin = {-250, -250, -250};
 glm::vec3 s_dposCmSquishMax = {250, 250, 250};
+float S_CmSquishEye = 250.0f;
 SMP s_smpSquishEye = {2500.0f, 0.0f, 0.25f};
 SMPA s_smpaRadFOV = {0.5, 0.0, 0.1, 10.0};
 float g_uFogMax = 0.5;

@@ -480,8 +480,13 @@ void PresetSuvAccel(SUV* psuv, float dt)
         uRecover = CLQ_AirborneUpright.g0 + uRecover * (CLQ_AirborneUpright.g1 + uRecover * CLQ_AirborneUpright.g2);
         uRecover = glm::clamp(uRecover, 0.0f, 1.0f);
 
-        glm::vec3 wTarget = g_vecZero * uRecover;
-        AccelSoTowardMatSpring(psuv, nullptr, nullptr, &wTarget, nullptr, dt);
+        CLQ clqAirDamping = {
+            g_clqRotDampingDefault.g0 * uRecover,
+            g_clqRotDampingDefault.g1 * uRecover,
+            g_clqRotDampingDefault.g2 * uRecover,
+            g_clqRotDampingDefault.gUnused * uRecover
+        };
+        AccelSoTowardMatSpring(psuv, nullptr, nullptr, &g_vecZero, &clqAirDamping, dt);
     }
 
     psuv->uSuspensionLoad = glm::clamp(gSuspensionTotal / (psuv->m * G_SuvSuspensionLoadMax), 0.0f, 1.0f);
@@ -552,7 +557,7 @@ void PresetSuvAccel(SUV* psuv, float dt)
     glm::vec3 accelDrive = (vDrive - vLocal) / dt;
     accelDrive.z = 0.0f;
 
-    float gAccelMax = glm::min(svTraction, rAccelLimit);
+    float gAccelMax = glm::max(svTraction, rAccelLimit);
     LimitVectorLength(&accelDrive, gAccelMax, &accelDrive);
 
     if (psuv->svTarget != 0.0f && psuv->suvgk == SUVGK_Race) {
@@ -561,7 +566,7 @@ void PresetSuvAccel(SUV* psuv, float dt)
         if (svCur < psuv->svTarget) {
             float svSmooth;
             GSmooth(svCur, psuv->svTarget, dt, &s_smpSuvAccel, &svSmooth);
-            accelDrive.x = glm::min(accelDrive.x, glm::min(svSmooth, rAccelLimit));
+            accelDrive.x = glm::min(accelDrive.x, glm::max(svSmooth, rAccelLimit));
         }
         else {
             float svSmooth;
@@ -761,25 +766,20 @@ void UpdateSuvLine(SUV* psuv, int* pcpsuvInFront)
     float dyFree = GExcludeAlm(clmAvoid, alm, dyTarget);
 
     if (FCheckLm(&LM_SuvTrack, dyFree)) {
-        psuv->dyTarget = dyFree;
-        return;
+        for (int i = 0; i < clmAvoid; i++)
+        {
+            if (dyFree > psuv->dyTrack && alm[i].gMin > psuv->dyTrack && dyFree > alm[i].gMin)
+                dyTarget = alm[i].gMin;
+            else if (dyFree < psuv->dyTrack && alm[i].gMax < psuv->dyTrack && dyFree < alm[i].gMin)
+                dyTarget = alm[i].gMax;
+            else
+                dyTarget = dyFree;
+
+            dyFree = dyTarget;
+        }
     }
 
-    float dy = dyTarget;
-
-    for (int i = 0; i < clmAvoid; i++) 
-    {
-        if (dyFree > psuv->dyTrack && alm[i].gMin > psuv->dyTrack && dyFree > alm[i].gMin)
-            dy = alm[i].gMin;
-        else if (dyFree < psuv->dyTrack && alm[i].gMax < psuv->dyTrack && dyFree < alm[i].gMin)
-            dy = alm[i].gMax;
-        else
-            dy = dyFree;
-
-        dyFree = dy;
-    }
-
-    psuv->dyTarget = dy;
+    psuv->dyTarget = dyTarget;
 }
 
 void UpdateSuvHeading(SUV* psuv)
@@ -873,7 +873,14 @@ void UpdateSuvExpls(SUV* psuv)
                 glm::mat3 matDirt{ 1.0f };
                 glm::mat3 matSpray{ 1.0f };
 
-                float radStick = GRandInRange(LM_SuvRadStick.gMin, LM_SuvRadStick.gMax);
+                // Release uses a much flatter dirt-stick range for bank 3
+                // (0x00275508) than it does for the other SUV sequences.
+                // Keeping the generic range here launches most race dirt out
+                // of the visible tire trail and makes the effect look sparse.
+                const LM& lmRadStick = (g_psw->ibnk == 3)
+                    ? LM_SuvRadStickBank3
+                    : LM_SuvRadStick;
+                float radStick = GRandInRange(lmRadStick.gMin, lmRadStick.gMax);
                 LoadRotateMatrixRad(radStick, &g_normalY, &matDirt);
 
                 float radSpray = GRandInRange(LM_SuvRadSpray.gMin, LM_SuvRadSpray.gMax);
@@ -911,6 +918,16 @@ void UpdateSuvExpls(SUV* psuv)
                     explso.grfexplso = 192;
                     explso.pemitolxf = &emitolxf;
                     explso.cParticle = cParticleDirt;
+
+                    // The override was built in SUV-local space. Retail
+                    // promotes it to world space when the explosion template
+                    // has no parent of its own.
+                    if (pexplDirt->paloParent == nullptr)
+                    {
+                        CalculateAloTransformAdjust(psuv, nullptr,
+                            &emitolxf.posLocal, &emitolxf.matLocal,
+                            &emitolxf.vLocal, nullptr);
+                    }
 
                     pexplDirt->pvtexpl->pfnExplodeExplExplso((EXPLO*)pexplDirt, &explso);
                 }
@@ -1939,7 +1956,7 @@ CLQ CLQ_SuvFacingDrive = {0.5, 1.0, 0.0};
 float R_SuvFacingDriveMin = 0.5;
 float R_SuvFacingDriveMax = 1.0;
 CLQ CLQ_SuvAccelLimit = {9000, 0.0, -9000};
-float R_SuvAccelLimitMin = 4500.0;
+float R_SuvAccelLimitMin = 0.0;
 float R_SuvAccelLimitMax = 9000.0;
 SMP s_smpSuvAccel = {4000.0, 0.0, 2.0};
 SMP s_smpSuvDecel = {2000.0, 0.0, 1.0};
@@ -1949,7 +1966,7 @@ float C_DirtMax = 50.0;
 float G_SuvDownForce = -10.0;
 SMP s_smpBalance = {0.5, 0.0, 0.25};
 LM s_lmDtBalance = {1.5, 2.5};
-CLQ CLQ_SuvDsToDyAvoid = {-0.5, 0.0, 0.0};
+CLQ CLQ_SuvDsToDyAvoid = {1000.0f, -0.5f, 0.0f};
 LM LM_SuvDyAvoid = {0.0, 625.0f};
 float DS_SuvHoming = 850.0f;
 LM LM_SuvTrack = {-1300, 1300};
@@ -1958,9 +1975,10 @@ float DS_SuvNext = 750.0;
 float R_SuvTurnDrive = 1.0;
 float RAD_SuvWheelMax = 0.69999999;
 float R_SuvWheelHeading = 0.5f;
-SMP s_smpWheelTurn = {20.0, 0.0, 0.25};
+SMP s_smpWheelTurn = {8.0f, 0.0f, 0.25f};
 CLQ CLQ_SuvDtToRDensity = {1.0f, -1.0f, 0.0f};
-LM LM_SuvRadStick = {0.4, 1.0};
+LM LM_SuvRadStick = {0.4f, 0.8f};
+LM LM_SuvRadStickBank3 = {0.05f, 0.3f};
 LM LM_SuvRadSpray = {0.1, 0.4};
 float S_SuvSoundMax = 4000.0;
 CLQ CLQ_SuvSuspensionToEngineBlend = {1.0, -0.6, 0.0};
@@ -1980,7 +1998,7 @@ CLQ CLQ_SuvTireSlipFrq = {0.5, 0.25, 0.0};
 CLQ CLQ_SuvTireSlipVol = { 0.5, 0.25, 0.0 };
 LM LM_SuvTireSlipVol = {0.0, 1.0};
 SMP s_smpSuvEngineSpeed = {10.0, 0.0, 0.1};
-glm::vec3 s_vPuncher = {0.0, 2000.0,0.0};
+glm::vec3 s_vPuncher = {2000.0f, 0.0f, 2000.0f};
 float R_SuvPuncherSvToSw = 0.002;
 float RV_SuvPuncherSelf = 0.5;
 SMP s_smpWheelFree = {2000.0, 0.0, 0.15};

@@ -324,6 +324,7 @@ extern float R_SuvWheelHeading;
 extern SMP s_smpWheelTurn;
 extern CLQ CLQ_SuvDtToRDensity;
 extern LM LM_SuvRadStick;
+extern LM LM_SuvRadStickBank3;
 extern LM LM_SuvRadSpray;
 extern float S_SuvSoundMax;
 extern CLQ CLQ_SuvSuspensionToEngineBlend;

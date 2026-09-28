@@ -300,9 +300,7 @@ void RetryGame()
 void StartGame()
 {
     UnloadGame();
-
-    if (g_fDebugMode < 1)
-        WipeToWorldWarp("Splash.brx", (OID)-1, WIPEK_Fade);
+    WipeToWorldWarp("Splash.brx", (OID)-1, WIPEK_Fade);
 }
 
 void ReloadCurrentLevel()

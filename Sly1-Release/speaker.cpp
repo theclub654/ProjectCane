@@ -1,16 +1,21 @@
 #include "speaker.h"
 #include "sm.h"
+#include <algorithm>
 
 namespace
 {
 glm::vec4 NormalizeSpeakerTextColor(const RGBA& rgba)
 {
-    constexpr float byteToFloat = 1.0f / 255.0f;
+    // Speaker text colors are authored for the PS2 GS color range, where
+    // 0x80 is full intensity. Converting them as ordinary 0..255 colors makes
+    // dialogue text approximately half as bright as retail.
+    constexpr float gsColorToFloat = 1.0f / 128.0f;
+    constexpr float alphaToFloat = 1.0f / 255.0f;
     return glm::vec4(
-        static_cast<float>(rgba.bRed) * byteToFloat,
-        static_cast<float>(rgba.bGreen) * byteToFloat,
-        static_cast<float>(rgba.bBlue) * byteToFloat,
-        static_cast<float>(rgba.bAlpha) * byteToFloat);
+        std::min(static_cast<float>(rgba.bRed) * gsColorToFloat, 1.0f),
+        std::min(static_cast<float>(rgba.bGreen) * gsColorToFloat, 1.0f),
+        std::min(static_cast<float>(rgba.bBlue) * gsColorToFloat, 1.0f),
+        static_cast<float>(rgba.bAlpha) * alphaToFloat);
 }
 }
 

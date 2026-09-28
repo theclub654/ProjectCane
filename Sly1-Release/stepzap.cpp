@@ -137,7 +137,7 @@ void FinishJtZap (JT* pjt)
         SetJtJts(pjt, 2, 2);
 }
 
-bool FTakeJtDamage(JT* pjt, ZPR* pzpr)
+int FTakeJtDamage(JT* pjt, ZPR* pzpr)
 {
     const bool fInvulnerable = FInvulnerableJt(pjt, pzpr->zpk);
 
@@ -379,7 +379,7 @@ void RestoreJtDamageVelocity(JT* pjt)
         pjt->pvtjt->pfnUseJtCharm(pjt);
 }
 
-bool FInvulnerableJt(JT* pjt, int damageKind)
+int FInvulnerableJt(JT* pjt, int damageKind)
 {
     if (damageKind != 3 && damageKind != 5)
     {

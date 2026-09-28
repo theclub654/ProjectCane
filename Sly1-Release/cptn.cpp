@@ -323,7 +323,11 @@ void UpdateCptn(CPTN* pcptn, CPDEFI* pcpdefi, JOY* pjoy, float dt)
 			else if (pcptn->ftnd != FTND_Forward)
 			{
 				glm::vec3 vFacing;
-				if (psoFocus == g_pjt && psoFocus->jts == JTS_Sidestep)
+				// Release checks raw JT state 13 here. In that state Sly's world
+				// matrix spins with the roll animation, so camera direction must
+				// come from movement velocity instead of the animated transform.
+				// Do not use the prototype-derived JTS enum for this release value.
+				if (psoFocus == g_pjt && psoFocus->jts == 13)
 					vFacing = psoFocus->xf.v;
 				else
 					vFacing = psoFocus->xf.matWorld[0];
@@ -345,8 +349,11 @@ void UpdateCptn(CPTN* pcptn, CPDEFI* pcpdefi, JOY* pjoy, float dt)
 			if (g_pjt != nullptr)
 			{
 				const float speed = glm::length(vFollow);
+				// Release checks raw player state 6 and hide kind 0 here. The
+				// prototype-derived JTHK_Nil value is -1 and previously prevented
+				// the intended flatten-camera lock rate from ever being selected.
 				uLock = std::min(1.0f, speed *
-					((g_pjt->jts == JTS_Hide && g_pjt->jthk == JTHK_Nil) ? 0.005f : 0.0016666667f));
+					((g_pjt->jts == 6 && g_pjt->jthk == 0) ? 0.005f : 0.0016666667f));
 			}
 			uLock *= ptnfn->uLockOn;
 

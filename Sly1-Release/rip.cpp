@@ -320,7 +320,14 @@ void InitRip(RIP* prip, glm::vec3* ppos, float scale, SO* psoTouch)
 RIPG* PripgNew(SW* psw, RIPGT ripgt)
 {
 	if (ripgt == RIPGT_Default && psw->pripgDefault != nullptr)
+	{
+		// Empty RIP groups remove themselves from the world.  The default group
+		// remains cached, so reactivate it before appending a new particle.
+		if (FIsLoInWorld(psw->pripgDefault) == 0)
+			psw->pripgDefault->pvtlo->pfnAddLo(psw->pripgDefault);
+
 		return psw->pripgDefault;
+	}
 
 	RIPG* pripg = psw->pripgFree;
 

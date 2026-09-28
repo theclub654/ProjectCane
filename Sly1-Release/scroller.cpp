@@ -1,8 +1,8 @@
 #include "scroller.h"
 
-SCROLLER* NewScroller()
+std::shared_ptr<SCROLLER> NewScroller()
 {
-    return new SCROLLER{};
+    return std::make_shared<SCROLLER>();
 }
 
 void LoadScrollerFromBrx(SCROLLER* pscroller, CBinaryInputStream* pbis)

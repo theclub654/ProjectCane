@@ -425,6 +425,9 @@ void GetHshapeClosestHidePos(HSHAPE* phshape, float* psParamHshape, glm::vec3* p
 
 	constr.ct = CT_Tangent;
 
+	// ALO + 0x140 is xf.posWorld in the release layout. Convert Sly's world
+	// position into the hide shape's parent space before finding the closest
+	// point on its curve.
 	ConvertAloPos(nullptr, phshape->paloParent, &ppo->xf.posWorld, &pos);
 	ConvertAloVec(nullptr, phshape->paloParent, &g_normalZ, &constr.normal);
 
@@ -463,8 +466,9 @@ void InitHpnt(HPNT* phpnt)
 {
 	InitLo(phpnt);
 
-	phpnt->fTunnel = 1;
 	phpnt->oidTnHide = OID_Nil;
+	phpnt->dzJumpTargetMax = FLT_MAX;
+	phpnt->fTunnel = 1;
 }
 
 // Function bodies
@@ -564,7 +568,8 @@ void CloneHpnt(HPNT* phpnt, HPNT* phpntBase)
 	phpnt->ptnHide = phpntBase->ptnHide;
 	phpnt->fTunnel = phpntBase->fTunnel;
 	phpnt->fDetect = phpntBase->fDetect;
-	phpnt->dzIgnore = phpntBase->dzIgnore;
+	phpnt->dzJumpTargetMax = phpntBase->dzJumpTargetMax;
+	phpnt->unkInt = phpntBase->unkInt;
 
 	phpnt->dleHpnt = dleHpnt;
 }
@@ -608,7 +613,7 @@ void GetHpntClosestHidePos(HPNT* phpnt, float sParam, glm::vec3* pposHide, float
 	}
 }
 
-void GetHpntHidePos(HPNT* phpnt, float sParam, glm::vec3* pposHide, float* pradTarget)
+void GetHpntHidePos(HPNT* phpnt, glm::vec3* pposHide, float* pradTarget)
 {
 	PO* ppo = PpoCur();
 

@@ -119,7 +119,9 @@ void PresetJtAccelPipe(JT* pjt)
     if (pjt->jtbs == 23 || pjt->jtbs == 27)
     {
         const float dtRemain = pjt->pasegaCur->paseg->tMax - pjt->pasegaCur->tLocal;
-        const float dtPredict = std::min(dtRemain, g_clock.dt);
+        // Retail selects g_clock.dt when less animation time remains, and
+        // dtRemain otherwise (the decompiled integer masks implement max).
+        const float dtPredict = std::max(dtRemain, g_clock.dt);
 
         EvaluateBezierMat(dtPredict, g_clock.dt, 1.0f, pjt->xf.mat, pjt->xf.w, matGoal, g_vecZero, &matNext, nullptr, nullptr);
     }
@@ -134,6 +136,7 @@ void PresetJtAccelPipe(JT* pjt)
     DecomposeRotateMatrixRad(&dmat, &rad, &axis);
 
     pjt->xf.w = axis * (rad / g_clock.dt);
+
 }
 
 void UpdateJtActivePipe(JT* pjt, JOY* pjoy)
@@ -153,7 +156,11 @@ void UpdateJtActivePipe(JT* pjt, JOY* pjoy)
     constexpr float DS_JtPipeLimitHand = 35.0f;
     constexpr float DS_JtPipeLimitFoot = 100.0f;
     constexpr float DS_JtPipeNormalGap = 50.0f;
-    constexpr float Z_JtPipeVerticalThreshold = 0.3f;
+    // Retail uses two distinct slope thresholds here. DAT_00274F08 is 0.5
+    // for the unconditional vertical-direction reversal, while
+    // FLOAT_00274F0C is 0.3 for the climb-direction checks below.
+    constexpr float Z_JtPipeVerticalReverse = 0.5f;
+    constexpr float Z_JtPipeClimbReverse = 0.3f;
 
     PIPE* ppipe = pjt->ppipeCur;
     CRV* pcrv = ppipe->pcrv.get();
@@ -192,8 +199,7 @@ void UpdateJtActivePipe(JT* pjt, JOY* pjoy)
     if (pjt->jtpdk == JTPDK_Nil)
     {
         bool spin = false;
-
-        if (std::abs(pipeDirection.z) > Z_JtPipeVerticalThreshold)
+        if (std::abs(pipeDirection.z) > Z_JtPipeVerticalReverse)
         {
             if (pipeDirection.z > 0.0f)
                 spin = pjt->fPipeReverse != 0;
@@ -201,11 +207,15 @@ void UpdateJtActivePipe(JT* pjt, JOY* pjoy)
                 spin = pjt->fPipeReverse == 0;
         }
 
-        if (!spin && pjt->uPipeClimbSmooth > 0.4 && pjt->fPipeReverse && pipeDirection.z > -0.3)
+        if (!spin && pjt->uPipeClimbSmooth > 0.4 && pjt->fPipeReverse && pipeDirection.z > -Z_JtPipeClimbReverse)
+        {
             spin = true;
+        }
 
-        if (!spin && pjt->uPipeClimbSmooth < -0.4 && !pjt->fPipeReverse && pipeDirection.z < 0.3)
+        if (!spin && pjt->uPipeClimbSmooth < -0.4 && !pjt->fPipeReverse && pipeDirection.z < Z_JtPipeClimbReverse)
+        {
             spin = true;
+        }
 
         if (spin)
         {

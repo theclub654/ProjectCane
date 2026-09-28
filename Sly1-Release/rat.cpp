@@ -471,7 +471,7 @@ void AdjustRatXpVelocity(RAT* prat, XP* pxp, int ixpd)
 
 void RenderRatAll(RAT* prat, CM* pcm, RO* pro)
 {
-    if (prat->rats == RATS_Hidden || prat->fHidden)
+    if (prat->rats == RATS_Hidden || prat->fRemerge)
         return;
 
     RO ro;

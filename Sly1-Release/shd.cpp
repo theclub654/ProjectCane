@@ -80,9 +80,6 @@ void UnloadShaders()
     g_pfontJoy = nullptr;
     g_grfzonShaders = 0;
 
-    for (int i = 0; i < g_apsaaSw.size(); i++)
-        g_apsaaSw[i]->pvtsaa->pfnDeleteSaa(g_apsaaSw[i]);
-
     g_cpsaa = 0;
     g_apsaa.clear();
     g_apsaa.shrink_to_fit();
@@ -246,7 +243,7 @@ void LoadShadersFromBrx(CBinaryInputStream* pbis)
     for (int i = 0; i < g_cshd; i++)
     {
         SHD& shd = g_ashd[i];
-
+        
         shd.shdk = (SHDK)pbis->U8Read();
 
         shd.grfshd = pbis->U8Read();
@@ -269,7 +266,8 @@ void LoadShadersFromBrx(CBinaryInputStream* pbis)
 
         shd.atex.resize(shd.ctex);
 
-        SAA* psaa = PsaaLoadFromBrx(pbis);
+        std::shared_ptr<SAA> psaaOwner = PsaaLoadFromBrx(pbis);
+        SAA* psaa = psaaOwner.get();
         shd.psaa = psaa;
 
         if (psaa != nullptr)
@@ -724,7 +722,7 @@ std::vector <SHD> g_ashd;
 std::vector <TEX> g_atex;
 int g_cpsaa;
 std::vector <SAA*> g_apsaa;
-std::vector <SAA*> g_apsaaSw;
+std::vector<std::shared_ptr<SAA>> g_apsaaSw;
 SAI* g_psaiUpdate = nullptr;
 SAI* g_psaiUpdateTail = nullptr;
 size_t textureDataStart;

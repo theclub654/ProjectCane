@@ -1,8 +1,8 @@
 #include "circler.h"
 
-CIRCLER* NewCircler()
+std::shared_ptr<CIRCLER> NewCircler()
 {
-    return new CIRCLER{};
+    return std::make_shared<CIRCLER>();
 }
 
 void LoadCirclerFromBrx(CIRCLER* pcircler, CBinaryInputStream* pbis)

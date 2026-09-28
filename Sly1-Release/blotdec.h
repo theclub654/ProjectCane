@@ -252,6 +252,7 @@ extern TV g_tvRight;
 extern PUFFCHARGERCTR g_puffchargectr;
 extern TIMER g_timer;
 extern NOTE g_note;
+extern NOTE g_pnote;
 extern TITLE g_title;
 extern TOTALS g_totals;
 extern CALL g_call;

@@ -626,7 +626,7 @@ struct VTSTEP
     void(*pfnUpdatePoActive) = nullptr;
     void(*pfnSetPoPlayable)(PO*, int) = SetPoPlayable;
     int  (*pfnFIsPoSoundBase)(PO*) = FIsPoSoundBase;
-    bool(*pfnFInvulnerablePo)(PO*) = FInvulnerablePo;
+    int  (*pfnFInvulnerablePo)(PO*) = FInvulnerablePo;
     int  (*pfnFTakePoDamage)(PO*, ZPR*) = FTakePoDamage;
     JTHS(*pfnJthsCurrentPo)(PO*) = JthsCurrentPo;
     void (*pfnCollectPoPrize)(PO*, PCK, ALO*) = CollectPoPrize;
@@ -728,9 +728,9 @@ struct VTJT
     void(*pfnOnPoActive)(JT*, int) = OnJtActive;
     void(*pfnUpdateJtActive)(JT*, JOY*, float) = UpdateJtActive;
     void(*pfnSetPoPlayable)(PO*, int) = SetPoPlayable;
-    bool(*pfnFIsJtSoundBase)(JT*) = FIsJtSoundBase;
-    bool (*pfnFInvulnerableJt)(JT*, int) = FInvulnerableJt;
-    bool(*pfnFTakeJtDamage)(JT*, ZPR*) = FTakeJtDamage;
+    int  (*pfnFIsJtSoundBase)(JT*) = FIsJtSoundBase;
+    int  (*pfnFInvulnerableJt)(JT*, int) = FInvulnerableJt;
+    int  (*pfnFTakeJtDamage)(JT*, ZPR*) = FTakeJtDamage;
     JTHS(*pfnJthsCurrentJt)(JT*) = JthsCurrentJt;
     void(*pfnCollectJtPrize)(JT*, PCK, ALO*) = CollectJtPrize;
     void (*pfnSetPoPck)(PO*, PCK) = SetPoPck;
@@ -831,7 +831,7 @@ struct VTSTEPGUARD
     void(*pfnUpdatePoActive) = nullptr;
     void(*pfnSetPoPlayable)(PO*, int) = SetPoPlayable;
     int  (*pfnFIsPoSoundBase)(PO*) = FIsPoSoundBase;
-    bool(*pfnFInvulnerablePo)(PO*) = FInvulnerablePo;
+    int  (*pfnFInvulnerablePo)(PO*) = FInvulnerablePo;
     int  (*pfnFTakeStepguardDamage)(STEPGUARD*, ZPR*) = FTakeStepguardDamage;
     JTHS(*pfnJthsCurrentPo)(PO*) = JthsCurrentPo;
     void (*pfnCollectPoPrize)(PO*, PCK, ALO*) = CollectPoPrize;
@@ -945,7 +945,7 @@ struct VTSMARTGUARD
     void(*pfnUpdatePoActive) = nullptr;
     void(*pfnSetPoPlayable)(PO*, int) = SetPoPlayable;
     int  (*pfnFIsPoSoundBase)(PO*) = FIsPoSoundBase;
-    bool(*pfnFInvulnerablePo)(PO*) = FInvulnerablePo;
+    int  (*pfnFInvulnerablePo)(PO*) = FInvulnerablePo;
     int  (*pfnFTakeStepguardDamage)(STEPGUARD*, ZPR*) = FTakeStepguardDamage;
     JTHS(*pfnJthsCurrentPo)(PO*) = JthsCurrentPo;
     void (*pfnCollectPoPrize)(PO*, PCK, ALO*) = CollectPoPrize;
@@ -1062,7 +1062,7 @@ struct VTGOMER
     void(*pfnUpdatePoActive) = nullptr;
     void(*pfnSetPoPlayable)(PO*, int) = SetPoPlayable;
     int  (*pfnFIsPoSoundBase)(PO*) = FIsPoSoundBase;
-    bool(*pfnFInvulnerablePo)(PO*) = FInvulnerablePo;
+    int  (*pfnFInvulnerablePo)(PO*) = FInvulnerablePo;
     int  (*pfnFTakeStepguardDamage)(STEPGUARD*, ZPR*) = FTakeStepguardDamage;
     JTHS(*pfnJthsCurrentPo)(PO*) = JthsCurrentPo;
     void (*pfnCollectPoPrize)(PO*, PCK, ALO*) = CollectPoPrize;
@@ -1176,7 +1176,7 @@ struct VTUBG
     void(*pfnUpdatePoActive) = nullptr;
     void(*pfnSetPoPlayable)(PO*, int) = SetPoPlayable;
     int  (*pfnFIsPoSoundBase)(PO*) = FIsPoSoundBase;
-    bool(*pfnFInvulnerablePo)(PO*) = FInvulnerablePo;
+    int  (*pfnFInvulnerablePo)(PO*) = FInvulnerablePo;
     int  (*pfnFTakeStepguardDamage)(STEPGUARD*, ZPR*) = FTakeStepguardDamage;
     JTHS(*pfnJthsCurrentPo)(PO*) = JthsCurrentPo;
     void (*pfnCollectPoPrize)(PO*, PCK, ALO*) = CollectPoPrize;
@@ -1290,7 +1290,7 @@ struct VTMBG
     void(*pfnUpdatePoActive) = nullptr;
     void(*pfnSetPoPlayable)(PO*, int) = SetPoPlayable;
     int  (*pfnFIsPoSoundBase)(PO*) = FIsPoSoundBase;
-    bool(*pfnFInvulnerablePo)(PO*) = FInvulnerablePo;
+    int  (*pfnFInvulnerablePo)(PO*) = FInvulnerablePo;
     int  (*pfnFTakeStepguardDamage)(STEPGUARD*, ZPR*) = FTakeStepguardDamage;
     JTHS(*pfnJthsCurrentPo)(PO*) = JthsCurrentPo;
     void (*pfnCollectPoPrize)(PO*, PCK, ALO*) = CollectPoPrize;
@@ -1404,7 +1404,7 @@ struct VTBHG
     void(*pfnUpdatePoActive) = nullptr;
     void(*pfnSetPoPlayable)(PO*, int) = SetPoPlayable;
     int  (*pfnFIsPoSoundBase)(PO*) = FIsPoSoundBase;
-    bool(*pfnFInvulnerablePo)(PO*) = FInvulnerablePo;
+    int  (*pfnFInvulnerablePo)(PO*) = FInvulnerablePo;
     int  (*pfnFTakeStepguardDamage)(STEPGUARD*, ZPR*) = FTakeStepguardDamage;
     JTHS(*pfnJthsCurrentPo)(PO*) = JthsCurrentPo;
     void (*pfnCollectPoPrize)(PO*, PCK, ALO*) = CollectPoPrize;
@@ -1487,7 +1487,7 @@ struct VTMURRAY
     void (*pfnUnadjustAloRotation)(ALO*, glm::mat3*) = UnadjustAloRotation;
     void (*pfnRecacheAloActList)(ALO*) = RecacheAloActList;
     void (*pfnUpdateAloConstraints)(ALO*) = UpdateAloConstraints;
-    bool (*pfnFAbsorbMurrayWkr)(MURRAY*, WKR*) = FAbsorbMurrayWkr;
+    int  (*pfnFAbsorbMurrayWkr)(MURRAY*, WKR*) = FAbsorbMurrayWkr;
     void (*pfnUpdateAloBlot)(ALO*) = nullptr;
     void (*pfnDisplaceSo)(SO*, int) = DisplaceSo;
     void (*pfnImpactSo)(SO*, int) = ImpactSo;
@@ -1519,7 +1519,7 @@ struct VTMURRAY
     void(*pfnSetPoPlayable)(PO*, int) = SetPoPlayable;
     int  (*pfnFIsPoSoundBase)(PO*) = FIsPoSoundBase;
     int  (*pfnFInvulnerableMurray)(MURRAY*) = FInvulnerableMurray;
-    bool (*pfnFTakeMurrayDamage)(MURRAY*, ZPR*) = FTakeMurrayDamage;
+    int  (*pfnFTakeMurrayDamage)(MURRAY*, ZPR*) = FTakeMurrayDamage;
     int  (*pfnJthsCurrentMurray)(MURRAY*) = JthsCurrentMurray;
     void (*pfnCollectMurrayPrize)(MURRAY*, PCK, ALO*) = CollectMurrayPrize;
     void (*pfnSetPoPck)(PO*, PCK) = SetPoPck;
@@ -1632,7 +1632,7 @@ struct VTPUFFC
     void(*pfnUpdatePoActive) = nullptr;
     void(*pfnSetPoPlayable)(PO*, int) = SetPoPlayable;
     int  (*pfnFIsPoSoundBase)(PO*) = FIsPoSoundBase;
-    bool(*pfnFInvulnerablePo)(PO*) = FInvulnerablePo;
+    int  (*pfnFInvulnerablePo)(PO*) = FInvulnerablePo;
     int  (*pfnFTakeStepguardDamage)(STEPGUARD*, ZPR*) = FTakeStepguardDamage;
     JTHS(*pfnJthsCurrentPo)(PO*) = JthsCurrentPo;
     void (*pfnCollectPoPrize)(PO*, PCK, ALO*) = CollectPoPrize;
@@ -1746,7 +1746,7 @@ struct VTCRFOD
     void(*pfnUpdatePoActive) = nullptr;
     void(*pfnSetPoPlayable)(PO*, int) = SetPoPlayable;
     int  (*pfnFIsPoSoundBase)(PO*) = FIsPoSoundBase;
-    bool(*pfnFInvulnerablePo)(PO*) = FInvulnerablePo;
+    int  (*pfnFInvulnerablePo)(PO*) = FInvulnerablePo;
     int  (*pfnFTakeStepguardDamage)(STEPGUARD*, ZPR*) = FTakeStepguardDamage;
     JTHS(*pfnJthsCurrentPo)(PO*) = JthsCurrentPo;
     void (*pfnCollectPoPrize)(PO*, PCK, ALO*) = CollectPoPrize;
@@ -1860,7 +1860,7 @@ struct VTCRFODB
     void(*pfnUpdatePoActive) = nullptr;
     void(*pfnSetPoPlayable)(PO*, int) = SetPoPlayable;
     int  (*pfnFIsPoSoundBase)(PO*) = FIsPoSoundBase;
-    bool(*pfnFInvulnerablePo)(PO*) = FInvulnerablePo;
+    int  (*pfnFInvulnerablePo)(PO*) = FInvulnerablePo;
     int  (*pfnFTakeStepguardDamage)(STEPGUARD*, ZPR*) = FTakeStepguardDamage;
     JTHS(*pfnJthsCurrentPo)(PO*) = JthsCurrentPo;
     void (*pfnCollectPoPrize)(PO*, PCK, ALO*) = CollectPoPrize;
@@ -1974,7 +1974,7 @@ struct VTCRFODK
     void(*pfnUpdatePoActive) = nullptr;
     void(*pfnSetPoPlayable)(PO*, int) = SetPoPlayable;
     int  (*pfnFIsPoSoundBase)(PO*) = FIsPoSoundBase;
-    bool(*pfnFInvulnerablePo)(PO*) = FInvulnerablePo;
+    int  (*pfnFInvulnerablePo)(PO*) = FInvulnerablePo;
     int  (*pfnFTakeStepguardDamage)(STEPGUARD*, ZPR*) = FTakeStepguardDamage;
     JTHS(*pfnJthsCurrentPo)(PO*) = JthsCurrentPo;
     void (*pfnCollectPoPrize)(PO*, PCK, ALO*) = CollectPoPrize;
@@ -2088,7 +2088,7 @@ struct VTRUBY
     void(*pfnUpdatePoActive) = nullptr;
     void(*pfnSetPoPlayable)(PO*, int) = SetPoPlayable;
     int  (*pfnFIsPoSoundBase)(PO*) = FIsPoSoundBase;
-    bool(*pfnFInvulnerablePo)(PO*) = FInvulnerablePo;
+    int  (*pfnFInvulnerablePo)(PO*) = FInvulnerablePo;
     int  (*pfnFTakeStepguardDamage)(STEPGUARD*, ZPR*) = FTakeStepguardDamage;
     JTHS(*pfnJthsCurrentPo)(PO*) = JthsCurrentPo;
     void (*pfnCollectPoPrize)(PO*, PCK, ALO*) = CollectPoPrize;
@@ -2304,7 +2304,7 @@ struct VTROV
     void (*pfnUpdateRovActive)(ROV*, JOY*, float) = UpdateRovActive;
     void(*pfnSetPoPlayable)(PO*, int) = SetPoPlayable;
     int  (*pfnFIsRovSoundBase)() = FIsRovSoundBase;
-    bool(*pfnFInvulnerablePo)(PO*) = FInvulnerablePo;
+    int  (*pfnFInvulnerablePo)(PO*) = FInvulnerablePo;
     int  (*pfnFTakePoDamage)(PO*, ZPR*) = FTakePoDamage;
     JTHS(*pfnJthsCurrentPo)(PO*) = JthsCurrentPo;
     void (*pfnCollectPoPrize)(PO*, PCK, ALO*) = CollectPoPrize;
@@ -2403,7 +2403,7 @@ struct VTTURRET
     void (*pfnUpdateTurretActive)(TURRET*, JOY*, float) = UpdateTurretActive;
     void(*pfnSetPoPlayable)(PO*, int) = SetPoPlayable;
     int  (*pfnFIsPoSoundBase)(PO*) = FIsPoSoundBase;
-    bool(*pfnFInvulnerablePo)(PO*) = FInvulnerablePo;
+    int  (*pfnFInvulnerablePo)(PO*) = FInvulnerablePo;
     int  (*pfnFTakePoDamage)(PO*, ZPR*) = FTakePoDamage;
     JTHS(*pfnJthsCurrentPo)(PO*) = JthsCurrentPo;
     void (*pfnCollectTurretPrize)(TURRET*, PCK, ALO*) = CollectTurretPrize;
@@ -2502,7 +2502,7 @@ struct VTVAULT
     void (*pfnUpdateVaultActive)(VAULT*, JOY*, float) = UpdateVaultActive;
     void(*pfnSetPoPlayable)(PO*, int) = SetPoPlayable;
     int  (*pfnFIsPoSoundBase)(PO*) = FIsPoSoundBase;
-    bool (*pfnFInvulnerablePo)(PO*) = FInvulnerablePo;
+    int  (*pfnFInvulnerablePo)(PO*) = FInvulnerablePo;
     int  (*pfnFTakePoDamage)(PO*, ZPR*) = FTakePoDamage;
     JTHS(*pfnJthsCurrentPo)(PO*) = JthsCurrentPo;
     void (*pfnCollectPoPrize)(PO*, PCK, ALO*) = CollectPoPrize;
@@ -2601,7 +2601,7 @@ struct VTPUFFER
     void (*pfnUpdatePufferActive)(PUFFER*, JOY*, float) = UpdatePufferActive;
     void(*pfnSetPoPlayable)(PO*, int) = SetPoPlayable;
     int  (*pfnFIsPoSoundBase)(PO*) = FIsPoSoundBase;
-    bool(*pfnFInvulnerablePo)(PO*) = FInvulnerablePo;
+    int  (*pfnFInvulnerablePo)(PO*) = FInvulnerablePo;
     int  (*pfnFTakePoDamage)(PO*, ZPR*) = FTakePoDamage;
     JTHS(*pfnJthsCurrentPo)(PO*) = JthsCurrentPo;
     void (*pfnCollectPoPrize)(PO*, PCK, ALO*) = CollectPoPrize;
@@ -2700,7 +2700,7 @@ struct VTSUV
     void (*pfnUpdateSuvActive)(SUV*, JOY*) = UpdateSuvActive;
     void(*pfnSetPoPlayable)(PO*, int) = SetPoPlayable;
     int  (*pfnFIsPoSoundBase)(PO*) = FIsPoSoundBase;
-    bool(*pfnFInvulnerablePo)(PO*) = FInvulnerablePo;
+    int  (*pfnFInvulnerablePo)(PO*) = FInvulnerablePo;
     int  (*pfnFTakePoDamage)(PO*, ZPR*) = FTakePoDamage;
     JTHS(*pfnJthsCurrentPo)(PO*) = JthsCurrentPo;
     void (*pfnCollectSuvPrize)(SUV*, PCK, ALO*) = CollectSuvPrize;
@@ -2801,7 +2801,7 @@ struct VTLGN
     int  (*pfnFIsPoSoundBase)(PO*) = FIsPoSoundBase;
     int  (*pfnFInvulnerableLgn)(LGN*) = FInvulnerableLgn;
     int  (*pfnFTakeLgnDamage)(LGN*, ZPR*) = FTakeLgnDamage;
-    bool (*pfnJthsCurrentLgn)(LGN*) = JthsCurrentLgn;
+    int  (*pfnJthsCurrentLgn)(LGN*) = JthsCurrentLgn;
     void (*pfnCollectSuvPrize)(SUV*, PCK, ALO*) = CollectSuvPrize;
     void (*pfnSetPoPck)(PO*, PCK) = SetPoPck;
     void (*pfnUseLgnCharm)(LGN*) = UseLgnCharm;
@@ -2900,7 +2900,7 @@ struct VTJETPACK
     int  (*pfnFIsPoSoundBase)(PO*) = FIsPoSoundBase;
     int (*pfnFInvulnerableJetpack)(JETPACK*, ZPK) = FInvulnerableJetpack;
     int (*pfnFTakeJetpackDamage)(JETPACK*, ZPR*) = FTakeJetpackDamage;
-    bool (*pfnJthsCurrentJetpack)(JETPACK*) = JthsCurrentJetpack;
+    int  (*pfnJthsCurrentJetpack)(JETPACK*) = JthsCurrentJetpack;
     void (*pfnCollectPoPrize)(PO*, PCK, ALO*) = CollectPoPrize;
     void (*pfnSetPoPck)(PO*, PCK) = SetPoPck;
     void (*pfnUseJetpackCharm)(JETPACK*) = UseJetpackCharm;
@@ -2997,7 +2997,7 @@ struct VTRYTHM
     void (*pfnUpdateRythm)(RYTHM*, JOY*, float) = UpdateRythm;
     void (*pfnSetPoPlayable)(PO*, int) = SetPoPlayable;
     int  (*pfnFIsPoSoundBase)(PO*) = FIsPoSoundBase;
-    bool (*pfnFIsRythmInvulnerable)(RYTHM*) = FIsRythmInvulnerable;
+    int  (*pfnFIsRythmInvulnerable)(RYTHM*) = FIsRythmInvulnerable;
     int  (*pfnFTakeRythmDamage)(RYTHM*, ZPR*) = FTakeRythmDamage;
     JTHS (*pfnJthsCurrentPo)(PO*) = JthsCurrentPo;
     void (*pfnCollectPoPrize)(PO*, PCK, ALO*) = CollectPoPrize;
@@ -3098,7 +3098,7 @@ struct VTMGV
     int  (*pfnFIsPoSoundBase)(PO*) = FIsPoSoundBase;
     int (*pfnFIsMgvInvulnerable)(MGV*, ZPK) = FIsMgvInvulnerable;
     int (*pfnFTakeMgvDamage)(MGV*, ZPR*) = FTakeMgvDamage;
-    bool (*pfnFIsMgvTakingDamage)(MGV*) = FIsMgvTakingDamage;
+    int  (*pfnFIsMgvTakingDamage)(MGV*) = FIsMgvTakingDamage;
     void (*pfnCollectPoPrize)(PO*, PCK, ALO*) = CollectPoPrize;
     void (*pfnSetPoPck)(PO*, PCK) = SetPoPck;
     void (*pfnUseMgvCharm)(MGV*) = UseMgvCharm;
@@ -6089,7 +6089,7 @@ struct VTMINE
     void (*pfnRenumberSo)(SO*, int*, SO**) = RenumberSo;
     void (*pfnPropagateSoForce)(SO*, GRFSG, XP*, int, DZ*, FX*) = PropagateSoForce;
     void (*pfnDistributeSoEffects)(SO*, GRFSG, int, SO**, FX*) = DistributeSoEffects;
-    bool (*pfnFIgnoreMineIntersection)(MINE*, SO*) = FIgnoreMineIntersection;
+    int  (*pfnFIgnoreMineIntersection)(MINE*, SO*) = FIgnoreMineIntersection;
     void (*pfnAddSoXps)(SO*, SO*, int, int, BSP*, BSP*, XP**) = AddSoXps;
     void (*pfnAddBombCustomXps)(BOMB*, SO*, int, BSP*, BSP*, XP**) = AddBombCustomXps;
     void (*pfnAdjustSoXpLocal)(SO*, XP*, int) = AdjustSoXpLocal;
@@ -10765,7 +10765,7 @@ struct VTTHNDFLASH
     void (*pfnOnLoAdd)(LO*) = OnLoAdd;
     void (*pfnOnLoRemove)(LO*) = OnLoRemove;
     void (*pfnCloneLoHierarchy)(LO*, LO*) = CloneLoHierarchy;
-    void (*pfnCloneLo)(LO*, LO*) = CloneLo;
+    void (*pfnCloneThndFlash)(THNDFLASH*, THNDFLASH*) = CloneThndFlash;
     void (*pfnLoadLoFromBrx)(LO*, CBinaryInputStream*) = LoadLoFromBrx;
     void(*pfnAddLoRecursive) = nullptr;
     void(*pfnRemoveLoRecursive) = nullptr;

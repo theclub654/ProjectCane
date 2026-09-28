@@ -197,6 +197,7 @@ class SO : public ALO
 	int cnpg;
 	std::vector <NPG> anpg;
 	std::vector <uint32_t> mpibspinpg;
+	bool fBspNodeMapAllocated = false;
 	int chsg;
 	std::vector <HSG> ahsg;
 	std::vector <int> mpisurfihsgMic;

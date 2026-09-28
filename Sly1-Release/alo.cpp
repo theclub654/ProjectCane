@@ -4263,8 +4263,6 @@ void RenderAloGlobset(ALO* palo, CM* pcm, RO* pro)
 			rpl.ro.uAlpha *= pglobi->uAlpha;
 		}
 
-		rpl.ro.uAlpha *= g_uAlpha;
-
 		if (rpl.ro.uAlpha <= 0.0f)
 			continue;
 
@@ -4381,14 +4379,18 @@ void RenderAloGlobset(ALO* palo, CM* pcm, RO* pro)
 		{
 			float celAlpha = baseAlphaCel;
 
-			if (glob.sCelBorderMRD < glob.sMRD)
+			// Retail performs the per-glob cel-border distance test only for
+			// ALOs using per-glob MRD. Other modes inherit the whole-ALO cel
+			// alpha computed by RenderAloAll; testing every body-part glob here
+			// makes articulated characters lose their outlines piece by piece.
+			if (doPerGlobMrd && glob.sCelBorderMRD < glob.sMRD)
 			{
 				float dummyCB = 1.0f;
 
 				if (!FInsideCmMrd(pcm, dpos, glob.sRadius, glob.sCelBorderMRD, dummyCB))
 					celAlpha = 0.0f;
 				else
-					celAlpha = baseAlphaCel * uAlphaFromMrd;
+					celAlpha = baseAlphaCel * dummyCB;
 			}
 
 			const float cb = celAlpha * rpl.ro.uAlpha;

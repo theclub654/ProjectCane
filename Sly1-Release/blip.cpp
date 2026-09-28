@@ -185,16 +185,12 @@ void SetBlipgEmitb(BLIPG* pblipg, EMITB* pemitb)
 
     for (int i = 0; i < pblipg->crgba; ++i)
     {
-        // SetBlipgEmitb in the retail game stores each GS colour channel as
-        // (channel + 1) >> 1.  Preserve normalized alpha here: GS alpha uses
-        // 0x80 as fully opaque, whereas OpenGL uses 1.0/0xff.  Halving alpha
-        // a second time would therefore make the blend contribution wrong.
+        // Retail stores (channel + 1) >> 1 because GS texture modulation uses
+        // 0x80 as 1.0. OpenGL modulation uses normalized 1.0 instead, so the
+        // original /255 values are already the equivalent colors. Halving the
+        // normalized RGB again makes every BLIP (including SUV dust) too dark.
         const glm::vec4& source = emitblip.argba[i];
-        pblipg->argba[i] = glm::vec4(
-            source.r * 0.5f,
-            source.g * 0.5f,
-            source.b * 0.5f,
-            source.a);
+        pblipg->argba[i] = source;
     }
 
     pblipg->fColorRanges = emitblip.fColorRanges;
@@ -459,12 +455,6 @@ void EmitBlips(EMITB* pemitb, EMITG* pemitg, int cblipeRequested, const glm::vec
 
     if (!pblipg)
     {
-        /*if (!g_psw->slotheapBlip.pslotFree)
-            return;
-
-        if (emitblip.blipmk == BLIPMK_Spline && !g_psw->slotheapBlipsp.pslotFree)
-            return;*/
-
         pblipg = PblipgNew(g_psw);
 
         if (!pblipg)

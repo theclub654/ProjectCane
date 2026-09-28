@@ -1,7 +1,9 @@
 #include "credit.h"
+#include "gui_layout.h"
 #include "timer.h"
 #include "coin.h"
 #include <cstdio>
+#include <cstring>
 
 COMMENTARY* PcommentaryFromLevelId(int levelId)
 {
@@ -16,15 +18,19 @@ COMMENTARY* PcommentaryFromLevelId(int levelId)
 
 void StartupNote(NOTE* pnote)
 {
-    g_teNote.m_dyExtra = 1.0;
-    g_teNote.m_rgba = glm::vec4(0.0f, 0.294, 0.490, 1.0);
-    g_teNote.m_ch = '-';
-    g_teNote.m_dxExtra = 2.0;
-    g_teNote.m_dyExtra = 1.0;
-    g_teNote.m_ryScaling = 0.3;
-    g_teNote.m_rxScaling = 0.3;
-
     pnote->pvtnote = &g_vtnote;
+
+    // Retail initializes the shared NOTE edge here (FUN_001e0848).
+    // The font itself is assigned after font 2 has loaded in PostNoteLoad.
+    g_teNote.m_pfont = nullptr;
+    g_teNote.m_ch = '-';
+    g_teNote.m_dxExtra = 2.0f;
+    g_teNote.m_dyExtra = 1.0f;
+    g_teNote.m_rxScaling = 0.3f;
+    g_teNote.m_ryScaling = 0.3f;
+    // GS color channels use 128 as full intensity.
+    g_teNote.m_rgba = glm::vec4(0.0f, 75.0f / 128.0f,
+        125.0f / 128.0f, 1.0f);
 }
 
 void PostNoteLoad(NOTE* pnote)
@@ -59,7 +65,12 @@ void PostNoteLoad(NOTE* pnote)
     }
 
 	SetBlotFontScale(pnote, 0.6f);
-    pnote->rgba = glm::vec4(127.0f / 255.0f, 127.0f / 255.0f, 127.0f / 255.0f, 223.0f / 255.0f);
+    // PS2 GS RGB uses 128 as full intensity. Retail's (127,127,127,223)
+    // therefore renders nearly white and fully opaque, not 50% gray.
+    pnote->rgba = glm::vec4(127.0f / 128.0f,
+        127.0f / 128.0f,
+        127.0f / 128.0f,
+        1.0f);
 
     const bool fCommentaryUnlocked = FCommentaryUnlockedForLevel(g_psw, levelId) != 0;
     SetNoteMtsState(pnote, fCommentaryUnlocked ? MTSSTATE_Eligible : MTSSTATE_None);
@@ -68,7 +79,11 @@ void PostNoteLoad(NOTE* pnote)
 		(g_psw->audioLocation == commentaryDescriptor || g_psw->audioLocation[0] != '\0');
     pnote->fCommentaryPromptActive = 0;
 
-    if ((g_plsCur->grfls & FLS_Tertiary) != 0 && fHasCommentaryAudio)
+    // Both NOTE (the sprint/commentary display) and PNOTE (the general
+    // power/status message) use PostNoteLoad. Only NOTE owns the commentary
+    // state machine; showing this prompt on PNOTE creates a second box.
+    if (pnote == &g_note &&
+        (g_plsCur->grfls & FLS_Tertiary) != 0 && fHasCommentaryAudio)
     {
         pnote->pvtblot->pfnSetBlotAchzDraw(pnote, (char*)s_pchzBonusCommentaryPrompt);
         SetBlotDtVisible(pnote, 5.0f);
@@ -255,20 +270,90 @@ void DrawNote(NOTE* pnote)
     if (pnote->achzDraw[0] == '\0')
         return;
 
-    pnote->pfont->PushScaling(pnote->rFontScale, pnote->rFontScale);
-
     glm::vec4 fadedColor = pnote->rgba;
     fadedColor.a *= pnote->uOn;
 
+    // Credit events and NOTE dimensions are authored in the PS2's
+    // 640 x 492.8 virtual canvas. Credits fill the active output canvas rather
+    // than the centered 4:3 HUD canvas, so scale each axis independently.
+    // Embedded CREDIT notes remain at Modern 125%; the global gameplay NOTE
+    // continues to honor the selected HUD scale.
+    const GuiScale guiScale = FModernGui() && pnote->blotk == BLOTK_CreditNote
+        ? GetGuiScale(1.25f)
+        : GetGuiScale();
+    const float scaleX = guiScale.x;
+    const float scaleY = guiScale.y;
+
+    float x = pnote->xOn;
+    float y = pnote->yOn;
+    float dx = pnote->dx * scaleX;
+    float dy = pnote->dy * scaleY;
+
+    // PNOTE is used for bottom-edge status prompts such as "Erase Game".
+    // Its dimensions were scaled for Modern GUI while its authored bottom
+    // anchor was not, leaving the enlarged box partly below the framebuffer.
+    // Use the same scaled edge-anchor calculation as ordinary BLOT drawing.
+    if (pnote == &g_pnote)
+        GetGuiScaledBlotRect(pnote, &x, &y, &dx, &dy);
+
+    // The global NOTE is conditionally pegged above TIMER. Sprint messages use
+    // that peg while the timer is active; power-selection and developer-
+    // commentary notes must fall back to their normal bottom-left anchor when
+    // the timer is hidden.
+    if (pnote->blotk == BLOTK_Note && pnote->pbloti != nullptr &&
+        pnote->pbloti->blotkPeg == BLOTK_Timer)
+    {
+        x = pnote->pbloti->x * scaleX;
+
+        if (FIncludeBlotForPeg(&g_timer, pnote))
+        {
+            const float timerY = g_gl.height -
+                (g_gl.height - g_timer.y) * scaleY;
+            y = timerY + pnote->pbloti->y * scaleY -
+                pnote->dy * scaleY;
+        }
+        else
+        {
+            y = g_gl.height + pnote->pbloti->y * scaleY -
+                pnote->dy * scaleY;
+        }
+    }
+
+    // Letterbox geometry always uses the full PS2-canvas-to-framebuffer
+    // height conversion, even when Modern GUI content is drawn smaller.
+    // Using Modern's density here moves the note by too little and lets its
+    // lower edge overlap the black bar.
+    constexpr float kPs2CanvasHeight = 492.80002f;
+    const float letterboxScale = g_gl.height / kPs2CanvasHeight;
+
     CTextBox tbx;
-    // DrawCredit overrides x/y for each embedded NOTE immediately before
-    // dispatching this draw function.  These are also the interpolated BLOT
-    // coordinates maintained by UpdateBlot; xOn/yOn are only destinations.
-    tbx.SetPos(pnote->x, pnote->y - g_letterbox.uOn * 66.40001f);
-    tbx.SetSize(pnote->dx, pnote->dy);
+    tbx.SetPos(x, y - g_letterbox.uOn * 66.40001f * letterboxScale);
+    tbx.SetSize(dx, dy);
     tbx.SetTextColor(&fadedColor);
     tbx.SetHorizontalJust(JH_Left);
     tbx.SetVerticalJust(JV_Top);
+
+    CRichText rt(pnote->achzDraw, pnote->pfont);
+
+    // The commentary prompt's authored NOTE width is larger than its actual
+    // retail string in this data set. Retail's rectangle ends with the text,
+    // so measure this prompt using the same effective font scale and trim only
+    // its edge box. Keep the text box itself unchanged for wrapping/layout.
+    CTextBox edgeBox = tbx;
+    const bool fDrawingCommentaryPrompt =
+        pnote->blotk == BLOTK_Note &&
+        std::strcmp(pnote->achzDraw, s_pchzBonusCommentaryPrompt) == 0;
+    if (fDrawingCommentaryPrompt)
+    {
+        pnote->pfont->PushScaling(pnote->rFontScale * scaleX,
+            pnote->rFontScale * scaleY);
+        edgeBox.m_dx = std::min(edgeBox.m_dx, rt.DxMaxLine());
+        const float textLineHeight =
+            static_cast<float>(pnote->pfont->m_dyUnscaled) *
+            pnote->pfont->m_ryScale;
+        edgeBox.m_dy = std::min(edgeBox.m_dy, textLineHeight);
+        pnote->pfont->PopScaling();
+    }
 
     if (pnote->pte != nullptr)
     {
@@ -276,12 +361,22 @@ void DrawNote(NOTE* pnote)
         pnote->pte->m_rgba.a *= pnote->uOn;
 
         if (pnote->pte->m_pfont != nullptr)
-            pnote->pte->m_pfont->EdgeRect(pnote->pte, &tbx);
+        {
+            const float edgeScaleX = pnote->pte->m_rxScaling;
+            const float edgeScaleY = pnote->pte->m_ryScaling;
+            pnote->pte->m_rxScaling *= scaleX;
+            pnote->pte->m_ryScaling *= scaleY;
+            pnote->pte->m_pfont->EdgeRect(pnote->pte, &edgeBox);
+            pnote->pte->m_rxScaling = edgeScaleX;
+            pnote->pte->m_ryScaling = edgeScaleY;
+        }
 
         pnote->pte->m_rgba = edgeColorPrev;
     }
 
-    CRichText rt(pnote->achzDraw, pnote->pfont);
+    pnote->pfont->PushScaling(pnote->rFontScale * scaleX,
+        pnote->rFontScale * scaleY);
+
     rt.Draw(&tbx, nullptr);
 
     pnote->pfont->PopScaling();
@@ -303,7 +398,9 @@ void InitCredit(CREDIT* pcredit, BLOTK blotk)
 
     for (int i = 0; i < 4; i++)
     {
-        g_vtnote.pfnInitBlot(&pcredit->anote[i], BLOTK_Note);
+        // Retail initializes CREDIT's embedded notes as kind 18. Unlike the
+        // global NOTE (kind 17), this placement is not pegged to the timer.
+        g_vtnote.pfnInitBlot(&pcredit->anote[i], BLOTK_CreditNote);
         pcredit->anote[i].pvtnote = &g_vtnote;
     }
 }
@@ -361,11 +458,24 @@ void UpdateCredit(CREDIT* pcredit)
 
 void DrawCredit(CREDIT* pcredit)
 {
-    // Do not draw if binoculars are visible
+    // Retail draws credits only while the normal gameplay-blot set is active.
     if (g_ui.cpblotActive != 1)
         return;
-    
+
+    // Credit events store their origin in the PS2's 640 x 492.8 canvas.
+    // PlaceCredit has already scaled the CREDIT bounds used by RepositionBlot,
+    // but the authored x/y margin still needs conversion to output pixels.
+    const GuiScale guiScale = FModernGui() ? GetGuiScale(1.25f) : GetGuiScale();
+    const float scaleX = guiScale.x;
+    const float scaleY = guiScale.y;
+    float x = pcredit->x;
     float yCurrent = pcredit->y;
+
+    if (pcredit->pbloti != nullptr)
+    {
+        x += pcredit->pbloti->x * (scaleX - 1.0f);
+        yCurrent += pcredit->pbloti->y * (scaleY - 1.0f);
+    }
 
     for (int i = 0; i < pcredit->cnote; ++i)
     {
@@ -374,12 +484,12 @@ void DrawCredit(CREDIT* pcredit)
         // Cache original uOn value
         float originalUOn = pnote->uOn;
 
-        // Set position
-        pnote->x = pcredit->x;
-        pnote->y = yCurrent;
+        // DrawNote uses the settled target coordinates, matching retail.
+        pnote->xOn = x;
+        pnote->yOn = yCurrent;
 
-        // Temporarily adjust uOn for rendering (scaled by g_rtClock)
-        pnote->uOn = originalUOn * g_rtClock;
+        // Retail multiplies this by _DAT_00261850, which is the constant 1.0f.
+        pnote->uOn = originalUOn;
 
         // Draw the note via virtual call
         if (pnote->pvtblot && pnote->pvtblot->pfnDrawBlot)
@@ -389,7 +499,7 @@ void DrawCredit(CREDIT* pcredit)
         pnote->uOn = originalUOn;
 
         // Advance y-position for next NOTE
-        yCurrent += pnote->dy;
+        yCurrent += pnote->dy * scaleY;
     }
 }
 
@@ -399,8 +509,16 @@ void PlaceCredit(CREDIT* pcredit, float x, float y, int cline)
     pcredit->pbloti->y = y;
     pcredit->cnote = cline;
 
+    float dxMax = 0.0f;
+    for (int i = 0; i < cline; ++i)
+        dxMax = std::max(dxMax, pcredit->anote[i].dx);
+
+    const GuiScale guiScale = FModernGui() ? GetGuiScale(1.25f) : GetGuiScale();
+    const float scaleX = guiScale.x;
+    const float scaleY = guiScale.y;
     const float dyLine = static_cast<float>(pcredit->pfont->m_dyUnscaled) * pcredit->pfont->m_ryScale;
-    ResizeBlot(pcredit, pcredit->dx, dyLine * static_cast<float>(cline));
+    ResizeBlot(pcredit, dxMax * scaleX,
+        dyLine * static_cast<float>(cline) * scaleY);
 
     SetBlotBlots(pcredit, BLOTS_Visible);
 }
@@ -428,8 +546,12 @@ void SetCreditLine(CREDIT* pcredit, int iline, char* pchz, float dtVisible)
     for (int i = 0; i < pcredit->cnote; ++i)
         dxMax = std::max(dxMax, pcredit->anote[i].dx);
 
+    const GuiScale guiScale = FModernGui() ? GetGuiScale(1.25f) : GetGuiScale();
+    const float scaleX = guiScale.x;
+    const float scaleY = guiScale.y;
     const float dyLine = static_cast<float>(pcredit->pfont->m_dyUnscaled) * pcredit->pfont->m_ryScale;
-    ResizeBlot(pcredit, dxMax, dyLine * static_cast<float>(pcredit->cnote));
+    ResizeBlot(pcredit, dxMax * scaleX,
+        dyLine * static_cast<float>(pcredit->cnote) * scaleY);
 
     if (dtVisible != 0.0f)
     {
@@ -445,8 +567,8 @@ void SetCreditLine(CREDIT* pcredit, int iline, char* pchz, float dtVisible)
 
 CREDIT g_credit;
 NOTE g_note;
-CTextEdge g_teNote;
-NOTE* g_pnote;
+CTextEdge g_teNote{};
+NOTE g_pnote;
 COMMENTARY g_aCommentaryLoadData[33] =
 {
     { 0x100,  77.0f, "Commentary_0100.vag", "Nate Fox\nHokyo Lim" },

@@ -1,4 +1,5 @@
 #include "call.h"
+#include "gui_layout.h"
 #include "jt.h"
 
 void StartupCall(CALL* pcall)
@@ -39,16 +40,34 @@ void DrawCall(CALL* pcall)
     const float scale = 0.55f + std::cos(RadNormalize(g_clock.tReal * 8.0f)) * 0.05f;
 
     CFontBrx* pfont = PfontFromFont(1);
-    pfont->PushScaling(scale, scale);
+    if (pfont == nullptr)
+        return;
+
+    // DrawBlot converts the CALL's main glyph from the retail 640 x 492.8
+    // canvas into framebuffer pixels. The separately drawn L1 glyph must use
+    // that same canvas conversion; on PS2 this happened globally in the GS
+    // projection rather than in DrawCall itself.
+    const GuiScale guiScale = GetGuiScale();
+    float xCall = 0.0f;
+    float yCall = 0.0f;
+    float dxCall = 0.0f;
+    float dyCall = 0.0f;
+    GetGuiScaledBlotRect(pcall, &xCall, &yCall, &dxCall, &dyCall);
+
+    pfont->PushScaling(scale * guiScale.x, scale * guiScale.y);
 
     const float dxText = pfont->DxFromPchz((char*)"L");
     const float dyText = static_cast<float>(pfont->m_dyUnscaled) * pfont->m_ryScale;
 
     CTextBox tbx;
-    tbx.SetPos(pcall->x + 2.0f + pcall->dx * 0.5f - dxText * 0.5f, pcall->y + 14.0f + pcall->dy * 0.5f - dyText * 0.5f);
+    tbx.SetPos(
+        xCall + 2.0f * guiScale.x + dxCall * 0.5f - dxText * 0.5f,
+        yCall + 14.0f * guiScale.y + dyCall * 0.5f - dyText * 0.5f);
     tbx.SetSize(dxText, dyText);
 
-    glm::vec4 color = glm::vec4(0.5f, 0.5f, 0.5f, 1.0f);
+    // Retail passes 0xFF808080. PS2 GS RGB channels use 0x80 as full
+    // intensity, so this maps to white in the conventional 0..1 shader range.
+    glm::vec4 color = glm::vec4(1.0f);
 
     tbx.SetTextColor(&color);
     tbx.SetHorizontalJust(JH_Left);

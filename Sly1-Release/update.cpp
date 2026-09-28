@@ -69,7 +69,31 @@ void UpdateSw(SW* psw, float dt)
             palo = static_cast<ALO*>(*dliBusy.m_ppv);
         }
 
-        // Update impacts and touching events.
+        // Impact impulses belong to the world's contact graph, not only to
+        // objects currently present in dlBusySo.  Static level barriers (for
+        // example lethal falls and the car crushers in A Rocky Start) can be
+        // the side that owns pfnNotifySoImpact, so drain every physical root.
+        DLI dliRoot{};
+        dliRoot.m_pdl = &psw->dlRoot;
+        dliRoot.m_ibDle = psw->dlRoot.ibDle;
+        dliRoot.m_pdliNext = s_pdliFirst;
+
+        s_pdliFirst = &dliRoot;
+
+        SO* psoRoot = psw->dlRoot.psoFirst;
+
+        while (psoRoot)
+        {
+            dliRoot.m_ppv = reinterpret_cast<void**>(reinterpret_cast<std::byte*>(psoRoot) + dliRoot.m_ibDle);
+
+            psoRoot->pvtso->pfnUpdateSoImpacts(psoRoot);
+            psoRoot = static_cast<SO*>(*dliRoot.m_ppv);
+        }
+
+        s_pdliFirst = dliRoot.m_pdliNext;
+
+        // Touching events are generated only for active objects that requested
+        // them through OnTouch/OnUntouch bindings.
         dliBusy.m_pdl = &psw->dlBusySo;
         dliBusy.m_ibDle = psw->dlBusySo.ibDle;
 
@@ -78,8 +102,6 @@ void UpdateSw(SW* psw, float dt)
         while (pso)
         {
             dliBusy.m_ppv = reinterpret_cast<void**>(reinterpret_cast<std::byte*>(pso) + dliBusy.m_ibDle);
-
-            pso->pvtso->pfnUpdateSoImpacts(pso);
 
             if (pso->fGenSpliceTouchEvents)
                 GenerateSoSpliceTouchingEvents(pso);

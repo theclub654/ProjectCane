@@ -28,8 +28,11 @@ struct VIDEOSAVESETTINGS
     int vsyncEnabled;
     int aspectMode;
     float guiScale;
+    int guiStyle;
     int keyboardBindings[BTN_MAX];
     int gamepadBindings[BTN_MAX];
+    int disableControllerInputWhenUnfocused;
+    int lastSaveSlot;
 };
 
 struct SAVEDATA

@@ -6,7 +6,7 @@ struct SAI;
 struct SHD;
 class  CBinaryInputStream;
 
-SAA*  PsaaLoadFromBrx(CBinaryInputStream* pbis);
+std::shared_ptr<SAA> PsaaLoadFromBrx(CBinaryInputStream* pbis);
 void  InitSaa(SAA* psaa, SAAF* psaaf);
 void  PostSaaLoad(SAA* psaa);
 float UCompleteSaa(SAA* psaa);
@@ -15,7 +15,7 @@ int   FUpdatableSaa(SAA* psaa);
 void  DeleteSaa(SAA*);
 
 struct LOOP;
-LOOP* NewLoop();
+std::shared_ptr<LOOP> NewLoop();
 void  LoadLoopFromBrx(LOOP* ploop, CBinaryInputStream* pbis);
 void  InitLoop(LOOP* ploop, SAAF* psaaf);
 void  PostLoopLoad(LOOP* ploop);
@@ -24,7 +24,7 @@ float UCompleteLoop(LOOP* ploop);
 void  DeleteLoop(LOOP* ploop);
 
 struct PINGPONG;
-PINGPONG* NewPingPong();
+std::shared_ptr<PINGPONG> NewPingPong();
 void  LoadPingPongFromBrx(PINGPONG* ppingpong, CBinaryInputStream* pbis);
 void  InitPingpong(PINGPONG* ppingpong, SAAF* psaaf);
 void  PostPingpongLoad(PINGPONG* ppingpong);
@@ -33,14 +33,14 @@ float UCompletePingpong(PINGPONG* ppingpong);
 void  DeletePingpong(PINGPONG* ppingpong);
 
 struct SHUFFLE;
-SHUFFLE* NewShuffle();
+std::shared_ptr<SHUFFLE> NewShuffle();
 void  LoadShuffleFromBrx(SHUFFLE* pshuffle, CBinaryInputStream* pbis);
 void  InitShuffle(SHUFFLE* pshuffle, SAAF* psaaf);
 void  UpdateShuffle(SHUFFLE* pshuffle, float dt);
 void  DeleteShuffle(SHUFFLE* pshuffle);
 
 struct HOLOGRAM;
-HOLOGRAM* NewHologram();
+std::shared_ptr<HOLOGRAM> NewHologram();
 void  LoadHologramFromBrx(HOLOGRAM* phologram, CBinaryInputStream* pbis);
 void  InitHologram(HOLOGRAM* phologram, SAAF* psaaf);
 void  PostHologramLoad(HOLOGRAM* phologram);
@@ -48,7 +48,7 @@ void  NotifyHologramRender(HOLOGRAM* phologram, ALO* palo, RPL* prpl);
 void  DeleteHologram(HOLOGRAM* phologram);
 
 struct EYES;
-EYES* NewEyes();
+std::shared_ptr<EYES> NewEyes();
 void  LoadEyesFromBrx(EYES* peyes, CBinaryInputStream* pbis);
 void  InitEyes(EYES* peyes, SAAF* psaaf);
 void  PostEyesLoad(EYES* peyes);
@@ -58,7 +58,7 @@ SAI*  PsaiFromEyesShd(EYES* peyes, SHD* pshd);
 void  DeleteEyes(EYES* peyes);
 
 struct SCROLLER;
-SCROLLER* NewScroller();
+std::shared_ptr<SCROLLER> NewScroller();
 void  LoadScrollerFromBrx(SCROLLER* pscroller, CBinaryInputStream* pbis);
 void  SetScrollerMasterSpeeds(SCROLLER* pscroller, float svu, float svv);
 void  InitScroller(SCROLLER* pscroller, SAAF* psaaf);
@@ -67,7 +67,7 @@ float UCompleteScroller(SCROLLER* pscroller);
 void  DeleteScroller(SCROLLER*);
 
 struct CIRCLER;
-CIRCLER* NewCircler();
+std::shared_ptr<CIRCLER> NewCircler();
 void  LoadCirclerFromBrx(CIRCLER* pcircler, CBinaryInputStream* pbis);
 void  InitCircler(CIRCLER* pcircler, SAAF* psaaf);
 void  UpdateCircler(CIRCLER* pcircler, float dt);
@@ -75,7 +75,7 @@ float UCompleteCircler(CIRCLER* pcircler);
 void  DeleteCircler(CIRCLER* pcircler);
 
 struct LOOKER;
-LOOKER* NewLooker();
+std::shared_ptr<LOOKER> NewLooker();
 void  LoadLookerFromBrx(LOOKER* plooker, CBinaryInputStream* pbis);
 void  InitLooker(LOOKER* plooker, SAAF* psaaf);
 void  NotifyLookerRender(LOOKER* plooker, ALO* palo, RPL* prpl);
@@ -83,7 +83,7 @@ void  DeleteLooker(LOOKER* plooker);
 
 struct VTSAA
 {
-    SAA*(*pfnNewSaa) = nullptr;
+    std::shared_ptr<SAA>(*pfnNewSaa)() = nullptr;
     void(*pfnLoadSaaFromBrx) = nullptr;
     void(*pfnInitSaa)(SAA*, SAAF*) = InitSaa;
     void(*pfnPostSaaLoad)(SAA*) = PostSaaLoad;
@@ -97,7 +97,7 @@ struct VTSAA
 
 struct VTLOOP
 {
-    LOOP*(*pfnNewLoop)() = NewLoop;
+    std::shared_ptr<LOOP>(*pfnNewLoop)() = NewLoop;
     void(*pfnLoadLoopFromBrx)(LOOP*, CBinaryInputStream*) = LoadLoopFromBrx;
     void(*pfnInitLoop)(LOOP*, SAAF*) = InitLoop;
     void(*pfnLoopSaaLoad)(LOOP*) = PostLoopLoad;
@@ -112,7 +112,7 @@ static VTLOOP g_vtloop;
 
 struct VTPINGPONG
 {
-    PINGPONG* (*pfnNewPingPong)() = NewPingPong;
+    std::shared_ptr<PINGPONG>(*pfnNewPingPong)() = NewPingPong;
     void(*pfnLoadPingPongFromBrx)(PINGPONG*, CBinaryInputStream*) = LoadPingPongFromBrx;
     void(*pfnInitPingPong)(PINGPONG*, SAAF*) = InitPingpong;
     void(*pfnPostPingPongLoad)(PINGPONG*) = PostPingpongLoad;
@@ -127,7 +127,7 @@ static VTPINGPONG g_vtpingpong;
 
 struct VTSHUFFLE
 {
-    SHUFFLE*(*pfnNewShuffle)() = NewShuffle;
+    std::shared_ptr<SHUFFLE>(*pfnNewShuffle)() = NewShuffle;
     void(*pfnLoadShuffleFromBrx)(SHUFFLE*, CBinaryInputStream*) = LoadShuffleFromBrx;
     void(*pfnInitShuffle)(SHUFFLE*, SAAF*) = InitShuffle;
     void(*pfnPostSaaLoad)(SAA*) = PostSaaLoad;
@@ -142,7 +142,7 @@ static VTSHUFFLE g_vtshuffle;
 
 struct VTHOLOGRAM
 {
-    HOLOGRAM*(*pfnNewHologram)() = NewHologram;
+    std::shared_ptr<HOLOGRAM>(*pfnNewHologram)() = NewHologram;
     void(*pfnLoadHologramFromBrx)(HOLOGRAM*, CBinaryInputStream*) = LoadHologramFromBrx;
     void(*pfnInitHologram)(HOLOGRAM*, SAAF*) = InitHologram;
     void(*pfnPostHologramLoad)(HOLOGRAM*) = PostHologramLoad;
@@ -157,7 +157,7 @@ static VTHOLOGRAM g_vthologram;
 
 struct VTSCROLLER
 {
-    SCROLLER*(*pfnNewScroller)() = NewScroller;
+    std::shared_ptr<SCROLLER>(*pfnNewScroller)() = NewScroller;
     void(*pfnLoadScrollerFromBrx)(SCROLLER*, CBinaryInputStream*) = LoadScrollerFromBrx;
     void(*pfnInitScroller)(SCROLLER*, SAAF*) = InitScroller;
     void(*pfnPostSaaLoad)(SAA*) = PostSaaLoad;
@@ -172,7 +172,7 @@ static VTSCROLLER g_vtscroller;
 
 struct VTCIRCLER
 {
-    CIRCLER*(*pfnNewCircler)() = NewCircler;
+    std::shared_ptr<CIRCLER>(*pfnNewCircler)() = NewCircler;
     void(*pfnLoadCirclerFromBrx)(CIRCLER*, CBinaryInputStream*) = LoadCirclerFromBrx;
     void(*pfnInitCircler)(CIRCLER*, SAAF*) = InitCircler;
     void(*pfnPostSaaLoad)(SAA*) = PostSaaLoad;
@@ -187,7 +187,7 @@ static VTCIRCLER g_vtcircler;
 
 struct VTLOOKER
 {
-    LOOKER*(*pfnNewLooker)() = NewLooker;
+    std::shared_ptr<LOOKER>(*pfnNewLooker)() = NewLooker;
     void(*pfnLoadLookerFromBrx)(LOOKER*, CBinaryInputStream*) = LoadLookerFromBrx;
     void(*pfnInitLooker)(LOOKER*, SAAF*) = InitLooker;
     void(*pfnPostSaaLoad)(SAA*) = PostSaaLoad;
@@ -202,7 +202,7 @@ static VTLOOKER g_vtlooker;
 
 struct VTEYES
 {
-    EYES* (*pfnNewEyes)() = NewEyes;
+    std::shared_ptr<EYES>(*pfnNewEyes)() = NewEyes;
     void(*pfnLoadEyesFromBrx)(EYES*, CBinaryInputStream*) = LoadEyesFromBrx;
     void(*pfnInitEyes)(EYES*, SAAF*) = InitEyes;
     void(*pfnPostEyesLoad)(EYES*) = PostEyesLoad;

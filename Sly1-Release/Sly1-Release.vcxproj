@@ -576,6 +576,7 @@
     </ClInclude>
     <ClInclude Include="geom.h" />
     <ClInclude Include="gl.h" />
+    <ClInclude Include="gui_layout.h" />
     <ClInclude Include="glint.h" />
     <ClInclude Include="glob.h" />
     <ClInclude Include="glshaders.h" />

@@ -184,7 +184,11 @@ void UpdateVolzp(VOLZP* pvolzp, float dt)
 	if (pvolzp->zok != ZOK_Zap && pvolzp->zok != ZOK_ZapAndIgnore)
 		return;
 
-	if (player->pvtpo->pfnFInvulnerablePo(player, pvolzp->zpd.zpk))
+	const bool fInvulnerable = player == static_cast<PO*>(g_pjt)
+		? FInvulnerableJt(g_pjt, pvolzp->zpd.zpk)
+		: player->pvtpo->pfnFInvulnerablePo(player, pvolzp->zpd.zpk) != 0;
+
+	if (fInvulnerable)
 		return;
 
 	glm::vec3 distance = glm::vec3(pvolzp->xf.posWorld) - glm::vec3(player->xf.posWorld);

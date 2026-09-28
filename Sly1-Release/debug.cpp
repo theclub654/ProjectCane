@@ -8,10 +8,19 @@
 #include "game.h"
 #include "zap.h"
 #include "hubsel.h"
+#include "sound.h"
+#include "jt.h"
+#include "save.h"
 
 static bool s_fInfiniteTimer = false;
 static float s_svtTimerBeforeCheat = -1.0f;
-
+static bool s_fDisableAllSound = false;
+static float s_masterVolumeBeforeMute = 1.0f;
+static glm::vec3 s_posTeleport(0.0f);
+static JT* s_pjtTeleportSource = nullptr;
+bool g_fSkipBinocDialogs = false;
+bool g_fShowAutosaveIcon = false;
+bool g_fDebugGuiOpen = false;
 void RenderMenuGui(SW* psw)
 {
     // Start frame
@@ -21,9 +30,14 @@ void RenderMenuGui(SW* psw)
 
     g_fDisableInput = false;
 
+    // Sound initialization and world transitions can restore the mastering
+    // voice volume. Keep the menu mute authoritative while it is enabled.
+    if (s_fDisableAllSound && s_masterVolume != 0.0f)
+        SetMasterVolume(0.0f);
+
     // Keep the ImGui frame lifecycle active for the renderer, but do not
     // create any debug windows or menu bars in normal gameplay mode.
-    if (g_fDebugMode == 0)
+    if (!g_fDebugGuiOpen)
         return;
 
     // SetTimer may configure a new countdown while the cheat is already on.
@@ -229,6 +243,27 @@ void RenderMenuGui(SW* psw)
             ImGui::EndMenu();
         }
 
+        if (ImGui::BeginMenu("Audio"))
+        {
+            if (ImGui::MenuItem("Disable All Sound", nullptr, &s_fDisableAllSound))
+            {
+                if (s_fDisableAllSound)
+                {
+                    s_masterVolumeBeforeMute = s_masterVolume;
+                    SetMasterVolume(0.0f);
+                }
+                else
+                {
+                    SetMasterVolume(s_masterVolumeBeforeMute);
+                }
+            }
+
+            if (ImGui::IsItemHovered())
+                g_fDisableInput = true;
+
+            ImGui::EndMenu();
+        }
+
         if (ImGui::BeginMenu("Misc."))
         {
             if (psw != nullptr)
@@ -316,6 +351,10 @@ void RenderMenuGui(SW* psw)
             if (ImGui::MenuItem("Give 2 Charms", nullptr, false, fCanSetCharms))
                 SetCcharm(2);
 
+            bool fUnlimitedCharms = g_fInfiniteCharms != 0;
+            if (ImGui::MenuItem("Unlimited Charms", nullptr, &fUnlimitedCharms))
+                g_fInfiniteCharms = fUnlimitedCharms ? 1 : 0;
+
             if (ImGui::MenuItem("Set Coins to 98", nullptr, false, g_pgsCur != nullptr))
             {
                 g_pgsCur->ccoin = 98;
@@ -397,6 +436,23 @@ void RenderMenuGui(SW* psw)
             }
 
             ImGui::MenuItem("Disable Death Barriers", nullptr, &g_fDisableDeathBarriers);
+
+            ImGui::MenuItem("Skip Binocucom Dialogs with L1/R1", nullptr,
+                &g_fSkipBinocDialogs);
+
+            if (ImGui::MenuItem("Show Autosave Icon and Percent", nullptr,
+                &g_fShowAutosaveIcon, g_pgsCur != nullptr))
+            {
+                if (g_fShowAutosaveIcon)
+                {
+                    g_autosave.fSaveComplete = 0;
+                    ShowBlot(&g_autosave);
+                }
+                else
+                {
+                    HideBlot(&g_autosave);
+                }
+            }
 
             ImGui::Separator();
 
@@ -581,7 +637,74 @@ void RenderMenuGui(SW* psw)
             ImGui::EndMenu();
         }
 
+
+        if (ImGui::BeginMenu("Teleport"))
+        {
+            const bool fCanTeleport = g_pjt != nullptr && g_pjt->pvtalo != nullptr &&
+                g_pjt->pvtalo->pfnTranslateAloToPos != nullptr;
+
+            // Seed each newly-created Sly instance from its current position,
+            // but leave edited coordinates intact while this instance lives.
+            if (g_pjt != s_pjtTeleportSource)
+            {
+                s_pjtTeleportSource = g_pjt;
+                s_posTeleport = g_pjt ? g_pjt->xf.posWorld : glm::vec3(0.0f);
+            }
+
+            if (g_pjt)
+            {
+                ImGui::Text("Sly: X %.3f  Y %.3f  Z %.3f",
+                    g_pjt->xf.posWorld.x, g_pjt->xf.posWorld.y, g_pjt->xf.posWorld.z);
+                ImGui::Separator();
+            }
+            else
+            {
+                ImGui::TextDisabled("Sly is not loaded");
+            }
+
+            ImGui::SetNextItemWidth(240.0f);
+            ImGui::InputFloat3("XYZ", &s_posTeleport.x, "%.3f");
+
+            if (ImGui::Button("Use Sly's Current Position") && g_pjt)
+                s_posTeleport = g_pjt->xf.posWorld;
+
+            ImGui::SameLine();
+
+            if (ImGui::Button("Teleport Sly") && fCanTeleport)
+            {
+                g_pjt->xf.v = glm::vec3(0.0f);
+                g_pjt->xf.w = glm::vec3(0.0f);
+                g_pjt->pvtalo->pfnTranslateAloToPos(g_pjt, &s_posTeleport);
+                g_pjt->posWorldPrev = g_pjt->xf.posWorld;
+                g_pjt->xf.v = glm::vec3(0.0f);
+                g_pjt->xf.w = glm::vec3(0.0f);
+            }
+
+            if (ImGui::IsWindowHovered(ImGuiHoveredFlags_AllowWhenBlockedByPopup) ||
+                ImGui::IsAnyItemActive())
+            {
+                g_fDisableInput = true;
+            }
+
+            ImGui::EndMenu();
+        }
+
         ImGui::EndMainMenuBar();
+    }
+
+    // Keep Sly's live world position visible without opening the Teleport menu.
+    if (g_pjt)
+    {
+        ImGui::SetNextWindowBgAlpha(0.55f);
+        ImGui::SetNextWindowPos(ImVec2(10.0f, 30.0f), ImGuiCond_FirstUseEver);
+        ImGui::Begin("Sly Coordinates", nullptr,
+            ImGuiWindowFlags_AlwaysAutoResize |
+            ImGuiWindowFlags_NoSavedSettings |
+            ImGuiWindowFlags_NoFocusOnAppearing);
+        ImGui::Text("X: %.3f", g_pjt->xf.posWorld.x);
+        ImGui::Text("Y: %.3f", g_pjt->xf.posWorld.y);
+        ImGui::Text("Z: %.3f", g_pjt->xf.posWorld.z);
+        ImGui::End();
     }
 
     // Draw the file dialog

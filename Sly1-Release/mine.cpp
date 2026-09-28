@@ -45,7 +45,7 @@ void DeployJtMine(JT* pjt)
         paloMineOrigin->pvtlo->pfnRemoveLo(paloMineOrigin);
 }
 
-bool FIgnoreMineIntersection(MINE* pmine, SO* pso)
+int FIgnoreMineIntersection(MINE* pmine, SO* pso)
 {
     if (reinterpret_cast<JT*>(pso) == g_pjt)
         return true;

@@ -285,7 +285,7 @@ void UpdateRythm(RYTHM* prythm, JOY* pjoy, float dt)
     }
 }
 
-bool FIsRythmInvulnerable(RYTHM* prythm) 
+int FIsRythmInvulnerable(RYTHM* prythm)
 { 
     return (g_grfcht & 1U) || FSwHandsOff(prythm->psw) || prythm->fInvulnerable; 
 }

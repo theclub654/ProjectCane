@@ -41,6 +41,19 @@ int GetThndFlashSize()
     return sizeof(THNDFLASH);
 }
 
+void CloneThndFlash(THNDFLASH* pthndflash, THNDFLASH* pthndflashBase)
+{
+    CloneLo(pthndflash, pthndflashBase);
+
+    pthndflash->rgbaStart = pthndflashBase->rgbaStart;
+    pthndflash->rgbaPeak = pthndflashBase->rgbaPeak;
+    pthndflash->rgbaEnd = pthndflashBase->rgbaEnd;
+    pthndflash->dtFadeIn = pthndflashBase->dtFadeIn;
+    pthndflash->dtHold = pthndflashBase->dtHold;
+    pthndflash->dtFadeOut = pthndflashBase->dtFadeOut;
+    pthndflash->thndflashk = pthndflashBase->thndflashk;
+}
+
 void StartThndFlash(THNDFLASH* pthndflash)
 {
     if (pthndflash->fActive == 0)
@@ -61,12 +74,7 @@ void RenderThndFlash(THNDFLASH* pthndflash)
     float dt = g_clock.t - pthndflash->tStart;
 
     if (dt < pthndflash->dtFadeIn)
-    {
-        pthndflash->rgbaCurrent = LerpRgba(
-            pthndflash->rgbaStart,
-            pthndflash->rgbaPeak,
-            dt / pthndflash->dtFadeIn);
-    }
+        pthndflash->rgbaCurrent = LerpRgba(pthndflash->rgbaStart, pthndflash->rgbaPeak, dt / pthndflash->dtFadeIn);
     else
     {
         dt -= pthndflash->dtFadeIn;
@@ -87,15 +95,12 @@ void RenderThndFlash(THNDFLASH* pthndflash)
                 return;
             }
 
-            pthndflash->rgbaCurrent = LerpRgba(
-                pthndflash->rgbaPeak,
-                pthndflash->rgbaEnd,
-                dt / pthndflash->dtFadeOut);
+            pthndflash->rgbaCurrent = LerpRgba(pthndflash->rgbaPeak, pthndflash->rgbaEnd, dt / pthndflash->dtFadeOut);
         }
     }
 
     RPL rpl{};
-    rpl.rp = RP_Foreground;
+    rpl.rp = pthndflash->thndflashk == 0 ? RP_Background : RP_Foreground;
     rpl.PFNDRAWRPL = DrawThndFlash;
     rpl.pthndflash = pthndflash;
     SubmitRpl(&rpl);
@@ -106,11 +111,7 @@ void DrawThndFlash(RPL* prpl)
     THNDFLASH* pthndflash = prpl->pthndflash;
     const RGBA& rgba = pthndflash->rgbaCurrent;
 
-    // GS alpha uses 0x80 as fully opaque. Convert that range to the host
-    // renderer's conventional 0xff alpha range before drawing.
-    const int alpha = std::min(static_cast<int>(rgba.bAlpha) * 2, 255);
-
-    FillScreenRect(rgba.bRed, rgba.bGreen, rgba.bBlue, alpha, 0.0f, 0.0f, static_cast<float>(g_gl.width), static_cast<float>(g_gl.height), pthndflash->thndflashk == 1);
+    FillScreenRect(rgba.bRed, rgba.bGreen, rgba.bBlue, rgba.bAlpha, 0.0f, 0.0f, static_cast<float>(g_gl.width), static_cast<float>(g_gl.height));
 }
 
 void DeleteThndFlash(THNDFLASH* pthndflash)

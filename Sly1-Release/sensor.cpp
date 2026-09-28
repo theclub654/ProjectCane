@@ -8,7 +8,6 @@
 #include <unordered_map>
 #include <unordered_set>
 
-
 SENSOR* NewSensor()
 {
 	return NewWorldObject<SENSOR>();
@@ -776,9 +775,10 @@ void RenderLasenSelf(LASEN* plasen, CM* pcm, RO* pro)
 	}
 }
 
-int FFilterLasen(void* pv, JT* pjt)
+int FFilterLasen(void* pv, void* pvJt)
 {
 	LASEN* plasen = (LASEN*)pv;
+	JT* pjt = static_cast<JT*>(pvJt);
 
 	if (pjt->fNoXpsSelf != 0) {
 		return 0;
@@ -859,7 +859,7 @@ void SenseLasen(LASEN* plasen, SENSORS* psensors)
 			{
 				apso.clear();
 
-				IntersectSwBoundingSphere(plasen->psw, nullptr, &posCenter, sRadius, reinterpret_cast<PFNFILTER>(FFilterLasen), plasen, apso);
+				IntersectSwBoundingSphere(plasen->psw, nullptr, &posCenter, sRadius, FFilterLasen, plasen, apso);
 				psoOther = PsoHitTestLineObjects(0, &pos1, &pos2, apso, &lsg);
 			}
 
@@ -1193,7 +1193,7 @@ void UpdateCamsen(CAMSEN* pcamsen, float dt)
 
 		switch (csdts) {
 		case CSDTS_Focus:
-			if (g_pjt != nullptr && g_pjt->pvtpo->pfnFInvulnerablePo(g_pjt, ZPK_Fire) != 0) {
+			if (g_pjt != nullptr && FInvulnerableJt(g_pjt, ZPK_Fire)) {
 				csdts = CSDTS_Unfocus;
 			}
 			else if (pcamsen->dtDamageFocus < dtCsdts) {
@@ -1406,9 +1406,10 @@ int FIgnoreCamsenIntersection(CAMSEN* pcamsen, SO* psoOther)
 	return 1;
 }
 
-int FFilterCamsen(void* pv, SO* pso)
+int FFilterCamsen(void* pv, void* pvSo)
 {
 	CAMSEN* pcamsen = (CAMSEN*)pv;
+	SO* pso = static_cast<SO*>(pvSo);
 	PO* ppo = PpoCur();
 
 	if (pso->fNoXpsSelf != 0) {
@@ -1436,7 +1437,7 @@ void SenseCamsen(CAMSEN* pcamsen, SENSORS* psensors)
 		return;
 	}
 
-	if (g_pjt->pvtpo->pfnFInvulnerablePo(g_pjt, ZPK_Fire) != 0) {
+	if (FInvulnerableJt(g_pjt, ZPK_Fire)) {
 		return;
 	}
 
@@ -1482,7 +1483,7 @@ void SenseCamsen(CAMSEN* pcamsen, SENSORS* psensors)
 
 	std::vector <SO*> apso;
 
-	IntersectSwBoundingBox(pcamsen->psw, nullptr, &posJt, &pcamsen->paloRoot->xf.posWorld, (PFNFILTER)FFilterCamsen, pcamsen, apso);
+	IntersectSwBoundingBox(pcamsen->psw, nullptr, &posJt, &pcamsen->paloRoot->xf.posWorld, FFilterCamsen, pcamsen, apso);
 
 	SO* psoHit = PsoHitTestLineObjects((GRFHTL)1, &pcamsen->xf.posWorld, &posJt, apso, nullptr);
 

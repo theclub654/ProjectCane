@@ -70,11 +70,6 @@ int JtbsChooseJtHide(JT* pjt, LO* ploForce, int* pjthk)
 
     for (HBSK* phbsk = g_dlHbsk.phbskFirst; phbsk != nullptr; phbsk = phbsk->dleHbsk.phbskNext)
     {
-        // An attached basket remains in the global HBSK list. Retail only
-        // considers available baskets unless the caller explicitly forces one.
-        if (phbsk->hbsks != HBSKS_Available && phbsk != ploForce)
-            continue;
-
         const float distance = std::abs(glm::distance(phbsk->xf.posWorld, pjt->xf.posWorld) - phbsk->sFlattenRadius);
 
         if (distance < distanceBest || phbsk == ploForce)
@@ -154,7 +149,6 @@ int JtbsChooseJtHide(JT* pjt, LO* ploForce, int* pjthk)
     }
 
     if (pjt->psw->pvault != nullptr &&
-        FCanOpenVault(pjt->psw->pvault) &&
         g_plsCur->abitClue.m_cbitSet >= pjt->psw->cclueAll &&
         !FWouldCompleteVaultSet(pjt->psw->pvault->fVault))
     {
@@ -466,8 +460,11 @@ bool FFindJtObstruction(JT* pjt, float dt, PFNFILTER pfnFilter, void* pvFilter, 
 
     if (pposFinal != nullptr)
     {
-        bboxMin = glm::min(bboxMin, *pposFinal);
-        bboxMax = glm::max(bboxMax, *pposFinal);
+        // Retail forms both bounds from all three points. Omitting ppos1 from
+        // the minimum or ppos0 from the maximum can collapse one side of the
+        // trajectory box and exclude the geometry that should obstruct it.
+        bboxMin = glm::min(*ppos0, glm::min(*ppos1, *pposFinal));
+        bboxMax = glm::max(*ppos0, glm::max(*ppos1, *pposFinal));
     }
 
     std::vector<SO*> objects;
@@ -540,8 +537,8 @@ int JtbsChooseJtLanding(JT* pjt, LO* ploForce)
     constexpr float G_TargetPenalty = 0.0f;
 
     // Release globals at 0x00274e30 and 0x00274e34.
-    constexpr float G_PipePenalty = 0.0f;
-    constexpr float G_HshapePenalty = 0.0f;
+    constexpr float G_PipePenalty = 1250.0f;
+    constexpr float G_HshapePenalty = 500.0f;
 
     constexpr float G_HpntPenalty = 500.0f;
     constexpr float G_CircularTargetScale = 1.25f;
@@ -551,9 +548,7 @@ int JtbsChooseJtLanding(JT* pjt, LO* ploForce)
     constexpr float DT_SearchMin = 0.25f;
     constexpr float DT_SearchMax = 3.0f;
 
-    constexpr float RAD_SearchStep = 0.1f;
-    constexpr float RAD_SearchMin = -3.1415927f;
-    constexpr float RAD_SearchMax = 3.1415927f;
+    constexpr float DS_HpntSearch = 100.0f;
 
     int bestKind = HOK_None;
     // A forced target must be accepted regardless of the normal automatic
@@ -909,24 +904,27 @@ int JtbsChooseJtLanding(JT* pjt, LO* ploForce)
         GetPntPos(reinterpret_cast<PNT*>(phpnt), &posCenter);
 
         // The release does not bypass this check for a forced HPNT.
-        if (pjt->xf.pos.z - posCenter.z > phpnt->dzJumpTargetMax)
+        const float dzHpnt = pjt->xf.pos.z - posCenter.z;
+        if (dzHpnt > phpnt->dzJumpTargetMax)
             continue;
 
         const glm::vec3 dpos = pjt->xf.posWorld - posCenter;
 
-        // The release multiplies this angle by an HPNT direction value.
-        // Use phpnt->radDirection here once that member has been identified.
-        const float radStart = std::atan2(dpos.y, dpos.x);
+        // The HPNT minimizer works in distance along the circle, not radians.
+        // Retail loads HPNT offset 0x5c (sFlattenRadius) and multiplies the
+        // angle by it before entering MinimizeRange.
+        const float sStart = std::atan2(dpos.y, dpos.x) * phpnt->sFlattenRadius;
 
         MJHPNT mjhpnt{};
         mjhpnt.pjt = pjt;
         mjhpnt.phpnt = phpnt;
         mjhpnt.vJump = pjt->xf.v;
 
-        float radHpnt = 0.0f;
+        float sHpnt = 0.0f;
         float g = 0.0f;
 
-        MinimizeRange(reinterpret_cast<PFNGG>(GMeasureJumpHpnt), &mjhpnt, radStart, RAD_SearchStep, RAD_SearchMin, RAD_SearchMax, &radHpnt, &g);
+        MinimizeRange(reinterpret_cast<PFNGG>(GMeasureJumpHpnt), &mjhpnt,
+            sStart, DS_HpntSearch, -FLT_MAX, FLT_MAX, &sHpnt, &g);
 
         g *= G_CircularTargetScale;
 
@@ -946,7 +944,7 @@ int JtbsChooseJtLanding(JT* pjt, LO* ploForce)
         glm::vec3 vGoal(0.0f);
         float dt = 0.0f;
 
-        GetHpntClosestHidePos(phpnt, radHpnt, &posTarget, nullptr);
+        GetHpntClosestHidePos(phpnt, sHpnt, &posTarget, nullptr);
         MeasureJtJumpToTarget(pjt, &pjt->xf.v, phpnt->paloParent, &posTarget, nullptr, &dt, nullptr, &posGoal, &vGoal);
 
         if (!IsForced(phpnt) && FFindJtObstruction(pjt, dt, nullptr, nullptr, pjt->pposBase, &pjt->xf.v, &posGoal, &vGoal, nullptr))
@@ -956,7 +954,7 @@ int JtbsChooseJtLanding(JT* pjt, LO* ploForce)
 
         CommitCandidate(HOK_Point, g, dt, posGoal, vGoal);
         phpntBest = phpnt;
-        radHpntBest = radHpnt;
+        radHpntBest = sHpnt;
     }
 
     // ---------------------------------------------------------------------
@@ -1148,7 +1146,7 @@ void UpdateJtActiveHide(JT* pjt, JOY* pjoy)
         if (pjt->phshape != nullptr)
             GetHshapeClosestHidePos(pjt->phshape, &pjt->sParamHshape, &posHide, &radHide);
         else if (pjt->phpnt != nullptr)
-            GetHpntHidePos(pjt->phpnt, pjt->radHpnt, &posHide, &radHide);
+            GetHpntHidePos(pjt->phpnt, &posHide, &radHide);
         else
             GetHbskClosestHidePos(pjt->phbsk, &posHide, &radHide);
 

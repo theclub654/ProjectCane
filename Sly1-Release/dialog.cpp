@@ -10,6 +10,7 @@
 #include "po.h"
 #include "suv.h"
 #include "fmv.h"
+#include "debug.h"
 #include <array>
 #include <cstdio>
 #include <cstring>
@@ -698,6 +699,24 @@ void UpdateDialog(DIALOG* pdialog, float dt)
 
 		case DIALOGS_Playing:
 		{
+			const bool fSkipPressed =
+				(g_joy.current[BTN_L1] && !g_joy.previous[BTN_L1]) ||
+				(g_joy.current[BTN_R1] && !g_joy.previous[BTN_R1]);
+
+			if (g_fSkipBinocDialogs &&
+				g_binoc.pdialogPlaying == pdialog &&
+				fSkipPressed)
+			{
+				if (g_joy.current[BTN_L1])
+					g_joy.SetHandled(BTN_L1);
+				if (g_joy.current[BTN_R1])
+					g_joy.SetHandled(BTN_R1);
+
+				FinishDialogEvents(pdialog);
+				dialogs = pdialog->dialogs;
+				break;
+			}
+
 			const bool fEventsRemaining = pdialog->ideCur < pdialog->cde;
 			const bool fWipingOut = g_wipe.wipes == WIPES_WipingOut;
 

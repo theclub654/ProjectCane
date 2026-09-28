@@ -8,7 +8,7 @@ struct SHUFFLE : public SAA
     float dtPause;
 };
 
-SHUFFLE *NewShuffle();
+std::shared_ptr<SHUFFLE> NewShuffle();
 void  LoadShuffleFromBrx(SHUFFLE* pshuffle, CBinaryInputStream* pbis);
 void  InitShuffle(SHUFFLE* pshuffle, SAAF* psaaf);
 void  UpdateShuffle(SHUFFLE* pshuffle, float dt);

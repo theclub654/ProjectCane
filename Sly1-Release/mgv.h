@@ -58,7 +58,7 @@ void AdjustMgvNewXp(MGV* pmgv, XP* pxp, int ixpd);
 void AdjustMgvXpVelocity(MGV* pmgv, XP* pxp, int ixpd);
 int FIsMgvInvulnerable(MGV* pmgv, ZPK zpk);
 int FTakeMgvDamage(MGV* pmgv, ZPR* pzpr);
-bool FIsMgvTakingDamage(MGV* pmgv);
+int FIsMgvTakingDamage(MGV* pmgv);
 void UseMgvCharm(MGV* pmgv);
 void SetMgvMgvs(MGV* pmgv, MGVS mgvs);
 void ApplyMgvDeathThrow(MGV* pmgv, LO* ploSource);

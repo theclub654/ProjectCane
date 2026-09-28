@@ -14298,7 +14298,7 @@ SPLOPT g_asploptEmitter[200] =
     { 0x1F7, &g_aeopid[352] }, // [133]
     { 0x1F8, &g_aeopid[353] }, // [134]
     { 0x1F9, &g_aeopid[354] }, // [135]
-    { 0x1FA, &g_aeopid[355] }, // [136]
+    { 0x1FA, &g_aeopid[355] }, // [136] Enabled
     { 0x1FB, &g_aeopid[356] }, // [137]
     { 0x1FC, &g_aeopid[357] }, // [138]
     { 0x1FD, &g_aeopid[358] }, // [139]

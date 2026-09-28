@@ -1,8 +1,10 @@
 #include "fmv.h"
+#include "gui_layout.h"
 #include "game.h"
 #include "screen.h"
 #include "sound.h"
 #include "ui.h"
+#include "gl.h"
 
 #include <Windows.h>
 #include <mmsystem.h>
@@ -492,8 +494,9 @@ void PostFmvMenuLoad(FMVMENU* pfmvmenu)
         pfmvmenu->pfont = pfmvmenu->pfontOwned.get();
     }
 
-    pfmvmenu->rgba = glm::vec4(127.0f / 255.0f, 127.0f / 255.0f,
-                               127.0f / 255.0f, 223.0f / 255.0f);
+    // Retail stores PS2 GS colors, where 0x80 is full RGB intensity.
+    pfmvmenu->rgba = glm::vec4(127.0f / 128.0f, 127.0f / 128.0f,
+                               127.0f / 128.0f, 223.0f / 255.0f);
 
     CFontBrx* pfontIcons = FmvPreviewFont();
     if (pfmvmenu->pfont == nullptr || pfontIcons == nullptr)
@@ -626,9 +629,36 @@ void DrawFmvMenu(FMVMENU* pfmvmenu)
     glm::vec4 color = pfmvmenu->rgba;
     color.a *= pfmvmenu->uOn;
 
+    // FMVMENU is centered in the PS2's 640 x 492.8 canvas. Convert the BLOT
+    // rectangle and all grid spacing to output pixels while preserving that
+    // center anchor and the user's GUI scale.
+    const GuiScale guiScale = GetGuiScale();
+    const float scaleX = guiScale.x;
+    const float scaleY = guiScale.y;
+    const float dx = pfmvmenu->dx * scaleX;
+    const float dy = pfmvmenu->dy * scaleY;
+    float x = pfmvmenu->x;
+    float y = pfmvmenu->y;
+
+    if (pfmvmenu->pbloti != nullptr)
+    {
+        if (pfmvmenu->pbloti->x < 0.0f)
+            x -= dx - pfmvmenu->dx;
+        else if (pfmvmenu->pbloti->x == 0.0f)
+            x -= (dx - pfmvmenu->dx) * 0.5f;
+
+        if (pfmvmenu->pbloti->y < 0.0f)
+            y -= dy - pfmvmenu->dy;
+        else if (pfmvmenu->pbloti->y == 0.0f)
+            y -= (dy - pfmvmenu->dy) * 0.5f;
+
+        x += pfmvmenu->pbloti->x * (scaleX - 1.0f);
+        y += pfmvmenu->pbloti->y * (scaleY - 1.0f);
+    }
+
     CTextBox textBox;
-    textBox.SetPos(pfmvmenu->x, pfmvmenu->y);
-    textBox.SetSize(pfmvmenu->dx, pfmvmenu->dy);
+    textBox.SetPos(x, y);
+    textBox.SetSize(dx, dy);
     textBox.SetTextColor(&color);
     textBox.SetHorizontalJust(JH_Center);
     textBox.SetVerticalJust(JV_Top);
@@ -644,7 +674,9 @@ void DrawFmvMenu(FMVMENU* pfmvmenu)
     char* title = const_cast<char*>(FFmvUnlocked(pfmvmenu->iCutscene)
         ? PchzFriendlyFromCid(pfmvmenu->iCutscene)
         : "Locked");
+    pfmvmenu->pfont->PushScaling(scaleX, scaleY);
     pfmvmenu->pfont->DrawPchz(title, &textBox);
+    pfmvmenu->pfont->PopScaling();
 
     CFontBrx* pfontIcons = FmvPreviewFont();
     if (pfontIcons == nullptr)
@@ -656,16 +688,17 @@ void DrawFmvMenu(FMVMENU* pfmvmenu)
 
     const float previewScale = 1.3f;
     const float glyphWidth = static_cast<float>(placeholderGlyph->dx + 1)
-        * pfontIcons->m_rxScale * previewScale;
+        * pfontIcons->m_rxScale * previewScale * scaleX;
     const float glyphHeight = static_cast<float>(pfontIcons->m_dyUnscaled)
-        * pfontIcons->m_ryScale * previewScale;
-    const float xStart = pfmvmenu->x + 18.0f + glyphWidth * 0.5f;
-    const float yStart = pfmvmenu->y
-        + static_cast<float>(pfmvmenu->pfont->m_dyUnscaled) * pfmvmenu->pfont->m_ryScale
-        + 12.0f
+        * pfontIcons->m_ryScale * previewScale * scaleY;
+    const float xStart = x + 18.0f * scaleX + glyphWidth * 0.5f;
+    const float yStart = y
+        + static_cast<float>(pfmvmenu->pfont->m_dyUnscaled) *
+            pfmvmenu->pfont->m_ryScale * scaleY
+        + 12.0f * scaleY
         + glyphHeight * 0.5f;
-    const float xStep = glyphWidth + 18.0f;
-    const float yStep = glyphHeight + 12.0f;
+    const float xStep = glyphWidth + 18.0f * scaleX;
+    const float yStep = glyphHeight + 12.0f * scaleY;
 
     // The FMV atlas stores preview images as glyphs, but these are fixed-size
     // image cells rather than text. Draw the atlas rectangles directly so
@@ -709,9 +742,10 @@ void DrawFmvMenu(FMVMENU* pfmvmenu)
     }
     pfontIcons->CleanUpDraw();
 
-    const float lineY = pfmvmenu->y
-        + static_cast<float>(pfmvmenu->pfont->m_dyUnscaled) * pfmvmenu->pfont->m_ryScale - 1.0f;
-    DrawLineScreen(pfmvmenu->x, lineY, 0.0f, pfmvmenu->x + pfmvmenu->dx,
+    const float lineY = y
+        + static_cast<float>(pfmvmenu->pfont->m_dyUnscaled) *
+            pfmvmenu->pfont->m_ryScale * scaleY - scaleY;
+    DrawLineScreen(x, lineY, 0.0f, x + dx,
                    lineY, 0.0f, g_teFmv.m_rgba, false);
 }
 

@@ -1,8 +1,8 @@
 #include "eyes.h"
 
-EYES* NewEyes()
+std::shared_ptr<EYES> NewEyes()
 {
-    return new EYES{};
+    return std::make_shared<EYES>();
 }
 
 void LoadEyesFromBrx(EYES* peyes, CBinaryInputStream* pbis)

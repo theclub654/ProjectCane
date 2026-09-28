@@ -11,7 +11,7 @@ class MINE : public BOMB
 MINE*NewMine();
 void CloneMine(MINE* pmine, MINE* pmineBase);
 void DeployJtMine(JT* pjt);
-bool FIgnoreMineIntersection(MINE* pmine, SO* pso);
+int FIgnoreMineIntersection(MINE* pmine, SO* pso);
 void PresetMineAccel(MINE* pmine, float dt);
 void AdjustMineNewXp(MINE* pmine, XP* pxp, int ixpd);
 void HandleMineMessage(MINE* pmine, int msgid, void *pv);

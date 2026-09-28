@@ -42,11 +42,11 @@ void SetFsp(FSP fsp)
     const bool fCurrentPlayer = g_pjt != nullptr && g_pjt == PpoCur();
     const float dtVisible = fCurrentPlayer ? 3.0f : 8.0f;
 
-    SetBlotDtVisible(&g_note, dtVisible);
-    SetBlotFontScale(&g_note, 0.6f);
+    SetBlotDtVisible(&g_pnote, dtVisible);
+    SetBlotFontScale(&g_pnote, 0.6f);
 
-    g_note.pvtnote->pfnSetBlotAchzDraw(&g_note, (char*)s_mpfspszPowerUp[fsp]);
-    g_note.pvtblot->pfnShowBlot(&g_note);
+    g_pnote.pvtnote->pfnSetBlotAchzDraw(&g_pnote, (char*)s_mpfspszPowerUp[fsp]);
+    g_pnote.pvtblot->pfnShowBlot(&g_pnote);
 
     g_pgsCur->nPowerupLast = fsp;
 }

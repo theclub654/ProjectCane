@@ -74,7 +74,7 @@ void CloneAlarm(ALARM* palarm, ALARM* palarmBase)
 
 void PostAlarmLoad(ALARM* palarm)
 {
-    PostSwCallback(palarm->psw, (PFNMQ)PostAlarmLoadCallbackHookup, palarm, MSGID_callback, nullptr);
+    PostSwCallback(palarm->psw, PostAlarmLoadCallbackHookup, palarm, MSGID_callback, nullptr);
     PostAloLoad(palarm);
 
     DLI dli;
@@ -110,8 +110,9 @@ void PostAlarmLoad(ALARM* palarm)
     s_pdliFirst = dli.m_pdliNext;
 }
 
-void PostAlarmLoadCallbackHookup(ALARM* palarm, MSGID msgid, void* pv)
+void* PostAlarmLoadCallbackHookup(LO* ploAlarm, MSGID msgid, void* pv)
 {
+    ALARM* palarm = static_cast<ALARM*>(ploAlarm);
     int validBreakCount = 0;
 
     for (int i = 0; i < palarm->calbrks; ++i) {
@@ -165,6 +166,7 @@ void PostAlarmLoadCallbackHookup(ALARM* palarm, MSGID msgid, void* pv)
     else
         SetAlarmAlarms(palarm, ALARMS_Enabled);
 
+    return nullptr;
 }
 
 void SetAlarmAlarms(ALARM* palarm, ALARMS alarms)

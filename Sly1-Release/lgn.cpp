@@ -5,6 +5,47 @@
 #include "shape.h"
 #include "turret.h"
 #include "target.h"
+#include "gui_layout.h"
+
+namespace
+{
+	glm::vec2 GetLgnrScreenRange(const CM* pcm)
+	{
+		// LGNR occupies the complete rendered viewport, unlike gameplay camera
+		// logic which intentionally retains the authored 4:3 screen ranges.
+		const float xProjection = pcm->matProj[0][0];
+		const float yProjection = pcm->matProj[1][1];
+		return glm::vec2(
+			std::abs(xProjection) > 0.0001f ? 1.0f / std::abs(xProjection) : pcm->xScreenRange,
+			std::abs(yProjection) > 0.0001f ? 1.0f / std::abs(yProjection) : pcm->yScreenRange);
+	}
+}
+
+void ConvertLgnrScreenToWorld(CM* pcm, const glm::vec3& posScreen, glm::vec3* pposWorld)
+{
+	const glm::vec2 screenRange = GetLgnrScreenRange(pcm);
+	const float depth = posScreen.z;
+	const float depthScale = depth > 0.0001f ? depth : 1.0f;
+	const glm::vec3 posLocal(
+		depth,
+		-posScreen.x * depthScale * screenRange.x,
+		 posScreen.y * depthScale * screenRange.y);
+	*pposWorld = pcm->pos + pcm->mat * posLocal;
+}
+
+void ConvertLgnrWorldToScreen(CM* pcm, const glm::vec3& posWorld, glm::vec3* pposScreen)
+{
+	const glm::vec2 screenRange = GetLgnrScreenRange(pcm);
+	const glm::vec3 posLocal = glm::transpose(pcm->mat) * (posWorld - pcm->pos);
+	pposScreen->x = -posLocal.y / screenRange.x;
+	pposScreen->y =  posLocal.z / screenRange.y;
+	pposScreen->z =  posLocal.x;
+	if (posLocal.x > 0.0001f)
+	{
+		pposScreen->x /= posLocal.x;
+		pposScreen->y /= posLocal.x;
+	}
+}
 
 LGN* NewLgn()
 {
@@ -163,7 +204,7 @@ void UpdateLgnActive(LGN* plgn, JOY* pjoy, float dt)
 		plgn->paloPlatform->pvtalo->pfnRotateAloToMat(plgn->paloPlatform, &matPlatform);
 
 	glm::vec3 posAimWorld;
-	ConvertCmScreenToWorld(g_pcm, &g_lgnr.posScreen, &posAimWorld);
+	ConvertLgnrScreenToWorld(g_pcm, g_lgnr.posScreen, &posAimWorld);
 
 	glm::vec3 directionTurret = posAimWorld - glm::vec3(plgn->paloTurret->xf.posWorld);
 
@@ -338,7 +379,7 @@ int FInvulnerableLgn(LGN* plgn)
 	return FSwHandsOff(plgn->psw) != 0;
 }
 
-bool JthsCurrentLgn(LGN* plgn)
+int JthsCurrentLgn(LGN* plgn)
 {
 	return plgn->fFlash != 0.0f;
 }
@@ -533,23 +574,36 @@ void DrawLgnr(LGNR* plgnr)
 
 	// The PS2 data defines a 48x48 quad (first corner is 24,-24) and
 	// rotates it at three radians per second around the normalized aim point.
+	// Rotation happens in the 640 x 492.8 logical UI canvas before that canvas
+	// is expanded to the output dimensions.
 	const float centerX = (plgnr->posScreen.x * 0.5f + 0.5f) * g_gl.width;
 	const float centerY = (0.5f - plgnr->posScreen.y * 0.5f) * g_gl.height;
-	const float pixelScale = (std::min)(g_gl.width / 640.0f, g_gl.height / 480.0f);
-	const float size = 48.0f * pixelScale;
+	// Both GUI styles use a uniform artwork scale so changing framebuffer
+	// aspect cannot deform the square reticle. GetGuiScale still selects the
+	// PS2 or Modern density and the user's allowed scale setting.
+	const GuiScale guiScale = GetGuiScale();
+	const float scaleX = guiScale.x;
+	const float scaleY = guiScale.y;
 	const float angle = g_clock.t * 3.0f;
 
 	const glm::mat4 model =
 		glm::translate(glm::mat4(1.0f), glm::vec3(centerX, centerY, 0.0f)) *
+		glm::scale(glm::mat4(1.0f), glm::vec3(scaleX, scaleY, 1.0f)) *
 		glm::rotate(glm::mat4(1.0f), angle, glm::vec3(0.0f, 0.0f, 1.0f)) *
-		glm::scale(glm::mat4(1.0f), glm::vec3(size, -size, 1.0f)) *
+		glm::scale(glm::mat4(1.0f), glm::vec3(48.0f, -48.0f, 1.0f)) *
 		glm::translate(glm::mat4(1.0f), glm::vec3(-0.5f, -0.5f, 0.0f));
 
 	glBlotShader.Use();
 	glUniformMatrix4fv(u_projectionLoc, 1, GL_FALSE, glm::value_ptr(g_gl.blotProjection));
 	glUniformMatrix4fv(u_modelLoc, 1, GL_FALSE, glm::value_ptr(model));
 	glUniform4f(uvRectLoc, 0.0f, 0.0f, 1.0f, 1.0f);
-	glUniform4f(blotColorLoc, 1.0f, 1.0f, 1.0f, glm::clamp(plgnr->uAlpha, 0.0f, 1.0f) * (128.0f / 255.0f));
+	// GS RGBA uses 0x80 as 1.0. Retail writes RGB=0xff and A=uAlpha*0x80.
+	constexpr float kGsColorScale = 1.0f / 128.0f;
+	glUniform4f(blotColorLoc,
+		255.0f * kGsColorScale,
+		255.0f * kGsColorScale,
+		255.0f * kGsColorScale,
+		glm::clamp(plgnr->uAlpha, 0.0f, 1.0f));
 	glUniform1i(u_useVertexColorLoc, 0);
 
 	glActiveTexture(GL_TEXTURE0);
@@ -557,12 +611,22 @@ void DrawLgnr(LGNR* plgnr)
 	glUniform1i(u_fontTexLoc, 0);
 	glBindVertexArray(g_gl.gao);
 
+	const GLboolean blendWasEnabled = glIsEnabled(GL_BLEND);
+	const GLboolean depthTestWasEnabled = glIsEnabled(GL_DEPTH_TEST);
+
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	glDisable(GL_DEPTH_TEST);
 	glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_SHORT, nullptr);
-	glEnable(GL_DEPTH_TEST);
-	glDisable(GL_BLEND);
+
+	if (depthTestWasEnabled)
+		glEnable(GL_DEPTH_TEST);
+	else
+		glDisable(GL_DEPTH_TEST);
+
+	if (!blendWasEnabled)
+		glDisable(GL_BLEND);
+
 	glBindVertexArray(0);
 }
 
@@ -577,13 +641,14 @@ void UpdateLgnrAim(LGNR* plgnr, JOY* pjoy)
 		glm::vec3 posScreen{};
 
 		GetXfmPos(ptarget, &posScreen);
-		ConvertCmWorldToScreen(g_pcm, &posScreen, &posScreen);
+		ConvertLgnrWorldToScreen(g_pcm, posScreen, &posScreen);
 
 		if (posScreen.z < 100.0f)
 			continue;
 
 		const glm::vec2 offset = glm::vec2(posScreen) - glm::vec2(plgnr->posScreen);
-		const float radiusScreen = ptarget->sRadiusTarget / (posScreen.z * g_pcm->xScreenRange);
+		const float radiusScreen = ptarget->sRadiusTarget /
+			(posScreen.z * GetLgnrScreenRange(g_pcm).x);
 
 		float distance = glm::length(offset) - radiusScreen;
 		distance = std::max(distance, 0.0001f);

@@ -60,7 +60,7 @@ void*GetAlarmAlarms(ALARM* palarm);
 int  GetAlarmSize();
 void CloneAlarm(ALARM* palarm, ALARM* palarmBase);
 void PostAlarmLoad(ALARM* palarm);
-void PostAlarmLoadCallbackHookup(ALARM* palarm, MSGID msgid, void* pv);
+void* PostAlarmLoadCallbackHookup(LO* ploAlarm, MSGID msgid, void* pv);
 void SetAlarmAlarms(ALARM* palarm, ALARMS alarms);
 void TriggerAlarm(ALARM* palarm, ALTK altk);
 void DisableAlarmAlbrk(ALARM* palarm);

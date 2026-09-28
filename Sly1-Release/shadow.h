@@ -18,7 +18,9 @@ struct SHADOWBLK
     float gReserved;
     float wFadeMin;
     int textureSlot;
-    int _pad0[3];
+    int clampS;
+    int clampT;
+    int _pad0;
     glm::vec4 posEffect;
     float sRadiusEffect;
     int   fDynamic;

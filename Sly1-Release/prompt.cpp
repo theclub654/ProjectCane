@@ -11,6 +11,7 @@
 #include "ctr.h"
 #include "screen.h"
 #include "gl.h"
+#include "gui_layout.h"
 #include <algorithm>
 #include <cmath>
 #include <cstdio>
@@ -63,6 +64,13 @@ int KeyboardKeyPressed(GLFWwindow* window)
 
 int GamepadBindingPressed()
 {
+    if (g_fDisableControllerInputWhenUnfocused &&
+        (g_gl.window == nullptr ||
+            glfwGetWindowAttrib(g_gl.window, GLFW_FOCUSED) != GLFW_TRUE))
+    {
+        return -1;
+    }
+
     if (g_joy.joystickId < GLFW_JOYSTICK_1 || g_joy.joystickId > GLFW_JOYSTICK_LAST)
         return -1;
 
@@ -218,14 +226,39 @@ void SelectNextInternalResolution()
 
 void SelectNextGuiScale()
 {
-    constexpr float scales[] = { 0.75f, 1.0f, 1.25f, 1.5f };
-    auto next = std::upper_bound(std::begin(scales), std::end(scales),
-        g_guiScale + 0.001f);
+    constexpr float ps2Scales[] = { 0.75f, 1.0f };
+    constexpr float modernScales[] = { 1.0f, 1.25f };
 
-    if (next == std::end(scales))
-        next = std::begin(scales);
+    if (g_guiStyle == GuiStyle_Modern)
+    {
+        auto next = std::upper_bound(std::begin(modernScales), std::end(modernScales),
+            g_guiScale + 0.001f);
+        g_guiScale = next == std::end(modernScales) ? modernScales[0] : *next;
+    }
+    else
+    {
+        auto next = std::upper_bound(std::begin(ps2Scales), std::end(ps2Scales),
+            g_guiScale + 0.001f);
+        g_guiScale = next == std::end(ps2Scales) ? ps2Scales[0] : *next;
+    }
 
-    g_guiScale = *next;
+    int width = 0;
+    int height = 0;
+    glfwGetFramebufferSize(g_gl.window, &width, &height);
+    FrameBufferSizeCallBack(g_gl.window, width, height);
+}
+
+void SelectNextGuiStyle()
+{
+    g_guiStyle = g_guiStyle == GuiStyle_PS2 ? GuiStyle_Modern : GuiStyle_PS2;
+
+    // 100% is the common scale between both styles. Normalize a value that
+    // belongs only to the previous style when changing presentation modes.
+    if ((g_guiStyle == GuiStyle_Modern && g_guiScale < 1.0f) ||
+        (g_guiStyle == GuiStyle_PS2 && g_guiScale > 1.0f))
+    {
+        g_guiScale = 1.0f;
+    }
 
     int width = 0;
     int height = 0;
@@ -259,7 +292,8 @@ void SelectNextWindowMode()
 void StartupPrompt(PROMPT* pprompt)
 {
     g_tePrompt.m_ch = 45;
-    g_tePrompt.m_rgba = { 0.0f, 0.294117659, 0.490196079, 1.0f };
+    // Retail GS RGB is normalized around 0x80, not 0xff.
+    g_tePrompt.m_rgba = { 0.0f, 75.0f / 128.0f, 125.0f / 128.0f, 1.0f };
 
     g_tePrompt.m_dxExtra = 15.0;
     g_tePrompt.m_ryScaling = 0.6;
@@ -301,8 +335,8 @@ void HandlePromptPrkTransition(PROMPT* pprompt, PRK prkOld, PRK prkNew)
     switch (prkOld)
     {
         case PRK_MemcardChooseLoadSlot:
-        g_note.pvtblot->pfnSetBlotBlots(&g_note, BLOTS_Hidden);
-        g_note.pvtblot->pfnSetBlotAchzDraw(&g_note, nullptr);
+        g_pnote.pvtblot->pfnSetBlotBlots(&g_pnote, BLOTS_Hidden);
+        g_pnote.pvtblot->pfnSetBlotAchzDraw(&g_pnote, nullptr);
         break;
 
         default:
@@ -320,10 +354,10 @@ void HandlePromptPrkTransition(PROMPT* pprompt, PRK prkOld, PRK prkNew)
         break;
 
         case PRK_MemcardChooseLoadSlot:
-        g_note.pvtblot->pfnSetBlotAchzDraw(&g_note, (char*)"&2S&.: Erase Game");
-        SetBlotDtVisible(&g_note, 0.0f);
-        SetBlotFontScale(&g_note, 0.6f);
-        g_note.pvtblot->pfnShowBlot(&g_note);
+        g_pnote.pvtblot->pfnSetBlotAchzDraw(&g_pnote, (char*)"&2S&.: Erase Game");
+        SetBlotDtVisible(&g_pnote, 0.0f);
+        SetBlotFontScale(&g_pnote, 0.6f);
+        g_pnote.pvtblot->pfnShowBlot(&g_pnote);
         break;
 
         default:
@@ -614,6 +648,11 @@ void SetPromptPrk(PROMPT* pprompt)
     std::snprintf(g_achzRespk35, sizeof(g_achzRespk35), "Aspect Ratio: %s", aspectRatioName);
     std::snprintf(g_achzRespk40, sizeof(g_achzRespk40), "GUI Scale: %d%%",
         static_cast<int>(std::lround(g_guiScale * 100.0f)));
+    std::snprintf(g_achzRespk60, sizeof(g_achzRespk60), "GUI Style: %s",
+        g_guiStyle == GuiStyle_Modern ? "Modern" : "PS2");
+    std::snprintf(g_achzRespk61, sizeof(g_achzRespk61),
+        "Disable Controller Input When Unfocused: %s",
+        g_fDisableControllerInputWhenUnfocused ? "On" : "Off");
 
     // -------------------------------------------------------------------------
     // Choose initial response
@@ -987,6 +1026,12 @@ void ExecutePrompt(PROMPT* pprompt)
             rebuildPromptKeepingSelection();
             return;
 
+            case RESPK_GuiStyle:
+            SelectNextGuiStyle();
+            SaveSystemSettings();
+            rebuildPromptKeepingSelection();
+            return;
+
             case RESPK_DrawDistance:
             SelectNextDrawDistance();
             SaveSystemSettings();
@@ -1029,6 +1074,14 @@ void ExecutePrompt(PROMPT* pprompt)
                 ApplyAspectRatioSettings(FitToScreen);
                 break;
             }
+            SaveSystemSettings();
+            rebuildPromptKeepingSelection();
+            return;
+
+            case RESPK_Fog:
+            g_fogType = g_fogType == 1 ? 2 : 1;
+            glGlobShader.Use();
+            glUniform1i(glslFogType, g_fogType);
             SaveSystemSettings();
             rebuildPromptKeepingSelection();
             return;
@@ -1296,14 +1349,6 @@ void ExecutePrompt(PROMPT* pprompt)
                 rebuildPromptKeepingSelection();
                 return;
 
-                case RESPK_Fog:
-                g_fogType = g_fogType == 1 ? 2 : 1;
-                glGlobShader.Use();
-                glUniform1i(glslFogType, g_fogType);
-                SaveSystemSettings();
-                rebuildPromptKeepingSelection();
-                return;
-
                 case RESPK_Controls:
                 SetPrompt(pprompt, PRP_Basic, PRK_ControlsMenu);
                 return;
@@ -1351,6 +1396,12 @@ void ExecutePrompt(PROMPT* pprompt)
 			s_fControllerBindingCapture = true;
 			OpenMappingPrompt(pprompt, PRK_ControllerMapping);
 			return;
+
+			case RESPK_DisableControllerWhenUnfocused:
+			g_fDisableControllerInputWhenUnfocused =
+				!g_fDisableControllerInputWhenUnfocused;
+			SaveSystemSettings();
+			break;
 
 			case RESPK_CameraInvert:
 			g_pgsCur->grfgs ^= 0x1000;
@@ -1853,15 +1904,27 @@ void DrawPrompt(PROMPT* pprompt)
     const float dxUnscaled = pprompt->dx * uOn;
     const float dyUnscaled = pprompt->dy * uOn;
 
+    // Retail draws prompts in the PS2's 640 x 492.8 screen space.  The GS
+    // presentation then expands that canvas to the output dimensions.  Our
+    // blot projection is expressed directly in output pixels, so perform the
+    // same conversion here instead of treating retail coordinates as pixels.
+    const GuiScale promptScale = GetGuiScale();
+    const float promptScaleX = promptScale.x;
+    const float promptScaleY = promptScale.y;
+
     const float centerX = pprompt->xOn + pprompt->dx * 0.5f;
     const float centerY = pprompt->yOn + pprompt->dy * 0.5f;
 
     const float xUnscaled = pprompt->xOn * uOn + centerX * (1.0f - uOn);
     const float yUnscaled = pprompt->yOn * uOn + centerY * (1.0f - uOn);
-    const float dx = dxUnscaled * g_guiScale;
-    const float dy = dyUnscaled * g_guiScale;
-    const float x = centerX + (xUnscaled - centerX) * g_guiScale;
-    float y = centerY + (yUnscaled - centerY) * g_guiScale;
+    const float dx = dxUnscaled * promptScaleX;
+    const float dy = dyUnscaled * promptScaleY;
+    // RepositionBlot currently centers xOn/yOn in output-pixel space while
+    // retaining the retail (unscaled) dx/dy.  Preserve that already-correct
+    // output-space center and scale only the offset from it.  Scaling xOn or
+    // yOn again would move the prompt toward the lower-right corner.
+    const float x = centerX + (xUnscaled - centerX) * promptScaleX;
+    float y = centerY + (yUnscaled - centerY) * promptScaleY;
 
     const float pulse = std::sin(g_clock.tReal * 10.0f) * 0.5f + 0.5f;
     const float pulseSquared = pulse * pulse;
@@ -1876,15 +1939,20 @@ void DrawPrompt(PROMPT* pprompt)
 
     const float alpha = std::clamp(pprompt->alpha, 0.0f, 1.0f);
 
-    glm::vec4 edgeBoxColor(128.0f / 255.0f, 128.0f / 255.0f, 128.0f / 255.0f, alpha);
-    glm::vec4 edgePulseTarget(111.0f / 255.0f, 111.0f / 255.0f, 111.0f / 255.0f, alpha);
-    glm::vec4 titleColor(127.0f / 255.0f, 127.0f / 255.0f, 127.0f / 255.0f, alpha);
-    glm::vec4 responseColor(95.0f / 255.0f, 95.0f / 255.0f, 95.0f / 255.0f, alpha);
+    // These are PS2 GS vertex-color values. RGB uses 0x80 as full intensity,
+    // while alpha in this path is still authored over the full byte range.
+    // Dividing the RGB channels by 255 makes the entire prompt about half as
+    // bright as retail.
+    constexpr float kGsColorScale = 1.0f / 128.0f;
+    glm::vec4 edgeBoxColor(128.0f * kGsColorScale, 128.0f * kGsColorScale, 128.0f * kGsColorScale, alpha);
+    glm::vec4 edgePulseTarget(111.0f * kGsColorScale, 111.0f * kGsColorScale, 111.0f * kGsColorScale, alpha);
+    glm::vec4 titleColor(127.0f * kGsColorScale, 127.0f * kGsColorScale, 127.0f * kGsColorScale, alpha);
+    glm::vec4 responseColor(95.0f * kGsColorScale, 95.0f * kGsColorScale, 95.0f * kGsColorScale, alpha);
 
     const auto GetSelectedColor = [&](float pulseValue)
         {
-            const float blue = (47.0f + pulseValue * 64.0f) / 255.0f;
-            return glm::vec4(111.0f / 255.0f, 111.0f / 255.0f, blue, alpha);
+            const float blue = (47.0f + pulseValue * 64.0f) * kGsColorScale;
+            return glm::vec4(111.0f * kGsColorScale, 111.0f * kGsColorScale, blue, alpha);
         };
 
     CTextBox textBox;
@@ -1915,8 +1983,8 @@ void DrawPrompt(PROMPT* pprompt)
         {
             const float savedEdgeScaleX = pprompt->pte->m_rxScaling;
             const float savedEdgeScaleY = pprompt->pte->m_ryScaling;
-            pprompt->pte->m_rxScaling *= g_guiScale;
-            pprompt->pte->m_ryScaling *= g_guiScale;
+            pprompt->pte->m_rxScaling *= promptScaleX;
+            pprompt->pte->m_ryScaling *= promptScaleY;
             pprompt->pte->m_pfont->EdgeRect(pprompt->pte, &textBox);
             pprompt->pte->m_rxScaling = savedEdgeScaleX;
             pprompt->pte->m_ryScaling = savedEdgeScaleY;
@@ -1931,9 +1999,10 @@ void DrawPrompt(PROMPT* pprompt)
 
     if (prd.pchz != nullptr)
     {
-        const float titleScale = prd.rScaleTitle * uOn * g_guiScale;
+        const float titleScaleX = prd.rScaleTitle * uOn * promptScaleX;
+        const float titleScaleY = prd.rScaleTitle * uOn * promptScaleY;
 
-        pprompt->pfont->PushScaling(titleScale, titleScale);
+        pprompt->pfont->PushScaling(titleScaleX, titleScaleY);
 
         textBox.SetPos(x, y);
         textBox.SetSize(dx, dy);
@@ -1941,23 +2010,25 @@ void DrawPrompt(PROMPT* pprompt)
         textBox.SetHorizontalJust(JH_Center);
         textBox.SetVerticalJust(JV_Top);
 
-        CRichText titleText(const_cast<char*>(prd.pchz), pprompt->pfont);
+        CRichText titleText(prd.pchz, pprompt->pfont);
 
         titleText.Draw(&textBox, nullptr);
-        y += titleText.DyWrap(500.0f);
+        y += titleText.DyWrap(500.0f * promptScaleX);
 
         pprompt->pfont->PopScaling();
     }
 
-    const float dividerY = y - 1.0f;
+    // Retail places the divider one PS2-canvas unit above the response row.
+    const float dividerY = y - promptScaleY;
 
     // -------------------------------------------------------------------------
     // Responses
     // -------------------------------------------------------------------------
 
-    const float responseScale = prd.rScaleRespk * uOn * g_guiScale;
+    const float responseScaleX = prd.rScaleRespk * uOn * promptScaleX;
+    const float responseScaleY = prd.rScaleRespk * uOn * promptScaleY;
 
-    pprompt->pfont->PushScaling(responseScale, responseScale);
+    pprompt->pfont->PushScaling(responseScaleX, responseScaleY);
 
     const float baseLineHeight = static_cast<float>(pprompt->pfont->m_dyUnscaled) * pprompt->pfont->m_ryScale;
     const float spaceWidth = static_cast<float>(pprompt->pfont->m_dxSpaceUnscaled) * pprompt->pfont->m_rxScale;
@@ -2025,9 +2096,10 @@ void DrawPrompt(PROMPT* pprompt)
 
         glm::vec4 color = selected ? GetSelectedColor(pulse) : responseColor;
         const float selectionScale = selected ? 1.0f + (1.0f - pulse) * 0.1f : 1.0f;
-        const float itemScale = responseScale * selectionScale;
+        const float itemScaleX = responseScaleX * selectionScale;
+        const float itemScaleY = responseScaleY * selectionScale;
 
-        pprompt->pfont->PushScaling(itemScale, itemScale);
+        pprompt->pfont->PushScaling(itemScaleX, itemScaleY);
 
         // Reconstruct after changing the scale so switched fonts inherit it.
         CRichText selectedText(const_cast<char*>(responseText), pprompt->pfont);
@@ -2065,7 +2137,7 @@ void DrawPrompt(PROMPT* pprompt)
 
     if (prd.pchz != nullptr && promptResponseCount > 0)
     {
-        const glm::vec4 dividerColor(95.0f / 255.0f, 95.0f / 255.0f, 95.0f / 255.0f, alpha);
+        const glm::vec4 dividerColor(95.0f * kGsColorScale, 95.0f * kGsColorScale, 95.0f * kGsColorScale, alpha);
 
         DrawLineScreen(x, dividerY, 0.0f, x + dx, dividerY, 0.0f, dividerColor, false);
     }

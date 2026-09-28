@@ -97,6 +97,8 @@ void MatchSwObject(ALO* ploMatch, GRFFSO grffsoMask, int fIncludeRemoved, int fP
 				{
 					*pcpaloBest = depth;
 					*pcploMatch = 0;
+					if (aplo != nullptr && cploMax > 0)
+						aplo[0] = nullptr;
 				}
 
 				goto ADD_MATCH;

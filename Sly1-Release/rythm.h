@@ -63,7 +63,7 @@ void PostRythmLoad(RYTHM* prythm);
 void OnRythmActive(RYTHM* prythm, int fActive, PO* ppoOther);
 void ApplyRythmThrow(RYTHM* prythm, JT* pjt);
 void UpdateRythm(RYTHM* prythm, JOY* pjoy, float dt);
-bool FIsRythmInvulnerable(RYTHM* prythm);
+int FIsRythmInvulnerable(RYTHM* prythm);
 int FTakeRythmDamage(RYTHM* prythm, ZPR* pzpr);
 void AddRythmMatch(RYTHM* prythm, const RYTHMMATCH* pmatch);
 void PredictRythmPosition(RYTHM* prythm, float dt, glm::vec3* ppos, glm::vec3* pv);

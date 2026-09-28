@@ -862,11 +862,23 @@ int FAbsorbRohWkr(ROH* proh, WKR* pwkr)
 			case ROHS_Collect:
 			case ROHS_Grab:
 			case ROHS_Return:
-			case ROHS_Exit:
 			case ROHS_Happy:
 			case ROHS_Sad:
 			SetRohRohs(proh, ROHS_Die);
 			break;
+
+			case ROHS_Exit:
+			{
+				// Retail destroys a chest carried by a crab that has already
+				// reached the tunnel exit. Dropping it here lets a newly spawned
+				// crab immediately reclaim it at the entrance.
+				ROC* proc = proh->proc;
+				SetRohRohs(proh, ROHS_Die);
+
+				if (proc != nullptr)
+					SetRocRocs(proc, ROCS_Destroyed);
+				break;
+			}
 
 			default:
 			break;
@@ -2154,7 +2166,7 @@ void SetRobRobs(ROB* prob, ROBS robs)
 		if (prob->prov != nullptr)
 			SetRovRovs(prob->prov, ROVS_Ascend);
 
-		g_note.pvtblot->pfnHideBlot(&g_note);
+		g_pnote.pvtblot->pfnHideBlot(&g_pnote);
 		break;
 
 		default:

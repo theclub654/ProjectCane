@@ -11,7 +11,7 @@ void EvaluateAcsc(ACSC* pacsc, ALO* palo, float t, GRFEVAL grfeval, glm::mat3* p
     glm::vec3 scale;
     glm::vec3* pscale = pmat ? &scale : nullptr;
 
-    EvaluateApacg(pacsc->apacg, palo, t, 1.0f, grfeval, &g_vecOne, pscale, nullptr);
+    EvaluateApacg(pacsc->apacg, palo, t, 1.0f, grfeval, &pacsc->vecDefault, pscale, nullptr);
 
     if (pmat)
         *pmat = glm::mat3(scale.x, 0.0f, 0.0f, 0.0f, scale.y, 0.0f, 0.0f, 0.0f, scale.z);

@@ -10,28 +10,28 @@
 #include "circler.h"
 #include "looker.h"
 
-static SAA* CloneInstancedSaa(SAA* saaBase)
+static std::shared_ptr<SAA> CloneInstancedSaa(SAA* saaBase)
 {
-    SAA* saa = nullptr;
+    std::shared_ptr<SAA> saa;
 
     switch (saaBase->saak)
     {
-        case SAAK_Loop:     saa = new LOOP(*static_cast<LOOP*>(saaBase)); break;
-        case SAAK_PingPong: saa = new PINGPONG(*static_cast<PINGPONG*>(saaBase)); break;
-        case SAAK_Shuffle:  saa = new SHUFFLE(*static_cast<SHUFFLE*>(saaBase)); break;
-        case SAAK_Hologram: saa = new HOLOGRAM(*static_cast<HOLOGRAM*>(saaBase)); break;
-        case SAAK_Eyes:     saa = new EYES(*static_cast<EYES*>(saaBase)); break;
-        case SAAK_Scroller: saa = new SCROLLER(*static_cast<SCROLLER*>(saaBase)); break;
-        case SAAK_Circler:  saa = new CIRCLER(*static_cast<CIRCLER*>(saaBase)); break;
-        case SAAK_Looker:   saa = new LOOKER(*static_cast<LOOKER*>(saaBase)); break;
-        default: return nullptr;
+        case SAAK_Loop:     saa = std::make_shared<LOOP>(*static_cast<LOOP*>(saaBase)); break;
+        case SAAK_PingPong: saa = std::make_shared<PINGPONG>(*static_cast<PINGPONG*>(saaBase)); break;
+        case SAAK_Shuffle:  saa = std::make_shared<SHUFFLE>(*static_cast<SHUFFLE*>(saaBase)); break;
+        case SAAK_Hologram: saa = std::make_shared<HOLOGRAM>(*static_cast<HOLOGRAM*>(saaBase)); break;
+        case SAAK_Eyes:     saa = std::make_shared<EYES>(*static_cast<EYES*>(saaBase)); break;
+        case SAAK_Scroller: saa = std::make_shared<SCROLLER>(*static_cast<SCROLLER*>(saaBase)); break;
+        case SAAK_Circler:  saa = std::make_shared<CIRCLER>(*static_cast<CIRCLER*>(saaBase)); break;
+        case SAAK_Looker:   saa = std::make_shared<LOOKER>(*static_cast<LOOKER*>(saaBase)); break;
+        default: return {};
     }
 
     // An instance receives private animation state and must not inherit links
     // belonging to the source SAI update queue.
     saa->sai.psaiNext = nullptr;
     if (saa->saak == SAAK_Eyes)
-        static_cast<EYES*>(saa)->saiOther.psaiNext = nullptr;
+        static_cast<EYES*>(saa.get())->saiOther.psaiNext = nullptr;
 
     g_apsaaSw.push_back(saa);
     return saa;
@@ -151,7 +151,7 @@ void LoadGlobsetFromBrx(GLOBSET* pglobset, ALO* palo, CBinaryInputStream* pbis)
 
         if ((globPropertys & 0x40) != 0)
         {
-            pglobset->aglob[i].psaa = PsaaLoadFromBrx(pbis);
+            pglobset->aglob[i].psaa = PsaaLoadFromBrx(pbis).get();
 
             if (pglobset->aglob[i].psaa != nullptr)
                 pglobset->cpsaa++;
@@ -673,19 +673,10 @@ void BuildSubGlob(GLOB* pglob, SUBGLOB* psubglob, SHD* pshd, std::vector <glm::v
         else
             psubglob->vertices[i].normal = normals[indexes[i].inormal];
 
-        if (pshd->shdk == SHDK_ProjectedVolume)
-        {
-            // Projected-volume color and alpha come from the packet state.
-            // Mesh vertex modulation makes CAMSEN cones collapse to a thin cap.
-            psubglob->vertices[i].color = glm::vec4(1.0f);
-        }
+        if ((indexes[i].bMisc & 0x7F) == 0x7F)
+            psubglob->vertices[i].color = pshd->rgba;
         else
-        {
-            if ((indexes[i].bMisc & 0x7F) == 0x7F)
-                psubglob->vertices[i].color = pshd->rgba;
-            else
-                psubglob->vertices[i].color = colors[indexes[i].bMisc & 0x7F] * pshd->rgba;
-        }
+            psubglob->vertices[i].color = colors[indexes[i].bMisc & 0x7F] * pshd->rgba;
 
         if (indexes[i].iuv == 0xFF)
             psubglob->vertices[i].uv = glm::vec2{ 0.0 };
@@ -897,7 +888,8 @@ void CloneGlob(GLOBSET* pglobset, GLOB* pglob, GLOBI* pglobi)
         if ((pglob->psaa->sai.grfsai & 0x04) != 0 || pglob->pwrbg != nullptr)
         {
             SAA* saaBase = pglob->psaa;
-            SAA* saa = CloneInstancedSaa(saaBase);
+            std::shared_ptr<SAA> saaOwner = CloneInstancedSaa(saaBase);
+            SAA* saa = saaOwner.get();
 
             if (saa != nullptr)
             {
@@ -1013,7 +1005,8 @@ void CloneGlobset(GLOBSET* pglobset, ALO* palo, GLOBSET* pglobsetBase)
 
             if ((glob.psaa->sai.grfsai & 0x04) != 0 || glob.pwrbg != nullptr)
             {
-                SAA* saa = CloneInstancedSaa(glob.psaa);
+                std::shared_ptr<SAA> saaOwner = CloneInstancedSaa(glob.psaa);
+                SAA* saa = saaOwner.get();
 
                 if (saa != nullptr)
                 {

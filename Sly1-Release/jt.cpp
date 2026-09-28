@@ -32,6 +32,7 @@
 #include "water.h"
 #include "call.h"
 #include "gl.h"
+#include "gui_layout.h"
 
 void StartupJtIcon(JTICON* pjticon)
 {
@@ -67,18 +68,23 @@ void DrawJtIcon(JTICON* pjticon)
         iconScale = std::max(0.0f, overshoot + t * t * acceleration);
     }
 
-    iconScale *= pjticon->rFontScale * g_guiScale;
+    iconScale *= pjticon->rFontScale;
     if (iconScale <= 0.0f)
         return;
 
-    pjticon->pfont->PushScaling(iconScale, iconScale);
+    // Keep layout anchoring in the active logical canvas, but render the icon
+    // itself uniformly. Using the canvas Y scale for both glyph axes prevents
+    // square icons from becoming wider or narrower when only the host aspect
+    // ratio changes. Modern mode already supplies the same X/Y value.
+    const GuiScale guiScale = GetGuiScale();
+    const float glyphScale = iconScale * guiScale.y;
+    pjticon->pfont->PushScaling(glyphScale, glyphScale);
 
     CTextBox tbx;
     float x, y, dx, dy;
     GetGuiScaledBlotRect(pjticon, &x, &y, &dx, &dy);
     tbx.SetPos(x, y);
-    tbx.SetSize(pjticon->pfont->DxFromPchz(pjticon->achzDraw),
-        static_cast<float>(pjticon->pfont->m_dyUnscaled) * pjticon->pfont->m_ryScale);
+    tbx.SetSize(pjticon->pfont->DxFromPchz(pjticon->achzDraw), static_cast<float>(pjticon->pfont->m_dyUnscaled) * pjticon->pfont->m_ryScale);
     tbx.SetTextColor(&pjticon->rgba);
     tbx.SetHorizontalJust(JH_Left);
     tbx.SetVerticalJust(JV_Top);
@@ -111,7 +117,7 @@ void InitJt(JT* pjt)
     pjt->cpaloFindSwObjects &= ~1U;
 
     pjt->sRadiusHook = 15.0f;
-    pjt->dvGravity = glm::vec3(0.0f, 0.0f, -1600.0f);
+    pjt->dvGravity = glm::vec3(0.0f, 0.0f, -1750.0f);
     pjt->posEdgeTarget = s_posEdgeTargetDefault;
 
     pjt->dtCharmFlash = 2.0f;
@@ -1010,7 +1016,7 @@ void HandleJtMessage(JT* pjt, MSGID msgid, void* pv)
                         SubscribeRipObject(pmatch, pjt);
 
                         const glm::vec3 dpos = plock->paloKey->xf.posWorld - pjt->paloCollectTarget[0]->xf.posWorld;
-                        const float dtTravel = std::min(glm::length(dpos), 300.0f) * 0.00055555557f;
+                        const float dtTravel = std::max(glm::length(dpos), 300.0f) * 0.00055555557f;
 
                         pmatch->dtLifetime = std::min(dtAvailable, dtTravel);
                         pmatch->paloRender = plock->paloKey;
@@ -1067,7 +1073,7 @@ void HandleJtMessage(JT* pjt, MSGID msgid, void* pv)
                         SubscribeRipObject(pmatch, pjt);
 
                         const glm::vec3 dpos = plock->paloKey->xf.posWorld - pjt->paloCollectTarget[0]->xf.posWorld;
-                        const float dtTravel = std::min(glm::length(dpos), 300.0f) * 0.0016666667f;
+                        const float dtTravel = std::max(glm::length(dpos), 300.0f) * 0.0016666667f;
 
                         pmatch->dtLifetime = std::min(dtAvailable, dtTravel);
                         pmatch->paloRender = pjt->paloCollectTarget[0];
@@ -2261,7 +2267,9 @@ void UpdateJtActive(JT* pjt, JOY* pjoy, float dt)
     }
 
     if (pjt->jts == 4)
+    {
         ReadStepJoystick(pjt, pjoy);
+    }
     else if (pjt->pjsgCur != nullptr && FIsJsgActive(pjt->pjsgCur))
     {
         JSG* pjsg = pjt->pjsgCur;
@@ -2326,14 +2334,19 @@ void UpdateJtActive(JT* pjt, JOY* pjoy, float dt)
             break;
 
             case 4:
-            pjoy->SetHandled(BTN_CROSS);
-            pjt->tCharmPending = g_clock.t;
+            if (FCharmAvailable())
+            {
+                pjoy->SetHandled(BTN_CROSS);
+                pjt->tCharmPending = g_clock.t;
+            }
             break;
 
             case 6:
-            // Basket, spire, and rail hides all accept Cross. Basket uses
-            // its dedicated jump-out substate in the transition below.
-            fJump = true;
+            // Retail only accepts Cross directly from basket, rail, and
+            // spire hides (JTHK 2, 4, and 5).
+            fJump = pjt->jthk == JTHK_Basket ||
+                    pjt->jthk == JTHK_Rail ||
+                    pjt->jthk == JTHK_Spire;
             break;
 
             default:
@@ -2572,7 +2585,8 @@ void UpdateJtActive(JT* pjt, JOY* pjoy, float dt)
                     break;
                 }
 
-                // Retail gives Circle landing priority over the aerial smash.
+                // Retail tests grfbtnPressed here: Circle must be newly
+                // pressed while the current aerial substate accepts actions.
                 if (fHidePressed && fCanJumpAction)
                 {
                     pjoy->SetHandled(BTN_CIRCLE);
@@ -2642,6 +2656,12 @@ void UpdateJtActive(JT* pjt, JOY* pjoy, float dt)
                     jtbsNext = pjt->jthk == JTHK_Basket
                         ? JTBS_Jump_Out
                         : JTBS_Jump_Init;
+                }
+                else if (fFall && pjt->jthk != 2 &&
+                         static_cast<unsigned>(pjt->jthk - 4) >= 2U)
+                {
+                    jtsNext = static_cast<JTS>(2);
+                    jtbsNext = 2;
                 }
                 else if (!fHideHeld &&
                     pjt->jthk != JTHK_Basket &&
@@ -4706,7 +4726,7 @@ void UpdateJtEffect(JT* pjt)
     pjt->pxpEffect = nullptr;
 }
 
-bool FIsJtSoundBase(JT* pjt)
+int FIsJtSoundBase(JT* pjt)
 {
     if (pjt->jts == 12 && pjt->jtbs == 34)
         return false;

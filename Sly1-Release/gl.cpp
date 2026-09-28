@@ -4,6 +4,7 @@
 #include "shadow.h"
 #include "tv.h"
 #include "game.h"
+#include "debug.h"
 #include <cmath>
 #include <cstdlib>
 
@@ -130,7 +131,7 @@ void GL::InitGL()
 	ImGui_ImplOpenGL3_Init("#version 430");
 	ImGui::StyleColorsDark();
 
-	const float imguiOffset = g_fDebugMode != 0 ? ImGui::GetFrameHeight() : 0.0f;
+	const float imguiOffset = g_fDebugGuiOpen ? ImGui::GetFrameHeight() : 0.0f;
 	const float initialSceneHeight = std::max(1.0f, height - imguiOffset);
 	uiScale = std::min(width / 640.0f, initialSceneHeight / 492.80002f);
 	uiOrigin.x = (width - 640.0f * uiScale) * 0.5f;
@@ -288,6 +289,7 @@ void GL::InitGL()
 
 	glslRko              = glGetUniformLocation(glGlobShader.ID, "rko");
 	glslProjectedVolumeColor = glGetUniformLocation(glGlobShader.ID, "projectedVolumeColor");
+	glslProjectedVolumeFinalPass = glGetUniformLocation(glGlobShader.ID, "projectedVolumeFinalPass");
 	glslfAnimateUv       = glGetUniformLocation(glGlobShader.ID, "fAnimateUv");
 	glsluvOffsets		 = glGetUniformLocation(glGlobShader.ID, "uvOffsets");
 	glslUnSelfIllum		 = glGetUniformLocation(glGlobShader.ID, "unSelfIllum");
@@ -674,9 +676,7 @@ void BeginFrameStream(STREAM* pstream)
 
 	pstream->frameBase = (GLsizeiptr)slot * pstream->frameSize;
 	pstream->cursor = 0;
-
-	glBindBuffer(GL_UNIFORM_BUFFER, pstream->bufferObject);
-	pstream->mappedPtr = (uint8_t*)glMapBufferRange(GL_UNIFORM_BUFFER, pstream->frameBase, pstream->frameSize, GL_MAP_WRITE_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
+	pstream->mappedPtr = nullptr;
 }
 
 void AppendStream(STREAM* pstream, void* ptr, int size, int copySize)
@@ -690,22 +690,21 @@ void AppendStream(STREAM* pstream, void* ptr, int size, int copySize)
 	GLsizeiptr off = pstream->frameBase + pstream->cursor;
 	pstream->cursor += pstream->stride;
 
-	memcpy(pstream->mappedPtr + (off - pstream->frameBase), ptr, copySize);
-
+	// A non-persistently mapped buffer cannot legally be consumed by draw calls
+	// until it is unmapped. The old path kept this UBO mapped for the complete
+	// render pass; NVIDIA tolerated that, while AMD could observe stale or
+	// partially written object transforms. Upload each aligned range normally.
+	glBindBuffer(GL_UNIFORM_BUFFER, pstream->bufferObject);
+	glBufferSubData(GL_UNIFORM_BUFFER, off, copySize, ptr);
 	glBindBufferRange(GL_UNIFORM_BUFFER, pstream->bindIndex, pstream->bufferObject, off, size);
 }
 
 void EndFrameStream(STREAM* pstream)
 {
-	if (!pstream->mappedPtr)
+	if (pstream->cursor == 0)
 		return;
 
 	int slot = g_cframe % g_frames;
-
-	glBindBuffer(GL_UNIFORM_BUFFER, pstream->bufferObject);
-	glUnmapBuffer(GL_UNIFORM_BUFFER);
-
-	pstream->mappedPtr = nullptr;
 
 	pstream->fences[slot] = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
 }
@@ -869,7 +868,7 @@ void FrameBufferSizeCallBack(GLFWwindow* window, int width, int height)
 	constexpr float kVirtualUiHeight = 492.80002f;
 
 	float imguiOffset = 0.0f;
-	if (g_fDebugMode != 0 && ImGui::GetCurrentContext() != nullptr)
+	if (g_fDebugGuiOpen && ImGui::GetCurrentContext() != nullptr)
 	{
 		float contentScaleX = 1.0f;
 		float contentScaleY = 1.0f;
@@ -967,6 +966,7 @@ GLuint glslfAlphaTest = 0;
 GLuint glslAlphaCutOff = 0;
 GLuint glslRko = 0;
 GLuint glslProjectedVolumeColor = 0;
+GLuint glslProjectedVolumeFinalPass = 0;
 GLuint glslfAnimateUv = 0;
 GLuint glsluvOffsets = 0;
 GLuint glslUnSelfIllum = 0;
@@ -987,6 +987,7 @@ int g_msaaSamples = 4;
 bool g_fMsaa = false;
 int g_internalResolutionHeight = 0;
 float g_guiScale = 1.0f;
+GuiStyle g_guiStyle = GuiStyle_PS2;
 WindowMode g_windowMode = WindowMode_Windowed;
 float g_drawDistanceMultiplier = 1.0f;
 int g_frames = 3;

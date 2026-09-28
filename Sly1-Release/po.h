@@ -52,7 +52,7 @@ class PO : public SO
 	class ALO* paloCollectTarget[4];
 	struct MATCH* pmatch[9];
 	int cmatchCollect;
-	PCK pckCollect;
+	int pchkCollect;
 	glm::vec3 posCollectPrev;
 };
 
@@ -66,7 +66,7 @@ void OnPoActive(PO* ppo, int fActive, PO* ppoOther);
 void GetPoCpdefi(PO* ppo, float dt, CPDEFI* pcpdefi);
 int  FIsPoSoundBase(PO* ppo);
 void MakePoActive(PO* ppo);
-bool FInvulnerablePo(PO* ppo);
+int FInvulnerablePo(PO* ppo);
 PO*  PpoCur();
 PO*  PpoStart();
 int  IppoFindPo(PO* ppo);
@@ -82,7 +82,7 @@ ALO* PaloFindPoBag(PO* ppo);
 void GetPoDiapi(PO* ppo, DIALOG* pdialog, DIAPI* pdiapi);
 JTHS JthsCurrentPo(PO* ppo);
 void CollectPoPrize(PO* ppo, PCK pck, ALO* paloOther);
-void SetPoPck(PO* ppo, PCK pck);
+void SetPoPck(PO* ppo, PCK pchk);
 int  FTakePoDamage(PO* ppo, ZPR* pzpr);
 void GetJthsCurrentPo(PO* ppo, JTHS* pjths);
 void PlayPoDialog(PO* ppo, DIALOG* pdialog);

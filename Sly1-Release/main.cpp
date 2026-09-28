@@ -122,6 +122,20 @@ void RunGameFrame()
     if (FCutscenePending() && g_wipe.wipes != WIPES_WipingOut)
         ExecutePendingCutscenes();
 
+    static bool s_fF3WasDown = false;
+    const bool fF3Down = g_gl.window != nullptr &&
+        glfwGetKey(g_gl.window, GLFW_KEY_F3) == GLFW_PRESS;
+    if (fF3Down && !s_fF3WasDown)
+    {
+        g_fDebugGuiOpen = !g_fDebugGuiOpen;
+
+        int framebufferWidth = 0;
+        int framebufferHeight = 0;
+        glfwGetFramebufferSize(g_gl.window, &framebufferWidth, &framebufferHeight);
+        FrameBufferSizeCallBack(g_gl.window, framebufferWidth, framebufferHeight);
+    }
+    s_fF3WasDown = fF3Down;
+
     g_sceneFbo = g_fMsaa ? g_gl.fboMSAA : g_gl.fbo;
     glBindFramebuffer(GL_FRAMEBUFFER, g_sceneFbo);
 
@@ -141,6 +155,7 @@ void RunGameFrame()
         SetupCm(g_pcm);
         OpenFrame();
         MarkClockTick(&g_clock);
+        UpdateCodes();
         UpdateSw(g_psw, g_clock.dt);
 
         if (g_fRenderModels == true)
@@ -283,6 +298,7 @@ void Startup()
     StartupSaveData(&g_saveData);
     StartupGame();
     StartupSound();
+    StartupCodes();
 }
 
 bool fQuitGame;

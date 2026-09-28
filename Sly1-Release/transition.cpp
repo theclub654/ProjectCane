@@ -184,6 +184,7 @@ void CTransition::Execute(std::string& file)
     {
         ResetCm(g_pcm, 1);
         UpdateSounds();
+        //TeleportSwPlayer(g_psw, (OID)446, m_oidWarpContext);
         TeleportSwPlayer(g_psw, m_oidWarp, m_oidWarpContext);
         ResetGameAlarmsTriggered(&g_game);
         EnableHubCamera(&g_hubblot);

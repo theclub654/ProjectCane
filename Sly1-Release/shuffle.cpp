@@ -1,8 +1,8 @@
 #include "shuffle.h"
 
-SHUFFLE* NewShuffle()
+std::shared_ptr<SHUFFLE> NewShuffle()
 {
-    return new SHUFFLE{};
+    return std::make_shared<SHUFFLE>();
 }
 
 void LoadShuffleFromBrx(SHUFFLE* pshuffle, CBinaryInputStream* pbis)

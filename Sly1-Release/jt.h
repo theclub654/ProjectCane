@@ -634,7 +634,7 @@ void SetJtDisableStepCustomXps(JT* pjt, int fDisable);
 ALO* PaloAbsorbWkr(WKR* pwkr, int cpaloIgnore, ALO** apaloIgnore);
 int  NCmpWkr(WKR* pwkr1, WKR* pwkr2);
 void UpdateJtEffect(JT* pjt);
-bool FIsJtSoundBase(JT* pjt);
+int FIsJtSoundBase(JT* pjt);
 void CollectJtPrize(JT* pjt, PCK pck, ALO* paloOther);
 void GetJtDiapi(JT* pjt, DIALOG* pdialog, DIAPI* pdiapi);
 void PlayJtDialog(JT* pjt, DIALOG* pdialog);

@@ -191,6 +191,7 @@ void CloneDprize(DPRIZE* pdprize, DPRIZE* pdprizeBase)
 	pdprize->pexplAttract = pdprizeBase->pexplAttract;
 	pdprize->svcAttract = pdprizeBase->svcAttract;
 	pdprize->cAttract = pdprizeBase->cAttract;
+	pdprize->fCollectible = pdprizeBase->fCollectible;
 }
 
 void PostDprizeLoad(DPRIZE* pdprize)
@@ -1663,7 +1664,7 @@ SMP s_smpRadSmooth =
 float R_DprizeDamping = -5.0;
 glm::vec3 s_dvDprizeGravity = {0, 0, -2250};
 glm::vec3 s_vCenter = {0, 800, 1200};
-glm::vec3 s_normalGlint = {0.0, 0.0, 1.0};
+glm::vec3 s_normalGlint = {1.0f, 1.0f, 0.0f};
 float DT_DprizeGlintIntervalMin = 1.0;
 float DT_DprizeFallMax = 5.0;
 glm::vec3 s_vReject = {-250, 0.0, 600};

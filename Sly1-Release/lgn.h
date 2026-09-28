@@ -86,7 +86,7 @@ void OnLgnActive(LGN* plgn, int fActive);
 void RenderLgnAll(LGN* plgn, CM* pcm, RO* pro);
 void GetLgnCpdefi(LGN* plgn, float dt, CPDEFI* pcpdefi);
 int  FInvulnerableLgn(LGN* plgn);
-bool JthsCurrentLgn(LGN* plgn);
+int JthsCurrentLgn(LGN* plgn);
 void UseLgnCharm(LGN* plgn);
 void ApplyLgnThrow(LGN* plgn, STEP* pstep);
 int  FTakeLgnDamage(LGN* plgn, ZPR* pzpr);
@@ -99,6 +99,8 @@ void DeleteLgn(LGN* plgn);
 void StartupLgnr(LGNR* plgnr);
 void DrawLgnr(LGNR* plgnr);
 void UpdateLgnrAim(LGNR* plgnr, JOY* pjoy);
+void ConvertLgnrScreenToWorld(CM* pcm, const glm::vec3& posScreen, glm::vec3* pposWorld);
+void ConvertLgnrWorldToScreen(CM* pcm, const glm::vec3& posWorld, glm::vec3* pposScreen);
 
 LGNB*NewLgnb();
 void InitLgnb(LGNB *plgnb);

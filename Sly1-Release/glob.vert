@@ -1,4 +1,5 @@
-﻿#version 430 core
+
+#version 430 core
 
 #define RKO_OneWay   0
 #define RKO_ThreeWay 1
@@ -76,8 +77,8 @@ struct SHADOW
     float gReserved;
     float wFadeMin;
     int   textureSlot;
-    int   padTexture0;
-    int   padTexture1;
+    int   clampS;
+    int   clampT;
     int   padTexture2;
     vec4  posEffect;
     float sRadiusEffect;
@@ -776,8 +777,8 @@ bool SphereIntersectsFrustum(LIGHT L, vec3 center, float radius)
     mat4 M = L.matFrustrum;
 
     // GLSL indexes matrices by column.  Frustum planes are combinations of
-    // matrix rows, so construct the rows explicitly.  The projection uses
-    // zero-to-one depth (glm::perspectiveRH_ZO), making row 2 the near plane.
+    // matrix rows, so construct the rows explicitly. PS2 VU CLIP uses
+    // symmetric -w..w clipping for Z as well as X and Y.
     vec4 row0 = vec4(M[0][0], M[1][0], M[2][0], M[3][0]);
     vec4 row1 = vec4(M[0][1], M[1][1], M[2][1], M[3][1]);
     vec4 row2 = vec4(M[0][2], M[1][2], M[2][2], M[3][2]);
@@ -788,7 +789,7 @@ bool SphereIntersectsFrustum(LIGHT L, vec3 center, float radius)
     planes[1] = row3 - row0;
     planes[2] = row3 + row1;
     planes[3] = row3 - row1;
-    planes[4] = row2;
+    planes[4] = row3 + row2;
     planes[5] = row3 - row2;
 
     for (int i = 0; i < 6; ++i)
@@ -816,7 +817,7 @@ vec4 AddFrustrumLight(LIGHT frustumlight)
     if (clipL.w <= 0.0) return vec4(0.0);
     if (abs(clipL.x) > clipL.w) return vec4(0.0);
     if (abs(clipL.y) > clipL.w) return vec4(0.0);
-    if (clipL.z < 0.0 || clipL.z > clipL.w) return vec4(0.0);
+    if (abs(clipL.z) > clipL.w) return vec4(0.0);
 
     float invW = 1.0 / clipL.w;
 
@@ -833,21 +834,11 @@ vec4 AddFrustrumLight(LIGHT frustumlight)
     float mask = fx * fy * fr * fw;
     if (mask <= 0.0) return vec4(0.0);
 
-    vec3 Ldir = frustumlight.dir.xyz;
-    float len2 = dot(Ldir, Ldir);
-    Ldir = (len2 > 1e-8) ? Ldir * inversesqrt(len2) : vec3(0.0);
-
-    float NL = dot(normalWorld, Ldir);
-    NL = NL + NL*NL*NL;
-
-    float shadow    = max(0.0, NL * frustumlight.ru.x + frustumlight.du.x);
-    float midtone   = max(0.0, NL * frustumlight.ru.y + frustumlight.du.y);
-    float highlight = max(0.0, NL * frustumlight.ru.z + frustumlight.du.z);
-
-    objectShadow  += shadow  * mask;
-    objectMidtone += midtone * mask;
-
-    return frustumlight.color * (highlight * mask);
+    return AddDynamicLight(
+        frustumlight.dir,
+        frustumlight.color,
+        frustumlight.ru * mask,
+        frustumlight.du * mask);
 }
 
 vec4 AddFrustrumLightDynamic(LIGHT frustumlight)
@@ -857,7 +848,7 @@ vec4 AddFrustrumLightDynamic(LIGHT frustumlight)
     if (clipL.w <= 0.0) return vec4(0.0);
     if (abs(clipL.x) > clipL.w) return vec4(0.0);
     if (abs(clipL.y) > clipL.w) return vec4(0.0);
-    if (clipL.z < 0.0 || clipL.z > clipL.w) return vec4(0.0);
+    if (abs(clipL.z) > clipL.w) return vec4(0.0);
 
     float invW = 1.0 / clipL.w;
 

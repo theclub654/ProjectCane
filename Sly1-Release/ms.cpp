@@ -36,9 +36,9 @@ void RenderMsGlobset(MS* pms, CM* pcm, RO* pro)
 		if (!SphereInFrustum(pcm->frustum, glob.posCenter, glob.sRadius))
 			continue;
 
-		float dummy = 1.0f;
+		float uAlphaMrd = 1.0f;
 
-		if (!FInsideCmMrd(pcm, dpos, glob.sRadius, glob.sMRD, dummy))
+		if (!FInsideCmMrd(pcm, dpos, glob.sRadius, glob.sMRD, uAlphaMrd))
 			continue;
 
 		rpl = {};
@@ -49,17 +49,22 @@ void RenderMsGlobset(MS* pms, CM* pcm, RO* pro)
 		rpl.ro.model = baseModelMatrix;
 		rpl.ro.posCenter = glm::vec4(glob.posCenter, 1.0f);
 
-		rpl.ro.uAlpha = 1.0f;
+		// Retail passes this field directly to FInsideCmMrd.  The routine
+		// supplies the distance-transition alpha used when an MS glob enters
+		// or leaves its render range.
+		rpl.ro.uAlpha = uAlphaMrd;
 		rpl.ro.uAlphaCelBorder = 1.0f;
 
 		if (glob.csubcel != 0)
 		{
 			if (glob.sCelBorderMRD < glob.sMRD)
 			{
-				float dummyCB = 1.0f;
+				float uAlphaCelBorderMrd = 1.0f;
 
-				if (!FInsideCmMrd(pcm, dpos, glob.sRadius, glob.sCelBorderMRD, dummyCB))
+				if (!FInsideCmMrd(pcm, dpos, glob.sRadius, glob.sCelBorderMRD, uAlphaCelBorderMrd))
 					rpl.ro.uAlphaCelBorder = 0.0f;
+				else
+					rpl.ro.uAlphaCelBorder = uAlphaCelBorderMrd;
 			}
 			else
 				rpl.ro.uAlphaCelBorder = 1.0f;

@@ -2289,11 +2289,9 @@ void HandleStepguardMessage(STEPGUARD* pstepguard, MSGID msgid, void* pv)
             if (prwm == nullptr)
                 break;
 
-            // A configured target OID is not useful when PostRwmLoad could not
-            // resolve it. In that case, aim at the guard's current enemy just
-            // like an RWM with no explicit target.
-            if (prwm->rwti.palo == nullptr && prwm->rwti.ptarget == nullptr)
-                prwm->rwti.palo = reinterpret_cast<ALO*>(pstepguard->pvtstepguard->pfnPsoEnemyStepguard(pstepguard));
+            if (prwm->oidTarget == OID_Nil)
+                prwm->rwti.palo = reinterpret_cast<ALO*>(
+                    pstepguard->pvtstepguard->pfnPsoEnemyStepguard(pstepguard));
 
             FFireRwm(prwm, 1);
             break;
@@ -2779,9 +2777,9 @@ SO* PsoEnemyStepguard(STEPGUARD* pstepguard)
     return psoEnemy;
 }
 
-SO* GetStepguardEnemy(STEPGUARD* pstepguard)
+void GetStepguardEnemy(STEPGUARD* pstepguard, SO** ppsoEnemy)
 {
-    return PsoEnemyStepguard(pstepguard);
+    *ppsoEnemy = PsoEnemyStepguard(pstepguard);
 }
 
 void SetStepguardEnemyObject(STEPGUARD* pstepguard, SO* psoEnemy)
@@ -2920,7 +2918,7 @@ void ApplyStepguardThrow(STEPGUARD* pstepguard, PO* ppo)
     ppo->pvtalo->pfnSetAloVelocityVec(ppo, &pstepguard->vThrow);
  
     if (FIsBasicDerivedFrom(ppo, CID_JT) != 0) 
-        SetJtJts((JT*)ppo, JTS_Zap, JTBS_Zap_DeadInPit);
+        SetJtJts((JT*)ppo, JTS_Zap, (JTBS)43);
 }
 
 void UpdateStepguardEffect(STEPGUARD* pstepguard)

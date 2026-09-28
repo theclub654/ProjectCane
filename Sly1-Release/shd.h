@@ -271,7 +271,7 @@ extern std::vector<TEX> g_atex;
 extern int g_cpsaa;
 // Global vector for shader animation property's
 extern std::vector <SAA*> g_apsaa;
-extern std::vector <SAA*> g_apsaaSw;
+extern std::vector<std::shared_ptr<SAA>> g_apsaaSw;
 extern SAI* g_psaiUpdate;
 extern SAI* g_psaiUpdateTail;
 // Start of texture data

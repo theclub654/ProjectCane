@@ -1,4 +1,5 @@
 #include "logo.h"
+#include "gui_layout.h"
 
 void StartupLogo(LOGO* plogo)
 {
@@ -50,6 +51,9 @@ void DrawLogo(LOGO* plogo)
         return;
     }
 
+    if (plogo->pshd->atex.empty())
+        return;
+
     TEX& tex = plogo->pshd->atex[0];
     if (tex.abmp.empty() || tex.abmp[0] == nullptr)
         return;
@@ -62,10 +66,33 @@ void DrawLogo(LOGO* plogo)
     if (texture == 0)
         return;
 
-    float width = plogo->dx;
-    float height = plogo->dy;
+    // Retail submits logo coordinates in the PS2's 640 x 492.8 UI canvas.
+    // Convert the rectangle and its edge margins to output pixels while
+    // retaining the anchor selected by RepositionBlot.
+    const GuiScale guiScale = GetGuiScale();
+    const float scaleX = guiScale.x;
+    const float scaleY = guiScale.y;
+
+    float width = plogo->dx * scaleX;
+    float height = plogo->dy * scaleY;
     float x = plogo->x;
     float y = plogo->y;
+
+    if (plogo->pbloti != nullptr)
+    {
+        if (plogo->pbloti->x < 0.0f)
+            x -= width - plogo->dx;
+        else if (plogo->pbloti->x == 0.0f)
+            x -= (width - plogo->dx) * 0.5f;
+
+        if (plogo->pbloti->y < 0.0f)
+            y -= height - plogo->dy;
+        else if (plogo->pbloti->y == 0.0f)
+            y -= (height - plogo->dy) * 0.5f;
+
+        x += plogo->pbloti->x * (scaleX - 1.0f);
+        y += plogo->pbloti->y * (scaleY - 1.0f);
+    }
 
     // Set up UVs
     float u0 = 0.0f, v0 = 0.0f;
@@ -83,6 +110,9 @@ void DrawLogo(LOGO* plogo)
     glUniform1i(u_useVertexColorLoc, 0);
     glBindVertexArray(g_gl.gao);
 
+    const GLboolean blendWasEnabled = glIsEnabled(GL_BLEND);
+    const GLboolean depthTestWasEnabled = glIsEnabled(GL_DEPTH_TEST);
+
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
@@ -93,8 +123,14 @@ void DrawLogo(LOGO* plogo)
 
     glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_SHORT, 0);
 
-    glDisable(GL_BLEND);
-    glEnable(GL_DEPTH_TEST);
+    if (!blendWasEnabled)
+        glDisable(GL_BLEND);
+
+    if (depthTestWasEnabled)
+        glEnable(GL_DEPTH_TEST);
+    else
+        glDisable(GL_DEPTH_TEST);
+
     glBindVertexArray(0);
 }
 

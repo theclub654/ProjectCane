@@ -4290,9 +4290,9 @@ void BuildEopids()
 	g_aeopid[756].otyp = OTYP_Float;
 	g_aeopid[756].grfeopid = 2194;
 	g_aeopid[756].optdat.fDef = 1097859072;
-	g_aeopid[756].optdat.ibGet = static_cast<std::intptr_t>(offsetof(RAT, dsFrameScurry));
-	g_aeopid[756].optdat.ibSet = static_cast<std::intptr_t>(offsetof(RAT, dsFrameScurry));
-	g_aeopid[756].optdat.ibSetUser = static_cast<std::intptr_t>(offsetof(RAT, dsFrameScurry));
+	g_aeopid[756].optdat.ibGet = static_cast<std::intptr_t>(offsetof(RAT, dsFrameFlee));
+	g_aeopid[756].optdat.ibSet = static_cast<std::intptr_t>(offsetof(RAT, dsFrameFlee));
+	g_aeopid[756].optdat.ibSetUser = static_cast<std::intptr_t>(offsetof(RAT, dsFrameFlee));
 
 	g_aeopid[757].otyp = OTYP_Float;
 	g_aeopid[757].grfeopid = 2194;
@@ -9192,7 +9192,6 @@ CRef RefThunkRwmFIRE(BASIC* pbasic, int cref, CRef* aref)
 {
 	RWM* prwm = reinterpret_cast<RWM*>(pbasic);
 	const bool fAim = aref[0].RefCoerceS32().m_n != 0;
-
 	const bool fFired = FFireRwm(prwm, fAim);
 
 	CRef refRet;

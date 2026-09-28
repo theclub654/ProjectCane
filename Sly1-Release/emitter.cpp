@@ -85,10 +85,10 @@ void LoadEmitMeshFromBrx(EMITMESH* pemitmesh, CBinaryInputStream* pbis)
 
 void LoadEmitblipColorsFromBrx(EMITBLIP *pemitblip, int crgba, CBinaryInputStream* pbis)
 {
-	pemitblip->crgba = std::min(crgba, 32);
+	pemitblip->crgba = std::clamp(crgba, 0, 32);
 	pemitblip->argba.resize(pemitblip->crgba);
 
-	pemitblip->fColorRanges = static_cast<int8_t>(pbis->U8Read());
+	pemitblip->fColorRanges = pbis->U8Read() != 0;
 
 	for (int irgba = 0; irgba < crgba; ++irgba) 
 	{
@@ -99,9 +99,8 @@ void LoadEmitblipColorsFromBrx(EMITBLIP *pemitblip, int crgba, CBinaryInputStrea
 			float r = static_cast<float>((rgba >> 0) & 0xff) / 255.0f;
 			float g = static_cast<float>((rgba >> 8) & 0xff) / 255.0f;
 			float b = static_cast<float>((rgba >> 16) & 0xff) / 255.0f;
-			// SetBlipgEmitb halves the source byte before the PS2 GS interprets
-			// 0x80 as full alpha.  Converting the original byte through 255 here
-			// is the equivalent normalized OpenGL value.
+			// BRX stores little-endian RGBA8. Keep the source channels normalized
+			// here; SetBlipgEmitb handles the PS2-GS/OpenGL representation boundary.
 			float a = static_cast<float>((rgba >> 24) & 0xff) / 255.0f;
 
 			pemitblip->argba[irgba] = glm::vec4(r, g, b, a);

@@ -4,6 +4,121 @@
 #include "pzo.h"
 #include "tv.h"
 
+namespace
+{
+    glm::vec2 GetBinocScreenRange(const CM* pcm)
+    {
+        // Binocular targeting is drawn over the complete rendered viewport.
+        // Derive its screen range from the active projection instead of the
+        // authored 4:3 gameplay-camera range.
+        const float xProjection = pcm->matProj[0][0];
+        const float yProjection = pcm->matProj[1][1];
+        return glm::vec2(
+            std::abs(xProjection) > 0.0001f ? 1.0f / std::abs(xProjection) : pcm->xScreenRange,
+            std::abs(yProjection) > 0.0001f ? 1.0f / std::abs(yProjection) : pcm->yScreenRange);
+    }
+
+    glm::vec2 BinocScreenToPixels(const glm::vec2& posScreen)
+    {
+        return glm::vec2(
+            (posScreen.x * 0.5f + 0.5f) * static_cast<float>(g_gl.width),
+            (0.5f - posScreen.y * 0.5f) * static_cast<float>(g_gl.height));
+    }
+
+    void GetBinocMaskTransform(float* pscale, glm::vec2* porigin)
+    {
+        // Every retail BINOC primitive is authored in the same 640x492.8
+        // space. Keep its centre on the normal UI canvas; the outer mask is
+        // widened separately when it is submitted.
+        *pscale = g_gl.uiScale;
+        *porigin = g_gl.uiOrigin;
+    }
+
+    void DrawBinocMaskGeometry(GLuint vao, GLsizei indexCount)
+    {
+        constexpr float virtualWidth = 640.0f;
+        constexpr float centreLeft = 240.0f;
+        constexpr float centreRight = 400.0f;
+
+        const float scale = g_gl.uiScale;
+        const float screenWidth = static_cast<float>(g_gl.width);
+        const float screenCentre = screenWidth * 0.5f;
+        const float centreOrigin = screenCentre - virtualWidth * 0.5f * scale;
+        const float leftJoin = centreOrigin + centreLeft * scale;
+        const float rightJoin = centreOrigin + centreRight * scale;
+
+        const GLint leftCut = static_cast<GLint>(std::lround(leftJoin));
+        const GLint rightCut = static_cast<GLint>(std::lround(rightJoin));
+
+        struct Region
+        {
+            GLint clipLeft;
+            GLint clipRight;
+            float scaleX;
+            float translateX;
+        };
+
+        const float leftScale = leftJoin / centreLeft;
+        const float rightScale = (screenWidth - rightJoin) / (virtualWidth - centreRight);
+        const Region regions[] =
+        {
+            { 0, leftCut, leftScale, 0.0f },
+            { leftCut, rightCut, scale, centreOrigin },
+            { rightCut, g_gl.width, rightScale, rightJoin - centreRight * rightScale }
+        };
+
+        const GLboolean scissorWasEnabled = glIsEnabled(GL_SCISSOR_TEST);
+        GLint oldScissor[4];
+        glGetIntegerv(GL_SCISSOR_BOX, oldScissor);
+        glEnable(GL_SCISSOR_TEST);
+        glBindVertexArray(vao);
+
+        for (const Region& region : regions)
+        {
+            glScissor(region.clipLeft, 0,
+                std::max(region.clipRight - region.clipLeft, 0), g_gl.height);
+
+            glm::mat4 model(1.0f);
+            model = glm::translate(model,
+                glm::vec3(region.translateX, g_gl.uiOrigin.y, 0.0f));
+            model = glm::scale(model, glm::vec3(region.scaleX, scale, 1.0f));
+            glUniformMatrix4fv(u_modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+            glDrawElements(GL_TRIANGLES, indexCount, GL_UNSIGNED_SHORT, nullptr);
+        }
+
+        glBindVertexArray(0);
+        glScissor(oldScissor[0], oldScissor[1], oldScissor[2], oldScissor[3]);
+        if (!scissorWasEnabled)
+            glDisable(GL_SCISSOR_TEST);
+    }
+}
+
+void ConvertBinocScreenToWorld(CM* pcm, const glm::vec3& posScreen, glm::vec3* pposWorld)
+{
+    const glm::vec2 screenRange = GetBinocScreenRange(pcm);
+    const float depth = posScreen.z;
+    const float depthScale = depth > 0.0001f ? depth : 1.0f;
+    const glm::vec3 posLocal(
+        depth,
+        -posScreen.x * depthScale * screenRange.x,
+         posScreen.y * depthScale * screenRange.y);
+    *pposWorld = pcm->pos + pcm->mat * posLocal;
+}
+
+void ConvertBinocWorldToScreen(CM* pcm, const glm::vec3& posWorld, glm::vec3* pposScreen)
+{
+    const glm::vec2 screenRange = GetBinocScreenRange(pcm);
+    const glm::vec3 posLocal = glm::transpose(pcm->mat) * (posWorld - pcm->pos);
+    pposScreen->x = -posLocal.y / screenRange.x;
+    pposScreen->y =  posLocal.z / screenRange.y;
+    pposScreen->z =  posLocal.x;
+    if (posLocal.x > 0.0001f)
+    {
+        pposScreen->x /= posLocal.x;
+        pposScreen->y /= posLocal.x;
+    }
+}
+
 void StartupBinoc(BINOC* pbinoc)
 {
     g_teBinoc.m_ch = '-';
@@ -567,8 +682,11 @@ void UpdateBinocActive(BINOC* pbinoc, JOY* pjoy)
 
         SMP* psmp = pjoy->uDeflect + pjoy->uDeflect2 > 0.0001f ? &smpReticle : &smpReticleFast;
 
-        glm::vec3 posNew;
-        PosSmooth(posCur, posTarget, g_clock.dt, psmp, &posNew);
+        // Retail uses PosSmooth's return value and passes null for its
+        // optional velocity output. Using that output as the position makes
+        // the reticle alternate between positive and negative velocity every
+        // frame, which appears as doubled/quadrupled reticles in motion.
+        const glm::vec3 posNew = PosSmooth(posCur, posTarget, g_clock.dt, psmp, nullptr);
 
         pbinoc->dxReticle = posNew.x;
         pbinoc->dyReticle = posNew.y;
@@ -660,6 +778,11 @@ void SetBinocAchzDraw(BINOC* pbinoc, char* pchz)
         float wrapWidth = (pbinoc->binocs == BINOCS_Confront) ? 380.0f : 280.0f;
         rt.ClineWrap(wrapWidth);
         pbinoc->pfont->PopScaling();
+
+        // CRichText owns a writable copy so that wrapping string literals is
+        // safe. Binocular dialog, however, intentionally keeps the wrapped
+        // text in its BLOT buffer for type-on and later drawing.
+        std::strcpy(pbinoc->achzDraw, rt.m_achz);
 
         // Reset parser and extract line break indices
         rt.Reset();
@@ -998,14 +1121,38 @@ void DrawBinocReticle(BINOC* pbinoc)
 
     const float uZoom = g_pcm->cplook.uZoom;
     const float scale = uZoom + 1.0f;
-    const float alpha = glm::clamp(48.0f + uZoom * 24.999f, 0.0f, 255.0f) / 255.0f;
+    // GS alpha is normalized around 0x80, not 0xFF. Retail writes the
+    // reticle's 48..73 alpha byte directly into RGBAQ, so dividing by 255
+    // makes it roughly half as opaque and exaggerates motion persistence.
+    const float alpha = glm::clamp((48.0f + uZoom * 24.999f) / 128.0f, 0.0f, 1.0f);
 
     const glm::vec4 darkBlue(RGBA_DarkBlue.r, RGBA_DarkBlue.g, RGBA_DarkBlue.b, alpha);
     const glm::vec4 lightBlue(RGBA_LightBlue.r, RGBA_LightBlue.g, RGBA_LightBlue.b, alpha);
     const glm::vec4 darkRed(RGBA_DarkRed.r, RGBA_DarkRed.g, RGBA_DarkRed.b, alpha);
     const glm::vec4 lightRed(RGBA_LightRed.r, RGBA_LightRed.g, RGBA_LightRed.b, alpha);
-    const glm::vec4 rgbaDark = pbinoc->fTargeting != 0 ? darkRed : darkBlue;
-    const glm::vec4 rgbaLight = pbinoc->fTargeting != 0 ? lightRed : lightBlue;
+    // Retail has a dedicated neutral pair for the sniper binocular state
+    // (the globals at 0x261108/0x261110). This is the reticle used by
+    // A Temporary Truce; falling through to the normal pair makes it blue.
+    const glm::vec4 darkSniper(0.5f, 0.5f, 0.5f, alpha);
+    const glm::vec4 lightSniper(1.0f, 1.0f, 1.0f, alpha);
+
+    glm::vec4 rgbaDark;
+    glm::vec4 rgbaLight;
+    if (pbinoc->fTargeting != 0)
+    {
+        rgbaDark = darkRed;
+        rgbaLight = lightRed;
+    }
+    else if (pbinoc->binocs == BINOCS_Sniper)
+    {
+        rgbaDark = darkSniper;
+        rgbaLight = lightSniper;
+    }
+    else
+    {
+        rgbaDark = darkBlue;
+        rgbaLight = lightBlue;
+    }
 
     const float outerPhase = 0.5f - 0.5f * std::cos(pbinoc->radReticle - 0.19634955f);
     const float innerPhase = 0.5f - 0.5f * std::cos(pbinoc->radReticle - 0.44178647f);
@@ -1021,8 +1168,9 @@ void DrawBinocReticle(BINOC* pbinoc)
     const float targetWidth = static_cast<float>(g_gl.width);
     const float targetHeight = static_cast<float>(g_gl.height);
     const float uiScale = glm::min(targetWidth / kUiWidth, targetHeight / kUiHeight);
-    const float uiOriginX = (targetWidth - kUiWidth * uiScale) * 0.5f;
-    const float uiOriginY = (targetHeight - kUiHeight * uiScale) * 0.5f;
+    const glm::vec2 focusPixels(
+        xFocus * targetWidth / kUiWidth,
+        yFocus * targetHeight / kUiHeight);
 
     struct ReticleVertex
     {
@@ -1039,9 +1187,10 @@ void DrawBinocReticle(BINOC* pbinoc)
 
     auto vertex = [&](const glm::vec2& pos, const glm::vec4& color)
     {
+        const glm::vec2 pixel = focusPixels + (pos - glm::vec2(xFocus, yFocus)) * uiScale;
         return ReticleVertex{
-            uiOriginX + pos.x * uiScale,
-            uiOriginY + pos.y * uiScale,
+            pixel.x,
+            pixel.y,
             color.r, color.g, color.b, color.a
         };
     };
@@ -1192,29 +1341,26 @@ void DrawBinocReticle(BINOC* pbinoc)
 
 void DrawBinocBackground(BINOC* pbinoc)
 {
-    GLint previousDepthFunction = GL_LESS;
-    GLboolean previousDepthMask = GL_TRUE;
     const GLboolean depthTestWasEnabled = glIsEnabled(GL_DEPTH_TEST);
-
-    glGetIntegerv(GL_DEPTH_FUNC, &previousDepthFunction);
-    glGetBooleanv(GL_DEPTH_WRITEMASK, &previousDepthMask);
+    GLboolean depthWriteWasEnabled = GL_TRUE;
+    GLint depthFuncPrevious = GL_LESS;
+    glGetBooleanv(GL_DEPTH_WRITEMASK, &depthWriteWasEnabled);
+    glGetIntegerv(GL_DEPTH_FUNC, &depthFuncPrevious);
 
     glBlotShader.Use();
 
     glUniformMatrix4fv(u_projectionLoc, 1, GL_FALSE, glm::value_ptr(g_gl.blotProjection));
 
-    // Scale from virtual 640x492.8 -> screen pixels
-    const float sx = g_gl.width / 640.0f;
-    const float sy = g_gl.height / 492.8f;
-
-    glm::mat4 model(1.0f);
-    model = glm::scale(model, glm::vec3(sx, sy, 1.0f));
-
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    glDisable(GL_DEPTH_TEST);
-    glUniformMatrix4fv(u_modelLoc, 1, GL_FALSE, glm::value_ptr(model));
-
+    // PostTvContext seals portrait pixels at window depth zero. Draw the
+    // dark binoc background at that same near depth with LESS: it remains in
+    // front of every world surface, while equal-depth TV pixels reject it and
+    // retain their intended brightness.
+    glEnable(GL_DEPTH_TEST);
+    glDepthFunc(GL_LESS);
+    glDepthMask(GL_FALSE);
+    glDepthRange(0.0, 0.0);
     glUniform4f(uvRectLoc, 0, 0, 1, 1);
     glUniform4fv(blotColorLoc, 1, glm::value_ptr(RGBA_Overlay));
     BindBlotTexture(whiteTex);
@@ -1222,22 +1368,13 @@ void DrawBinocBackground(BINOC* pbinoc)
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-    // The original BINOC overlay is submitted after the TV speaker, but
-    // PostTvContext seals successful speaker pixels at the overlay depth.
-    // Keeping the depth test enabled makes this tint cover the world while
-    // rejecting those protected TV pixels. Disabling depth here caused the
-    // overlay to darken the speaker portraits as well.
-    glEnable(GL_DEPTH_TEST);
-    glDepthFunc(GL_LESS);
-    glDepthMask(GL_FALSE);
+    DrawBinocMaskGeometry(pbinoc->backGroundBinocVAO,
+        static_cast<GLsizei>(pbinoc->backGroundBinocIndices.size()));
 
-    glBindVertexArray(pbinoc->backGroundBinocVAO);
-    glDrawElements(GL_TRIANGLES, (GLsizei)pbinoc->backGroundBinocIndices.size(), GL_UNSIGNED_SHORT, 0);
-    glBindVertexArray(0);
-
+    glDepthRange(0.0, 1.0);
+    glDepthMask(depthWriteWasEnabled);
+    glDepthFunc(depthFuncPrevious);
     glDisable(GL_BLEND);
-    glDepthMask(previousDepthMask);
-    glDepthFunc(previousDepthFunction);
 
     if (depthTestWasEnabled)
         glEnable(GL_DEPTH_TEST);
@@ -1260,12 +1397,18 @@ void DrawBinocCompass(BINOC* pbinoc)
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-    // RECTANGLE
-    float width = (g_gl.width / 640.0f) * 94.0f;
-    float height = ((g_gl.height) / 492.8f) * 35.0f;
+    float compassScale;
+    glm::vec2 compassOrigin;
+    GetBinocMaskTransform(&compassScale, &compassOrigin);
 
-    float x = (g_gl.width - width) * 0.5f;
-    float y = ((g_gl.height) - height) * 0.02f;
+    // RECTANGLE
+    const float uiScaleX = compassScale;
+    const float uiScaleY = compassScale;
+    float width = 94.0f * uiScaleX;
+    float height = 35.0f * uiScaleY;
+
+    float x = compassOrigin.x + 273.0f * uiScaleX;
+    float y = compassOrigin.y + 9.0f * uiScaleY;
 
     glm::vec2 pos = glm::vec2(x, y);
     glm::vec2 size = glm::vec2(width, height);
@@ -1276,7 +1419,10 @@ void DrawBinocCompass(BINOC* pbinoc)
     glBlotShader.Use();
 
     glStencilFunc(GL_ALWAYS, 0, 255);
-    glStencilOp(GL_KEEP, GL_KEEP, GL_NONE);
+    // Clear the compass rectangle to stencil zero before stamping its
+    // triangular aperture. GL_NONE is not a valid glStencilOp value and left
+    // whatever operation the preceding TV/mask pass happened to install.
+    glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
     glColorMask(0, 0, 0, 0);
 
     glUniformMatrix4fv(u_modelLoc, 1, GL_FALSE, glm::value_ptr(model));
@@ -1299,16 +1445,13 @@ void DrawBinocCompass(BINOC* pbinoc)
     glBindVertexArray(g_gl.gao);
 
     // ===== UI scale (virtual 640x492.8 -> your pixel projection) =====
-    const float uiScaleX = g_gl.width / 640.0f;
-    const float uiScaleY = (g_gl.height) / 492.8f;
-
     // TICKS
     const float baseX = 273.0f;
     const float baseY = 9.0f;
 
     const float tickWidth = 7.52f * uiScaleX;
     const float tickHeight = 35.5f * uiScaleY;
-    y = baseY * uiScaleY;
+    y = compassOrigin.y + baseY * uiScaleY;
 
     glStencilFunc(GL_NOTEQUAL, 0, 255);
     glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP);
@@ -1317,7 +1460,8 @@ void DrawBinocCompass(BINOC* pbinoc)
     glUniform4f(blotColorLoc, RGBA_DarkBlue.r, RGBA_DarkBlue.g, RGBA_DarkBlue.b, RGBA_DarkBlue.a);
 
     for (int i = 0; i < 11; i++) {
-        float xOffset = (baseX + (i - pbinoc->uCompassBarOffset) * 0.1f * 94.0f) * uiScaleX;
+        float xOffset = compassOrigin.x +
+            (baseX + (i - pbinoc->uCompassBarOffset) * 0.1f * 94.0f) * uiScaleX;
 
         model = glm::translate(glm::mat4(1.0f), glm::vec3(xOffset, y, 0.0f));
         model = glm::scale(model, glm::vec3(tickWidth, tickHeight, 1.0f));
@@ -1354,7 +1498,7 @@ void DrawBinocCompass(BINOC* pbinoc)
 
     const float spacingPx = spacingV * uiScaleX;
     const float slidePx = interp * spacingPx;
-    const float centerPx = g_gl.width * 0.5f;
+    const float centerPx = compassOrigin.x + 320.0f * uiScaleX;
 
     // Pixel X positions (same algebra as original, just in pixels)
     const float xLeft = (centerPx - spacingPx) - (slidePx - (spacingPx - dxLeftPx) * 0.5f);
@@ -1372,7 +1516,7 @@ void DrawBinocCompass(BINOC* pbinoc)
 
     tbx.m_dx = g_dxPointsMax * uiScaleX;                          // textbox width in pixels
     tbx.m_dy = (float)font->m_dyUnscaled * font->m_ryScale;        // already includes uiScaleY
-    tbx.m_y = baseY * uiScaleY;                                  // pixel Y
+    tbx.m_y = compassOrigin.y + baseY * uiScaleY;                 // pixel Y
     tbx.m_rgba = RGBA_LightBlue;
 
     tbx.m_x = xLeft;
@@ -1419,12 +1563,10 @@ void DrawBinocZoom(BINOC* pbinoc)
 
     const float zoom = g_pcm->cplook.uZoom;
 
-    // Virtual UI (original authored around this)
-    const float Vw = 640.0f;
-    const float Vh = 492.8f;
-
-    const float sx = g_gl.width / Vw;
-    const float sy = g_gl.height / Vh;
+    const float sx = g_gl.uiScale;
+    const float sy = g_gl.uiScale;
+    const float originX = g_gl.uiOrigin.x;
+    const float originY = g_gl.uiOrigin.y;
 
     const float xCenter = 320.0f;
 
@@ -1441,12 +1583,12 @@ void DrawBinocZoom(BINOC* pbinoc)
         float yTop = 372.8f - t0 * 60.0f;
         float yBottom = 372.8f - t1 * 60.0f;
 
-        const float xTopLeft = (xCenter - halfTop) * sx;
-        const float xTopRight = (xCenter + halfTop) * sx;
-        const float xBottomLeft = (xCenter - halfBottom) * sx;
-        const float xBottomRight = (xCenter + halfBottom) * sx;
-        const float yTopScreen = yTop * sy;
-        const float yBottomScreen = yBottom * sy;
+        const float xTopLeft = originX + (xCenter - halfTop) * sx;
+        const float xTopRight = originX + (xCenter + halfTop) * sx;
+        const float xBottomLeft = originX + (xCenter - halfBottom) * sx;
+        const float xBottomRight = originX + (xCenter + halfBottom) * sx;
+        const float yTopScreen = originY + yTop * sy;
+        const float yBottomScreen = originY + yBottom * sy;
 
         // Original is a four-vertex strip. Expand it to two triangles while
         // retaining the independently authored top and bottom widths.
@@ -1496,8 +1638,8 @@ void DrawBinocZoom(BINOC* pbinoc)
                 const char text[2] = { glyph, '\0' };
 
                 joyFont->PushScaling(scale * sy, scale * sy);
-                tbx.m_x = xVirtual * sx;
-                tbx.m_y = 390.80002f * sy;
+                tbx.m_x = originX + xVirtual * sx;
+                tbx.m_y = originY + 390.80002f * sy;
                 joyFont->DrawPchz(const_cast<char*>(text), &tbx);
                 joyFont->PopScaling();
             };
@@ -1527,16 +1669,8 @@ void DrawBinocOutline(BINOC* pbinoc)
     glm::vec4 rgbaMid = glm::mix(RGBA_DarkBlue, RGBA_LightBlue, tMid);
     glm::vec4 rgbaOuter = glm::mix(RGBA_DarkBlue, RGBA_LightBlue, tOuter);
 
-    // --- scale virtual 640x492.8 -> screen ---
-    const float sx = g_gl.width / 640.0f;
-    const float sy = g_gl.height / 492.8f;
-
-    glm::mat4 model(1.0f);
-    model = glm::scale(model, glm::vec3(sx, sy, 1.0f));
-
     glBlotShader.Use();
     glUniformMatrix4fv(u_projectionLoc, 1, GL_FALSE, glm::value_ptr(g_gl.blotProjection));
-    glUniformMatrix4fv(u_modelLoc, 1, GL_FALSE, glm::value_ptr(model));
     glUniform4f(uvRectLoc, 0, 0, 1, 1);
 
     BindBlotTexture(whiteTex);
@@ -1570,10 +1704,9 @@ void DrawBinocOutline(BINOC* pbinoc)
 
     glUniform1i(u_useVertexColorLoc, 1);
     glUniform4f(blotColorLoc, 1.0f, 1.0f, 1.0f, 1.0f);
-    glDrawElements(GL_TRIANGLES, static_cast<GLsizei>(pbinoc->outlineIndices.size()), GL_UNSIGNED_SHORT, nullptr);
+    DrawBinocMaskGeometry(pbinoc->outlineVAO,
+        static_cast<GLsizei>(pbinoc->outlineIndices.size()));
     glUniform1i(u_useVertexColorLoc, 0);
-
-    glBindVertexArray(0);
 
     glEnable(GL_DEPTH_TEST);
     glDepthFunc(GL_LESS);
@@ -1603,9 +1736,6 @@ void DrawBinocScan(BINOC* pbinoc)
 {
     constexpr int kScanMax = 32;
     constexpr float kScanDistanceMax = 4000.0f;
-    constexpr float kScreenWidth = 640.0f;
-    constexpr float kScreenHeight = 492.80002f;
-
     SCAN* scans[kScanMax];
 
     int scanCount = CploFindSwObjectsByClass(g_psw, 5, CID_SCAN, nullptr, kScanMax, reinterpret_cast<LO**>(scans));
@@ -1657,7 +1787,7 @@ void DrawBinocScan(BINOC* pbinoc)
         scans[visibleCount++] = scan;
 
         glm::vec3 posScreen;
-        ConvertCmWorldToScreen(g_pcm, &posWorld, &posScreen);
+        ConvertBinocWorldToScreen(g_pcm, posWorld, &posScreen);
 
         const glm::vec2 screenPosition(posScreen.x, posScreen.y);
 
@@ -1682,7 +1812,7 @@ void DrawBinocScan(BINOC* pbinoc)
         glm::vec3 posScreen;
 
         GetPntPos(reinterpret_cast<PNT*>(scan), &posWorld);
-        ConvertCmWorldToScreen(g_pcm, &posWorld, &posScreen);
+        ConvertBinocWorldToScreen(g_pcm, posWorld, &posScreen);
 
         char scanText[256];
 
@@ -1701,13 +1831,9 @@ void DrawBinocScan(BINOC* pbinoc)
 
         scanText[writeIndex] = '\0';
 
-        /*
-         * posScreen is in the original normalized camera-screen space.
-         *
-         * X: [-1, 1] -> [0, 640]
-         * Y: [-1, 1] -> [492.8, 0]
-         */
-        const glm::vec2 anchorPosition(posScreen.x* (kScreenWidth * 0.5f) + (kScreenWidth * 0.5f), posScreen.y * -(kScreenHeight * 0.5f) + (kScreenHeight * 0.5f));
+        // posScreen is normalized against the active render projection and
+        // therefore maps directly across the complete viewport.
+        const glm::vec2 anchorPosition = BinocScreenToPixels(glm::vec2(posScreen));
         // DrawBinocScan at 0x00134e1c uses vmul.xy followed by vaddy.x,
         // so scan visibility is based only on normalized screen X/Y.  Including
         // camera-space Z makes the fade distance enormous and hides the label.
@@ -1734,13 +1860,10 @@ void DrawBinocScan(BINOC* pbinoc)
         // Everything above is measured in the original 640 x 492.8 space.
         pbinoc->pfont->PopScaling();
 
-        const glm::vec2 textPosition(anchorPosition.x + s_scanTextOffsetX * scale, anchorPosition.y + s_scanTextOffsetY * scale - textHeight);
-        const auto UiPosition = [](const glm::vec2& position)
-        {
-            return g_gl.uiOrigin + position * g_gl.uiScale;
-        };
-
-        const glm::vec2 drawTextPosition = UiPosition(textPosition);
+        const glm::vec2 textPosition = anchorPosition + glm::vec2(
+            s_scanTextOffsetX * scale,
+            s_scanTextOffsetY * scale - textHeight) * g_gl.uiScale;
+        const glm::vec2 drawTextPosition = textPosition;
 
         CTextBox textBox;
         textBox.SetPos(drawTextPosition.x, drawTextPosition.y);
@@ -1784,10 +1907,10 @@ void DrawBinocScan(BINOC* pbinoc)
          * Draw the line from the scan label to its screen-space anchor.
          * This uses the same position-only dynamic VBO as the filter arrows.
          */
-        const glm::vec2 lineStart = UiPosition(glm::vec2(
-            textPosition.x + s_scanLineOffsetX * scale,
-            textPosition.y + textHeight + s_scanLineOffsetY * scale));
-        const glm::vec2 lineEnd = UiPosition(anchorPosition);
+        const glm::vec2 lineStart = textPosition + glm::vec2(
+            s_scanLineOffsetX * scale,
+            textHeight + s_scanLineOffsetY * scale) * g_gl.uiScale;
+        const glm::vec2 lineEnd = anchorPosition;
 
         const float lineVertices[] =
         {
@@ -1849,13 +1972,11 @@ void DrawBinocFilter(BINOC* pbinoc)
 
     // Finder geometry is authored in the same 640x492.8 virtual space as
     // the Binocucom zoom ladder and analog-stick prompts.
-    const float sx = static_cast<float>(g_gl.width) / 640.0f;
-    const float sy = static_cast<float>(g_gl.height) / 492.8f;
-    
     glBlotShader.Use();
 
     glm::mat4 model(1.0f);
-    model = glm::scale(model, glm::vec3(sx, sy, 1.0f));
+    model = glm::translate(model, glm::vec3(g_gl.uiOrigin, 0.0f));
+    model = glm::scale(model, glm::vec3(g_gl.uiScale, g_gl.uiScale, 1.0f));
 
     // Draw this as a 2D overlay regardless of the state left by the outline.
     glEnable(GL_BLEND);
@@ -2014,9 +2135,18 @@ void DrawBinoc(BINOC* pbinoc)
     if (state == BINOCS_Instruct && pbinoc->pte != nullptr && pbinoc->pte->m_pfont != nullptr)
     {
         const glm::vec4 colorEdgePrevious = pbinoc->pte->m_rgba;
+        const float edgeScaleXPrevious = pbinoc->pte->m_rxScaling;
+        const float edgeScaleYPrevious = pbinoc->pte->m_ryScaling;
 
         pbinoc->pte->m_rgba = colorEdge;
+        // Retail draws the 0.3 edge glyph through the global 640x492.8 GS
+        // projection. Our textbox is already in framebuffer pixels, so apply
+        // that missing projection scale to the edge glyph as well.
+        pbinoc->pte->m_rxScaling *= uiScale;
+        pbinoc->pte->m_ryScaling *= uiScale;
         pbinoc->pte->m_pfont->EdgeRect(pbinoc->pte, &tbxClip);
+        pbinoc->pte->m_rxScaling = edgeScaleXPrevious;
+        pbinoc->pte->m_ryScaling = edgeScaleYPrevious;
         pbinoc->pte->m_rgba = colorEdgePrevious;
     }
 

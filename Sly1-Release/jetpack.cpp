@@ -26,6 +26,8 @@ namespace
     SMP s_smpJetpackLimit = { 1.5f, 0.0f, 0.75f };
     SMP s_smpJetpackAim = { 20.0f, 0.0f, 0.1f };
     SMP s_smpJetpackBody = { 10.0f, 0.0f, 0.1f };
+    // Original data at 0x00263d08, used by the two cannon SmoothMatrix calls.
+    SMP s_smpJetpackThrusterRotation = { 30.0f, 0.0f, 0.5f };
 
     constexpr float kTargetX0 = 0.0f;
     constexpr float kTargetX1 = -600.0f;
@@ -99,6 +101,11 @@ void PostJetpackLoad(JETPACK* pjetpack)
 
     if (pjetpack->paloEffect != nullptr)
         SetAloTransformBasis(pjetpack->paloEffect, pjetpack->paloEffectBasis, pjetpack->paloEffectBasis);
+
+    // Retail stores paloAimBasis in RWM+0xe0, which is rwti.palo. The target
+    // position written during UpdateJetpackActive is local to this basis.
+    if (pjetpack->prwm != nullptr)
+        pjetpack->prwm->rwti.palo = pjetpack->paloAimBasis;
 
     pjetpack->psma = PsmaApplySm(pjetpack->psm, pjetpack, OID_Nil, 0);
     EnsureAsegBlendDynamic(pjetpack, sizeof(BL), 5, pjetpack->abl, 0, nullptr, nullptr, &pjetpack->pasegblDynamic);
@@ -252,6 +259,15 @@ void UpdateJetpack(JETPACK* pjetpack, float dt)
 
 void UpdateJetpackActive(JETPACK* pjetpack, JOY* pjoy, float dt)
 {
+    // Retail keeps a separate local-space aim matrix for each jetpack cannon.
+    // Outside the flight states the cannons return to their authored rotations.
+    glm::mat3 amatThruster[2] = { g_matIdentity, g_matIdentity };
+    for (int i = 0; i < 2; ++i)
+    {
+        if (pjetpack->apaloThruster[i] != nullptr)
+            amatThruster[i] = pjetpack->apaloThruster[i]->matOrig;
+    }
+
     // Retail lets Cross consume the pending lucky charm during the recovery
     // window. This branch was missing from the port.
     if (pjetpack->jpk == JETPACKS_Charm && FCharmAvailable())
@@ -335,6 +351,26 @@ void UpdateJetpackActive(JETPACK* pjetpack, JOY* pjoy, float dt)
         ConvertAloPos(pjetpack->paloAimBasis, nullptr,
             &posAimLocal, &posAimWorld);
 
+        // Aim both visible cannon bodies at the same world-space reticle point,
+        // then convert the result to each cannon parent's local space. This is
+        // the omitted retail loop that keeps the barrel fronts facing the aim
+        // target even when Sly turns around during a cutscene.
+        for (int i = 0; i < 2; ++i)
+        {
+            ALO* const paloThruster = pjetpack->apaloThruster[i];
+            if (paloThruster == nullptr)
+                continue;
+
+            glm::vec3 vecAim = posAimWorld - paloThruster->xf.posWorld;
+            if (glm::dot(vecAim, vecAim) <= 0.0001f)
+                continue;
+
+            glm::mat3 matAimWorld{};
+            BuildOrthonormalMatrixZ(&vecAim, &g_normalZ, &matAimWorld);
+            ConvertAloMat(nullptr, paloThruster->paloParent,
+                &matAimWorld, &amatThruster[i]);
+        }
+
         // OID 0x45d is CID_RWM. Retail converts the world aim point back into
         // the aim basis and stores it at RWM+0xf0, which is rwti.pos.
         if (pjetpack->prwm != nullptr)
@@ -345,7 +381,7 @@ void UpdateJetpackActive(JETPACK* pjetpack, JOY* pjoy, float dt)
             pjetpack->prwm->rwti.pos = posAimTargetLocal;
         }
 
-        ConvertCmWorldToScreen(g_pcm, &posAimWorld, &g_lgnr.posScreen);
+		ConvertLgnrWorldToScreen(g_pcm, posAimWorld, &g_lgnr.posScreen);
     }
 
     if (fFlightState)
@@ -388,6 +424,20 @@ void UpdateJetpackActive(JETPACK* pjetpack, JOY* pjoy, float dt)
     }
     else
         LoadRotateMatrixRad(pjetpack->radBody, &g_normalZ, &pjetpack->matBody);
+
+    // Match the original's final cannon pass: smooth from the current local
+    // rotation and commit the resulting matrix to each cannon ALO.
+    for (int i = 0; i < 2; ++i)
+    {
+        ALO* const paloThruster = pjetpack->apaloThruster[i];
+        if (paloThruster == nullptr)
+            continue;
+
+        glm::mat3 matSmooth{};
+        SmoothMatrix(&paloThruster->xf.mat, &amatThruster[i],
+            &s_smpJetpackThrusterRotation, dt, &matSmooth, nullptr);
+        SetAloXfMat(paloThruster, matSmooth);
+    }
 
     HandleDialogButtons(pjoy);
     ResolveAlo(pjetpack);
@@ -460,7 +510,7 @@ int FTakeJetpackDamage(JETPACK* pjetpack, ZPR* pzpr)
     return 1;
 }
 
-bool JthsCurrentJetpack(JETPACK* pjetpack)
+int JthsCurrentJetpack(JETPACK* pjetpack)
 {
     return pjetpack->fFlash != 0;
 }

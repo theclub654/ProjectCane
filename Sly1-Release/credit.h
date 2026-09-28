@@ -54,7 +54,7 @@ void SetCreditLine(CREDIT* pcredit, int iline, char* pchz, float dtVisible);
 extern CREDIT g_credit;
 extern NOTE g_note;
 extern CTextEdge g_teNote;
-extern NOTE *g_pnote;
+extern NOTE g_pnote;
 extern COMMENTARY g_aCommentaryLoadData[33];
 static const char* s_pchzBonusCommentaryPrompt = "Press &2L&. for Bonus Commentary";
 static constexpr char s_achzCommentaryTimeTenths[] = "Best time: &10.%d";

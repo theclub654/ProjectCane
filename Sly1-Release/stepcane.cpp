@@ -458,7 +458,9 @@ void ChooseJtRushTarget(JT* pjt)
 
     ChooseJtAttackTarget(pjt, 8, &s_posRush, 0.25f, 1.0f, &ptarget, &dposTarget);
 
+    pjt->phndCur = nullptr;
     pjt->ptargetCur = ptarget;
+    pjt->ppipeCur = nullptr;
 
     if (ptarget != nullptr)
     {
@@ -474,7 +476,9 @@ void ChooseJtSmashTarget(JT* pjt)
 
     ChooseJtAttackTarget(pjt, 4, &s_posSmash, 0.25f, 3.15f, &ptarget, &dposTarget);
 
+    pjt->phndCur = nullptr;
     pjt->ptargetCur = ptarget;
+    pjt->ppipeCur = nullptr;
 
     if (ptarget != nullptr)
     {

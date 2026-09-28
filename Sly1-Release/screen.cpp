@@ -22,6 +22,7 @@ void StartupScreen()
     StartupPuffChargerCtr(&g_puffchargectr);
     StartupTimer(&g_timer);
     StartupNote(&g_note);
+    StartupNote(&g_pnote);
     StartupCredit(&g_credit);
     StartupTitle(&g_title);
     StartupTotals(&g_totals);

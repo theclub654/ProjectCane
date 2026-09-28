@@ -206,6 +206,14 @@ void RenderSqtrm(SQTRM* psqtrm, CM* pcm)
     rpl.rp = RP_Translucent;
     rpl.PFNDRAWRPL = DrawSqtrm;
 
+    // Retail passes the SQTRM shader to GLBS::BeginStrip, so the shader's
+    // blend mode decides whether the ribbon belongs to the sorted alpha pass
+    // or the additive pass.  Do not force every trail into the additive list.
+    const uint32_t grfshd = psqtrm->pshd != nullptr
+        ? static_cast<uint32_t>(psqtrm->pshd->grfshd)
+        : 0u;
+    rpl.fTransluscentSort = grfshd == 2u || grfshd == 6u;
+
     const glm::vec3 dpos = psqtrm->palo->xf.posWorld - pcm->pos;
 
     /*
@@ -218,13 +226,15 @@ void RenderSqtrm(SQTRM* psqtrm, CM* pcm)
 	rpl.ro.darken = 1.0f;
 	rpl.ro.warpType = WARP_NONE;
 	rpl.ro.sRadius = psqtrm->sRadius;
-	rpl.ro.posCenter = glm::vec4(psqtrm->palo->xf.posWorld, 1.0f);
+    rpl.ro.posCenter = glm::vec4(psqtrm->palo->xf.posWorld, 1.0f);
     rpl.psqtrm = psqtrm;
 
-    g_translucentAddPrpl[g_translucentAddCount] = rpl;
-    //g_translucentAddPrpl[g_translucentAddCount].PFNDRAWRPL = DrawGlob;
-    g_translucentAddCount++;
-    //SubmitRpl(&rpl);
+    // SubmitRpl currently replaces RP_Translucent callbacks with DrawGlob,
+    // so retain DrawSqtrm while routing to the equivalent render list.
+    if (rpl.fTransluscentSort != 0)
+        g_translucentPrpl[g_translucentCount++] = rpl;
+    else
+        g_translucentAddPrpl[g_translucentAddCount++] = rpl;
 }
 
 void DrawSqtrm(RPL* prpl)

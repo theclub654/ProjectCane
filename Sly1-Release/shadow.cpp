@@ -21,10 +21,10 @@ namespace
 			g_gl.dyshWidth, g_gl.dyshHeight, layerCount);
 		glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 		glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-		glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
-		glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
-		const float borderColor[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
-		glTexParameterfv(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_BORDER_COLOR, borderColor);
+		// The bindless path defaulted each source texture to GL_REPEAT. Per-layer
+		// clamp-to-edge exceptions are emulated in the shader from TEX::grftex.
+		glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_S, GL_REPEAT);
+		glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_T, GL_REPEAT);
 		glBindTexture(GL_TEXTURE_2D_ARRAY, 0);
 	}
 
@@ -39,6 +39,7 @@ namespace
 		glBindTexture(GL_TEXTURE_2D, sourceTexture);
 		glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_WIDTH, &sourceWidth);
 		glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_HEIGHT, &sourceHeight);
+
 		glBindTexture(GL_TEXTURE_2D, 0);
 
 		if (sourceWidth <= 0 || sourceHeight <= 0)
@@ -46,8 +47,11 @@ namespace
 
 		GLint previousReadFbo = 0;
 		GLint previousDrawFbo = 0;
+		GLboolean previousColorMask[4] = {};
+		const GLboolean scissorEnabled = glIsEnabled(GL_SCISSOR_TEST);
 		glGetIntegerv(GL_READ_FRAMEBUFFER_BINDING, &previousReadFbo);
 		glGetIntegerv(GL_DRAW_FRAMEBUFFER_BINDING, &previousDrawFbo);
+		glGetBooleanv(GL_COLOR_WRITEMASK, previousColorMask);
 
 		GLuint readFbo = 0;
 		GLuint drawFbo = 0;
@@ -68,10 +72,23 @@ namespace
 
 		if (complete)
 		{
+			// Shadow layers are persistent. A scissor or color mask left by an
+			// earlier pass would otherwise leave stale texels around a static
+			// shadow and expose the projector's rectangular footprint.
+			glDisable(GL_SCISSOR_TEST);
+			glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+			const GLfloat transparent[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
+			glClearBufferfv(GL_COLOR, 0, transparent);
+
 			glBlitFramebuffer(0, 0, sourceWidth, sourceHeight,
 				0, 0, g_gl.dyshWidth, g_gl.dyshHeight,
 				GL_COLOR_BUFFER_BIT, GL_LINEAR);
 		}
+
+		glColorMask(previousColorMask[0], previousColorMask[1],
+			previousColorMask[2], previousColorMask[3]);
+		if (scissorEnabled)
+			glEnable(GL_SCISSOR_TEST);
 
 		glBindFramebuffer(GL_READ_FRAMEBUFFER, previousReadFbo);
 		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, previousDrawFbo);
@@ -119,6 +136,8 @@ void InitShadow(SHADOW* pshadow)
 	pshadow->textureSlot = -1;
 	pshadow->glTexture = 0;
 	pshadow->rsh.textureSlot = -1;
+	pshadow->rsh.clampS = 0;
+	pshadow->rsh.clampT = 0;
 
 	// Initialize up vector to g_normalY
 	pshadow->vecUp = glm::vec3(0.0, 1.0, 0.0);
@@ -464,10 +483,18 @@ void RebuildShadow(SHADOW* pshadow)
 		pshadow->glTexture = !tex.glDiffuseMap.empty() && tex.glDiffuseMap[0] != 0
 			? tex.glDiffuseMap[0]
 			: (pbmp != nullptr ? pbmp->glDiffuseMap : 0);
+
+		// A bindless sampler inherited these flags from the source GL_TEXTURE_2D.
+		// Texture-array layers share one sampler, so preserve the source wrapping
+		// explicitly and reproduce it in SampleShadowTexture.
+		pshadow->rsh.clampS = (tex.grftex & 1) != 0;
+		pshadow->rsh.clampT = (tex.grftex & 2) != 0;
 	}
 	else if (pshadow->pdysh != nullptr)
 	{
 		pshadow->glTexture = pshadow->pdysh->shadowTex;
+		pshadow->rsh.clampS = 0;
+		pshadow->rsh.clampT = 0;
 	}
 
 	pshadow->rsh.textureSlot = pshadow->textureSlot;

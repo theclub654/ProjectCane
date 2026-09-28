@@ -58,7 +58,22 @@ namespace
 		if (loadedResource == nullptr || resourceData == nullptr || resourceSize == 0)
 			throw std::runtime_error(std::string("Embedded shader resource could not be loaded: ") + filename);
 
-		return std::string(static_cast<const char*>(resourceData), resourceSize);
+		const char* source = static_cast<const char*>(resourceData);
+		size_t sourceSize = resourceSize;
+
+		// Some editors save GLSL as UTF-8 with a BOM. NVIDIA accepts the BOM
+		// before #version, but AMD's GLSL compiler treats it as an unexpected
+		// token. Strip it after loading so the embedded resource is portable.
+		if (sourceSize >= 3 &&
+			static_cast<unsigned char>(source[0]) == 0xef &&
+			static_cast<unsigned char>(source[1]) == 0xbb &&
+			static_cast<unsigned char>(source[2]) == 0xbf)
+		{
+			source += 3;
+			sourceSize -= 3;
+		}
+
+		return std::string(source, sourceSize);
 	}
 }
 

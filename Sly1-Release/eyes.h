@@ -28,7 +28,7 @@ struct EYES : public SAA
     float uClosed;
 };
 
-EYES* NewEyes();
+std::shared_ptr<EYES> NewEyes();
 void  LoadEyesFromBrx(EYES* peyes, CBinaryInputStream* pbis);
 void  InitEyes(EYES* peyes, SAAF* psaaf);
 void  PostEyesLoad(EYES* peyes);

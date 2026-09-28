@@ -1,8 +1,8 @@
 #include "loop.h"
 
-LOOP* NewLoop()
+std::shared_ptr<LOOP> NewLoop()
 {
-    return new LOOP{};
+    return std::make_shared<LOOP>();
 }
 
 void LoadLoopFromBrx(LOOP* ploop, CBinaryInputStream* pbis)

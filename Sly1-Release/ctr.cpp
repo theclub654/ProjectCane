@@ -1,4 +1,5 @@
 #include "ctr.h"
+#include "gui_layout.h"
 #include "scores.h"
 #include "van.h"
 #include "suv.h"
@@ -239,17 +240,20 @@ void DrawCtr(CTR* pctr)
     rgba.a = pctr->rgba.a * alpha;
 
     CTextBox tbx;
+    const GuiScale guiScale = GetGuiScale();
+    const float fontScaleX = pctr->rFontScale * guiScale.x;
+    const float fontScaleY = pctr->rFontScale * guiScale.y;
 
     float x, y, dx, dy;
     GetGuiScaledBlotRect(pctr, &x, &y, &dx, &dy);
-
     tbx.SetPos(x, y);
     tbx.SetSize(dx, dy);
+
     tbx.SetTextColor(&rgba);
     tbx.SetHorizontalJust(JH_Left);
     tbx.SetVerticalJust(JV_Top);
 
-    pctr->pfont->PushScaling(pctr->rFontScale * g_guiScale, pctr->rFontScale * g_guiScale);
+    pctr->pfont->PushScaling(fontScaleX, fontScaleY);
 
     CRichText rtxt(pctr->achzDraw, pctr->pfont);
     rtxt.Draw(&tbx, nullptr);

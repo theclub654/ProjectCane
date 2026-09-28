@@ -449,6 +449,7 @@ void DrawSw(SW* psw, CM* pcm)
 	//numFrameObjs = 0;
 
 	glGlobShader.Use();
+	glUniform1i(glslProjectedVolumeFinalPass, 0);
 
 	//std::cout << g_cFrameGlobs << "\n";
 	BeginFrameStream(&ropStream);
@@ -469,9 +470,9 @@ void DrawSw(SW* psw, CM* pcm)
 	// OpenGL line widths are measured in render-target pixels. Scale the
 	// authored cel-border width with the internal resolution so resolving the
 	// scene back to the window does not make outlines appear thinner.
-	const float celBorderRasterScale = static_cast<float>(g_gl.renderHeight) /
-		static_cast<float>((std::max)(g_gl.presentHeight, 1));
+	const float celBorderRasterScale = static_cast<float>(g_gl.renderHeight) / static_cast<float>((std::max)(g_gl.presentHeight, 1));
 	glLineWidth(4.125f * celBorderRasterScale);
+
 	glEnable(GL_CULL_FACE);
 
 
@@ -860,8 +861,11 @@ void DrawSw(SW* psw, CM* pcm)
 		glBindBuffer(GL_ARRAY_BUFFER, g_gl.blipInstanceVbo);
 		BeginFrameStream(&blipStream);
 
+		// DrawBlipg loads g_clock.t for curve age and g_clock.dtReal for the
+		// flying-strip displacement (retail instructions 0x0013B0E8 and
+		// 0x0013B140). Thus pause freezes lifetime without collapsing streaks.
 		glUniform1f(glslBlipCurrentTime, g_clock.t);
-		glUniform1f(glslBlipDtFrame, g_clock.dt);
+		glUniform1f(glslBlipDtFrame, g_clock.dtReal);
 		glUniformMatrix3fv(glslBlipCameraMat, 1, GL_FALSE, glm::value_ptr(g_pcm->mat));
 
 		for (int i = 0; i < g_blipCount; i++)
@@ -1180,7 +1184,10 @@ void DrawGlob(RPL* prpl)
 				return std::clamp(static_cast<int>(channel * 255.0f + 0.5f), 0, 255);
 			};
 
-			// PackRGBA stores (source + 1) >> 1.
+			// PackRGBA stores (source + 1) >> 1. RGB remains ordinary 8-bit GS
+			// color and therefore normalizes against 255. Only GS alpha uses 0x80
+			// as full strength. Expanding RGB against 128 saturates additive CAMSEN
+			// footprints into opaque-looking primary/secondary colors.
 			constexpr float colorDivisor = 255.0f;
 			const float packedRed = static_cast<float>((SourceByte(pshd->rgbaVolume.r) + 1) >> 1);
 			const float packedGreen = static_cast<float>((SourceByte(pshd->rgbaVolume.g) + 1) >> 1);
@@ -1228,8 +1235,7 @@ void DrawGlob(RPL* prpl)
 					// The retail projected-volume packet binds a texture only when
 					// grfshd bit 1 is set. Untextured volumes use their packed
 					// volume RGBA directly.
-					if (pshd->shdk == SHDK_ProjectedVolume &&
-						(pshd->grfshd & 2) == 0)
+					if (pshd->shdk == SHDK_ProjectedVolume && (pshd->grfshd & 2) == 0)
 						diffuseTexture = whiteTex;
 
 					BindGlobOneWayTexture(diffuseTexture);
@@ -1281,7 +1287,6 @@ void DrawGlob(RPL* prpl)
 		// No cache was written, so make the normal world draw try again.
 		pglob->trlk = TRLK_Relight;
 	}
-
 }
 
 void DrawCelBorder(RPLCEL* prplcel)
@@ -1375,6 +1380,10 @@ void DrawProjVolumeAlphaAdd(int baseVertex, int firstIndex, int indexCount)
 
 void DrawProjVolumeAdd(int baseVertex, int firstIndex, int indexCount)
 {
+	// Packet one is color-masked and packet two gets its RGBA solely from the
+	// VU-generated vertices. The constant rgbaVolume is packet three state.
+	glUniform1i(glslProjectedVolumeFinalPass, 2);
+
 	switch (g_grfshd)
 	{
 		case 1:
@@ -1418,7 +1427,9 @@ void DrawProjVolumeAdd(int baseVertex, int firstIndex, int indexCount)
 		BindGlobOneWayTexture(whiteTex);
 
 	glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE, GL_ONE, GL_ZERO);
+	glUniform1i(glslProjectedVolumeFinalPass, 1);
 	glDrawElementsBaseVertex(GL_TRIANGLES, (GLsizei)indexCount, GL_UNSIGNED_INT, (void*)(uintptr_t)(firstIndex * sizeof(uint32_t)), (GLint)baseVertex);
+	glUniform1i(glslProjectedVolumeFinalPass, 0);
 }
 
 void DrawMurkClear(int baseVertex, int firstIndex, int indexCount)
@@ -1469,11 +1480,9 @@ void DrawBlip(RPL* prplblip)
 		return;
 
 	BLIPG* pblipg = prplblip->pblipg;
-	if (pblipg->pshd == nullptr || pblipg->pshd->atex.empty() ||
-		pblipg->pshd->atex[0].abmp.empty() || pblipg->cblipe <= 0)
-	{
+
+	if (pblipg->pshd == nullptr || pblipg->pshd->atex.empty() || pblipg->pshd->atex[0].abmp.empty() || pblipg->cblipe <= 0)
 		return;
-	}
 
 	// DrawBlipg selected between the PS2's normal and clamped-add GIF
 	// packets from shader flag bit 0.  Applying additive blending to every

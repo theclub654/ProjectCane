@@ -3,6 +3,7 @@
 #include "cm.h"
 #include "gl.h"
 #include "glob.h"
+#include "debug.h"
 #include <algorithm>
 #include <cstdint>
 #include <cstring>
@@ -16,7 +17,8 @@ namespace
 constexpr char kSaveMagic[8] = { 'P', 'C', 'A', 'N', 'E', 'S', 'A', 'V' };
 constexpr uint32_t kSaveVersion = 3;
 constexpr char kSettingsMagic[8] = { 'P', 'C', 'A', 'N', 'E', 'S', 'Y', 'S' };
-constexpr uint32_t kSettingsVersion = 4;
+constexpr uint32_t kSettingsVersion = 7;
+int s_lastSaveSlot = -1;
 
 struct VideoSaveSettingsV1
 {
@@ -51,6 +53,57 @@ struct VideoSaveSettingsV3
     int keyboardBindings[BTN_MAX];
 };
 
+struct VideoSaveSettingsV4
+{
+    int fogType;
+    int msaaEnabled;
+    int msaaSamples;
+    int frameRate;
+    int internalResolutionHeight;
+    float drawDistance;
+    int windowMode;
+    int vsyncEnabled;
+    int aspectMode;
+    float guiScale;
+    int keyboardBindings[BTN_MAX];
+    int gamepadBindings[BTN_MAX];
+};
+
+struct VideoSaveSettingsV5
+{
+    int fogType;
+    int msaaEnabled;
+    int msaaSamples;
+    int frameRate;
+    int internalResolutionHeight;
+    float drawDistance;
+    int windowMode;
+    int vsyncEnabled;
+    int aspectMode;
+    float guiScale;
+    int guiStyle;
+    int keyboardBindings[BTN_MAX];
+    int gamepadBindings[BTN_MAX];
+};
+
+struct VideoSaveSettingsV6
+{
+    int fogType;
+    int msaaEnabled;
+    int msaaSamples;
+    int frameRate;
+    int internalResolutionHeight;
+    float drawDistance;
+    int windowMode;
+    int vsyncEnabled;
+    int aspectMode;
+    float guiScale;
+    int guiStyle;
+    int keyboardBindings[BTN_MAX];
+    int gamepadBindings[BTN_MAX];
+    int disableControllerInputWhenUnfocused;
+};
+
 struct SaveFileHeader
 {
     char magic[8];
@@ -78,8 +131,10 @@ VIDEOSAVESETTINGS UpgradeVideoSettings(const VideoSaveSettingsV1& oldSettings)
     settings.vsyncEnabled = oldSettings.vsyncEnabled;
     settings.aspectMode = oldSettings.aspectMode;
     settings.guiScale = 1.0f;
+	settings.guiStyle = GuiStyle_PS2;
 	std::copy(g_keyboardBindings.begin(), g_keyboardBindings.end(), settings.keyboardBindings);
 	std::copy(g_gamepadBindings.begin(), g_gamepadBindings.end(), settings.gamepadBindings);
+    settings.lastSaveSlot = -1;
     return settings;
 }
 
@@ -89,6 +144,8 @@ VIDEOSAVESETTINGS UpgradeVideoSettings(const VideoSaveSettingsV2& oldSettings)
 	std::memcpy(&settings, &oldSettings, sizeof(oldSettings));
 	std::copy(g_keyboardBindings.begin(), g_keyboardBindings.end(), settings.keyboardBindings);
 	std::copy(g_gamepadBindings.begin(), g_gamepadBindings.end(), settings.gamepadBindings);
+	settings.guiStyle = GuiStyle_PS2;
+	settings.lastSaveSlot = -1;
 	return settings;
 }
 
@@ -98,6 +155,47 @@ VIDEOSAVESETTINGS UpgradeVideoSettings(const VideoSaveSettingsV3& oldSettings)
 	std::copy(std::begin(oldSettings.keyboardBindings), std::end(oldSettings.keyboardBindings),
 		settings.keyboardBindings);
 	std::copy(g_gamepadBindings.begin(), g_gamepadBindings.end(), settings.gamepadBindings);
+	settings.guiStyle = GuiStyle_PS2;
+	settings.lastSaveSlot = -1;
+	return settings;
+}
+
+VIDEOSAVESETTINGS UpgradeVideoSettings(const VideoSaveSettingsV4& oldSettings)
+{
+	VIDEOSAVESETTINGS settings{};
+	settings.fogType = oldSettings.fogType;
+	settings.msaaEnabled = oldSettings.msaaEnabled;
+	settings.msaaSamples = oldSettings.msaaSamples;
+	settings.frameRate = oldSettings.frameRate;
+	settings.internalResolutionHeight = oldSettings.internalResolutionHeight;
+	settings.drawDistance = oldSettings.drawDistance;
+	settings.windowMode = oldSettings.windowMode;
+	settings.vsyncEnabled = oldSettings.vsyncEnabled;
+	settings.aspectMode = oldSettings.aspectMode;
+	settings.guiScale = oldSettings.guiScale;
+	settings.guiStyle = GuiStyle_PS2;
+	std::copy(std::begin(oldSettings.keyboardBindings), std::end(oldSettings.keyboardBindings),
+		settings.keyboardBindings);
+	std::copy(std::begin(oldSettings.gamepadBindings), std::end(oldSettings.gamepadBindings),
+		settings.gamepadBindings);
+	settings.lastSaveSlot = -1;
+	return settings;
+}
+
+VIDEOSAVESETTINGS UpgradeVideoSettings(const VideoSaveSettingsV5& oldSettings)
+{
+	VIDEOSAVESETTINGS settings{};
+	std::memcpy(&settings, &oldSettings, sizeof(oldSettings));
+	settings.disableControllerInputWhenUnfocused = 0;
+	settings.lastSaveSlot = -1;
+	return settings;
+}
+
+VIDEOSAVESETTINGS UpgradeVideoSettings(const VideoSaveSettingsV6& oldSettings)
+{
+	VIDEOSAVESETTINGS settings{};
+	std::memcpy(&settings, &oldSettings, sizeof(oldSettings));
+	settings.lastSaveSlot = -1;
 	return settings;
 }
 
@@ -136,8 +234,11 @@ VIDEOSAVESETTINGS CaptureVideoSettings()
     settings.vsyncEnabled = g_fVsync ? 1 : 0;
     settings.aspectMode = static_cast<int>(g_gl.aspectMode);
     settings.guiScale = g_guiScale;
+	settings.guiStyle = static_cast<int>(g_guiStyle);
 	std::copy(g_keyboardBindings.begin(), g_keyboardBindings.end(), settings.keyboardBindings);
 	std::copy(g_gamepadBindings.begin(), g_gamepadBindings.end(), settings.gamepadBindings);
+    settings.disableControllerInputWhenUnfocused = g_fDisableControllerInputWhenUnfocused ? 1 : 0;
+    settings.lastSaveSlot = s_lastSaveSlot;
     return settings;
 }
 
@@ -164,7 +265,17 @@ void ValidateVideoSettings(VIDEOSAVESETTINGS& settings)
     settings.vsyncEnabled = settings.vsyncEnabled != 0;
     settings.aspectMode = std::clamp(settings.aspectMode,
         static_cast<int>(FitToScreen), static_cast<int>(PS2_16_9));
-    settings.guiScale = std::clamp(settings.guiScale, 0.75f, 1.5f);
+	settings.guiStyle = std::clamp(settings.guiStyle,
+		static_cast<int>(GuiStyle_PS2), static_cast<int>(GuiStyle_Modern));
+    settings.disableControllerInputWhenUnfocused =
+        settings.disableControllerInputWhenUnfocused != 0;
+    settings.lastSaveSlot = std::clamp(settings.lastSaveSlot, -1, SAVE_SLOT_COUNT - 1);
+    // Each presentation exposes two deliberate sizes. Both share 100%, so
+    // malformed or legacy values safely normalize to the nearest valid size.
+    if (settings.guiStyle == GuiStyle_Modern)
+        settings.guiScale = settings.guiScale >= 1.125f ? 1.25f : 1.0f;
+    else
+        settings.guiScale = settings.guiScale < 0.875f ? 0.75f : 1.0f;
 	for (int button = 0; button < BTN_MAX; ++button)
 	{
 		const int key = settings.keyboardBindings[button];
@@ -227,10 +338,14 @@ void ApplySavedVideoSettings(VIDEOSAVESETTINGS settings)
     g_fogType = settings.fogType;
     g_drawDistanceMultiplier = settings.drawDistance;
     g_guiScale = settings.guiScale;
+	g_guiStyle = static_cast<GuiStyle>(settings.guiStyle);
 	std::copy(std::begin(settings.keyboardBindings), std::end(settings.keyboardBindings),
 		g_keyboardBindings.begin());
 	std::copy(std::begin(settings.gamepadBindings), std::end(settings.gamepadBindings),
 		g_gamepadBindings.begin());
+    g_fDisableControllerInputWhenUnfocused =
+        settings.disableControllerInputWhenUnfocused != 0;
+    s_lastSaveSlot = settings.lastSaveSlot;
 
     ApplyAspectRatioSettings(static_cast<AspectMode>(settings.aspectMode));
     ApplyMsaaSettings();
@@ -408,6 +523,48 @@ bool LoadSystemSettings(VIDEOSAVESETTINGS* settings)
 		return true;
 	}
 
+	if (header.version == 4 && header.payloadSize == sizeof(VideoSaveSettingsV4))
+	{
+		VideoSaveSettingsV4 oldSettings{};
+		if (!stream.read(reinterpret_cast<char*>(&oldSettings), sizeof(oldSettings)) ||
+			SaveChecksum(&oldSettings, sizeof(oldSettings)) != header.checksum)
+		{
+			*settings = {};
+			return false;
+		}
+
+		*settings = UpgradeVideoSettings(oldSettings);
+		return true;
+	}
+
+	if (header.version == 5 && header.payloadSize == sizeof(VideoSaveSettingsV5))
+	{
+		VideoSaveSettingsV5 oldSettings{};
+		if (!stream.read(reinterpret_cast<char*>(&oldSettings), sizeof(oldSettings)) ||
+			SaveChecksum(&oldSettings, sizeof(oldSettings)) != header.checksum)
+		{
+			*settings = {};
+			return false;
+		}
+
+		*settings = UpgradeVideoSettings(oldSettings);
+		return true;
+	}
+
+	if (header.version == 6 && header.payloadSize == sizeof(VideoSaveSettingsV6))
+	{
+		VideoSaveSettingsV6 oldSettings{};
+		if (!stream.read(reinterpret_cast<char*>(&oldSettings), sizeof(oldSettings)) ||
+			SaveChecksum(&oldSettings, sizeof(oldSettings)) != header.checksum)
+		{
+			*settings = {};
+			return false;
+		}
+
+		*settings = UpgradeVideoSettings(oldSettings);
+		return true;
+	}
+
     if (header.version != kSettingsVersion || header.payloadSize != sizeof(*settings) ||
         !stream.read(reinterpret_cast<char*>(settings), sizeof(*settings)) ||
         SaveChecksum(settings, sizeof(*settings)) != header.checksum)
@@ -486,19 +643,27 @@ void SetSaveBlots(SAVEBLOT* psaveblot, BLOTS blots)
 
 void DrawAutoSave(SAVEBLOT* psaveblot)
 {
+    if (g_fShowAutosaveIcon && psaveblot->blots == BLOTS_Hidden)
+    {
+        psaveblot->fSaveComplete = 0;
+        ShowBlot(psaveblot);
+    }
+
     if (psaveblot->blots == BLOTS_Hidden)
         return;
 
     const float dtVisible = g_clock.tReal - psaveblot->tBlots;
 
-    if (psaveblot->blots == BLOTS_Visible && g_letterbox.blots == BLOTS_Visible)
+    if (!g_fShowAutosaveIcon &&
+        psaveblot->blots == BLOTS_Visible && g_letterbox.blots == BLOTS_Visible)
         psaveblot->fSaveComplete = dtVisible < 2.0f;
 
     float yOffset = 0.0f;
 
     if (psaveblot->fSaveComplete)
         yOffset = (1.0f - g_letterbox.uOn) * 66.40001f;
-    else if (psaveblot->blots == BLOTS_Visible && dtVisible > 1.0f)
+    else if (!g_fShowAutosaveIcon &&
+        psaveblot->blots == BLOTS_Visible && dtVisible > 1.0f)
         HideBlot(psaveblot);
 
     CTextBox tbx;
@@ -509,14 +674,18 @@ void DrawAutoSave(SAVEBLOT* psaveblot)
     tbx.SetVerticalJust(JV_Top);
 
     const char chPrompt = GetAnimatedPromptCharacter();
-    const int percent = CalculatePercentCompletion(g_pgsCur);
+    const int percent = g_pgsCur != nullptr
+        ? CalculatePercentCompletion(g_pgsCur)
+        : 0;
 
     char achz[32];
-    // The animated autosave icon lives in font 1, while the percentage glyphs
-    // live in the normal counter font. Rich-text code &1 selects that font.
-    std::snprintf(achz, sizeof(achz), "%c &1%d%%&.", chPrompt, percent);
+    // Exact retail format at SCUS_971.98 0x24CFA0. The percentage switches
+    // font, scales to 0.7, and uses the retail yellow before restoring font.
+    std::snprintf(achz, sizeof(achz), "%c&1^07~b2a83d%d%%&.", chPrompt, percent);
 
-    psaveblot->pfont->PushScaling(psaveblot->rFontScale, psaveblot->rFontScale);
+    psaveblot->pfont->PushScaling(
+        psaveblot->rFontScale,
+        psaveblot->rFontScale);
 
     CRichText richText(achz, psaveblot->pfont);
     richText.Draw(&tbx, nullptr);
@@ -564,9 +733,15 @@ void StartupSaveData(SAVEDATA* psaveData)
         SaveSystemSettings();
     }
 
+    if (s_lastSaveSlot >= 0 && s_lastSaveSlot < SAVE_SLOT_COUNT &&
+        psaveData->saveData[s_lastSaveSlot].dt > 0.0f)
+    {
+        psaveData->pgsAttractSave = &psaveData->saveData[s_lastSaveSlot];
+    }
+
     for (GS& save : psaveData->saveData)
     {
-        if (save.dt > 0.0f)
+        if (psaveData->pgsAttractSave == nullptr && save.dt > 0.0f)
         {
             psaveData->pgsAttractSave = &save;
             break;
@@ -597,8 +772,9 @@ bool SaveCurrentGameToDisk(SAVEDATA* psaveData)
 
     psaveData->saveData[slot] = snapshot;
     psaveData->pgsCurrentSave = &psaveData->saveData[slot];
-    if (psaveData->pgsAttractSave == nullptr)
-        psaveData->pgsAttractSave = psaveData->pgsCurrentSave;
+    psaveData->pgsAttractSave = psaveData->pgsCurrentSave;
+    s_lastSaveSlot = static_cast<int>(slot);
+    SaveSystemSettings();
     return true;
 }
 
@@ -665,6 +841,13 @@ int LoadCurrentSave(SAVEDATA* psaveData)
     // GS is entirely persistent value data; it contains no runtime pointers.
     *g_pgsCur = *src;
     ApplyVibrationSetting(g_pgsCur);
+    const ptrdiff_t slot = psaveData->pgsCurrentSave - psaveData->saveData;
+    if (slot >= 0 && slot < SAVE_SLOT_COUNT)
+    {
+        psaveData->pgsAttractSave = psaveData->pgsCurrentSave;
+        s_lastSaveSlot = static_cast<int>(slot);
+        SaveSystemSettings();
+    }
     return 1;
 }
 

@@ -1,7 +1,15 @@
 #include "shdanim.h"
 #include "glob.h"
+#include "loop.h"
+#include "pingpong.h"
+#include "shuffle.h"
+#include "hologram.h"
+#include "eyes.h"
+#include "scroller.h"
+#include "circler.h"
+#include "looker.h"
 
-void* NewSaa(SAAK saak)
+std::shared_ptr<SAA> NewSaa(SAAK saak)
 {
     switch (saak)
     {
@@ -34,23 +42,23 @@ void* NewSaa(SAAK saak)
     }
 }
 
-SAA* PsaaLoadFromBrx(CBinaryInputStream *pbis)
+std::shared_ptr<SAA> PsaaLoadFromBrx(CBinaryInputStream *pbis)
 {
     SAAK saakType = (SAAK)pbis->U16Read();
     //std::cout << saakType << " ";
-    SAA *psaa{};
-    psaa = (SAA*)NewSaa(saakType);
+    std::shared_ptr<SAA> psaa = NewSaa(saakType);
 
-    if (psaa != nullptr)
+    if (psaa)
     {
         g_apsaaSw.push_back(psaa);
-        psaa->saak = saakType;
-        psaa->pvtsaa = PvtsaaFromSaak(saakType);
+        SAA* const rawPsaa = psaa.get();
+        rawPsaa->saak = saakType;
+        rawPsaa->pvtsaa = PvtsaaFromSaak(saakType);
         SAAF saaf{};
         saaf.oid = pbis->S16Read();
         saaf.fInstanced = pbis->U16Read();
-        psaa->pvtscroller->pfnLoadScrollerFromBrx((SCROLLER*)psaa, pbis);
-        psaa->pvtsaa->pfnInitSaa(psaa, &saaf);
+        rawPsaa->pvtscroller->pfnLoadScrollerFromBrx((SCROLLER*)rawPsaa, pbis);
+        rawPsaa->pvtsaa->pfnInitSaa(rawPsaa, &saaf);
     }
 
     return psaa;

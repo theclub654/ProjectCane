@@ -1,4 +1,5 @@
 #include "wm.h"
+#include "gui_layout.h"
 #include "wipe.h"
 #include "totals.h"
 #include "pnt.h"
@@ -8,7 +9,10 @@
 
 WORLDLEVEL WorldLevelForWmDisplay()
 {
-    if (g_ui.uisPlaying == UIS_Playing)
+    // The Hideout has no currently occupied level on the selected world's
+    // map.  Retail uses the extra map slot (10) there; gameplay uses the
+    // actual current level so selecting it closes the map.
+    if (g_ui.uisPlaying == UIS_Hub)
         return static_cast<WORLDLEVEL>(10);
 
     return g_pgsCur->worldLevelCur;
@@ -726,15 +730,15 @@ void MoveWm(WM* pwm, WMD wmd)
 
 void GetWmWorldPosScreen(WM* pwm, WORLDLEVEL worldLevel, bool fSecondary, glm::vec3* pposScreen)
 {
-    const float screenWidth  = g_gl.width;
-    const float screenHeight = g_gl.height;
-
     const WMW& wmw = pwm->awmw[worldLevel];
     PNT* ppnt = fSecondary ? wmw.ppntSecondary : wmw.ppntPrimary;
 
     if (ppnt == nullptr)
     {
-        *pposScreen = glm::vec3(screenWidth * 0.5f, screenHeight * 0.5f, 0.0f);
+        *pposScreen = glm::vec3(
+            g_gl.uiOrigin.x + 320.0f * g_gl.uiScale,
+            g_gl.uiOrigin.y + 246.40001f * g_gl.uiScale,
+            0.0f);
         return;
     }
 
@@ -745,8 +749,10 @@ void GetWmWorldPosScreen(WM* pwm, WORLDLEVEL worldLevel, bool fSecondary, glm::v
 
     ConvertCmWorldToScreen(g_pcm, &posWorld, pposScreen);
 
-    pposScreen->x = (pposScreen->x * 0.5f  + 0.5f) * screenWidth;
-    pposScreen->y = (-pposScreen->y * 0.5f + 0.5f) * screenHeight;
+    const float xLogical = pposScreen->x * 320.0f + 320.0f;
+    const float yLogical = pposScreen->y * -246.40001f + 246.40001f;
+    pposScreen->x = g_gl.uiOrigin.x + xLogical * g_gl.uiScale;
+    pposScreen->y = g_gl.uiOrigin.y + yLogical * g_gl.uiScale;
 
 }
 
@@ -1014,6 +1020,16 @@ void DrawWmc(WMC* pwmc)
     if (pwm == nullptr)
         return;
 
+    const float radFov = g_pcm->radFOV;
+    const float radFovTarget = g_pcm->radFOVTarget;
+    SetCmFov(g_pcm, 1.0f);
+
+    // Marker centers must remain on the 3D map's projected points. Modern
+    // mode changes only the size of the coordinated overlay elements; moving
+    // their centers through a second canvas transform would detach keyholes
+    // and task markers from the map geometry beneath them.
+    const float mapUiScale = FModernGui() ? GetGuiScale().x : g_gl.uiScale;
+
     if (g_pkeyhole != nullptr)
     {
         const float uCursor = pwmc->uOn * pwmc->uOn;
@@ -1023,19 +1039,17 @@ void DrawWmc(WMC* pwmc)
 
         ConvertCmWorldToScreen(g_pcm, &posCursorWorld, &posCursorScreen);
 
-        const float xCursorRaw = (posCursorScreen.x * 0.5f + 0.5f) * static_cast<float>(g_gl.width);
-        const float yCursorRaw = (-posCursorScreen.y * 0.5f + 0.5f) * static_cast<float>(g_gl.height);
-        const float xCursor = xCursorRaw;
-        const float yCursor = yCursorRaw;
+        const float xCursor = g_gl.uiOrigin.x + (posCursorScreen.x * 320.0f + 320.0f) * g_gl.uiScale;
+        const float yCursor = g_gl.uiOrigin.y + (posCursorScreen.y * -246.40001f + 246.40001f) * g_gl.uiScale;
 
         glm::vec4 rgbaCursorStart(0.0f, 0.0f, 0.0f, (145.0f / 255.0f) * uCursor);
         glm::vec4 rgbaCursorEnd(0.0f);
 
-        DrawWmFan(pwmc, xCursor, yCursor, 40.0f, RadNormalize(g_clock.tReal), 12, &rgbaCursorStart, rgbaCursorEnd, 2);
+        DrawWmFan(pwmc, xCursor, yCursor, 40.0f * mapUiScale, RadNormalize(g_clock.tReal), 12, &rgbaCursorStart, rgbaCursorEnd, 2);
 
         const float rKeyholeScale = sinf(g_clock.tReal * 10.0f) * 0.2f + 1.0f;
 
-        DrawKeyholeMask(g_pkeyhole, xCursor, yCursor, rKeyholeScale, uCursor);
+        DrawKeyholeMask(g_pkeyhole, xCursor, yCursor, rKeyholeScale * mapUiScale, uCursor);
     }
 
     for (int iworldlevel = static_cast<int>(WORLDLEVEL_Approach); iworldlevel < 11; ++iworldlevel)
@@ -1078,8 +1092,8 @@ void DrawWmc(WMC* pwmc)
                 uDot *= sinf(g_clock.tReal * 20.0f) * 0.2f + 0.8f;
         }
 
-        DrawWmFan(pwmc, posScreen.x, posScreen.y, uDot * g_sWmDotOuter,  wmw.radDot, 14, &rgbaFanOuter, rgbaFanInner, 3);
-        DrawWmFan(pwmc, posScreen.x, posScreen.y, uDot * g_sWmDotInner, -wmw.radDot, 10, &rgbaFanOuter, rgbaFanInner, 3);
+        DrawWmFan(pwmc, posScreen.x, posScreen.y, uDot * g_sWmDotOuter * mapUiScale,  wmw.radDot, 14, &rgbaFanOuter, rgbaFanInner, 3);
+        DrawWmFan(pwmc, posScreen.x, posScreen.y, uDot * g_sWmDotInner * mapUiScale, -wmw.radDot, 10, &rgbaFanOuter, rgbaFanInner, 3);
 
         if (worldlevel < WORLDLEVEL_Max)
         {
@@ -1093,7 +1107,7 @@ void DrawWmc(WMC* pwmc)
                 const bool fTaskComplete = (levelFlags & 2) != 0;
 
                 CFontBrx* pfont = PfontFromFont(3);
-                const float rScale = g_rWmTaskMarkerScale * wmw.uDot;
+                const float rScale = g_rWmTaskMarkerScale * wmw.uDot * mapUiScale;
 
                 // A zero-size marker is invisible.  More importantly, putting a
                 // zero on CFontBrx's ratio-based scale stack makes PopScaling()
@@ -1107,7 +1121,17 @@ void DrawWmc(WMC* pwmc)
 
                 tbx.SetPos(posScreen.x, posScreen.y);
                 tbx.SetSize(0.0f, 0.0f);
-                tbx.SetTextColor(&pwmc->rgba);
+                // Retail copies the marker RGB from pwmc->rgba and then
+                // explicitly writes alpha 0xff. PS2 GS color channels use
+                // 0x80 as 1.0, while our font shader uses conventional 0..1
+                // values. Treating the stored 0x7f channels as 127/255 made
+                // the key artwork roughly half as bright as the original.
+                glm::vec4 markerColor(
+                    glm::min(pwmc->rgba.r * (255.0f / 128.0f), 1.0f),
+                    glm::min(pwmc->rgba.g * (255.0f / 128.0f), 1.0f),
+                    glm::min(pwmc->rgba.b * (255.0f / 128.0f), 1.0f),
+                    1.0f);
+                tbx.SetTextColor(&markerColor);
                 tbx.SetHorizontalJust(JH_Center);
                 tbx.SetVerticalJust(JV_Center);
 
@@ -1119,6 +1143,8 @@ void DrawWmc(WMC* pwmc)
         }
     }
 
+    SetCmFov(g_pcm, radFov);
+    g_pcm->radFOVTarget = radFovTarget;
 }
 
 void DrawWmFan(WMC *pwmc, float xCenter, float yCenter, float sRadius, float rad, int cseg, glm::vec4* rgbaCenter, glm::vec4 rgbaEdge, int grfds)

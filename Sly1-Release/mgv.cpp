@@ -356,7 +356,7 @@ int FTakeMgvDamage(MGV* pmgv, ZPR* pzpr)
     return 1;
 }
 
-bool FIsMgvTakingDamage(MGV* pmgv)
+int FIsMgvTakingDamage(MGV* pmgv)
 {
     return pmgv->mgvs > MGVS_Active || pmgv->fCharmUsed != 0;
 }

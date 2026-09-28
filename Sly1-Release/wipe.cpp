@@ -146,8 +146,8 @@ void ActivateWipe(WIPE* pwipe, TRANS* ptrans, WIPEK wipek)
     pwipe->trans = *ptrans;
     pwipe->wipek = wipek;
 
-    const int wipes = g_psw != nullptr ? WIPEK_Keyhole : WIPEK_WorldMap;
-    SetWipeWipes(pwipe, (WIPES)wipes);
+    const WIPES wipes = g_psw != nullptr ? WIPES_WipingOut : WIPES_Black;
+    SetWipeWipes(pwipe, wipes);
 }
 
 void SetWipeButtonTrans(WIPE* pwipe, TRANS* ptrans, WIPEK wipek)

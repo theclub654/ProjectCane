@@ -295,8 +295,8 @@ void RebuildLight(LIGHT* plight)
 			else
 				plight->twps = TWPS_Shadow;
 		}
-
-		plight->twps = TWPS_ShadowMidtoneSaturate;
+		else
+			plight->twps = TWPS_ShadowMidtoneSaturate;
 	}
 
 	else
@@ -396,10 +396,10 @@ void RebuildLight(LIGHT* plight)
 			plight->avecFrustrum[4] = glm::vec4(N, -(gMax + dotPos));
 		}
 		{
-			// plane 5: fixed 50.0 slice along same normal
-			glm::vec3 N = Z;
+			// The near plane faces opposite the far plane in the original.
+			glm::vec3 N = -Z;
 			float dotPos = glm::dot(N, eye);
-			plight->avecFrustrum[5] = glm::vec4(N, -(50.0f + dotPos));
+			plight->avecFrustrum[5] = glm::vec4(N, 50.0f - dotPos);
 		}
 
 		// Projection (still using your convention)
@@ -408,7 +408,7 @@ void RebuildLight(LIGHT* plight)
 		const float zNear = 50.0f;
 		const float zFar = gMax;
 
-		glm::mat4 matProj = glm::perspectiveRH_ZO(fovy, aspect, zNear, zFar);
+		glm::mat4 matProj = glm::perspectiveRH_NO(fovy, aspect, zNear, zFar);
 		glm::mat4 matView = glm::lookAtRH(eye, eye + Z, u);
 		glm::mat4 matFrustrum = matProj * matView;
 
@@ -433,6 +433,8 @@ void RebuildLight(LIGHT* plight)
 			plight->falloffScale = glm::vec4(0.0f, 0.0f, sp, ss);
 		}
 	}
+
+	UpdateLightGpuSlot(plight);
 }
 
 void* GetLightKind(LIGHT* plight)
@@ -641,7 +643,6 @@ static void BuildLightBlk(LIGHT* plight, LIGHTBLK* pblk)
 		{
 			glm::vec3 dirWorld;
 			ConvertAloVec(plight, nullptr, &plight->normalLocal, &dirWorld);
-			dirWorld = -dirWorld;
 			const float dirLenSq = glm::dot(dirWorld, dirWorld);
 			if (dirLenSq > 1.0e-8f)
 				dirWorld *= glm::inversesqrt(dirLenSq);
@@ -790,8 +791,8 @@ bool FindSwDynamicLights(glm::vec3* pposCenter, float sRadius)
 
 				glm::mat4 M = plight->frustum;
 
-				// GLM indexes matrices by column.  Frustum planes are row
-				// combinations, and this projection uses zero-to-one depth.
+				// GLM indexes matrices by column. Frustum planes are row
+				// combinations, with PS2-style symmetric clip depth.
 				const glm::vec4 row0(M[0][0], M[1][0], M[2][0], M[3][0]);
 				const glm::vec4 row1(M[0][1], M[1][1], M[2][1], M[3][1]);
 				const glm::vec4 row2(M[0][2], M[1][2], M[2][2], M[3][2]);
@@ -802,7 +803,7 @@ bool FindSwDynamicLights(glm::vec3* pposCenter, float sRadius)
 				planes[1] = row3 - row0; // right
 				planes[2] = row3 + row1; // bottom
 				planes[3] = row3 - row1; // top
-				planes[4] = row2;        // near (ZO depth)
+				planes[4] = row3 + row2; // near
 				planes[5] = row3 - row2; // far
 
 				for (int i = 0; i < 6; ++i)

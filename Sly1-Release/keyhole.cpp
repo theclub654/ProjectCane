@@ -186,7 +186,12 @@ void DrawKeyhole(KEYHOLE* pkeyhole, float uClosed)
 
     PO* ppo = PpoCur();
 
-    if (ppo != nullptr)
+    // Retail only moves the keyhole onto the playable object's position when
+    // that object is dead. Other keyhole transitions close at screen center.
+    if (ppo != nullptr &&
+        ppo->pvtpo != nullptr &&
+        ppo->pvtpo->pfnJthsCurrentPo != nullptr &&
+        ppo->pvtpo->pfnJthsCurrentPo(ppo) == JTHS_Dead)
     {
         glm::vec3 posScreen{};
         ConvertCmWorldToScreen(g_pcm, &ppo->xf.posWorld, &posScreen);

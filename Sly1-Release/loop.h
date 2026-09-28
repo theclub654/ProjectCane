@@ -13,7 +13,7 @@ struct LOOP : public SAA
     float dtPause;
 };
 
-LOOP* NewLoop();
+std::shared_ptr<LOOP> NewLoop();
 void  LoadLoopFromBrx(LOOP* ploop, CBinaryInputStream* pbis);
 void  InitLoop(LOOP* ploop, SAAF* psaaf);
 void  PostLoopLoad(LOOP* ploop);

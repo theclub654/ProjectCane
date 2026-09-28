@@ -1122,13 +1122,10 @@ SNIP s_asnipPostPufferLoad[13] =
 	{ 0x01, (OID)0x3F1, offsetof(PUFFER, psm) },
 };
 
-SMP s_smpPuffer = {10.0, 0.0, 0.1};
+SMP s_smpPuffer = {7.0, 0.0, 0.1};
 CLQ s_clqDradToUPuff = {3.0, -2.0, -1.0};
 float DT_PufferPuffAfterGround = 0.25;
-// Full drive while grounded, then smoothly remove thrust after the short
-// post-ground grace period.  A negative constant made uGround clamp to zero
-// on every frame, so steering worked while propulsion never did.
-CLQ s_clqUDtGroundToUPuff = {1.2f, 0.0f, -0.2f};
+CLQ s_clqUDtGroundToUPuff = {1.2f, -1.2f, 0.0f};
 float SDV_PufferWaterMax = 4000.0f;
 float SV_PufferWaterMax = 2200;
 float DZ_PointCheckMin = -60.0;

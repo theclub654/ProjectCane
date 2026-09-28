@@ -1,5 +1,6 @@
 #include "button.h"
 #include "chkpnt.h"
+#include "cm.h"
 #include "jt.h"
 #include "pnt.h"
 #include "sm.h"
@@ -1098,14 +1099,14 @@ void UpdateVolbtn(VOLBTN* pvolbtn, float dt)
         glm::vec3 posWorld{};
         bool fHavePosition = false;
 
-        if ((ploPush->pvtlo->grfcid & 1U) != 0)
+        // CM, PNT, and XFM have specialized position storage despite also
+        // participating in the broad transformable-object hierarchy.  Test
+        // those classes before the generic ALO flag; otherwise a camera push
+        // target is interpreted as ALO::xf and produces a unit-vector-like
+        // position instead of the camera's world position.
+        if (FIsBasicDerivedFrom(ploPush, CID_CM))
         {
-            posWorld = ((ALO*)ploPush)->xf.posWorld;
-            fHavePosition = true;
-        }
-        else if (FIsBasicDerivedFrom(ploPush, CID_CM))
-        {
-            posWorld = ((XFM*)ploPush)->posLocal;
+            posWorld = static_cast<CM*>(ploPush)->pos;
             fHavePosition = true;
         }
         else if (FIsBasicDerivedFrom(ploPush, CID_PNT))
@@ -1116,6 +1117,11 @@ void UpdateVolbtn(VOLBTN* pvolbtn, float dt)
         else if (FIsBasicDerivedFrom(ploPush, CID_XFM))
         {
             GetXfmPos((XFM*)ploPush, &posWorld);
+            fHavePosition = true;
+        }
+        else if ((ploPush->pvtlo->grfcid & 1U) != 0)
+        {
+            posWorld = ((ALO*)ploPush)->xf.posWorld;
             fHavePosition = true;
         }
 

@@ -110,6 +110,7 @@ void CRef::SetBifk(BIFK bifk)
     ClearOwnedPayloads(*this);
     m_bifk = bifk;
     m_tagk = TAGK_Bifk;
+
 }
 
 void CRef::SetPair(std::shared_ptr <CPair> ppair)

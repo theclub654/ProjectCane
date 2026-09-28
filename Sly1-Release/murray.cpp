@@ -76,8 +76,8 @@ void OnMurrayExitingSgs(MURRAY* pmurray, SGS sgs)
 
     if (pmurray->sgs == SGS_LostPlayer) 
     {
-        if (pmurray->pckCollect == PCK_Gold)
-            pmurray->pvtmurray->pfnSetPoPck(pmurray, PCK_Key);
+        if (pmurray->pchkCollect == 2)
+            pmurray->pvtmurray->pfnSetPoPck(pmurray, static_cast<PCK>(1));
 
         return;
     }
@@ -227,7 +227,7 @@ int FInvulnerableMurray(MURRAY* pmurray)
     return FAbsorbDamageStepguard(pmurray);
 }
 
-bool FTakeMurrayDamage(MURRAY* pmurray, ZPR* pzpr)
+int FTakeMurrayDamage(MURRAY* pmurray, ZPR* pzpr)
 {
     if (pmurray->pvtmurray->pfnFInvulnerableMurray(pmurray))
         return false;
@@ -241,7 +241,7 @@ bool FTakeMurrayDamage(MURRAY* pmurray, ZPR* pzpr)
     return FTakeStepguardDamage((STEPGUARD*)pmurray, pzpr);
 }
 
-bool FAbsorbMurrayWkr(MURRAY* pmurray, WKR* pwkr) 
+int FAbsorbMurrayWkr(MURRAY* pmurray, WKR* pwkr)
 {
     if (!FCharmAvailable()) 
         pmurray->cStun = 0;
@@ -326,8 +326,18 @@ void CollectMurrayPrize(MURRAY* pmurray, PCK pck, ALO *paloOther)
 {
     CollectPoPrize(pmurray, pck, paloOther);
 
-    if (pck == PCK_Key) 
+    if (pck == PCK_Key)
+    {
         SetStepguardSgs(pmurray, SGS_LostPlayer, pmurray->pasegCelebrateKey);
+
+        // OID 0x167 is both the key render model and the object animated by
+        // the celebration sequence. Restore it only after applying the ASEG:
+        // its animation channels are then attached, and its initialization
+        // events can no longer leave the model removed before the first frame.
+        ALO* paloHeldKey = pmurray->paloCollectTarget[0];
+        if (paloHeldKey != nullptr && !FIsLoInWorld(paloHeldKey))
+            paloHeldKey->pvtlo->pfnAddLo(paloHeldKey);
+    }
 }
 
 int JthsCurrentMurray(MURRAY* pmurray)

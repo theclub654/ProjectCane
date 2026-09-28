@@ -467,7 +467,6 @@ void IntersectSwBoundingBox(SW* psw, SO* psoIntersect, const glm::vec3* ppos1, c
 		}
 	}
 }
-
 void IntersectSwBoundingSphere(SW* psw, SO* psoIntersect, const glm::vec3* pposCenter, float sRadius, PFNFILTER pfnFilter, void* pvContext, std::vector<SO*>& apso)
 {
 	apso.clear();
@@ -1364,7 +1363,19 @@ void DeleteWorld(SW *psw)
 	// after its ppamb owner has already been destroyed and write through a stale
 	// pointer in RemoveAmb.
 	if (psw != nullptr)
+	{
 		KillSoundSystem();
+
+		// KillSounds detaches AMB back-pointers before destroying the pool so it
+		// never writes through an owner that may already be gone.  CPLOOK is
+		// still alive here, however, and SwitchToIppo below can deactivate it.
+		// Clear its cached handles so that callback cannot StopSound a freed AMB.
+		if (g_pcm != nullptr)
+		{
+			g_pcm->cplook.pambBinoc = nullptr;
+			g_pcm->cplook.pambAmbient = nullptr;
+		}
+	}
 
 	// These frame-pending lists are global, but their entries are owned by the
 	// current SW.  Do not leave their head/tail pointers referring to BLIP and

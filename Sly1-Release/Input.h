@@ -6,6 +6,17 @@
 
 typedef int GRFUSR;
 
+struct CODE
+{
+    const uint16_t* ajbc;
+    int cjbc;
+    void (*pfn)(uint32_t);
+    uint32_t nParam;
+    int ijbcCur = 0;
+    int fRemove = 0;
+    CODE* pcodeNext = nullptr;
+};
+
 enum JOY_BUTTON
 {
     BTN_UP,
@@ -64,6 +75,16 @@ enum JOYS
 
 struct JOY 
 {
+    struct StickCalibration
+    {
+        std::array<float, 4> minimum{ -0.75f, -0.75f, -0.75f, -0.75f };
+        std::array<float, 4> maximum{  0.75f,  0.75f,  0.75f,  0.75f };
+        bool hasPreviousSample = false;
+        bool moved = false;
+        uint8_t previousX = 128;
+        uint8_t previousY = 128;
+    };
+
     std::unordered_map<JOY_BUTTON, bool> current;
     std::unordered_map<JOY_BUTTON, bool> previous;
     std::unordered_map<JOY_BUTTON, bool> handled;
@@ -87,6 +108,9 @@ struct JOY
     float x2 = 0.0f;
     float y2 = 0.0f;
 
+    StickCalibration calibration;
+    StickCalibration calibration2;
+
     JOYS joys = JOYS_Ready;
     int joystickId = JOYID_Nil;
     bool gamepadConnected = false;
@@ -104,32 +128,99 @@ struct JOY
 void AddGrfusr(GRFUSR grfusr);
 void RemoveGrfusr(GRFUSR grfusr);
 void UpdateGrfjoytFromGrfusr();
+void AddCode(CODE* pcode);
+void _ResetCodes();
+void _MatchCodes(JOY* pjoy, uint16_t grfbtnPrev);
+void UpdateCodes();
+void StartupCodes();
 void EnableVibration();
 void ToggleVibration(GS* pgs);
 void ApplyVibrationSetting(GS* pgs);
 bool FVibrationEnabled(GS* pgs);
 
 
-static void ApplyStickDeadZone(float xRaw, float yRaw, float* px, float* py, float* puDeflect)
+static void ApplyStickDeadZone(float xRaw, float yRaw, JOY::StickCalibration* calibration,
+    float* px, float* py, float* puDeflect)
 {
-    constexpr float deadZone = 0.35f;
+    // Retail GetJoyXYDeflection measures the stick against the cardinal and
+    // diagonal gate directions, expanding a separate positive/negative limit
+    // for each direction. SetJoyJoys initializes every limit to +/-0.75.
+    constexpr std::array<std::array<float, 2>, 4> axes =
+    {{
+        {{ 1.0f,  0.0f }},
+        {{ 0.0f,  1.0f }},
+        {{ 0.7f,  0.7f }},
+        {{ 0.7f, -0.7f }}
+    }};
+
+    const uint8_t rawX = static_cast<uint8_t>(glm::clamp(
+        std::lround((xRaw + 1.0f) * 127.5f), 0L, 255L));
+    const uint8_t rawY = static_cast<uint8_t>(glm::clamp(
+        std::lround((1.0f - yRaw) * 127.5f), 0L, 255L));
+
+    if (!calibration->moved)
+    {
+        if (calibration->hasPreviousSample &&
+            (rawX != calibration->previousX || rawY != calibration->previousY ||
+             rawX < 96 || rawX >= 161 || rawY < 96 || rawY >= 161))
+        {
+            calibration->moved = true;
+        }
+
+        calibration->hasPreviousSample = true;
+        calibration->previousX = rawX;
+        calibration->previousY = rawY;
+
+        if (!calibration->moved)
+        {
+            *px = 0.0f;
+            *py = 0.0f;
+            *puDeflect = 0.0f;
+            return;
+        }
+    }
+    else
+    {
+        calibration->previousX = rawX;
+        calibration->previousY = rawY;
+    }
+
+    float normalizedDeflection = 0.0f;
+
+    for (size_t i = 0; i < axes.size(); ++i)
+    {
+        const float projection = xRaw * axes[i][0] + yRaw * axes[i][1];
+        float limit;
+
+        if (projection >= 0.0f)
+        {
+            calibration->maximum[i] = (std::max)(calibration->maximum[i], projection);
+            limit = calibration->maximum[i];
+        }
+        else
+        {
+            calibration->minimum[i] = (std::min)(calibration->minimum[i], projection);
+            limit = calibration->minimum[i];
+        }
+
+        normalizedDeflection = (std::max)(normalizedDeflection, projection / limit);
+    }
 
     const float magnitudeRaw = std::sqrt(xRaw * xRaw + yRaw * yRaw);
+    const float deflection = glm::clamp((normalizedDeflection - 0.35f) * 2.0f, 0.0f, 1.0f);
 
-    if (magnitudeRaw <= deadZone)
+    if (magnitudeRaw > 0.0001f)
+    {
+        *px = xRaw * deflection / magnitudeRaw;
+        *py = yRaw * deflection / magnitudeRaw;
+    }
+    else
     {
         *px = 0.0f;
         *py = 0.0f;
-        *puDeflect = 0.0f;
-        return;
     }
 
-    const float magnitude = glm::clamp((magnitudeRaw - deadZone) / (1.0f - deadZone), 0.0f, 1.0f);
-    const float inverseMagnitude = magnitudeRaw > 0.0001f ? 1.0f / magnitudeRaw : 0.0f;
-
-    *px = xRaw * inverseMagnitude * magnitude;
-    *py = yRaw * inverseMagnitude * magnitude;
-    *puDeflect = magnitude;
+    *puDeflect = deflection;
 }
 
 extern JOY g_joy;
@@ -139,6 +230,7 @@ extern GRFUSR g_grfusr;
 extern int vibrationSetting;
 extern std::array<int, BTN_MAX> g_keyboardBindings;
 extern std::array<int, BTN_MAX> g_gamepadBindings;
+extern bool g_fDisableControllerInputWhenUnfocused;
 
 inline constexpr int GAMEPAD_BINDING_LEFT_TRIGGER = 1000;
 inline constexpr int GAMEPAD_BINDING_RIGHT_TRIGGER = 1001;

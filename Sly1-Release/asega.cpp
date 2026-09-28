@@ -125,7 +125,11 @@ void HandleAsegaEvent(ASEGA* pasega, EA* pea, int* pfRetracted)
     ASEG* paseg = pasega->paseg;
     SW* psw = paseg->psw;
 
-    const bool fReverse = pasega->svtLocal < 0.0f && std::any_of(paseg->aeaApply.begin(), paseg->aeaApply.end(), [pea](const EA& ea) { return &ea == pea; });
+    // Retail only reverses state events while walking backward through the
+    // timed frame-event array. Apply events establish initial state.
+    const bool fReverse = pasega->svtLocal < 0.0f &&
+        std::any_of(paseg->aeaFrame.begin(), paseg->aeaFrame.end(),
+            [pea](const EA& ea) { return &ea == pea; });
 
     ALO* paloRoot = pasega->paloRoot ? pasega->paloRoot : (ALO*)paseg;
 

@@ -223,6 +223,7 @@ void CloneSo(SO* pso, SO* psoBase)
 	pso->cnpg = psoBase->cnpg;
 	pso->anpg = psoBase->anpg;
 	pso->mpibspinpg = psoBase->mpibspinpg;
+	pso->fBspNodeMapAllocated = psoBase->fBspNodeMapAllocated;
 
 	pso->chsg = psoBase->chsg;
 	pso->ahsg = psoBase->ahsg;
@@ -714,6 +715,7 @@ void LoadSoFromBrx(SO* pso, CBinaryInputStream* pbis)
 
 	const uint32_t bspNodeCount = pbis->U32Read();
 	pso->mpibspinpg.resize(bspNodeCount);
+	pso->fBspNodeMapAllocated = true;
 
 	for (size_t i = 0; i < pso->mpibspinpg.size(); ++i)
 		pso->mpibspinpg[i] = static_cast<int>(pbis->S16Read());

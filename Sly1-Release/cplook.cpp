@@ -35,6 +35,8 @@ void InitCplook(CPLOOK* pcplook, CM* pcm)
 	pcplook->rScreenSniper = 0.5;
 	pcplook->sRadiusSniper = -1.0;
 	pcplook->paloFocusSniper = nullptr;
+	pcplook->pambBinoc = nullptr;
+	pcplook->pambAmbient = nullptr;
 	pcplook->sNearClipRestore = pcm->sNearClip;
 }
 
@@ -347,10 +349,10 @@ void UpdateCplook(CPLOOK* pcplook, CPDEFI* pcpdefi, JOY* pjoy, float dt)
 		{
 			glm::vec3 projected = posAnchor + pcm->mat * glm::vec3(100.0f, 0.0f, 0.0f);
 			glm::vec3 screen{};
-			ConvertCmWorldToScreen(pcm, &projected, &screen);
+			ConvertBinocWorldToScreen(pcm, projected, &screen);
 			screen += glm::vec3(pjoy->x, ((g_pgsCur->grfgs & 1024U) == 0) ? -pjoy->y : pjoy->y, 0.0f) *
 				(DT_CplookSniperTrack * dt);
-			ConvertCmScreenToWorld(pcm, &screen, &aim);
+			ConvertBinocScreenToWorld(pcm, screen, &aim);
 		}
 
 		glm::vec3 direction = aim - posAnchor;

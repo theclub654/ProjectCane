@@ -348,7 +348,7 @@ void AddStepguardEffect(STEPGUARD* pstepguard, OID oidEffect, ZPK zpk);
 void SetStepguardPathzone(STEPGUARD* pstepguard, OID oidPathzone);
 void*GetStepguardPathzone(STEPGUARD* pstepguard);
 SO*  PsoEnemyStepguard(STEPGUARD* pstepguard);
-SO*  GetStepguardEnemy(STEPGUARD* pstepguard);
+void GetStepguardEnemy(STEPGUARD* pstepguard, SO** ppsoEnemy);
 void SetStepguardEnemyObject(STEPGUARD* pstepguard, SO* psoEnemy);
 void RebindStepguardEnemy(STEPGUARD* pstepguard);
 void SetStepguardEnemyBound(STEPGUARD* pstepguard, SO* pso);

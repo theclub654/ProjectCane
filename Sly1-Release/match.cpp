@@ -53,7 +53,7 @@ void ProjectMatchTransform(MATCH* pmatch, float dt)
     pmatch->posPrev = pmatch->pos;
 
     const float dtRemaining = pmatch->tCreated + pmatch->dtLifetime - g_clock.t;
-    const float dtStep = glm::min(dt, dtRemaining);
+    const float dtStep = glm::max(dt, dtRemaining);
 
     if (dtStep <= 0.0001f)
         return;

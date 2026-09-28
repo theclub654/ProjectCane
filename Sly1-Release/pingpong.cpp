@@ -1,8 +1,8 @@
 #include "pingpong.h"
 
-PINGPONG* NewPingPong()
+std::shared_ptr<PINGPONG> NewPingPong()
 {
-    return new PINGPONG{};
+    return std::make_shared<PINGPONG>();
 }
 
 void LoadPingPongFromBrx(PINGPONG* ppingpong, CBinaryInputStream* pbis)

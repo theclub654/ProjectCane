@@ -13,7 +13,7 @@ struct PINGPONG : public SAA
     float dtPause;
 };
 
-PINGPONG* NewPingPong();
+std::shared_ptr<PINGPONG> NewPingPong();
 void  LoadPingPongFromBrx(PINGPONG* ppingpong, CBinaryInputStream* pbis);
 void  InitPingpong(PINGPONG* ppingpong, SAAF* psaaf);
 void  PostPingpongLoad(PINGPONG* ppingpong);

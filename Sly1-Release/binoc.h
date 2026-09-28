@@ -152,6 +152,8 @@ float DtDisappearBinoc(BINOC* pbinoc);
 
 void BuildBinocBackGround(BINOC* pbinoc);
 void BuildBinocOutline(BINOC* pbinoc);
+void ConvertBinocScreenToWorld(CM* pcm, const glm::vec3& posScreen, glm::vec3* pposWorld);
+void ConvertBinocWorldToScreen(CM* pcm, const glm::vec3& posWorld, glm::vec3* pposScreen);
 void DrawBinocReticle(BINOC* pbinoc);
 void DrawBinocBackground(BINOC *pbinoc);
 void DrawBinocCompass(BINOC* pbinoc);

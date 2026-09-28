@@ -29,6 +29,12 @@ enum WindowMode
 	WindowMode_Fullscreen
 };
 
+enum GuiStyle
+{
+	GuiStyle_PS2,
+	GuiStyle_Modern
+};
+
 struct CMGL
 {
 	glm::mat4 matWorldToClip;
@@ -195,6 +201,7 @@ extern GLuint glslfAlphaTest;
 extern GLuint glslAlphaCutOff;
 extern GLuint glslRko;
 extern GLuint glslProjectedVolumeColor;
+extern GLuint glslProjectedVolumeFinalPass;
 extern GLuint glslfAnimateUv;
 extern GLuint glsluvOffsets;
 extern GLuint glslUnSelfIllum;
@@ -216,6 +223,7 @@ extern bool g_fMsaa;
 extern bool g_fVsync;
 extern int g_internalResolutionHeight;
 extern float g_guiScale;
+extern GuiStyle g_guiStyle;
 extern WindowMode g_windowMode;
 extern float g_drawDistanceMultiplier;
 extern int g_frames;

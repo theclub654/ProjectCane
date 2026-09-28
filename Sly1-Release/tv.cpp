@@ -28,12 +28,9 @@ static float TvUiScale()
     return glm::min(sx, sy);
 }
 
-static void SetTvCameraFov(CM* pcm, float radFov)
+static void SetTvCameraFov(CM* pcm, float radFov, float aspect)
 {
-    // The retail PS3 TV pass in the reference capture uses a 1280x720
-    // viewport. Keep that portrait-camera aspect when the host window is
-    // square; PostTvContext restores the normal scene projection.
-    constexpr float tvAspect = 1280.0f / 720.0f;
+    const float tvAspect = std::max(aspect, 0.0001f);
 
     SetCmFov(pcm, radFov);
 
@@ -318,7 +315,10 @@ void AcceptTvSpeaker(TV* ptv)
         return;
 
     pspeakerDraw->pvtlo->pfnAddLo(pspeakerDraw);
-    SetAloBlotContext(pspeakerDraw, ptv);
+
+    if (g_binoc.binocs != BINOCS_Confront)
+        SetAloBlotContext(pspeakerDraw, ptv);
+
     pspeakerDraw->fHidden = 1;
 }
 
@@ -466,7 +466,10 @@ void RenderTv(TV* ptv)
     {
         radFovOld = g_pcm->radFOV;
         radFovTargetOld = g_pcm->radFOVTarget;
-        SetTvCameraFov(g_pcm, ptv->pspeakerDraw->radFov);
+        // Speaker placement was authored against the 16:9 TV camera. Keep
+        // that projection for ScreenToWorld so changing the host aspect does
+        // not move the speaker toward the camera and enlarge the portrait.
+        SetTvCameraFov(g_pcm, ptv->pspeakerDraw->radFov, 1280.0f / 720.0f);
     }
 
     SPEAKER* pspeaker = ptv->pspeakerDraw;
@@ -538,6 +541,19 @@ void RenderTv(TV* ptv)
         ConvertAloPos(paloReplace, nullptr, &pspeaker->dposLightConfront, &posLight);
         ptv->plight->pvtalo->pfnTranslateAloToPos(ptv->plight, &posLight);
 
+    }
+
+    if (g_binoc.binocs != BINOCS_Confront)
+    {
+        // Keep the portrait anchored with the authored 16:9 camera, but undo
+        // the horizontal shape distortion produced when that projection is
+        // displayed on a different framebuffer aspect. Scaling in model-local
+        // X preserves the portrait center and depth inside its TV mask.
+        constexpr float authoredAspect = 1280.0f / 720.0f;
+        const float framebufferAspect = static_cast<float>(g_gl.width) /
+            std::max(1.0f, static_cast<float>(g_gl.height));
+        ro.model = glm::scale(ro.model,
+            glm::vec3(authoredAspect / framebufferAspect, 1.0f, 1.0f));
     }
 
     // The detached portrait light owns a stable slot in the dedicated TV
@@ -642,7 +658,9 @@ void PreTvContext(RPL* prpl)
     s_svTvFovSaved = g_pcm->svRadFOV;
     s_fTvCameraSaved = true;
 
-    SetTvCameraFov(g_pcm, ptv->pspeakerDraw->radFov);
+    // Keep the authored projection so the screen-space anchor remains fixed.
+    // RenderTv compensates the model's local X scale for the host aspect.
+    SetTvCameraFov(g_pcm, ptv->pspeakerDraw->radFov, 1280.0f / 720.0f);
     glBindBuffer(GL_UNIFORM_BUFFER, cmUBO);
     glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(CMGL), &g_pcm->matWorldToClip);
 

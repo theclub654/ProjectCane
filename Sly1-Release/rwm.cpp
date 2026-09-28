@@ -82,7 +82,7 @@ void* GetRwmOidFire(RWM* prwm)
 
 void SetRwmOidFire(RWM* prwm, int oidFire)
 {
-    prwm->oidFire = (OID)oidFire;
+    prwm->oidFire = oidFire;
 }
 
 void* GetRwmRwfiPpnt(RWM* prwm)
@@ -182,7 +182,7 @@ void* GetRwmOidTarget(RWM* prwm)
 
 void SetRwmOidTarget(RWM* prwm, int oidTarget)
 {
-    prwm->oidTarget = (OID)oidTarget;
+    prwm->oidTarget = oidTarget;
 }
 
 void* GetRwmRwtiPalo(RWM* prwm)
@@ -332,7 +332,7 @@ void* GetRwmOidAim(RWM* prwm)
 
 void SetRwmOidAim(RWM* prwm, int oidAim)
 {
-    prwm->oidAim = (OID)oidAim;
+    prwm->oidAim = oidAim;
 }
 
 void* GetRwmPaloFireContext(RWM* prwm)

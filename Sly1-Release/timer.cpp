@@ -235,7 +235,6 @@ void DrawTimer(TIMER* ptimer)
     if (ptimer->achzDraw[0] == '\0')
         return;
 
-    // Setup textbox
     CTextBox tbx;
     tbx.SetPos(ptimer->x, ptimer->y);
     tbx.SetSize(ptimer->dx, ptimer->dy);
@@ -243,28 +242,20 @@ void DrawTimer(TIMER* ptimer)
     tbx.SetHorizontalJust(JH_Left);
     tbx.SetVerticalJust(JV_Top);
 
-    // Optional edge rect
     if (ptimer->pte && ptimer->pte->m_pfont)
         ptimer->pte->m_pfont->EdgeRect(ptimer->pte, &tbx);
 
-    // Apply font scale
-    float scale = ptimer->rFontScale;
-    ptimer->pfont->PushScaling(scale, scale);
+    ptimer->pfont->PushScaling(ptimer->rFontScale, ptimer->rFontScale);
 
-    // Draw 'T' separately
-    char achzStopwatch[2] = { ptimer->achzDraw[0], '\0' };
+    char achzStopwatch[2] = { 'T', '\0' };
     ptimer->pfont->DrawPchz(achzStopwatch, &tbx);
 
-    // Advance X position
-    float dx = ptimer->pfont->DxFromPchz(achzStopwatch);
-    tbx.m_x = ptimer->x + dx;
+    tbx.m_x = ptimer->x + ptimer->pfont->DxFromPchz(achzStopwatch);
     tbx.m_y = ptimer->y;
 
-    // Optional threshold color override
     if (ptimer->fThreshold)
         tbx.SetTextColor(&ptimer->rgbaThreshold);
 
-    // Draw the remaining string (starting after 'T')
     ptimer->pfont->DrawPchz(ptimer->achzDraw + 1, &tbx);
 
     ptimer->pfont->PopScaling();

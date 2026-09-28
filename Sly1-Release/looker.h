@@ -14,7 +14,7 @@ struct LOOKER : public SAA
     struct POSAD* pposad;
 };
 
-LOOKER* NewLooker();
+std::shared_ptr<LOOKER> NewLooker();
 void  LoadLookerFromBrx(LOOKER* plooker, CBinaryInputStream* pbis);
 void  InitLooker(LOOKER* plooker, SAAF* psaaf);
 void  NotifyLookerRender(LOOKER* plooker, ALO* palo, RPL* prpl);

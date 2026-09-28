@@ -1,7 +1,161 @@
 #include "Input.h"
+#include "clock.h"
+#include "credit.h"
+#include "pzo.h"
+#include "sound.h"
+#include "transition.h"
+#include "ui.h"
+#include <cstdio>
+#include <iterator>
 
 namespace
 {
+constexpr uint16_t JBC_SELECT   = 0x0001;
+constexpr uint16_t JBC_L3       = 0x0002;
+constexpr uint16_t JBC_UP       = 0x0010;
+constexpr uint16_t JBC_RIGHT    = 0x0020;
+constexpr uint16_t JBC_DOWN     = 0x0040;
+constexpr uint16_t JBC_LEFT     = 0x0080;
+constexpr uint16_t JBC_L2       = 0x0100;
+constexpr uint16_t JBC_R1       = 0x0800;
+constexpr uint16_t JBC_TRIANGLE = 0x1000;
+constexpr uint16_t JBC_CIRCLE   = 0x2000;
+constexpr uint16_t JBC_CROSS    = 0x4000;
+constexpr uint16_t JBC_SQUARE   = 0x8000;
+
+CODE* s_pcode = nullptr;
+float s_tCodeCheck = 0.0f;
+
+uint16_t GrfbtnFromState(const std::unordered_map<JOY_BUTTON, bool>& state)
+{
+    uint16_t grfbtn = 0;
+    const auto held = [&state](JOY_BUTTON button)
+    {
+        const auto it = state.find(button);
+        return it != state.end() && it->second;
+    };
+
+    if (held(BTN_SELECT))   grfbtn |= JBC_SELECT;
+    if (held(BTN_L3))       grfbtn |= JBC_L3;
+    if (held(BTN_START))    grfbtn |= 0x0008;
+    if (held(BTN_UP))       grfbtn |= JBC_UP;
+    if (held(BTN_RIGHT))    grfbtn |= JBC_RIGHT;
+    if (held(BTN_DOWN))     grfbtn |= JBC_DOWN;
+    if (held(BTN_LEFT))     grfbtn |= JBC_LEFT;
+    if (held(BTN_L2))       grfbtn |= JBC_L2;
+    if (held(BTN_R2))       grfbtn |= 0x0200;
+    if (held(BTN_L1))       grfbtn |= 0x0400;
+    if (held(BTN_R1))       grfbtn |= JBC_R1;
+    if (held(BTN_TRIANGLE)) grfbtn |= JBC_TRIANGLE;
+    if (held(BTN_CIRCLE))   grfbtn |= JBC_CIRCLE;
+    if (held(BTN_CROSS))    grfbtn |= JBC_CROSS;
+    if (held(BTN_SQUARE))   grfbtn |= JBC_SQUARE;
+    return grfbtn;
+}
+
+void CodeResetWorld(uint32_t nParam)
+{
+    g_transition.ResetWorld(static_cast<int>(nParam));
+}
+
+void CodeResetCheats(uint32_t)
+{
+    g_grfcht = 0;
+    g_transition.ResetWorld(0);
+}
+
+void CodeSetCheatFlags(uint32_t nParam)
+{
+    g_grfcht |= static_cast<GRFCHT>(nParam & ~0x4000U);
+    if ((nParam & 0x4000U) != 0)
+        g_transition.ResetWorld(0);
+}
+
+void CodeCollectAllClues(uint32_t)
+{
+    if (g_psw != nullptr)
+        CollectAllClues();
+}
+
+void CodeSetVaultFlags(uint32_t nParam)
+{
+    if (g_pgsCur != nullptr)
+        g_pgsCur->grfvault = nParam;
+}
+
+void CompleteWorld(GAMEWORLD gameWorld)
+{
+    if (g_pgsCur == nullptr)
+        return;
+
+    WS& world = g_pgsCur->aws[static_cast<int>(gameWorld)];
+    for (LS& level : world.als)
+        level.grfls = static_cast<GRFLS>(level.grfls | 1U);
+    world.fws |= 31;
+}
+
+void CodeCompleteAllWorlds(uint32_t)
+{
+    for (int i = 0; i < 6; ++i)
+        CompleteWorld(static_cast<GAMEWORLD>(i));
+
+    // Retail compares this field against the raw UIS_Hub value.
+    if (g_ui.uisPlaying == UIS_Hub)
+        g_transition.ResetWorld(0);
+}
+
+void CodeShowPassword(uint32_t)
+{
+    if (g_pgsCur == nullptr)
+        return;
+
+    const int worldLevel =
+        (static_cast<int>(g_pgsCur->gameWorldCur) << 8) |
+        static_cast<int>(g_pgsCur->worldLevelCur);
+
+    if (worldLevel != 0x0400 || (GetGameProgress() & 6U) != 6U ||
+        g_pgsCur->ccoin != 99 || g_pgsCur->clife != 0)
+        return;
+
+    char message[64]{};
+    std::snprintf(message, sizeof(message), "The password is: %s", "chetkido");
+    g_pnote.pvtblot->pfnSetBlotAchzDraw(&g_pnote, message);
+    SetBlotDtVisible(&g_pnote, 10.0f);
+    g_pnote.pvtblot->pfnShowBlot(&g_pnote);
+}
+
+constexpr uint16_t s_codeResetWorld[] =
+    { JBC_CROSS, JBC_SELECT, JBC_L3, JBC_DOWN, JBC_CROSS, JBC_SELECT, JBC_L3, JBC_DOWN, JBC_SQUARE, JBC_RIGHT, JBC_L2 };
+constexpr uint16_t s_codeResetCheats[] =
+    { JBC_CROSS, JBC_SELECT, JBC_L3, JBC_DOWN, JBC_CROSS, JBC_SELECT, JBC_L3, JBC_DOWN, JBC_SQUARE, JBC_RIGHT, JBC_R1 };
+constexpr uint16_t s_codeCheat4[] =
+    { JBC_CROSS, JBC_SELECT, JBC_L3, JBC_DOWN, JBC_CROSS, JBC_SELECT, JBC_L3, JBC_DOWN, JBC_SQUARE, JBC_RIGHT, JBC_SQUARE };
+constexpr uint16_t s_codeCheat8[] =
+    { JBC_CROSS, JBC_SELECT, JBC_L3, JBC_DOWN, JBC_CROSS, JBC_SELECT, JBC_L3, JBC_DOWN, JBC_SQUARE, JBC_RIGHT, JBC_CIRCLE };
+constexpr uint16_t s_codeCheat2[] =
+    { JBC_CROSS, JBC_SELECT, JBC_L3, JBC_DOWN, JBC_CROSS, JBC_SELECT, JBC_L3, JBC_DOWN, JBC_SQUARE, JBC_RIGHT, JBC_RIGHT };
+constexpr uint16_t s_codeClues[] =
+    { JBC_CROSS, JBC_SELECT, JBC_L3, JBC_DOWN, JBC_CROSS, JBC_SELECT, JBC_L3, JBC_DOWN, JBC_SQUARE, JBC_RIGHT, JBC_TRIANGLE };
+constexpr uint16_t s_codeVaultFlags[] =
+    { JBC_CROSS, JBC_SELECT, JBC_L3, JBC_DOWN, JBC_CROSS, JBC_SELECT, JBC_L3, JBC_DOWN, JBC_SQUARE, JBC_RIGHT, JBC_DOWN };
+constexpr uint16_t s_codeWorlds[] =
+    { JBC_CROSS, JBC_SELECT, JBC_L3, JBC_DOWN, JBC_CROSS, JBC_SELECT, JBC_L3, JBC_DOWN, JBC_SQUARE, JBC_RIGHT, JBC_UP };
+constexpr uint16_t s_codePassword[] =
+    { JBC_CROSS, JBC_SELECT, JBC_L3, JBC_DOWN, JBC_CROSS, JBC_SELECT, JBC_L3, JBC_DOWN, JBC_SQUARE, JBC_RIGHT, JBC_LEFT, JBC_LEFT, JBC_LEFT };
+
+CODE s_codes[] =
+{
+    { s_codeResetWorld,  static_cast<int>(std::size(s_codeResetWorld)),  CodeResetWorld,        0 },
+    { s_codeResetCheats, static_cast<int>(std::size(s_codeResetCheats)), CodeResetCheats,       0 },
+    { s_codeCheat4,      static_cast<int>(std::size(s_codeCheat4)),      CodeSetCheatFlags, 0x4004 },
+    { s_codeCheat8,      static_cast<int>(std::size(s_codeCheat8)),      CodeSetCheatFlags,      8 },
+    { s_codeCheat2,      static_cast<int>(std::size(s_codeCheat2)),      CodeSetCheatFlags,      2 },
+    { s_codeClues,       static_cast<int>(std::size(s_codeClues)),       CodeCollectAllClues,    0 },
+    { s_codeVaultFlags,  static_cast<int>(std::size(s_codeVaultFlags)),  CodeSetVaultFlags, 0xF000FFFF },
+    { s_codeWorlds,      static_cast<int>(std::size(s_codeWorlds)),      CodeCompleteAllWorlds,  0 },
+    { s_codePassword,    static_cast<int>(std::size(s_codePassword)),    CodeShowPassword,       0 }
+};
+
 constexpr std::array<int, BTN_MAX> kDefaultKeyboardBindings =
 {
     GLFW_KEY_W, GLFW_KEY_S, GLFW_KEY_A, GLFW_KEY_D,
@@ -107,6 +261,7 @@ const char* PchzGamepadBindingName(int binding)
 
 void JOY::Update(GLFWwindow* window)
 {
+    const uint16_t grfbtnPrev = GrfbtnFromState(current);
     previous = current;
     handled.clear();
     forcedHeld.clear();
@@ -130,6 +285,8 @@ void JOY::Update(GLFWwindow* window)
     bool haveGamepadState = false;
     int activeJoystickId = JOYID_Nil;
     float bestActivity = -1.0f;
+    const bool allowControllerInput = !g_fDisableControllerInputWhenUnfocused ||
+        glfwGetWindowAttrib(window, GLFW_FOCUSED) == GLFW_TRUE;
 
     // Steam may leave an idle virtual gamepad in a lower joystick slot than
     // the physical controller. Poll every mapped gamepad and prefer a device
@@ -137,6 +294,9 @@ void JOY::Update(GLFWwindow* window)
     // first slot returned by GLFW.
     for (int jid = GLFW_JOYSTICK_1; jid <= GLFW_JOYSTICK_LAST; ++jid)
     {
+        if (!allowControllerInput)
+            break;
+
         if (!glfwJoystickPresent(jid) || !glfwJoystickIsGamepad(jid))
             continue;
 
@@ -159,6 +319,12 @@ void JOY::Update(GLFWwindow* window)
 
     if (haveGamepadState)
     {
+        if (!gamepadConnected || activeJoystickId != joystickId)
+        {
+            calibration = StickCalibration{};
+            calibration2 = StickCalibration{};
+        }
+
         joystickId = activeJoystickId;
         gamepadConnected = true;
         for (int button = 0; button < BTN_MAX; ++button)
@@ -207,10 +373,87 @@ void JOY::Update(GLFWwindow* window)
     if (cameraUp && !cameraDown) y2Raw = 1.0f;
     if (cameraDown && !cameraUp) y2Raw = -1.0f;
 
-    ApplyStickDeadZone(xRaw, yRaw, &x, &y, &uDeflect);
-    ApplyStickDeadZone(x2Raw, y2Raw, &x2, &y2, &uDeflect2);
+    ApplyStickDeadZone(xRaw, yRaw, &calibration, &x, &y, &uDeflect);
+    ApplyStickDeadZone(x2Raw, y2Raw, &calibration2, &x2, &y2, &uDeflect2);
+
+    _MatchCodes(this, grfbtnPrev);
 
     joys = JOYS_Ready;
+}
+
+void AddCode(CODE* pcode)
+{
+    for (CODE* current = s_pcode; current != nullptr; current = current->pcodeNext)
+        if (current == pcode)
+            return;
+
+    pcode->pcodeNext = s_pcode;
+    s_pcode = pcode;
+    pcode->ijbcCur = GrfbtnFromState(g_joy.current) == pcode->ajbc[0] ? 1 : 0;
+}
+
+void _ResetCodes()
+{
+    for (CODE* code = s_pcode; code != nullptr; code = code->pcodeNext)
+        code->ijbcCur = 0;
+}
+
+void _MatchCodes(JOY* pjoy, uint16_t grfbtnPrev)
+{
+    const uint16_t grfbtn = GrfbtnFromState(g_joy.current);
+    if (s_pcode == nullptr || pjoy != &g_joy || grfbtnPrev == grfbtn || grfbtn == 0)
+        return;
+
+    for (CODE* code = s_pcode; code != nullptr; code = code->pcodeNext)
+    {
+        if (code->ijbcCur < code->cjbc)
+            code->ijbcCur = grfbtn == code->ajbc[code->ijbcCur] ? code->ijbcCur + 1 : 0;
+    }
+
+    s_tCodeCheck = g_clock.tReal + 1.0f;
+}
+
+void UpdateCodes()
+{
+    if (s_tCodeCheck == 0.0f || s_tCodeCheck > g_clock.tReal)
+        return;
+
+    CODE* matched = nullptr;
+    CODE** link = &s_pcode;
+    while (*link != nullptr)
+    {
+        CODE* code = *link;
+        if (code->fRemove != 0)
+        {
+            *link = code->pcodeNext;
+            code->pcodeNext = nullptr;
+            code->ijbcCur = 0;
+            code->fRemove = 0;
+            continue;
+        }
+
+        if (code->ijbcCur >= code->cjbc &&
+            (matched == nullptr || matched->cjbc < code->cjbc))
+            matched = code;
+
+        link = &code->pcodeNext;
+    }
+
+    if (matched != nullptr)
+    {
+        StartSound(static_cast<SFXID>(121), nullptr, nullptr, nullptr,
+            3000.0f, 300.0f, 1.0f, 0.0f, 0.0f, nullptr, nullptr);
+        matched->pfn(matched->nParam);
+    }
+
+    _ResetCodes();
+    s_tCodeCheck = 0.0f;
+}
+
+void StartupCodes()
+{
+    for (CODE& code : s_codes)
+        AddCode(&code);
 }
 
 bool JOY::IsPressed(JOY_BUTTON button)
@@ -237,15 +480,19 @@ int JOY::DxSelectionJoy(float currentTime)
 {
     if (dxLatch == 0)
     {
-        if (IsPressed(BTN_LEFT) || x <= -0.8f)
+        if (IsPressed(BTN_LEFT))
         {
             SetHandled(BTN_LEFT);
             dxLatch = -1;
         }
-        else if (IsPressed(BTN_RIGHT) || x >= 0.8f)
+        else if (IsPressed(BTN_RIGHT))
         {
             SetHandled(BTN_RIGHT);
             dxLatch = 1;
+        }
+        else if (uDeflect >= 0.8f && std::abs(y) < std::abs(x))
+        {
+            dxLatch = x < 0.0f ? -1 : 1;
         }
 
         if (dxLatch == 0)
@@ -255,7 +502,17 @@ int JOY::DxSelectionJoy(float currentTime)
     }
     else
     {
-        const bool fStillHeld = dxLatch < 0 ? IsHeld(BTN_LEFT) || x <= -0.25f : IsHeld(BTN_RIGHT) || x >= 0.25f;
+        bool fStillHeld;
+        if (dxLatch < 0)
+        {
+            fStillHeld = IsHeld(BTN_LEFT) ||
+                (uDeflect >= 0.25f && std::abs(y) < std::abs(x) && x < 0.0f);
+        }
+        else
+        {
+            fStillHeld = IsHeld(BTN_RIGHT) ||
+                (uDeflect >= 0.25f && std::abs(y) < std::abs(x) && x > 0.0f);
+        }
 
         if (!fStillHeld)
         {
@@ -277,15 +534,19 @@ int JOY::DySelectionJoy(float currentTime)
 {
     if (dyLatch == 0)
     {
-        if (IsPressed(BTN_UP) || y >= 0.8f)
+        if (IsPressed(BTN_UP))
         {
             SetHandled(BTN_UP);
             dyLatch = -1;
         }
-        else if (IsPressed(BTN_DOWN) || y <= -0.8f)
+        else if (IsPressed(BTN_DOWN))
         {
             SetHandled(BTN_DOWN);
             dyLatch = 1;
+        }
+        else if (uDeflect >= 0.8f && std::abs(x) < std::abs(y))
+        {
+            dyLatch = y > 0.0f ? -1 : 1;
         }
 
         if (dyLatch == 0)
@@ -295,7 +556,17 @@ int JOY::DySelectionJoy(float currentTime)
     }
     else
     {
-        const bool fStillHeld = dyLatch < 0 ? IsHeld(BTN_UP) || y >= 0.25f : IsHeld(BTN_DOWN) || y <= -0.25f;
+        bool fStillHeld;
+        if (dyLatch < 0)
+        {
+            fStillHeld = IsHeld(BTN_UP) ||
+                (uDeflect >= 0.25f && std::abs(x) < std::abs(y) && y > 0.0f);
+        }
+        else
+        {
+            fStillHeld = IsHeld(BTN_DOWN) ||
+                (uDeflect >= 0.25f && std::abs(x) < std::abs(y) && y < 0.0f);
+        }
 
         if (!fStillHeld)
         {
@@ -414,3 +685,4 @@ GRFUSR g_grfusr;
 int vibrationSetting = 1;
 std::array<int, BTN_MAX> g_keyboardBindings = kDefaultKeyboardBindings;
 std::array<int, BTN_MAX> g_gamepadBindings = kDefaultGamepadBindings;
+bool g_fDisableControllerInputWhenUnfocused = false;

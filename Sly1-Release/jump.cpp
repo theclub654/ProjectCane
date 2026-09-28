@@ -201,18 +201,12 @@ void UpdateJtActiveJump(JT* pjt)
     glm::vec3 vBest{};
 
     float dtBest = 0.0f;
-    // HBSK/JMT targeting uses the same integrated jump-path score scale as
-    // the other automatic landing targets. 1500 rejects normal barrel-entry
-    // trajectories and leaves the barrel as ordinary collision.
-    float gBest = G_JtAutoJumpMax;
+    // Retail UpdateJtActiveJump initializes its local HBSK/JMT score limit
+    // from the immediate 1500.0f constant (0x44bb8000).
+    float gBest = 1500.0f;
 
     for (HBSK* phbsk = g_dlHbsk.phbskFirst; phbsk != nullptr; phbsk = phbsk->dleHbsk.phbskNext)
     {
-        // Do not select the basket already attached to Sly as a fresh landing
-        // target. It stays linked in g_dlHbsk while HBSKS_InUse.
-        if (phbsk->hbsks != HBSKS_Available)
-            continue;
-
         const glm::vec3 dposWorld = phbsk->xf.posWorld - pjt->xf.posWorld;
 
         if (glm::dot(glm::vec2(dposWorld), glm::vec2(dposWorld)) > 360000.0f)

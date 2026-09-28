@@ -97,10 +97,10 @@ class RWM : public LO
     CSPK cspk;
     int irwc;
     class SO *psoAmmo;
-    short oidFire;
-    short oidTarget;
-    short oidAim;
+    int oidFire;
+    int oidTarget;
     int oidAimXfm;
+    int oidAim;
     RWFI rwfi;
     RWTI rwti;
     RWAC rwac;

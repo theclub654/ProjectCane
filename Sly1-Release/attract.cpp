@@ -1,4 +1,5 @@
 #include "attract.h"
+#include "gui_layout.h"
 #include "logo.h"
 #include "save.h"
 #include "ui.h"
@@ -7,12 +8,12 @@ void StartupAttract(ATTRACT* pattract)
 {
     pattract->pvtattract = &g_vtattract;
 
-    g_teAttract.m_rgba = glm::vec4(0.0f, 75.0f / 255.0f, 125.0f / 255.0f, 1.0f);
+    g_teAttract.m_rgba = glm::vec4(0.0f, 75.0f / 128.0f, 125.0f / 128.0f, 1.0f);
     g_teAttract.m_ch = '-';
     g_teAttract.m_dxExtra = 2.0;
     g_teAttract.m_ryScaling = 0.3;
     g_teAttract.m_rxScaling = 0.3;
-    g_teAttract.m_dyExtra = -4.0;
+    g_teAttract.m_dyExtra = -2.0f;
 }
 
 void PostAttractLoad(ATTRACT* pattract)
@@ -38,25 +39,19 @@ void UpdateAttractText(ATTRACT* pattract)
 {
     if (!pattract->fJoyValid)
     {
-        pattract->rgba = glm::vec4(111.0f / 255.0f, 31.0f / 255.0f, 31.0f / 255.0f, 1.0f);
+        pattract->rgba = glm::vec4(111.0f / 128.0f, 31.0f / 128.0f, 31.0f / 128.0f, 1.0f);
         std::strcpy(pattract->achzDraw, "No Controller");
     }
     else
     {
-        pattract->rgba = glm::vec4(111.0f / 255.0f, 111.0f / 255.0f, 111.0f / 255.0f, 1.0f);
+        pattract->rgba = glm::vec4(111.0f / 128.0f, 111.0f / 128.0f, 111.0f / 128.0f, 1.0f);
         const int ichz = pattract->fReshow ? 1 : 0;
         std::snprintf(pattract->achzDraw, sizeof(pattract->achzDraw), g_aachzAttract[ichz], "Press SELECT button for Menu");
     }
 
     pattract->pfont->PushScaling(pattract->rFontScale, pattract->rFontScale);
-
-    CRichText richText(pattract->achzDraw, pattract->pfont);
-
-    const float width  = richText.DxMaxLine();
-    const float height = richText.DyWrap(0.0);
-
-    ResizeBlot(pattract, width, height);
-
+    CRichText sizingText(pattract->achzDraw, pattract->pfont);
+    ResizeBlot(pattract, sizingText.DxMaxLine(), sizingText.DyWrap(0.0f));
     pattract->pfont->PopScaling();
 }
 
@@ -119,23 +114,82 @@ void DrawAttract(ATTRACT* pattract)
     const float pulse = std::sin(g_clock.tReal * 3.0f) * 0.5f + 0.5f;
     const float u = std::min(pattract->uOn, g_logo.uOn);
 
-    const float x = glm::mix(pattract->xOff, pattract->xOn, u);
-    const float y = glm::mix(pattract->yOff, pattract->yOn, u);
+    const GuiScale guiScale = GetGuiScale();
+    const float scaleX = guiScale.x;
+    const float scaleY = guiScale.y;
+    const float dx = pattract->dx * scaleX;
+    const float dy = pattract->dy * scaleY;
+
+    float xOn = pattract->xOn;
+    float yOn = pattract->yOn;
+
+    if (pattract->pbloti != nullptr)
+    {
+        if (pattract->pbloti->x < 0.0f)
+            xOn -= dx - pattract->dx;
+        else if (pattract->pbloti->x == 0.0f)
+            xOn -= (dx - pattract->dx) * 0.5f;
+
+        if (pattract->pbloti->y < 0.0f)
+            yOn -= dy - pattract->dy;
+        else if (pattract->pbloti->y == 0.0f)
+            yOn -= (dy - pattract->dy) * 0.5f;
+
+        xOn += pattract->pbloti->x * (scaleX - 1.0f);
+        yOn += pattract->pbloti->y * (scaleY - 1.0f);
+    }
+
+    float xOff = xOn;
+    float yOff = yOn;
+
+    if (pattract->pbloti != nullptr)
+    {
+        switch (pattract->pbloti->blote)
+        {
+        case BLOTE_Left:
+            xOff = -dx;
+            break;
+        case BLOTE_Right:
+            xOff = g_gl.width;
+            break;
+        case BLOTE_Top:
+            yOff = -dy;
+            break;
+        case BLOTE_Bottom:
+            yOff = g_gl.height;
+            break;
+        default:
+            break;
+        }
+    }
+
+    const float x = glm::mix(xOff, xOn, u);
+    const float y = glm::mix(yOff, yOn, u);
 
     glm::vec4 color = pattract->rgba;
     color.a = pulse;
 
     CTextBox tbx;
     tbx.SetPos(x, y);
-    tbx.SetSize(pattract->dx, pattract->dy);
+    tbx.SetSize(dx, dy);
     tbx.SetTextColor(&color);
     tbx.SetHorizontalJust(JH_Right);
     tbx.SetVerticalJust(JV_Top);
 
     if (pattract->pte && pattract->pte->m_pfont)
+    {
+        const float edgeScaleX = pattract->pte->m_rxScaling;
+        const float edgeScaleY = pattract->pte->m_ryScaling;
+        pattract->pte->m_rxScaling *= scaleX;
+        pattract->pte->m_ryScaling *= scaleY;
         pattract->pte->m_pfont->EdgeRect(pattract->pte, &tbx);
+        pattract->pte->m_rxScaling = edgeScaleX;
+        pattract->pte->m_ryScaling = edgeScaleY;
+    }
 
-    pattract->pfont->PushScaling(pattract->rFontScale, pattract->rFontScale);
+    pattract->pfont->PushScaling(
+        pattract->rFontScale * scaleX,
+        pattract->rFontScale * scaleY);
 
     CRichText richText(pattract->achzDraw, pattract->pfont);
     richText.Draw(&tbx, nullptr);

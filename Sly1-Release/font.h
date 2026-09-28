@@ -1,6 +1,7 @@
 #pragma once
 #include <unordered_map>
 #include <memory>
+#include <string>
 #include "shd.h"
 #include "gl.h"
 
@@ -134,6 +135,7 @@ class CFontBrx : public CFont
     bool FValid(char ch);
     void SetupDraw();
     float DxDrawCh(char ch, float xChar, float yChar, glm::vec4& rgba);
+    float DxDrawChRotated90(char ch, float xChar, float yChar, glm::vec4& rgba);
     void EdgeRect(CTextEdge* pte, CTextBox* ptbx);
     void PushScaling(float rx, float ry);
     void CopyTo(CFontBrx* pfontDst);
@@ -154,6 +156,7 @@ class CRichText
 {
     public:
 
+    std::string m_text;
     char* m_achz;
     char* m_pchCur;
     CFontBrx* m_pfontCur;
@@ -165,7 +168,7 @@ class CRichText
     glm::vec4 m_rgbaOther;
     bool m_fFontChanged = false;
 
-    CRichText(char* achz, CFontBrx* pfont);
+    CRichText(const char* achz, CFontBrx* pfont);
 
     void  GetExtents(float* pdx, float* pdy, float dxMax);
     int   ClineWrap(float dx);

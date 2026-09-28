@@ -24,6 +24,7 @@ public:
 
 THNDFLASH* NewThndFlash();
 int GetThndFlashSize();
+void CloneThndFlash(THNDFLASH* pthndflash, THNDFLASH* pthndflashBase);
 void StartThndFlash(THNDFLASH* pthndflash);
 void RenderThndFlash(THNDFLASH* pthndflash);
 void DrawThndFlash(RPL* prpl);

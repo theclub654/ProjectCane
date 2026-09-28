@@ -106,12 +106,11 @@ int FIsPoSoundBase(PO* ppo)
 void MakePoActive(PO* ppo)
 {
 	PO *currentppo = PpoCur();
-
 	if (ppo != currentppo)
 		SwitchToPo(ppo);
 }
 
-bool FInvulnerablePo(PO* ppo)
+int FInvulnerablePo(PO* ppo)
 {
 	return (g_grfcht & 1U) != 0 || FSwHandsOff(ppo->psw);
 }
@@ -319,20 +318,22 @@ void CollectPoPrize(PO* ppo, PCK pck, ALO* paloOther)
 			pmatch->emitdv.dv = paloOther->psw->dvGravity;
 		}
 
-		ppo->pvtpo->pfnSetPoPck(ppo, PCK_Key);
+		ppo->pvtpo->pfnSetPoPck(ppo, static_cast<PCK>(1));
 	}
 	else if (pck == PCK_Gold)
-		ppo->pvtpo->pfnSetPoPck(ppo, PCK_Gold);
+		ppo->pvtpo->pfnSetPoPck(ppo, static_cast<PCK>(2));
 }
 
-void SetPoPck(PO* ppo, PCK pck)
+void SetPoPck(PO* ppo, PCK pchk)
 {
-	if (ppo->pckCollect == pck)
+	const int pchkValue = static_cast<int>(pchk);
+
+	if (ppo->pchkCollect == pchkValue)
 		return;
 
-	ppo->pckCollect = pck;
+	ppo->pchkCollect = pchkValue;
 
-	if ((static_cast<int>(pck) & static_cast<int>(PCK_Key)) != 0)
+	if ((pchkValue & 1) != 0)
 		ppo->posCollectPrev = glm::vec3(0.0f);
 }
 
@@ -416,13 +417,13 @@ void UpdatePo(PO* ppo, float dt)
 	UpdateSo(ppo, dt);
 	UpdatePoCharmVisibility(ppo);
 
-	if ((static_cast<int>(ppo->pckCollect) & static_cast<int>(PCK_Key)) != 0)
+	if ((ppo->pchkCollect & 1) != 0)
 		UpdatePoPrizeCollection(ppo);
 }
 
 void UsePoCharm(PO* ppo)
 {
-	if ((g_grfcht & 2U) == 0)
+	if (g_fInfiniteCharms == 0 && (g_grfcht & 2U) == 0)
 		g_pgsCur->ccharm = std::max(g_pgsCur->ccharm - 1, 0);
 
 	ALO* paloUseCharm = ppo->paloUseCharm;

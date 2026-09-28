@@ -81,8 +81,10 @@ enum RESPK
 	RESPK_KeyR2,
 	RESPK_KeyL3,
 	RESPK_KeyR3,
+	RESPK_GuiStyle,
+	RESPK_DisableControllerWhenUnfocused,
 
-	RESPK_Max = 60
+	RESPK_Max = 62
 };
 
 // -----------------------------------------------------------------------------
@@ -276,18 +278,19 @@ inline RESPK s_arespkSlots[7] =
     RESPK_Back
 };
 
-inline const RESPK s_arespkControlsMenuAll[7] =
+inline const RESPK s_arespkControlsMenuAll[8] =
 {
 	RESPK_CameraInvert,
     RESPK_BinocInvert,
     RESPK_TurretInvert,
     RESPK_JetpackInvert,
+	RESPK_DisableControllerWhenUnfocused,
 	RESPK_KeyboardMapping,
 	RESPK_ControllerMapping,
     RESPK_Back
 };
 
-inline RESPK s_arespkControlsMenu[7]{};
+inline RESPK s_arespkControlsMenu[8]{};
 
 inline RESPK s_arespkKeyboardMapping[17] =
 {
@@ -329,7 +332,6 @@ inline const RESPK s_arespkOptionsMenuAll[] =
     RESPK_Music,
     RESPK_Speakers,
     RESPK_Vibration,
-    RESPK_Fog,
     RESPK_Video,
     RESPK_Controls,
     RESPK_Back
@@ -346,6 +348,8 @@ inline RESPK s_arespkVideoMenu[] =
     RESPK_WindowMode,
     RESPK_Vsync,
     RESPK_AspectRatio,
+    RESPK_Fog,
+    RESPK_GuiStyle,
     RESPK_GuiScale,
     RESPK_Back
 };
@@ -377,6 +381,8 @@ inline char g_achzRespk34[64]{};
 inline char g_achzRespk35[64]{};
 inline char g_achzRespk40[64]{};
 inline char g_achzRespk41[64]{};
+inline char g_achzRespk60[64]{};
+inline char g_achzRespk61[64]{};
 inline char g_aachzKeyboardBindings[BTN_MAX][64]{};
 
 // -----------------------------------------------------------------------------
@@ -488,7 +494,9 @@ inline const char* s_mprespkachz[RESPK_Max] =
 	g_aachzKeyboardBindings[8], g_aachzKeyboardBindings[9],
 	g_aachzKeyboardBindings[10], g_aachzKeyboardBindings[11],
 	g_aachzKeyboardBindings[12], g_aachzKeyboardBindings[13],
-	g_aachzKeyboardBindings[14], g_aachzKeyboardBindings[15]
+	g_aachzKeyboardBindings[14], g_aachzKeyboardBindings[15],
+	g_achzRespk60,            // 60 RESPK_GuiStyle
+	g_achzRespk61             // 61 RESPK_DisableControllerWhenUnfocused
 };
 
 // -----------------------------------------------------------------------------
@@ -544,7 +552,9 @@ inline RESPD s_arespd[RESPK_Max] =
 	{ 0, nullptr }, { 0, nullptr }, { 0, nullptr }, { 0, nullptr },
 	{ 0, nullptr }, { 0, nullptr }, { 0, nullptr }, { 0, nullptr },
 	{ 0, nullptr }, { 0, nullptr }, { 0, nullptr }, { 0, nullptr },
-	{ 0, nullptr }, { 0, nullptr }, { 0, nullptr }, { 0, nullptr }
+	{ 0, nullptr }, { 0, nullptr }, { 0, nullptr }, { 0, nullptr },
+	{ 0, nullptr },           // 60 RESPK_GuiStyle
+	{ 0, nullptr }            // 61 RESPK_DisableControllerWhenUnfocused
 };
 
 // -----------------------------------------------------------------------------

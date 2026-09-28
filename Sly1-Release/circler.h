@@ -9,7 +9,7 @@ struct CIRCLER : public SAA
     float dv;
 };
 
-CIRCLER* NewCircler();
+std::shared_ptr<CIRCLER> NewCircler();
 void  LoadCirclerFromBrx(CIRCLER* pcircler, CBinaryInputStream* pbis);
 void  InitCircler(CIRCLER* pcircler, SAAF* psaaf);
 void  UpdateCircler(CIRCLER* pcircler, float dt);

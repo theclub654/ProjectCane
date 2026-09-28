@@ -3211,17 +3211,23 @@ void KillSounds(int msRampdown)
 	StopVag();
 	if (g_psw != nullptr)
 	{
+		// The world is being torn down, so AMB back-pointers no longer need to
+		// clear their owning fields. Some owners (notably the active world-map
+		// controller) can already have been released by shutdown callbacks.
+		// Detach every back-pointer before RemoveAmb destroys the pool.
+		for (std::unique_ptr<AMB>& slot : g_psw->ambOwners)
+		{
+			if (slot)
+				slot->ppamb = nullptr;
+		}
+
 		while (g_psw->dlAmb.pvFirst != nullptr)
 			RemoveAmb(static_cast<AMB*>(g_psw->dlAmb.pvFirst));
 
 		// Also release any detached pool entries which are no longer members of
 		// dlAmb (DropPamb deliberately does not free them).
 		for (std::unique_ptr<AMB>& slot : g_psw->ambOwners)
-		{
-			if (slot && slot->ppamb != nullptr)
-				*slot->ppamb = nullptr;
 			slot.reset();
-		}
 	}
 }
 

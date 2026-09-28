@@ -19,6 +19,7 @@ struct PngBuffer {
 };
 
 void RenderMenuGui(SW* psw);
+extern bool g_fDebugGuiOpen;
 static void AppendFloat(std::vector<uint8_t>& buf, float v);
 static void AppendUInt32(std::vector<uint8_t>& buf, uint32_t v);
 static void AlignTo4(std::vector<uint8_t>& buf);
@@ -37,4 +38,6 @@ extern std::string levelName;
 extern std::string filePath;
 extern ImGuiFileDialog instance_a;
 extern bool g_fDisableInput;
+extern bool g_fSkipBinocDialogs;
+extern bool g_fShowAutosaveIcon;
 extern float baseRenderDistance;
