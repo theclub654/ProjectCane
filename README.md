@@ -1,6 +1,6 @@
 # ProjectCane
 
-![ProjectCane logo](https://github.com/user-attachments/assets/49b1b7d4-87db-4134-8f52-dbef28a79d54)
+<img width="1668" height="1134" alt="project_cane" src="https://github.com/user-attachments/assets/98ac0463-6c18-4cb0-92f8-2f460b03def3" />
 
 ProjectCane is a playable PC port of the NTSC release of *Sly Cooper and the Thievius Raccoonus*. The project originally began as a map viewer, but it has since grown into a complete playable port.
 
@@ -32,3 +32,5 @@ No external shader files are required—the shaders are embedded in the executab
 ## Status
 
 The full game is playable. Development is continuing with bug fixes, compatibility improvements, and future Linux support.
+
+Credits to k1nomoto for logo
