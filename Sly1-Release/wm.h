@@ -62,6 +62,7 @@ struct WMC : public BLOT
     float uWarpTargetGoal;
     GLuint gaoWmFan;
     GLuint gboWmFan;
+    bool fRestoreLgnr;
 };
 
 class WM : public ALO

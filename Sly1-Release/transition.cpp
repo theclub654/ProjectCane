@@ -51,7 +51,13 @@ std::filesystem::path FindWorldsDirectory(const std::string& currentFile)
         selectedPath.parent_path() / "Worlds",
         executableDirectory / "Worlds",
         std::filesystem::current_path() / "Worlds",
-        std::filesystem::current_path() / "Sly1-Release" / "Worlds"
+        std::filesystem::current_path() / "Sly1-Release" / "Worlds",
+        std::filesystem::current_path() / "x64" / "Debug" / "Worlds",
+        std::filesystem::current_path() / "x64" / "Release" / "Worlds",
+        executableDirectory.parent_path().parent_path() / "x64" / "Debug" / "Worlds",
+        executableDirectory.parent_path().parent_path() / "x64" / "Release" / "Worlds",
+        executableDirectory.parent_path().parent_path().parent_path() / "x64" / "Debug" / "Worlds",
+        executableDirectory.parent_path().parent_path().parent_path() / "x64" / "Release" / "Worlds"
     };
 
     for (const std::filesystem::path& candidate : candidates)
@@ -74,7 +80,14 @@ std::filesystem::path LevelPath(const LEVELINFO& levelInfo, const std::string& c
         ? "Paris"
         : levelInfo.levelName.c_str();
 
-    return directory / (std::string(levelName) + ".brx");
+    const std::filesystem::path fileName = std::string(levelName) + ".brx";
+    const std::filesystem::path organizedPath = directory / levelName / fileName;
+    if (std::filesystem::is_regular_file(organizedPath))
+        return organizedPath;
+
+    // Keep existing extracted trees usable while transitioning to the
+    // per-level directory layout.
+    return directory / fileName;
 }
 }
 
@@ -137,11 +150,21 @@ void CTransition::Execute(std::string& file)
 
         const bool fWorldChanged = m_plevelCurrent == nullptr || m_plevelCurrent->searchKey != plevelTarget->searchKey;
 
-        CBinaryInputStream bis(fileNew);
-
-        if (!bis.file.is_open())
+        CBinaryInputStream bis;
+        try
         {
-            std::printf("TRANSITION EXECUTE ERROR: could not open '%s'\n", fileNew.c_str());
+            bis.OpenFile(fileNew);
+        }
+        catch (const std::exception& exception)
+        {
+            std::printf("TRANSITION EXECUTE ERROR: %s\n", exception.what());
+            fLoadSucceeded = false;
+        }
+
+        if (!fLoadSucceeded || !bis.file.is_open())
+        {
+            if (fLoadSucceeded)
+                std::printf("TRANSITION EXECUTE ERROR: could not open '%s'\n", fileNew.c_str());
             fLoadSucceeded = false;
         }
         else

@@ -148,5 +148,7 @@ void SetSaiDuDv(SAI* psai, float du, float dv)
 
 void DeleteSaa(SAA* psaa)
 {
-    delete psaa;
+    // SAA instances are owned by g_apsaaSw.  This legacy raw-pointer
+    // callback must not delete an object managed by a shared_ptr.
+    (void)psaa;
 }

@@ -378,7 +378,6 @@ void UpdateJtActivePipe(JT* pjt, JOY* pjoy)
 
         const float sMin = pcrv->mpicvs[0];
         const float sMax = pcrv->mpicvs[pcrv->ccv - 1];
-
         const float dsStart = fPipeReverse ? DS_JtPipeLimitHand : DS_JtPipeLimitFoot;
         const float dsEnd = fPipeReverse ? DS_JtPipeLimitFoot : DS_JtPipeLimitHand;
 

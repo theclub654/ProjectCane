@@ -245,6 +245,7 @@ void SetDialogDialogs(DIALOG* pdialog, DIALOGS dialogs)
 		*pdialog->pfPlayed = 1;
 
 		StopVag();
+		EndDialogAudioDuck();
 		HandleLoSpliceEvent(pdialog, 21, 0, nullptr);
 
 		if (pdialog->dialogk == DIALOGK_Confront)
@@ -285,6 +286,7 @@ void SetDialogDialogs(DIALOG* pdialog, DIALOGS dialogs)
 	{
 		pdialog->ideCur = -1;
 		pdialog->dp.grfdp = 0;
+		BeginDialogAudioDuck();
 
 		if (pdialog->dialogk == DIALOGK_Confront)
 		{

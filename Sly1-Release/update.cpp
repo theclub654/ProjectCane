@@ -237,10 +237,7 @@ void UpdateSwObjects(SW* psw, float dt)
 
     if (ppo && ppo->pvtpo->pfnUpdatePoActive)
     {
-		const bool fManualFreeCamera = g_pcm != nullptr && g_pcm->ccpr > 0 &&
-			g_pcm->acpr[0].cpp == CPP_ManualOverride &&
-			g_pcm->acpr[0].pcplcy == &g_pcm->cpman;
-		JOY* pjoy = (g_grfjoyt & 2) && !fManualFreeCamera ? &g_joy : &g_joyZero;
+		JOY* pjoy = (g_grfjoyt & 2) ? &g_joy : &g_joyZero;
         ppo->pvtpo->pfnUpdatePoActive(ppo, pjoy, dt);
     }
 

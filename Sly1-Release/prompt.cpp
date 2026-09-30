@@ -577,8 +577,8 @@ void SetPromptPrk(PROMPT* pprompt)
     }
 
     std::snprintf(g_achzRespk13, sizeof(g_achzRespk13), "%s", s_apchzRespk13[FVibrationEnabled(g_pgsCur) ? 0 : 1]);
-    std::snprintf(g_achzRespk15, sizeof(g_achzRespk15), "%s", s_apchzRespk15[(g_pgsCur->grfgs & 0x80U) != 0 ? 1 : 0]);
-    std::snprintf(g_achzRespk16, sizeof(g_achzRespk16), "%s", s_apchzRespk16[(g_pgsCur->grfgs & 0x40U) != 0 ? 1 : 0]);
+    std::snprintf(g_achzRespk16, sizeof(g_achzRespk16), "%s",
+		s_apchzRespk16[FUserStereoEnabled() ? 0 : 1]);
     std::snprintf(g_achzRespk24, sizeof(g_achzRespk24), "%s", s_apchzRespk24[(g_pgsCur->grfgs & 0x200U) != 0 ? 1 : 0]);
     std::snprintf(g_achzRespk25, sizeof(g_achzRespk25), "%s", s_apchzRespk25[(g_pgsCur->grfgs & 0x400U) != 0 ? 1 : 0]);
     std::snprintf(g_achzRespk26, sizeof(g_achzRespk26), "%s", s_apchzRespk26[(g_pgsCur->grfgs & 0x800U) != 0 ? 1 : 0]);
@@ -1094,6 +1094,31 @@ void ExecutePrompt(PROMPT* pprompt)
             return;
         }
 
+		case PRK_SoundMenu:
+		switch (response)
+		{
+			case RESPK_Speakers:
+			SetUserStereoEnabled(!FUserStereoEnabled());
+			break;
+			case RESPK_MusicVolume:
+			SetUserMusicVolume(GetUserMusicVolume() >= 0.999f ? 0.0f : GetUserMusicVolume() + 0.1f);
+			break;
+			case RESPK_SfxVolume:
+			SetUserSfxVolume(GetUserSfxVolume() >= 0.999f ? 0.0f : GetUserSfxVolume() + 0.1f);
+			break;
+			case RESPK_DialogueVolume:
+			SetUserDialogueVolume(GetUserDialogueVolume() >= 0.999f ? 0.0f : GetUserDialogueVolume() + 0.1f);
+			break;
+			case RESPK_Back:
+			SetPrompt(pprompt, PRP_Basic, PRK_OptionsMenu);
+			return;
+			default:
+			return;
+		}
+		SaveSystemSettings();
+		rebuildPromptKeepingSelection();
+		return;
+
         case PRK_GameOver:
         case PRK_TryAgain:
         case PRK_MtsExpired:
@@ -1337,17 +1362,9 @@ void ExecutePrompt(PROMPT* pprompt)
                 rebuildPromptKeepingSelection();
                 return;
 
-                case RESPK_Music:
-                g_pgsCur->grfgs ^= 0x80;
-                SetAttractVolume((g_pgsCur->grfgs & 0x80) != 0);
-                rebuildPromptKeepingSelection();
-                return;
-    
-                case RESPK_Speakers:
-                g_pgsCur->grfgs ^= 0x40;
-                SetAttractSoundOption((g_pgsCur->grfgs & 0x40) != 0);
-                rebuildPromptKeepingSelection();
-                return;
+				case RESPK_Sound:
+				SetPrompt(pprompt, PRP_Basic, PRK_SoundMenu);
+				return;
 
                 case RESPK_Controls:
                 SetPrompt(pprompt, PRP_Basic, PRK_ControlsMenu);
@@ -1494,6 +1511,14 @@ void HidePrompt(PROMPT* pprompt)
 
 const char* AchzFromRespk(RESPK respk)
 {
+	if (respk == RESPK_Speakers)
+		std::snprintf(g_achzRespk16, sizeof(g_achzRespk16), "Speakers: %s", FUserStereoEnabled() ? "Stereo" : "Mono");
+	else if (respk == RESPK_MusicVolume)
+		std::snprintf(g_achzRespk63, sizeof(g_achzRespk63), "Music Volume: %d%%", static_cast<int>(GetUserMusicVolume() * 100.0f + 0.5f));
+	else if (respk == RESPK_SfxVolume)
+		std::snprintf(g_achzRespk64, sizeof(g_achzRespk64), "Sound Effects: %d%%", static_cast<int>(GetUserSfxVolume() * 100.0f + 0.5f));
+	else if (respk == RESPK_DialogueVolume)
+		std::snprintf(g_achzRespk65, sizeof(g_achzRespk65), "Dialogue: %d%%", static_cast<int>(GetUserDialogueVolume() * 100.0f + 0.5f));
     return s_mprespkachz[respk];
 }
 
@@ -1855,6 +1880,7 @@ void CancelPrompt(PROMPT* pprompt)
         case PRK_MemcardChooseLoadSlot:
         case PRK_ControlsMenu:
         case PRK_VideoMenu:
+		case PRK_SoundMenu:
         SetPrompt(pprompt, PRP_Basic, PRK_OptionsMenu);
         break;
 

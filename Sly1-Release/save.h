@@ -33,6 +33,10 @@ struct VIDEOSAVESETTINGS
     int gamepadBindings[BTN_MAX];
     int disableControllerInputWhenUnfocused;
     int lastSaveSlot;
+    int stereoEnabled;
+    float musicVolume;
+    float soundEffectsVolume;
+    float dialogueVolume;
 };
 
 struct SAVEDATA

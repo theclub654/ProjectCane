@@ -3,11 +3,11 @@
 #include "game.h"
 #include "screen.h"
 #include "sound.h"
+#include "transition.h"
 #include "ui.h"
 #include "gl.h"
 
 #include <Windows.h>
-#include <mmsystem.h>
 #include <chrono>
 #include <cstring>
 #include <filesystem>
@@ -206,6 +206,7 @@ namespace
         const std::filesystem::path directory = CutsceneDirectory(info.videoFileName);
         const std::filesystem::path videoPath = directory / info.videoFileName;
         const std::filesystem::path audioPath = directory / info.audioFileName;
+        const bool isStartupSplash = info.identityId == STARTUP_SPLASH_QUEUE_ID;
 
         AVFormatContext* format = nullptr;
         int result = avformat_open_input(&format, videoPath.string().c_str(), nullptr, nullptr);
@@ -214,6 +215,23 @@ namespace
             std::cerr << "Failed to open cutscene video: " << videoPath << " (" << AvError(result) << ")\n";
             return false;
         }
+
+        // The retail game's music sequencer lived outside the EE, while its
+        // movie playback explicitly silenced game music.  Our sequencer now
+        // runs on its own worker, so preserve and restore its pause state
+        // around FFmpeg playback instead of letting it continue underneath.
+        const bool musicWasPaused = FMusicSequencerPaused();
+        const float masterVolumeBeforeMovie = GetMasterVolume();
+        if (isStartupSplash)
+            KillMusic();
+        else
+            PauseMusicSequencer();
+        // World transitions mute the game master while the screen is black,
+        // but retail movie audio is still audible during that interval. The
+        // port currently shares one XAudio mastering voice, so temporarily
+        // open it for the movie and restore the transition's value afterward.
+        SetMasterVolume(1.0f);
+        SetFmvAudioMode(true);
 
         AVCodecContext* decoder = nullptr;
         AVFrame* frame = nullptr;
@@ -312,7 +330,9 @@ namespace
 
                     if (!audioStarted)
                     {
-                        if (!PlaySoundW(audioPath.c_str(), nullptr, SND_FILENAME | SND_ASYNC | SND_NODEFAULT))
+                        PreloadVag(audioPath.string().c_str());
+                        FPauseForVag();
+                        if (!FVagPlaying())
                             std::cerr << "Failed to start cutscene audio: " << audioPath << '\n';
                         audioStarted = true;
                     }
@@ -363,7 +383,8 @@ namespace
             result = 0;
         } while (false);
 
-        PlaySoundW(nullptr, nullptr, 0);
+        StopVag();
+        SetFmvAudioMode(false);
         if (texture != 0)
             glDeleteTextures(1, &texture);
         sws_freeContext(scaler);
@@ -374,6 +395,12 @@ namespace
 
         if (result < 0)
             std::cerr << "Cutscene decode failed for " << videoPath << ": " << AvError(result) << '\n';
+        SetMasterVolume(masterVolumeBeforeMovie);
+        // Startup playback permanently discarded splash.brx's sequencer above;
+        // the destination world starts a fresh song after loading. Other
+        // movies restore the song they interrupted when no transition follows.
+        if (!musicWasPaused && !isStartupSplash && g_transition.m_fPending == 0)
+            ContinueMusicSequencer();
         return played;
     }
 }

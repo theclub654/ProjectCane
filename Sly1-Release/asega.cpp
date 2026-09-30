@@ -161,10 +161,19 @@ void HandleAsegaEvent(ASEGA* pasega, EA* pea, int* pfRetracted)
             if (pasega->pambContinuous && fContinuous)
                 return;
 
-            ALO* paloSound = paloRoot;
+            // Retail uses the actual ASEGA root for an unqualified sound.  A
+            // null root means non-positional audio; it must not fall back to
+            // interpreting the ASEG resource itself as an ALO transform.
+            ALO* paloSound = pasega->paloRoot;
 
             if (peasnd->oid != -1)
-                paloSound = static_cast<ALO*>(PloFindSwObject(psw, 260, static_cast<OID>(peasnd->oid), paloRoot));
+            {
+                ALO* paloSearchRoot = pasega->paloRoot;
+                if (paloSearchRoot == nullptr)
+                    paloSearchRoot = reinterpret_cast<ALO*>(paseg);
+                paloSound = static_cast<ALO*>(PloFindSwObject(
+                    psw, 260, static_cast<OID>(peasnd->oid), paloSearchRoot));
+            }
 
             AMB** ppamb = fContinuous ? &pasega->pambContinuous : nullptr;
 

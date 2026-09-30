@@ -1281,23 +1281,9 @@ static fs::path GetLevelOutputDirectory(const fs::path& worldsDirectory, uint32_
     }
 }
 
-static fs::path GetDialogWorldDirectory(const fs::path& dialogDirectory, uint32_t levelId)
+static fs::path GetDialogOutputDirectory(const fs::path& worldsDirectory, uint32_t levelId)
 {
-    switch (levelId >> 8)
-    {
-    case 1:
-        return dialogDirectory / "Tide of Terror";
-    case 2:
-        return dialogDirectory / "Sunset Snake Eyes";
-    case 3:
-        return dialogDirectory / "Vicious Voodoo";
-    case 4:
-        return dialogDirectory / "Fire in the sky";
-    case 5:
-        return dialogDirectory / "The Cold Heart of Hate";
-    default:
-        return dialogDirectory;
-    }
+    return GetLevelOutputDirectory(worldsDirectory, levelId);
 }
 static bool ValidateIso(std::ifstream& iso)
 {
@@ -1393,7 +1379,6 @@ int main(int argc, char** argv)
     const fs::path musicDirectory = worldsDirectory / "Music";
     const fs::path soundBankDirectory = worldsDirectory / "Sound Banks";
     const fs::path commentaryDirectory = worldsDirectory / "Sounds" / "Commentary";
-    const fs::path dialogAudioDirectory = worldsDirectory / "Sounds" / "Dialog";
     const fs::path jloAmbientDirectory = worldsDirectory / "Sounds" / "JLO Ambient";
     const fs::path promptSoundDirectory = worldsDirectory / "Sounds" / "Prompt";
 
@@ -1499,7 +1484,8 @@ int main(int argc, char** argv)
 
         levelNames.emplace_back(levelInfo.levelId, levelName);
 
-        const fs::path levelOutputDirectory = GetLevelOutputDirectory(worldsDirectory, levelInfo.levelId);
+        const fs::path levelOutputDirectory =
+            GetLevelOutputDirectory(worldsDirectory, levelInfo.levelId) / levelName;
         std::error_code directoryError;
         fs::create_directories(levelOutputDirectory, directoryError);
 
@@ -1747,15 +1733,6 @@ int main(int argc, char** argv)
     std::cout << "Extracted " << commentaryExtracted
               << " commentary audio files into:\n" << commentaryDirectory << "\n\n";
 
-    std::error_code dialogAudioDirectoryError;
-    fs::create_directories(dialogAudioDirectory, dialogAudioDirectoryError);
-
-    if (dialogAudioDirectoryError)
-    {
-        std::cerr << "Could not create dialog audio output directory:\n" << dialogAudioDirectory << '\n';
-        return Finish(EXIT_FAILURE);
-    }
-
     std::vector<uint32_t> initializedDialogManifests;
     std::size_t dialogAudioExtracted = 0;
 
@@ -1777,8 +1754,8 @@ int main(int argc, char** argv)
             levelName = "The Hideout";
 
         const fs::path levelDialogDirectory =
-            GetDialogWorldDirectory(dialogAudioDirectory, dialogAudio.levelId) /
-            SanitizeFileName(levelName);
+            GetDialogOutputDirectory(worldsDirectory, dialogAudio.levelId) /
+            SanitizeFileName(levelName) / "Dialog";
 
         std::error_code levelDialogDirectoryError;
         fs::create_directories(levelDialogDirectory, levelDialogDirectoryError);
@@ -1809,7 +1786,21 @@ int main(int argc, char** argv)
         }
 
         const uint64_t dataOffset = static_cast<uint64_t>(dialogAudio.sector) * ISO_SECTOR_SIZE;
-        std::vector<uint8_t> audioData(dialogAudio.size);
+        uint32_t audioSize = dialogAudio.size;
+        if (audioSize == 0)
+        {
+            std::vector<uint8_t> vagHeader(0x30);
+            if (!ReadExactAt(iso, dataOffset, vagHeader.data(), vagHeader.size()) ||
+                vagHeader[0] != 'V' || vagHeader[1] != 'A' ||
+                vagHeader[2] != 'G' || vagHeader[3] != 'p')
+            {
+                std::cerr << "Failed reading dialog VAG header at ISO sector 0x"
+                          << std::hex << dialogAudio.sector << std::dec << ".\n";
+                return Finish(EXIT_FAILURE);
+            }
+            audioSize = ReadBe32(vagHeader, 0x0C) + 0x30;
+        }
+        std::vector<uint8_t> audioData(audioSize);
         if (!ReadExactAt(iso, dataOffset, audioData.data(), audioData.size()))
         {
             std::cerr << "Failed to read dialog VAG 0x" << std::hex << dialogAudio.identity
@@ -1851,7 +1842,7 @@ int main(int argc, char** argv)
             << " | levelId 0x" << std::hex << std::uppercase << dialogAudio.levelId
             << " | identity 0x" << dialogAudio.identity
             << " | sector 0x" << dialogAudio.sector
-            << " | bytes 0x" << dialogAudio.size
+            << " | bytes 0x" << audioSize
             << " | source " << (dialogAudio.source == DialogAudioSource::DIALOG ? "DIALOG" : "ASEG")
             << std::nouppercase << std::dec << '\n';
 
@@ -1859,13 +1850,14 @@ int main(int argc, char** argv)
         std::cout << "[Dialog Audio] " << levelName
                   << " | VAG 0x" << std::hex << std::uppercase << dialogAudio.identity
                   << " | sector 0x" << dialogAudio.sector
-                  << " | bytes 0x" << dialogAudio.size
+                  << " | bytes 0x" << audioSize
                   << std::nouppercase << std::dec
                   << " -> " << wavOutputPath << '\n';
     }
 
     std::cout << "Extracted " << dialogAudioExtracted
-              << " dialog WAV files into:\n" << dialogAudioDirectory << ".\n\n";
+              << " dialog WAV files into their respective world directories under:\n"
+              << worldsDirectory << ".\n\n";
 
     std::error_code cutsceneDirectoryError;
     fs::create_directories(cutsceneDirectory, cutsceneDirectoryError);

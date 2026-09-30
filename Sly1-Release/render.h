@@ -27,8 +27,6 @@ void BindGlobThreeWayTextures(GLuint ambientTexture, GLuint diffuseTexture, GLui
 void DrawCelBorder(RPLCEL* prplcel);
 void DrawSubGlob(int baseVertex, int firstIndex, int indexCount);
 void DrawProjVolume(int baseVertex, int firstIndex, int indexCount);
-void DrawProjVolumeAlphaAdd(int baseVertex, int firstIndex, int indexCount);
-void DrawProjVolumeAdd(int baseVertex, int firstIndex, int indexCount);
 void DrawMurkClear(int baseVertex, int firstIndex, int indexCount);
 void DrawMurkFill(int baseVertex, int firstIndex, int indexCount);
 void DrawTranslucent(int baseVertex, int firstIndex, int indexCount);
@@ -82,12 +80,6 @@ extern std::vector <RPLCEL> g_celBorderPrpl;
 
 extern int g_projVolumeCount;
 extern std::vector <RPL> g_projVolumePrpl;
-
-extern int g_projVolumeAlphaAddCount;
-extern std::vector <RPL> g_projVolumeAlphaAddPrpl;
-
-extern int g_projVolumeAddCount;
-extern std::vector <RPL> g_projVolumeAddPrpl;
 
 extern int g_opaqueAfterProjVolumeCount;
 extern std::vector <RPL> g_opaqueAfterProjVolumePrpl;

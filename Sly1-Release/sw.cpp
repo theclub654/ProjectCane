@@ -897,8 +897,6 @@ void LoadSwFromBrx(SW* psw, CBinaryInputStream* pbis)
 		g_cutOutBlendAddPrpl.size() +
 		g_cutOutPrpl.size() +
 		g_projVolumePrpl.size() +
-		g_projVolumeAlphaAddPrpl.size() +
-		g_projVolumeAddPrpl.size() +
 		g_opaqueAfterProjVolumePrpl.size() +
 		g_cutOutAfterProjVolumeAddPrpl.size() +
 		g_cutOutAfterProjVolumePrpl.size() +
@@ -1466,14 +1464,6 @@ void DeleteWorld(SW *psw)
 	g_projVolumeCount = 0;
 	g_projVolumePrpl.clear();
 	g_projVolumePrpl.shrink_to_fit();
-
-	g_projVolumeAlphaAddCount = 0;
-	g_projVolumeAlphaAddPrpl.clear();
-	g_projVolumeAlphaAddPrpl.shrink_to_fit();
-
-	g_projVolumeAddCount = 0;
-	g_projVolumeAddPrpl.clear();
-	g_projVolumeAddPrpl.shrink_to_fit();
 
 	g_opaqueAfterProjVolumeCount = 0;
 	g_opaqueAfterProjVolumePrpl.clear();

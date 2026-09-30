@@ -2,11 +2,37 @@
 #include "resource1.h"
 
 #include <Windows.h>
+#include <cstdio>
 #include <cstring>
+#include <iostream>
 #include <stdexcept>
 
 namespace
 {
+	void ShowShaderErrorConsole()
+	{
+		static bool initialized = false;
+		if (initialized)
+			return;
+
+		initialized = true;
+		if (GetConsoleWindow() == nullptr && AllocConsole() == FALSE)
+			return;
+
+		FILE* stream = nullptr;
+		freopen_s(&stream, "CONOUT$", "w", stdout);
+		freopen_s(&stream, "CONOUT$", "w", stderr);
+		std::cout.clear();
+		std::cerr.clear();
+		SetConsoleTitleW(L"ProjectCane - Shader Error");
+
+		if (HWND consoleWindow = GetConsoleWindow())
+		{
+			ShowWindow(consoleWindow, SW_SHOW);
+			SetForegroundWindow(consoleWindow);
+		}
+	}
+
 	int ShaderResourceId(const char* filename)
 	{
 		struct ShaderResource
@@ -175,12 +201,13 @@ void GLSHADER::compileErrors(unsigned int shader, const char* type)
 	GLint hasCompiled;
 	char infoLog[1024];
 
-	if (type != "PROGRAM")
+	if (std::strcmp(type, "PROGRAM") != 0)
 	{
 		glGetShaderiv(shader, GL_COMPILE_STATUS, &hasCompiled);
 		if (hasCompiled == GL_FALSE)
 		{
 			glGetShaderInfoLog(shader, 1024, NULL, infoLog);
+			ShowShaderErrorConsole();
 			std::cout << "SHADER_COMPILATION_ERROR for:" << type << "\n" << infoLog << std::endl;
 		}
 	}
@@ -191,6 +218,7 @@ void GLSHADER::compileErrors(unsigned int shader, const char* type)
 		if (hasCompiled == GL_FALSE)
 		{
 			glGetProgramInfoLog(shader, 1024, NULL, infoLog);
+			ShowShaderErrorConsole();
 			std::cout << "SHADER_LINKING_ERROR for:" << type << "\n" << infoLog << std::endl;
 		}
 	}

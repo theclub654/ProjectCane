@@ -112,7 +112,9 @@ void ReadGeom(GEOM *pgeom, CBinaryInputStream *pbis)
         }
     }
 
-    if (!pgeom->apos.empty())
+	// Collision GPU buffers exist only for the optional debug renderer. The CPU
+	// geometry remains available for normal gameplay collision queries.
+	if (g_fDeveloperDebugMode && !pgeom->apos.empty())
     {
         glGenVertexArrays(1, &pgeom->VAO);
         glBindVertexArray(pgeom->VAO);
@@ -176,7 +178,7 @@ void CloneGeom(GEOM* pgeomSrc, glm::mat4* pdmat, GEOM* pgeomDst)
         }
     }
 
-    if (g_fDebugMode > 0)
+	if (g_fDeveloperDebugMode)
     {
         if (pgeomDst->cpos != 0)
         {

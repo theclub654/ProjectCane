@@ -469,16 +469,12 @@ void PostSpliceEventCallback(LO* plo, SYMID symidEvent, void* pvarg)
 	CProc* pproc = refProc.m_pproc.get();
 
 	if (pproc->m_pframe == nullptr || pproc->m_ppairFormals == nullptr || pproc->m_ppairCodeExpr == nullptr)
-	{
 		return;
-	}
 
 	auto pframeCall = PframeNew();
 
 	if (pframeCall == nullptr)
-	{
 		return;
-	}
 
 	pframeCall->SetSingleParent(pproc->m_pframe);
 	CPair* ppairFormal = pproc->m_ppairFormals;

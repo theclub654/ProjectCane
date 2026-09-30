@@ -30,14 +30,66 @@
 #include <cmath>
 #include <memory>
 #include <algorithm>
+#include <atomic>
+#include <mutex>
+#include <thread>
 #include <nlohmann/json.hpp>
+
+extern std::string file;
+
+static std::recursive_mutex s_musicMutex;
+static std::atomic<bool> s_musicWorkerRunning{ false };
+static std::thread s_musicWorker;
+static constexpr float kVagDriverGain = 0x3ffc / 32767.0f;
+static bool s_fFmvAudioMode = false;
+static bool s_dialogAudioDuckHeld = false;
+static float s_userMusicVolume = 1.0f;
+static float s_userSfxVolume = 1.0f;
+static float s_userDialogueVolume = 1.0f;
+
+static void UpdateMusicSequencer();
+static void PrimeMusicSequencerStartup();
+
+static void MusicWorkerMain()
+{
+	using namespace std::chrono_literals;
+	while (s_musicWorkerRunning.load(std::memory_order_acquire))
+	{
+		{
+			std::lock_guard<std::recursive_mutex> lock(s_musicMutex);
+			UpdateMusicSequencer();
+		}
+		std::this_thread::sleep_for(1ms);
+	}
+}
 
 const glm::vec3* PposSoundEar()
 {
 	PO* ppo = PpoCur();
-	if (ppo != nullptr && FIsPoSoundBase(ppo))
+	if (ppo != nullptr && ppo->pvtpo->pfnFIsPoSoundBase(ppo))
 		return &ppo->xf.posWorld;
 	return g_pcm != nullptr ? &g_pcm->pos : nullptr;
+}
+
+float SDistSoundEar(const glm::vec3& posEar, const glm::vec3& posSound)
+{
+	const glm::vec3 displacement = posSound - posEar;
+	const LOOKK lookk = g_pcm != nullptr ? LookkCurCplook(&g_pcm->cplook) : LOOKK_Nil;
+	if (g_pcm == nullptr || FActiveCplcy(static_cast<CPLCY*>(&g_pcm->cplook)) == 0 ||
+		lookk < LOOKK_Sniper || lookk > LOOKK_SniperTrack)
+	{
+		return glm::length(displacement);
+	}
+
+	// Retail SDistEarZoom compresses only the component along the camera's
+	// forward axis. At full sniper zoom, distant objects in view are treated as
+	// one tenth as far away for sound attenuation.
+	const glm::vec3 forward = g_pcm->mat[0];
+	const float forwardDistance = glm::dot(displacement, forward);
+	const glm::vec3 perpendicular = displacement - forward * forwardDistance;
+	const float zoomScale = 1.0f /
+		((1.0f - g_pcm->cplook.uZoom) + g_pcm->cplook.uZoom * 10.0f);
+	return glm::length(perpendicular + forward * (forwardDistance * zoomScale));
 }
 
 template <typename T>
@@ -200,25 +252,48 @@ bool MatchesInsensitive(const std::filesystem::path& path, const std::wstring& n
 
 std::filesystem::path FindExtractedWav(const std::wstring& fileName)
 {
+    // In the organized extractor layout, a level's BRX and Dialog directory
+    // are siblings. Prefer that directory so identical VAG names in different
+    // levels cannot resolve to the wrong voice line.
+    if (!file.empty())
+    {
+        const std::filesystem::path levelDialogDirectory =
+            std::filesystem::path(file).parent_path() / L"Dialog";
+        const std::filesystem::path levelDialogFile = levelDialogDirectory / fileName;
+        std::error_code error;
+        if (std::filesystem::is_regular_file(levelDialogFile, error))
+            return levelDialogFile;
+    }
+
     const std::filesystem::path executableDirectory = ExecutableDirectory();
     const std::filesystem::path repositoryDirectory = std::filesystem::current_path();
     const std::filesystem::path executableReposDirectory =
         executableDirectory.parent_path().parent_path().parent_path();
     const std::filesystem::path roots[] =
     {
-        executableDirectory / L"Worlds" / L"Sounds",
-        std::filesystem::current_path() / L"Worlds" / L"Sounds",
-        std::filesystem::current_path() / L"Sly1-Release" / L"Worlds" / L"Sounds",
+        executableDirectory / L"Worlds",
+        std::filesystem::current_path() / L"Worlds",
+        std::filesystem::current_path() / L"Sly1-Release" / L"Worlds",
+        std::filesystem::current_path() / L"x64" / L"Debug" / L"Worlds",
+        std::filesystem::current_path() / L"x64" / L"Release" / L"Worlds",
+        executableDirectory / L"x64" / L"Debug" / L"Worlds",
+        executableDirectory / L"x64" / L"Release" / L"Worlds",
+        executableDirectory.parent_path() / L"x64" / L"Debug" / L"Worlds",
+        executableDirectory.parent_path() / L"x64" / L"Release" / L"Worlds",
+        executableDirectory.parent_path().parent_path() / L"x64" / L"Debug" / L"Worlds",
+        executableDirectory.parent_path().parent_path() / L"x64" / L"Release" / L"Worlds",
+        executableDirectory.parent_path().parent_path().parent_path() / L"x64" / L"Debug" / L"Worlds",
+        executableDirectory.parent_path().parent_path().parent_path() / L"x64" / L"Release" / L"Worlds",
         // Development fallback: allow ProjectCane to use a freshly generated
         // extractor asset tree without duplicating roughly 500 MB of dialog.
         repositoryDirectory.parent_path() / L"Sly1 File Extractor" / L"x64" /
-            L"Debug" / L"Worlds" / L"Sounds",
+            L"Debug" / L"Worlds",
         repositoryDirectory.parent_path() / L"Sly1 File Extractor" / L"x64" /
-            L"Release" / L"Worlds" / L"Sounds",
+            L"Release" / L"Worlds",
         executableReposDirectory / L"Sly1 File Extractor" / L"x64" /
-            L"Debug" / L"Worlds" / L"Sounds",
+            L"Debug" / L"Worlds",
         executableReposDirectory / L"Sly1 File Extractor" / L"x64" /
-            L"Release" / L"Worlds" / L"Sounds"
+            L"Release" / L"Worlds"
     };
 
     for (const std::filesystem::path& root : roots)
@@ -291,6 +366,16 @@ std::filesystem::path FindEffectBank(int ibnk)
 		executableDirectory / L"Worlds" / L"Sound Banks",
 		repositoryDirectory / L"Worlds" / L"Sound Banks",
 		repositoryDirectory / L"Sly1-Release" / L"Worlds" / L"Sound Banks",
+		repositoryDirectory / L"x64" / L"Debug" / L"Worlds" / L"Sound Banks",
+		repositoryDirectory / L"x64" / L"Release" / L"Worlds" / L"Sound Banks",
+		executableDirectory / L"x64" / L"Debug" / L"Worlds" / L"Sound Banks",
+		executableDirectory / L"x64" / L"Release" / L"Worlds" / L"Sound Banks",
+		executableDirectory.parent_path() / L"x64" / L"Debug" / L"Worlds" / L"Sound Banks",
+		executableDirectory.parent_path() / L"x64" / L"Release" / L"Worlds" / L"Sound Banks",
+		executableDirectory.parent_path().parent_path() / L"x64" / L"Debug" / L"Worlds" / L"Sound Banks",
+		executableDirectory.parent_path().parent_path() / L"x64" / L"Release" / L"Worlds" / L"Sound Banks",
+		executableDirectory.parent_path().parent_path().parent_path() / L"x64" / L"Debug" / L"Worlds" / L"Sound Banks",
+		executableDirectory.parent_path().parent_path().parent_path() / L"x64" / L"Release" / L"Worlds" / L"Sound Banks",
 		repositoryDirectory.parent_path() / L"Sly1 File Extractor" / L"x64" / L"Debug" / L"Worlds" / L"Sound Banks",
 		repositoryDirectory.parent_path() / L"Sly1 File Extractor" / L"x64" / L"Release" / L"Worlds" / L"Sound Banks",
 		executableReposDirectory / L"Sly1 File Extractor" / L"x64" / L"Debug" / L"Worlds" / L"Sound Banks",
@@ -319,6 +404,16 @@ std::filesystem::path FindMusicBank(MUSID musid)
 		executableDirectory / L"Worlds" / L"Music",
 		repositoryDirectory / L"Worlds" / L"Music",
 		repositoryDirectory / L"Sly1-Release" / L"Worlds" / L"Music",
+		repositoryDirectory / L"x64" / L"Debug" / L"Worlds" / L"Music",
+		repositoryDirectory / L"x64" / L"Release" / L"Worlds" / L"Music",
+		executableDirectory / L"x64" / L"Debug" / L"Worlds" / L"Music",
+		executableDirectory / L"x64" / L"Release" / L"Worlds" / L"Music",
+		executableDirectory.parent_path() / L"x64" / L"Debug" / L"Worlds" / L"Music",
+		executableDirectory.parent_path() / L"x64" / L"Release" / L"Worlds" / L"Music",
+		executableDirectory.parent_path().parent_path() / L"x64" / L"Debug" / L"Worlds" / L"Music",
+		executableDirectory.parent_path().parent_path() / L"x64" / L"Release" / L"Worlds" / L"Music",
+		executableDirectory.parent_path().parent_path().parent_path() / L"x64" / L"Debug" / L"Worlds" / L"Music",
+		executableDirectory.parent_path().parent_path().parent_path() / L"x64" / L"Release" / L"Worlds" / L"Music",
 		repositoryDirectory.parent_path() / L"Sly1 File Extractor" / L"x64" / L"Debug" / L"Worlds" / L"Music",
 		repositoryDirectory.parent_path() / L"Sly1 File Extractor" / L"x64" / L"Release" / L"Worlds" / L"Music",
 		executableReposDirectory / L"Sly1 File Extractor" / L"x64" / L"Debug" / L"Worlds" / L"Music",
@@ -420,13 +515,25 @@ void ApplyCurrentEffectReverb()
 	const int preset = std::clamp(static_cast<int>(s_effectReverbKind),
 		static_cast<int>(REVERBK_None), static_cast<int>(REVERBK_Max) - 1);
 	XAUDIO2FX_REVERB_I3DL2_PARAMETERS i3dl2 = presets[preset];
-	i3dl2.WetDryMix = s_effectReverbKind == REVERBK_None ? 0.0f :
-		100.0f * std::clamp(s_effectReverbDepth, 0, 127) / 127.0f;
+	// The PS2 driver receives reverb depth as an SPU signed-volume value
+	// (0..0x7fff).  Keep this auxiliary path fully wet and apply that depth to
+	// the reverb return; mixing dry signal inside the effect would duplicate the
+	// source voice's direct path.
+	const float wetLevel = s_effectReverbKind == REVERBK_None
+		? 0.0f
+		: std::clamp(static_cast<float>(s_effectReverbDepth) / 32767.0f, 0.0f, 1.0f);
+	i3dl2.WetDryMix = 100.0f;
 	XAUDIO2FX_REVERB_PARAMETERS native{};
 	ReverbConvertI3DL2ToNative(&i3dl2, &native, FALSE);
-	s_effectReverbVoice->SetEffectParameters(0, &native, sizeof(native));
-	s_effectReverbVoice->SetVolume(
-		s_effectReverbKind == REVERBK_None || s_effectReverbDepth <= 0 ? 0.0f : 1.0f);
+	const HRESULT parametersResult =
+		s_effectReverbVoice->SetEffectParameters(0, &native, sizeof(native));
+	const HRESULT volumeResult = s_effectReverbVoice->SetVolume(wetLevel);
+	if (FAILED(parametersResult) || FAILED(volumeResult))
+	{
+		std::printf("[REVERB] apply failed parameters=0x%08X volume=0x%08X kind=%d depth=%d wet=%.3f\n",
+			static_cast<unsigned>(parametersResult), static_cast<unsigned>(volumeResult),
+			static_cast<int>(s_effectReverbKind), s_effectReverbDepth, wetLevel);
+	}
 }
 
 bool EnsureMusicEngine()
@@ -448,9 +555,12 @@ bool EnsureMusicEngine()
 
 void RecalculateChannelVolume(int channel)
 {
+	std::lock_guard<std::recursive_mutex> lock(s_musicMutex);
 	if (channel < 0 || channel >= static_cast<int>(s_channelVolumes.size()))
 		return;
-	float volume = channel == 1 ? 0.5f : 1.0f;
+	// Retail initializes all 11 mixer modifiers for all four channels to 1.0.
+	// Channel differences come only from the active modifier groups.
+	float volume = 1.0f;
 	for (const auto& group : s_relativeVolumes)
 		volume *= group[channel];
 	s_channelVolumes[channel] = (std::max)(0.0f, (std::min)(1.0f, volume));
@@ -462,7 +572,8 @@ void RecalculateChannelVolume(int channel)
 		for (MusicVoice& active : s_music989.voices)
 			if (active.voice) active.voice->SetVolume(
 				active.baseVolume * (active.envelope.level / 32767.0f) *
-				s_channelVolumes[musicChannel] * s_musicVolume * s_dialogMusicDuck);
+				s_channelVolumes[musicChannel] * s_musicVolume * s_dialogMusicDuck *
+				s_userMusicVolume);
 	}
 	// Retail VAG/dialog streams use mixer channel 2. Channel 1 is music and is
 	// independently controlled by the prompt's Music option.
@@ -471,12 +582,14 @@ void RecalculateChannelVolume(int channel)
 		if (s_pambVagAmbient)
 			SetPambVol(s_pambVagAmbient, s_pambVagAmbient->uVolAtSource);
 		else if (s_vagStream.voice)
-			s_vagStream.voice->SetVolume(s_channelVolumes[2]);
+			s_vagStream.voice->SetVolume(kVagDriverGain *
+				(s_fFmvAudioMode ? 1.0f : s_channelVolumes[2]) * s_userDialogueVolume);
 	}
 }
 
 void CloseMusicVoice()
 {
+	std::lock_guard<std::recursive_mutex> lock(s_musicMutex);
 	for (MusicVoice& active : s_music989.voices)
 	{
 		if (active.voice)
@@ -527,8 +640,21 @@ std::filesystem::path ResolveVagWav(const char* descriptorOrPath)
     return FindCommentaryWav(identity, sector);
 }
 
+static void ApplyDialogMusicDuck(float duck)
+{
+	s_dialogMusicDuck = duck;
+	const int musicChannel = std::clamp(s_music989.cueVolumeGroup, 0,
+		static_cast<int>(s_channelVolumes.size()) - 1);
+	for (MusicVoice& active : s_music989.voices)
+		if (active.voice) active.voice->SetVolume(
+			active.baseVolume * (active.envelope.level / 32767.0f) *
+			s_channelVolumes[musicChannel] * s_musicVolume * s_dialogMusicDuck *
+			s_userMusicVolume);
+}
+
 void CloseVagStream()
 {
+	std::lock_guard<std::recursive_mutex> lock(s_musicMutex);
 	const bool wasCommentary = s_vagStream.commentary;
 	if (s_vagStream.voice)
 	{
@@ -538,12 +664,10 @@ void CloseVagStream()
 	}
     s_vagStream = {};
 	s_hvagAmbient = 0;
-	s_dialogMusicDuck = 1.0f;
-	for (MusicVoice& active : s_music989.voices)
-		if (active.voice) active.voice->SetVolume(
-			active.baseVolume * (active.envelope.level / 32767.0f) *
-				s_channelVolumes[std::clamp(s_music989.cueVolumeGroup, 0,
-					static_cast<int>(s_channelVolumes.size()) - 1)] * s_musicVolume);
+	// A dialogue can contain several separate VAG clips with camera and speaker
+	// events between them. Keep music ducked while that dialogue owns the audio;
+	// otherwise every completed line briefly restores full music volume.
+	ApplyDialogMusicDuck(s_dialogAudioDuckHeld ? 0.2f : 1.0f);
 
 	if (wasCommentary)
 	{
@@ -964,6 +1088,7 @@ void StopMusicSegment(uint32_t id)
 
 void SetGlobalExciteValue(int excite)
 {
+	std::lock_guard<std::recursive_mutex> lock(s_musicMutex);
 	s_globalExcite = static_cast<uint8_t>(std::clamp(excite, 0, 127));
 
 	// snd_SetGlobalExcite immediately reapplies every active AME channel group.
@@ -1270,7 +1395,7 @@ void UpdateMusicEnvelopes()
 			active.voice->SetVolume(active.baseVolume * envelopeVolume *
 				s_channelVolumes[std::clamp(s_music989.cueVolumeGroup, 0,
 					static_cast<int>(s_channelVolumes.size()) - 1)] *
-				s_musicVolume * s_dialogMusicDuck);
+				s_musicVolume * s_dialogMusicDuck * s_userMusicVolume);
 		}
 	}
 }
@@ -1408,7 +1533,9 @@ void ActivateQueuedMusicSegments()
 		for (const MusicSegment& active : s_music989.activeSegments)
 			exists = exists || (!active.complete && active.id == id);
 		if (exists || id >= s_music989.segmentOffsets.size())
+		{
 			continue;
+		}
 		const uint8_t* base = s_music989.sequence.data() + s_music989.segmentOffsets[id];
 		const uint32_t dataStart = MusicLe32(base + 24);
 		MusicSegment segment{};
@@ -1635,13 +1762,19 @@ void SetEffectVoicePan(IXAudio2SourceVoice* voice, int pan)
 	if (pan > 180) pan -= 360;
 	const float position = std::sin(static_cast<float>(pan) * 3.14159265358979323846f / 180.0f);
 	std::vector<float> matrix(destinationDetails.InputChannels, 0.0f);
-	matrix[0] = s_stereoOutputEnabled ? (1.0f - position) * 0.5f : 0.5f;
+	// Use an equal-power pan law. The previous linear 0.5/0.5 center reduced
+	// every centered mono effect by 3 dB compared with the SPU/989SND mix.
+	const float panAngle = (position + 1.0f) * 0.7853981633974483f;
+	matrix[0] = s_stereoOutputEnabled ? std::cos(panAngle) : 0.7071067811865476f;
 	if (destinationDetails.InputChannels >= 2)
-		matrix[1] = s_stereoOutputEnabled ? (1.0f + position) * 0.5f : 0.5f;
+		matrix[1] = s_stereoOutputEnabled ? std::sin(panAngle) : 0.7071067811865476f;
 	voice->SetOutputMatrix(s_musicMasterVoice, 1, destinationDetails.InputChannels, matrix.data());
 	if (s_effectReverbVoice)
 	{
-		const float reverbMatrix[2] = { matrix[0], destinationDetails.InputChannels >= 2 ? matrix[1] : matrix[0] };
+		const float reverbMatrix[2] =
+		{
+			matrix[0], destinationDetails.InputChannels >= 2 ? matrix[1] : matrix[0]
+		};
 		voice->SetOutputMatrix(s_effectReverbVoice, 1, 2, reverbMatrix);
 	}
 }
@@ -1664,7 +1797,7 @@ float EffectVoiceVolume(const EFFECTVOICE& active, float applicationVolume)
 		active.soundVolume * (std::max)(0.0f, applicationVolume), 0.0f, 1.0f);
 	const int group = std::clamp(active.volumeGroup, 0, 3);
 	const float linearVolume = adjustedSoundVolume * active.toneVolume *
-		s_channelVolumes[group];
+		s_channelVolumes[group] * s_userSfxVolume;
 	// 989SND's group curve is applied to the programmed voice volume first;
 	// the SPU2 ADSR envelope then scales that result linearly.
 	return linearVolume * linearVolume * (active.envelopeLevel / 32767.0f);
@@ -1746,11 +1879,6 @@ void StepEffectEnvelope(EFFECTVOICE& active)
 		if (active.envelopeDecreasing)
 		{
 			sampleStep = (sampleStep * active.envelopeLevel) >> 15;
-			// Integer SPU envelope emulation must continue making progress near
-			// zero. A rounded step of zero leaves a keyed-off looping voice alive
-			// forever (notably Panda King SFX 665).
-			if (sampleStep == 0 && active.envelopeLevel > 0)
-				sampleStep = -1;
 		}
 	}
 	active.envelopeCounter += counterStep;
@@ -1782,12 +1910,36 @@ void StepEffectEnvelope(EFFECTVOICE& active)
 bool PlayEffectTone(AMB& amb, const EFFECTBANK& bank, const EFFECTBANK::SOUND& sound,
 	const EFFECTBANK::TONE& tone, float applicationVolume, float pitchMod)
 {
-	if ((tone.flags & 8) != 0 || !EnsureMusicEngine()) // SPU noise tone
-	{
+	if (!EnsureMusicEngine())
 		return false;
-	}
+
 	DecodedEffectSample decoded;
-	if (!DecodeEffectAdpcm(bank, tone.sampleOffset, decoded))
+	if ((tone.flags & 8) != 0) // SPU noise tone
+	{
+		// Noise voices do not read ADPCM data on SPU2. Generate one complete
+		// deterministic LFSR period and loop it; pitch and ADSR are still handled
+		// by the normal voice path below. This uses the same feedback table as
+		// PCSX2's SPU2 noise generator at the default (fastest) noise clock.
+		static constexpr uint8_t noiseAdd[64] =
+		{
+			1, 0, 0, 1, 0, 1, 1, 0, 1, 0, 0, 1, 0, 1, 1, 0,
+			1, 0, 0, 1, 0, 1, 1, 0, 1, 0, 0, 1, 0, 1, 1, 0,
+			0, 1, 1, 0, 1, 0, 0, 1, 0, 1, 1, 0, 1, 0, 0, 1,
+			0, 1, 1, 0, 1, 0, 0, 1, 0, 1, 1, 0, 1, 0, 0, 1
+		};
+		uint16_t noise = 1;
+		decoded.pcm.resize(32767);
+		for (int16_t& sample : decoded.pcm)
+		{
+			noise = static_cast<uint16_t>((noise << 1) |
+				noiseAdd[(noise >> 10) & 63]);
+			sample = static_cast<int16_t>(noise);
+		}
+		decoded.loop = true;
+		decoded.loopBegin = 0;
+		decoded.loopLength = static_cast<uint32_t>(decoded.pcm.size());
+	}
+	else if (!DecodeEffectAdpcm(bank, tone.sampleOffset, decoded))
 	{
 		return false;
 	}
@@ -1802,13 +1954,16 @@ bool PlayEffectTone(AMB& amb, const EFFECTBANK& bank, const EFFECTBANK::SOUND& s
 	format.wBitsPerSample = 16;
 	format.nBlockAlign = 2;
 	format.nAvgBytesPerSec = format.nSamplesPerSec * format.nBlockAlign;
+	// Retail mixes gameplay effects on SPU2 core 0, then feeds that core's
+	// complete output through both the dry and external-wet gates on core 1.
+	// Parallel sends reproduce that bus routing without reverberating music,
+	// dialogue, or FMV voices which use their own source paths.
+	EnsureEffectReverb();
 	XAUDIO2_SEND_DESCRIPTOR sends[2]{};
 	sends[0].pOutputVoice = s_musicMasterVoice;
-	UINT32 sendCount = 1;
-	if (s_effectReverbVoice)
-		sends[sendCount++].pOutputVoice = s_effectReverbVoice;
+	sends[1].pOutputVoice = s_effectReverbVoice;
 	XAUDIO2_VOICE_SENDS sendList{};
-	sendList.SendCount = sendCount;
+	sendList.SendCount = s_effectReverbVoice ? 2 : 1;
 	sendList.pSends = sends;
 	const HRESULT createResult = s_xaudio2->CreateSourceVoice(&active.voice, &format, 0,
 		kSpuMaximumFrequencyRatio, nullptr, &sendList, nullptr);
@@ -1857,12 +2012,14 @@ bool PlayEffectTone(AMB& amb, const EFFECTBANK& bank, const EFFECTBANK::SOUND& s
 	active.voice->SetVolume(EffectVoiceVolume(active, applicationVolume));
 	SetEffectVoicePan(active.voice, active.authoredPan + EffectSpatialPanDegrees(amb.pan));
 
-	const bool ps1Pitch = tone.centerNote >= 0;
-	const int centerNote = ps1Pitch ? tone.centerNote : -tone.centerNote;
+	const int centerNote = tone.centerNote >= 0 ? tone.centerNote : -tone.centerNote;
 	const double semitones = 60.0 - centerNote - tone.centerFine / 128.0 +
 		(static_cast<double>(pitchMod) * 1524.0 / 128.0);
-	active.baseFrequencyRatio = static_cast<float>(std::pow(2.0, semitones / 12.0) *
-		(ps1Pitch ? 44100.0 / 48000.0 : 1.0));
+	// SPU2 pitch 0x1000 advances one source sample per 48 kHz output sample.
+	// The decoded effect voice is also declared as 48 kHz, so applying the
+	// PS1-era 44.1/48 kHz correction here lowered ordinary PS2 effects by about
+	// 8 percent.  Tone center-note/fine tuning is the only base adjustment.
+	active.baseFrequencyRatio = static_cast<float>(std::pow(2.0, semitones / 12.0));
 	active.baseFrequencyRatio = std::clamp(active.baseFrequencyRatio,
 		XAUDIO2_MIN_FREQ_RATIO, kSpuMaximumFrequencyRatio);
 	active.pitchBendLow = tone.pitchBendLow;
@@ -1908,8 +2065,12 @@ void ApplyEffectPitchBend(AMB& amb, int bend)
 			? active.pitchBendHigh * static_cast<double>(amb.currentPitchBend) / 32767.0
 			: active.pitchBendLow * static_cast<double>(amb.currentPitchBend) / 32768.0;
 		const double pitchModSemitones = static_cast<double>(amb.lfoPitchMod) / 128.0;
+		// snd_GetDopplerPitchMod returns the same 128-steps-per-semitone pitch
+		// modifier used by the rest of 989SND's effect pitch path.
+		const double dopplerSemitones = static_cast<double>(amb.dnDoppler) / 128.0;
 		const float ratio = std::clamp(active.baseFrequencyRatio *
-			static_cast<float>(std::pow(2.0, (bendSemitones + pitchModSemitones) / 12.0)),
+			static_cast<float>(std::pow(2.0,
+				(bendSemitones + pitchModSemitones + dopplerSemitones) / 12.0)),
 			XAUDIO2_MIN_FREQ_RATIO, kSpuMaximumFrequencyRatio);
 		active.voice->SetFrequencyRatio(ratio);
 	}
@@ -1965,7 +2126,8 @@ void TickEffectLfos(AMB& amb)
 	for (EFFECTVOICE& active : amb.voices)
 		if (active.voice)
 		{
-			active.voice->SetVolume(EffectVoiceVolume(active, (std::max)(0.0f, amb.volAttenuated + lfoVolume)));
+			active.voice->SetVolume(EffectVoiceVolume(active,
+				(std::max)(0.0f, amb.volAttenuated + lfoVolume) * amb.autoVolumeScale));
 			SetEffectVoicePan(active.voice, active.authoredPan + amb.lfoPan + EffectSpatialPanDegrees(amb.pan));
 		}
 }
@@ -2081,7 +2243,8 @@ void UpdateEffectEnvelopes(AMB& amb)
 		else
 		{
 			active.voice->SetVolume(EffectVoiceVolume(active,
-				(std::max)(0.0f, amb.volAttenuated + static_cast<float>(amb.lfoVolume) / 127.0f)));
+				(std::max)(0.0f, amb.volAttenuated + static_cast<float>(amb.lfoVolume) / 127.0f)) *
+				amb.autoVolumeScale);
 		}
 	}
 }
@@ -2194,8 +2357,6 @@ void ExecuteEffectGrain(AMB& amb)
 		}
 		break;
 	default:
-		// LFO and child-sound grains are retained by the parser and will be
-		// connected after the core handler is verified in game.
 		break;
 	}
 
@@ -2251,7 +2412,9 @@ void StartSound(SFXID sfxid, AMB** ppamb, ALO* palo, glm::vec3* ppos, float sSta
 				for (AMB* instance : instances)
 					if (!weakest || instance->tStarted < weakest->tStarted) weakest = instance;
 			if (!weakest || ((sound.flags & 0x10u) != 0 && weakest->uVolAtSource >= uVolAtSource))
+			{
 				return;
+			}
 			StopSound(weakest, 0);
 		}
 	}
@@ -2276,7 +2439,7 @@ void StartSound(SFXID sfxid, AMB** ppamb, ALO* palo, glm::vec3* ppos, float sSta
 		const glm::vec3* earPosition = PposSoundEar();
 		if (earPosition != nullptr)
 		{
-			const float distance = glm::length(position - *earPosition);
+			const float distance = SDistSoundEar(*earPosition, position);
 			if (distance > sStart)
 			{
 				// Retail preserves continuous/recurring AMBs while inaudible so they
@@ -2325,7 +2488,9 @@ void StartSound(SFXID sfxid, AMB** ppamb, ALO* palo, glm::vec3* ppos, float sSta
 	if (recurring)
 	{
 		ScheduleNextIntermittentSound(amb);
-		const float initialDelayMax = (std::max)(0.0f, amb->lmRepeat.gMax);
+		// Retail staggers the initial playback from zero through the minimum
+		// repeat interval. Subsequent plays use the full min/max range.
+		const float initialDelayMax = (std::max)(0.0f, amb->lmRepeat.gMin);
 		amb->tNext = g_clock.t + GRandInRange(0.0f, initialDelayMax);
 		return;
 	}
@@ -2445,8 +2610,6 @@ void StopSound(AMB* pamb, int msRampdown)
 		return;
 	}
 
-	pamb->fStopped = 1;
-	pamb->handlerDone = true;
 	const std::vector<AMB*> children = pamb->children;
 	for (AMB* child : children)
 		if (child) StopSound(child, msRampdown);
@@ -2455,38 +2618,27 @@ void StopSound(AMB* pamb, int msRampdown)
 		*pamb->ppamb = nullptr;
 		pamb->ppamb = nullptr;
 	}
-	for (EFFECTVOICE& active : pamb->voices)
+	pamb->fStopped = 1;
+	pamb->handlerDone = true;
+	if (msRampdown <= 0 || pamb->voices.empty())
 	{
-		// XAudio2 owns its infinite loop independently of our emulated SPU
-		// envelope. ExitLoop is not sufficient for every currently queued loop,
-		// so key off looping effect voices explicitly when their AMB is stopped.
-		if (active.voice && active.loop)
-		{
-			active.voice->Stop();
-			active.voice->FlushSourceBuffers();
-			active.voice->DestroyVoice();
-			active.voice = nullptr;
-			active.pcm.clear();
-		}
-		else
-			ReleaseEffectEnvelope(active);
-	}
-	pamb->voices.erase(std::remove_if(pamb->voices.begin(), pamb->voices.end(),
-		[](const EFFECTVOICE& active) { return active.voice == nullptr; }), pamb->voices.end());
-	pamb->voice = pamb->voices.empty() ? nullptr : pamb->voices.front().voice;
-
-	// A sound with no live tone has nothing to release. Ramp-down requests use
-	// the authored SPU2 release envelope too; 989SND's millisecond automation
-	// can be layered on later without bypassing key-off semantics.
-	(void)msRampdown;
-	if (pamb->voices.empty())
 		RemoveAmb(pamb);
+		return;
+	}
+
+	// Retail calls snd_AutoVol(handle, -4, ms * 0.24, 2). 989SND treats -4 as
+	// fade to silence and stop, rather than as an authored SPU release envelope.
+	pamb->autoVolumeTicks = (std::max)(1,
+		static_cast<int>(static_cast<float>(msRampdown) * 0.24000001f));
+	pamb->autoVolumeTicksRemaining = pamb->autoVolumeTicks;
+	pamb->autoVolumeScale = 1.0f;
 }
 
 void PausePamb(AMB* pamb)
 {
-	if (pamb == nullptr)
+	if (pamb == nullptr || pamb->paused)
 		return;
+	pamb->paused = true;
 
 	if (!pamb->voices.empty())
 	{
@@ -2502,8 +2654,9 @@ void PausePamb(AMB* pamb)
 
 void ContinuePamb(AMB* pamb)
 {
-	if (pamb == nullptr)
+	if (pamb == nullptr || !pamb->paused)
 		return;
+	pamb->paused = false;
 
 	if (!pamb->voices.empty())
 	{
@@ -2519,16 +2672,53 @@ void ContinuePamb(AMB* pamb)
 
 void SetAMRegister(int ireg, byte bVal)
 {
+	std::lock_guard<std::recursive_mutex> lock(s_musicMutex);
 	if (ireg < 0 || ireg >= static_cast<int>(s_amRegisters.size()))
 		return;
 	const uint8_t value = static_cast<uint8_t>(bVal) & 0x7f;
+	if (s_amRegisters[ireg] == value)
+		return;
 	s_amRegisters[ireg] = value;
 	s_music989.registers[ireg] = value;
 	ReapplyRegisterAmeGroups(ireg);
 }
 
+static void PrimeMusicSequencerStartup()
+{
+	// 989SND executes a cue's zero-time MIDI/AME setup as part of starting the
+	// sound handle.  Deferring it to the worker lets gameplay write an AM
+	// register first, only for the cue initializer to overwrite that request.
+	// Prime each segment in the startup chain once, activating any segment that
+	// an immediate AME command queues, before returning to the game thread.
+	std::vector<uint32_t> primed;
+	for (int pass = 0; pass < 64; ++pass)
+	{
+		bool stepped = false;
+		for (MusicSegment& segment : s_music989.activeSegments)
+		{
+			if (segment.complete ||
+				std::find(primed.begin(), primed.end(), segment.id) != primed.end())
+				continue;
+
+			primed.push_back(segment.id);
+			StepMusicSegment(segment);
+			stepped = true;
+		}
+
+		ActivateQueuedMusicSegments();
+		s_music989.activeSegments.erase(
+			std::remove_if(s_music989.activeSegments.begin(), s_music989.activeSegments.end(),
+				[](const MusicSegment& segment) { return segment.complete; }),
+			s_music989.activeSegments.end());
+
+		if (!stepped && s_music989.pendingStarts.empty())
+			break;
+	}
+}
+
 void RefreshMidiRegister(int ireg)
 {
+	std::lock_guard<std::recursive_mutex> lock(s_musicMutex);
 	if (ireg < 0 || ireg >= static_cast<int>(s_amRegisters.size()))
 		return;
 
@@ -2589,7 +2779,7 @@ void SetPambVol(AMB* pamb, float uVolAtSource)
 		const glm::vec3* earPosition = PposSoundEar();
 		if (earPosition != nullptr)
 		{
-			const float distance = glm::length(pamb->pos - *earPosition);
+			const float distance = SDistSoundEar(*earPosition, pamb->pos);
 			CalculateVolPan(distance, &pamb->pos, &attenuatedVolume, &pamb->pan,
 				uVolAtSource, pamb->sStart, pamb->sFull);
 			pamb->fOutOfRange = distance > pamb->sStart ? 1 : 0;
@@ -2600,7 +2790,9 @@ void SetPambVol(AMB* pamb, float uVolAtSource)
 	{
 		if (!s_vagStream.voice)
 			return;
-		s_vagStream.voice->SetVolume((std::max)(0.0f, attenuatedVolume) * s_channelVolumes[2]);
+		s_vagStream.voice->SetVolume((std::max)(0.0f, attenuatedVolume) *
+			kVagDriverGain * (s_fFmvAudioMode ? 1.0f : s_channelVolumes[2]) *
+			s_userDialogueVolume);
 		if (s_vagStream.format.channels == 1 && s_musicMasterVoice)
 		{
 			XAUDIO2_VOICE_DETAILS destinationDetails{};
@@ -2624,7 +2816,8 @@ void SetPambVol(AMB* pamb, float uVolAtSource)
 		if (active.voice != nullptr)
 		{
 			active.voice->SetVolume(EffectVoiceVolume(active,
-				(std::max)(0.0f, attenuatedVolume + static_cast<float>(pamb->lfoVolume) / 127.0f)));
+				(std::max)(0.0f, attenuatedVolume + static_cast<float>(pamb->lfoVolume) / 127.0f)) *
+				pamb->autoVolumeScale);
 			SetEffectVoicePan(active.voice,
 				active.authoredPan + pamb->lfoPan + EffectSpatialPanDegrees(pamb->pan));
 		}
@@ -2659,7 +2852,6 @@ void SetDoppler(AMB* pamb)
 		return;
 
 	pamb->dnDoppler = 0;
-	float dopplerRatio = 1.0f;
 
 	if (pamb->palo != nullptr && pamb->rDoppler > 0.0001f)
 	{
@@ -2679,21 +2871,18 @@ void SetDoppler(AMB* pamb)
 			{
 				const glm::vec3 direction = displacement / std::sqrt(distanceSquared);
 				const float radialVelocity = glm::dot(sourceVelocity - listenerVelocity, direction);
-				const float pitchCents = radialVelocity * pamb->rDoppler * 0.0225f;
-				pamb->dnDoppler = static_cast<int>(std::round(pitchCents));
-				dopplerRatio = static_cast<float>(std::pow(2.0, pitchCents / 1200.0));
+				// Retail passes the truncated approaching-speed value to
+				// snd_GetDopplerPitchMod: (approaching_mph * 1524) / 741.
+				const int approachingMph = static_cast<int>(
+					radialVelocity * pamb->rDoppler * 0.0225f);
+				pamb->dnDoppler = (approachingMph * 1524) / 741;
 			}
 		}
 	}
 
-	for (EFFECTVOICE& active : pamb->voices)
-	{
-		if (!active.voice) continue;
-		const float baseRatio = active.baseFrequencyRatio > 0.0f ? active.baseFrequencyRatio : 1.0f;
-		const float ratio = std::clamp(baseRatio * dopplerRatio,
-			XAUDIO2_MIN_FREQ_RATIO, kSpuMaximumFrequencyRatio);
-		active.voice->SetFrequencyRatio(ratio);
-	}
+	// Doppler is one component of the final 989SND pitch. Reapply the combined
+	// value so this spatial refresh does not erase authored pitch bends or LFOs.
+	ApplyEffectPitchBend(*pamb, pamb->currentPitchBend);
 }
 
 void ScheduleNextIntermittentSound(AMB* pamb)
@@ -2851,6 +3040,10 @@ bool FPauseForVag()
 {
 	if (!s_vagStream.loaded)
 		return false;
+	// Retail reports true when the VAG was already paused; callers use this to
+	// decide whether queued sound commands need to be flushed before continuing.
+	if (s_vagStream.paused)
+		return true;
 
 	if (!s_vagStream.started)
 	{
@@ -2862,13 +3055,7 @@ bool FPauseForVag()
 		}
 		s_vagStream.started = true;
 		s_vagStream.paused = false;
-		s_dialogMusicDuck = 0.2f;
-		for (MusicVoice& active : s_music989.voices)
-			if (active.voice) active.voice->SetVolume(
-				active.baseVolume * (active.envelope.level / 32767.0f) *
-				s_channelVolumes[std::clamp(s_music989.cueVolumeGroup, 0,
-					static_cast<int>(s_channelVolumes.size()) - 1)] *
-				s_musicVolume * s_dialogMusicDuck);
+		ApplyDialogMusicDuck(0.2f);
 	}
 
 	return false;
@@ -2963,6 +3150,42 @@ void SetAttractSoundOption(bool fMono)
 	s_stereoOutputEnabled = !fMono;
 }
 
+void SetUserStereoEnabled(bool enabled)
+{
+	s_stereoOutputEnabled = enabled;
+	if (g_psw)
+		for (const std::unique_ptr<AMB>& slot : g_psw->ambOwners)
+			if (slot) SetPambVol(slot.get(), slot->uVolAtSource);
+}
+
+bool FUserStereoEnabled() { return s_stereoOutputEnabled; }
+
+void SetUserMusicVolume(float volume)
+{
+	s_userMusicVolume = std::clamp(volume, 0.0f, 1.0f);
+	RecalculateChannelVolume(std::clamp(s_music989.cueVolumeGroup, 0, 3));
+}
+
+float GetUserMusicVolume() { return s_userMusicVolume; }
+
+void SetUserSfxVolume(float volume)
+{
+	s_userSfxVolume = std::clamp(volume, 0.0f, 1.0f);
+	if (g_psw)
+		for (const std::unique_ptr<AMB>& slot : g_psw->ambOwners)
+			if (slot) SetPambVol(slot.get(), slot->uVolAtSource);
+}
+
+float GetUserSfxVolume() { return s_userSfxVolume; }
+
+void SetUserDialogueVolume(float volume)
+{
+	s_userDialogueVolume = std::clamp(volume, 0.0f, 1.0f);
+	RecalculateChannelVolume(2);
+}
+
+float GetUserDialogueVolume() { return s_userDialogueVolume; }
+
 void StopVag()
 {
 	if (!s_vagStream.loaded)
@@ -2988,44 +3211,122 @@ void ResumeVag()
 
 void PauseVag()
 {
+	std::lock_guard<std::recursive_mutex> lock(s_musicMutex);
 	if (s_vagStream.loaded && s_vagStream.started && !s_vagStream.paused)
 	{
-		if (s_vagStream.voice && SUCCEEDED(s_vagStream.voice->Stop()))
-			s_vagStream.paused = true;
+		if (s_vagStream.voice)
+		{
+			s_vagStream.voice->SetVolume(0.0f);
+			if (SUCCEEDED(s_vagStream.voice->Stop()))
+				s_vagStream.paused = true;
+		}
 	}
 }
 
 void ContinueVag()
 {
+	std::lock_guard<std::recursive_mutex> lock(s_musicMutex);
 	if (s_vagStream.loaded && !s_vagStream.started)
 	{
 		FPauseForVag();
 	}
 	else if (s_vagStream.loaded && s_vagStream.paused)
 	{
-		if (s_vagStream.voice && SUCCEEDED(s_vagStream.voice->Start()))
-			s_vagStream.paused = false;
+		if (s_vagStream.voice)
+		{
+			if (s_pambVagAmbient)
+				SetPambVol(s_pambVagAmbient, s_pambVagAmbient->uVolAtSource);
+			else
+				s_vagStream.voice->SetVolume(kVagDriverGain *
+					(s_fFmvAudioMode ? 1.0f : s_channelVolumes[2]) * s_userDialogueVolume);
+			if (SUCCEEDED(s_vagStream.voice->Start()))
+				s_vagStream.paused = false;
+		}
 	}
+}
+
+void BeginDialogAudioDuck()
+{
+	std::lock_guard<std::recursive_mutex> lock(s_musicMutex);
+	s_dialogAudioDuckHeld = true;
+	ApplyDialogMusicDuck(0.2f);
+}
+
+void EndDialogAudioDuck()
+{
+	std::lock_guard<std::recursive_mutex> lock(s_musicMutex);
+	s_dialogAudioDuckHeld = false;
+	ApplyDialogMusicDuck(1.0f);
 }
 
 void PauseMusicSequencer()
 {
+	std::lock_guard<std::recursive_mutex> lock(s_musicMutex);
+	const bool pauseRubyEffects = g_pgsCur != nullptr &&
+		g_pgsCur->gameWorldCur == GAMEWORLD_Voodoo &&
+		static_cast<int>(g_pgsCur->worldLevelCur) == 8;
+	if (pauseRubyEffects && s_fPauseAmbients == 0)
+	{
+		s_fPauseAmbients = 1;
+		if (g_psw != nullptr)
+		{
+			for (std::unique_ptr<AMB>& slot : g_psw->ambOwners)
+			{
+				if (!slot)
+					continue;
+				for (EFFECTVOICE& active : slot->voices)
+					if (active.voice)
+						active.voice->Stop();
+			}
+		}
+	}
 	if (s_musicStream.state == MusicState::Playing && !s_musicStream.paused)
 	{
+		// Mark the sequencer paused before touching its voices so no worker tick
+		// can create or refresh a voice during the hard-pause transition.
+		s_musicStream.paused = true;
 		for (MusicVoice& active : s_music989.voices)
 			if (active.voice)
+			{
+				active.voice->SetVolume(0.0f);
 				active.voice->Stop();
-		s_musicStream.paused = true;
+			}
 	}
 }
 
 void ContinueMusicSequencer()
 {
+	std::lock_guard<std::recursive_mutex> lock(s_musicMutex);
+	if (s_fPauseAmbients != 0)
+	{
+		if (g_psw != nullptr)
+		{
+			for (std::unique_ptr<AMB>& slot : g_psw->ambOwners)
+			{
+				if (!slot)
+					continue;
+				for (EFFECTVOICE& active : slot->voices)
+					if (active.voice)
+						active.voice->Start();
+			}
+		}
+		// UpdateSounds uses wall time to emulate the independent 240 Hz sound
+		// clock. Reset its anchor so a pause does not fast-forward SFX handlers.
+		s_effectLastUpdate = std::chrono::steady_clock::now();
+		s_fPauseAmbients = 0;
+	}
 	if (s_musicStream.state == MusicState::Playing && s_musicStream.paused)
 	{
+		const int musicChannel = std::clamp(s_music989.cueVolumeGroup, 0,
+			static_cast<int>(s_channelVolumes.size()) - 1);
 		for (MusicVoice& active : s_music989.voices)
 			if (active.voice)
+			{
+				active.voice->SetVolume(active.baseVolume *
+					(active.envelope.level / 32767.0f) * s_channelVolumes[musicChannel] *
+					s_musicVolume * s_dialogMusicDuck * s_userMusicVolume);
 				active.voice->Start();
+			}
 		s_music989.lastUpdate = std::chrono::steady_clock::now();
 		s_musicStream.paused = false;
 	}
@@ -3037,20 +3338,14 @@ void PreloadVag(const char* descriptorOrPath)
 
 	const std::filesystem::path wavPath = ResolveVagWav(descriptorOrPath);
 	if (wavPath.empty())
-	{
 		return;
-	}
 
 	if (!EnsureMusicEngine())
-	{
 		return;
-	}
 
 	VagStreamState replacement{};
 	if (!LoadPcmWave(wavPath, replacement.format, replacement.pcm))
-	{
 		return;
-	}
 	WAVEFORMATEX format{};
 	format.wFormatTag = replacement.format.formatTag;
 	format.nChannels = replacement.format.channels;
@@ -3060,9 +3355,7 @@ void PreloadVag(const char* descriptorOrPath)
 	format.wBitsPerSample = replacement.format.bitsPerSample;
 	const HRESULT createResult = s_xaudio2->CreateSourceVoice(&replacement.voice, &format);
 	if (FAILED(createResult))
-	{
 		return;
-	}
 
 	// Do not rely on XAudio2's implicit channel mapping for the mono dialog
 	// files. Explicitly send mono speech to both front speakers (and map stereo
@@ -3177,6 +3470,7 @@ bool FPlayingCommentaryAudio()
 
 void ContinueMusic()
 {
+	std::lock_guard<std::recursive_mutex> lock(s_musicMutex);
 	s_musicVolume = 1.0f;
 	s_music989.lastUpdate = std::chrono::steady_clock::now();
 	for (MusicVoice& active : s_music989.voices)
@@ -3188,6 +3482,7 @@ void ContinueMusic()
 
 void PauseMusic()
 {
+	std::lock_guard<std::recursive_mutex> lock(s_musicMutex);
 	s_musicVolume = 0.0f;
 	for (MusicVoice& active : s_music989.voices)
 		if (active.voice) active.voice->SetVolume(0.0f);
@@ -3231,6 +3526,12 @@ void KillSounds(int msRampdown)
 	}
 }
 
+bool FMusicSequencerPaused()
+{
+	std::lock_guard<std::recursive_mutex> lock(s_musicMutex);
+	return s_musicStream.paused;
+}
+
 void KillExcitement()
 {
 	if (g_psw != nullptr)
@@ -3266,9 +3567,11 @@ void KillSoundSystem()
 	// Per-world volume modifiers must not leak into the next world.
 	for (auto& group : s_relativeVolumes)
 		group.fill(1.0f);
+	s_relativeVolumes[0][1] = 0.5f;
 	s_channelVolumes = { 1.0f, 0.5f, 1.0f, 1.0f };
 	s_musicVolume = 1.0f;
 	s_dialogMusicDuck = 1.0f;
+	s_dialogAudioDuckHeld = false;
 	s_effectTickAccumulator = 0.0;
 	s_effectLastUpdate = {};
 	s_effectGlobalRegisters.fill(0);
@@ -3351,6 +3654,7 @@ void UnloadEffectBank()
 
 void PreloadMusidSong(MUSID musid)
 {
+	std::lock_guard<std::recursive_mutex> lock(s_musicMutex);
 	if (musid == MUSID_Nil)
 	{
 		KillMusic();
@@ -3381,6 +3685,7 @@ void PreloadMusidSong(MUSID musid)
 
 void StartMusidSong(MUSID musid)
 {
+	std::lock_guard<std::recursive_mutex> lock(s_musicMutex);
 	PreloadMusidSong(musid);
 	if (s_musicStream.state == MusicState::None)
 		return;
@@ -3389,6 +3694,7 @@ void StartMusidSong(MUSID musid)
 
 	QueueMusicSegment(0);
 	ActivateQueuedMusicSegments();
+	PrimeMusicSequencerStartup();
 	s_music989.lastUpdate = std::chrono::steady_clock::now();
 	s_musicStream.state = MusicState::Playing;
 	s_musicStream.paused = false;
@@ -3452,10 +3758,18 @@ void StartupSound()
 	s_effectReverbDepth = 0;
 	EnsureEffectReverb();
 	ApplyCurrentEffectReverb();
+
+	if (!s_musicWorkerRunning.exchange(true, std::memory_order_acq_rel))
+		s_musicWorker = std::thread(MusicWorkerMain);
 }
 
 void ShutdownSound()
 {
+	if (s_musicWorkerRunning.exchange(false, std::memory_order_acq_rel) &&
+		s_musicWorker.joinable())
+		s_musicWorker.join();
+
+	std::lock_guard<std::recursive_mutex> lock(s_musicMutex);
 	// World teardown normally closes these first, but make final shutdown
 	// independently safe for startup failures and exits without a loaded world.
 	CloseMusicVoice();
@@ -3483,21 +3797,17 @@ void ShutdownSound()
 
 void InitializeSoundOptions()
 {
-	// Retail copies its 11x4 default MVGK matrix into the live matrix here.
-	// ProjectCane currently represents those defaults as unity multipliers;
-	// channel 1's original 0.5 base gain is applied by RecalculateChannelVolume.
+	// Retail's first MVGK row is { effects=1, music=0.5, dialog=1, user=1 }.
+	// Every remaining row starts at unity.
 	for (auto& group : s_relativeVolumes)
 		group.fill(1.0f);
+	s_relativeVolumes[0][1] = 0.5f;
 
 	SetMasterVolume(1.0f);
 	for (int channel = 0; channel < 4; ++channel)
 		RecalculateChannelVolume(channel);
 
-	if (g_pgsCur)
-	{
-		SetAttractVolume((g_pgsCur->grfgs & 0x80) != 0);
-		SetAttractSoundOption((g_pgsCur->grfgs & 0x40) != 0);
-	}
+	SetUserStereoEnabled(s_stereoOutputEnabled);
 }
 
 void SetMasterVolume(float uVol)
@@ -3507,6 +3817,18 @@ void SetMasterVolume(float uVol)
 	s_masterVolume = std::clamp(uVol, 0.0f, 1.0f);
 	if (EnsureMusicEngine() && s_musicMasterVoice)
 		s_musicMasterVoice->SetVolume(s_masterVolume);
+}
+
+float GetMasterVolume()
+{
+	return s_masterVolume;
+}
+
+void SetFmvAudioMode(bool enabled)
+{
+	s_fFmvAudioMode = enabled;
+	if (s_vagStream.loaded)
+		RecalculateChannelVolume(2);
 }
 
 void SetSwIntermittentSound(SW* psw, SFXID sfxid)
@@ -3521,23 +3843,23 @@ void SetSwIntermittentSound(SW* psw, SFXID sfxid)
 	isi.lmRepDist = s_lmDistDefault;
 }
 
-void SetSwIntermittentVolPct(SW* psw, LM plmVolPct)
+void SetSwIntermittentVolPct(SW* psw, const LM* plmVolPct)
 {
-	if (psw->cisi == 0)
+	if (psw->cisi == 0 || plmVolPct == nullptr)
 		return;
 
 	ISI& isi = psw->aisi[psw->cisi - 1];
 
-	isi.lmRepDist.gMin = 8000.0f - plmVolPct.gMax * 50.0f;
-	isi.lmRepDist.gMax = 8000.0f - plmVolPct.gMin * 50.0f;
+	isi.lmRepDist.gMin = 8000.0f - plmVolPct->gMax * 50.0f;
+	isi.lmRepDist.gMax = 8000.0f - plmVolPct->gMin * 50.0f;
 }
 
-void SetSwIntermittentRepeat(SW* psw, LM plmRepeat)
+void SetSwIntermittentRepeat(SW* psw, const LM* plmRepeat)
 {
-	if (psw->cisi == 0)
+	if (psw->cisi == 0 || plmRepeat == nullptr)
 		return;
 
-	psw->aisi[psw->cisi - 1].lmRepeat = plmRepeat;
+	psw->aisi[psw->cisi - 1].lmRepeat = *plmRepeat;
 }
 
 void StartSwIntermittentSounds(SW* psw)
@@ -3596,7 +3918,10 @@ void UpdateSounds()
 		s_effectLastUpdate = effectNow;
 	const double effectElapsed = std::chrono::duration<double>(effectNow - s_effectLastUpdate).count();
 	s_effectLastUpdate = effectNow;
-	s_effectTickAccumulator += (std::min)(effectElapsed, 0.25) * 240.0;
+	// The SPU2 keeps advancing while the EE/game thread is delayed. Discarding
+	// elapsed time here stretched grain delays and ADSR envelopes after loading
+	// or a frame-time spike, so preserve the complete 240 Hz sound timeline.
+	s_effectTickAccumulator += effectElapsed * 240.0;
 	const int effectTicks = static_cast<int>(s_effectTickAccumulator);
 	s_effectTickAccumulator -= effectTicks;
 
@@ -3625,6 +3950,8 @@ void UpdateSounds()
 			if (!slot)
 				continue;
 			AMB& amb = *slot;
+			if (amb.paused)
+				continue;
 			if (static_cast<int>(amb.sfxid) == -2 && !s_vagStream.loaded)
 			{
 				completed.push_back(&amb);
@@ -3641,7 +3968,7 @@ void UpdateSounds()
 			}
 			CleanEffectVoices(amb);
 			const bool wasOutOfRange = amb.fOutOfRange != 0;
-			if (amb.fAttached)
+			if (amb.fAttached && !amb.fStopped)
 				SetPambVol(&amb, amb.uVolAtSource);
 
 			const bool recurring = amb.lmRepeat.gMin >= 0.0f;
@@ -3677,13 +4004,11 @@ void UpdateSounds()
 				g_clock.t >= amb.tNext)
 			{
 				ScheduleNextIntermittentSound(&amb);
-				bool allowStart = true;
-				if (wasOutOfRange)
-				{
-					allowStart = g_clock.t - s_tLastIntermittent >= 1.0f;
-					if (allowStart)
-						s_tLastIntermittent = g_clock.t;
-				}
+				// Retail applies this shared one-second gate to every inactive
+				// intermittent sound, not only sources that were out of range.
+				const bool allowStart = g_clock.t - s_tLastIntermittent >= 1.0f;
+				if (allowStart)
+					s_tLastIntermittent = g_clock.t;
 				// Scheduling may move an unattached intermittent source around the
 				// listener, so calculate its new attenuation before deciding to play.
 				SetPambVol(&amb, amb.uVolAtSource);
@@ -3692,8 +4017,28 @@ void UpdateSounds()
 			}
 			for (int tick = 0; tick < effectTicks; ++tick)
 			{
-				TickEffectLfos(amb);
+				if (amb.autoVolumeTicksRemaining > 0)
+				{
+					--amb.autoVolumeTicksRemaining;
+					amb.autoVolumeScale = static_cast<float>(amb.autoVolumeTicksRemaining) /
+						static_cast<float>(amb.autoVolumeTicks);
+				}
+				if (!amb.fStopped)
+					TickEffectLfos(amb);
 				UpdateEffectEnvelopes(amb);
+				if (amb.fStopped && amb.autoVolumeTicksRemaining == 0)
+				{
+					for (EFFECTVOICE& active : amb.voices)
+					{
+						if (!active.voice)
+							continue;
+						active.voice->Stop();
+						active.voice->DestroyVoice();
+						active.voice = nullptr;
+						active.pcm.clear();
+					}
+					break;
+				}
 				if (amb.handlerDone)
 					continue;
 				--amb.grainCountdown;
@@ -3703,9 +4048,11 @@ void UpdateSounds()
 				if (grainBudget <= 0) amb.handlerDone = true;
 			}
 			CleanEffectVoices(amb);
-			if (amb.handlerDone && amb.voices.empty() && !recurring && !amb.fContinuous)
+			if (amb.fStopped && amb.voices.empty())
 				completed.push_back(&amb);
-			else
+			else if (amb.handlerDone && amb.voices.empty() && !recurring && !amb.fContinuous)
+				completed.push_back(&amb);
+			else if (!amb.fStopped)
 				SetDoppler(&amb);
 		}
 		for (AMB* pamb : completed)
@@ -3716,7 +4063,10 @@ void UpdateSounds()
 				RemoveAmb(pamb);
 		}
 	}
+}
 
+static void UpdateMusicSequencer()
+{
 	if (s_musicStream.state != MusicState::Playing || s_musicStream.paused)
 		return;
 	const auto now = std::chrono::steady_clock::now();
@@ -3724,11 +4074,13 @@ void UpdateSounds()
 		s_music989.lastUpdate = now;
 	const double elapsed = std::chrono::duration<double>(now - s_music989.lastUpdate).count();
 	s_music989.lastUpdate = now;
-	s_music989.tickAccumulator += (std::min)(elapsed, 0.25) * 240.0;
+	s_music989.tickAccumulator += elapsed * 240.0;
 	while (s_music989.tickAccumulator >= 1.0)
 	{
 		for (MusicSegment& segment : s_music989.activeSegments)
+		{
 			StepMusicSegment(segment);
+		}
 		// AME branch/start commands can complete a segment directly instead of
 		// going through StopMusicSegment(). Retail 989SND keys off every voice
 		// owned by that completed handler. Leaving those voices in Sustain caused
@@ -3804,6 +4156,7 @@ std::array<std::array<float, 4>, 11> s_relativeVolumes = []
 	std::array<std::array<float, 4>, 11> values{};
 	for (auto& group : values)
 		group.fill(1.0f);
+	values[0][1] = 0.5f;
 	return values;
 }();
 std::array<float, 4> s_channelVolumes{ 1.0f, 0.5f, 1.0f, 1.0f };

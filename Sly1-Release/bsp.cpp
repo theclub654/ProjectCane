@@ -666,8 +666,15 @@ int ClsgMergeAlsg(int clsg, LSG* alsg)
     }
 
     std::sort(endpoints.begin(), endpoints.end(), [](const LSG_ENDPOINT& a, const LSG_ENDPOINT& b) {
-        if (a.u != b.u)
-            return a.u < b.u;
+        const float du = a.u - b.u;
+
+        // Match SgnCompareMaa: nearly coincident endpoints are treated as
+        // equal, then opening endpoints are ordered before closing endpoints.
+        if (du < -0.0001f)
+            return true;
+
+        if (du > 0.0001f)
+            return false;
 
         return a.iEndpoint < b.iEndpoint;
         });

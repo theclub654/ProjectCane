@@ -1646,6 +1646,31 @@ void DrawBinocZoom(BINOC* pbinoc)
 
             drawStick('(', 265.0f, pjoy->uDeflect);
             drawStick(')', 375.0f, pjoy->uDeflect2);
+
+            // Retail overlays these labels on the two analog-stick glyphs
+            // using font 0 at 0.6 scale. They are separate draws rather than
+            // artwork embedded in the controller font.
+            CFontBrx* labelFont = PfontFromFont(0);
+            if (labelFont != nullptr)
+            {
+                glm::vec4 labelColor(
+                    50.0f / 128.0f,
+                    132.0f / 128.0f,
+                    176.0f / 128.0f,
+                    128.0f / 255.0f);
+                tbx.SetTextColor(&labelColor);
+
+                labelFont->PushScaling(0.6f * sy, 0.6f * sy);
+
+                tbx.m_x = originX + 215.0f * sx;
+                tbx.m_y = originY + 390.80002f * sy;
+                labelFont->DrawPchz((char*)"Move", &tbx);
+
+                tbx.m_x = originX + 425.0f * sx;
+                labelFont->DrawPchz((char*)"Zoom", &tbx);
+
+                labelFont->PopScaling();
+            }
         }
     }
 }

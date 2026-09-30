@@ -415,10 +415,8 @@ void SetChkmgrIchk(CHKMGR* pchkmgr, int ichk)
 
 void ClearChkmgrIchk(CHKMGR* pchkmgr, int ichk)
 {
-	if (ichk < 0 || ichk >= pchkmgr->cbitChk || ichk >= 4096)
-		return;
-
-	uint8_t& bits = pchkmgr->abitChk.m_ab[ichk >> 3];
+	int ibitByte = ichk >= 0 ? ichk : ichk + 7;
+	uint8_t& bits = pchkmgr->abitChk.m_ab[ibitByte >> 3];
 	uint8_t mask = static_cast<uint8_t>(1u << (ichk & 7));
 
 	if ((bits & mask) != 0) {

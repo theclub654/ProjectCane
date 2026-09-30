@@ -59,13 +59,11 @@ void UpdateHubBlotActive(HUBBLOT* phubblot, JOY* pjoy)
     if (phubblot->phubsel == nullptr || phubblot->phubsel->psmaWorld == nullptr)
         return;
 
-    /*if (phubblot->fWaitVag != 0)
+    if (phubblot->fWaitVag != 0)
     {
-        if (FPauseForVag() != 0)
-            snd_FlushSoundCommands();
-
+        FPauseForVag();
         phubblot->fWaitVag = FVagPlaying();
-    }*/
+    }
 
     if (g_letterbox.blots != BLOTS_Hidden || g_binoc.pdialogPlaying != nullptr)
         return;

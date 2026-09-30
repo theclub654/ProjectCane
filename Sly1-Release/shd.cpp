@@ -685,11 +685,11 @@ void MakeTexture(GLuint& textureReference, BMP* pbmp, std::vector<byte>& texture
     if (fMipMap == true)
         glGenerateMipmap(GL_TEXTURE_2D);
 
-    if (g_fDebugMode < 1)
-    {
-        texture.clear();
-        texture.shrink_to_fit();
-    }
+	if (!g_fDeveloperDebugMode)
+	{
+		texture.clear();
+		texture.shrink_to_fit();
+	}
 }
 
 void UpdateShaders(float dt)

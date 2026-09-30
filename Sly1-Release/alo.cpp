@@ -1425,7 +1425,7 @@ void UpdateAloInfluences(ALO* palo, RO* pro)
 
 		const bool useJointInfluence =
 			palox != nullptr &&
-			(palox->grfalox & 0x400U) != 0 &&
+			(palox->grfalox & 0x80U) != 0 &&
 			palox->joint.fMatInfluence != 0;
 
 		if (useJointInfluence)

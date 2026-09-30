@@ -228,3 +228,5 @@ extern LEVELINFO g_levelTable[46];
 
 extern int g_percentCompletion;
 extern int g_fDebugMode;
+// Startup-only developer option loaded from Debug Mode.ini.
+extern bool g_fDeveloperDebugMode;

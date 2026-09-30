@@ -294,7 +294,10 @@ void DrawNote(NOTE* pnote)
     // anchor was not, leaving the enlarged box partly below the framebuffer.
     // Use the same scaled edge-anchor calculation as ordinary BLOT drawing.
     if (pnote == &g_pnote)
-        GetGuiScaledBlotRect(pnote, &x, &y, &dx, &dy);
+    {
+        const float noteScaleSetting = FModernGui() ? 1.25f : g_guiScale;
+        GetGuiScaledBlotRect(pnote, noteScaleSetting, &x, &y, &dx, &dy);
+    }
 
     // The global NOTE is conditionally pegged above TIMER. Sprint messages use
     // that peg while the timer is active; power-selection and developer-

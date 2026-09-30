@@ -37,21 +37,7 @@ void SetGlobDraw(GLOB* pglob)
 		break;
 
 		case RP_ProjVolume:
-		switch (pglob->grfshd)
-		{
-			case 0:
-			pglob->PFNDRAW = DrawProjVolume;
-			break;
-
-			case 2:
-			pglob->PFNDRAW = DrawProjVolumeAlphaAdd;
-			break;
-
-			case 1:
-			case 3:
-			pglob->PFNDRAW = DrawProjVolumeAdd;
-			break;
-		}
+		pglob->PFNDRAW = DrawProjVolume;
 		break;
 
 		case RP_OpaqueAfterProjVolume:
@@ -106,9 +92,7 @@ void AllocateRpl()
 	g_cutOutBlendAddPrpl.resize(2048);
 	g_cutOutPrpl.resize(2048);
 	g_celBorderPrpl.resize(2048);
-	g_projVolumePrpl.resize(2048);
-	g_projVolumeAlphaAddPrpl.resize(2048);
-	g_projVolumeAddPrpl.resize(2048);
+	g_projVolumePrpl.resize(6144);
 	g_opaqueAfterProjVolumePrpl.resize(2048);
 	g_cutOutAfterProjVolumeAddPrpl.resize(2048);
 	g_cutOutAfterProjVolumePrpl.resize(2048);
@@ -133,8 +117,6 @@ void AllocateRpl()
 	g_cutOutCount = 0;
 	g_celBorderCount = 0;
 	g_projVolumeCount = 0;
-	g_projVolumeAlphaAddCount = 0;
-	g_projVolumeAddCount = 0;
 	g_opaqueAfterProjVolumeCount = 0;
 	g_cutOutAfterProjVolumeAddCount = 0;
 	g_cutOutAfterProjVolumeCount = 0;
@@ -292,27 +274,9 @@ void SubmitRpl(RPL* prpl)
 		break;
 
 		case RP_ProjVolume:
-		switch (prpl->pglob->grfshd)
-		{
-			case 0:
-			g_projVolumePrpl[g_projVolumeCount] = *prpl;
-			g_projVolumePrpl[g_projVolumeCount].PFNDRAWRPL = DrawGlob;
-			g_projVolumeCount++;
-			break;
-
-			case 2:
-			g_projVolumeAlphaAddPrpl[g_projVolumeAlphaAddCount] = *prpl;
-			g_projVolumeAlphaAddPrpl[g_projVolumeAlphaAddCount].PFNDRAWRPL = DrawGlob;
-			g_projVolumeAlphaAddCount++;
-			break;
-
-			case 1:
-			case 3:
-			g_projVolumeAddPrpl[g_projVolumeAddCount] = *prpl;
-			g_projVolumeAddPrpl[g_projVolumeAddCount].PFNDRAWRPL = DrawGlob;
-			g_projVolumeAddCount++;
-			break;
-		}
+		g_projVolumePrpl[g_projVolumeCount] = *prpl;
+		g_projVolumePrpl[g_projVolumeCount].PFNDRAWRPL = DrawGlob;
+		g_projVolumeCount++;
 		break;
 
 		case RP_OpaqueAfterProjVolume:
@@ -634,53 +598,9 @@ void DrawSw(SW* psw, CM* pcm)
 		glStencilMask(128);
 
 		for (int i = 0; i < g_projVolumeCount; i++)
-			g_projVolumePrpl[i].PFNDRAWRPL(&g_projVolumePrpl[i]);
-
-		glStencilMask(0xFF);
-		glDepthMask(GL_TRUE);
-		glDisable(GL_STENCIL_TEST);
-		glDisable(GL_BLEND);
-		glDepthFunc(GL_LESS);
-		glFrontFace(GL_CCW);
-
-		g_projVolumeCount = 0;
-	}
-
-	if (g_projVolumeAlphaAddCount > 0)
-	{
-		glEnable(GL_BLEND);
-		glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE, GL_ONE, GL_ZERO);
-		glEnable(GL_STENCIL_TEST);
-		glDepthMask(GL_FALSE);
-		glDepthFunc(GL_LESS);
-		glStencilMask(128);
-
-		for (int i = 0; i < g_projVolumeAlphaAddCount; i++)
-			g_projVolumeAlphaAddPrpl[i].PFNDRAWRPL(&g_projVolumeAlphaAddPrpl[i]);
-
-		glStencilMask(0xFF);
-		glDepthMask(GL_TRUE);
-		glDisable(GL_STENCIL_TEST);
-		glDisable(GL_BLEND);
-		glDepthFunc(GL_LESS);
-		glFrontFace(GL_CCW);
-
-		g_projVolumeAlphaAddCount = 0;
-	}
-
-	if (g_projVolumeAddCount > 0)
-	{
-		glEnable(GL_BLEND);
-		glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE, GL_ONE, GL_ZERO);
-		glEnable(GL_STENCIL_TEST);
-		glDepthMask(GL_FALSE);
-		glDepthFunc(GL_LESS);
-		glStencilMask(128);
-
-		for (int i = 0; i < g_projVolumeAddCount; i++)
 		{
-			g_grfshd = g_projVolumeAddPrpl[i].pglob->grfshd;
-			g_projVolumeAddPrpl[i].PFNDRAWRPL(&g_projVolumeAddPrpl[i]);
+			g_grfshd = g_projVolumePrpl[i].pglob->grfshd;
+			g_projVolumePrpl[i].PFNDRAWRPL(&g_projVolumePrpl[i]);
 		}
 
 		glStencilMask(0xFF);
@@ -690,7 +610,7 @@ void DrawSw(SW* psw, CM* pcm)
 		glDepthFunc(GL_LESS);
 		glFrontFace(GL_CCW);
 
-		g_projVolumeAddCount = 0;
+		g_projVolumeCount = 0;
 	}
 
 	if (g_opaqueAfterProjVolumeCount > 0)
@@ -1331,81 +1251,78 @@ void DrawSubGlob(int baseVertex, int firstIndex, int indexCount)
 
 void DrawProjVolume(int baseVertex, int firstIndex, int indexCount)
 {
-	glBlendFuncSeparate(GL_ZERO, GL_ONE, GL_ONE, GL_ZERO);
-	glDepthFunc(GL_LESS);
-	glStencilFunc(GL_ALWAYS, 128, 128);
-	glStencilOp(GL_ZERO, GL_REPLACE, GL_ZERO);
-	glColorMask(0, 0, 0, 0);
-	glFrontFace(GL_CW);
-	glDrawElementsBaseVertex(GL_TRIANGLES, (GLsizei)indexCount, GL_UNSIGNED_INT, (void*)(uintptr_t)(firstIndex * sizeof(uint32_t)), (GLint)baseVertex);
-
-	glColorMask(1, 1, 1, 1);
-	glStencilOp(GL_KEEP, GL_ZERO, GL_KEEP);
-	glFrontFace(GL_CCW);
-	glDrawElementsBaseVertex(GL_TRIANGLES, (GLsizei)indexCount, GL_UNSIGNED_INT, (void*)(uintptr_t)(firstIndex * sizeof(uint32_t)), (GLint)baseVertex);
-
-	glDepthFunc(GL_ALWAYS);
-	// Bit 6 protects cel-border pixels; bit 7 contains the volume mask.
-	glStencilFunc(GL_EQUAL, 128, 0xC0);
-	glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP);
-	glFrontFace(GL_CW);
-	glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ZERO);
-	glDrawElementsBaseVertex(GL_TRIANGLES, (GLsizei)indexCount, GL_UNSIGNED_INT, (void*)(uintptr_t)(firstIndex * sizeof(uint32_t)), (GLint)baseVertex);
-}
-
-void DrawProjVolumeAlphaAdd(int baseVertex, int firstIndex, int indexCount)
-{
-	glDepthFunc(GL_LESS);
-	glStencilFunc(GL_ALWAYS, 128, 128);
-	glStencilOp(GL_NONE, GL_REPLACE, GL_NONE);
-	glColorMask(0, 0, 0, 0);
-	glFrontFace(GL_CW);
-	glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE, GL_ONE, GL_ZERO);
-	glDrawElementsBaseVertex(GL_TRIANGLES, (GLsizei)indexCount, GL_UNSIGNED_INT, (void*)(uintptr_t)(firstIndex * sizeof(uint32_t)), (GLint)baseVertex);
-
-	glBlendFuncSeparate(GL_ZERO, GL_ONE, GL_ONE, GL_ZERO);
-	glColorMask(1, 1, 1, 1);
-	glStencilOp(GL_KEEP, GL_NONE, GL_KEEP);
-	glFrontFace(GL_CCW);
-	glDrawElementsBaseVertex(GL_TRIANGLES, (GLsizei)indexCount, GL_UNSIGNED_INT, (void*)(uintptr_t)(firstIndex * sizeof(uint32_t)), (GLint)baseVertex);
-
-	glDepthFunc(GL_ALWAYS);
-	// Bit 6 protects cel-border pixels; bit 7 contains the volume mask.
-	glStencilFunc(GL_EQUAL, 128, 0xC0);
-	glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP);
-	glFrontFace(GL_CW);
-	glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ZERO);
-	glDrawElementsBaseVertex(GL_TRIANGLES, (GLsizei)indexCount, GL_UNSIGNED_INT, (void*)(uintptr_t)(firstIndex * sizeof(uint32_t)), (GLint)baseVertex);
-}
-
-void DrawProjVolumeAdd(int baseVertex, int firstIndex, int indexCount)
-{
-	// Packet one is color-masked and packet two gets its RGBA solely from the
-	// VU-generated vertices. The constant rgbaVolume is packet three state.
-	glUniform1i(glslProjectedVolumeFinalPass, 2);
-
-	switch (g_grfshd)
+	const auto DrawVolumeMesh = [baseVertex, firstIndex, indexCount]()
 	{
-		case 1:
-		glBlendFuncSeparate(GL_ZERO, GL_ONE, GL_ONE, GL_ZERO);
-		break;
+		glDrawElementsBaseVertex(GL_TRIANGLES, (GLsizei)indexCount, GL_UNSIGNED_INT,
+			(void*)(uintptr_t)(firstIndex * sizeof(uint32_t)), (GLint)baseVertex);
+	};
 
-		case 3:
-		glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE, GL_ONE, GL_ZERO);
-		break;
+	if (g_grfshd == 0)
+	{
+		glBlendFuncSeparate(GL_ZERO, GL_ONE, GL_ONE, GL_ZERO);
+		glDepthFunc(GL_LESS);
+		glStencilFunc(GL_ALWAYS, 128, 128);
+		glStencilOp(GL_ZERO, GL_REPLACE, GL_ZERO);
+		glColorMask(0, 0, 0, 0);
+		glFrontFace(GL_CW);
+		DrawVolumeMesh();
+
+		glColorMask(1, 1, 1, 1);
+		glStencilOp(GL_KEEP, GL_ZERO, GL_KEEP);
+		glFrontFace(GL_CCW);
+		DrawVolumeMesh();
+
+		glDepthFunc(GL_ALWAYS);
+		// Bit 6 protects cel-border pixels; bit 7 contains the volume mask.
+		// Testing both bits prevents projected volumes from drawing over borders.
+		glStencilFunc(GL_EQUAL, 128, 0xC0);
+		glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP);
+		glFrontFace(GL_CW);
+		glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ZERO);
+		glUniform1i(glslProjectedVolumeFinalPass, 1);
+		DrawVolumeMesh();
+		glUniform1i(glslProjectedVolumeFinalPass, 0);
+		return;
 	}
 
+	if (g_grfshd == 2)
+	{
+		glDepthFunc(GL_LESS);
+		glStencilFunc(GL_ALWAYS, 128, 128);
+		glStencilOp(GL_NONE, GL_REPLACE, GL_NONE);
+		glColorMask(0, 0, 0, 0);
+		glFrontFace(GL_CW);
+		glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE, GL_ONE, GL_ZERO);
+		DrawVolumeMesh();
+
+		glBlendFuncSeparate(GL_ZERO, GL_ONE, GL_ONE, GL_ZERO);
+		glColorMask(1, 1, 1, 1);
+		glStencilOp(GL_KEEP, GL_NONE, GL_KEEP);
+		glFrontFace(GL_CCW);
+		DrawVolumeMesh();
+
+		glDepthFunc(GL_ALWAYS);
+		glStencilFunc(GL_EQUAL, 128, 0xC0);
+		glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP);
+		glFrontFace(GL_CW);
+		glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ZERO);
+		glUniform1i(glslProjectedVolumeFinalPass, 1);
+		DrawVolumeMesh();
+		glUniform1i(glslProjectedVolumeFinalPass, 0);
+		return;
+	}
+
+	// grfshd 1 and 3 use the additive projected-volume packet path.
+	glUniform1i(glslProjectedVolumeFinalPass, 2);
+	glBlendFuncSeparate(g_grfshd == 3 ? GL_SRC_ALPHA : GL_ZERO,
+		GL_ONE, GL_ONE, GL_ZERO);
 	glDepthFunc(GL_LESS);
 	glStencilFunc(GL_ALWAYS, 128, 128);
 	glStencilOp(GL_ZERO, GL_REPLACE, GL_ZERO);
 	glColorMask(0, 0, 0, 0);
 	glFrontFace(GL_CW);
-	glDrawElementsBaseVertex(GL_TRIANGLES, (GLsizei)indexCount, GL_UNSIGNED_INT, (void*)(uintptr_t)(firstIndex * sizeof(uint32_t)), (GLint)baseVertex);
+	DrawVolumeMesh();
 
-	// DrawVolume interleaves the static packet headers through several XGKICKs.
-	// For textured additive volumes, this back-facing kick is the visible cone
-	// shell and retains packet one's additive ALPHA state. Untextured volumes
-	// use the color-preserving mask path.
 	if ((g_grfshd & 2) != 0)
 		glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE, GL_ONE, GL_ZERO);
 	else
@@ -1413,22 +1330,17 @@ void DrawProjVolumeAdd(int baseVertex, int firstIndex, int indexCount)
 	glColorMask(1, 1, 1, 1);
 	glStencilOp(GL_KEEP, GL_ZERO, GL_KEEP);
 	glFrontFace(GL_CCW);
-	glDrawElementsBaseVertex(GL_TRIANGLES, (GLsizei)indexCount, GL_UNSIGNED_INT, (void*)(uintptr_t)(firstIndex * sizeof(uint32_t)), (GLint)baseVertex);
+	DrawVolumeMesh();
 
 	glDepthFunc(GL_ALWAYS);
-	// Bit 6 protects cel-border pixels; bit 7 contains the volume mask.
 	glStencilFunc(GL_EQUAL, 128, 0xC0);
 	glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP);
 	glFrontFace(GL_CW);
-
-	// Packet three uses PRIM 0x6c, which has texture mapping disabled even
-	// when packet one used the CAMSEN texture to construct the volume.
 	if ((g_grfshd & 2) != 0)
 		BindGlobOneWayTexture(whiteTex);
-
 	glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE, GL_ONE, GL_ZERO);
 	glUniform1i(glslProjectedVolumeFinalPass, 1);
-	glDrawElementsBaseVertex(GL_TRIANGLES, (GLsizei)indexCount, GL_UNSIGNED_INT, (void*)(uintptr_t)(firstIndex * sizeof(uint32_t)), (GLint)baseVertex);
+	DrawVolumeMesh();
 	glUniform1i(glslProjectedVolumeFinalPass, 0);
 }
 
@@ -1804,12 +1716,6 @@ std::vector <RPLCEL> g_celBorderPrpl;
 
 int g_projVolumeCount = 0;
 std::vector <RPL> g_projVolumePrpl;
-
-int g_projVolumeAlphaAddCount = 0;
-std::vector <RPL> g_projVolumeAlphaAddPrpl;
-
-int g_projVolumeAddCount = 0;
-std::vector <RPL> g_projVolumeAddPrpl;
 
 int g_opaqueAfterProjVolumeCount = 0;
 std::vector <RPL> g_opaqueAfterProjVolumePrpl;

@@ -92,35 +92,6 @@ void OnRythmActive(RYTHM* prythm, int fActive, PO* ppoOther)
     SetSmaGoal(prythm->psma, fActive ? (OID)1227 : (OID)1226);
     if (!fActive) { if (g_pjt) g_pjt->dtCharmFlash = 2.0f; return; }
 
-    // Each rhythm phase installs a different world-owned attachment marker.
-    // The first phase uses the turtle marker (1567), while the second uses the
-    // fire-pole marker (1691).  Resolve again on every activation and select
-    // the marker nearest Sly, matching the phase he just entered.
-    if (g_pjt) {
-        static constexpr OID s_aoidStartMarker[] = {(OID)1567, (OID)1691};
-        XFM* pxfmBest = nullptr;
-        float sBestSq = 0.0f;
-
-        for (OID oidStart : s_aoidStartMarker) {
-            LO* ploStart = PloFindSwObject(prythm->psw, 4, oidStart, nullptr);
-            if (!ploStart || !FIsBasicDerivedFrom(ploStart, CID_XFM))
-                continue;
-
-            XFM* pxfmStart = static_cast<XFM*>(ploStart);
-            glm::vec3 posStart;
-            GetXfmPos(pxfmStart, &posStart);
-            const glm::vec3 dpos = posStart - g_pjt->xf.posWorld;
-            const float sSq = glm::dot(dpos, dpos);
-            if (!pxfmBest || sSq < sBestSq) {
-                pxfmBest = pxfmStart;
-                sBestSq = sSq;
-            }
-        }
-
-        if (pxfmBest)
-            prythm->pxfmStart = pxfmBest;
-    }
-
     prythm->pruby = reinterpret_cast<RUBY*>(PloFindSwObjectByClass(prythm->psw, 5, CID_RUBY, nullptr));
     if (prythm->pruby) prythm->pruby->prythm = prythm;
 }

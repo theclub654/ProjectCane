@@ -1,4 +1,5 @@
 #include "totals.h"
+#include "gui_layout.h"
 #include "binoc.h"
 #include "wm.h"
 #include "render.h"
@@ -223,9 +224,40 @@ void DrawTotals(TOTALS* ptotals)
     glm::vec4 textColor = ptotals->rgba;
     textColor.a *= opacity;
 
+    const bool fPs2Gui = !FModernGui();
+    const float totalsScale = fPs2Gui ? GetGuiScale().y : 1.0f;
+    float xTotals = ptotals->xOn;
+    float yTotals = ptotals->yOn + yOffset;
+    float dxTotals = ptotals->dx;
+    float dyTotals = ptotals->dy;
+
+    if (fPs2Gui)
+    {
+        dxTotals *= totalsScale;
+        dyTotals *= totalsScale;
+
+        // RepositionBlot anchors TOTALS with its unscaled bounds. Preserve
+        // that same screen edge while enlarging its PS2-authored rectangle.
+        if (ptotals->pbloti != nullptr)
+        {
+            if (ptotals->pbloti->x < 0.0f)
+                xTotals -= dxTotals - ptotals->dx;
+            else if (ptotals->pbloti->x == 0.0f)
+                xTotals -= (dxTotals - ptotals->dx) * 0.5f;
+
+            if (ptotals->pbloti->y < 0.0f)
+                yTotals -= dyTotals - ptotals->dy;
+            else if (ptotals->pbloti->y == 0.0f)
+                yTotals -= (dyTotals - ptotals->dy) * 0.5f;
+
+            xTotals += ptotals->pbloti->x * (totalsScale - 1.0f);
+            yTotals += ptotals->pbloti->y * (totalsScale - 1.0f);
+        }
+    }
+
     CTextBox tbx;
-    tbx.SetPos(ptotals->xOn, ptotals->yOn + yOffset);
-    tbx.SetSize(ptotals->dx, ptotals->dy);
+    tbx.SetPos(xTotals, yTotals);
+    tbx.SetSize(dxTotals, dyTotals);
     tbx.SetTextColor(&textColor);
     tbx.SetHorizontalJust(JH_Left);
     tbx.SetVerticalJust(JV_Top);
@@ -245,7 +277,13 @@ void DrawTotals(TOTALS* ptotals)
         FillScreenRect(0, 0, 0, alpha, 0.0f, yTopPixels, static_cast<float>(g_gl.width), static_cast<float>(g_gl.height));
     }
 
-    ptotals->pfont->PushScaling(ptotals->rFontScale, ptotals->rFontScale);
+    // Retail submits TOTALS glyphs in the PS2's 640 x 492.8 UI canvas and
+    // relies on the final GS projection to scale them to the output.  The PC
+    // renderer draws in framebuffer pixels, so reproduce that projection for
+    // the PS2 presentation.  Keep Modern's established compact sizing intact.
+    ptotals->pfont->PushScaling(
+        ptotals->rFontScale * totalsScale,
+        ptotals->rFontScale * totalsScale);
 
     CRichText rt(ptotals->achzDraw, ptotals->pfont);
     rt.Draw(&tbx, nullptr);

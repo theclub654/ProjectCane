@@ -5,6 +5,7 @@
 #include "pnt.h"
 #include "keyhole.h"
 #include "render.h"
+#include "lgn.h"
 #include <cstdio>
 
 WORLDLEVEL WorldLevelForWmDisplay()
@@ -850,6 +851,7 @@ void PostWmcLoad(WMC* pwmc)
 
     // Null out WM pointer
     pwmc->pwmCurrent = nullptr;
+    pwmc->fRestoreLgnr = false;
 
     glGenVertexArrays(1, &pwmc->gaoWmFan);
     glGenBuffers(1, &pwmc->gboWmFan);
@@ -902,12 +904,21 @@ void OnWmcActive(WMC* pwmc, int fActive)
                 ResumeVag();
                 ContinueMusicSequencer();
             }
+
+            // ForceHideBlots hides the aiming reticle when the map opens, but
+            // the active LGN does not receive another activation callback when
+            // gameplay resumes. Restore only a reticle that was visible before
+            // opening the map; a world-map warp must leave it hidden for teardown.
+            if (pwmc->fRestoreLgnr)
+                g_lgnr.pvtblot->pfnSetBlotBlots(&g_lgnr, BLOTS_Visible);
         }
 
+        pwmc->fRestoreLgnr = false;
         pwmc->fActive = false;
         return;
     }
 
+    pwmc->fRestoreLgnr = g_lgnr.blots != BLOTS_Hidden;
     ForceHideBlots();
    
     WORLDLEVEL worldLevel = WorldLevelForWmDisplay();

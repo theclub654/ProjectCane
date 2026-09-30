@@ -10,6 +10,7 @@
 #include "hubsel.h"
 #include "sound.h"
 #include "jt.h"
+#include "actseg.h"
 #include "save.h"
 
 static bool s_fInfiniteTimer = false;
@@ -296,6 +297,19 @@ void RenderMenuGui(SW* psw)
 
         if (ImGui::BeginMenu("Cheats"))
         {
+            const bool fCanReloadCurrentWorld =
+                g_pgsCur != nullptr &&
+                GetLevelInfo((static_cast<int>(g_pgsCur->gameWorldCur) << 8) |
+                    static_cast<int>(g_pgsCur->worldLevelCur)) != nullptr;
+
+            if (ImGui::MenuItem("Reload Current World", nullptr, false,
+                fCanReloadCurrentWorld))
+            {
+                ReloadCurrentLevel();
+            }
+
+            ImGui::Separator();
+
             bool fManualFreeCamera = false;
 
             if (g_pcm != nullptr)
@@ -691,6 +705,24 @@ void RenderMenuGui(SW* psw)
 
         ImGui::EndMainMenuBar();
     }
+
+    // F3 owns the debug overlay as a whole, so keep the frame-rate readout
+    // visible for exactly the same lifetime as the menu bar.
+    const ImGuiIO& io = ImGui::GetIO();
+    ImGui::SetNextWindowBgAlpha(0.55f);
+    ImGui::SetNextWindowPos(
+        ImVec2(io.DisplaySize.x - 10.0f, 30.0f),
+        ImGuiCond_Always,
+        ImVec2(1.0f, 0.0f));
+    ImGui::Begin("Frame Rate", nullptr,
+        ImGuiWindowFlags_AlwaysAutoResize |
+        ImGuiWindowFlags_NoDecoration |
+        ImGuiWindowFlags_NoInputs |
+        ImGuiWindowFlags_NoNav |
+        ImGuiWindowFlags_NoSavedSettings |
+        ImGuiWindowFlags_NoFocusOnAppearing);
+    ImGui::Text("FPS: %.1f", io.Framerate);
+    ImGui::End();
 
     // Keep Sly's live world position visible without opening the Teleport menu.
     if (g_pjt)

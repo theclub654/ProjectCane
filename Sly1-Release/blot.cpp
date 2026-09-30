@@ -604,7 +604,13 @@ void DrawBlot(BLOT* pblot)
 
 void GetGuiScaledBlotRect(BLOT* pblot, float* px, float* py, float* pdx, float* pdy)
 {
-    const GuiScale guiScale = GetGuiScale();
+    GetGuiScaledBlotRect(pblot, g_guiScale, px, py, pdx, pdy);
+}
+
+void GetGuiScaledBlotRect(BLOT* pblot, float scaleSetting,
+    float* px, float* py, float* pdx, float* pdy)
+{
+    const GuiScale guiScale = GetGuiScale(scaleSetting);
     const float scaleX = guiScale.x;
     const float scaleY = guiScale.y;
     const float dx = pblot->dx * scaleX;
@@ -647,7 +653,8 @@ void GetGuiScaledBlotRect(BLOT* pblot, float* px, float* py, float* pdx, float* 
                 pegBlot->pvtblot->pfnFIncludeBlotForPeg(pegBlot, pblot))
             {
                 float pegX, pegY, pegDx, pegDy;
-                GetGuiScaledBlotRect(pegBlot, &pegX, &pegY, &pegDx, &pegDy);
+                GetGuiScaledBlotRect(pegBlot, scaleSetting,
+                    &pegX, &pegY, &pegDx, &pegDy);
 
                 switch (pegPlacement->blotePeg)
                 {

@@ -10,6 +10,7 @@
 #include "rwm.h"
 #include "xform.h"
 #include <cmath>
+#include <cstdio>
 #include <cstring>
 
 namespace
@@ -29,6 +30,32 @@ constexpr struct { OID oid; float time; } s_aeventRuby[9] = {
 };
 RUBYMUSICSTATE s_rubymusicstate = RUBYMUSICSTATE_Idle;
 int s_iRubyMusicSectionPending = 0;
+
+void RestartRubyRhythm(RUBY* pruby)
+{
+	if (pruby->dtBeat != pruby->dtBeatTarget)
+	{
+		pruby->dtBeat = pruby->dtBeatTarget;
+		pruby->measureDuration =
+			pruby->dtBeat * static_cast<float>(pruby->beatsPerMeasure);
+	}
+
+	pruby->tBeatStart = g_clock.t;
+	pruby->tBeatNext = g_clock.t + pruby->dtBeat;
+	pruby->iMeasure = 0;
+	pruby->cQuarterBeat = 0;
+	pruby->iQuarterBeat = 0;
+
+	if (pruby->prythmSequencePending)
+	{
+		RYTHMSEQUENCE* prythmSequence = pruby->prythmSequencePending;
+		pruby->prythmSequencePending = nullptr;
+		pruby->prythmSequenceActive = prythmSequence;
+		ActivateRythmSequence(prythmSequence);
+	}
+
+	s_rubymusicstate = RUBYMUSICSTATE_Idle;
+}
 }
 
 RUBY* NewRuby()
@@ -40,20 +67,15 @@ void InitRuby(RUBY* pruby)
 {
     InitStepGuard(pruby);
     pruby->iMeasure = 0;
+    pruby->dtBeatTarget = 1.0f;
+    pruby->measureDuration = 8.0f;
     pruby->cQuarterBeat = -1;
     pruby->iQuarterBeat = -1;
-
-    pruby->framesPerBeat = 60;
     pruby->beatsPerMeasure = 8;
-    pruby->dtBeatTarget = 1.0f;
-    pruby->dtBeat = pruby->dtBeatTarget;
-    pruby->measureDuration = 8.0f;
-    pruby->uBeat = 0.0f;
-    pruby->tBeatStart = g_clock.t;
-    pruby->tBeatNext = g_clock.t + pruby->dtBeat;
+    pruby->framesPerBeat = 60;
 
     pruby->aRythmEvent.clear();
-    pruby->aRythmEvent.reserve(1024 / sizeof(RUBYRYTHMEVENT));
+    pruby->aRythmEvent.reserve(64);
 
     pruby->psw->fRubyMusicActive = 1;
     KillMusic();
@@ -265,7 +287,6 @@ void OnRubyEnteringSgs(RUBY* pruby, SGS sgsPrev, ASEG* pasegOverride)
     if (!pruby)
         return;
 
-
     if (pruby->sgs == SGS_Attack && pruby->psmaRuby) {
         int oidState = OID_Nil;
         GetSmaCur(pruby->psmaRuby, (OID*)&oidState);
@@ -408,6 +429,12 @@ void HandleRubyMessage(RUBY* pruby, MSGID msgid, void* pv)
     else if (msgid == MSGID_sma_transition && pv == pruby->psmaRuby) {
         int oidState = OID_Nil;
         GetSmaCur(pruby->psmaRuby, (OID*)&oidState);
+		// Retail consumes the initial RestartRhythm state before SMA transition
+		// notifications can request another music section. ProjectCane currently
+		// delivers the startup transitions first, so preserve that ordering
+		// invariant here before the transition changes the state to Waiting.
+		if (s_rubymusicstate == RUBYMUSICSTATE_RestartRhythm)
+			RestartRubyRhythm(pruby);
 
         int iMusicSection = -1;
         switch (oidState) {
@@ -468,28 +495,7 @@ void UpdateRuby(RUBY* pruby, float dt)
     UpdateStepguard(pruby, dt);
 
     if (s_rubymusicstate == RUBYMUSICSTATE_RestartRhythm) {
-        if (pruby->dtBeat != pruby->dtBeatTarget) {
-            pruby->dtBeat = pruby->dtBeatTarget;
-            pruby->measureDuration =
-                pruby->dtBeat * static_cast<float>(pruby->beatsPerMeasure);
-        }
-
-        pruby->tBeatStart = g_clock.t;
-        pruby->tBeatNext = g_clock.t + pruby->dtBeat;
-
-        pruby->iMeasure = 0;
-        pruby->cQuarterBeat = 0;
-        pruby->iQuarterBeat = 0;
-
-        if (pruby->prythmSequencePending) {
-            RYTHMSEQUENCE* prythmSequence = pruby->prythmSequencePending;
-
-            pruby->prythmSequencePending = nullptr;
-            pruby->prythmSequenceActive = prythmSequence;
-            ActivateRythmSequence(prythmSequence);
-        }
-
-        s_rubymusicstate = RUBYMUSICSTATE_Idle;
+		RestartRubyRhythm(pruby);
     }
 
     if (g_clock.t >= pruby->tBeatNext) {
@@ -618,14 +624,6 @@ void UpdateRubySgs(RUBY* pruby)
 void SetRubyPendingRythm(RUBY* pruby, RYTHMSEQUENCE* prythmSequence)
 {
     pruby->prythmSequencePending = prythmSequence;
-
-    // The commandless sequence is the level-start bootstrap. Its activation
-    // splice enables the initial pillar interaction, but it is not a combat
-    // sequence and must not remain installed as Ruby's active sequence.
-    if (prythmSequence && prythmSequence->aCommand.empty()) {
-        pruby->prythmSequencePending = nullptr;
-        ActivateRythmSequence(prythmSequence);
-    }
 }
 
 void ClearRubyRythmSequence(RUBY* pruby)

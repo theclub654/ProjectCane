@@ -101,5 +101,5 @@ float UCompletePingpong(PINGPONG* ppingpong)
 
 void DeletePingpong(PINGPONG* ppingpong)
 {
-    delete ppingpong;
+    DeleteSaa(reinterpret_cast<SAA*>(ppingpong));
 }

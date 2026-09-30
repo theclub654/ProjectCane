@@ -115,7 +115,7 @@ void LoadLookerFromBrx(LOOKER* plooker, CBinaryInputStream* pbis)
 
 void InitLooker(LOOKER* plooker, SAAF* psaaf)
 {
-    InitSaa((SAA*)plooker, psaaf);
+    InitSaa(plooker, psaaf);
 
     plooker->sai.grfsai = (plooker->sai.grfsai & 0xfffffffe) | 2;
 }
@@ -204,5 +204,5 @@ void NotifyLookerRender(LOOKER* plooker, ALO* palo, RPL* prpl)
 
 void DeleteLooker(LOOKER* plooker)
 {
-    delete plooker;
+    DeleteSaa(reinterpret_cast<SAA*>(plooker));
 }

@@ -54,5 +54,5 @@ float UCompleteCircler(CIRCLER* pcircler)
 
 void DeleteCircler(CIRCLER* pcircler)
 {
-    delete pcircler;
+    DeleteSaa(reinterpret_cast<SAA*>(pcircler));
 }

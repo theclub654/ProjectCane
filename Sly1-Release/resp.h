@@ -83,8 +83,12 @@ enum RESPK
 	RESPK_KeyR3,
 	RESPK_GuiStyle,
 	RESPK_DisableControllerWhenUnfocused,
+	RESPK_Sound,
+	RESPK_MusicVolume,
+	RESPK_SfxVolume,
+	RESPK_DialogueVolume,
 
-	RESPK_Max = 62
+	RESPK_Max = 66
 };
 
 // -----------------------------------------------------------------------------
@@ -134,8 +138,9 @@ enum PRK
 	PRK_ExitToDesktopConfirm = 34,
 	PRK_KeyboardMapping = 35,
 	PRK_ControllerMapping = 36,
+	PRK_SoundMenu = 37,
 
-	PRK_Max = 37
+	PRK_Max = 38
 };
 
 // -----------------------------------------------------------------------------
@@ -329,8 +334,7 @@ inline const RESPK s_arespkOptionsMenuAll[] =
     RESPK_NewGame,
     RESPK_LoadGame,
     RESPK_SaveGame,
-    RESPK_Music,
-    RESPK_Speakers,
+    RESPK_Sound,
     RESPK_Vibration,
     RESPK_Video,
     RESPK_Controls,
@@ -383,6 +387,9 @@ inline char g_achzRespk40[64]{};
 inline char g_achzRespk41[64]{};
 inline char g_achzRespk60[64]{};
 inline char g_achzRespk61[64]{};
+inline char g_achzRespk63[64]{};
+inline char g_achzRespk64[64]{};
+inline char g_achzRespk65[64]{};
 inline char g_aachzKeyboardBindings[BTN_MAX][64]{};
 
 // -----------------------------------------------------------------------------
@@ -429,6 +436,12 @@ inline const char* const s_apchzRespk26[2] =
 {
     "Jet Pack: &2(&. Up = Fly Down",
     "Jet Pack: &2(&. Up = Fly Up"
+};
+
+inline RESPK s_arespkSoundMenu[] =
+{
+	RESPK_Speakers, RESPK_MusicVolume, RESPK_SfxVolume,
+	RESPK_DialogueVolume, RESPK_Back
 };
 
 inline const char* const s_apchzRespk41[2] =
@@ -496,7 +509,9 @@ inline const char* s_mprespkachz[RESPK_Max] =
 	g_aachzKeyboardBindings[12], g_aachzKeyboardBindings[13],
 	g_aachzKeyboardBindings[14], g_aachzKeyboardBindings[15],
 	g_achzRespk60,            // 60 RESPK_GuiStyle
-	g_achzRespk61             // 61 RESPK_DisableControllerWhenUnfocused
+	g_achzRespk61,            // 61 RESPK_DisableControllerWhenUnfocused
+	"Sound...",              // 62 RESPK_Sound
+	g_achzRespk63, g_achzRespk64, g_achzRespk65
 };
 
 // -----------------------------------------------------------------------------
@@ -554,7 +569,8 @@ inline RESPD s_arespd[RESPK_Max] =
 	{ 0, nullptr }, { 0, nullptr }, { 0, nullptr }, { 0, nullptr },
 	{ 0, nullptr }, { 0, nullptr }, { 0, nullptr }, { 0, nullptr },
 	{ 0, nullptr },           // 60 RESPK_GuiStyle
-	{ 0, nullptr }            // 61 RESPK_DisableControllerWhenUnfocused
+	{ 0, nullptr },           // 61 RESPK_DisableControllerWhenUnfocused
+	{ 0, nullptr }, { 0, nullptr }, { 0, nullptr }, { 0, nullptr }
 };
 
 // -----------------------------------------------------------------------------
@@ -601,7 +617,8 @@ inline PRD s_mpprkprd[PRK_Max] =
 	{ "Video", 1.0f, 1.0f, 1, static_cast<int>(std::size(s_arespkVideoMenu)), s_arespkVideoMenu }, // 33 PRK_VideoMenu
 	{ "Are you sure?", 1.0f, 1.0f, 0, 2, s_arespkYesNo },                                     // 34 PRK_ExitToDesktopConfirm
 	{ "Keyboard Mapping", 0.8f, 0.55f, 1, static_cast<int>(std::size(s_arespkKeyboardMapping)), s_arespkKeyboardMapping }, // 35
-	{ "Controller Mapping", 0.8f, 0.55f, 1, static_cast<int>(std::size(s_arespkKeyboardMapping)), s_arespkKeyboardMapping } // 36
+	{ "Controller Mapping", 0.8f, 0.55f, 1, static_cast<int>(std::size(s_arespkKeyboardMapping)), s_arespkKeyboardMapping }, // 36
+	{ "Sound", 1.0f, 0.8f, 1, static_cast<int>(std::size(s_arespkSoundMenu)), s_arespkSoundMenu } // 37
 };
 
 static_assert(sizeof(s_mpprkprd) / sizeof(s_mpprkprd[0]) == PRK_Max);

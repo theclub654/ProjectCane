@@ -180,6 +180,8 @@ void  UpdateBlotActive(BLOT* pblot, JOY* pjoy);
 void  UpdateBlots();
 void  DrawBlot(BLOT *pblot);
 void  GetGuiScaledBlotRect(BLOT* pblot, float* px, float* py, float* pdx, float* pdy);
+void  GetGuiScaledBlotRect(BLOT* pblot, float scaleSetting,
+    float* px, float* py, float* pdx, float* pdy);
 void  RenderBlots();
 void  DrawBlots();
 void  ResetBlots();

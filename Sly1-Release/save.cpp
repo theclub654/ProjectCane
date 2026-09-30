@@ -2,8 +2,10 @@
 #include "clock.h"
 #include "cm.h"
 #include "gl.h"
+#include "gui_layout.h"
 #include "glob.h"
 #include "debug.h"
+#include "sound.h"
 #include <algorithm>
 #include <cstdint>
 #include <cstring>
@@ -17,7 +19,7 @@ namespace
 constexpr char kSaveMagic[8] = { 'P', 'C', 'A', 'N', 'E', 'S', 'A', 'V' };
 constexpr uint32_t kSaveVersion = 3;
 constexpr char kSettingsMagic[8] = { 'P', 'C', 'A', 'N', 'E', 'S', 'Y', 'S' };
-constexpr uint32_t kSettingsVersion = 7;
+constexpr uint32_t kSettingsVersion = 8;
 int s_lastSaveSlot = -1;
 
 struct VideoSaveSettingsV1
@@ -104,6 +106,12 @@ struct VideoSaveSettingsV6
     int disableControllerInputWhenUnfocused;
 };
 
+struct VideoSaveSettingsV7
+{
+	VideoSaveSettingsV6 base;
+	int lastSaveSlot;
+};
+
 struct SaveFileHeader
 {
     char magic[8];
@@ -117,6 +125,8 @@ struct SavePayloadV2
     GS gameState;
     VideoSaveSettingsV1 video;
 };
+
+void SetDefaultAudioSettings(VIDEOSAVESETTINGS& settings);
 
 VIDEOSAVESETTINGS UpgradeVideoSettings(const VideoSaveSettingsV1& oldSettings)
 {
@@ -135,6 +145,7 @@ VIDEOSAVESETTINGS UpgradeVideoSettings(const VideoSaveSettingsV1& oldSettings)
 	std::copy(g_keyboardBindings.begin(), g_keyboardBindings.end(), settings.keyboardBindings);
 	std::copy(g_gamepadBindings.begin(), g_gamepadBindings.end(), settings.gamepadBindings);
     settings.lastSaveSlot = -1;
+	SetDefaultAudioSettings(settings);
     return settings;
 }
 
@@ -146,6 +157,7 @@ VIDEOSAVESETTINGS UpgradeVideoSettings(const VideoSaveSettingsV2& oldSettings)
 	std::copy(g_gamepadBindings.begin(), g_gamepadBindings.end(), settings.gamepadBindings);
 	settings.guiStyle = GuiStyle_PS2;
 	settings.lastSaveSlot = -1;
+	SetDefaultAudioSettings(settings);
 	return settings;
 }
 
@@ -157,6 +169,7 @@ VIDEOSAVESETTINGS UpgradeVideoSettings(const VideoSaveSettingsV3& oldSettings)
 	std::copy(g_gamepadBindings.begin(), g_gamepadBindings.end(), settings.gamepadBindings);
 	settings.guiStyle = GuiStyle_PS2;
 	settings.lastSaveSlot = -1;
+	SetDefaultAudioSettings(settings);
 	return settings;
 }
 
@@ -179,6 +192,7 @@ VIDEOSAVESETTINGS UpgradeVideoSettings(const VideoSaveSettingsV4& oldSettings)
 	std::copy(std::begin(oldSettings.gamepadBindings), std::end(oldSettings.gamepadBindings),
 		settings.gamepadBindings);
 	settings.lastSaveSlot = -1;
+	SetDefaultAudioSettings(settings);
 	return settings;
 }
 
@@ -188,6 +202,7 @@ VIDEOSAVESETTINGS UpgradeVideoSettings(const VideoSaveSettingsV5& oldSettings)
 	std::memcpy(&settings, &oldSettings, sizeof(oldSettings));
 	settings.disableControllerInputWhenUnfocused = 0;
 	settings.lastSaveSlot = -1;
+	SetDefaultAudioSettings(settings);
 	return settings;
 }
 
@@ -196,7 +211,16 @@ VIDEOSAVESETTINGS UpgradeVideoSettings(const VideoSaveSettingsV6& oldSettings)
 	VIDEOSAVESETTINGS settings{};
 	std::memcpy(&settings, &oldSettings, sizeof(oldSettings));
 	settings.lastSaveSlot = -1;
+	SetDefaultAudioSettings(settings);
 	return settings;
+}
+
+void SetDefaultAudioSettings(VIDEOSAVESETTINGS& settings)
+{
+	settings.stereoEnabled = 1;
+	settings.musicVolume = 1.0f;
+	settings.soundEffectsVolume = 1.0f;
+	settings.dialogueVolume = 1.0f;
 }
 
 struct SettingsFileHeader
@@ -239,6 +263,10 @@ VIDEOSAVESETTINGS CaptureVideoSettings()
 	std::copy(g_gamepadBindings.begin(), g_gamepadBindings.end(), settings.gamepadBindings);
     settings.disableControllerInputWhenUnfocused = g_fDisableControllerInputWhenUnfocused ? 1 : 0;
     settings.lastSaveSlot = s_lastSaveSlot;
+	settings.stereoEnabled = FUserStereoEnabled() ? 1 : 0;
+	settings.musicVolume = GetUserMusicVolume();
+	settings.soundEffectsVolume = GetUserSfxVolume();
+	settings.dialogueVolume = GetUserDialogueVolume();
     return settings;
 }
 
@@ -270,6 +298,10 @@ void ValidateVideoSettings(VIDEOSAVESETTINGS& settings)
     settings.disableControllerInputWhenUnfocused =
         settings.disableControllerInputWhenUnfocused != 0;
     settings.lastSaveSlot = std::clamp(settings.lastSaveSlot, -1, SAVE_SLOT_COUNT - 1);
+	settings.stereoEnabled = settings.stereoEnabled != 0;
+	settings.musicVolume = std::clamp(settings.musicVolume, 0.0f, 1.0f);
+	settings.soundEffectsVolume = std::clamp(settings.soundEffectsVolume, 0.0f, 1.0f);
+	settings.dialogueVolume = std::clamp(settings.dialogueVolume, 0.0f, 1.0f);
     // Each presentation exposes two deliberate sizes. Both share 100%, so
     // malformed or legacy values safely normalize to the nearest valid size.
     if (settings.guiStyle == GuiStyle_Modern)
@@ -346,6 +378,10 @@ void ApplySavedVideoSettings(VIDEOSAVESETTINGS settings)
     g_fDisableControllerInputWhenUnfocused =
         settings.disableControllerInputWhenUnfocused != 0;
     s_lastSaveSlot = settings.lastSaveSlot;
+	SetUserStereoEnabled(settings.stereoEnabled != 0);
+	SetUserMusicVolume(settings.musicVolume);
+	SetUserSfxVolume(settings.soundEffectsVolume);
+	SetUserDialogueVolume(settings.dialogueVolume);
 
     ApplyAspectRatioSettings(static_cast<AspectMode>(settings.aspectMode));
     ApplyMsaaSettings();
@@ -565,6 +601,20 @@ bool LoadSystemSettings(VIDEOSAVESETTINGS* settings)
 		return true;
 	}
 
+	if (header.version == 7 && header.payloadSize == sizeof(VideoSaveSettingsV7))
+	{
+		VideoSaveSettingsV7 oldV7{};
+		if (!stream.read(reinterpret_cast<char*>(&oldV7), sizeof(oldV7)) ||
+			SaveChecksum(&oldV7, sizeof(oldV7)) != header.checksum)
+		{
+			*settings = {};
+			return false;
+		}
+		std::memcpy(settings, &oldV7, sizeof(oldV7));
+		SetDefaultAudioSettings(*settings);
+		return true;
+	}
+
     if (header.version != kSettingsVersion || header.payloadSize != sizeof(*settings) ||
         !stream.read(reinterpret_cast<char*>(settings), sizeof(*settings)) ||
         SaveChecksum(settings, sizeof(*settings)) != header.checksum)
@@ -666,9 +716,25 @@ void DrawAutoSave(SAVEBLOT* psaveblot)
         psaveblot->blots == BLOTS_Visible && dtVisible > 1.0f)
         HideBlot(psaveblot);
 
+    const bool fPs2Gui = !FModernGui();
+    const float autosaveScale = fPs2Gui ? GetGuiScale().y : 1.0f;
+    float xAutosave = psaveblot->x;
+    float yAutosave = psaveblot->y + yOffset;
+    float dxAutosave = psaveblot->dx;
+    float dyAutosave = psaveblot->dy;
+
+    if (fPs2Gui)
+    {
+        // Scale the complete BLOT rectangle as well as the glyph so its
+        // authored screen-edge anchor and appear/disappear motion stay intact.
+        GetGuiScaledBlotRect(psaveblot,
+            &xAutosave, &yAutosave, &dxAutosave, &dyAutosave);
+        yAutosave += yOffset * autosaveScale;
+    }
+
     CTextBox tbx;
-    tbx.SetPos(psaveblot->x, psaveblot->y + yOffset);
-    tbx.SetSize(psaveblot->dx, psaveblot->dy);
+    tbx.SetPos(xAutosave, yAutosave);
+    tbx.SetSize(dxAutosave, dyAutosave);
     tbx.SetTextColor(&psaveblot->rgba);
     tbx.SetHorizontalJust(JH_Left);
     tbx.SetVerticalJust(JV_Top);
@@ -684,8 +750,8 @@ void DrawAutoSave(SAVEBLOT* psaveblot)
     std::snprintf(achz, sizeof(achz), "%c&1^07~b2a83d%d%%&.", chPrompt, percent);
 
     psaveblot->pfont->PushScaling(
-        psaveblot->rFontScale,
-        psaveblot->rFontScale);
+        psaveblot->rFontScale * autosaveScale,
+        psaveblot->rFontScale * autosaveScale);
 
     CRichText richText(achz, psaveblot->pfont);
     richText.Draw(&tbx, nullptr);
@@ -732,6 +798,13 @@ void StartupSaveData(SAVEDATA* psaveData)
         ApplySavedVideoSettings(settings);
         SaveSystemSettings();
     }
+	else
+	{
+		settings = CaptureVideoSettings();
+		SetDefaultAudioSettings(settings);
+		ApplySavedVideoSettings(settings);
+		SaveSystemSettings();
+	}
 
     if (s_lastSaveSlot >= 0 && s_lastSaveSlot < SAVE_SLOT_COUNT &&
         psaveData->saveData[s_lastSaveSlot].dt > 0.0f)

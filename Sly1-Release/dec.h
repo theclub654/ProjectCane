@@ -124,12 +124,6 @@ extern std::vector <RPLCEL> g_celBorderPrpl;
 extern int g_projVolumeCount;
 extern std::vector <RPL> g_projVolumePrpl;
 
-extern int g_projVolumeAddCount;
-extern std::vector <RPL> g_projVolumeAddPrpl;
-
-extern int g_projVolumeAlphaAddCount;
-extern std::vector <RPL> g_projVolumeAlphaAddPrpl;
-
 extern int g_opaqueAfterProjVolumeCount;
 extern std::vector <RPL> g_opaqueAfterProjVolumePrpl;
 
@@ -4266,8 +4260,8 @@ void SetAMRegister(int ireg, byte bVal);
 void PushSwReverb(SW* psw, REVERBK rvrbk, int depth);
 void PopSwReverb(SW* psw);
 void SetSwIntermittentSound(SW* psw, SFXID sfxid);
-void SetSwIntermittentVolPct(SW* psw, LM plmVolPct);
-void SetSwIntermittentRepeat(SW* psw, LM plmRepeat);
+void SetSwIntermittentVolPct(SW* psw, const LM* plmVolPct);
+void SetSwIntermittentRepeat(SW* psw, const LM* plmRepeat);
 
 void StartupScreen();
 
