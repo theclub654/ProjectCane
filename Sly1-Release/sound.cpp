@@ -11,10 +11,19 @@
 #include "cm.h"
 #include "game.h"
 #include "util.h"
-#include <Windows.h>
+#include "../platform/platform.h"
+#ifdef _WIN32
 #include <mmsystem.h>
+#ifdef CANE_XAUDIO_REDIST
+#include <xaudio2Redist.h>
+#include <xaudio2fxRedist.h>
+#else
 #include <xaudio2.h>
 #include <xaudio2fx.h>
+#endif
+#else
+#include "../platform/audio_linux.h"
+#endif
 #include <filesystem>
 #include <fstream>
 #include <vector>
@@ -211,11 +220,7 @@ bool Parse989SfxBank(EFFECTBANK& bank)
 
 std::filesystem::path ExecutableDirectory()
 {
-    wchar_t executablePath[MAX_PATH]{};
-    const DWORD length = GetModuleFileNameW(nullptr, executablePath, MAX_PATH);
-    if (length == 0 || length >= MAX_PATH)
-        return std::filesystem::current_path();
-    return std::filesystem::path(executablePath).parent_path();
+    return cane::dataDirectory();
 }
 
 bool IsReadablePath(const char* value)
@@ -609,7 +614,7 @@ std::filesystem::path ResolveVagWav(const char* descriptorOrPath)
 
     if (IsReadablePath(descriptorOrPath))
     {
-        std::filesystem::path path(descriptorOrPath);
+        std::filesystem::path path=cane::path(descriptorOrPath);
         path.replace_extension(".wav");
         std::error_code error;
         if (std::filesystem::is_regular_file(path, error))
@@ -3332,11 +3337,9 @@ void ContinueMusicSequencer()
 	}
 }
 
-void PreloadVag(const char* descriptorOrPath)
+void PreloadVagFile(const std::filesystem::path& wavPath)
 {
 	StopVag();
-
-	const std::filesystem::path wavPath = ResolveVagWav(descriptorOrPath);
 	if (wavPath.empty())
 		return;
 
@@ -3400,6 +3403,11 @@ void PreloadVag(const char* descriptorOrPath)
 	replacement.path = wavPath;
 	s_vagStream = std::move(replacement);
 	RecalculateChannelVolume(2);
+}
+
+void PreloadVag(const char* descriptorOrPath)
+{
+	PreloadVagFile(ResolveVagWav(descriptorOrPath));
 }
 
 void PushSwReverb(SW* psw, REVERBK rvrbk, int depth)
@@ -3615,7 +3623,7 @@ SoundBankPtr SbpEnsureBank(int ibnk)
 	std::vector<uint8_t> bytes((std::istreambuf_iterator<char>(input)), {});
 	if (bytes.empty())
 	{
-		std::printf("[SOUND BANK] Extracted bank is empty: %ls\n", path.c_str());
+		std::printf("[SOUND BANK] Extracted bank is empty: %s\n", cane::utf8(path).c_str());
 		return nullptr;
 	}
 
@@ -3624,7 +3632,7 @@ SoundBankPtr SbpEnsureBank(int ibnk)
 	replacement->bytes = std::move(bytes);
 	if (!Parse989SfxBank(*replacement))
 	{
-		std::printf("[SOUND BANK] Invalid or unsupported 989SND SBlk: %ls\n", path.c_str());
+		std::printf("[SOUND BANK] Invalid or unsupported 989SND SBlk: %s\n", cane::utf8(path).c_str());
 		return nullptr;
 	}
 	s_effectBanks[ibnk] = std::move(replacement);
@@ -4182,3 +4190,11 @@ int s_hvagAmbient = 0;
 IEXC g_iexcHyst = 0;
 int s_sfxidLast = 0;
 int g_fSneakyFeet = 0;
+
+void PrintSoundDiagnostics()
+{
+    std::lock_guard<std::recursive_mutex> lock(s_musicMutex);
+    uint64_t samples=0;
+    for(auto& active:s_music989.voices)if(active.voice){XAUDIO2_VOICE_STATE state{};active.voice->GetState(&state);samples+=state.SamplesPlayed;}
+    std::printf("SOUND: engine=%d master=%.3f music=%.3f tones=%zu voices=%zu samples=%llu dialogue=%d\n", s_xaudio2!=nullptr, s_masterVolume, s_userMusicVolume, s_music989.tones.size(), s_music989.voices.size(), static_cast<unsigned long long>(samples), s_vagStream.loaded);
+}

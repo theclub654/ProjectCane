@@ -1,5 +1,7 @@
 #include "mb.h"
+#if defined(_MSC_VER)
 #include <intrin.h>
+#endif
 #include "steprun.h"
 #include "sm.h"
 #include "jt.h"

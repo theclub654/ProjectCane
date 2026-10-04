@@ -55,7 +55,7 @@ enum RUMK
     RUMK_Max = 11
 };
 
-enum JOYID 
+enum JOYID : int
 {
     JOYID_Nil = -1,
     JOYID_Left = 0,

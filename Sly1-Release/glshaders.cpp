@@ -1,7 +1,10 @@
 #include "glshaders.h"
 #include "resource1.h"
 
-#include <Windows.h>
+#include "../platform/platform.h"
+#ifdef CANE_PORTABLE_SHADERS
+#include "embedded_shaders.h"
+#endif
 #include <cstdio>
 #include <cstring>
 #include <iostream>
@@ -11,6 +14,7 @@ namespace
 {
 	void ShowShaderErrorConsole()
 	{
+		#ifdef _WIN32
 		static bool initialized = false;
 		if (initialized)
 			return;
@@ -31,6 +35,7 @@ namespace
 			ShowWindow(consoleWindow, SW_SHOW);
 			SetForegroundWindow(consoleWindow);
 		}
+		#endif
 	}
 
 	int ShaderResourceId(const char* filename)
@@ -70,6 +75,9 @@ namespace
 
 	std::string GetEmbeddedShaderSource(const char* filename)
 	{
+		#ifdef CANE_PORTABLE_SHADERS
+		return CaneEmbeddedShader(filename);
+		#else
 		const int resourceId = ShaderResourceId(filename);
 		if (resourceId == 0)
 			throw std::runtime_error(std::string("Unknown embedded shader: ") + filename);
@@ -100,6 +108,7 @@ namespace
 		}
 
 		return std::string(source, sourceSize);
+		#endif
 	}
 }
 

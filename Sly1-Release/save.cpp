@@ -12,7 +12,7 @@
 #include <filesystem>
 #include <fstream>
 #include <iterator>
-#include <Windows.h>
+#include "../platform/platform.h"
 
 namespace
 {
@@ -396,12 +396,7 @@ void ApplySavedVideoSettings(VIDEOSAVESETTINGS settings)
 
 std::filesystem::path SaveDirectory()
 {
-    wchar_t executablePath[MAX_PATH]{};
-    const DWORD length = GetModuleFileNameW(nullptr, executablePath, MAX_PATH);
-    std::filesystem::path base = length != 0
-        ? std::filesystem::path(executablePath).parent_path()
-        : std::filesystem::current_path();
-    return base / L"Saves";
+    return cane::userDirectory() / "Saves";
 }
 
 std::filesystem::path SaveSlotPath(int slot)
@@ -422,7 +417,8 @@ bool WriteSaveSlot(int slot, const GS& save)
         return false;
 
     const std::filesystem::path path = SaveSlotPath(slot);
-    const std::filesystem::path temporary = path.wstring() + L".tmp";
+    std::filesystem::path temporary = path;
+    temporary += ".tmp";
     const GS payload = save;
     const SaveFileHeader header{ { 'P', 'C', 'A', 'N', 'E', 'S', 'A', 'V' }, kSaveVersion,
         static_cast<uint32_t>(sizeof(payload)), SaveChecksum(&payload, sizeof(payload)) };
@@ -438,8 +434,7 @@ bool WriteSaveSlot(int slot, const GS& save)
         return false;
     stream.close();
 
-    return MoveFileExW(temporary.c_str(), path.c_str(),
-        MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH) != FALSE;
+    return cane::atomicReplace(temporary, path);
 }
 
 bool ReadSaveSlot(int slot, GS* save, VIDEOSAVESETTINGS* legacyVideo, bool* hasLegacyVideo)
@@ -639,7 +634,8 @@ bool SaveSystemSettings()
         kSettingsVersion, static_cast<uint32_t>(sizeof(settings)),
         SaveChecksum(&settings, sizeof(settings)) };
     const std::filesystem::path path = SystemSettingsPath();
-    const std::filesystem::path temporary = path.wstring() + L".tmp";
+    std::filesystem::path temporary = path;
+    temporary += ".tmp";
     std::ofstream stream(temporary, std::ios::binary | std::ios::trunc);
     if (!stream)
         return false;
@@ -651,8 +647,7 @@ bool SaveSystemSettings()
         return false;
     stream.close();
 
-    return MoveFileExW(temporary.c_str(), path.c_str(),
-        MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH) != FALSE;
+    return cane::atomicReplace(temporary, path);
 }
 
 void StartupSaveBlot(SAVEBLOT* psaveblot)
@@ -927,3 +922,48 @@ int LoadCurrentSave(SAVEDATA* psaveData)
 SAVEDATA g_saveData;
 SAVEBLOT g_autosave;
 VTSAVEBLOT g_vtsaveblot;
+
+// Exercise the actual serializer before graphics/audio startup. Fixtures are
+// synthetic little-endian files with the established Windows ABI.
+void TestSaveCompatibility(const std::filesystem::path& fixtures)
+{
+    static_assert(sizeof(GS)==6656 && alignof(GS)==4 && sizeof(WS)==1100 && sizeof(LS)==120);
+    static_assert(offsetof(GS,aws)==16 && offsetof(GS,gameWorldCur)==6616);
+    static_assert(sizeof(SaveFileHeader)==20 && sizeof(SettingsFileHeader)==20);
+    static_assert(sizeof(VideoSaveSettingsV1)==36 && sizeof(VideoSaveSettingsV2)==40);
+    static_assert(sizeof(VideoSaveSettingsV3)==104 && sizeof(VideoSaveSettingsV4)==168);
+    static_assert(sizeof(VideoSaveSettingsV5)==172 && sizeof(VideoSaveSettingsV6)==176);
+    static_assert(sizeof(VideoSaveSettingsV7)==180 && sizeof(VIDEOSAVESETTINGS)==196);
+    const auto previous=cane::userOverride;
+    const auto root=std::filesystem::temp_directory_path()/cane::path("cane save caf\xc3\xa9 "+std::to_string(std::chrono::steady_clock::now().time_since_epoch().count()));
+    cane::userOverride=root;
+    auto require=[](bool valid,const char* reason){if(!valid)throw std::runtime_error(reason);};
+    auto bytes=[](const std::filesystem::path& path){std::ifstream file(path,std::ios::binary);return std::vector<char>(std::istreambuf_iterator<char>(file),{});};
+    try {
+        std::filesystem::create_directories(SaveDirectory());
+        GS expected{};
+        for(int version=1;version<=3;++version) {
+            std::filesystem::copy_file(fixtures/("slot-v"+std::to_string(version)+".sav"),SaveSlotPath(0),std::filesystem::copy_options::overwrite_existing);
+            GS state{};VIDEOSAVESETTINGS video{};bool legacy=false;
+            require(ReadSaveSlot(0,&state,&video,&legacy),"Legacy save fixture rejected");
+            require(state.clife==7 && state.gameWorldCur==1 && state.worldLevelCur==1 && state.grfgs==0x100 && state.unlockedCutscenes==5,"Save fields changed layout");
+            require(legacy==(version==2),"Legacy embedded settings lost");expected=state;
+        }
+        require(WriteSaveSlot(0,expected),"Save writer failed with Unicode path");
+        require(bytes(SaveSlotPath(0))==bytes(fixtures/"slot-v3.sav"),"Save bytes differ from Windows fixture");
+        for(int version=1;version<=8;++version) {
+            std::filesystem::copy_file(fixtures/("settings-v"+std::to_string(version)+".dat"),SystemSettingsPath(),std::filesystem::copy_options::overwrite_existing);
+            VIDEOSAVESETTINGS settings{};
+            require(LoadSystemSettings(&settings),"Settings fixture rejected");
+            require(settings.frameRate==120 && settings.internalResolutionHeight==720,"Settings fields changed layout");
+            require(settings.musicVolume==(version==8?.5f:1.0f),"Audio settings upgrade failed");
+        }
+        std::ofstream(SaveSlotPath(0),std::ios::binary|std::ios::trunc)<<"truncated";
+        GS state{};VIDEOSAVESETTINGS settings{};bool legacy=false;
+        require(!ReadSaveSlot(0,&state,&settings,&legacy),"Truncated save accepted");
+        auto damaged=bytes(fixtures/"slot-v3.sav");damaged.back()^=1;
+        {std::ofstream output(SaveSlotPath(0),std::ios::binary);output.write(damaged.data(),damaged.size());}
+        require(!ReadSaveSlot(0,&state,&settings,&legacy),"Save checksum corruption accepted");
+        std::filesystem::remove_all(root);cane::userOverride=previous;
+    }catch(...){std::filesystem::remove_all(root);cane::userOverride=previous;throw;}
+}

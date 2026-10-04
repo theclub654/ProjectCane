@@ -22,7 +22,7 @@ typedef CRef(*PVTHUNKFN)(BASIC*, int, CRef*);
 
 struct BASIC;
 // Class ID
-enum CID
+enum CID : int
 {
     CID_Nil = -1,
     CID_BASIC = 0,
@@ -177,7 +177,7 @@ enum CID
 };
 
 // Object ID
-enum OID
+enum OID : int
 {
     OID_Nil = -1,
     OID_Unknown = 0,
@@ -1620,7 +1620,7 @@ enum OPTID
     OPTID_Nil = -1
 };
 // World ID
-enum WID
+enum WID : int
 {
     WID_Nil = -1,
     WID_stock_objects = 0,
@@ -1664,7 +1664,7 @@ enum WID
     WID_Max = 38
 };
 // Audio Reverb Type
-enum REVERBK
+enum REVERBK : int
 {
     REVERBK_Nil = -1,
     REVERBK_None = 0,
@@ -1698,7 +1698,7 @@ enum MUSID
     MUSID_Max = 16
 };
 // SFX ID
-enum SFXID
+enum SFXID : int
 {
     SFXID_Nil = -1,
     SFXID_CaneHandleUnlock = 0,
@@ -2156,7 +2156,7 @@ enum TBID
     TBID_Copyright = 0,
     TBID_Max = 1
 };
-enum ENSK
+enum ENSK : int
 {
     ENSK_Get = 0,
     ENSK_Set = 1

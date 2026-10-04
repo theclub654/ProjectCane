@@ -1,5 +1,5 @@
 #pragma once
-enum LOOKK;
+enum LOOKK : int;
 struct CPMAN;
 struct CPLOOK;
 struct CPALIGN;
@@ -116,7 +116,7 @@ CM*  NewCm();
 void InitCm(CM* pcm); // NOT FINISHED
 int  GetCmSize();
 void CloneCm(CM* pcm, CM* pcmBase);
-void BuildProjectionMatrix(float fov, float aspectRatio, float near, float far, glm::mat4& pmat);
+void BuildProjectionMatrix(float fov, float aspectRatio, float nearPlane, float farPlane, glm::mat4& pmat);
 void SetSwCameraFov(SW* psw, float radFOV);
 void SetSwCameraNearClip(SW* psw, float sNearClip);
 void SetSwCameraFarClip(SW* psw, float sFarClip);

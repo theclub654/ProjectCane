@@ -18,7 +18,7 @@ enum RIPGT
     RIPGT_Max = 3
 };
 
-enum RIPT 
+enum RIPT : int
 {
     RIPT_Nil = -1,
     RIPT_Rip = 0,

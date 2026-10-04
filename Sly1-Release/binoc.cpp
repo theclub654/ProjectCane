@@ -64,7 +64,7 @@ namespace
         {
             { 0, leftCut, leftScale, 0.0f },
             { leftCut, rightCut, scale, centreOrigin },
-            { rightCut, g_gl.width, rightScale, rightJoin - centreRight * rightScale }
+            { rightCut, static_cast<GLint>(g_gl.width), rightScale, rightJoin - centreRight * rightScale }
         };
 
         const GLboolean scissorWasEnabled = glIsEnabled(GL_SCISSOR_TEST);
@@ -2429,4 +2429,4 @@ glm::vec4 RGBA_Green = glm::vec4(0.184f, 0.447f, 0.243f, 0.502f);
 glm::vec4 RGBA_LightBlue = glm::vec4(0.000f, 0.322f, 0.494f, 0.502f);
 glm::vec4 RGBA_Overlay = glm::vec4(0.000f, 0.000f, 0.000f, 0.75f);
 float DT_BinocRoseInterval = 0.25;
-int s_mpbfkgrfvault[2] = { 0xF0000000, 0xF0000000};
+int s_mpbfkgrfvault[2] = { static_cast<int>(0xF0000000u), static_cast<int>(0xF0000000u)};

@@ -1,7 +1,7 @@
 #pragma once
 #include "cplcy.h"
 
-enum LOOKK
+enum LOOKK : int
 {
     LOOKK_Nil = -1,
     LOOKK_User = 0,

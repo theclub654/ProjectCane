@@ -119,7 +119,7 @@ void UpdateLightBeamGrfzon(LIGHT* plight)
 			float gMax = (plight->lmFallOffS).gMax;
 
 			float halfAngleRad = glm::radians(plight->degCone * 0.5f);
-			float baseRadius = std::tanf(halfAngleRad) * gMax;
+			float baseRadius = std::tan(halfAngleRad) * gMax;
 
 			float halfLen = gMax * 0.5f;
 

@@ -6,11 +6,12 @@
 typedef char s8;
 typedef short s16;
 typedef int s32;
-typedef long s64;
+// These legacy aliases were 32-bit under Windows LLP64. Preserve their layout.
+using s64 = int32_t;
 typedef unsigned char u8;
 typedef unsigned short u16;
 typedef unsigned int u32;
-typedef unsigned long u64;
+using u64 = uint32_t;
 typedef float f32;
 typedef u32 SYMID;
 using PFNTHUNK = CRef(*)(BASIC* basic, int argc, CRef* argv);

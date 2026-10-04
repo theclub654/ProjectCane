@@ -1,4 +1,5 @@
 #pragma once
+enum JK : int;
 #include "step.h"
 
 enum JBS 

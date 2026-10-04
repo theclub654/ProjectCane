@@ -17,7 +17,7 @@ enum CPMT
     CPMT_Walkthrough = 5,
     CPMT_Max = 6
 };
-enum CPP
+enum CPP : int
 {
     CPP_Nil = -1,
     CPP_Base = 0,
@@ -32,14 +32,14 @@ enum CPP
     CPP_UserTestWalkthrough = 9,
     CPP_Max = 10
 };
-enum CFK
+enum CFK : int
 {
     CFK_Nil = -1,
     CFK_Behind = 0,
     CFK_Side = 1,
     CFK_Max = 2
 };
-enum FTND
+enum FTND : int
 {
     FTND_Nil = -1,
     FTND_Forward = 1,

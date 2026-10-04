@@ -4,7 +4,7 @@
 struct CTR;
 class BLIPG;
 
-enum MGVS { MGVS_Nil=-1, MGVS_Inactive=0, MGVS_Active=1, MGVS_Charm=2,
+enum MGVS : int { MGVS_Nil=-1, MGVS_Inactive=0, MGVS_Active=1, MGVS_Charm=2,
             MGVS_Dead=3, MGVS_TryAgain=4, MGVS_Max=5 };
 
 class MGV : public PO

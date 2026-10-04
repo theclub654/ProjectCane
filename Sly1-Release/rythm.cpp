@@ -6,7 +6,9 @@
 #include "sw.h"
 #include "xform.h"
 #include <cmath>
+#if defined(_MSC_VER)
 #include <intrin.h>
+#endif
 
 namespace {
 constexpr float kInputWindowEasy = 0.5f;

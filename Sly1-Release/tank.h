@@ -1,7 +1,7 @@
 #pragma once
 #include "step.h"
 
-enum TANKS 
+enum TANKS : int
 {
     TANKS_Nil = -1,
     TANKS_Passive = 0,

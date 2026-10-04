@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=ProjectCane
+Exec=cane-launcher
+Icon=projectcane
+Categories=Game;
+Terminal=false
+StartupWMClass=ProjectCane

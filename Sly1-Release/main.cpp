@@ -14,6 +14,7 @@
 #include <filesystem>
 #include <iostream>
 #include <thread>
+#include <stb/stb_image_write.h>
 
 #ifdef _WIN32
 #define GLFW_EXPOSE_NATIVE_WIN32
@@ -21,30 +22,14 @@
 #endif
 
 bool g_fDeveloperDebugMode = false;
+void PrintSoundDiagnostics();
+void TestSaveCompatibility(const std::filesystem::path& fixtures);
 
 namespace
 {
 void LoadDebugModeSetting()
 {
-	wchar_t executablePath[MAX_PATH]{};
-	const DWORD pathLength = GetModuleFileNameW(nullptr, executablePath, MAX_PATH);
-	const std::filesystem::path baseDirectory = pathLength != 0
-		? std::filesystem::path(executablePath).parent_path()
-		: std::filesystem::current_path();
-	const std::filesystem::path iniPath = baseDirectory / L"Debug Mode.ini";
-
-	if (!std::filesystem::is_regular_file(iniPath))
-	{
-		WritePrivateProfileStringW(L"Debug", L"Debug Mode", L"0", iniPath.c_str());
-		g_fDeveloperDebugMode = false;
-		return;
-	}
-
-	wchar_t value[32]{};
-	GetPrivateProfileStringW(L"Debug", L"Debug Mode", L"0", value,
-		static_cast<DWORD>(sizeof(value) / sizeof(value[0])), iniPath.c_str());
-	g_fDeveloperDebugMode =
-		_wcsicmp(value, L"true") == 0 || std::wcstol(value, nullptr, 10) != 0;
+    g_fDeveloperDebugMode = cane::debugMode();
 }
 
 class FramePacer
@@ -55,6 +40,7 @@ public:
     FramePacer()
         : m_deadline(Clock::now())
     {
+#ifdef _WIN32
         // CREATE_WAITABLE_TIMER_HIGH_RESOLUTION is 0x2. Use the value directly
         // so this still builds with Windows SDKs that predate the named flag.
         m_timer = CreateWaitableTimerExW(
@@ -63,12 +49,15 @@ public:
         if (m_timer == nullptr)
             m_timer = CreateWaitableTimerExW(
                 nullptr, nullptr, 0, TIMER_MODIFY_STATE | SYNCHRONIZE);
+#endif
     }
 
     ~FramePacer()
     {
+#ifdef _WIN32
         if (m_timer != nullptr)
             CloseHandle(m_timer);
+#endif
     }
 
     void Wait()
@@ -97,6 +86,7 @@ public:
         const auto coarseDeadline = m_deadline - kSpinMargin;
         if (now < coarseDeadline)
         {
+#ifdef _WIN32
             if (m_timer != nullptr)
             {
                 const auto wait100ns = std::chrono::duration_cast<
@@ -115,17 +105,28 @@ public:
             {
                 std::this_thread::sleep_until(coarseDeadline);
             }
+#else
+            std::this_thread::sleep_until(coarseDeadline);
+#endif
         }
 
         // YieldProcessor is a CPU pause hint, not a scheduler yield. It keeps
         // the final sub-millisecond boundary precise without giving up a full
         // Windows scheduling quantum.
         while (Clock::now() < m_deadline)
+        {
+#ifdef _WIN32
             YieldProcessor();
+#else
+            __builtin_ia32_pause();
+#endif
+        }
     }
 
 private:
+#ifdef _WIN32
     HANDLE m_timer = nullptr;
+#endif
     Clock::time_point m_deadline;
     int m_frameRate = 60;
 };
@@ -316,14 +317,38 @@ void ShutdownLiveResizeWindowProc()
 #endif
 }
 
-#ifdef NDEBUG
+#if defined(NDEBUG) && defined(_WIN32) && !defined(CANE_PORTABLE_SHADERS)
 int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int)
 #else
 int main(int cphzArgs, char* aphzArgs[])
 #endif
 {
+    try {
+    double smokeSeconds=0;std::string smokeLevel;std::filesystem::path screenshotPath;
+#if defined(NDEBUG) && defined(_WIN32) && !defined(CANE_PORTABLE_SHADERS)
+    auto args=cane::arguments(0, nullptr);
+#else
+    auto args=cane::arguments(cphzArgs, aphzArgs);
+#endif
+    if(args.size()==2 && args[0]=="--test-save-compatibility"){TestSaveCompatibility(cane::path(args[1]));std::cout<<"Save compatibility fixtures passed"<<std::endl;return 0;}
+    std::vector<std::string> runtimeArgs;
+    for(size_t i=0;i<args.size();++i) {
+        if(args[i]=="--smoke-test-seconds"||args[i]=="--smoke-level"||args[i]=="--screenshot") {
+            auto option=args[i];if(++i==args.size())throw std::runtime_error("Missing value for "+option);
+            if(option=="--smoke-test-seconds") {smokeSeconds=std::stod(args[i]);if(!std::isfinite(smokeSeconds)||smokeSeconds<=0||smokeSeconds>600)throw std::runtime_error("Smoke duration must be 1..600 seconds");}
+            else if(option=="--smoke-level")smokeLevel=args[i];else screenshotPath=cane::path(args[i]);
+        }else runtimeArgs.push_back(args[i]);
+    }
+    cane::configureRuntime(runtimeArgs);
     Startup();
+    if(!smokeLevel.empty()) {
+        if(!PlevelinfoFromLevelName(smokeLevel))throw std::runtime_error("Unknown smoke-test level: "+smokeLevel);
+
+    }
+    auto smokeStart=std::chrono::steady_clock::now();size_t smokeFrames=0;bool screenshotWritten=false,controllerSeen=false,smokeWarpRequested=false;size_t buttonPresses=0;std::vector<double> frameTimes;auto frameStart=smokeStart;
+#ifdef _WIN32
     SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_ABOVE_NORMAL);
+#endif
     FramePacer framePacer;
 #ifdef _WIN32
 	InstallLiveResizeWindowProc();
@@ -337,6 +362,26 @@ int main(int cphzArgs, char* aphzArgs[])
         // This remains authoritative with VSync on or off. VSync controls
         // presentation; it no longer changes the game's update frequency.
         framePacer.Wait();
+        ++smokeFrames;
+        if(!smokeLevel.empty() && !smokeWarpRequested && smokeFrames>=120 && !g_transition.m_fPending && g_wipe.wipes==WIPES_Idle) {WipeToWorldWarp(smokeLevel,(OID)-1,WIPEK_Fade);smokeWarpRequested=true;}
+        auto now=std::chrono::steady_clock::now();
+        if(smokeSeconds>0){controllerSeen=controllerSeen||g_joy.gamepadConnected;for(int b=0;b<BTN_MAX;++b)if(g_joy.current[static_cast<JOY_BUTTON>(b)]&&!g_joy.previous[static_cast<JOY_BUTTON>(b)])++buttonPresses;frameTimes.push_back(std::chrono::duration<double,std::milli>(now-frameStart).count());}frameStart=now;
+        if(!screenshotPath.empty() && !screenshotWritten && smokeFrames>=120 && (smokeSeconds<=0 || std::chrono::duration<double>(now-smokeStart).count()>=smokeSeconds-1)) {
+            int w=g_gl.renderWidth,h=g_gl.renderHeight;
+            std::vector<unsigned char> pixels(static_cast<size_t>(w)*h*4);
+            glBindFramebuffer(GL_READ_FRAMEBUFFER,g_gl.fbo);glReadBuffer(GL_COLOR_ATTACHMENT0);glReadPixels(0,0,w,h,GL_RGBA,GL_UNSIGNED_BYTE,pixels.data());glBindFramebuffer(GL_READ_FRAMEBUFFER,0);glReadBuffer(GL_BACK);
+            stbi_flip_vertically_on_write(true);
+            if(!stbi_write_png(cane::utf8(screenshotPath).c_str(),w,h,4,pixels.data(),w*4))throw std::runtime_error("Cannot write screenshot");
+            screenshotWritten=true;
+        }
+        if(smokeSeconds>0 && smokeFrames>=120 && std::chrono::duration<double>(std::chrono::steady_clock::now()-smokeStart).count()>=smokeSeconds) {
+            std::cout<<"SMOKE: frames="<<smokeFrames<<" world="<<g_transition.m_worldCurrent<<" seconds="<<std::chrono::duration<double>(std::chrono::steady_clock::now()-smokeStart).count()<<std::endl;
+            if(g_psw==nullptr || smokeFrames<2)throw std::runtime_error("Smoke test did not load a playable world");
+            if(!smokeLevel.empty() && g_transition.m_plevelCurrent!=PlevelinfoFromLevelName(smokeLevel))throw std::runtime_error("Smoke test did not reach requested world");
+            PrintSoundDiagnostics();
+            std::sort(frameTimes.begin(),frameTimes.end());std::cout<<"INPUT: controller="<<controllerSeen<<" presses="<<buttonPresses<<" FRAME: median_ms="<<frameTimes[frameTimes.size()/2]<<" p95_ms="<<frameTimes[frameTimes.size()*95/100]<<std::endl;
+            fQuitGame=true;
+        }
 
     }
 
@@ -351,6 +396,7 @@ int main(int cphzArgs, char* aphzArgs[])
     FreeTvGL();
     g_gl.TerminateGL();
     return 0;
+    } catch (const std::exception& e) { std::cerr << "ProjectCane: " << e.what() << std::endl; return 1; }
 }
 
 void Startup()

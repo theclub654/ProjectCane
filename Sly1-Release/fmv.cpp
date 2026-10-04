@@ -7,7 +7,7 @@
 #include "ui.h"
 #include "gl.h"
 
-#include <Windows.h>
+#include "../platform/platform.h"
 #include <chrono>
 #include <cstring>
 #include <filesystem>
@@ -21,6 +21,8 @@ extern "C"
 #include <libavutil/error.h>
 #include <libswscale/swscale.h>
 }
+
+void PreloadVagFile(const std::filesystem::path& wavPath);
 
 namespace
 {
@@ -112,15 +114,8 @@ namespace
 
     std::filesystem::path CutsceneDirectory(const std::string& videoFileName)
     {
-        wchar_t executable[MAX_PATH]{};
-        const DWORD length = GetModuleFileNameW(nullptr, executable, MAX_PATH);
-        if (length != 0 && length < MAX_PATH)
-        {
-        const std::filesystem::path besideExecutable =
-            std::filesystem::path(executable).parent_path() / L"Cutscenes";
-            if (std::filesystem::exists(besideExecutable / videoFileName))
-                return besideExecutable;
-        }
+        const auto besideExecutable = cane::dataDirectory() / "Cutscenes";
+        if (std::filesystem::exists(besideExecutable / videoFileName)) return besideExecutable;
 
     const std::filesystem::path workingDirectory =
         std::filesystem::current_path() / L"Cutscenes";
@@ -209,7 +204,7 @@ namespace
         const bool isStartupSplash = info.identityId == STARTUP_SPLASH_QUEUE_ID;
 
         AVFormatContext* format = nullptr;
-        int result = avformat_open_input(&format, videoPath.string().c_str(), nullptr, nullptr);
+        int result = avformat_open_input(&format, cane::utf8(videoPath).c_str(), nullptr, nullptr);
         if (result < 0)
         {
             std::cerr << "Failed to open cutscene video: " << videoPath << " (" << AvError(result) << ")\n";
@@ -330,7 +325,7 @@ namespace
 
                     if (!audioStarted)
                     {
-                        PreloadVag(audioPath.string().c_str());
+                        PreloadVagFile(audioPath);
                         FPauseForVag();
                         if (!FVagPlaying())
                             std::cerr << "Failed to start cutscene audio: " << audioPath << '\n';

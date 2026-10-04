@@ -275,9 +275,9 @@ void CloneCm(CM* pcm, CM* pcmBase)
 	pcm->cptn = pcmBase->cptn;
 }
 
-void BuildProjectionMatrix(float fov, float aspectRatio, float near, float far, glm::mat4 &pmat)
+void BuildProjectionMatrix(float fov, float aspectRatio, float nearPlane, float farPlane, glm::mat4 &pmat)
 {
-	pmat = glm::perspective(fov, aspectRatio, near, far);
+	pmat = glm::perspective(fov, aspectRatio, nearPlane, farPlane);
 }
 
 void SetSwCameraFov(SW* psw, float radFOV)

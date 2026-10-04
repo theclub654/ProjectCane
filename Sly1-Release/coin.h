@@ -1,7 +1,7 @@
 #pragma once
 #include "ctr.h"
 
-enum DPRIZES 
+enum DPRIZES : int
 {
     DPRIZES_Nil = -1,
     DPRIZES_Normal = 0,

@@ -5,7 +5,9 @@
 #include "mgv.h"
 #include "pnt.h"
 #include <cstdio>
+#if defined(_MSC_VER)
 #include <intrin.h>
+#endif
 
 void BuildEopids()
 {
@@ -8753,7 +8755,8 @@ CRef RefThunkSwRESPONSE_TEXT(BASIC* pbasic, int carg, CRef* aref)
 		respk = static_cast<RESPK>(aref[0].RefCoerceS32().m_n);
 
 	CRef ret;
-	ret.SetS32((signed int)GetResponseText(psw, respk));
+	// Preserve the existing script ABI (a 32-bit legacy value).
+	ret.SetS32(static_cast<int32_t>(reinterpret_cast<intptr_t>(GetResponseText(psw, respk))));
 	return ret;
 }
 

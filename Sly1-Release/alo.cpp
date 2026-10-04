@@ -1,3 +1,4 @@
+#include "../platform/game_forced.h"
 #include "alo.h"
 #include "hide.h"
 #include "render.h"

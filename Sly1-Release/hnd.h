@@ -1,7 +1,7 @@
 #pragma once
 #include "target.h"
 
-enum HNDK
+enum HNDK : int
 {
 	HNDK_Nil = -1,
 	HNDK_Both = 0,

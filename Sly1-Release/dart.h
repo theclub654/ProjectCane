@@ -1,7 +1,7 @@
 #pragma once
 #include "so.h"
 
-enum DARTS 
+enum DARTS : int
 {
     DARTS_Nil = -1,
     DARTS_AvailToFire = 0,

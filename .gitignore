@@ -31,3 +31,35 @@ build-output.txt
 Sly1-Release/Worlds/
 Sly1-Release/Cutscenes/
 *.iso
+
+# Portable builds and packages
+/build/
+/dist/
+*.AppImage
+
+__pycache__/
+*.py[cod]
+
+# Local tests, fixtures and validation reports
+/test/
+/tests/
+/VALIDATION.md
+
+# Local configuration and development artifacts
+CMakeUserPresets.json
+/cmake-build-*/
+/compile_commands.json
+/.cache/
+/tmp/
+.env
+.env.*
+!.env.example
+.idea/
+*.swp
+*.swo
+*~
+*.dmp
+*.core
+.DS_Store
+Thumbs.db
+Desktop.ini

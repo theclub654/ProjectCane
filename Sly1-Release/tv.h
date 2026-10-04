@@ -9,7 +9,7 @@ enum TVS
     TVS_Talk = 1,
     TVS_Max = 2
 };
-enum TVGS 
+enum TVGS : int
 {
     TVGS_Nil = -1,
     TVGS_Opening = 0,
