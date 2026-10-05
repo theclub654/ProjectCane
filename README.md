@@ -101,3 +101,11 @@ python3 scripts/test-extractor.py build/linux-release/bin/cane-extractor --iso /
 The full game is playable. Development is continuing with bug fixes, compatibility improvements.
 
 Dependency notices are shipped in `licenses/`. Credits to k1nomoto for the project logo.
+
+## Help Bring Sly 2 and Sly 3 to PC
+
+ProjectCane is not intended to stop with *Sly Cooper and the Thievius Raccoonus*. The goal is to bring *Sly 2: Band of Thieves* and *Sly 3: Honor Among Thieves* to PC as native ports as well.
+
+If you know where to find a debug build of *Sly 2* or *Sly 3* that includes debug symbols, please let me know. You can contact me at [projectcane182@gmail.com](mailto:projectcane182@gmail.com).
+
+If you would like to see native PC ports of all three games up and running, any information that can help make that possible would be greatly appreciated. Thank you!
