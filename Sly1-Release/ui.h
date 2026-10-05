@@ -4,7 +4,7 @@
 #include "dl.h"
 #include "asega.h"
 
-enum UIS 
+enum UIS : int
 {
     UIS_Nil = -1,
     UIS_Splash = 0,

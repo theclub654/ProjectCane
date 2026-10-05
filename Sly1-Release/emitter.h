@@ -4,7 +4,7 @@
 #include "rip.h"
 #include "crv.h"
 
-enum EMITRK 
+enum EMITRK : int
 {
     EMITRK_Nil = -1,
     EMITRK_Continuous = 0,
@@ -22,7 +22,7 @@ enum EMITVK
     EMITVK_World = 3,
     EMITVK_Max = 4
 };
-enum EMITNK
+enum EMITNK : int
 {
     EMITNK_Nil = -1,
     EMITNK_Normal = 0,
@@ -33,7 +33,7 @@ enum EMITNK
     EMITNK_MeshNormal = 5,
     EMITNK_Max = 6
 };
-enum EMITOK 
+enum EMITOK : int
 {
     EMITOK_Nil = -1,
     EMITOK_Point = 0,

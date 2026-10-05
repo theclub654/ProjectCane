@@ -165,7 +165,7 @@ enum JTJK
     JTJK_Edge = 4,
     JTJK_Max = 5
 };
-enum JSGLK
+enum JSGLK : int
 {
     JSGLK_Nil = -1,
     JSGLK_Normal = 0,

@@ -1,4 +1,5 @@
 #include "bis.h"
+#include "../platform/platform.h"
 
 CBinaryInputStream::CBinaryInputStream()
 {
@@ -13,7 +14,7 @@ void CBinaryInputStream::OpenFile(const std::string& filePath)
 {
     Close();
 
-    file.open(filePath, std::ios::in | std::ios::binary);
+    file.open(cane::path(filePath), std::ios::in | std::ios::binary);
 
     if (!file.is_open())
     {

@@ -18,7 +18,7 @@ void InitWr(WR* pwr)
 void HandleWrMessage(WR* pwr, MSGID msgid, void* pv)
 {
 	if ((msgid < MSGID_Max) && (MSGID_damaged < msgid))
-		pwr->iwreCur = (int)pv;
+		pwr->iwreCur = static_cast<int>(reinterpret_cast<intptr_t>(pv));
 }
 
 void CloneWr(WR* pwr, WR* pwrBase)
@@ -614,8 +614,8 @@ void UpdateWrStateVectors(WR* pwr)
 					const float dotv = Pw.x * normal.x + Pw.y * normal.y + Pw.z * normal.z;
 					const float ang = dotv * rgDot * twoPi;
 
-					const float sn = std::sinf(ang);
-					const float cs = std::cosf(ang);
+					const float sn = std::sin(ang);
+					const float cs = std::cos(ang);
 
 					const float u = au[v];
 
@@ -680,8 +680,8 @@ void UpdateWrMatrixes(WR* pwr)
 		if (wre.wrek == WREK_Circle)
 		{
 			const float angle = (g_clock.t * wre.circle.gFrequency + wre.circle.uPhase) * 6.283185307179586f;
-			const float s = std::sinf(angle);
-			const float c = std::cosf(angle);
+			const float s = std::sin(angle);
+			const float c = std::cos(angle);
 
 			const int is = wre.circle.is;
 			if (is < 0 || is + 1 >= 4)

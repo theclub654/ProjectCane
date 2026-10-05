@@ -1,4 +1,6 @@
-﻿#pragma once
+#ifndef CANE_GL_H
+#define CANE_GL_H
+#pragma once
 #include "glshaders.h"
 #include "rocel.h"
 #include <glm/gtc/matrix_transform.hpp>
@@ -241,3 +243,5 @@ extern GLuint glslPoseWeights;
 extern GLuint glslCelPose;
 extern GLuint glslCelPoseCount;
 extern GLuint glslCelPoseWeights;
+
+#endif

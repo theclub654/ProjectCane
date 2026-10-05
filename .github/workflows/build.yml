@@ -1,0 +1,36 @@
+name: Release builds
+on: [push, pull_request, workflow_dispatch]
+jobs:
+  linux:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - run: sudo apt-get update && sudo apt-get install -y ninja-build file desktop-file-utils libgl1-mesa-dev libxrandr-dev libxinerama-dev libxcursor-dev libxi-dev libwayland-dev libxkbcommon-dev wayland-protocols libsdl2-dev libavformat-dev libavcodec-dev libavutil-dev libswscale-dev
+      - run: cmake --preset linux-release -DGLFW_BUILD_WAYLAND=OFF
+      - run: cmake --build --preset linux-release --parallel 2
+      - run: ctest --test-dir build/linux-release --output-on-failure
+      - run: |
+          curl -fL https://github.com/AppImage/appimagetool/releases/download/1.9.0/appimagetool-x86_64.AppImage -o /tmp/appimagetool
+          chmod +x /tmp/appimagetool
+          python3 scripts/package.py --build build/linux-release --appimagetool /tmp/appimagetool
+      - uses: actions/upload-artifact@v4
+        with:
+          name: linux-release
+          path: |
+            dist/*.tar.gz
+            dist/*.AppImage
+  windows:
+    runs-on: windows-2022
+    steps:
+      - uses: actions/checkout@v4
+      - run: cmake --preset windows-release
+      - run: cmake --build --preset windows-release --parallel 2
+      - run: ctest --test-dir build/windows-release -C Release --output-on-failure
+      - run: choco install nsis --no-progress -y
+      - run: python scripts/package.py --build build/windows-release --windows
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows-release
+          path: |
+            dist/*-Portable.zip
+            dist/*-Setup.exe

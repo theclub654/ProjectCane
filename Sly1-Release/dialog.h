@@ -9,7 +9,7 @@ enum DIALOGK
     DIALOGK_Confront = 2,
     DIALOGK_Max = 3
 };
-enum DIALOGS
+enum DIALOGS : int
 {
     DIALOGS_Nil = -1,
     DIALOGS_Enabled = 0,

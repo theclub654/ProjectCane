@@ -1,0 +1,13 @@
+{
+ "version":3,
+ "configurePresets":[
+  {"name":"linux-release","generator":"Ninja","binaryDir":"${sourceDir}/build/linux-release","cacheVariables":{"CMAKE_BUILD_TYPE":"Release"}},
+  {"name":"windows-release","generator":"Visual Studio 17 2022","architecture":"x64","binaryDir":"${sourceDir}/build/windows-release"},
+  {"name":"windows-cross","generator":"Ninja","binaryDir":"${sourceDir}/build/windows-cross","toolchainFile":"${sourceDir}/cmake/mingw-toolchain.cmake","cacheVariables":{"CMAKE_BUILD_TYPE":"Release"}}
+ ],
+ "buildPresets":[
+  {"name":"linux-release","configurePreset":"linux-release"},
+  {"name":"windows-release","configurePreset":"windows-release","configuration":"Release"},
+  {"name":"windows-cross","configurePreset":"windows-cross"}
+ ]
+}

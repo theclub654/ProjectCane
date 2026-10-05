@@ -16,7 +16,7 @@ struct ACTSEG;
 struct RO;
 struct BLOT;
 
-enum ACK
+enum ACK : int
 {
 	ACK_Nil = -1,
 	ACK_None = 0,
@@ -50,7 +50,7 @@ enum MTLK : int
 };
 enum ZONS : unsigned int
 {
-	ZONS_Nil = -1,
+	ZONS_Nil = 0xffffffffu,
 	ZONS_None = 0,
 	ZONS_Fixed = 1,
 	ZONS_Dynamic = 2,
@@ -66,7 +66,7 @@ enum FREEZEMODE : unsigned int
 };
 enum VISS : unsigned int
 {
-	VISS_Nil = -1,
+	VISS_Nil = 0xffffffffu,
 	VISS_None = 0,
 	VISS_Glob = 1,
 	VISS_Object = 2,
@@ -74,7 +74,7 @@ enum VISS : unsigned int
 };
 enum MRDS : unsigned int
 {
-	MRDS_Nil = -1,
+	MRDS_Nil = 0xffffffffu,
 	MRDS_None = 0,
 	MRDS_Glob = 1,
 	MRDS_Object = 2,
@@ -92,7 +92,7 @@ enum SCSK
 	SCSK_Stretch = 1,
 	SCSK_Max = 2
 };
-enum THROBK
+enum THROBK : int
 {
 	THROBK_Nil = -1,
 	THROBK_Pipe = 0,
@@ -104,7 +104,7 @@ enum THROBK
 	THROBK_Max = 6
 };
 
-enum CT
+enum CT : int
 {
 	CT_Free = 0,
 	CT_Tangent = 1,

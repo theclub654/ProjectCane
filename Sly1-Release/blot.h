@@ -8,7 +8,7 @@
 #include <unordered_map>
 #include "game.h"
 
-enum BLOTS
+enum BLOTS : int
 {
     BLOTS_Nil = -1,
     BLOTS_Hidden = 0,
@@ -17,7 +17,7 @@ enum BLOTS
     BLOTS_Disappearing = 3,
     BLOTS_Max = 4
 };
-enum BLOTK
+enum BLOTK : int
 {
     BLOTK_Nil = -1,
     BLOTK_Letterbox = 0,

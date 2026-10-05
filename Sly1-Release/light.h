@@ -4,7 +4,7 @@
 #define MAX_LIGHTS 256
 
 // Light type
-enum LIGHTK
+enum LIGHTK : int
 {
 	LIGHTK_Nil = -1,
 	LIGHTK_Direction = 0,

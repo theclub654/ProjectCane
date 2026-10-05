@@ -4,7 +4,7 @@
 // Prompt groups
 // -----------------------------------------------------------------------------
 
-enum PRP
+enum PRP : int
 {
     PRP_Nil = -1,
     PRP_Basic = 0,
@@ -17,7 +17,7 @@ enum PRP
 // Release response IDs
 // -----------------------------------------------------------------------------
 
-enum RESPK
+enum RESPK : int
 {
     RESPK_Nil = -1,
 
@@ -95,7 +95,7 @@ enum RESPK
 // Release prompt IDs
 // -----------------------------------------------------------------------------
 
-enum PRK
+enum PRK : int
 {
     PRK_Nil = -1,
 

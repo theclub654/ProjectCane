@@ -3,7 +3,9 @@
 #ifndef NOMINMAX
 #define NOMINMAX
 #endif
-#include <Windows.h>
+#include "../platform/install.h"
+#include "../platform/brx_decompress.h"
+#include <memory>
 
 #include <array>
 #include <algorithm>
@@ -201,6 +203,16 @@ constexpr DIALOGAUDIOINFO DIALOG_AUDIO_TABLE[] =
 #include "DialogAudioTable.inc"
 };
 
+static bool g_nonInteractive=false, g_progressJson=false;
+static uint64_t g_isoSize=0;
+static std::streambuf* g_stdoutBuffer=nullptr;
+static void Progress(const std::string& stage,size_t completed,size_t total,const std::string& item="") {
+    if(g_progressJson) {std::ostream out(g_stdoutBuffer);out << cane::json({{"stage",stage},{"completed",completed},{"total",total},{"item",item}}).dump()<<std::endl;}
+}
+static void CheckRange(uint64_t offset,uint64_t size) {
+    constexpr uint64_t limit=512ull*1024*1024;
+    if(size==0 || size>limit || offset>g_isoSize || size>g_isoSize-offset)throw std::runtime_error("Invalid or truncated ISO asset range");
+}
 static void WaitForExit()
 {
     std::cout << "\nPress Enter to close...";
@@ -210,26 +222,18 @@ static void WaitForExit()
 
 static int Finish(int result)
 {
-    WaitForExit();
+    if(!g_nonInteractive) WaitForExit();
     return result;
 }
 
 static fs::path GetExecutableDirectory()
 {
-    std::wstring path(32768, L'\0');
-
-    const DWORD length = GetModuleFileNameW(nullptr, path.data(), static_cast<DWORD>(path.size()));
-
-    if (length == 0 || length >= path.size())
-        return fs::current_path();
-
-    path.resize(length);
-
-    return fs::path(path).parent_path();
+    return cane::executableDirectory();
 }
 
 static bool ReadExactAt(std::ifstream& file, uint64_t offset, void* destination, std::size_t size)
 {
+    if (offset > g_isoSize || size > g_isoSize-offset) return false;
     file.clear();
     file.seekg(static_cast<std::streamoff>(offset), std::ios::beg);
 
@@ -246,11 +250,13 @@ static bool ReadExactAt(std::ifstream& file, uint64_t offset, void* destination,
 
 static uint16_t ReadBe16(const std::vector<uint8_t>& data, std::size_t offset)
 {
+    if(offset>data.size() || 2>data.size()-offset)throw std::runtime_error("Truncated asset header");
     return static_cast<uint16_t>((data[offset] << 8) | data[offset + 1]);
 }
 
 static uint32_t ReadBe32(const std::vector<uint8_t>& data, std::size_t offset)
 {
+    if(offset>data.size() || 4>data.size()-offset)throw std::runtime_error("Truncated asset header");
     return (static_cast<uint32_t>(data[offset]) << 24) |
            (static_cast<uint32_t>(data[offset + 1]) << 16) |
            (static_cast<uint32_t>(data[offset + 2]) << 8) |
@@ -259,6 +265,7 @@ static uint32_t ReadBe32(const std::vector<uint8_t>& data, std::size_t offset)
 
 static uint32_t ReadLe32(const std::vector<uint8_t>& data, std::size_t offset)
 {
+    if(offset>data.size() || 4>data.size()-offset)throw std::runtime_error("Truncated asset header");
     return static_cast<uint32_t>(data[offset]) |
            (static_cast<uint32_t>(data[offset + 1]) << 8) |
            (static_cast<uint32_t>(data[offset + 2]) << 16) |
@@ -465,7 +472,9 @@ static std::vector<int16_t> DecodeVagChannel(const std::vector<uint8_t>& data)
         { 0, 0 }, { 60, 0 }, { 115, -52 }, { 98, -55 }, { 122, -60 }
     };
 
+    if(data.size()/16>512ull*1024*1024/(28*sizeof(int16_t)))throw std::runtime_error("Decoded audio exceeds allocation limit");
     std::vector<int16_t> pcm;
+    pcm.reserve(data.size()/16*28);
     int history1 = 0;
     int history2 = 0;
 
@@ -523,9 +532,10 @@ static bool WritePcm16Wav(const std::vector<int16_t>& left,
                           std::vector<uint8_t>& wav)
 {
     const std::size_t sampleFrames = channels == 2 ? (std::min)(left.size(), right.size()) : left.size();
-    if (sampleFrames == 0 || (channels != 1 && channels != 2) || sampleRate == 0)
+    if (sampleFrames == 0 || (channels != 1 && channels != 2) || sampleRate < 4000 || sampleRate > 192000)
         return false;
 
+    if(sampleFrames>512ull*1024*1024/(channels*sizeof(int16_t)))throw std::runtime_error("Converted audio exceeds allocation limit");
     const uint32_t dataSize = static_cast<uint32_t>(sampleFrames * channels * sizeof(int16_t));
     wav.clear();
     wav.reserve(44 + dataSize);
@@ -595,8 +605,8 @@ static bool WriteBinaryFile(const fs::path& path, const std::vector<uint8_t>& da
 
 static uint16_t ReadLe16(const std::vector<uint8_t>& data, std::size_t offset)
 {
-    if (offset + 2 > data.size())
-        return 0;
+    if (offset > data.size() || 2 > data.size()-offset)
+        throw std::runtime_error("Truncated asset header");
     return static_cast<uint16_t>(data[offset]) |
         static_cast<uint16_t>(data[offset + 1] << 8);
 }
@@ -1287,108 +1297,46 @@ static fs::path GetDialogOutputDirectory(const fs::path& worldsDirectory, uint32
 }
 static bool ValidateIso(std::ifstream& iso)
 {
-    std::array<uint8_t, 4> elfMagic{};
+    std::array<uint8_t, 2048> pvd{};
+    if (!ReadExactAt(iso,16*ISO_SECTOR_SIZE,pvd.data(),pvd.size()) ||
+        std::memcmp(pvd.data(),"\x01" "CD001" "\x01",7)!=0) return false;
+    uint32_t blocks=0;std::memcpy(&blocks,pvd.data()+80,4);
+    if(blocks!=1368320 || g_isoSize<static_cast<uint64_t>(blocks)*ISO_SECTOR_SIZE)return false;
+    // This asset layout is tied to the USA executable at sector 276.
+    std::vector<uint8_t> executable(1712328);
+    if (!ReadExactAt(iso,SCUS_ISO_OFFSET,executable.data(),executable.size()))return false;
+    return picosha2::hash256_hex_string(executable)==cane::discFingerprint;
 
-    if (!ReadExactAt(iso, SCUS_ISO_OFFSET, elfMagic.data(), elfMagic.size()))
-        return false;
-
-    return elfMagic[0] == 0x7F && elfMagic[1] == 'E' && elfMagic[2] == 'L' && elfMagic[3] == 'F';
 }
 
-std::vector<uint8_t> Decompress(std::span<const uint8_t> input)
+std::vector<uint8_t> Decompress(std::span<const uint8_t> input) {return cane::decompressBrx(input);}
+
+static int Extract(int argc, char** argv)
 {
-    std::vector<uint8_t> output;
-    output.reserve(input.size() * 3);
-
-    std::array<uint8_t, CHUNK_SIZE + MAX_MATCH_LENGTH> work{};
-
-    std::size_t inputPosition = 0;
-    std::size_t outputPosition = 0;
-
-    uint32_t flags = 0;
-
-    while (inputPosition < input.size())
-    {
-        flags >>= 1;
-
-        if ((flags & 0x100U) == 0)
-        {
-            if (inputPosition >= input.size())
-                break;
-
-            flags = 0xFF00U | input[inputPosition++];
-        }
-
-        if (inputPosition >= input.size())
-            break;
-
-        const uint8_t firstByte = input[inputPosition++];
-
-        if ((flags & 1U) != 0)
-        {
-            work[outputPosition++] = firstByte;
-        }
-        else
-        {
-            if (inputPosition >= input.size())
-                break;
-
-            const uint8_t secondByte = input[inputPosition++];
-            const uint16_t token = static_cast<uint16_t>(firstByte) | static_cast<uint16_t>(static_cast<uint16_t>(secondByte) << 8);
-
-            std::size_t sourcePosition = token & 0x1FFFU;
-            const std::size_t copyLength = static_cast<std::size_t>(token >> 13) + 3U;
-
-            for (std::size_t index = 0; index < copyLength; ++index)
-            {
-                work[outputPosition++] = work[sourcePosition & 0x1FFFU];
-                ++sourcePosition;
-            }
-        }
-
-        if (outputPosition >= CHUNK_SIZE)
-        {
-            output.insert(output.end(), work.begin(), work.begin() + CHUNK_SIZE);
-
-            const std::size_t spillCount = outputPosition - CHUNK_SIZE;
-
-            if (spillCount > 0)
-                std::memmove(work.data(), work.data() + CHUNK_SIZE, spillCount);
-
-            outputPosition = spillCount;
-        }
+    auto args=cane::arguments(argc,argv);fs::path isoPath,requestedOutput;bool validateOnly=false;
+    for(size_t i=0;i<args.size();++i) {
+        const auto& option=args[i];
+        if(option=="--non-interactive")g_nonInteractive=true;
+        else if(option=="--progress=jsonl") {g_progressJson=true;g_nonInteractive=true;}
+        else if(option=="--validate-only") {validateOnly=true;g_nonInteractive=true;}
+        else if(option=="--iso" || option=="--output") {
+            if(++i==args.size())throw std::runtime_error("Missing path for "+option);
+            if(option=="--iso")isoPath=cane::path(args[i]);else requestedOutput=cane::path(args[i]);
+        } else if(option=="--help") {std::cout<<"cane-extractor --iso PATH --output DIRECTORY [--validate-only] [--non-interactive] [--progress=jsonl]\n";return 0;}
+        else if(isoPath.empty() && !option.starts_with("--"))isoPath=cane::path(option);
+        else throw std::runtime_error("Unknown argument: "+option);
     }
-
-    output.insert(output.end(), work.begin(), work.begin() + outputPosition);
-
-    return output;
-}
-
-int main(int argc, char** argv)
-{
-    if (argc < 2 || argv[1] == nullptr)
-    {
-        std::cerr << "Drag the Sly 1 NTSC ISO onto this executable.\n";
-        return Finish(EXIT_FAILURE);
-    }
-
-    const fs::path isoPath = fs::path(argv[1]);
-    const fs::path outputDirectory = GetExecutableDirectory();
-    const fs::path worldsDirectory = outputDirectory / "Worlds";
-    const fs::path cutsceneDirectory = outputDirectory / "Cutscenes";
-    const fs::path musicDirectory = worldsDirectory / "Music";
-    const fs::path soundBankDirectory = worldsDirectory / "Sound Banks";
-    const fs::path commentaryDirectory = worldsDirectory / "Sounds" / "Commentary";
-    const fs::path jloAmbientDirectory = worldsDirectory / "Sounds" / "JLO Ambient";
-    const fs::path promptSoundDirectory = worldsDirectory / "Sounds" / "Prompt";
-
+    if(isoPath.empty())throw std::runtime_error("Select a Sly 1 USA ISO (--iso PATH)");
+    if(g_progressJson)std::cout.rdbuf(std::cerr.rdbuf());
     if (!fs::exists(isoPath))
     {
         std::cerr << "ISO does not exist:\n" << isoPath << '\n';
         return Finish(EXIT_FAILURE);
     }
 
+    g_isoSize=fs::file_size(isoPath);
     std::ifstream iso(isoPath, std::ios::binary);
+    Progress("validate",0,1);
 
     if (!iso.is_open())
     {
@@ -1398,11 +1346,30 @@ int main(int argc, char** argv)
 
     if (!ValidateIso(iso))
     {
-        std::cerr << "Invalid Sly 1 NTSC ISO.\n";
+        std::cerr << "Unsupported or damaged ISO. This release requires the original USA SCUS_971.98 disc.\n";
         std::cerr << "The embedded SCUS ELF was not found at ISO offset 0x" << std::hex << SCUS_ISO_OFFSET << std::dec << ".\n";
         return Finish(EXIT_FAILURE);
     }
 
+    Progress("validate",1,1,"SCUS_971.98");
+    if(validateOnly) return 0;
+    std::unique_ptr<cane::InstallationTransaction> transaction;
+    if(!requestedOutput.empty()) {
+        if(fs::exists(requestedOutput) && (!fs::is_directory(requestedOutput) || (!fs::is_empty(requestedOutput) && !fs::is_regular_file(requestedOutput/"installation.json"))))throw std::runtime_error("Output folder is not an existing ProjectCane installation. Select an empty folder.");
+        auto ancestor=fs::absolute(requestedOutput).parent_path();
+        while(!fs::exists(ancestor))ancestor=ancestor.parent_path();
+        if(fs::space(ancestor).available<4ull*1024*1024*1024)
+            throw std::runtime_error("Installation requires at least 4 GiB of free space");
+        transaction=std::make_unique<cane::InstallationTransaction>(requestedOutput);
+    }
+    const fs::path outputDirectory=transaction?transaction->directory():GetExecutableDirectory();
+    const fs::path worldsDirectory=outputDirectory/"Worlds";
+    const fs::path cutsceneDirectory=outputDirectory/"Cutscenes";
+    const fs::path musicDirectory=worldsDirectory/"Music";
+    const fs::path soundBankDirectory=worldsDirectory/"Sound Banks";
+    const fs::path commentaryDirectory=worldsDirectory/"Sounds"/"Commentary";
+    const fs::path jloAmbientDirectory=worldsDirectory/"Sounds"/"JLO Ambient";
+    const fs::path promptSoundDirectory=worldsDirectory/"Sounds"/"Prompt";
     std::array<LEVELINFODisk, LEVEL_COUNT> levelTable{};
 
     if (!ReadExactAt(iso, LEVEL_TABLE_ISO_OFFSET, levelTable.data(), sizeof(levelTable)))
@@ -1465,6 +1432,7 @@ int main(int argc, char** argv)
 
     for (std::size_t index = 0; index < levelTable.size(); ++index)
     {
+        Progress("levels",index,LEVEL_COUNT);
         const LEVELINFODisk& levelInfo = levelTable[index];
 
         const uint32_t sector = levelInfo.fileInfo.fcl.isector ^ levelInfo.lsnKey;
@@ -1506,6 +1474,7 @@ int main(int argc, char** argv)
             << "    level ID: " << levelInfo.levelId << '\n'
             << "    task: " << levelInfo.task << '\n';
 
+        CheckRange(dataOffset, compressedSize);
         std::vector<uint8_t> compressed(compressedSize);
 
         if (!ReadExactAt(iso, dataOffset, compressed.data(), compressed.size()))
@@ -1571,7 +1540,9 @@ int main(int argc, char** argv)
             continue;
         }
 
+        Progress("music",extractedMusicIds.size(),38,musicInfo.levelName);
         const uint64_t dataOffset = static_cast<uint64_t>(musicInfo.sector) * ISO_SECTOR_SIZE;
+        CheckRange(dataOffset, musicInfo.size);
         std::vector<uint8_t> musicData(musicInfo.size);
         if (!ReadExactAt(iso, dataOffset, musicData.data(), musicData.size()))
         {
@@ -1610,6 +1581,7 @@ int main(int argc, char** argv)
 
     for (std::size_t index = 0; index < soundBankTable.size(); ++index)
     {
+        Progress("sound-banks",index,SOUND_BANK_COUNT);
         const VAGINFODisk& descriptor = soundBankTable[index];
         const uint32_t sector = descriptor.encryptedSector ^ descriptor.sectorKey;
         const uint32_t size = descriptor.encryptedSize ^ descriptor.sizeKey;
@@ -1623,6 +1595,7 @@ int main(int argc, char** argv)
             return Finish(EXIT_FAILURE);
         }
 
+        CheckRange(dataOffset, size);
         std::vector<uint8_t> bankData(size);
         if (!ReadExactAt(iso, dataOffset, bankData.data(), bankData.size()))
         {
@@ -1670,6 +1643,7 @@ int main(int argc, char** argv)
     std::size_t commentaryExtracted = 0;
     for (std::size_t index = 0; index < commentaryTable.size(); ++index)
     {
+        Progress("commentary",index,commentaryTable.size());
         const COMMENTARYINFODisk& commentary = commentaryTable[index];
         const VAGINFODisk& descriptor = commentary.audio;
         const uint32_t sector = descriptor.encryptedSector ^ descriptor.sectorKey;
@@ -1684,11 +1658,12 @@ int main(int argc, char** argv)
         {
             std::cout << "[Commentary] Skipping empty descriptor for level ID 0x"
                       << std::hex << std::uppercase << commentary.levelId
-                      << std::nouppercase << std::dec << '.\n';
+                      << std::nouppercase << std::dec << ".\n";
             continue;
         }
 
         const uint64_t dataOffset = static_cast<uint64_t>(sector) * ISO_SECTOR_SIZE;
+        CheckRange(dataOffset,size);
         std::vector<uint8_t> commentaryData(size);
         if (!ReadExactAt(iso, dataOffset, commentaryData.data(), commentaryData.size()))
         {
@@ -1736,8 +1711,10 @@ int main(int argc, char** argv)
     std::vector<uint32_t> initializedDialogManifests;
     std::size_t dialogAudioExtracted = 0;
 
+    size_t dialogueIndex=0;
     for (const DIALOGAUDIOINFO& dialogAudio : DIALOG_AUDIO_TABLE)
     {
+        Progress("dialogue",dialogueIndex++,std::size(DIALOG_AUDIO_TABLE));
         std::string levelName = "Level_" + std::to_string(dialogAudio.levelId);
         for (const auto& level : levelNames)
         {
@@ -1800,6 +1777,7 @@ int main(int argc, char** argv)
             }
             audioSize = ReadBe32(vagHeader, 0x0C) + 0x30;
         }
+        CheckRange(dataOffset,audioSize);
         std::vector<uint8_t> audioData(audioSize);
         if (!ReadExactAt(iso, dataOffset, audioData.data(), audioData.size()))
         {
@@ -1872,6 +1850,7 @@ int main(int argc, char** argv)
 
     for (std::size_t index = 0; index < EXTRACTED_CUTSCENE_COUNT; ++index)
     {
+        Progress("cutscenes",index,EXTRACTED_CUTSCENE_COUNT);
         const bool isStartupSplash = index == CUTSCENE_COUNT;
         const VAGINFODisk* cutsceneInfo = isStartupSplash ? nullptr : &cutsceneTable[index];
         const uint32_t sector = isStartupSplash ? STARTUP_SPLASH_SECTOR :
@@ -1900,6 +1879,7 @@ int main(int argc, char** argv)
             return Finish(EXIT_FAILURE);
         }
 
+        CheckRange(dataOffset, size);
         std::vector<uint8_t> movieData(size);
 
         if (!ReadExactAt(iso, dataOffset, movieData.data(), movieData.size()))
@@ -1961,6 +1941,7 @@ int main(int argc, char** argv)
 
     for (std::size_t index = 0; index < jloAmbientTable.size(); ++index)
     {
+        Progress("ambient",index,jloAmbientTable.size());
         const VAGINFODisk& vagInfo = jloAmbientTable[index];
         const uint32_t sector = vagInfo.encryptedSector ^ vagInfo.sectorKey;
         const uint32_t size = vagInfo.encryptedSize ^ vagInfo.sizeKey;
@@ -1973,6 +1954,7 @@ int main(int argc, char** argv)
             return Finish(EXIT_FAILURE);
         }
 
+        CheckRange(dataOffset, size);
         std::vector<uint8_t> vagData(size);
 
         if (!ReadExactAt(iso, dataOffset, vagData.data(), vagData.size()))
@@ -2022,6 +2004,7 @@ int main(int argc, char** argv)
         return Finish(EXIT_FAILURE);
     }
 
+    CheckRange(promptDataOffset, promptSize);
     std::vector<uint8_t> promptVagData(promptSize);
 
     if (!ReadExactAt(iso, promptDataOffset, promptVagData.data(), promptVagData.size()))
@@ -2057,5 +2040,21 @@ int main(int argc, char** argv)
               << " JLO ambient WAV files, and the prompt WAV into:\n"
               << worldsDirectory << '\n';
 
+    // Close text maps before hashing the installation inventory.
+    musicManifest.close();
+    if(!musicManifest)throw std::runtime_error("Failed writing music map");
+    commentaryManifest.close();
+    if(!commentaryManifest)throw std::runtime_error("Failed writing commentary map");
+    auto manifest=cane::makeManifest(outputDirectory,isoPath,[](size_t n,size_t total,const std::string& item){Progress("verify",n,total,item);});
+    cane::writeJson(outputDirectory/"installation.json",manifest);
+    if(transaction)transaction->commit();
+    Progress("complete",1,1);
     return Finish(EXIT_SUCCESS);
+}
+
+int main(int argc,char** argv) {
+    g_stdoutBuffer=std::cout.rdbuf();
+    int result;
+    try {result=Extract(argc,argv);}catch(const std::exception& e) {std::cerr<<"Extraction failed: "<<e.what()<<std::endl;Progress("error",0,0,e.what());result=1;}
+    std::cout.rdbuf(g_stdoutBuffer);return result;
 }

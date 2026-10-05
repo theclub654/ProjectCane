@@ -11,7 +11,7 @@ enum WIPES
     WIPES_WipingIn = 3,
     WIPES_Max = 4
 };
-enum WIPEK
+enum WIPEK : int
 {
     WIPEK_Nil = -1,
     WIPEK_Fade = 0,

@@ -6,10 +6,8 @@ struct SAAF
 {
     uint16_t oid;
     short fInstanced;
-    union
+    union LOOPF
     {
-        union LOOPF
-        {
             float dtLoopMin;
             float dtLoopMax;
             float dtPauseMin;
@@ -18,9 +16,9 @@ struct SAAF
             uint8_t  pad0x12;
             uint8_t  pad0x13;
             uint32_t padTail;
-        }loopf;
-        union PINGPONGF
-        {
+    };
+    union PINGPONGF
+    {
             float dtPingpongMin;
             float dtPingpongMax;
             float dtPauseMin;
@@ -29,21 +27,21 @@ struct SAAF
             uint8_t  pad0x12;
             uint8_t  pad0x13;
             uint32_t padTail;
-        }pingpongf;
-        union SHUTTLEF
-        {
+    };
+    union SHUTTLEF
+    {
             float dtPauseMin;
             float dtPauseMax;
             uint32_t pad[4];
-        }shufflef;
-        union HOLOGRAMF
-        {
+    };
+    union HOLOGRAMF
+    {
             float dradAdjust;
             uint32_t cSymmetry;
             uint32_t pad[4];
-        }hologramf;
-        union EYESF
-        {
+    };
+    union EYESF
+    {
             float dtBlink;
             float dtOpenMin;
             float dtOpenMax;
@@ -52,32 +50,42 @@ struct SAAF
             uint8_t pad0x12;
             uint8_t pad0x13;
             uint32_t padTail;
-        }eyesf;
-        union SCROLLERF
-        {
+    };
+    union SCROLLERF
+    {
             float svu;
             float svv;
             float duMod;
             float dvMod;
             uint32_t pad[2];
-        }scrollerf;
-        union CIRCLEF
-        {
+    };
+    union CIRCLEF
+    {
             float sw;
             float sRadius;
             float du;
             float dv;
             uint32_t pad[2];
-        }circlerf;
-        union LOOKERF
-        {
+    };
+    union LOOKERF
+    {
             float uCenter;
             float vCenter;
             float uMin;
             float uMax;
             float vMin;
             float vMax;
-        }lookerf;
+    };
+    union
+    {
+        LOOPF loopf;
+        PINGPONGF pingpongf;
+        SHUTTLEF shufflef;
+        HOLOGRAMF hologramf;
+        EYESF eyesf;
+        SCROLLERF scrollerf;
+        CIRCLEF circlerf;
+        LOOKERF lookerf;
     };
 };
 

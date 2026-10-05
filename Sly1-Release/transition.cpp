@@ -4,7 +4,7 @@
 #include "difficulty.h"
 #include "chkpnt.h"
 #include "hubblot.h"
-#include <Windows.h>
+#include "../platform/platform.h"
 
 namespace
 {
@@ -23,13 +23,7 @@ const char* WorldDirectoryName(int levelId)
 
 std::filesystem::path ExecutableDirectory()
 {
-    wchar_t executablePath[MAX_PATH]{};
-    const DWORD length = GetModuleFileNameW(nullptr, executablePath, MAX_PATH);
-
-    if (length == 0 || length >= MAX_PATH)
-        return std::filesystem::current_path();
-
-    return std::filesystem::path(executablePath).parent_path();
+    return cane::dataDirectory();
 }
 
 std::filesystem::path FindWorldsDirectory(const std::string& currentFile)
@@ -146,7 +140,7 @@ void CTransition::Execute(std::string& file)
 
     if (fLoadSucceeded)
     {
-        fileNew = LevelPath(*plevelTarget, file).string();
+        fileNew = cane::utf8(LevelPath(*plevelTarget, file));
 
         const bool fWorldChanged = m_plevelCurrent == nullptr || m_plevelCurrent->searchKey != plevelTarget->searchKey;
 

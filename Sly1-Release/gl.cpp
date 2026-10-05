@@ -1,4 +1,4 @@
-﻿#include "gl.h"
+#include "gl.h"
 #include "render.h"
 #include "sqtr.h"
 #include "shadow.h"
@@ -12,7 +12,7 @@
 #ifndef NOMINMAX
 #define NOMINMAX
 #endif
-#include <Windows.h>
+#include <windows.h>
 #endif
 
 #ifdef _WIN32
@@ -97,7 +97,7 @@ void GL::InitGL()
 	{
 		std::cout << "Failed to create GLFW window" << std::endl;
 		glfwTerminate();
-		while (true);
+		throw std::runtime_error("OpenGL 4.3 is required. Could not create a graphics context.");
 	}
 
 	glfwMakeContextCurrent(window);
@@ -432,7 +432,7 @@ void GL::CreateFramebuffers(int w, int h)
 	if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
 	{
 		std::cout << "Resolved FBO incomplete\n";
-		while (true);
+		throw std::runtime_error("OpenGL 4.3 is required. Could not create a graphics context.");
 	}
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
@@ -459,7 +459,7 @@ void GL::CreateFramebuffers(int w, int h)
 		if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
 		{
 			std::cout << "MSAA FBO incomplete\n";
-			while (true);
+			throw std::runtime_error("OpenGL 4.3 is required. Could not create a graphics context.");
 		}
 
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -787,7 +787,7 @@ void ApplyMsaaSettings()
 	if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
 	{
 		std::cout << "MSAA FBO incomplete\n";
-		while (true);
+		throw std::runtime_error("OpenGL 4.3 is required. Could not create a graphics context.");
 	}
 
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
