@@ -3,6 +3,8 @@
 **/x64/
 **/Debug/
 **/Release/
+**/bin/
+**/obj/
 !Libraries/lib/Debug/
 !Libraries/lib/Debug/**
 !Libraries/lib/Release/
@@ -26,6 +28,8 @@ Saves/
 *.log
 *.bak
 build-output.txt
+Sly1-Release/*.csv
+Sly1-Release/*.dll
 
 # Extracted game data
 Sly1-Release/Worlds/
