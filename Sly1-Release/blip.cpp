@@ -1,4 +1,20 @@
 #include "blip.h"
+#include "brx.h"
+#include "emitter.h"
+
+#include <algorithm>
+#include <iostream>
+#include <unordered_map>
+
+namespace
+{
+constexpr int kBlipgPoolInitial = 40;
+constexpr int kBlipgPoolMaximum = 128;
+
+// Keep PC-only capacity bookkeeping out of SW so none of the reconstructed
+// game structure's original field offsets move.
+std::unordered_map<SW*, int> s_mpSwCblipgPool;
+}
 
 // Retail leaves this debug switch disabled by default.  When enabled it adds
 // an extra identity instance in addition to the emitter-group members.
@@ -245,6 +261,16 @@ void UpdateBlipg(BLIPG* pblipg, float dt)
     UpdateAlo(pblipg, dt);
     ResolveAlo(pblipg);
 
+	// An active group must be configured by SetBlipgEmitb before its first
+	// update. Do not turn malformed or future allocation paths into a null
+	// dereference; retire the unusable group so it can be recycled.
+	if (pblipg->pshd == nullptr)
+	{
+		std::cerr << "[ERROR] [Particles] Active BLIPG has no shader; recycling group.\n";
+		pblipg->pvtlo->pfnRemoveLo(pblipg);
+		return;
+	}
+
     GRFZON objZoneMask = pblipg->pshd->grfzon;
 
     bool inCameraZone = (objZoneMask & 0x10000000u) || ((g_pcm->grfzon & objZoneMask) == g_pcm->grfzon);
@@ -457,8 +483,9 @@ void EmitBlips(EMITB* pemitb, EMITG* pemitg, int cblipeRequested, const glm::vec
     {
         pblipg = PblipgNew(g_psw);
 
-        if (!pblipg)
+        if (!pblipg) {
             return;
+        }
 
         if (pemitg && pemitg->ppblipg)
             *pemitg->ppblipg = pblipg;
@@ -479,8 +506,9 @@ void EmitBlips(EMITB* pemitb, EMITG* pemitg, int cblipeRequested, const glm::vec
         {
             pblip = PblipNew(pblipg);
 
-            if (!pblip)
+            if (!pblip) {
                 return;
+            }
         }
 
         while (pblip->cblipe < 44 && iblipeRequested < cblipeRequested)
@@ -555,6 +583,7 @@ void RenderBlipgSelf(BLIPG* pblipg, CM* pcm, RO* pro)
     if (pblipg == nullptr)
         return;
 
+
     const float alpha = pro != nullptr ? pro->uAlpha : 1.0f;
 
     auto submit = [pblipg, alpha](const glm::mat4& model, float instanceAlpha = 1.0f)
@@ -570,26 +599,33 @@ void RenderBlipgSelf(BLIPG* pblipg, CM* pcm, RO* pro)
 
     auto submitVisible = [pblipg, pcm, &submit](EMITTER* pgroup, const glm::mat4& model)
     {
-        if (pcm == nullptr || pgroup == nullptr)
+        if (pcm == nullptr || pgroup == nullptr) {
             return "invalid";
+        }
 
         // DrawBlipg applies the group object's explicit zone restriction only
         // for VISS_Zone (2), then performs its sphere/MRD rejection.
         if (pgroup->viss == 2 &&
             (pgroup->grfzon & pcm->grfzon) != pcm->grfzon)
+        {
             return "zone";
+        }
 
         // DrawBlipg culls around the BLIPG's local particle center transformed
         // by this group member, not around the member translation alone.
         const glm::vec3 posWorld = glm::vec3(model * glm::vec4(pblipg->xf.pos, 1.0f));
         const glm::vec3 dpos = posWorld - pcm->pos;
         if (!SphereInFrustum(pcm->frustum, posWorld, pblipg->sRadiusRenderAll))
+        {
             return "frustum";
+        }
 
         float mrdAlpha = 1.0f;
         if (!FInsideCmMrd(pcm, dpos, pblipg->sRadiusRenderAll,
                           pgroup->sMRD, mrdAlpha))
+        {
             return "mrd";
+        }
 
         submit(model, mrdAlpha);
         return "submitted";
@@ -689,6 +725,33 @@ BLIP* PblipNew(BLIPG* pblipg)
 BLIPG* PblipgNew(SW* psw)
 {
     BLIPG* pblipg = psw->dlBlipgFree.pblipgFirst;
+	bool fAlreadyActive = false;
+
+	// Retail preallocates 40 reusable groups. On PC, render submissions remain
+	// alive across the deferred frame lists and a busy scene can transiently
+	// consume all 40. Retail's null return silently loses every particle emitted
+	// during that interval. PloNew activates a BLIPG immediately, so create only
+	// the group requested by this call; creating a reserve batch here would put
+	// unconfigured groups on the update list before they have a shader. Retain a
+	// hard ceiling so a genuine lifecycle leak remains bounded and diagnosable.
+	int& cblipgPool = s_mpSwCblipgPool.try_emplace(psw, kBlipgPoolInitial).first->second;
+	if (pblipg == nullptr && cblipgPool < kBlipgPoolMaximum)
+	{
+		pblipg = static_cast<BLIPG*>(
+			PloNew(CID_BLIPG, psw, nullptr, OID_blip_group, -1));
+		++cblipgPool;
+		fAlreadyActive = true;
+	}
+	else if (pblipg == nullptr)
+	{
+		static bool s_fReportedBlipgPoolLimit = false;
+		if (!s_fReportedBlipgPoolLimit)
+		{
+			std::cerr << "[ERROR] [Particles] BLIPG pool reached its bounded limit ("
+				<< kBlipgPoolMaximum << "); particle groups are being dropped.\n";
+			s_fReportedBlipgPoolLimit = true;
+		}
+	}
 
 	if (pblipg != nullptr)
 	{
@@ -697,7 +760,8 @@ BLIPG* PblipgNew(SW* psw)
 		pblipg->viss = 2;
 		pblipg->mrds = 2;
 		pblipg->cblipe = 0;
-		pblipg->pvtlo->pfnAddLo(pblipg);
+		if (!fAlreadyActive)
+			pblipg->pvtlo->pfnAddLo(pblipg);
 		pblipg->pchzName = const_cast<char*>("BLIP Group");
 	}
 

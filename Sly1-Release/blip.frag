@@ -1,7 +1,7 @@
 #version 430 core
 
-in vec2 fragUv;
-in vec4 fragColor;
+layout(location = 0) in vec2 fragUv;
+layout(location = 1) in vec4 fragColor;
 
 uniform sampler2D diffuseMap;
 // The PS2 BLIP packet is replayed as two complementary alpha-test passes:

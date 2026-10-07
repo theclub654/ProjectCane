@@ -4,6 +4,7 @@
 #include "expls.h"
 #include "jt.h"
 #include "call.h"
+#include "dialog.h"
 #include <cstdio>
 
 PO* NewPo()
@@ -372,6 +373,7 @@ void HandleDialogButtons(JOY* pjoy)
 	if (g_pdialogCalling != nullptr &&
 		g_pdialogCalling->dialogs == DIALOGS_Playing &&
 		!g_pdialogCalling->fNoSkip &&
+		!FDialogSkipProtected(g_pdialogCalling) &&
 		fDialogButtonPressed &&
 		*g_pdialogCalling->pfPlayed != 0)
 	{

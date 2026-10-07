@@ -66,13 +66,9 @@ void DrawLogo(LOGO* plogo)
     if (texture == 0)
         return;
 
-    // Retail submits logo coordinates in the PS2's 640 x 492.8 UI canvas.
-    // Convert the rectangle and its edge margins to output pixels while
-    // retaining the anchor selected by RepositionBlot.
     const GuiScale guiScale = GetGuiScale();
     const float scaleX = guiScale.x;
     const float scaleY = guiScale.y;
-
     float width = plogo->dx * scaleX;
     float height = plogo->dy * scaleY;
     float x = plogo->x;
@@ -84,12 +80,10 @@ void DrawLogo(LOGO* plogo)
             x -= width - plogo->dx;
         else if (plogo->pbloti->x == 0.0f)
             x -= (width - plogo->dx) * 0.5f;
-
         if (plogo->pbloti->y < 0.0f)
             y -= height - plogo->dy;
         else if (plogo->pbloti->y == 0.0f)
             y -= (height - plogo->dy) * 0.5f;
-
         x += plogo->pbloti->x * (scaleX - 1.0f);
         y += plogo->pbloti->y * (scaleY - 1.0f);
     }

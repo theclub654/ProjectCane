@@ -1,6 +1,7 @@
 #include "zap.h"
 #include "jt.h"
 #include "rat.h"
+#include <cstdio>
 
 bool g_fDisableDeathBarriers = false;
 
@@ -189,7 +190,9 @@ void UpdateVolzp(VOLZP* pvolzp, float dt)
 		: player->pvtpo->pfnFInvulnerablePo(player, pvolzp->zpd.zpk) != 0;
 
 	if (fInvulnerable)
+	{
 		return;
+	}
 
 	glm::vec3 distance = glm::vec3(pvolzp->xf.posWorld) - glm::vec3(player->xf.posWorld);
 	float combinedRadius = pvolzp->sRadiusSelf + player->sRadiusSelf;

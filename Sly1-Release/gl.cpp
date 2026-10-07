@@ -5,8 +5,11 @@
 #include "tv.h"
 #include "game.h"
 #include "debug.h"
+#include "runtime_error.h"
 #include <cmath>
 #include <cstdlib>
+#include <cstring>
+#include <stdexcept>
 
 #ifdef _WIN32
 #ifndef NOMINMAX
@@ -29,6 +32,13 @@ int s_windowedX = 100;
 int s_windowedY = 100;
 int s_windowedWidth = 800;
 int s_windowedHeight = 800;
+bool s_lastFramebufferResizeSucceeded = true;
+
+void GlfwErrorCallback(int error, const char* description)
+{
+	ReportRuntimeError("Graphics", "GLFW error %d: %s", error,
+		description != nullptr ? description : "No description was provided");
+}
 
 GLFWmonitor* MonitorForWindow(GLFWwindow* window)
 {
@@ -72,7 +82,9 @@ GLFWmonitor* MonitorForWindow(GLFWwindow* window)
 void GL::InitGL()
 {
 	// Create GLFW context and window
-	glfwInit();
+	glfwSetErrorCallback(GlfwErrorCallback);
+	if (glfwInit() != GLFW_TRUE)
+		throw std::runtime_error("GLFW could not initialize. See the diagnostic console for details.");
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
@@ -95,9 +107,13 @@ void GL::InitGL()
 
 	if (!window)
 	{
-		std::cout << "Failed to create GLFW window" << std::endl;
+		const char* description = nullptr;
+		const int error = glfwGetError(&description);
+		ReportRuntimeError("Graphics", "Could not create the OpenGL 4.3 window (GLFW error %d: %s)",
+			error, description != nullptr ? description : "No description was provided");
 		glfwTerminate();
-		while (true);
+		throw std::runtime_error(
+			"The game window could not be created. Update the graphics driver and verify OpenGL 4.3 support.");
 	}
 
 	glfwMakeContextCurrent(window);
@@ -108,12 +124,9 @@ void GL::InitGL()
 
 	if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
 	{
-		std::cout << "Failed to initialize GLAD" << std::endl;
-		#ifdef _WIN32
-		MessageBoxA(nullptr, "OpenGL could not be initialized. Update your graphics driver and try again.",
-			"ProjectCane graphics error", MB_OK | MB_ICONERROR);
-		#endif
-		std::exit(EXIT_FAILURE);
+		ReportRuntimeError("Graphics",
+			"GLAD could not load the required OpenGL functions. Update the graphics driver and verify OpenGL 4.3 support.");
+		throw std::runtime_error("OpenGL function loading failed.");
 	}
 
 	const char* glVendor = reinterpret_cast<const char*>(glGetString(GL_VENDOR));
@@ -122,6 +135,40 @@ void GL::InitGL()
 	std::cout << "OpenGL vendor: " << (glVendor != nullptr ? glVendor : "unknown") << '\n'
 		<< "OpenGL renderer: " << (glRenderer != nullptr ? glRenderer : "unknown") << '\n'
 		<< "OpenGL version: " << (glVersion != nullptr ? glVersion : "unknown") << std::endl;
+
+	// The main renderer intentionally uses vertex-stage SSBOs for lights,
+	// shadows, skinning, poses, warps, and cached lighting. OpenGL 4.3 exposes
+	// implementation-dependent per-stage limits, so reject an incapable driver
+	// explicitly instead of letting glob.vert fail later with a vendor-specific
+	// linker message or silently missing effects.
+	GLint maxVertexSsboBlocks = 0;
+	GLint maxCombinedSsboBlocks = 0;
+	GLint maxSsboBindings = 0;
+	GLint maxVertexOutputComponents = 0;
+	glGetIntegerv(GL_MAX_VERTEX_SHADER_STORAGE_BLOCKS, &maxVertexSsboBlocks);
+	glGetIntegerv(GL_MAX_COMBINED_SHADER_STORAGE_BLOCKS, &maxCombinedSsboBlocks);
+	glGetIntegerv(GL_MAX_SHADER_STORAGE_BUFFER_BINDINGS, &maxSsboBindings);
+	glGetIntegerv(GL_MAX_VERTEX_OUTPUT_COMPONENTS, &maxVertexOutputComponents);
+
+	constexpr GLint kRequiredVertexSsboBlocks = 10;
+	constexpr GLint kRequiredCombinedSsboBlocks = 11;
+	constexpr GLint kRequiredSsboBindings = 14;
+	constexpr GLint kRequiredVertexOutputComponents = 48;
+	if (maxVertexSsboBlocks < kRequiredVertexSsboBlocks ||
+		maxCombinedSsboBlocks < kRequiredCombinedSsboBlocks ||
+		maxSsboBindings < kRequiredSsboBindings ||
+		maxVertexOutputComponents < kRequiredVertexOutputComponents)
+	{
+		ReportRuntimeError("Graphics",
+			"GPU shader limits are below ProjectCane's renderer requirements. "
+			"Vertex SSBOs %d/%d, combined SSBOs %d/%d, SSBO bindings %d/%d, "
+			"vertex outputs %d/%d. Update the graphics driver or select a more capable GPU.",
+			maxVertexSsboBlocks, kRequiredVertexSsboBlocks,
+			maxCombinedSsboBlocks, kRequiredCombinedSsboBlocks,
+			maxSsboBindings, kRequiredSsboBindings,
+			maxVertexOutputComponents, kRequiredVertexOutputComponents);
+		throw std::runtime_error("GPU shader resource limits are insufficient.");
+	}
 
 	// ========== ImGui Setup ==========
 	IMGUI_CHECKVERSION();
@@ -166,6 +213,25 @@ void GL::InitGL()
 	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)(2 * sizeof(float)));
 
 	glBindVertexArray(0);
+
+	// ========== Batched font geometry ==========
+	fontVboCapacity = sizeof(BLOTLINEVERTEX) * 6 * 256;
+	glGenVertexArrays(1, &fontVao);
+	glGenBuffers(1, &fontVbo);
+	glBindVertexArray(fontVao);
+	glBindBuffer(GL_ARRAY_BUFFER, fontVbo);
+	glBufferData(GL_ARRAY_BUFFER, fontVboCapacity, nullptr, GL_STREAM_DRAW);
+	glEnableVertexAttribArray(0);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(BLOTLINEVERTEX),
+		reinterpret_cast<void*>(offsetof(BLOTLINEVERTEX, position)));
+	glEnableVertexAttribArray(1);
+	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(BLOTLINEVERTEX),
+		reinterpret_cast<void*>(offsetof(BLOTLINEVERTEX, uv)));
+	glEnableVertexAttribArray(2);
+	glVertexAttribPointer(2, 4, GL_FLOAT, GL_FALSE, sizeof(BLOTLINEVERTEX),
+		reinterpret_cast<void*>(offsetof(BLOTLINEVERTEX, color)));
+	glBindVertexArray(0);
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
 
 	// ========== Instanced BLIP quad ==========
 	const float blipCorners[] = {
@@ -313,6 +379,7 @@ void GL::InitGL()
 	rcbStream.stride = (sizeof(ROCEL) + align - 1) & ~(align - 1);
 	glGeomShader.Init("geom.vert", NULL, "geom.frag");
 	glslGeomModelToClip = glGetUniformLocation(glGeomShader.ID, "modelToClip");
+	glslGeomDebugColor = glGetUniformLocation(glGeomShader.ID, "debugColor");
 
 	glBlotShader.Init("blot.vert", NULL, "blot.frag");
 	glBlotShader.Use();
@@ -431,8 +498,8 @@ void GL::CreateFramebuffers(int w, int h)
 
 	if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
 	{
-		std::cout << "Resolved FBO incomplete\n";
-		while (true);
+		ReportRuntimeError("Graphics", "The initial scene framebuffer could not be created.");
+		throw std::runtime_error("Initial scene framebuffer creation failed.");
 	}
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
@@ -458,8 +525,14 @@ void GL::CreateFramebuffers(int w, int h)
 
 		if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
 		{
-			std::cout << "MSAA FBO incomplete\n";
-			while (true);
+			ReportRuntimeError("Graphics",
+				"The initial %dx MSAA framebuffer could not be created; MSAA has been disabled.",
+				g_msaaSamples);
+			glDeleteFramebuffers(1, &fboMSAA);
+			glDeleteRenderbuffers(1, &rboColorMSAA);
+			glDeleteRenderbuffers(1, &rboDepthStencilMSAA);
+			fboMSAA = rboColorMSAA = rboDepthStencilMSAA = 0;
+			g_fMsaa = false;
 		}
 
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -483,69 +556,94 @@ void GL::CreateFramebuffers(int w, int h)
 	glBindRenderbuffer(GL_RENDERBUFFER, 0);
 }
 
-void GL::ResizeFramebuffers(int w, int h)
+bool GL::ResizeFramebuffers(int w, int h)
 {
-	int fbW = std::max(1, w);
-	int fbH = std::max(1, h);
-
-	// Resizing the off-screen scene target must not change the logical UI
-	// canvas. width/height track the output framebuffer for HUD/blot layout.
-	renderWidth = fbW;
-	renderHeight = fbH;
-
-	if (fbc)
+	const int fbW = std::max(1, w);
+	const int fbH = std::max(1, h);
+	GLint maxTextureSize = 0;
+	glGetIntegerv(GL_MAX_TEXTURE_SIZE, &maxTextureSize);
+	if (fbW > maxTextureSize || fbH > maxTextureSize)
 	{
-		glBindTexture(GL_TEXTURE_2D, fbc);
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, fbW, fbH, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+		ReportRuntimeError("Graphics",
+			"Internal resolution %dx%d exceeds this GPU's maximum texture size of %d.",
+			fbW, fbH, maxTextureSize);
+		return false;
 	}
 
-	if (rbo)
-	{
-		glBindRenderbuffer(GL_RENDERBUFFER, rbo);
-		glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, fbW, fbH);
-	}
+	GLuint newFbo = 0;
+	GLuint newColor = 0;
+	GLuint newDepth = 0;
+	GLuint newMsaaFbo = 0;
+	GLuint newMsaaColor = 0;
+	GLuint newMsaaDepth = 0;
+	while (glGetError() != GL_NO_ERROR) {}
 
-	if (fbo)
-	{
-		glBindFramebuffer(GL_FRAMEBUFFER, fbo);
+	glGenFramebuffers(1, &newFbo);
+	glBindFramebuffer(GL_FRAMEBUFFER, newFbo);
+	glGenTextures(1, &newColor);
+	glBindTexture(GL_TEXTURE_2D, newColor);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, fbW, fbH, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, newColor, 0);
+	glGenRenderbuffers(1, &newDepth);
+	glBindRenderbuffer(GL_RENDERBUFFER, newDepth);
+	glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, fbW, fbH);
+	glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, newDepth);
 
-		GLenum status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
-		if (status != GL_FRAMEBUFFER_COMPLETE)
-		{
-			std::cout << "Resolved FBO incomplete after resize: 0x" << std::hex << status << std::dec << "\n";
-			while (true) {}
-		}
-	}
-
-	if (g_fMsaa && fboMSAA)
+	GLenum error = glGetError();
+	GLenum status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
+	bool complete = error == GL_NO_ERROR && status == GL_FRAMEBUFFER_COMPLETE;
+	if (complete && g_fMsaa)
 	{
 		GLint maxSamples = 0;
 		glGetIntegerv(GL_MAX_SAMPLES, &maxSamples);
 		g_msaaSamples = std::max(1, std::min(g_msaaSamples, maxSamples));
-
-		if (rboColorMSAA)
-		{
-			glBindRenderbuffer(GL_RENDERBUFFER, rboColorMSAA);
-			glRenderbufferStorageMultisample(GL_RENDERBUFFER, g_msaaSamples, GL_RGBA8, fbW, fbH);
-		}
-
-		if (rboDepthStencilMSAA)
-		{
-			glBindRenderbuffer(GL_RENDERBUFFER, rboDepthStencilMSAA);
-			glRenderbufferStorageMultisample(GL_RENDERBUFFER, g_msaaSamples, GL_DEPTH24_STENCIL8, fbW, fbH);
-		}
-
-		glBindFramebuffer(GL_FRAMEBUFFER, fboMSAA);
-
-		GLenum status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
-		if (status != GL_FRAMEBUFFER_COMPLETE)
-		{
-			std::cout << "MSAA FBO incomplete after resize: 0x" << std::hex << status << std::dec << "\n";
-			while (true) {}
-		}
+		glGenFramebuffers(1, &newMsaaFbo);
+		glBindFramebuffer(GL_FRAMEBUFFER, newMsaaFbo);
+		glGenRenderbuffers(1, &newMsaaColor);
+		glBindRenderbuffer(GL_RENDERBUFFER, newMsaaColor);
+		glRenderbufferStorageMultisample(GL_RENDERBUFFER, g_msaaSamples, GL_RGBA8, fbW, fbH);
+		glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, newMsaaColor);
+		glGenRenderbuffers(1, &newMsaaDepth);
+		glBindRenderbuffer(GL_RENDERBUFFER, newMsaaDepth);
+		glRenderbufferStorageMultisample(GL_RENDERBUFFER, g_msaaSamples, GL_DEPTH24_STENCIL8, fbW, fbH);
+		glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, newMsaaDepth);
+		error = glGetError();
+		status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
+		complete = error == GL_NO_ERROR && status == GL_FRAMEBUFFER_COMPLETE;
 	}
 
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+	if (!complete)
+	{
+		if (newFbo) glDeleteFramebuffers(1, &newFbo);
+		if (newColor) glDeleteTextures(1, &newColor);
+		if (newDepth) glDeleteRenderbuffers(1, &newDepth);
+		if (newMsaaFbo) glDeleteFramebuffers(1, &newMsaaFbo);
+		if (newMsaaColor) glDeleteRenderbuffers(1, &newMsaaColor);
+		if (newMsaaDepth) glDeleteRenderbuffers(1, &newMsaaDepth);
+		ReportRuntimeError("Graphics",
+			"Could not allocate the %dx%d%s framebuffer (OpenGL error 0x%X, status 0x%X). The previous setting was retained.",
+			fbW, fbH, g_fMsaa ? " MSAA" : "", error, status);
+		return false;
+	}
+
+	if (fbo) glDeleteFramebuffers(1, &fbo);
+	if (fbc) glDeleteTextures(1, &fbc);
+	if (rbo) glDeleteRenderbuffers(1, &rbo);
+	if (fboMSAA) glDeleteFramebuffers(1, &fboMSAA);
+	if (rboColorMSAA) glDeleteRenderbuffers(1, &rboColorMSAA);
+	if (rboDepthStencilMSAA) glDeleteRenderbuffers(1, &rboDepthStencilMSAA);
+	fbo = newFbo;
+	fbc = newColor;
+	rbo = newDepth;
+	fboMSAA = newMsaaFbo;
+	rboColorMSAA = newMsaaColor;
+	rboDepthStencilMSAA = newMsaaDepth;
+	renderWidth = fbW;
+	renderHeight = fbH;
+	return true;
 }
 void GL::UpdateGLProjections()
 {
@@ -593,6 +691,8 @@ void GL::TerminateGL()
 	glDeleteVertexArrays(1, &gao);
 	glDeleteBuffers(1, &gbo);
 	glDeleteBuffers(1, &geo);
+	glDeleteVertexArrays(1, &fontVao);
+	glDeleteBuffers(1, &fontVbo);
 
 	glDeleteVertexArrays(1, &blipVao);
 	glDeleteBuffers(1, &blipVbo);
@@ -677,6 +777,46 @@ void BeginFrameStream(STREAM* pstream)
 	pstream->frameBase = (GLsizeiptr)slot * pstream->frameSize;
 	pstream->cursor = 0;
 	pstream->mappedPtr = nullptr;
+	pstream->staging.resize(static_cast<size_t>(pstream->frameSize));
+}
+
+GLsizeiptr StageFrameStream(STREAM* pstream, const void* ptr, int copySize)
+{
+	if (copySize < 0 || copySize > pstream->stride ||
+		pstream->cursor + pstream->stride > pstream->frameSize)
+	{
+		__debugbreak();
+		return -1;
+	}
+
+	const GLsizeiptr offset = pstream->frameBase + pstream->cursor;
+	uint8_t* destination = pstream->staging.data() + pstream->cursor;
+	std::memcpy(destination, ptr, static_cast<size_t>(copySize));
+	if (copySize < pstream->stride)
+		std::memset(destination + copySize, 0,
+			static_cast<size_t>(pstream->stride - copySize));
+
+	pstream->cursor += pstream->stride;
+	return offset;
+}
+
+void UploadFrameStream(STREAM* pstream)
+{
+	if (pstream->cursor == 0)
+		return;
+
+	// BeginFrameStream retired this slot's previous fence, so the whole range
+	// is CPU-owned until EndFrameStream fences the draws that consume it.
+	glBindBuffer(GL_UNIFORM_BUFFER, pstream->bufferObject);
+	glBufferSubData(GL_UNIFORM_BUFFER, pstream->frameBase, pstream->cursor,
+		pstream->staging.data());
+}
+
+void BindFrameStreamRange(STREAM* pstream, GLsizeiptr offset, int size)
+{
+	if (offset >= 0)
+		glBindBufferRange(GL_UNIFORM_BUFFER, pstream->bindIndex,
+			pstream->bufferObject, offset, size);
 }
 
 void AppendStream(STREAM* pstream, void* ptr, int size, int copySize)
@@ -740,25 +880,20 @@ void DeleteFrameStream(STREAM* pstream)
 	pstream->frameBase = 0;
 	pstream->cursor    = 0;
 	pstream->frameSize = 0;
+	pstream->staging.clear();
+	pstream->staging.shrink_to_fit();
 }
 
-void ApplyMsaaSettings()
+bool ApplyMsaaSettings()
 {
-	if (g_gl.fboMSAA)
-		glDeleteFramebuffers(1, &g_gl.fboMSAA);
-	if (g_gl.rboColorMSAA)
-		glDeleteRenderbuffers(1, &g_gl.rboColorMSAA);
-	if (g_gl.rboDepthStencilMSAA)
-		glDeleteRenderbuffers(1, &g_gl.rboDepthStencilMSAA);
-
-	g_gl.fboMSAA = 0;
-	g_gl.rboColorMSAA = 0;
-	g_gl.rboDepthStencilMSAA = 0;
-
 	if (!g_fMsaa)
 	{
+		if (g_gl.fboMSAA) glDeleteFramebuffers(1, &g_gl.fboMSAA);
+		if (g_gl.rboColorMSAA) glDeleteRenderbuffers(1, &g_gl.rboColorMSAA);
+		if (g_gl.rboDepthStencilMSAA) glDeleteRenderbuffers(1, &g_gl.rboDepthStencilMSAA);
+		g_gl.fboMSAA = g_gl.rboColorMSAA = g_gl.rboDepthStencilMSAA = 0;
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
-		return;
+		return true;
 	}
 
 	// MSAA storage must match the off-screen scene target, not the UI canvas.
@@ -771,34 +906,56 @@ void ApplyMsaaSettings()
 	glGetIntegerv(GL_MAX_SAMPLES, &maxSamples);
 	g_msaaSamples = std::max(1, std::min(g_msaaSamples, maxSamples));
 
-	glGenFramebuffers(1, &g_gl.fboMSAA);
-	glBindFramebuffer(GL_FRAMEBUFFER, g_gl.fboMSAA);
+	GLuint newFbo = 0;
+	GLuint newColor = 0;
+	GLuint newDepth = 0;
+	while (glGetError() != GL_NO_ERROR) {}
+	glGenFramebuffers(1, &newFbo);
+	glBindFramebuffer(GL_FRAMEBUFFER, newFbo);
 
-	glGenRenderbuffers(1, &g_gl.rboColorMSAA);
-	glBindRenderbuffer(GL_RENDERBUFFER, g_gl.rboColorMSAA);
+	glGenRenderbuffers(1, &newColor);
+	glBindRenderbuffer(GL_RENDERBUFFER, newColor);
 	glRenderbufferStorageMultisample(GL_RENDERBUFFER, g_msaaSamples, GL_RGBA8, w, h);
-	glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, g_gl.rboColorMSAA);
+	glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, newColor);
 
-	glGenRenderbuffers(1, &g_gl.rboDepthStencilMSAA);
-	glBindRenderbuffer(GL_RENDERBUFFER, g_gl.rboDepthStencilMSAA);
+	glGenRenderbuffers(1, &newDepth);
+	glBindRenderbuffer(GL_RENDERBUFFER, newDepth);
 	glRenderbufferStorageMultisample(GL_RENDERBUFFER, g_msaaSamples, GL_DEPTH24_STENCIL8, w, h);
-	glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, g_gl.rboDepthStencilMSAA);
+	glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, newDepth);
 
-	if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+	const GLenum error = glGetError();
+	const GLenum status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
+	if (error != GL_NO_ERROR || status != GL_FRAMEBUFFER_COMPLETE)
 	{
-		std::cout << "MSAA FBO incomplete\n";
-		while (true);
+		glBindFramebuffer(GL_FRAMEBUFFER, 0);
+		if (newFbo) glDeleteFramebuffers(1, &newFbo);
+		if (newColor) glDeleteRenderbuffers(1, &newColor);
+		if (newDepth) glDeleteRenderbuffers(1, &newDepth);
+		g_fMsaa = false;
+		ReportRuntimeError("Graphics",
+			"Could not allocate %dx MSAA at %dx%d (OpenGL error 0x%X, status 0x%X). MSAA has been disabled.",
+			g_msaaSamples, w, h, error, status);
+		return false;
 	}
 
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+	if (g_gl.fboMSAA) glDeleteFramebuffers(1, &g_gl.fboMSAA);
+	if (g_gl.rboColorMSAA) glDeleteRenderbuffers(1, &g_gl.rboColorMSAA);
+	if (g_gl.rboDepthStencilMSAA) glDeleteRenderbuffers(1, &g_gl.rboDepthStencilMSAA);
+	g_gl.fboMSAA = newFbo;
+	g_gl.rboColorMSAA = newColor;
+	g_gl.rboDepthStencilMSAA = newDepth;
+	return true;
 }
 
-void ApplyInternalResolutionSettings()
+bool ApplyInternalResolutionSettings()
 {
 	int width = 1;
 	int height = 1;
 	glfwGetFramebufferSize(g_gl.window, &width, &height);
+	s_lastFramebufferResizeSucceeded = true;
 	FrameBufferSizeCallBack(g_gl.window, width, height);
+	return s_lastFramebufferResizeSucceeded;
 }
 
 void ApplyWindowModeSettings(WindowMode mode)
@@ -826,11 +983,17 @@ void ApplyWindowModeSettings(WindowMode mode)
 	{
 		int x = 0;
 		int y = 0;
-		int width = 0;
-		int height = 0;
-		glfwGetMonitorWorkarea(monitor, &x, &y, &width, &height);
+		glfwGetMonitorPos(monitor, &x, &y);
+		const GLFWvidmode* videoMode = glfwGetVideoMode(monitor);
+		if (videoMode == nullptr)
+			return;
+
+		// Borderless is a fullscreen-sized window, not a work-area-sized window.
+		// The work area excludes the taskbar and left a visible strip along the
+		// bottom of the selected monitor.
 		glfwSetWindowAttrib(g_gl.window, GLFW_DECORATED, GLFW_FALSE);
-		glfwSetWindowMonitor(g_gl.window, nullptr, x, y, width, height, GLFW_DONT_CARE);
+		glfwSetWindowMonitor(g_gl.window, nullptr, x, y,
+			videoMode->width, videoMode->height, GLFW_DONT_CARE);
 	}
 	else
 	{
@@ -909,8 +1072,6 @@ void FrameBufferSizeCallBack(GLFWwindow* window, int width, int height)
 	// framebuffer changes with the internal-resolution option.
 	g_gl.width  = static_cast<float>(presentW);
 	g_gl.height = static_cast<float>(presentH);
-	g_gl.renderWidth = sceneW;
-	g_gl.renderHeight = sceneH;
 	g_gl.outputWidth = outputW;
 	g_gl.outputHeight = outputH;
 	g_gl.presentX = (outputW - presentW) / 2;
@@ -927,7 +1088,14 @@ void FrameBufferSizeCallBack(GLFWwindow* window, int width, int height)
 	g_gl.uiOrigin.x = (static_cast<float>(presentW) - kVirtualUiWidth * g_gl.uiScale) * 0.5f;
 	g_gl.uiOrigin.y = (static_cast<float>(presentH) - kVirtualUiHeight * g_gl.uiScale) * 0.5f;
 
-	g_gl.ResizeFramebuffers(sceneW, sceneH);
+	const int previousSceneW = g_gl.renderWidth;
+	const int previousSceneH = g_gl.renderHeight;
+	s_lastFramebufferResizeSucceeded = g_gl.ResizeFramebuffers(sceneW, sceneH);
+	if (!s_lastFramebufferResizeSucceeded)
+	{
+		sceneW = previousSceneW;
+		sceneH = previousSceneH;
+	}
 
 	glViewport(0, 0, sceneW, sceneH);
 
@@ -979,6 +1147,7 @@ GLuint glslAmbientMap = 0;
 GLuint glslDiffuseMap = 0;
 GLuint glslSaturateMap = 0;
 GLuint glslGeomModelToClip = 0;
+GLuint glslGeomDebugColor = 0;
 GLuint u_fontTexLoc = 0;
 GLuint glslfCull = 0;
 uint64_t screenTextureHandle = 0;

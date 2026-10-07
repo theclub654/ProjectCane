@@ -16,7 +16,10 @@ class GLSHADER
     void Delete();
 
     private:
-    void compileErrors(unsigned int shader, const char* type);
+    bool compileErrors(unsigned int shader, const char* type,
+        const char* vertexFile = nullptr,
+        const char* geometryFile = nullptr,
+        const char* fragmentFile = nullptr);
 };
 
 extern GLSHADER glScreenShader;

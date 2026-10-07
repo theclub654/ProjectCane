@@ -24,8 +24,8 @@ layout(std140, binding = 1) uniform BlipGroup
     vec4 clqAlphaData;
 } group;
 
-out vec2 fragUv;
-out vec4 fragColor;
+layout(location = 0) out vec2 fragUv;
+layout(location = 1) out vec4 fragColor;
 
 float evaluateClq(vec3 clq, float t)
 {
@@ -48,8 +48,8 @@ void main()
     int blipMode = int(group.params.z);
     vec3 center = (group.model * vec4(instancePosCreated.xyz, 1.0)).xyz;
     vec3 velocity = mat3(group.model) * instanceVelocity.xyz;
-    vec3 worldPos;
-    vec4 clipPos;
+    vec3 worldPos = center;
+    vec4 clipPos = cm.matWorldToClip * vec4(center, 1.0);
 
     if (blipMode == 1)
     {
@@ -105,7 +105,11 @@ void main()
         worldPos = center + (cameraRight * billboardCorner.x + cameraUp * billboardCorner.y) * scale;
     }
 
-    fragUv = vec2(corner.x * 0.5 + 0.5, 1.0 - (corner.y * 0.5 + 0.5));
+    // Texture rows are uploaded in the engine's native order.  The BLIP
+    // corner coordinates already run from bottom to top, so flipping V here
+    // turns asymmetric effects (notably Mz. Ruby's Triangle underglow)
+    // upside down.
+    fragUv = corner * 0.5 + 0.5;
     fragColor = vec4(instanceColor.rgb, instanceColor.a * alpha);
     gl_Position = blipMode == 1 ? clipPos : cm.matWorldToClip * vec4(worldPos, 1.0);
 }

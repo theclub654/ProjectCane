@@ -24,6 +24,7 @@ SMA* PsmaFindSpecialPromptStateMachine();
 void SetPromptPrk(PROMPT* pprompt);
 void ChangePromptPrk(PROMPT* pprompt, PRK prk);
 void ExecutePrompt(PROMPT* pprompt);
+void ExecutePrompt(PROMPT* pprompt, int direction);
 void SetPromptBlots(PROMPT* pprompt, BLOTS blots);
 void ShowPrompt(PROMPT* pprompt);
 void HidePrompt(PROMPT* pprompt);

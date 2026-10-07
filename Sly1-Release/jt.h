@@ -653,7 +653,6 @@ void FindBestJtJumpTarget(JT* pjt, std::vector<LO*>& jumpObjects, JTJUMPTARGET* 
 void UpdateJtJumpTargetHistory(JT* pjt);
 int  GetJtSize();
 void DeleteJt(JT* pjt);
-
 extern JT *g_pjt;
 extern glm::vec3 s_posEdgeTargetDefault;
 extern SFF s_sffDuck;

@@ -7,7 +7,7 @@ layout(std140, binding = 1) uniform ROCEL
 	float uAlphaCelBorder;
 }cbp;
 
-out vec4 FragColor;
+layout(location = 0) out vec4 FragColor;
 
 void main()
 {

@@ -127,6 +127,8 @@ struct RPL
 	GLOB *pglob;
 
 	RO ro;
+	GLsizeiptr streamOffset = -1;
+	bool fQueuedCacheWrite = false;
 };
 
 struct RSGLD
@@ -161,6 +163,7 @@ struct RPLCEL
 	GLOB *pglob;
 
 	ROCEL rocel;
+	GLsizeiptr streamOffset = -1;
 };
 
 // Vertex Flag
@@ -398,6 +401,7 @@ void UpdateGlobset(GLOBSET* pglobset, ALO* palo, float dt);
 extern int  g_fogType;
 extern bool g_fRenderModels;
 extern bool g_fRenderCollision;
+extern bool g_fRenderDialogTriggers;
 extern bool g_fRenderCelBorders;
 extern bool g_fBsp;
 extern float g_uAlpha;

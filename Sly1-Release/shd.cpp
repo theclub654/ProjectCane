@@ -497,6 +497,7 @@ void SetSaiIframe(SAI* psai, int iframe)
 
 void LoadTexturesFromBrx(CBinaryInputStream* pbis)
 {
+
     for (uint16_t i = 0; i < 0x100; i += 0x20)
     {
         for (uint16_t j = i; j < i + 8; j++)
@@ -508,7 +509,7 @@ void LoadTexturesFromBrx(CBinaryInputStream* pbis)
         }
     }
 
-    textureDataStart = pbis->file.tellg();
+    textureDataStart = pbis->GetOffset();
 
     for (int i = 0; i < g_cshd; i++)
     {
@@ -525,6 +526,7 @@ void LoadTexturesFromBrx(CBinaryInputStream* pbis)
 
             if (!pbmp)
                 continue;
+
 
             if (shd.shdk == SHDK_ThreeWay)
             {
@@ -564,9 +566,9 @@ void LoadTexturesFromBrx(CBinaryInputStream* pbis)
                 {
                     MakeTexture(pbmp->glDiffuseMap, pbmp,
                         pbmp->diffuseTexture, clut, false, true, pbis);
-                }
-            }
-        }
+				}
+			}
+		}
 
     }
 
@@ -592,9 +594,8 @@ std::vector <byte> MakeBmp(BMP *pbmp, CBinaryInputStream *pbis)
 
     bmpBuffer.resize(size);
 
-    pbis->file.clear();
-    pbis->file.seekg(off, std::ios::beg);
-    pbis->file.read(reinterpret_cast<char*>(bmpBuffer.data()), static_cast<std::streamsize>(size));
+	pbis->Seek(off);
+	pbis->ReadBytes(bmpBuffer.data(), size);
 
     return bmpBuffer;
 }
@@ -608,11 +609,9 @@ std::vector <byte> MakePallete(CLUT *pclut, CBinaryInputStream *pbis)
 
     palleteBuffer.resize(size);
 
-    // All texture offsets are absolute relative to textureDataStart. Recover
-    // from an earlier short read before seeking to the palette.
-    pbis->file.clear();
-    pbis->file.seekg(off, std::ios::beg);
-    pbis->file.read(reinterpret_cast<char*>(palleteBuffer.data()), static_cast<std::streamsize>(size));
+	// All texture offsets are absolute relative to textureDataStart.
+	pbis->Seek(off);
+	pbis->ReadBytes(palleteBuffer.data(), size);
 
     return palleteBuffer;
 }

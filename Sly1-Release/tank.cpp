@@ -513,11 +513,15 @@ int FTakeTankDamage(TANK* ptank, ZPR* pzpr)
         SetTankTanks(ptank, TANKS_Zap);
     }
 
-    ZPR msg = {};
-    msg.ploSource = source;
-    //msg.zpk = ptank;
-    
-    ptank->pvtlo->pfnSendLoMessage(ptank, MSGID_damaged, &msg);
+    // MSGID_damaged carries the damaged object followed by the damage source.
+    // Sending a ZPR here left the first payload word as ZPK_Blunt (zero), so
+    // subscribed guards could not match the tank against psoSubscribe and
+    // therefore never entered their post-hit taunt/self-destruct state.
+    MSGDMG msgdmg{};
+    msgdmg.ploDamaged = ptank;
+    msgdmg.ploSource = source;
+
+    ptank->pvtlo->pfnSendLoMessage(ptank, MSGID_damaged, &msgdmg);
 
     return 1;
 }

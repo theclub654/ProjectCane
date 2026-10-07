@@ -34,6 +34,9 @@ public:
     // get mouse change in y
     static double GetDY();
 
+    // discard pending movement and use the current position as the new origin
+    static void ResetDelta();
+
     // get scroll value in x
     static double GetScrollDX();
     // get scroll value in y

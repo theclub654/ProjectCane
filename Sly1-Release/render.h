@@ -33,6 +33,7 @@ void DrawTranslucent(int baseVertex, int firstIndex, int indexCount);
 void DrawBlip(RPL* prplblip);
 // Draws all collision models in SW
 void DrawSwCollisionAll(CM* pcm);
+void DrawSwDialogTriggers(CM* pcm);
 
 extern int numRo;
 extern int numRoCel;
@@ -119,6 +120,10 @@ extern std::vector <RPL> g_foreGroundPrpl;
 
 extern int g_worldMapCount;
 extern std::vector <RPL> g_worldMapPrpl;
+// Number of world-map records actually consumed by DrawSw this frame. Unlike
+// g_worldMapCount, this survives the draw pass long enough for presentation
+// readiness checks in the main loop.
+extern int g_worldMapDrawnCount;
 
 extern int g_maxCount;
 extern std::vector <RPL> g_maxPrpl;

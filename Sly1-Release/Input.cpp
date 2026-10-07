@@ -4,7 +4,10 @@
 #include "pzo.h"
 #include "sound.h"
 #include "transition.h"
+#include "spu_reverb_xapo.h"
 #include "ui.h"
+#include <Windows.h>
+#include <Xinput.h>
 #include <cstdio>
 #include <iterator>
 
@@ -204,6 +207,98 @@ float GamepadActivity(const GLFWgamepadstate& state)
     return activity;
 }
 
+using XInputGetStateFn = DWORD(WINAPI*)(DWORD, XINPUT_STATE*);
+
+XInputGetStateFn PfnXInputGetState()
+{
+    static XInputGetStateFn pfn = []() -> XInputGetStateFn
+    {
+        constexpr const wchar_t* dllNames[] =
+        {
+            L"xinput1_4.dll",
+            L"xinput1_3.dll",
+            L"xinput9_1_0.dll"
+        };
+
+        for (const wchar_t* dllName : dllNames)
+        {
+            HMODULE module = LoadLibraryW(dllName);
+            if (module == nullptr)
+                continue;
+
+            if (auto proc = reinterpret_cast<XInputGetStateFn>(
+                GetProcAddress(module, "XInputGetState")))
+            {
+                return proc;
+            }
+        }
+
+        return nullptr;
+    }();
+
+    return pfn;
+}
+
+float NormalizeXInputAxis(SHORT value)
+{
+    return value < 0
+        ? static_cast<float>(value) / 32768.0f
+        : static_cast<float>(value) / 32767.0f;
+}
+
+bool GetXInputGamepadState(GLFWgamepadstate* state)
+{
+    XInputGetStateFn getState = PfnXInputGetState();
+    if (getState == nullptr || state == nullptr)
+        return false;
+
+    bool found = false;
+    float bestActivity = -1.0f;
+
+    for (DWORD user = 0; user < XUSER_MAX_COUNT; ++user)
+    {
+        XINPUT_STATE xstate{};
+        if (getState(user, &xstate) != ERROR_SUCCESS)
+            continue;
+
+        GLFWgamepadstate candidate{};
+        const WORD buttons = xstate.Gamepad.wButtons;
+        candidate.buttons[GLFW_GAMEPAD_BUTTON_A] = (buttons & XINPUT_GAMEPAD_A) != 0;
+        candidate.buttons[GLFW_GAMEPAD_BUTTON_B] = (buttons & XINPUT_GAMEPAD_B) != 0;
+        candidate.buttons[GLFW_GAMEPAD_BUTTON_X] = (buttons & XINPUT_GAMEPAD_X) != 0;
+        candidate.buttons[GLFW_GAMEPAD_BUTTON_Y] = (buttons & XINPUT_GAMEPAD_Y) != 0;
+        candidate.buttons[GLFW_GAMEPAD_BUTTON_LEFT_BUMPER] = (buttons & XINPUT_GAMEPAD_LEFT_SHOULDER) != 0;
+        candidate.buttons[GLFW_GAMEPAD_BUTTON_RIGHT_BUMPER] = (buttons & XINPUT_GAMEPAD_RIGHT_SHOULDER) != 0;
+        candidate.buttons[GLFW_GAMEPAD_BUTTON_BACK] = (buttons & XINPUT_GAMEPAD_BACK) != 0;
+        candidate.buttons[GLFW_GAMEPAD_BUTTON_START] = (buttons & XINPUT_GAMEPAD_START) != 0;
+        candidate.buttons[GLFW_GAMEPAD_BUTTON_LEFT_THUMB] = (buttons & XINPUT_GAMEPAD_LEFT_THUMB) != 0;
+        candidate.buttons[GLFW_GAMEPAD_BUTTON_RIGHT_THUMB] = (buttons & XINPUT_GAMEPAD_RIGHT_THUMB) != 0;
+        candidate.buttons[GLFW_GAMEPAD_BUTTON_DPAD_UP] = (buttons & XINPUT_GAMEPAD_DPAD_UP) != 0;
+        candidate.buttons[GLFW_GAMEPAD_BUTTON_DPAD_RIGHT] = (buttons & XINPUT_GAMEPAD_DPAD_RIGHT) != 0;
+        candidate.buttons[GLFW_GAMEPAD_BUTTON_DPAD_DOWN] = (buttons & XINPUT_GAMEPAD_DPAD_DOWN) != 0;
+        candidate.buttons[GLFW_GAMEPAD_BUTTON_DPAD_LEFT] = (buttons & XINPUT_GAMEPAD_DPAD_LEFT) != 0;
+
+        candidate.axes[GLFW_GAMEPAD_AXIS_LEFT_X] = NormalizeXInputAxis(xstate.Gamepad.sThumbLX);
+        candidate.axes[GLFW_GAMEPAD_AXIS_LEFT_Y] = -NormalizeXInputAxis(xstate.Gamepad.sThumbLY);
+        candidate.axes[GLFW_GAMEPAD_AXIS_RIGHT_X] = NormalizeXInputAxis(xstate.Gamepad.sThumbRX);
+        candidate.axes[GLFW_GAMEPAD_AXIS_RIGHT_Y] = -NormalizeXInputAxis(xstate.Gamepad.sThumbRY);
+        candidate.axes[GLFW_GAMEPAD_AXIS_LEFT_TRIGGER] =
+            static_cast<float>(xstate.Gamepad.bLeftTrigger) / 127.5f - 1.0f;
+        candidate.axes[GLFW_GAMEPAD_AXIS_RIGHT_TRIGGER] =
+            static_cast<float>(xstate.Gamepad.bRightTrigger) / 127.5f - 1.0f;
+
+        const float activity = GamepadActivity(candidate);
+        if (!found || activity > bestActivity)
+        {
+            *state = candidate;
+            bestActivity = activity;
+            found = true;
+        }
+    }
+
+    return found;
+}
+
 const char* PchzKeyboardKeyNameInternal(int key)
 {
     switch (key)
@@ -263,6 +358,12 @@ const char* PchzGamepadBindingName(int binding)
 
 void JOY::Update(GLFWwindow* window)
 {
+	static bool traceKeyWasDown = false;
+	const bool traceKeyDown = glfwGetKey(window, GLFW_KEY_F7) == GLFW_PRESS;
+	if (traceKeyDown && !traceKeyWasDown)
+		ToggleLevelTransitionAudioTrace();
+	traceKeyWasDown = traceKeyDown;
+
     const uint16_t grfbtnPrev = GrfbtnFromState(current);
     previous = current;
     handled.clear();
@@ -315,6 +416,21 @@ void JOY::Update(GLFWwindow* window)
             state = candidate;
             activeJoystickId = jid;
             bestActivity = activity;
+            haveGamepadState = true;
+        }
+    }
+
+    // GLFW 3.3.3 can lose its mapped DirectInput device when Steam Input or
+    // another controller-aware program changes device ownership. XInput is
+    // non-exclusive and remains queryable for Xbox-compatible controllers and
+    // Steam virtual pads, so use it whenever GLFW has no readable gamepad.
+    if (allowControllerInput && !haveGamepadState)
+    {
+        GLFWgamepadstate candidate{};
+        if (GetXInputGamepadState(&candidate))
+        {
+            state = candidate;
+            activeJoystickId = JOYID_Nil;
             haveGamepadState = true;
         }
     }
@@ -688,3 +804,4 @@ int vibrationSetting = 1;
 std::array<int, BTN_MAX> g_keyboardBindings = kDefaultKeyboardBindings;
 std::array<int, BTN_MAX> g_gamepadBindings = kDefaultGamepadBindings;
 bool g_fDisableControllerInputWhenUnfocused = false;
+bool g_fMouseCamera = false;

@@ -33,6 +33,6 @@ static const char* const s_apchzWorldNames[] =
     "The Cold Heart of Hate"
 };
 
-static const char* s_pchzTotalsKeysFormat = " &1%d^10~b2a83d/%d~.^.&.&3k&.";
-static const char* s_pchzTotalsVaultsFormat = "%s&1%d^10~b2a83d/%d~.^.&.&3v&.";
-static const char* s_pchzTotalsTimedFormat = "%s&1%d^10~b2a83d/%d~.^.h&.";
+static const char* s_pchzTotalsKeysFormat = " &1%d^05~b2a83d/%d~.^.&.&3k&.";
+static const char* s_pchzTotalsVaultsFormat = "%s&1%d^05~b2a83d/%d~.^.&.&3v&.";
+static const char* s_pchzTotalsTimedFormat = "%s&1%d^05~b2a83d/%d~.^.h&.";

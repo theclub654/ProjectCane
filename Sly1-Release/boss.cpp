@@ -130,6 +130,16 @@ void DrawBoss(BOSS* pboss)
             yBoss -= dyBossBlot - pboss->dy;
         else if (pboss->pbloti->y == 0.0f)
             yBoss -= (dyBossBlot - pboss->dy) * 0.5f;
+
+        // RepositionBlot stores the PS2-authored edge offsets in output
+        // coordinates. Match GetGuiScaledBlotRect by scaling those margins
+        // along with the boss HUD. Without this correction, a right-edge boss
+        // meter can move outside the framebuffer at some 16:9 resolutions.
+        if (!FModernGui())
+        {
+            xBoss += pboss->pbloti->x * (scaleX - 1.0f);
+            yBoss += pboss->pbloti->y * (scaleY - 1.0f);
+        }
     }
 
     if (FModernGui())

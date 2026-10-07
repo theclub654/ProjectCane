@@ -87,8 +87,10 @@ enum RESPK
 	RESPK_MusicVolume,
 	RESPK_SfxVolume,
 	RESPK_DialogueVolume,
+	RESPK_MouseCamera,
+	RESPK_CutsceneSkipControls,
 
-	RESPK_Max = 66
+	RESPK_Max = 68
 };
 
 // -----------------------------------------------------------------------------
@@ -283,9 +285,10 @@ inline RESPK s_arespkSlots[7] =
     RESPK_Back
 };
 
-inline const RESPK s_arespkControlsMenuAll[8] =
+inline const RESPK s_arespkControlsMenuAll[9] =
 {
 	RESPK_CameraInvert,
+	RESPK_MouseCamera,
     RESPK_BinocInvert,
     RESPK_TurretInvert,
     RESPK_JetpackInvert,
@@ -295,7 +298,7 @@ inline const RESPK s_arespkControlsMenuAll[8] =
     RESPK_Back
 };
 
-inline RESPK s_arespkControlsMenu[8]{};
+inline RESPK s_arespkControlsMenu[9]{};
 
 inline RESPK s_arespkKeyboardMapping[17] =
 {
@@ -335,7 +338,7 @@ inline const RESPK s_arespkOptionsMenuAll[] =
     RESPK_LoadGame,
     RESPK_SaveGame,
     RESPK_Sound,
-    RESPK_Vibration,
+    RESPK_CutsceneSkipControls,
     RESPK_Video,
     RESPK_Controls,
     RESPK_Back
@@ -390,6 +393,8 @@ inline char g_achzRespk61[64]{};
 inline char g_achzRespk63[64]{};
 inline char g_achzRespk64[64]{};
 inline char g_achzRespk65[64]{};
+inline char g_achzRespk66[64]{};
+inline char g_achzRespk67[64]{};
 inline char g_aachzKeyboardBindings[BTN_MAX][64]{};
 
 // -----------------------------------------------------------------------------
@@ -511,7 +516,9 @@ inline const char* s_mprespkachz[RESPK_Max] =
 	g_achzRespk60,            // 60 RESPK_GuiStyle
 	g_achzRespk61,            // 61 RESPK_DisableControllerWhenUnfocused
 	"Sound...",              // 62 RESPK_Sound
-	g_achzRespk63, g_achzRespk64, g_achzRespk65
+	g_achzRespk63, g_achzRespk64, g_achzRespk65,
+	g_achzRespk66,            // 66 RESPK_MouseCamera
+	g_achzRespk67             // 67 RESPK_CutsceneSkipControls
 };
 
 // -----------------------------------------------------------------------------
@@ -570,7 +577,9 @@ inline RESPD s_arespd[RESPK_Max] =
 	{ 0, nullptr }, { 0, nullptr }, { 0, nullptr }, { 0, nullptr },
 	{ 0, nullptr },           // 60 RESPK_GuiStyle
 	{ 0, nullptr },           // 61 RESPK_DisableControllerWhenUnfocused
-	{ 0, nullptr }, { 0, nullptr }, { 0, nullptr }, { 0, nullptr }
+	{ 0, nullptr }, { 0, nullptr }, { 0, nullptr }, { 0, nullptr },
+	{ 0, nullptr },           // 66 RESPK_MouseCamera
+	{ 0, nullptr }            // 67 RESPK_CutsceneSkipControls
 };
 
 // -----------------------------------------------------------------------------

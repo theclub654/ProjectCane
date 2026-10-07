@@ -321,10 +321,10 @@ void UpdateSwPosWorldPrev(SW* psw)
     {
         for (SO* psoPhys = psoBusy->dlPhys.psoFirst; psoPhys != nullptr; psoPhys = psoPhys->dlePhys.psoNext)
         {
-            if (!psoPhys->fCenterXp)
-                psoPhys->pvtso->pfnUpdateSoPosWorldPrev(psoPhys);
+			if (!psoPhys->fCenterXpFrame)
+				psoPhys->pvtso->pfnUpdateSoPosWorldPrev(psoPhys);
 
-            psoPhys->fCenterXp = 0;
+			psoPhys->fCenterXpFrame = 0;
         }
     }
 }

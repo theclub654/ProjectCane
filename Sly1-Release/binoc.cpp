@@ -3,6 +3,7 @@
 #include "totals.h"
 #include "pzo.h"
 #include "tv.h"
+#include "cplook.h"
 
 namespace
 {
@@ -224,7 +225,9 @@ void PostBinocLoad(BINOC* pbinoc)
 
     glBindVertexArray(pbinoc->reticleVAO);
     glBindBuffer(GL_ARRAY_BUFFER, pbinoc->reticleVBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(float) * 36, nullptr, GL_DYNAMIC_DRAW);
+    // Large enough for the largest batched 2D primitive here (the 8-segment
+    // zoom ladder: 48 vertices, each containing position and color).
+    glBufferData(GL_ARRAY_BUFFER, sizeof(float) * 6 * 48, nullptr, GL_DYNAMIC_DRAW);
 
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 6 * sizeof(float), nullptr);
@@ -1457,18 +1460,39 @@ void DrawBinocCompass(BINOC* pbinoc)
     glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP);
     glColorMask(1, 1, 1, 1);
 
-    glUniform4f(blotColorLoc, RGBA_DarkBlue.r, RGBA_DarkBlue.g, RGBA_DarkBlue.b, RGBA_DarkBlue.a);
+    std::vector<float> tickVertices;
+    tickVertices.reserve(11 * 6 * 6);
+    auto appendTickVertex = [&](float px, float py)
+    {
+        tickVertices.insert(tickVertices.end(),
+            { px, py, RGBA_DarkBlue.r, RGBA_DarkBlue.g, RGBA_DarkBlue.b, RGBA_DarkBlue.a });
+    };
 
     for (int i = 0; i < 11; i++) {
         float xOffset = compassOrigin.x +
             (baseX + (i - pbinoc->uCompassBarOffset) * 0.1f * 94.0f) * uiScaleX;
 
-        model = glm::translate(glm::mat4(1.0f), glm::vec3(xOffset, y, 0.0f));
-        model = glm::scale(model, glm::vec3(tickWidth, tickHeight, 1.0f));
-
-        glUniformMatrix4fv(u_modelLoc, 1, GL_FALSE, glm::value_ptr(model));
-        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_SHORT, 0);
+        const float right = xOffset + tickWidth;
+        const float bottom = y + tickHeight;
+        appendTickVertex(xOffset, y);
+        appendTickVertex(right, y);
+        appendTickVertex(right, bottom);
+        appendTickVertex(xOffset, y);
+        appendTickVertex(right, bottom);
+        appendTickVertex(xOffset, bottom);
     }
+
+    model = glm::mat4(1.0f);
+    glUniformMatrix4fv(u_modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+    glUniform4f(uvRectLoc, 0.0f, 0.0f, 1.0f, 1.0f);
+    glUniform4f(blotColorLoc, 1.0f, 1.0f, 1.0f, 1.0f);
+    glUniform1i(u_useVertexColorLoc, 1);
+    glBindVertexArray(pbinoc->reticleVAO);
+    glBindBuffer(GL_ARRAY_BUFFER, pbinoc->reticleVBO);
+    glBufferSubData(GL_ARRAY_BUFFER, 0,
+        static_cast<GLsizeiptr>(tickVertices.size() * sizeof(float)), tickVertices.data());
+    glDrawArrays(GL_TRIANGLES, 0, static_cast<GLsizei>(tickVertices.size() / 6));
+    glUniform1i(u_useVertexColorLoc, 0);
 
     // --- COMPASS TEXT LAYOUT (match original) ---
     const float spacingV = g_dxPointsMax + 4.0f;
@@ -1570,6 +1594,13 @@ void DrawBinocZoom(BINOC* pbinoc)
 
     const float xCenter = 320.0f;
 
+    std::vector<float> zoomVertices;
+    zoomVertices.reserve(8 * 6 * 6);
+    auto appendZoomVertex = [&](float px, float py, const glm::vec4& color)
+    {
+        zoomVertices.insert(zoomVertices.end(), { px, py, color.r, color.g, color.b, color.a });
+    };
+
     for (int i = 0; i < 8; ++i)
     {
         float t0 = i * (1.0f / 9.0f);
@@ -1592,23 +1623,22 @@ void DrawBinocZoom(BINOC* pbinoc)
 
         // Original is a four-vertex strip. Expand it to two triangles while
         // retaining the independently authored top and bottom widths.
-        const float vertices[] =
-        {
-            xTopLeft,     yTopScreen,
-            xTopRight,    yTopScreen,
-            xBottomRight, yBottomScreen,
-
-            xTopLeft,     yTopScreen,
-            xBottomRight, yBottomScreen,
-            xBottomLeft,  yBottomScreen
-        };
-
-        glBindVertexArray(pbinoc->binocIndicatorVAO);
-        glBindBuffer(GL_ARRAY_BUFFER, pbinoc->binocIndicatorVBO);
-        glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(vertices), vertices);
-        glUniform4fv(blotColorLoc, 1, glm::value_ptr(color));
-        glDrawArrays(GL_TRIANGLES, 0, 6);
+        appendZoomVertex(xTopLeft, yTopScreen, color);
+        appendZoomVertex(xTopRight, yTopScreen, color);
+        appendZoomVertex(xBottomRight, yBottomScreen, color);
+        appendZoomVertex(xTopLeft, yTopScreen, color);
+        appendZoomVertex(xBottomRight, yBottomScreen, color);
+        appendZoomVertex(xBottomLeft, yBottomScreen, color);
     }
+
+    glUniform4f(blotColorLoc, 1.0f, 1.0f, 1.0f, 1.0f);
+    glUniform1i(u_useVertexColorLoc, 1);
+    glBindVertexArray(pbinoc->reticleVAO);
+    glBindBuffer(GL_ARRAY_BUFFER, pbinoc->reticleVBO);
+    glBufferSubData(GL_ARRAY_BUFFER, 0,
+        static_cast<GLsizeiptr>(zoomVertices.size() * sizeof(float)), zoomVertices.data());
+    glDrawArrays(GL_TRIANGLES, 0, static_cast<GLsizei>(zoomVertices.size() / 6));
+    glUniform1i(u_useVertexColorLoc, 0);
 
     glBindVertexArray(0);
     glEnable(GL_DEPTH_TEST);
@@ -2015,8 +2045,13 @@ void DrawBinocFilter(BINOC* pbinoc)
 
     BindBlotTexture(whiteTex);
 
-    glBindVertexArray(pbinoc->binocIndicatorVAO);
-    glBindBuffer(GL_ARRAY_BUFFER, pbinoc->binocIndicatorVBO);
+    std::vector<float> filterVertices;
+    filterVertices.reserve(4 * 6 * 6);
+    auto appendFilterVertex = [&](const glm::vec2& vertex, const glm::vec4& color)
+    {
+        filterVertices.insert(filterVertices.end(),
+            { vertex.x, vertex.y, color.r, color.g, color.b, color.a });
+    };
 
     for (int i = 0; i < 4; ++i)
     {
@@ -2040,21 +2075,22 @@ void DrawBinocFilter(BINOC* pbinoc)
 
         // The original primitive is a triangle fan:
         // v0-v1-v2 and v0-v2-v3.
-        const float vertices[] =
-        {
-            v0.x, v0.y,
-            v1.x, v1.y,
-            v2.x, v2.y,
-
-            v0.x, v0.y,
-            v2.x, v2.y,
-            v3.x, v3.y
-        };
-
-        glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(vertices), vertices);
-        glUniform4fv(blotColorLoc, 1, glm::value_ptr(color));
-        glDrawArrays(GL_TRIANGLES, 0, 6);
+        appendFilterVertex(v0, color);
+        appendFilterVertex(v1, color);
+        appendFilterVertex(v2, color);
+        appendFilterVertex(v0, color);
+        appendFilterVertex(v2, color);
+        appendFilterVertex(v3, color);
     }
+
+    glUniform4f(blotColorLoc, 1.0f, 1.0f, 1.0f, 1.0f);
+    glUniform1i(u_useVertexColorLoc, 1);
+    glBindVertexArray(pbinoc->reticleVAO);
+    glBindBuffer(GL_ARRAY_BUFFER, pbinoc->reticleVBO);
+    glBufferSubData(GL_ARRAY_BUFFER, 0,
+        static_cast<GLsizeiptr>(filterVertices.size() * sizeof(float)), filterVertices.data());
+    glDrawArrays(GL_TRIANGLES, 0, static_cast<GLsizei>(filterVertices.size() / 6));
+    glUniform1i(u_useVertexColorLoc, 0);
 
     glBindVertexArray(0);
     glEnable(GL_DEPTH_TEST);

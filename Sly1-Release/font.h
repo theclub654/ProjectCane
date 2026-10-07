@@ -146,6 +146,8 @@ class CFontBrx : public CFont
     float DyWrapPchz(char* pchz, float dx);
     void DrawPart(float x0, float y0, float x1, float y1, float s0, float t0, float s1, float t1, glm::vec4& color);
     void DrawPchz(char* pchz, CTextBox* ptbx);
+    void DrawGlyphRun(const char* text, const float* xPositions, std::size_t count,
+        float y, const glm::vec4& color);
     void CleanUpDraw();
 };
 
@@ -181,7 +183,8 @@ class CRichText
     void  Trim(int cch);
     float Dx();
     void  Reset();
-    void  Draw(CTextBox* ptbx, CTextBox* ptbxClip);
+    void  Draw(CTextBox* ptbx, CTextBox* ptbxClip,
+        float outputScaleX = 1.0f, float outputScaleY = 1.0f);
 };
 
 CFontBrx* PfontFromRichTextCode(char code);

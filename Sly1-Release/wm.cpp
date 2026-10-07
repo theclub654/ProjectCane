@@ -67,33 +67,27 @@ bool FResolveWmLevel(WM* pwm, WORLDLEVEL worldLevelWm, GAMEWORLD* pgameWorld, WO
 
 bool FIsWmLevelAvailable(WM* pwm, WORLDLEVEL worldLevel)
 {
+    // Slot 9 is only an internal unlock proxy. Retail never exposes it as a
+    // selectable map destination.
     if (worldLevel == WORLDLEVEL_Max)
         return false;
 
     if (FResolveWmLevel(pwm, worldLevel, nullptr, nullptr))
         return true;
 
-    WORLDLEVEL fallbackLevel = WORLDLEVEL_Nil;
+    const int gameWorld = static_cast<int>(pwm->gameWorldCur);
 
-    switch (pwm->gameWorldCur)
-    {
-        case GAMEWORLD_Underwater:
-        if (worldLevel < WORLDLEVEL_1 || worldLevel > WORLDLEVEL_6)
-            return false;
-
-        fallbackLevel = worldLevel < WORLDLEVEL_5 ? WORLDLEVEL_Hub : WORLDLEVEL_Max;
-        break;
-
-        case GAMEWORLD_Snow:
-        if (worldLevel < WORLDLEVEL_1 || worldLevel > WORLDLEVEL_6)
-            return false;
-
-        fallbackLevel = worldLevel < WORLDLEVEL_4 ? WORLDLEVEL_Hub : WORLDLEVEL_Max;
-        break;
-
-        default:
+    if (gameWorld < static_cast<int>(GAMEWORLD_Underwater) ||
+        gameWorld > static_cast<int>(GAMEWORLD_Snow) ||
+        worldLevel < WORLDLEVEL_1 || worldLevel > WORLDLEVEL_6)
         return false;
-    }
+
+    // World 1 has four jobs available from its hub. Worlds 2-4 have three.
+    // Later jobs use slot 9's world-state unlock condition as their fallback.
+    const WORLDLEVEL fallbackLevel =
+        (gameWorld == static_cast<int>(GAMEWORLD_Underwater))
+            ? (worldLevel < WORLDLEVEL_5 ? WORLDLEVEL_Hub : WORLDLEVEL_Max)
+            : (worldLevel < WORLDLEVEL_4 ? WORLDLEVEL_Hub : WORLDLEVEL_Max);
 
     return FResolveWmLevel(pwm, fallbackLevel, nullptr, nullptr);
 }

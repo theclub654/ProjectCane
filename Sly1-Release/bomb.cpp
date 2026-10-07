@@ -556,12 +556,16 @@ void DetonateBomb(BOMB* pbomb)
         }
     }
 
-    for (SO* pso : apso) {
-        // The intersection/contact list is a snapshot. Earlier detonations in
+	for (SO* pso : apso) {
+		if (pso == nullptr)
+			continue;
+
+		const int fInWorld = FIsLoInWorld(pso);
+		// The intersection/contact list is a snapshot. Earlier detonations in
         // the same frame can remove an object before this list is consumed.
         // Retail's world query does not feed stale entries into damage or
         // bomb-chain handling.
-        if (pso == nullptr || !FIsLoInWorld(pso))
+		if (!fInWorld)
             continue;
 
         if (pso->paloRoot == pbomb->paloRoot || pso->oid == OID__MERGED_STATICS)

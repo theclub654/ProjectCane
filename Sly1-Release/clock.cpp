@@ -67,6 +67,12 @@ void MarkClockTick(CLOCK* pclock)
     pclock->tReal += pclock->dtReal;
 }
 
+void ResyncClockTick(CLOCK* pclock)
+{
+    if (pclock != nullptr)
+        pclock->tickFrame = TickNow();
+}
+
 void SetClockEnabled(CLOCK* pclock, int fEnabled)
 {
     pclock->fEnabled = fEnabled;

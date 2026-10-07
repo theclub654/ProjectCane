@@ -36,6 +36,7 @@ public:
     void Align(int n);
 
     [[nodiscard]] std::size_t GetOffset();
+	void Seek(std::size_t offset);
 
     byte U8Read();
     uint16_t U16Read();

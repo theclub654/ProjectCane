@@ -25,7 +25,6 @@ int  FTimeJtJumpToTarget(JT* pjt, glm::vec3* pposJt, glm::vec3* pvJt, glm::vec3*
 void GetJtJumpVelocity(JT* pjt, glm::vec3* pv);
 void GetJtJumpToTargetVelocity(JT* pjt, glm::vec3* pv);
 void GetJtJumpBoostVelocity(JT* pjt, glm::vec3* pv);
-
 void StartupJmt();
 void ResetJmtList();
 JMT* NewJmt();

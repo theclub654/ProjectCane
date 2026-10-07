@@ -1,4 +1,51 @@
 #include "smack.h"
+#include "gui_layout.h"
+
+namespace
+{
+glm::vec3 GetSmackTarget(const SMACKI* psmacki, const CM* pcm)
+{
+    const glm::vec3& authoredTarget = psmacki->posTarget;
+
+    // The life-token target (-0.05, 0.8) is authored relative to the screen
+    // center and must retain the original PS2 screen-space interpretation.
+    // Coin and clue targets sit near opposite screen edges and must follow the
+    // same edge scaling as their HUD counters on widescreen displays.
+    if (glm::abs(authoredTarget.x) < 0.5f)
+        return authoredTarget;
+
+    constexpr float kPs2Width = 640.0f;
+    constexpr float kPs2Height = 492.80002f;
+    const GuiScale guiScale = GetGuiScale();
+
+    const float authoredX = (authoredTarget.x * 0.5f + 0.5f) * kPs2Width;
+    const float authoredY = (0.5f - authoredTarget.y * 0.5f) * kPs2Height;
+
+    const float targetX = authoredTarget.x < 0.0f
+        ? authoredX * guiScale.x
+        : static_cast<float>(g_gl.width) -
+            (kPs2Width - authoredX) * guiScale.x;
+    const float targetY = authoredTarget.y > 0.0f
+        ? authoredY * guiScale.y
+        : static_cast<float>(g_gl.height) -
+            (kPs2Height - authoredY) * guiScale.y;
+
+    const float targetNdcX =
+        targetX * (2.0f / static_cast<float>(g_gl.width)) - 1.0f;
+    const float targetNdcY =
+        1.0f - targetY * (2.0f / static_cast<float>(g_gl.height));
+
+    // ConvertCmScreenToWorld uses the camera's authored screen ranges. Undo
+    // the active projection here so the rendered pickup reaches that pixel.
+    const float projectedScaleX = pcm->xScreenRange * pcm->matProj[0][0];
+    const float projectedScaleY = pcm->yScreenRange * pcm->matProj[1][1];
+
+    return glm::vec3(
+        projectedScaleX != 0.0f ? targetNdcX / projectedScaleX : targetNdcX,
+        projectedScaleY != 0.0f ? targetNdcY / projectedScaleY : targetNdcY,
+        authoredTarget.z);
+}
+}
 
 void InitSmack(SMACK* psmack, glm::vec3* ppos, float scale, SO* psoTouch)
 {
@@ -22,13 +69,14 @@ void ProjectSmackTransform(SMACK* psmack, float dt)
     if (psmack == nullptr || psmack->psmacki == nullptr || g_pcm == nullptr)
         return;
 
-    const float remainingLifetime = (psmack->tCreated + psmack->dtLifetime) - g_clock.t;
-    const float dtSegment = glm::max(dt, remainingLifetime);
+    float remainingLifetime = (psmack->tCreated + psmack->dtLifetime) - g_clock.t;
+    float dtSegment = glm::max(dt, remainingLifetime);
 
     glm::vec3 posScreen{};
     glm::vec3 vScreen{};
+    glm::vec3 posTarget = GetSmackTarget(psmack->psmacki, g_pcm);
 
-    EvaluateBezierPos(dtSegment, dt, 1.0f, &psmack->posScreen, &psmack->v, &psmack->psmacki->posTarget, &psmack->psmacki->vTarget, &posScreen, &vScreen, nullptr);
+    EvaluateBezierPos(dtSegment, dt, 1.0f, &psmack->posScreen, &psmack->v, &posTarget, &psmack->psmacki->vTarget, &posScreen, &vScreen, nullptr);
 
     psmack->posScreen = posScreen;
     psmack->v = vScreen;

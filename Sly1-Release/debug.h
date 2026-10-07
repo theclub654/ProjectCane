@@ -20,6 +20,8 @@ struct PngBuffer {
 
 void RenderMenuGui(SW* psw);
 extern bool g_fDebugGuiOpen;
+extern bool g_fDebugObjectInspector;
+extern ALO* g_paloDebugSelected;
 static void AppendFloat(std::vector<uint8_t>& buf, float v);
 static void AppendUInt32(std::vector<uint8_t>& buf, uint32_t v);
 static void AlignTo4(std::vector<uint8_t>& buf);

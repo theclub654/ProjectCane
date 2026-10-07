@@ -10,6 +10,7 @@
 #include "smack.h"
 #include "steppower.h"
 #include "xform.h"
+#include <cstdio>
 
 VAULT* NewVault()
 {
@@ -460,7 +461,28 @@ void HandleVaultMessage(VAULT* pvault, MSGID msgid, void* pv)
 	int igoad = -1;
 
 	if (cclue == cclueAll)
-		igoad = FWouldCompleteVaultSet(pvault->fVault) ? 5 : 4;
+	{
+		const uint32_t progress = GetGameProgress();
+		const uint32_t vaultFlags = static_cast<uint32_t>(g_pgsCur->grfvault);
+		const uint32_t levelVault = static_cast<uint32_t>(pvault->fVault);
+		const int fWouldComplete = FWouldCompleteVaultSet(pvault->fVault);
+
+		std::printf(
+			"[VAULT GOAD] level=%03X clues=%d/%d progress=%08X "
+			"vaultFlags=%08X levelVault=%08X combined=%08X wouldComplete=%d "
+			"worldFlags=%08X,%08X,%08X,%08X,%08X\n",
+			(static_cast<unsigned int>(g_pgsCur->gameWorldCur) << 8) |
+				static_cast<unsigned int>(g_pgsCur->worldLevelCur),
+			cclue, cclueAll, progress, vaultFlags, levelVault,
+			(vaultFlags | levelVault) & 0xF000FFFFU, fWouldComplete,
+			static_cast<unsigned int>(g_pgsCur->aws[1].fws),
+			static_cast<unsigned int>(g_pgsCur->aws[2].fws),
+			static_cast<unsigned int>(g_pgsCur->aws[3].fws),
+			static_cast<unsigned int>(g_pgsCur->aws[4].fws),
+			static_cast<unsigned int>(g_pgsCur->aws[5].fws));
+
+		igoad = fWouldComplete ? 5 : 4;
+	}
 	else if ((g_pgsCur->grfvault & 0xF0000000) == 0) {
 		if (cclue == cclueAll - 1) {
 			igoad = 3;

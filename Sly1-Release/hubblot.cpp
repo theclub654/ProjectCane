@@ -11,7 +11,10 @@
 void StartupHubBlot(HUBBLOT* phublot)
 {
 	g_teHubBlot = {};
-	g_teHubBlot.m_rgba = glm::vec4(0.0f, 75.0f / 255.0f, 125.0f / 255.0f, 1.0f);
+	// Retail stores this as GS RGBA (0, 75, 125, 255). PS2 GS RGB reaches
+	// full intensity at 0x80, so normalize the color channels by 128 rather
+	// than treating them as conventional 0..255 color values.
+	g_teHubBlot.m_rgba = glm::vec4(0.0f, 75.0f / 128.0f, 125.0f / 128.0f, 1.0f);
 	g_teHubBlot.m_ch = '-';
 	g_teHubBlot.m_dxExtra = 2.0f;
 	g_teHubBlot.m_dyExtra = 1.0f;
@@ -170,9 +173,6 @@ void DrawHubBlot(HUBBLOT* phubblot)
 	glm::vec4 color = phubblot->rgba;
 	color.a *= phubblot->uOn;
 
-	// HUBBLOT is authored in the PS2's 640 x 492.8 canvas. It is centered
-	// horizontally and anchored to the bottom, so scale its extents and correct
-	// both anchors without disturbing the BLOT appear/disappear position.
 	const GuiScale guiScale = GetGuiScale();
 	const float scaleX = guiScale.x;
 	const float scaleY = guiScale.y;
@@ -183,16 +183,10 @@ void DrawHubBlot(HUBBLOT* phubblot)
 
 	if (phubblot->pbloti != nullptr)
 	{
-		if (phubblot->pbloti->x < 0.0f)
-			x -= dx - phubblot->dx;
-		else if (phubblot->pbloti->x == 0.0f)
-			x -= (dx - phubblot->dx) * 0.5f;
-
-		if (phubblot->pbloti->y < 0.0f)
-			y -= dy - phubblot->dy;
-		else if (phubblot->pbloti->y == 0.0f)
-			y -= (dy - phubblot->dy) * 0.5f;
-
+		if (phubblot->pbloti->x < 0.0f) x -= dx - phubblot->dx;
+		else if (phubblot->pbloti->x == 0.0f) x -= (dx - phubblot->dx) * 0.5f;
+		if (phubblot->pbloti->y < 0.0f) y -= dy - phubblot->dy;
+		else if (phubblot->pbloti->y == 0.0f) y -= (dy - phubblot->dy) * 0.5f;
 		x += phubblot->pbloti->x * (scaleX - 1.0f);
 		y += phubblot->pbloti->y * (scaleY - 1.0f);
 	}
@@ -207,11 +201,20 @@ void DrawHubBlot(HUBBLOT* phubblot)
 	if (phubblot->pte != nullptr)
 	{
 		const glm::vec4 edgeColor = phubblot->pte->m_rgba;
+		const float edgeScaleX = phubblot->pte->m_rxScaling;
+		const float edgeScaleY = phubblot->pte->m_ryScaling;
 		phubblot->pte->m_rgba.a *= phubblot->uOn;
+		// Retail applies the final 640 x 492.8 GS projection to the complete
+		// edge glyph. The textbox is already converted to output pixels here,
+		// so apply that projection scale to the edge thickness explicitly.
+		phubblot->pte->m_rxScaling *= scaleX;
+		phubblot->pte->m_ryScaling *= scaleY;
 
 		if (phubblot->pte->m_pfont != nullptr)
 			phubblot->pte->m_pfont->EdgeRect(phubblot->pte, &textBox);
 
+		phubblot->pte->m_rxScaling = edgeScaleX;
+		phubblot->pte->m_ryScaling = edgeScaleY;
 		phubblot->pte->m_rgba = edgeColor;
 	}
 

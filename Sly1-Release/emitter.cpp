@@ -6,8 +6,9 @@
 #include "expls.h"
 #include "explo.h"
 #include "rip.h"
+#include <algorithm>
+#include <cstdio>
 static void EnsureEmitterGroup(EMITTER* pemitter);
-
 
 EMITTER* NewEmitter()
 {
@@ -1739,7 +1740,6 @@ void UpdateEmitter(EMITTER* pemitter, float dt)
 {
 	EMITG emitg{};
 	int particleCountToEmit = 0;
-
 	if (pemitter->fValuesChanged != 0)
 		OnEmitterValuesChanged(pemitter);
 
@@ -1858,29 +1858,42 @@ void UpdateEmitter(EMITTER* pemitter, float dt)
 		}
 	}
 	else if (emitMode == EMITRK_Burst) {
-		int remaining = pemitter->cParticle;
-		particleCountToEmit = static_cast<int>(pemitter->svcParticle);
+		// Retail evaluates this legacy burst mode once per 60 Hz game tick.
+		// Running it once per rendered frame makes intermittent effects such as
+		// guard cigarette smoke accelerate as the unlocked frame rate increases.
+		const float accumulatedTicks = pemitter->uParticle + dt * 60.0f;
+		const int tickCount = static_cast<int>(accumulatedTicks);
+		pemitter->uParticle = accumulatedTicks - static_cast<float>(tickCount);
 
-		if (remaining >= 0) {
-			if (remaining <= particleCountToEmit) {
-				particleCountToEmit = remaining;
-			}
-			pemitter->cParticle = remaining - particleCountToEmit;
-		}
+		for (int tick = 0; tick < tickCount; ++tick) {
+			int emitCount = static_cast<int>(pemitter->svcParticle);
+			const int remaining = pemitter->cParticle;
 
-		if (pemitter->fAutoPause == 0) {
-			float roll = GRandInRange(0.0f, 1.0f);
-
-			if (roll <= pemitter->uPauseProb) {
-				float pauseDt = GRandInRange(pemitter->lmDtPause.gMin, pemitter->lmDtPause.gMax);
-				PauseEmitter(pemitter, pauseDt);
+			if (remaining >= 0) {
+				emitCount = std::min(emitCount, remaining);
+				pemitter->cParticle = remaining - emitCount;
 			}
 
-			pemitter->svcParticle = GRandInRange(pemitter->lmSvcParticle.gMin, pemitter->lmSvcParticle.gMax);
-		}
-		else {
-			PauseEmitterIndefinite(pemitter);
-			pemitter->svcParticle = GRandInRange(pemitter->lmSvcParticle.gMin, pemitter->lmSvcParticle.gMax);
+			particleCountToEmit += emitCount;
+
+			if (pemitter->fAutoPause == 0) {
+				const float roll = GRandInRange(0.0f, 1.0f);
+
+				if (roll <= pemitter->uPauseProb) {
+					const float pauseDt = GRandInRange(
+						pemitter->lmDtPause.gMin, pemitter->lmDtPause.gMax);
+					PauseEmitter(pemitter, pauseDt);
+				}
+			}
+			else {
+				PauseEmitterIndefinite(pemitter);
+			}
+
+			pemitter->svcParticle = GRandInRange(
+				pemitter->lmSvcParticle.gMin, pemitter->lmSvcParticle.gMax);
+
+			if (FPausedEmitter(pemitter) != 0 || pemitter->cParticle == 0)
+				break;
 		}
 	}
 	else if (emitMode == EMITRK_BurstOld) {

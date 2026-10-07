@@ -2,6 +2,7 @@
 #include "resource1.h"
 
 #include <Windows.h>
+#include <algorithm>
 #include <cstdio>
 #include <cstring>
 #include <iostream>
@@ -136,9 +137,15 @@ void GLSHADER::Init(const char* vertexFile, const char* geometryFile, const char
 	if (vertexFile != NULL)
 	{
 		vertexShader = glCreateShader(GL_VERTEX_SHADER);
+		if (vertexShader == 0)
+			throw std::runtime_error(std::string("Could not create vertex shader: ") + vertexFile);
 		glShaderSource(vertexShader, 1, &vertexSource, NULL);
 		glCompileShader(vertexShader);
-		compileErrors(vertexShader, "VERTEX");
+		if (!compileErrors(vertexShader, "VERTEX", vertexFile))
+		{
+			glDeleteShader(vertexShader);
+			throw std::runtime_error(std::string("Vertex shader compilation failed: ") + vertexFile);
+		}
 	}
 
 	GLuint geometryShader = NULL;
@@ -146,9 +153,16 @@ void GLSHADER::Init(const char* vertexFile, const char* geometryFile, const char
 	if (geometryFile != NULL)
 	{
 		geometryShader = glCreateShader(GL_GEOMETRY_SHADER);
+		if (geometryShader == 0)
+			throw std::runtime_error(std::string("Could not create geometry shader: ") + geometryFile);
 		glShaderSource(geometryShader, 1, &geometrySource, NULL);
 		glCompileShader(geometryShader);
-		compileErrors(geometryShader, "GEOMETRY");
+		if (!compileErrors(geometryShader, "GEOMETRY", vertexFile, geometryFile))
+		{
+			if (vertexShader != 0) glDeleteShader(vertexShader);
+			glDeleteShader(geometryShader);
+			throw std::runtime_error(std::string("Geometry shader compilation failed: ") + geometryFile);
+		}
 	}
 
 	GLuint fragmentShader = NULL;
@@ -156,12 +170,27 @@ void GLSHADER::Init(const char* vertexFile, const char* geometryFile, const char
 	if (fragmentFile != NULL)
 	{
 		fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
+		if (fragmentShader == 0)
+			throw std::runtime_error(std::string("Could not create fragment shader: ") + fragmentFile);
 		glShaderSource(fragmentShader, 1, &fragmentSource, NULL);
 		glCompileShader(fragmentShader);
-		compileErrors(fragmentShader, "FRAGMENT");
+		if (!compileErrors(fragmentShader, "FRAGMENT", vertexFile, geometryFile, fragmentFile))
+		{
+			if (vertexShader != 0) glDeleteShader(vertexShader);
+			if (geometryShader != 0) glDeleteShader(geometryShader);
+			glDeleteShader(fragmentShader);
+			throw std::runtime_error(std::string("Fragment shader compilation failed: ") + fragmentFile);
+		}
 	}
 
 	ID = glCreateProgram();
+	if (ID == 0)
+	{
+		if (vertexShader != 0) glDeleteShader(vertexShader);
+		if (geometryShader != 0) glDeleteShader(geometryShader);
+		if (fragmentShader != 0) glDeleteShader(fragmentShader);
+		throw std::runtime_error("Could not create shader program");
+	}
 
 	if (vertexFile != NULL)
 		glAttachShader(ID, vertexShader);
@@ -173,7 +202,15 @@ void GLSHADER::Init(const char* vertexFile, const char* geometryFile, const char
 		glAttachShader(ID, fragmentShader);
 
 	glLinkProgram(ID);
-	compileErrors(ID, "PROGRAM");
+	if (!compileErrors(ID, "PROGRAM", vertexFile, geometryFile, fragmentFile))
+	{
+		if (vertexShader != 0) glDeleteShader(vertexShader);
+		if (geometryShader != 0) glDeleteShader(geometryShader);
+		if (fragmentShader != 0) glDeleteShader(fragmentShader);
+		glDeleteProgram(ID);
+		ID = 0;
+		throw std::runtime_error("Shader program linking failed");
+	}
 
 	if (vertexFile != NULL)
 		glDeleteShader(vertexShader);
@@ -196,19 +233,31 @@ void GLSHADER::Delete()
 	glDeleteProgram(ID);
 }
 
-void GLSHADER::compileErrors(unsigned int shader, const char* type)
+bool GLSHADER::compileErrors(unsigned int shader, const char* type,
+	const char* vertexFile, const char* geometryFile, const char* fragmentFile)
 {
 	GLint hasCompiled;
-	char infoLog[1024];
 
 	if (std::strcmp(type, "PROGRAM") != 0)
 	{
 		glGetShaderiv(shader, GL_COMPILE_STATUS, &hasCompiled);
 		if (hasCompiled == GL_FALSE)
 		{
-			glGetShaderInfoLog(shader, 1024, NULL, infoLog);
+			const char* shaderFile = vertexFile;
+			if (std::strcmp(type, "GEOMETRY") == 0)
+				shaderFile = geometryFile;
+			else if (std::strcmp(type, "FRAGMENT") == 0)
+				shaderFile = fragmentFile;
+
+			GLint logLength = 0;
+			glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &logLength);
+			std::string infoLog(static_cast<size_t>((std::max)(logLength, 1)), '\0');
+			glGetShaderInfoLog(shader, logLength, NULL, infoLog.data());
 			ShowShaderErrorConsole();
-			std::cout << "SHADER_COMPILATION_ERROR for:" << type << "\n" << infoLog << std::endl;
+			std::cout << "SHADER_COMPILATION_ERROR for " << type << ": "
+				<< (shaderFile != nullptr ? shaderFile : "<unknown>") << "\n"
+				<< infoLog << std::endl;
+			return false;
 		}
 	}
 
@@ -217,11 +266,39 @@ void GLSHADER::compileErrors(unsigned int shader, const char* type)
 		glGetProgramiv(shader, GL_LINK_STATUS, &hasCompiled);
 		if (hasCompiled == GL_FALSE)
 		{
-			glGetProgramInfoLog(shader, 1024, NULL, infoLog);
+			GLint logLength = 0;
+			glGetProgramiv(shader, GL_INFO_LOG_LENGTH, &logLength);
+			std::string infoLog(static_cast<size_t>((std::max)(logLength, 1)), '\0');
+			glGetProgramInfoLog(shader, logLength, NULL, infoLog.data());
 			ShowShaderErrorConsole();
-			std::cout << "SHADER_LINKING_ERROR for:" << type << "\n" << infoLog << std::endl;
+			std::cout << "SHADER_LINKING_ERROR for: "
+				<< (vertexFile != nullptr ? vertexFile : "<none>") << " + ";
+			if (geometryFile != nullptr)
+				std::cout << geometryFile << " + ";
+			std::cout << (fragmentFile != nullptr ? fragmentFile : "<none>") << '\n';
+
+			const GLubyte* vendor = glGetString(GL_VENDOR);
+			const GLubyte* renderer = glGetString(GL_RENDERER);
+			const GLubyte* version = glGetString(GL_VERSION);
+			std::cout << "OpenGL vendor: " << (vendor != nullptr ? reinterpret_cast<const char*>(vendor) : "<unknown>") << '\n'
+				<< "OpenGL renderer: " << (renderer != nullptr ? reinterpret_cast<const char*>(renderer) : "<unknown>") << '\n'
+				<< "OpenGL version: " << (version != nullptr ? reinterpret_cast<const char*>(version) : "<unknown>") << '\n';
+
+			GLint vertexSsboBlocks = 0;
+			GLint combinedSsboBlocks = 0;
+			GLint vertexOutputComponents = 0;
+			glGetIntegerv(GL_MAX_VERTEX_SHADER_STORAGE_BLOCKS, &vertexSsboBlocks);
+			glGetIntegerv(GL_MAX_COMBINED_SHADER_STORAGE_BLOCKS, &combinedSsboBlocks);
+			glGetIntegerv(GL_MAX_VERTEX_OUTPUT_COMPONENTS, &vertexOutputComponents);
+			std::cout << "GL_MAX_VERTEX_SHADER_STORAGE_BLOCKS: " << vertexSsboBlocks << '\n'
+				<< "GL_MAX_COMBINED_SHADER_STORAGE_BLOCKS: " << combinedSsboBlocks << '\n'
+				<< "GL_MAX_VERTEX_OUTPUT_COMPONENTS: " << vertexOutputComponents << '\n'
+				<< infoLog << std::endl;
+			return false;
 		}
 	}
+
+	return true;
 }
 
 GLSHADER glScreenShader;

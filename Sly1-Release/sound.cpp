@@ -11,6 +11,8 @@
 #include "cm.h"
 #include "game.h"
 #include "util.h"
+#include "spu_reverb_xapo.h"
+#include "runtime_error.h"
 #include <Windows.h>
 #include <mmsystem.h>
 #include <xaudio2.h>
@@ -28,11 +30,15 @@
 #include <array>
 #include <chrono>
 #include <cmath>
+#include <cfloat>
 #include <memory>
 #include <algorithm>
 #include <atomic>
 #include <mutex>
 #include <thread>
+#include <condition_variable>
+#include <string>
+#include <unordered_set>
 #include <nlohmann/json.hpp>
 
 extern std::string file;
@@ -43,12 +49,89 @@ static std::thread s_musicWorker;
 static constexpr float kVagDriverGain = 0x3ffc / 32767.0f;
 static bool s_fFmvAudioMode = false;
 static bool s_dialogAudioDuckHeld = false;
+static bool s_commentaryStartPending = false;
+static bool s_vagStartWhenReady = false;
 static float s_userMusicVolume = 1.0f;
 static float s_userSfxVolume = 1.0f;
 static float s_userDialogueVolume = 1.0f;
+static IXAudio2SubmixVoice* s_effectDryVoice = nullptr;
+static IXAudio2SubmixVoice* s_effectWetInputVoice = nullptr;
+static IXAudio2SubmixVoice* s_effectStudioCVoice = nullptr;
+static SpuStudioCReverb* s_effectStudioCProcessor = nullptr;
+static bool s_effectReverbCreationAttempted = false;
+static bool s_effectStudioCCreationAttempted = false;
+static std::atomic<bool> s_audioCriticalError{ false };
+static std::atomic<HRESULT> s_audioCriticalResult{ S_OK };
+static bool s_audioRecoveryPending = false;
+static bool s_soundStartupComplete = false;
+static std::chrono::steady_clock::time_point s_audioRecoveryRetry{};
+static int s_effectAmbSerial = 0;
+
+class AudioEngineCallback final : public IXAudio2EngineCallback
+{
+public:
+	void STDMETHODCALLTYPE OnProcessingPassStart() override {}
+	void STDMETHODCALLTYPE OnProcessingPassEnd() override {}
+	void STDMETHODCALLTYPE OnCriticalError(HRESULT error) override
+	{
+		s_audioCriticalResult.store(error, std::memory_order_release);
+		s_audioCriticalError.store(true, std::memory_order_release);
+	}
+};
+
+static AudioEngineCallback s_audioEngineCallback;
+
+void ReportXAudioFailureOnce(const char* operation, HRESULT result)
+{
+	if (SUCCEEDED(result))
+		return;
+	static std::mutex reportedMutex;
+	static std::unordered_set<std::string> reported;
+	char key[192]{};
+	std::snprintf(key, sizeof(key), "%s:%08X", operation,
+		static_cast<unsigned>(result));
+	{
+		std::lock_guard<std::mutex> lock(reportedMutex);
+		if (!reported.emplace(key).second)
+			return;
+	}
+	ReportRuntimeError("Audio", "%s failed (HRESULT 0x%08X)", operation,
+		static_cast<unsigned>(result));
+}
+
+void SetVoiceVolumeChecked(IXAudio2Voice* voice, float volume, const char* operation)
+{
+	if (voice)
+		ReportXAudioFailureOnce(operation, voice->SetVolume(volume));
+}
+
+struct PendingVagLoad
+{
+	uint64_t generation = 0;
+	std::array<char, 33> descriptor{};
+	std::filesystem::path readablePath;
+	std::filesystem::path path;
+	SoundWaveFormat format{};
+	std::vector<uint8_t> pcm;
+	bool requested = false;
+	bool loading = false;
+	bool ready = false;
+};
+
+static std::mutex s_vagLoadMutex;
+static std::condition_variable s_vagLoadCondition;
+static std::thread s_vagLoadWorker;
+static bool s_vagLoadWorkerRunning = false;
+static uint64_t s_vagLoadGeneration = 0;
+static PendingVagLoad s_vagLoad;
 
 static void UpdateMusicSequencer();
 static void PrimeMusicSequencerStartup();
+static bool FinishPendingVagLoad();
+static bool RecoverAudioEngine();
+static bool CreateVagStreamVoice(VagStreamState& stream, uint64_t playBegin);
+static bool SetVagStreamOutputMatrix(IXAudio2SourceVoice* voice, UINT32 sourceChannels);
+static void ResetMusicSegmentForLoop(MusicSegment& segment);
 
 static void MusicWorkerMain()
 {
@@ -452,7 +535,7 @@ bool LoadPcmWave(const std::filesystem::path& path, SoundWaveFormat& format,
 		uint32_t size = 0;
 		std::memcpy(&size, file.data() + offset + 4, sizeof(size));
 		const std::size_t payload = offset + 8;
-		if (payload + size > file.size())
+		if (payload > file.size() || size > file.size() - payload)
 			return false;
 		if (std::memcmp(file.data() + offset, "fmt ", 4) == 0 && size >= 16)
 		{
@@ -472,36 +555,144 @@ bool LoadPcmWave(const std::filesystem::path& path, SoundWaveFormat& format,
 		}
 		offset = payload + size + (size & 1);
 	}
-	return foundFormat && foundData;
+	if (!foundFormat || !foundData)
+		return false;
+	const uint32_t bytesPerSample = format.bitsPerSample / 8;
+	const uint32_t expectedBlockAlign = format.channels * bytesPerSample;
+	const bool valid = format.channels >= 1 && format.channels <= XAUDIO2_MAX_AUDIO_CHANNELS &&
+		format.samplesPerSec >= XAUDIO2_MIN_SAMPLE_RATE &&
+		format.samplesPerSec <= XAUDIO2_MAX_SAMPLE_RATE &&
+		(format.bitsPerSample == 8 || format.bitsPerSample == 16) &&
+		format.blockAlign == expectedBlockAlign && format.blockAlign != 0 &&
+		format.avgBytesPerSec == format.samplesPerSec * format.blockAlign &&
+		pcm.size() % format.blockAlign == 0;
+	if (!valid)
+	{
+		ReportRuntimeError("Audio",
+			"Invalid PCM WAV '%ls' (%u Hz, %u channels, %u-bit, block %u, average %u, data %zu bytes)",
+			path.c_str(), format.samplesPerSec, format.channels, format.bitsPerSample,
+			format.blockAlign, format.avgBytesPerSec, pcm.size());
+		pcm.clear();
+	}
+	return valid;
 }
 
 bool EnsureEffectReverb()
 {
-	if (s_effectReverbVoice)
-		return true;
 	if (!s_xaudio2 || !s_musicMasterVoice)
 		return false;
-	IUnknown* reverb = nullptr;
-	if (FAILED(XAudio2CreateReverb(&reverb)) || !reverb)
-		return false;
-	XAUDIO2_EFFECT_DESCRIPTOR effect{};
-	effect.pEffect = reverb;
-	effect.InitialState = TRUE;
-	effect.OutputChannels = 2;
-	XAUDIO2_EFFECT_CHAIN chain{};
-	chain.EffectCount = 1;
-	chain.pEffectDescriptors = &effect;
-	const HRESULT result = s_xaudio2->CreateSubmixVoice(&s_effectReverbVoice, 2, 48000,
-		0, 0, nullptr, &chain);
-	reverb->Release();
-	if (SUCCEEDED(result))
+	if (!s_effectDryVoice)
+	{
+		const HRESULT dryResult = s_xaudio2->CreateSubmixVoice(
+			&s_effectDryVoice, 2, 48000, 0, 0, nullptr, nullptr);
+		ReportXAudioFailureOnce("Create 48 kHz dry-effects submix", dryResult);
+	}
+	HRESULT studioResult = S_OK;
+	if (!s_effectStudioCVoice && !s_effectStudioCCreationAttempted)
+	{
+		s_effectStudioCCreationAttempted = true;
+		SpuStudioCReverb* studio = new SpuStudioCReverb();
+		XAUDIO2_EFFECT_DESCRIPTOR effect{studio, TRUE, 2};
+		XAUDIO2_EFFECT_CHAIN chain{1, &effect};
+		studioResult = s_xaudio2->CreateSubmixVoice(&s_effectStudioCVoice, 2, 48000,
+			0, 1, nullptr, &chain);
+		studio->Release();
+		ReportXAudioFailureOnce("Create Studio C reverb submix", studioResult);
+		if (SUCCEEDED(studioResult) && s_effectStudioCVoice)
+			s_effectStudioCProcessor = studio;
+	}
+
+	HRESULT genericResult = S_OK;
+	if (!s_effectReverbVoice && !s_effectReverbCreationAttempted)
+	{
+		s_effectReverbCreationAttempted = true;
+		IUnknown* reverb = nullptr;
+		genericResult = XAudio2CreateReverb(&reverb);
+		if (SUCCEEDED(genericResult) && !reverb)
+			genericResult = E_POINTER;
+		if (SUCCEEDED(genericResult) && reverb)
+		{
+			XAUDIO2_EFFECT_DESCRIPTOR effect{reverb, TRUE, 2};
+			XAUDIO2_EFFECT_CHAIN chain{1, &effect};
+			genericResult = s_xaudio2->CreateSubmixVoice(&s_effectReverbVoice, 2, 48000,
+				0, 1, nullptr, &chain);
+			reverb->Release();
+		}
+		ReportXAudioFailureOnce("Create generic reverb submix", genericResult);
+	}
+	// Keep one permanent wet-input bus between gameplay voices and the effect
+	// processors. This mirrors SPU2's stable wet gate: changing environments
+	// changes the return level/work area, never the routing of active voices.
+	if (!s_effectWetInputVoice && (s_effectStudioCVoice || s_effectReverbVoice))
+	{
+		XAUDIO2_SEND_DESCRIPTOR sends[2]{};
+		UINT32 sendCount = 0;
+		if (s_effectStudioCVoice)
+			sends[sendCount++].pOutputVoice = s_effectStudioCVoice;
+		if (s_effectReverbVoice)
+			sends[sendCount++].pOutputVoice = s_effectReverbVoice;
+		XAUDIO2_VOICE_SENDS sendList{sendCount, sends};
+		const HRESULT wetInputResult = s_xaudio2->CreateSubmixVoice(
+			&s_effectWetInputVoice, 2, 48000, 0, 0, &sendList, nullptr);
+		ReportXAudioFailureOnce("Create stable 48 kHz wet-input submix", wetInputResult);
+	}
+	if (s_effectDryVoice && (s_effectReverbVoice || s_effectStudioCVoice))
 		ApplyCurrentEffectReverb();
-	return SUCCEEDED(result) && s_effectReverbVoice != nullptr;
+	return s_effectDryVoice != nullptr && s_effectWetInputVoice != nullptr;
+}
+
+IXAudio2Voice* ActiveEffectWetVoice()
+{
+	return s_effectWetInputVoice;
+}
+
+void SetEffectVoiceDestinations(IXAudio2SourceVoice* voice)
+{
+	if (!voice || !s_musicMasterVoice)
+		return;
+	XAUDIO2_SEND_DESCRIPTOR sends[2]{};
+	UINT32 sendCount = 0;
+	if (s_effectDryVoice)
+	{
+		sends[sendCount++].pOutputVoice = s_effectDryVoice;
+		if (IXAudio2Voice* wet = ActiveEffectWetVoice())
+			sends[sendCount++].pOutputVoice = wet;
+	}
+	else
+	{
+		sends[sendCount++].pOutputVoice = s_musicMasterVoice;
+	}
+	XAUDIO2_VOICE_SENDS sendList{sendCount, sends};
+	ReportXAudioFailureOnce("Update gameplay-effect reverb routing",
+		voice->SetOutputVoices(&sendList));
+}
+
+void ResetEffectReverbProcessors()
+{
+	MarkLevelTransitionAudioTrace("destroy_reverb_graph");
+	if (s_effectWetInputVoice)
+	{
+		s_effectWetInputVoice->DestroyVoice();
+		s_effectWetInputVoice = nullptr;
+	}
+	if (s_effectReverbVoice)
+	{
+		s_effectReverbVoice->DestroyVoice();
+		s_effectReverbVoice = nullptr;
+	}
+	if (s_effectStudioCVoice)
+	{
+		s_effectStudioCProcessor = nullptr;
+		s_effectStudioCVoice->DestroyVoice();
+		s_effectStudioCVoice = nullptr;
+	}
+	s_effectReverbCreationAttempted = false;
+	s_effectStudioCCreationAttempted = false;
 }
 
 void ApplyCurrentEffectReverb()
 {
-	if (!s_effectReverbVoice)
+	if (!s_effectReverbVoice && !s_effectStudioCVoice)
 		return;
 	static const XAUDIO2FX_REVERB_I3DL2_PARAMETERS presets[] =
 	{
@@ -515,24 +706,63 @@ void ApplyCurrentEffectReverb()
 	const int preset = std::clamp(static_cast<int>(s_effectReverbKind),
 		static_cast<int>(REVERBK_None), static_cast<int>(REVERBK_Max) - 1);
 	XAUDIO2FX_REVERB_I3DL2_PARAMETERS i3dl2 = presets[preset];
-	// The PS2 driver receives reverb depth as an SPU signed-volume value
-	// (0..0x7fff).  Keep this auxiliary path fully wet and apply that depth to
-	// the reverb return; mixing dry signal inside the effect would duplicate the
-	// source voice's direct path.
-	const float wetLevel = s_effectReverbKind == REVERBK_None
+	// The game's authored reverb depth is a 0..127 value. Keep this auxiliary
+	// path fully wet and apply that depth to the reverb return; mixing dry signal
+	// inside the effect would duplicate the source voice's direct path.
+	const float studioWetLevel = s_effectReverbKind == REVERBK_StudioC
+		? std::clamp(static_cast<float>(s_effectReverbDepth) / 32768.0f, 0.0f, 1.0f)
+		: 0.0f;
+	const float genericWetLevel = s_effectReverbKind == REVERBK_None
 		? 0.0f
-		: std::clamp(static_cast<float>(s_effectReverbDepth) / 32767.0f, 0.0f, 1.0f);
+		: s_effectReverbKind == REVERBK_StudioC
+			? (s_effectStudioCVoice ? 0.0f : studioWetLevel)
+			: std::clamp(static_cast<float>(s_effectReverbDepth) / 127.0f, 0.0f, 1.0f);
 	i3dl2.WetDryMix = 100.0f;
 	XAUDIO2FX_REVERB_PARAMETERS native{};
 	ReverbConvertI3DL2ToNative(&i3dl2, &native, FALSE);
-	const HRESULT parametersResult =
-		s_effectReverbVoice->SetEffectParameters(0, &native, sizeof(native));
-	const HRESULT volumeResult = s_effectReverbVoice->SetVolume(wetLevel);
-	if (FAILED(parametersResult) || FAILED(volumeResult))
+	const HRESULT parametersResult = s_effectReverbVoice
+		? s_effectReverbVoice->SetEffectParameters(0, &native, sizeof(native)) : S_OK;
+	const HRESULT volumeResult = s_effectReverbVoice
+		? s_effectReverbVoice->SetVolume(genericWetLevel) : S_OK;
+	const HRESULT studioVolumeResult = s_effectStudioCVoice
+		? s_effectStudioCVoice->SetVolume(studioWetLevel) : S_OK;
+	const bool feedStudio = s_effectReverbKind == REVERBK_StudioC &&
+		s_effectStudioCVoice != nullptr;
+	const bool feedGeneric = s_effectReverbKind != REVERBK_None &&
+		(s_effectReverbKind != REVERBK_StudioC || s_effectStudioCVoice == nullptr);
+	const float studioInputMatrix[4] =
 	{
-		std::printf("[REVERB] apply failed parameters=0x%08X volume=0x%08X kind=%d depth=%d wet=%.3f\n",
+		feedStudio ? 1.0f : 0.0f, 0.0f,
+		0.0f, feedStudio ? 1.0f : 0.0f
+	};
+	const float genericInputMatrix[4] =
+	{
+		feedGeneric ? 1.0f : 0.0f, 0.0f,
+		0.0f, feedGeneric ? 1.0f : 0.0f
+	};
+	const HRESULT studioInputResult = s_effectWetInputVoice && s_effectStudioCVoice
+		? s_effectWetInputVoice->SetOutputMatrix(
+			s_effectStudioCVoice, 2, 2, studioInputMatrix) : S_OK;
+	const HRESULT genericInputResult = s_effectWetInputVoice && s_effectReverbVoice
+		? s_effectWetInputVoice->SetOutputMatrix(
+			s_effectReverbVoice, 2, 2, genericInputMatrix) : S_OK;
+	float actualStudioWet = 0.0f;
+	float actualWetBusVolume = 0.0f;
+	if (s_effectStudioCVoice)
+		s_effectStudioCVoice->GetVolume(&actualStudioWet);
+	if (s_effectWetInputVoice)
+		s_effectWetInputVoice->GetVolume(&actualWetBusVolume);
+	UpdateLevelTransitionAudioTraceRouting(studioWetLevel, actualStudioWet,
+		feedStudio, feedGeneric, actualWetBusVolume);
+	if (FAILED(parametersResult) || FAILED(volumeResult) || FAILED(studioVolumeResult) ||
+		FAILED(studioInputResult) || FAILED(genericInputResult))
+	{
+		ReportRuntimeError("Audio",
+			"Reverb update failed (parameters=0x%08X volume=0x%08X studio=0x%08X studio_input=0x%08X generic_input=0x%08X kind=%d depth=%d wet=%.3f)",
 			static_cast<unsigned>(parametersResult), static_cast<unsigned>(volumeResult),
-			static_cast<int>(s_effectReverbKind), s_effectReverbDepth, wetLevel);
+			static_cast<unsigned>(studioVolumeResult), static_cast<unsigned>(studioInputResult),
+			static_cast<unsigned>(genericInputResult), static_cast<int>(s_effectReverbKind),
+			s_effectReverbDepth, studioWetLevel);
 	}
 }
 
@@ -540,15 +770,35 @@ bool EnsureMusicEngine()
 {
 	if (s_xaudio2)
 		return true;
-	if (FAILED(XAudio2Create(&s_xaudio2, 0, XAUDIO2_DEFAULT_PROCESSOR)))
-		return false;
-	if (FAILED(s_xaudio2->CreateMasteringVoice(&s_musicMasterVoice)))
+	const HRESULT engineResult = XAudio2Create(&s_xaudio2, 0, XAUDIO2_DEFAULT_PROCESSOR);
+	if (FAILED(engineResult))
 	{
+		ReportRuntimeError("Audio", "XAudio2Create failed (HRESULT 0x%08X)",
+			static_cast<unsigned>(engineResult));
+		return false;
+	}
+	const HRESULT callbackResult = s_xaudio2->RegisterForCallbacks(&s_audioEngineCallback);
+	if (FAILED(callbackResult))
+		ReportXAudioFailureOnce("Register audio engine callback", callbackResult);
+	const HRESULT masteringResult = s_xaudio2->CreateMasteringVoice(&s_musicMasterVoice);
+	if (FAILED(masteringResult))
+	{
+		ReportRuntimeError("Audio",
+			"CreateMasteringVoice failed (HRESULT 0x%08X). Check the active Windows output device and audio format.",
+			static_cast<unsigned>(masteringResult));
+		s_xaudio2->UnregisterForCallbacks(&s_audioEngineCallback);
 		s_xaudio2->Release();
 		s_xaudio2 = nullptr;
 		return false;
 	}
-	s_musicMasterVoice->SetVolume(s_masterVolume);
+	// Keep the output silent while the fixed-rate dry/reverb graph is created
+	// and reset. Some drivers begin processing the mastering voice immediately;
+	// exposing a partially constructed graph can produce a one-buffer startup
+	// burst even though no authored sound has started yet.
+	ReportXAudioFailureOnce("Mute mastering voice during initialization",
+		s_musicMasterVoice->SetVolume(0.0f));
+	s_audioCriticalResult.store(S_OK, std::memory_order_release);
+	s_audioCriticalError.store(false, std::memory_order_release);
 	EnsureEffectReverb();
 	return true;
 }
@@ -570,10 +820,10 @@ void RecalculateChannelVolume(int channel)
 	if (channel == musicChannel)
 	{
 		for (MusicVoice& active : s_music989.voices)
-			if (active.voice) active.voice->SetVolume(
+			if (active.voice) SetVoiceVolumeChecked(active.voice,
 				active.baseVolume * (active.envelope.level / 32767.0f) *
 				s_channelVolumes[musicChannel] * s_musicVolume * s_dialogMusicDuck *
-				s_userMusicVolume);
+				s_userMusicVolume, "Update music channel volume");
 	}
 	// Retail VAG/dialog streams use mixer channel 2. Channel 1 is music and is
 	// independently controlled by the prompt's Music option.
@@ -582,8 +832,9 @@ void RecalculateChannelVolume(int channel)
 		if (s_pambVagAmbient)
 			SetPambVol(s_pambVagAmbient, s_pambVagAmbient->uVolAtSource);
 		else if (s_vagStream.voice)
-			s_vagStream.voice->SetVolume(kVagDriverGain *
-				(s_fFmvAudioMode ? 1.0f : s_channelVolumes[2]) * s_userDialogueVolume);
+			SetVoiceVolumeChecked(s_vagStream.voice, kVagDriverGain *
+				(s_fFmvAudioMode ? 1.0f : s_channelVolumes[2]) * s_userDialogueVolume,
+				"Update VAG/dialog channel volume");
 	}
 }
 
@@ -646,10 +897,10 @@ static void ApplyDialogMusicDuck(float duck)
 	const int musicChannel = std::clamp(s_music989.cueVolumeGroup, 0,
 		static_cast<int>(s_channelVolumes.size()) - 1);
 	for (MusicVoice& active : s_music989.voices)
-		if (active.voice) active.voice->SetVolume(
+		if (active.voice) SetVoiceVolumeChecked(active.voice,
 			active.baseVolume * (active.envelope.level / 32767.0f) *
 			s_channelVolumes[musicChannel] * s_musicVolume * s_dialogMusicDuck *
-			s_userMusicVolume);
+			s_userMusicVolume, "Update dialogue music duck");
 }
 
 void CloseVagStream()
@@ -747,7 +998,9 @@ bool DecodeMusicAdpcm(const std::vector<uint8_t>& data, std::size_t begin,
 			const uint8_t packed = data[block + 2 + sample / 2];
 			int nibble = (sample & 1) ? packed >> 4 : packed & 0x0f;
 			if ((nibble & 8) != 0) nibble -= 16;
-			int value = (nibble << 12) >> shift;
+			// Multiplication preserves the SPU sign-extension math without relying
+			// on undefined C++ behavior from left-shifting a negative nibble.
+			int value = (nibble * 4096) >> shift;
 			value += (coefficients[filter][0] * history1 +
 				coefficients[filter][1] * history2 + 32) >> 6;
 			value = std::clamp(value, -32768, 32767);
@@ -787,7 +1040,7 @@ bool DecodeMusicAdpcm(const std::vector<uint8_t>& data, std::size_t begin,
 					const uint8_t packed = data[block + 2 + sample / 2];
 					int nibble = (sample & 1) ? packed >> 4 : packed & 0x0f;
 					if ((nibble & 8) != 0) nibble -= 16;
-					int value = (nibble << 12) >> shift;
+					int value = (nibble * 4096) >> shift;
 					value += (coefficients[filter][0] * history1 +
 						coefficients[filter][1] * history2 + 32) >> 6;
 					value = std::clamp(value, -32768, 32767);
@@ -867,6 +1120,7 @@ bool LoadMusic989Mus(const std::filesystem::path& path)
 			if ((flags & 0x80) != 0 || streamOffset >= audioSize)
 				continue;
 			MusicTone tone{};
+			tone.sampleOffset = streamOffset;
 			tone.program = programIndex;
 			tone.volume = static_cast<int8_t>(data[toneEntry + 1]);
 			tone.centerNote = static_cast<int8_t>(data[toneEntry + 2]);
@@ -934,6 +1188,7 @@ void LoadMusicAdpcmLoopPoints(const std::filesystem::path& directory)
 				continue;
 
 			MusicTone& tone = s_music989.tones[extractedTone++];
+			tone.sampleOffset = streamOffset;
 			tone.loop = false;
 			tone.loopBegin = 0;
 			tone.loopLength = 0;
@@ -1070,8 +1325,34 @@ bool ReadMusicVlq(MusicSegment& segment, uint32_t& value)
 
 void QueueMusicSegment(uint32_t id)
 {
-	if (id < s_music989.segmentOffsets.size())
+	if (id >= s_music989.segmentOffsets.size())
+		return;
+	if (std::find(s_music989.pendingStarts.begin(), s_music989.pendingStarts.end(), id) ==
+		s_music989.pendingStarts.end())
 		s_music989.pendingStarts.push_back(id);
+}
+
+static std::filesystem::path ResolveVagDescriptor(const char* descriptor)
+{
+    if (!descriptor)
+        return {};
+
+    uint32_t words[8]{};
+    std::memcpy(words, descriptor, sizeof(words));
+    const uint32_t sector = words[0] ^ words[5];
+    const uint32_t identity = words[2] ^ words[6];
+
+    wchar_t exactName[64]{};
+    std::swprintf(exactName, std::size(exactName), L"VAG_%04X_%06X.wav", identity, sector);
+    if (std::filesystem::path found = FindExtractedWav(exactName); !found.empty())
+        return found;
+
+    wchar_t identityName[64]{};
+    std::swprintf(identityName, std::size(identityName), L"VAG_%04X.wav", identity);
+    if (std::filesystem::path found = FindExtractedWav(identityName); !found.empty())
+        return found;
+
+    return FindCommentaryWav(identity, sector);
 }
 
 void StopMusicSegment(uint32_t id)
@@ -1086,63 +1367,54 @@ void StopMusicSegment(uint32_t id)
 	}
 }
 
+static void ReapplyMusicAmeGroups(int basis);
+
 void SetGlobalExciteValue(int excite)
 {
 	std::lock_guard<std::recursive_mutex> lock(s_musicMutex);
 	s_globalExcite = static_cast<uint8_t>(std::clamp(excite, 0, 127));
+	ReapplyMusicAmeGroups(0);
+}
 
-	// snd_SetGlobalExcite immediately reapplies every active AME channel group.
-	// Merely changing the stored value leaves battle channels playing forever.
-	for (MusicSegment& segment : s_music989.activeSegments)
+static void StopMusicVoicesOnChannel(uint32_t segment, uint8_t channel)
+{
+	for (MusicVoice& voice : s_music989.voices)
 	{
-		for (const MusicAmeGroup& group : s_music989.groups)
-		{
-			if (!group.active || group.basis != 0)
-				continue;
-			for (uint8_t i = 0; i < group.channelCount; ++i)
-			{
-				const uint8_t channel = group.channels[i];
-				if (channel >= segment.muted.size())
-					continue;
-				const bool mute = s_globalExcite < group.exciteMin[i] ||
-					s_globalExcite > group.exciteMax[i];
-				if (mute && !segment.muted[channel])
-				{
-					for (MusicVoice& voice : s_music989.voices)
-						if (voice.voice && voice.segment == segment.id && voice.channel == channel)
-							ReleaseMusicEnvelope(voice.envelope);
-				}
-				segment.muted[channel] = mute;
-			}
-		}
+		if (!voice.voice || voice.segment != segment || voice.channel != channel)
+			continue;
+		voice.voice->Stop();
+		voice.voice->DestroyVoice();
+		voice.voice = nullptr;
+		voice.envelope.phase = MusicEnvelopePhase::Stopped;
 	}
 }
 
-void ReapplyRegisterAmeGroups(int registerIndex)
+static void ApplyMusicAmeGroup(MusicAmeGroup& group, MusicSegment& segment)
 {
-	for (MusicSegment& segment : s_music989.activeSegments)
+	if (!group.active || segment.complete)
+		return;
+
+	const uint8_t value = group.basis == 0
+		? s_globalExcite
+		: s_music989.registers[group.basis - 1];
+	for (uint8_t i = 0; i < group.channelCount; ++i)
 	{
-		for (const MusicAmeGroup& group : s_music989.groups)
-		{
-			if (!group.active || group.basis == 0 || group.basis - 1 != registerIndex)
-				continue;
-			const uint8_t value = s_music989.registers[registerIndex];
-			for (uint8_t i = 0; i < group.channelCount; ++i)
-			{
-				const uint8_t channel = group.channels[i];
-				if (channel >= segment.muted.size())
-					continue;
-				const bool mute = value < group.exciteMin[i] || value > group.exciteMax[i];
-				if (mute && !segment.muted[channel])
-				{
-					for (MusicVoice& voice : s_music989.voices)
-						if (voice.voice && voice.segment == segment.id && voice.channel == channel)
-							ReleaseMusicEnvelope(voice.envelope);
-				}
-				segment.muted[channel] = mute;
-			}
-		}
+		const uint8_t channel = group.channels[i];
+		if (channel >= segment.muted.size())
+			continue;
+		const bool mute = value < group.exciteMin[i] || value > group.exciteMax[i];
+		if (mute && !segment.muted[channel])
+			StopMusicVoicesOnChannel(segment.id, channel);
+		segment.muted[channel] = mute;
 	}
+}
+
+static void ReapplyMusicAmeGroups(int basis)
+{
+	for (MusicAmeGroup& group : s_music989.groups)
+		if (group.active && group.basis == basis)
+			for (MusicSegment& segment : s_music989.activeSegments)
+				ApplyMusicAmeGroup(group, segment);
 }
 
 bool RunMusicAme(MusicSegment& midi, const uint8_t*& stream)
@@ -1201,7 +1473,7 @@ bool RunMusicAme(MusicSegment& midi, const uint8_t*& stream)
 			{
 				const int reg = stream[0];
 				s_music989.registers[reg] = stream[1];
-				ReapplyRegisterAmeGroups(reg);
+				ReapplyMusicAmeGroups(reg + 1);
 			}
 			stream += 2;
 			break;
@@ -1210,7 +1482,7 @@ bool RunMusicAme(MusicSegment& midi, const uint8_t*& stream)
 			{
 				const int reg = *stream;
 				if (s_music989.registers[reg] < 0x7f) ++s_music989.registers[reg];
-				ReapplyRegisterAmeGroups(reg);
+				ReapplyMusicAmeGroups(reg + 1);
 			}
 			++stream;
 			break;
@@ -1219,7 +1491,7 @@ bool RunMusicAme(MusicSegment& midi, const uint8_t*& stream)
 			{
 				const int reg = *stream;
 				if (s_music989.registers[reg] > 0) --s_music989.registers[reg];
-				ReapplyRegisterAmeGroups(reg);
+				ReapplyMusicAmeGroups(reg + 1);
 			}
 			++stream;
 			break;
@@ -1230,7 +1502,7 @@ bool RunMusicAme(MusicSegment& midi, const uint8_t*& stream)
 		case 0x0f:
 			if (skip)
 			{
-				while (stream < midi.end && *stream != 0x7f) ++stream;
+				while (stream < midi.end && *stream != 0xf7) ++stream;
 				if (stream < midi.end) ++stream;
 				if (skip == 1) skip = 0;
 			}
@@ -1259,13 +1531,7 @@ bool RunMusicAme(MusicSegment& midi, const uint8_t*& stream)
 				if (groupIndex >= s_music989.groups.size()) return false;
 				MusicAmeGroup& group = s_music989.groups[groupIndex];
 				group.active = true;
-				const uint8_t value = group.basis == 0 ? s_globalExcite : s_music989.registers[group.basis - 1];
-				for (uint8_t i = 0; i < group.channelCount; ++i)
-				{
-					const uint8_t channel = group.channels[i];
-					if (channel < 16)
-						midi.muted[channel] = value < group.exciteMin[i] || value > group.exciteMax[i];
-				}
+				ApplyMusicAmeGroup(group, midi);
 			}
 			++stream;
 			break;
@@ -1392,10 +1658,12 @@ void UpdateMusicEnvelopes()
 		else
 		{
 			const float envelopeVolume = active.envelope.level / 32767.0f;
-			active.voice->SetVolume(active.baseVolume * envelopeVolume *
-				s_channelVolumes[std::clamp(s_music989.cueVolumeGroup, 0,
-					static_cast<int>(s_channelVolumes.size()) - 1)] *
-				s_musicVolume * s_dialogMusicDuck * s_userMusicVolume);
+			const int musicChannel = std::clamp(s_music989.cueVolumeGroup, 0,
+				static_cast<int>(s_channelVolumes.size()) - 1);
+			const float finalVolume = active.baseVolume * envelopeVolume *
+				s_channelVolumes[musicChannel] * s_musicVolume * s_dialogMusicDuck *
+				s_userMusicVolume;
+			SetVoiceVolumeChecked(active.voice, finalVolume, "Update music envelope volume");
 		}
 	}
 }
@@ -1420,12 +1688,21 @@ void SetMusicVoicePan(IXAudio2SourceVoice* voice, int pan)
 	// power pan coefficients themselves rather than their square roots.
 	matrix[0] = s_stereoOutputEnabled ? (1.0f - position) * 0.5f : 0.5f;
 	matrix[1] = s_stereoOutputEnabled ? (1.0f + position) * 0.5f : 0.5f;
-	voice->SetOutputMatrix(s_musicMasterVoice, 1, destinationDetails.InputChannels, matrix.data());
+	ReportXAudioFailureOnce("Set music output matrix",
+		voice->SetOutputMatrix(s_musicMasterVoice, 1,
+			destinationDetails.InputChannels, matrix.data()));
 }
 
 void StartMusicTone(MusicSegment& segment, uint8_t channel, uint8_t note, uint8_t velocity)
 {
-	if (segment.muted[channel])
+	// On retail, Raleigh's dialogue arrangement leaves programs 0 and 14
+	// effectively silent.  The SPU2 trace has zero (or negligible) voice volume
+	// for their key-ons, while programs 6, 7 and 9 form the audible mix.
+	// Segment 2 remains untouched so the fight arrangement keeps every layer.
+	const bool suppressRaleighDialogueLayer =
+		static_cast<int>(s_musicStream.musid) == 87 && segment.id == 1 &&
+		(channel == 0 || channel == 14);
+	if (segment.muted[channel] || suppressRaleighDialogueLayer)
 		return;
 	const int programIndex = segment.programs[channel];
 	for (MusicTone& tone : s_music989.tones)
@@ -1446,7 +1723,11 @@ void StartMusicTone(MusicSegment& segment, uint8_t channel, uint8_t note, uint8_
 		const HRESULT createResult = s_xaudio2->CreateSourceVoice(
 			&voice, &format, 0, kSpuMaximumFrequencyRatio);
 		if (FAILED(createResult) || !voice)
+		{
+			ReportXAudioFailureOnce("Create music source voice",
+				FAILED(createResult) ? createResult : E_POINTER);
 			continue;
+		}
 		XAUDIO2_BUFFER buffer{};
 		buffer.AudioBytes = static_cast<UINT32>(tone.pcm.size());
 		buffer.pAudioData = tone.pcm.data();
@@ -1484,12 +1765,13 @@ void StartMusicTone(MusicSegment& segment, uint8_t channel, uint8_t note, uint8_
 		const float frequencyRatio = std::clamp(
 			baseFrequencyRatio * static_cast<float>(std::pow(2.0, bendSemitones / 12.0)),
 			XAUDIO2_MIN_FREQ_RATIO, kSpuMaximumFrequencyRatio);
-		voice->SetVolume(0.0f);
 		const int finalPan = s_music989.cuePan + segment.pans[channel] + programPan + tone.pan;
+		voice->SetVolume(0.0f);
 		SetMusicVoicePan(voice, finalPan);
 		const HRESULT pitchResult = voice->SetFrequencyRatio(frequencyRatio);
 		if (FAILED(pitchResult))
 		{
+			ReportXAudioFailureOnce("Set music source pitch", pitchResult);
 			voice->DestroyVoice();
 			continue;
 		}
@@ -1506,11 +1788,14 @@ void StartMusicTone(MusicSegment& segment, uint8_t channel, uint8_t note, uint8_
 			active.baseFrequencyRatio = baseFrequencyRatio;
 			active.pitchBendLow = tone.pitchBendLow;
 			active.pitchBendHigh = tone.pitchBendHigh;
+			active.pan = finalPan;
 			StartMusicEnvelope(active.envelope, tone.adsr1, tone.adsr2);
 			s_music989.voices.push_back(std::move(active));
 		}
 		else
 		{
+			ReportXAudioFailureOnce("Submit music source buffer", submitResult);
+			ReportXAudioFailureOnce("Start music source voice", startResult);
 			voice->DestroyVoice();
 		}
 	}
@@ -1549,6 +1834,7 @@ void ActivateQueuedMusicSegments()
 			? s_music989.sequence.data() + s_music989.segmentOffsets[id + 1]
 			: s_music989.sequence.data() + s_music989.sequence.size();
 		segment.tempo = MusicLe32(base + 32);
+		segment.initialTempo = segment.tempo;
 		segment.ppq = static_cast<int32_t>(MusicLe32(base + 36));
 		segment.repeatsRemaining = s_music989.cueRepeats;
 		segment.volumes.fill(127);
@@ -1617,10 +1903,11 @@ void StepMusicSegment(MusicSegment& segment)
 				const double semitones = bend >= 0
 					? active.pitchBendHigh * static_cast<double>(bend) / 32767.0
 					: active.pitchBendLow * static_cast<double>(bend) / 32768.0;
-				active.voice->SetFrequencyRatio(std::clamp(
+				ReportXAudioFailureOnce("Update music pitch bend",
+					active.voice->SetFrequencyRatio(std::clamp(
 					active.baseFrequencyRatio *
 					static_cast<float>(std::pow(2.0, semitones / 12.0)),
-					XAUDIO2_MIN_FREQ_RATIO, kSpuMaximumFrequencyRatio));
+					XAUDIO2_MIN_FREQ_RATIO, kSpuMaximumFrequencyRatio)));
 			}
 			segment.cursor += 2;
 			break;
@@ -1638,8 +1925,7 @@ void StepMusicSegment(MusicSegment& segment)
 						segment.complete = true;
 					else
 					{
-						segment.cursor = segment.begin;
-						segment.status = 0;
+						ResetMusicSegmentForLoop(segment);
 					}
 				}
 				else { if (type == 0x51 && length >= 3) segment.tempo = (segment.cursor[0] << 16) | (segment.cursor[1] << 8) | segment.cursor[2]; segment.cursor += length; }
@@ -1693,7 +1979,9 @@ bool DecodeEffectAdpcm(const EFFECTBANK& bank, uint32_t sampleOffset, DecodedEff
 			const uint8_t packed = bank.bytes[block + 2 + sample / 2];
 			int nibble = (sample & 1) ? (packed >> 4) : (packed & 0x0f);
 			if ((nibble & 8) != 0) nibble -= 16;
-			int value = (nibble << 12) >> shift;
+			// Multiplication preserves the SPU sign-extension math without relying
+			// on undefined C++ behavior from left-shifting a negative nibble.
+			int value = (nibble * 4096) >> shift;
 			value += (coefficients[filter][0] * history1 +
 				coefficients[filter][1] * history2 + 32) >> 6;
 			value = std::clamp(value, -32768, 32767);
@@ -1713,16 +2001,21 @@ bool DecodeEffectAdpcm(const EFFECTBANK& bank, uint32_t sampleOffset, DecodedEff
 			break;
 		}
 	}
-	// The SPU2 carries the ADPCM predictor history across a loop jump. XAudio2
-	// loops decoded PCM and cannot reproduce that state transition itself, so
-	// converge the encoded loop and use its steady-state samples. Without this,
-	// short continuous effects can become a loud buzz/static at every repeat.
+	// The SPU2 carries the ADPCM predictor history across every loop jump.
+	// XAudio2 loops fixed PCM, so preserve the predictor's transient loop passes
+	// in the submitted buffer and begin the fixed PCM loop only when the ending
+	// predictor state repeats. Replacing the first pass with the final pass made
+	// the intro jump directly to a different predictor state; some ambient loops
+	// produced a nearly full-scale discontinuity during world startup.
 	if (decoded.loop && loopBlockStart < loopBlockEnd)
 	{
-		std::vector<int16_t> steadyLoop;
+		const UINT32 encodedLoopLength = decoded.loopLength;
+		std::vector<int16_t> decodedLoop;
+		int previousEndHistory1 = history1;
+		int previousEndHistory2 = history2;
 		for (int iteration = 0; iteration < 32; ++iteration)
 		{
-			steadyLoop.clear();
+			decodedLoop.clear();
 			for (std::size_t block = loopBlockStart; block < loopBlockEnd; block += 16)
 			{
 				const uint8_t predictorShift = bank.bytes[block];
@@ -1733,18 +2026,30 @@ bool DecodeEffectAdpcm(const EFFECTBANK& bank, uint32_t sampleOffset, DecodedEff
 					const uint8_t packed = bank.bytes[block + 2 + sample / 2];
 					int nibble = (sample & 1) ? packed >> 4 : packed & 0x0f;
 					if ((nibble & 8) != 0) nibble -= 16;
-					int value = (nibble << 12) >> shift;
+					int value = (nibble * 4096) >> shift;
 					value += (coefficients[filter][0] * history1 +
 						coefficients[filter][1] * history2 + 32) >> 6;
 					value = std::clamp(value, -32768, 32767);
 					history2 = history1;
 					history1 = value;
-					steadyLoop.push_back(static_cast<int16_t>(value));
+					decodedLoop.push_back(static_cast<int16_t>(value));
 				}
 			}
+			if (decodedLoop.size() != encodedLoopLength)
+				break;
+
+			const UINT32 passBegin = static_cast<UINT32>(decoded.pcm.size());
+			decoded.pcm.insert(decoded.pcm.end(), decodedLoop.begin(), decodedLoop.end());
+			decoded.loopBegin = passBegin;
+			decoded.loopLength = encodedLoopLength;
+
+			// An identical end state means this pass starts and ends with the same
+			// predictor history as the preceding pass and can repeat seamlessly.
+			if (history1 == previousEndHistory1 && history2 == previousEndHistory2)
+				break;
+			previousEndHistory1 = history1;
+			previousEndHistory2 = history2;
 		}
-		if (steadyLoop.size() == decoded.loopLength)
-			std::copy(steadyLoop.begin(), steadyLoop.end(), decoded.pcm.begin() + loopStart);
 	}
 	return !decoded.pcm.empty();
 }
@@ -1753,8 +2058,11 @@ void SetEffectVoicePan(IXAudio2SourceVoice* voice, int pan)
 {
 	if (!voice || !s_musicMasterVoice)
 		return;
+	IXAudio2Voice* dryDestination = s_effectDryVoice
+		? static_cast<IXAudio2Voice*>(s_effectDryVoice)
+		: static_cast<IXAudio2Voice*>(s_musicMasterVoice);
 	XAUDIO2_VOICE_DETAILS destinationDetails{};
-	s_musicMasterVoice->GetVoiceDetails(&destinationDetails);
+	dryDestination->GetVoiceDetails(&destinationDetails);
 	if (destinationDetails.InputChannels == 0)
 		return;
 	while (pan >= 360) pan -= 360;
@@ -1762,20 +2070,26 @@ void SetEffectVoicePan(IXAudio2SourceVoice* voice, int pan)
 	if (pan > 180) pan -= 360;
 	const float position = std::sin(static_cast<float>(pan) * 3.14159265358979323846f / 180.0f);
 	std::vector<float> matrix(destinationDetails.InputChannels, 0.0f);
-	// Use an equal-power pan law. The previous linear 0.5/0.5 center reduced
-	// every centered mono effect by 3 dB compared with the SPU/989SND mix.
-	const float panAngle = (position + 1.0f) * 0.7853981633974483f;
-	matrix[0] = s_stereoOutputEnabled ? std::cos(panAngle) : 0.7071067811865476f;
+	// Match the SPU2 voice-volume pan law used by 989SND. A centered voice is
+	// programmed to approximately 0x3fff on each side (half of the 0x7fff
+	// full-scale voice volume), so it must be 0.5/0.5 rather than an
+	// equal-power 0.707/0.707 split. The latter made layered centered effects
+	// roughly 3 dB too hot before they reached the dry and reverb buses.
+	matrix[0] = s_stereoOutputEnabled ? (1.0f - position) * 0.5f : 0.5f;
 	if (destinationDetails.InputChannels >= 2)
-		matrix[1] = s_stereoOutputEnabled ? std::sin(panAngle) : 0.7071067811865476f;
-	voice->SetOutputMatrix(s_musicMasterVoice, 1, destinationDetails.InputChannels, matrix.data());
-	if (s_effectReverbVoice)
+		matrix[1] = s_stereoOutputEnabled ? (1.0f + position) * 0.5f : 0.5f;
+	ReportXAudioFailureOnce("Set dry-effects output matrix",
+		voice->SetOutputMatrix(dryDestination, 1,
+			destinationDetails.InputChannels, matrix.data()));
+	IXAudio2Voice* wetDestination = ActiveEffectWetVoice();
+	if (s_effectDryVoice && wetDestination)
 	{
 		const float reverbMatrix[2] =
 		{
-			matrix[0], destinationDetails.InputChannels >= 2 ? matrix[1] : matrix[0]
+			matrix[0], matrix[1]
 		};
-		voice->SetOutputMatrix(s_effectReverbVoice, 1, 2, reverbMatrix);
+		ReportXAudioFailureOnce("Set active-reverb output matrix",
+			voice->SetOutputMatrix(wetDestination, 1, 2, reverbMatrix));
 	}
 }
 
@@ -1796,11 +2110,12 @@ float EffectVoiceVolume(const EFFECTVOICE& active, float applicationVolume)
 	const float adjustedSoundVolume = std::clamp(
 		active.soundVolume * (std::max)(0.0f, applicationVolume), 0.0f, 1.0f);
 	const int group = std::clamp(active.volumeGroup, 0, 3);
-	const float linearVolume = adjustedSoundVolume * active.toneVolume *
-		s_channelVolumes[group] * s_userSfxVolume;
-	// 989SND's group curve is applied to the programmed voice volume first;
-	// the SPU2 ADSR envelope then scales that result linearly.
-	return linearVolume * linearVolume * (active.envelopeLevel / 32767.0f);
+	const float programmedVolume = adjustedSoundVolume * active.toneVolume;
+	// AdjustVolToGroup curves the programmed voice volume. Mixer-channel and
+	// user controls are downstream gains and therefore remain linear, matching
+	// the music voice path and retail's grouping order.
+	return programmedVolume * programmedVolume * s_channelVolumes[group] *
+		s_userSfxVolume * (active.envelopeLevel / 32767.0f);
 }
 
 void ConfigureEffectEnvelope(EFFECTVOICE& active)
@@ -1946,7 +2261,6 @@ bool PlayEffectTone(AMB& amb, const EFFECTBANK& bank, const EFFECTBANK::SOUND& s
 	EFFECTVOICE active;
 	active.pcm = std::move(decoded.pcm);
 	active.loop = decoded.loop;
-
 	WAVEFORMATEX format{};
 	format.wFormatTag = WAVE_FORMAT_PCM;
 	format.nChannels = 1;
@@ -1960,16 +2274,29 @@ bool PlayEffectTone(AMB& amb, const EFFECTBANK& bank, const EFFECTBANK::SOUND& s
 	// dialogue, or FMV voices which use their own source paths.
 	EnsureEffectReverb();
 	XAUDIO2_SEND_DESCRIPTOR sends[2]{};
-	sends[0].pOutputVoice = s_musicMasterVoice;
-	sends[1].pOutputVoice = s_effectReverbVoice;
+	UINT32 sendCount = 0;
+	if (s_effectDryVoice)
+	{
+		sends[sendCount++].pOutputVoice = s_effectDryVoice;
+		if (IXAudio2Voice* wet = ActiveEffectWetVoice())
+			sends[sendCount++].pOutputVoice = wet;
+	}
+	else
+	{
+		// Never combine the device-native mastering voice with 48 kHz wet
+		// buses: every destination of one XAudio2 source must share a rate.
+		sends[sendCount++].pOutputVoice = s_musicMasterVoice;
+	}
 	XAUDIO2_VOICE_SENDS sendList{};
-	sendList.SendCount = s_effectReverbVoice ? 2 : 1;
+	sendList.SendCount = sendCount;
 	sendList.pSends = sends;
 	const HRESULT createResult = s_xaudio2->CreateSourceVoice(&active.voice, &format, 0,
 		kSpuMaximumFrequencyRatio, nullptr, &sendList, nullptr);
 	if (FAILED(createResult) ||
 		active.voice == nullptr)
 	{
+		ReportXAudioFailureOnce("Create gameplay-effect source voice",
+			FAILED(createResult) ? createResult : E_POINTER);
 		return false;
 	}
 
@@ -2009,11 +2336,15 @@ bool PlayEffectTone(AMB& amb, const EFFECTBANK& bank, const EFFECTBANK::SOUND& s
 	active.volumeGroup = std::clamp(static_cast<int>(sound.volumeGroup), 0, 3);
 	active.authoredPan = static_cast<int>(sound.pan) + resolvedTonePan;
 	active.baseVolume = EffectVoiceVolume(active, 1.0f);
-	active.voice->SetVolume(EffectVoiceVolume(active, applicationVolume));
+	SetVoiceVolumeChecked(active.voice, EffectVoiceVolume(active, applicationVolume),
+		"Set gameplay-effect initial volume");
 	SetEffectVoicePan(active.voice, active.authoredPan + EffectSpatialPanDegrees(amb.pan));
 
 	const int centerNote = tone.centerNote >= 0 ? tone.centerNote : -tone.centerNote;
-	const double semitones = 60.0 - centerNote - tone.centerFine / 128.0 +
+	// 989SND stores centerFine as an unsigned 0..127 fraction above the
+	// encoded center note.  Treating it as signed and subtracting it shifted
+	// most fine-tuned gameplay effects below their authored PS2 pitch.
+	const double semitones = 60.0 - centerNote + tone.centerFine / 128.0 +
 		(static_cast<double>(pitchMod) * 1524.0 / 128.0);
 	// SPU2 pitch 0x1000 advances one source sample per 48 kHz output sample.
 	// The decoded effect voice is also declared as 48 kHz, so applying the
@@ -2022,18 +2353,46 @@ bool PlayEffectTone(AMB& amb, const EFFECTBANK& bank, const EFFECTBANK::SOUND& s
 	active.baseFrequencyRatio = static_cast<float>(std::pow(2.0, semitones / 12.0));
 	active.baseFrequencyRatio = std::clamp(active.baseFrequencyRatio,
 		XAUDIO2_MIN_FREQ_RATIO, kSpuMaximumFrequencyRatio);
-	active.pitchBendLow = tone.pitchBendLow;
-	active.pitchBendHigh = tone.pitchBendHigh;
+	// 989SND treats an unspecified tone bend range as the standard two
+	// semitones.  Several release-bank effects (including the striking owls)
+	// execute RAND_PB while leaving these fields at zero; treating zero as a
+	// disabled range made those authored bends inaudible.  Preserve every
+	// explicitly authored asymmetric range.
+	active.pitchBendLow = tone.pitchBendLow != 0 ? tone.pitchBendLow : 2;
+	active.pitchBendHigh = tone.pitchBendHigh != 0 ? tone.pitchBendHigh : 2;
 	StartEffectEnvelope(active, tone.adsr1, tone.adsr2);
-	active.voice->SetVolume(EffectVoiceVolume(active, applicationVolume));
-	active.voice->SetFrequencyRatio(active.baseFrequencyRatio);
+	SetVoiceVolumeChecked(active.voice, EffectVoiceVolume(active, applicationVolume),
+		"Set gameplay-effect envelope volume");
+	const HRESULT pitchResult = active.voice->SetFrequencyRatio(active.baseFrequencyRatio);
 	const HRESULT submitResult = active.voice->SubmitSourceBuffer(&buffer);
 	const HRESULT startResult = SUCCEEDED(submitResult) ? active.voice->Start() : E_FAIL;
-	if (FAILED(submitResult) || FAILED(startResult))
+	if (FAILED(pitchResult) || FAILED(submitResult) || FAILED(startResult))
 	{
+		char traceEvent[256]{};
+		std::snprintf(traceEvent, sizeof(traceEvent),
+			"voice_reject:sfx=%d serial=%d bank=%d sound=%d sample=%u create=0x%08X pitch=0x%08X submit=0x%08X start=0x%08X",
+			static_cast<int>(amb.sfxid), amb.iSerial, bank.ibnk, amb.soundIndex,
+			tone.sampleOffset, static_cast<unsigned>(createResult),
+			static_cast<unsigned>(pitchResult), static_cast<unsigned>(submitResult),
+			static_cast<unsigned>(startResult));
+		MarkLevelTransitionAudioTrace(traceEvent);
+		ReportXAudioFailureOnce("Set gameplay-effect pitch", pitchResult);
+		ReportXAudioFailureOnce("Submit gameplay-effect buffer", submitResult);
+		ReportXAudioFailureOnce("Start gameplay-effect voice", startResult);
 		active.voice->DestroyVoice();
 		return false;
 	}
+	int decodedPeak = 0;
+	for (const int16_t sample : active.pcm)
+		decodedPeak = (std::max)(decodedPeak, std::abs(static_cast<int>(sample)));
+	char traceEvent[320]{};
+	std::snprintf(traceEvent, sizeof(traceEvent),
+		"voice_start:sfx=%d serial=%d bank=%d sound=%d sample=%u pcm=%zu loop=%d peak=%d appvol=%.6g soundvol=%.6g tonevol=%.6g group=%d pan=%d ratio=%.6g noise=%d",
+		static_cast<int>(amb.sfxid), amb.iSerial, bank.ibnk, amb.soundIndex,
+		tone.sampleOffset, active.pcm.size(), active.loop ? 1 : 0, decodedPeak,
+		applicationVolume, active.soundVolume, active.toneVolume, active.volumeGroup,
+		active.authoredPan, active.baseFrequencyRatio, (tone.flags & 8) != 0 ? 1 : 0);
+	MarkLevelTransitionAudioTrace(traceEvent);
 	amb.voices.push_back(std::move(active));
 	amb.voice = amb.voices.front().voice;
 	amb.frequencyRatioBase = amb.voices.front().baseFrequencyRatio;
@@ -2061,6 +2420,9 @@ void ApplyEffectPitchBend(AMB& amb, int bend)
 	{
 		if (!active.voice)
 			continue;
+		// 989SND uses the conventional signed bend axis. The SPU2 trace for the
+		// owl strike starts at one octave below its base pitch and rises to base:
+		// a -32768 bend through the tone's 12-semitone low range, ending at zero.
 		const double bendSemitones = amb.currentPitchBend >= 0
 			? active.pitchBendHigh * static_cast<double>(amb.currentPitchBend) / 32767.0
 			: active.pitchBendLow * static_cast<double>(amb.currentPitchBend) / 32768.0;
@@ -2072,7 +2434,10 @@ void ApplyEffectPitchBend(AMB& amb, int bend)
 			static_cast<float>(std::pow(2.0,
 				(bendSemitones + pitchModSemitones + dopplerSemitones) / 12.0)),
 			XAUDIO2_MIN_FREQ_RATIO, kSpuMaximumFrequencyRatio);
-		active.voice->SetFrequencyRatio(ratio);
+		ReportXAudioFailureOnce("Update gameplay-effect pitch",
+			active.voice->SetFrequencyRatio(ratio));
+		active.appliedPitchBend = amb.currentPitchBend;
+		active.hasAppliedPitchBend = true;
 	}
 }
 
@@ -2085,7 +2450,10 @@ int EffectLfoValue(EFFECTLFO& lfo)
 	int value = 0;
 	switch (lfo.type)
 	{
-	case 1: value = static_cast<int>(std::sin(step * 3.14159265358979323846 / 1024.0) * 32767.0); break;
+	// 989SND's sine LFO begins at its positive peak (cosine phase), not at the
+	// zero crossing. With the invert flag this gives the retail -32768-to-zero
+	// opening sweep instead of ProjectCane's former zero-to--32768 sweep.
+	case 1: value = static_cast<int>(std::cos(step * 3.14159265358979323846 / 1024.0) * 32767.0); break;
 	case 2: value = step >= lfo.stateHold1 ? -32767 : 32767; break;
 	case 3:
 		if (step < 512) value = 32767 * step / 512;
@@ -2126,8 +2494,9 @@ void TickEffectLfos(AMB& amb)
 	for (EFFECTVOICE& active : amb.voices)
 		if (active.voice)
 		{
-			active.voice->SetVolume(EffectVoiceVolume(active,
-				(std::max)(0.0f, amb.volAttenuated + lfoVolume) * amb.autoVolumeScale));
+			SetVoiceVolumeChecked(active.voice, EffectVoiceVolume(active,
+				(std::max)(0.0f, amb.volAttenuated + lfoVolume) * amb.autoVolumeScale),
+				"Update gameplay-effect LFO volume");
 			SetEffectVoicePan(active.voice, active.authoredPan + amb.lfoPan + EffectSpatialPanDegrees(amb.pan));
 		}
 }
@@ -2197,6 +2566,7 @@ void StartEffectChild(AMB& parent, const EFFECTBANK::GRAIN& grain)
 		return;
 	child->ppamb = nullptr;
 	child->parent = &parent;
+	child->parentVolumeScale = static_cast<float>(volume) / 127.0f;
 	child->pan += static_cast<float>(pan) / 180.0f;
 	child->registers = parent.registers;
 	parent.children.push_back(child);
@@ -2242,9 +2612,14 @@ void UpdateEffectEnvelopes(AMB& amb)
 		}
 		else
 		{
-			active.voice->SetVolume(EffectVoiceVolume(active,
-				(std::max)(0.0f, amb.volAttenuated + static_cast<float>(amb.lfoVolume) / 127.0f)) *
-				amb.autoVolumeScale);
+			float applicationVolume =
+				amb.volAttenuated + static_cast<float>(amb.lfoVolume) / 127.0f;
+			if (applicationVolume < 0.0f)
+				applicationVolume = 0.0f;
+			applicationVolume *= amb.autoVolumeScale;
+			const float outputVolume = EffectVoiceVolume(active, applicationVolume);
+			SetVoiceVolumeChecked(active.voice, outputVolume,
+				"Update gameplay-effect envelope volume");
 		}
 	}
 }
@@ -2276,9 +2651,14 @@ void ExecuteEffectGrain(AMB& amb)
 		StartEffectChild(amb, grain);
 		break;
 	case 1: case 9:
+	{
 		PlayEffectTone(amb, *bank, sound, grain.tone, amb.volAttenuated, amb.frq);
-		ApplyEffectPitchBend(amb, amb.currentPitchBend);
+		const int authoredPitchBend = amb.currentPitchBend;
+		ApplyEffectPitchBend(amb,
+			std::clamp(authoredPitchBend + amb.lfoPitchBend, -32768, 32767));
+		amb.currentPitchBend = authoredPitchBend;
 		break;
+	}
 	case 22: // LOOP_END
 		for (int i = amb.nextGrain - 1; i >= 0; --i)
 			if (sound.grains[i].type == 21) { amb.nextGrain = i - 1; break; }
@@ -2376,24 +2756,47 @@ void ExecuteEffectGrain(AMB& amb)
 
 void StartSound(SFXID sfxid, AMB** ppamb, ALO* palo, glm::vec3* ppos, float sStart, float sFull, float uVolAtSource, float frq, float uDoppler, LM* plmRepeat, LM* plmRepDist)
 {
+	MarkLevelTransitionSoundStart(static_cast<int>(sfxid), uVolAtSource, frq,
+		palo != nullptr || ppos != nullptr, ppamb != nullptr || plmRepeat != nullptr);
 	const int index = static_cast<int>(sfxid);
 	if (index < 0 || index >= static_cast<int>(kSfxCount) || g_psw == nullptr)
 	{
+		char traceEvent[160]{};
+		std::snprintf(traceEvent, sizeof(traceEvent),
+			"sound_reject:id=%d reason=%s", index,
+			g_psw == nullptr ? "no_world" : "invalid_id");
+		MarkLevelTransitionAudioTrace(traceEvent);
 		return;
 	}
 	const SND& mapping = g_mpsfxidsndbnk[index];
 	if (mapping.ibnk > 0 && mapping.ibnk != g_psw->ibnk)
 	{
+		char traceEvent[192]{};
+		std::snprintf(traceEvent, sizeof(traceEvent),
+			"sound_reject:id=%d reason=world_bank bank=%d world_bank=%d sound=%d",
+			index, mapping.ibnk, g_psw->ibnk, mapping.isnd);
+		MarkLevelTransitionAudioTrace(traceEvent);
 		return;
 	}
 	EFFECTBANK* bank = static_cast<EFFECTBANK*>(SbpEnsureBank(mapping.ibnk));
 	if (!bank || mapping.isnd < 0 || mapping.isnd >= static_cast<int>(bank->sounds.size()))
 	{
+		char traceEvent[192]{};
+		std::snprintf(traceEvent, sizeof(traceEvent),
+			"sound_reject:id=%d reason=bank_or_sound bank=%d sound=%d bank_loaded=%d sound_count=%zu",
+			index, mapping.ibnk, mapping.isnd, bank ? 1 : 0,
+			bank ? bank->sounds.size() : 0U);
+		MarkLevelTransitionAudioTrace(traceEvent);
 		return;
 	}
 	EFFECTBANK::SOUND& sound = bank->sounds[mapping.isnd];
 	if (sound.grains.empty())
 	{
+		char traceEvent[160]{};
+		std::snprintf(traceEvent, sizeof(traceEvent),
+			"sound_reject:id=%d reason=no_grains bank=%d sound=%d",
+			index, mapping.ibnk, mapping.isnd);
+		MarkLevelTransitionAudioTrace(traceEvent);
 		return;
 	}
 	if ((sound.flags & 8u) != 0 && sound.instanceLimit > 0)
@@ -2413,6 +2816,11 @@ void StartSound(SFXID sfxid, AMB** ppamb, ALO* palo, glm::vec3* ppos, float sSta
 					if (!weakest || instance->tStarted < weakest->tStarted) weakest = instance;
 			if (!weakest || ((sound.flags & 0x10u) != 0 && weakest->uVolAtSource >= uVolAtSource))
 			{
+				char traceEvent[192]{};
+				std::snprintf(traceEvent, sizeof(traceEvent),
+					"sound_reject:id=%d reason=instance_limit bank=%d sound=%d instances=%zu limit=%d",
+					index, mapping.ibnk, mapping.isnd, instances.size(), sound.instanceLimit);
+				MarkLevelTransitionAudioTrace(traceEvent);
 				return;
 			}
 			StopSound(weakest, 0);
@@ -2446,6 +2854,11 @@ void StartSound(SFXID sfxid, AMB** ppamb, ALO* palo, glm::vec3* ppos, float sSta
 				// can start playing when the listener subsequently enters range.
 				if (!continuous && !recurring)
 				{
+					char traceEvent[192]{};
+					std::snprintf(traceEvent, sizeof(traceEvent),
+						"sound_reject:id=%d reason=out_of_range bank=%d sound=%d distance=%.6g start=%.6g",
+						index, mapping.ibnk, mapping.isnd, distance, sStart);
+					MarkLevelTransitionAudioTrace(traceEvent);
 					return;
 				}
 				attenuatedVolume = 0.0f;
@@ -2455,13 +2868,18 @@ void StartSound(SFXID sfxid, AMB** ppamb, ALO* palo, glm::vec3* ppos, float sSta
 				attenuatedVolume *= (sStart - distance) / (sStart - sFull);
 		}
 	}
-
 	AMB* amb = PambAlloc();
 	if (!amb)
 	{
+		char traceEvent[160]{};
+		std::snprintf(traceEvent, sizeof(traceEvent),
+			"sound_reject:id=%d reason=amb_pool bank=%d sound=%d",
+			index, mapping.ibnk, mapping.isnd);
+		MarkLevelTransitionAudioTrace(traceEvent);
 		return;
 	}
 	amb->sfxid = sfxid;
+	amb->iSerial = s_effectAmbSerial++;
 	amb->tStarted = g_clock.t;
 	amb->bnk = bank;
 	amb->soundIndex = mapping.isnd;
@@ -2483,6 +2901,15 @@ void StartSound(SFXID sfxid, AMB** ppamb, ALO* palo, glm::vec3* ppos, float sSta
 	amb->nextGrain = 0;
 	amb->grainCountdown = sound.grains[0].delay;
 	amb->handlerDone = recurring || (continuous && outOfRange);
+	{
+		char traceEvent[256]{};
+		std::snprintf(traceEvent, sizeof(traceEvent),
+			"sound_accept:id=%d serial=%d bank=%d world_bank=%d sound=%d grains=%zu flags=0x%X continuous=%d recurring=%d positioned=%d out_of_range=%d attenuated=%.6g",
+			index, amb->iSerial, mapping.ibnk, g_psw->ibnk, mapping.isnd,
+			sound.grains.size(), sound.flags, continuous ? 1 : 0, recurring ? 1 : 0,
+			positioned ? 1 : 0, outOfRange ? 1 : 0, attenuatedVolume);
+		MarkLevelTransitionAudioTrace(traceEvent);
+	}
 	if (amb->fAttached)
 		SetPambVol(amb, uVolAtSource);
 	if (recurring)
@@ -2541,6 +2968,16 @@ void RemoveAmb(AMB* pamb)
 {
 	if (pamb == nullptr || g_psw == nullptr)
 		return;
+	{
+		char traceEvent[192]{};
+		std::snprintf(traceEvent, sizeof(traceEvent),
+			"sound_remove:id=%d serial=%d bank=%d sound=%d voices=%zu stopped=%d done=%d",
+			static_cast<int>(pamb->sfxid), pamb->iSerial,
+			pamb->bnk ? static_cast<EFFECTBANK*>(pamb->bnk)->ibnk : -1,
+			pamb->soundIndex, pamb->voices.size(), pamb->fStopped,
+			pamb->handlerDone ? 1 : 0);
+		MarkLevelTransitionAudioTrace(traceEvent);
+	}
 	if (pamb == s_pambVagAmbient)
 	{
 		s_pambVagAmbient = nullptr;
@@ -2638,36 +3075,106 @@ void PausePamb(AMB* pamb)
 {
 	if (pamb == nullptr || pamb->paused)
 		return;
-	pamb->paused = true;
+	bool paused = true;
 
 	if (!pamb->voices.empty())
 	{
 		for (EFFECTVOICE& active : pamb->voices)
 			if (active.voice != nullptr)
-				active.voice->Stop();
+			{
+				const HRESULT result = active.voice->Stop();
+				ReportXAudioFailureOnce("Pause ambient effect voice", result);
+				paused = paused && SUCCEEDED(result);
+			}
 	}
 	else if (pamb->voice != nullptr)
 	{
-		pamb->voice->Stop();
+		const HRESULT result = pamb->voice->Stop();
+		ReportXAudioFailureOnce("Pause ambient voice", result);
+		paused = SUCCEEDED(result);
 	}
+	pamb->paused = paused;
+}
+
+static void StopAllMusicVoicesForSegment(uint32_t segment)
+{
+	for (MusicVoice& voice : s_music989.voices)
+	{
+		if (!voice.voice || voice.segment != segment)
+			continue;
+		ReportXAudioFailureOnce("Stop music voice at segment loop", voice.voice->Stop());
+		voice.voice->DestroyVoice();
+		voice.voice = nullptr;
+		voice.envelope.phase = MusicEnvelopePhase::Stopped;
+	}
+}
+
+void SetEffectReverbTypeDepth(REVERBK kind, int depth)
+{
+	MarkLevelTransitionAudioTrace("set_reverb", static_cast<int>(kind), depth);
+	if (!s_xaudio2)
+	{
+		s_effectReverbKind = kind;
+		s_effectReverbDepth = depth;
+		return;
+	}
+
+	// Retail initializes the selected SPU2 work area without reconnecting any
+	// voices. Silence the returns first, clear Studio C's history in place, then
+	// apply the new type/depth while the permanent wet-input bus stays connected.
+	s_effectReverbKind = REVERBK_None;
+	s_effectReverbDepth = 0;
+	ApplyCurrentEffectReverb();
+	EnsureEffectReverb();
+	if (s_effectStudioCProcessor)
+		s_effectStudioCProcessor->Reset();
+
+	s_effectReverbKind = kind;
+	s_effectReverbDepth = depth;
+	EnsureEffectReverb();
+	ApplyCurrentEffectReverb();
+}
+
+static void ResetMusicSegmentForLoop(MusicSegment& segment)
+{
+	// A repeated MIDI handler starts as a fresh handler. Its looping sample
+	// voices and channel state must not accumulate across song passes.
+	StopAllMusicVoicesForSegment(segment.id);
+	segment.cursor = segment.begin;
+	segment.tempo = segment.initialTempo;
+	segment.status = 0;
+	segment.ticksLeft = 0;
+	segment.needDelta = true;
+	segment.programs.fill(0);
+	segment.volumes.fill(127);
+	segment.pans.fill(0);
+	segment.pitchBends.fill(0);
+	segment.muted.fill(false);
 }
 
 void ContinuePamb(AMB* pamb)
 {
 	if (pamb == nullptr || !pamb->paused)
 		return;
-	pamb->paused = false;
+	bool resumed = true;
 
 	if (!pamb->voices.empty())
 	{
 		for (EFFECTVOICE& active : pamb->voices)
 			if (active.voice != nullptr)
-				active.voice->Start();
+			{
+				const HRESULT result = active.voice->Start();
+				ReportXAudioFailureOnce("Resume ambient effect voice", result);
+				resumed = resumed && SUCCEEDED(result);
+			}
 	}
 	else if (pamb->voice != nullptr)
 	{
-		pamb->voice->Start();
+		const HRESULT result = pamb->voice->Start();
+		ReportXAudioFailureOnce("Resume ambient voice", result);
+		resumed = SUCCEEDED(result);
 	}
+	pamb->paused = !resumed;
 }
 
 void SetAMRegister(int ireg, byte bVal)
@@ -2680,7 +3187,7 @@ void SetAMRegister(int ireg, byte bVal)
 		return;
 	s_amRegisters[ireg] = value;
 	s_music989.registers[ireg] = value;
-	ReapplyRegisterAmeGroups(ireg);
+	ReapplyMusicAmeGroups(ireg + 1);
 }
 
 static void PrimeMusicSequencerStartup()
@@ -2728,8 +3235,7 @@ void RefreshMidiRegister(int ireg)
 	s_amRegisters[ireg] = s_music989.registers[ireg];
 }
 
-void CalculateVolPan(float sDist, glm::vec3* pposSound, float* pvol, float* ppan,
-	float uvol, float sStart, float sFull)
+void CalculateVolPan(float sDist, glm::vec3* pposSound, float* pvol, float* ppan, float uvol, float sStart, float sFull)
 {
 	if (!pvol || !ppan)
 		return;
@@ -2766,7 +3272,7 @@ int FAmbientsPaused()
 	return s_fPauseAmbients;
 }
 
-void SetPambVol(AMB* pamb, float uVolAtSource)
+static void SetPambVolTree(AMB* pamb, float uVolAtSource)
 {
 	if (pamb == nullptr)
 		return;
@@ -2790,9 +3296,9 @@ void SetPambVol(AMB* pamb, float uVolAtSource)
 	{
 		if (!s_vagStream.voice)
 			return;
-		s_vagStream.voice->SetVolume((std::max)(0.0f, attenuatedVolume) *
+		SetVoiceVolumeChecked(s_vagStream.voice, (std::max)(0.0f, attenuatedVolume) *
 			kVagDriverGain * (s_fFmvAudioMode ? 1.0f : s_channelVolumes[2]) *
-			s_userDialogueVolume);
+			s_userDialogueVolume, "Update positioned dialogue volume");
 		if (s_vagStream.format.channels == 1 && s_musicMasterVoice)
 		{
 			XAUDIO2_VOICE_DETAILS destinationDetails{};
@@ -2806,8 +3312,9 @@ void SetPambVol(AMB* pamb, float uVolAtSource)
 				matrix[0] = s_stereoOutputEnabled ? (1.0f - position) * 0.5f : 0.5f;
 				if (destinationDetails.InputChannels >= 2)
 					matrix[1] = s_stereoOutputEnabled ? (1.0f + position) * 0.5f : 0.5f;
-				s_vagStream.voice->SetOutputMatrix(s_musicMasterVoice, 1,
-					destinationDetails.InputChannels, matrix.data());
+				ReportXAudioFailureOnce("Set positioned dialogue output matrix",
+					s_vagStream.voice->SetOutputMatrix(s_musicMasterVoice, 1,
+						destinationDetails.InputChannels, matrix.data()));
 			}
 		}
 		return;
@@ -2815,15 +3322,24 @@ void SetPambVol(AMB* pamb, float uVolAtSource)
 	for (EFFECTVOICE& active : pamb->voices)
 		if (active.voice != nullptr)
 		{
-			active.voice->SetVolume(EffectVoiceVolume(active,
+			SetVoiceVolumeChecked(active.voice, EffectVoiceVolume(active,
 				(std::max)(0.0f, attenuatedVolume + static_cast<float>(pamb->lfoVolume) / 127.0f)) *
-				pamb->autoVolumeScale);
+				pamb->autoVolumeScale, "Update positioned gameplay-effect volume");
 			SetEffectVoicePan(active.voice,
 				active.authoredPan + pamb->lfoPan + EffectSpatialPanDegrees(pamb->pan));
 		}
+	const std::vector<AMB*> children = pamb->children;
+	for (AMB* child : children)
+		if (child != nullptr)
+			SetPambVolTree(child, uVolAtSource * child->parentVolumeScale);
 }
 
-void SetPambFrq(AMB* pamb, float frq)
+void SetPambVol(AMB* pamb, float uVolAtSource)
+{
+	SetPambVolTree(pamb, uVolAtSource);
+}
+
+static void SetPambFrqTree(AMB* pamb, float frq, int depth)
 {
 	if (pamb == nullptr)
 		return;
@@ -2844,6 +3360,20 @@ void SetPambFrq(AMB* pamb, float frq)
 	if (!pamb->voices.empty())
 		pamb->frequencyRatioBase = pamb->voices.front().baseFrequencyRatio;
 	SetDoppler(pamb);
+	// START_CHILD_SOUND handlers are part of the parent's 989SND voice tree.
+	// Runtime pitch controls target the root handle, so every child voice must
+	// track the same application pitch change.  Without this, compound effects
+	// (including the owl strikes and Raleigh's tongue) remain at their starting
+	// pitch because the audible tone lives on a child AMB.
+	const std::vector<AMB*> children = pamb->children;
+	for (AMB* child : children)
+		if (child != nullptr)
+			SetPambFrqTree(child, frq, depth + 1);
+}
+
+void SetPambFrq(AMB* pamb, float frq)
+{
+	SetPambFrqTree(pamb, frq, 0);
 }
 
 void SetDoppler(AMB* pamb)
@@ -2880,9 +3410,12 @@ void SetDoppler(AMB* pamb)
 		}
 	}
 
-	// Doppler is one component of the final 989SND pitch. Reapply the combined
-	// value so this spatial refresh does not erase authored pitch bends or LFOs.
-	ApplyEffectPitchBend(*pamb, pamb->currentPitchBend);
+	// Doppler is one component of the final 989SND pitch. Reapply the complete
+	// handler bend so this spatial refresh cannot reset an active pitch-bend LFO
+	// back to the authored/base value between sound ticks.
+	const int authoredPitchBend = pamb->currentPitchBend;
+	ApplyEffectPitchBend(*pamb, std::clamp(authoredPitchBend + pamb->lfoPitchBend, -32768, 32767));
+	pamb->currentPitchBend = authoredPitchBend;
 }
 
 void ScheduleNextIntermittentSound(AMB* pamb)
@@ -3038,6 +3571,12 @@ void StartAloAmbient(float sStart, float sFull, ALO* palo, AMB** pamb)
 
 bool FPauseForVag()
 {
+	FinishPendingVagLoad();
+	{
+		std::lock_guard<std::mutex> lock(s_vagLoadMutex);
+		if (s_vagLoad.requested || s_vagLoad.loading || s_vagLoad.ready)
+			return true;
+	}
 	if (!s_vagStream.loaded)
 		return false;
 	// Retail reports true when the VAG was already paused; callers use this to
@@ -3050,10 +3589,12 @@ bool FPauseForVag()
 		const HRESULT result = s_vagStream.voice ? s_vagStream.voice->Start() : E_POINTER;
 		if (FAILED(result))
 		{
+			ReportXAudioFailureOnce("Start VAG/dialog voice", result);
 			CloseVagStream();
 			return false;
 		}
 		s_vagStream.started = true;
+		s_vagStartWhenReady = false;
 		s_vagStream.paused = false;
 		ApplyDialogMusicDuck(0.2f);
 	}
@@ -3063,6 +3604,12 @@ bool FPauseForVag()
 
 int FVagPlaying()
 {
+	FinishPendingVagLoad();
+	{
+		std::lock_guard<std::mutex> lock(s_vagLoadMutex);
+		if (s_vagLoad.requested || s_vagLoad.loading || s_vagLoad.ready)
+			return 1;
+	}
 	if (!s_vagStream.loaded)
 		return 0;
 
@@ -3079,6 +3626,21 @@ int FVagPlaying()
 
 	CloseVagStream();
 	return 0;
+}
+
+double VagPlaybackSeconds()
+{
+	std::lock_guard<std::recursive_mutex> lock(s_musicMutex);
+	if (!s_vagStream.loaded || !s_vagStream.started || s_vagStream.voice == nullptr ||
+		s_vagStream.format.samplesPerSec == 0)
+		return -1.0;
+
+	XAUDIO2_VOICE_STATE state{};
+	s_vagStream.voice->GetState(&state);
+	if (state.BuffersQueued == 0)
+		return -1.0;
+	return static_cast<double>(s_vagStream.playBegin + state.SamplesPlayed) /
+		static_cast<double>(s_vagStream.format.samplesPerSec);
 }
 
 bool FHasAmbientVag()
@@ -3152,10 +3714,21 @@ void SetAttractSoundOption(bool fMono)
 
 void SetUserStereoEnabled(bool enabled)
 {
+	std::lock_guard<std::recursive_mutex> lock(s_musicMutex);
 	s_stereoOutputEnabled = enabled;
+	for (MusicVoice& active : s_music989.voices)
+		if (active.voice)
+			SetMusicVoicePan(active.voice, active.pan);
 	if (g_psw)
 		for (const std::unique_ptr<AMB>& slot : g_psw->ambOwners)
 			if (slot) SetPambVol(slot.get(), slot->uVolAtSource);
+	if (s_vagStream.voice)
+	{
+		if (s_pambVagAmbient)
+			SetPambVol(s_pambVagAmbient, s_pambVagAmbient->uVolAtSource);
+		else
+			SetVagStreamOutputMatrix(s_vagStream.voice, s_vagStream.format.channels);
+	}
 }
 
 bool FUserStereoEnabled() { return s_stereoOutputEnabled; }
@@ -3188,6 +3761,18 @@ float GetUserDialogueVolume() { return s_userDialogueVolume; }
 
 void StopVag()
 {
+	s_commentaryStartPending = false;
+	s_vagStartWhenReady = false;
+	{
+		std::lock_guard<std::mutex> lock(s_vagLoadMutex);
+		++s_vagLoadGeneration;
+		s_vagLoad.requested = false;
+		s_vagLoad.loading = false;
+		s_vagLoad.ready = false;
+		s_vagLoad.readablePath.clear();
+		s_vagLoad.path.clear();
+		s_vagLoad.pcm.clear();
+	}
 	if (!s_vagStream.loaded)
 		return;
 
@@ -3216,9 +3801,13 @@ void PauseVag()
 	{
 		if (s_vagStream.voice)
 		{
-			s_vagStream.voice->SetVolume(0.0f);
-			if (SUCCEEDED(s_vagStream.voice->Stop()))
+			ReportXAudioFailureOnce("Mute VAG/dialog voice for pause",
+				s_vagStream.voice->SetVolume(0.0f));
+			const HRESULT result = s_vagStream.voice->Stop();
+			if (SUCCEEDED(result))
 				s_vagStream.paused = true;
+			else
+				ReportXAudioFailureOnce("Pause VAG/dialog voice", result);
 		}
 	}
 }
@@ -3226,6 +3815,14 @@ void PauseVag()
 void ContinueVag()
 {
 	std::lock_guard<std::recursive_mutex> lock(s_musicMutex);
+	{
+		std::lock_guard<std::mutex> loadLock(s_vagLoadMutex);
+		if (s_vagLoad.requested || s_vagLoad.loading || s_vagLoad.ready)
+		{
+			s_vagStartWhenReady = true;
+			return;
+		}
+	}
 	if (s_vagStream.loaded && !s_vagStream.started)
 	{
 		FPauseForVag();
@@ -3237,10 +3834,14 @@ void ContinueVag()
 			if (s_pambVagAmbient)
 				SetPambVol(s_pambVagAmbient, s_pambVagAmbient->uVolAtSource);
 			else
-				s_vagStream.voice->SetVolume(kVagDriverGain *
-					(s_fFmvAudioMode ? 1.0f : s_channelVolumes[2]) * s_userDialogueVolume);
-			if (SUCCEEDED(s_vagStream.voice->Start()))
+				SetVoiceVolumeChecked(s_vagStream.voice, kVagDriverGain *
+					(s_fFmvAudioMode ? 1.0f : s_channelVolumes[2]) * s_userDialogueVolume,
+					"Restore VAG/dialog volume");
+			const HRESULT result = s_vagStream.voice->Start();
+			if (SUCCEEDED(result))
 				s_vagStream.paused = false;
+			else
+				ReportXAudioFailureOnce("Resume VAG/dialog voice", result);
 		}
 	}
 }
@@ -3259,27 +3860,56 @@ void EndDialogAudioDuck()
 	ApplyDialogMusicDuck(1.0f);
 }
 
+void PauseAmbientSounds()
+{
+	if (s_fPauseAmbients != 0)
+		return;
+
+	s_fPauseAmbients = 1;
+	if (g_psw == nullptr)
+		return;
+
+	for (std::unique_ptr<AMB>& slot : g_psw->ambOwners)
+	{
+		if (!slot)
+			continue;
+		for (EFFECTVOICE& active : slot->voices)
+			if (active.voice)
+				ReportXAudioFailureOnce("Pause gameplay effects", active.voice->Stop());
+	}
+}
+
+void ContinueAmbientSounds()
+{
+	if (s_fPauseAmbients == 0)
+		return;
+
+	if (g_psw != nullptr)
+	{
+		for (std::unique_ptr<AMB>& slot : g_psw->ambOwners)
+		{
+			if (!slot)
+				continue;
+			for (EFFECTVOICE& active : slot->voices)
+				if (active.voice)
+					ReportXAudioFailureOnce("Resume gameplay effects", active.voice->Start());
+		}
+	}
+
+	// UpdateSounds uses wall time to emulate the independent 240 Hz sound
+	// clock. Reset its anchor so a pause does not fast-forward SFX handlers.
+	s_effectLastUpdate = std::chrono::steady_clock::now();
+	s_fPauseAmbients = 0;
+}
+
 void PauseMusicSequencer()
 {
 	std::lock_guard<std::recursive_mutex> lock(s_musicMutex);
 	const bool pauseRubyEffects = g_pgsCur != nullptr &&
 		g_pgsCur->gameWorldCur == GAMEWORLD_Voodoo &&
 		static_cast<int>(g_pgsCur->worldLevelCur) == 8;
-	if (pauseRubyEffects && s_fPauseAmbients == 0)
-	{
-		s_fPauseAmbients = 1;
-		if (g_psw != nullptr)
-		{
-			for (std::unique_ptr<AMB>& slot : g_psw->ambOwners)
-			{
-				if (!slot)
-					continue;
-				for (EFFECTVOICE& active : slot->voices)
-					if (active.voice)
-						active.voice->Stop();
-			}
-		}
-	}
+	if (pauseRubyEffects)
+		PauseAmbientSounds();
 	if (s_musicStream.state == MusicState::Playing && !s_musicStream.paused)
 	{
 		// Mark the sequencer paused before touching its voices so no worker tick
@@ -3288,118 +3918,274 @@ void PauseMusicSequencer()
 		for (MusicVoice& active : s_music989.voices)
 			if (active.voice)
 			{
-				active.voice->SetVolume(0.0f);
-				active.voice->Stop();
+				SetVoiceVolumeChecked(active.voice, 0.0f, "Mute music for pause");
+				ReportXAudioFailureOnce("Pause music voice", active.voice->Stop());
 			}
 	}
 }
 
-void ContinueMusicSequencer()
+void ContinueMusicSequencer(bool continueAmbientSounds)
 {
 	std::lock_guard<std::recursive_mutex> lock(s_musicMutex);
-	if (s_fPauseAmbients != 0)
-	{
-		if (g_psw != nullptr)
-		{
-			for (std::unique_ptr<AMB>& slot : g_psw->ambOwners)
-			{
-				if (!slot)
-					continue;
-				for (EFFECTVOICE& active : slot->voices)
-					if (active.voice)
-						active.voice->Start();
-			}
-		}
-		// UpdateSounds uses wall time to emulate the independent 240 Hz sound
-		// clock. Reset its anchor so a pause does not fast-forward SFX handlers.
-		s_effectLastUpdate = std::chrono::steady_clock::now();
-		s_fPauseAmbients = 0;
-	}
+	if (continueAmbientSounds && s_fPauseAmbients != 0)
+		ContinueAmbientSounds();
 	if (s_musicStream.state == MusicState::Playing && s_musicStream.paused)
 	{
+		bool resumed = true;
 		const int musicChannel = std::clamp(s_music989.cueVolumeGroup, 0,
 			static_cast<int>(s_channelVolumes.size()) - 1);
 		for (MusicVoice& active : s_music989.voices)
 			if (active.voice)
 			{
-				active.voice->SetVolume(active.baseVolume *
+				const HRESULT volumeResult = active.voice->SetVolume(active.baseVolume *
 					(active.envelope.level / 32767.0f) * s_channelVolumes[musicChannel] *
 					s_musicVolume * s_dialogMusicDuck * s_userMusicVolume);
-				active.voice->Start();
+				const HRESULT startResult = active.voice->Start();
+				ReportXAudioFailureOnce("Restore music volume after pause", volumeResult);
+				ReportXAudioFailureOnce("Resume music voice", startResult);
+				resumed = resumed && SUCCEEDED(volumeResult) && SUCCEEDED(startResult);
 			}
-		s_music989.lastUpdate = std::chrono::steady_clock::now();
-		s_musicStream.paused = false;
+		if (resumed)
+		{
+			s_music989.lastUpdate = std::chrono::steady_clock::now();
+			s_musicStream.paused = false;
+		}
 	}
 }
 
-void PreloadVag(const char* descriptorOrPath)
+static void VagLoadWorkerMain()
 {
-	StopVag();
+	for (;;)
+	{
+		PendingVagLoad request{};
+		{
+			std::unique_lock<std::mutex> lock(s_vagLoadMutex);
+			s_vagLoadCondition.wait(lock, []
+			{
+				return !s_vagLoadWorkerRunning || s_vagLoad.requested;
+			});
+			if (!s_vagLoadWorkerRunning)
+				return;
+			request.generation = s_vagLoad.generation;
+			request.descriptor = s_vagLoad.descriptor;
+			request.readablePath = s_vagLoad.readablePath;
+			s_vagLoad.requested = false;
+		}
 
-	const std::filesystem::path wavPath = ResolveVagWav(descriptorOrPath);
-	if (wavPath.empty())
-		return;
+		request.path = request.readablePath.empty()
+			? ResolveVagDescriptor(request.descriptor.data())
+			: request.readablePath;
+		if (!request.path.empty())
+			request.path.replace_extension(L".wav");
+		if (!request.path.empty() &&
+			!LoadPcmWave(request.path, request.format, request.pcm))
+		{
+			ReportRuntimeError("Audio", "Could not load PCM WAV '%ls'",
+				request.path.c_str());
+		}
 
-	if (!EnsureMusicEngine())
-		return;
+		std::lock_guard<std::mutex> lock(s_vagLoadMutex);
+		if (s_vagLoadWorkerRunning && request.generation == s_vagLoadGeneration)
+		{
+			s_vagLoad.path = std::move(request.path);
+			s_vagLoad.format = request.format;
+			s_vagLoad.pcm = std::move(request.pcm);
+			s_vagLoad.loading = false;
+			s_vagLoad.ready = true;
+		}
+	}
+}
 
-	VagStreamState replacement{};
-	if (!LoadPcmWave(wavPath, replacement.format, replacement.pcm))
-		return;
-	WAVEFORMATEX format{};
-	format.wFormatTag = replacement.format.formatTag;
-	format.nChannels = replacement.format.channels;
-	format.nSamplesPerSec = replacement.format.samplesPerSec;
-	format.nAvgBytesPerSec = replacement.format.avgBytesPerSec;
-	format.nBlockAlign = replacement.format.blockAlign;
-	format.wBitsPerSample = replacement.format.bitsPerSample;
-	const HRESULT createResult = s_xaudio2->CreateSourceVoice(&replacement.voice, &format);
-	if (FAILED(createResult))
-		return;
-
-	// Do not rely on XAudio2's implicit channel mapping for the mono dialog
-	// files. Explicitly send mono speech to both front speakers (and map stereo
-	// directly) so it remains audible on stereo and surround output devices.
+static bool SetVagStreamOutputMatrix(IXAudio2SourceVoice* voice, UINT32 sourceChannels)
+{
+	if (!voice || !s_musicMasterVoice || sourceChannels == 0)
+		return false;
 	XAUDIO2_VOICE_DETAILS masterDetails{};
 	s_musicMasterVoice->GetVoiceDetails(&masterDetails);
-	const UINT32 sourceChannels = replacement.format.channels;
 	const UINT32 destinationChannels = masterDetails.InputChannels;
-	std::vector<float> outputMatrix(
+	if (destinationChannels == 0)
+		return false;
+	std::vector<float> matrix(
 		static_cast<std::size_t>(sourceChannels) * destinationChannels, 0.0f);
 	if (sourceChannels == 1)
 	{
-		if (destinationChannels >= 1) outputMatrix[0] = 1.0f;
-		if (destinationChannels >= 2) outputMatrix[1] = 1.0f;
+		matrix[0] = 1.0f;
+		if (destinationChannels >= 2)
+			matrix[1] = 1.0f;
+	}
+	else if (destinationChannels == 1)
+	{
+		const float gain = 1.0f / static_cast<float>(sourceChannels);
+		for (UINT32 source = 0; source < sourceChannels; ++source)
+			matrix[source] = gain;
+	}
+	else if (!s_stereoOutputEnabled)
+	{
+		// Fold every source channel into a balanced front-center image while
+		// retaining the source-major XAudio2 matrix layout.
+		const float gain = 1.0f / static_cast<float>(sourceChannels);
+		for (UINT32 source = 0; source < sourceChannels; ++source)
+		{
+			matrix[static_cast<std::size_t>(source) * destinationChannels] = gain;
+			matrix[static_cast<std::size_t>(source) * destinationChannels + 1] = gain;
+		}
 	}
 	else
 	{
 		const UINT32 mappedChannels = (std::min)(sourceChannels, destinationChannels);
 		for (UINT32 channel = 0; channel < mappedChannels; ++channel)
-			outputMatrix[static_cast<std::size_t>(channel) * destinationChannels + channel] = 1.0f;
+			matrix[static_cast<std::size_t>(channel) * destinationChannels + channel] = 1.0f;
 	}
-	const HRESULT matrixResult = replacement.voice->SetOutputMatrix(
-		s_musicMasterVoice, sourceChannels, destinationChannels, outputMatrix.data());
-	if (FAILED(matrixResult))
-	{
-		replacement.voice->DestroyVoice();
-		return;
-	}
+	const HRESULT result = voice->SetOutputMatrix(
+		s_musicMasterVoice, sourceChannels, destinationChannels, matrix.data());
+	ReportXAudioFailureOnce("Set VAG/dialog output matrix", result);
+	return SUCCEEDED(result);
+}
 
+static bool CreateVagStreamVoice(VagStreamState& stream, uint64_t playBegin)
+{
+	if (!EnsureMusicEngine() || stream.pcm.empty() || stream.format.blockAlign == 0)
+		return false;
+	WAVEFORMATEX format{};
+	format.wFormatTag = stream.format.formatTag;
+	format.nChannels = stream.format.channels;
+	format.nSamplesPerSec = stream.format.samplesPerSec;
+	format.nAvgBytesPerSec = stream.format.avgBytesPerSec;
+	format.nBlockAlign = stream.format.blockAlign;
+	format.wBitsPerSample = stream.format.bitsPerSample;
+	const HRESULT createResult = s_xaudio2->CreateSourceVoice(&stream.voice, &format);
+	if (FAILED(createResult) || !stream.voice)
+	{
+		ReportRuntimeError("Audio",
+			"CreateSourceVoice failed for '%ls' (HRESULT 0x%08X, %u Hz, %u channels, %u-bit)",
+			stream.path.c_str(), static_cast<unsigned>(createResult),
+			stream.format.samplesPerSec, stream.format.channels,
+			stream.format.bitsPerSample);
+		stream.voice = nullptr;
+		return false;
+	}
+	if (!SetVagStreamOutputMatrix(stream.voice, stream.format.channels))
+	{
+		stream.voice->DestroyVoice();
+		stream.voice = nullptr;
+		return false;
+	}
+	const uint64_t totalSamples = stream.pcm.size() / stream.format.blockAlign;
+	const UINT32 firstSample = static_cast<UINT32>((std::min)(playBegin,
+		(std::min)(totalSamples - 1, static_cast<uint64_t>(UINT32_MAX))));
 	XAUDIO2_BUFFER buffer{};
-	buffer.AudioBytes = static_cast<UINT32>(replacement.pcm.size());
-	buffer.pAudioData = replacement.pcm.data();
+	buffer.AudioBytes = static_cast<UINT32>(stream.pcm.size());
+	buffer.pAudioData = stream.pcm.data();
+	buffer.PlayBegin = firstSample;
 	buffer.Flags = XAUDIO2_END_OF_STREAM;
-	const HRESULT submitResult = replacement.voice->SubmitSourceBuffer(&buffer);
+	const HRESULT submitResult = stream.voice->SubmitSourceBuffer(&buffer);
 	if (FAILED(submitResult))
 	{
-		replacement.voice->DestroyVoice();
-		return;
+		ReportRuntimeError("Audio",
+			"SubmitSourceBuffer failed for '%ls' (HRESULT 0x%08X, %u bytes)",
+			stream.path.c_str(), static_cast<unsigned>(submitResult), buffer.AudioBytes);
+		stream.voice->DestroyVoice();
+		stream.voice = nullptr;
+		return false;
 	}
+	stream.loaded = true;
+	stream.playBegin = firstSample;
+	return true;
+}
 
-	replacement.loaded = true;
-	replacement.path = wavPath;
+static bool FinishPendingVagLoad()
+{
+	PendingVagLoad loaded{};
+	{
+		std::lock_guard<std::mutex> lock(s_vagLoadMutex);
+		if (!s_vagLoad.ready)
+			return false;
+		loaded.path = std::move(s_vagLoad.path);
+		loaded.format = s_vagLoad.format;
+		loaded.pcm = std::move(s_vagLoad.pcm);
+		s_vagLoad.ready = false;
+	}
+	if (loaded.path.empty() || loaded.pcm.empty() || !EnsureMusicEngine())
+		return true;
+
+	VagStreamState replacement{};
+	replacement.format = loaded.format;
+	replacement.pcm = std::move(loaded.pcm);
+	replacement.path = std::move(loaded.path);
+	if (!CreateVagStreamVoice(replacement, 0))
+		return true;
 	s_vagStream = std::move(replacement);
 	RecalculateChannelVolume(2);
+	return true;
+}
+
+void PreloadVag(const char* descriptorOrPath)
+{
+	StopVag();
+	if (!descriptorOrPath)
+		return;
+
+	PendingVagLoad request{};
+	request.readablePath = std::filesystem::path(descriptorOrPath);
+	{
+		std::lock_guard<std::mutex> lock(s_vagLoadMutex);
+		request.generation = ++s_vagLoadGeneration;
+		s_vagLoad.generation = request.generation;
+		s_vagLoad.descriptor = request.descriptor;
+		s_vagLoad.readablePath = std::move(request.readablePath);
+		s_vagLoad.path.clear();
+		s_vagLoad.pcm.clear();
+		s_vagLoad.ready = false;
+		s_vagLoad.loading = true;
+		s_vagLoad.requested = true;
+	}
+	s_vagLoadCondition.notify_one();
+}
+
+void PreloadVagDescriptor(const void* descriptor)
+{
+	StopVag();
+	if (!descriptor)
+		return;
+
+	PendingVagLoad request{};
+	std::memcpy(request.descriptor.data(), descriptor, 32);
+	{
+		std::lock_guard<std::mutex> lock(s_vagLoadMutex);
+		request.generation = ++s_vagLoadGeneration;
+		s_vagLoad.generation = request.generation;
+		s_vagLoad.descriptor = request.descriptor;
+		s_vagLoad.readablePath.clear();
+		s_vagLoad.path.clear();
+		s_vagLoad.pcm.clear();
+		s_vagLoad.ready = false;
+		s_vagLoad.loading = true;
+		s_vagLoad.requested = true;
+	}
+	s_vagLoadCondition.notify_one();
+}
+
+void PreloadVag(const std::filesystem::path& path)
+{
+	StopVag();
+	if (path.empty())
+		return;
+
+	PendingVagLoad request{};
+	request.readablePath = path;
+	{
+		std::lock_guard<std::mutex> lock(s_vagLoadMutex);
+		request.generation = ++s_vagLoadGeneration;
+		s_vagLoad.generation = request.generation;
+		s_vagLoad.descriptor = request.descriptor;
+		s_vagLoad.readablePath = std::move(request.readablePath);
+		s_vagLoad.path.clear();
+		s_vagLoad.pcm.clear();
+		s_vagLoad.ready = false;
+		s_vagLoad.loading = true;
+		s_vagLoad.requested = true;
+	}
+	s_vagLoadCondition.notify_one();
 }
 
 void PushSwReverb(SW* psw, REVERBK rvrbk, int depth)
@@ -3410,13 +4196,7 @@ void PushSwReverb(SW* psw, REVERBK rvrbk, int depth)
 	psw->arse[psw->irse].rvrbk = rvrbk;
 	psw->arse[psw->irse].depth = depth;
 	++psw->irse;
-	s_effectReverbKind = rvrbk;
-	s_effectReverbDepth = depth;
-	if (s_xaudio2)
-	{
-		EnsureEffectReverb();
-		ApplyCurrentEffectReverb();
-	}
+	SetEffectReverbTypeDepth(rvrbk, depth);
 }
 
 void PopSwReverb(SW* psw)
@@ -3426,13 +4206,7 @@ void PopSwReverb(SW* psw)
 
 	--psw->irse;
 	const RSE& restored = psw->arse[psw->irse - 1];
-	s_effectReverbKind = restored.rvrbk;
-	s_effectReverbDepth = restored.depth;
-	if (s_xaudio2)
-	{
-		EnsureEffectReverb();
-		ApplyCurrentEffectReverb();
-	}
+	SetEffectReverbTypeDepth(restored.rvrbk, restored.depth);
 }
 
 void PlayCommentaryAudio(char* audioFileLocation)
@@ -3446,26 +4220,12 @@ void PlayCommentaryAudio(char* audioFileLocation)
 		StopVag();
 
 	PreloadVag(audioFileLocation);
-	if (!s_vagStream.loaded)
-		return;
-
-	s_vagStream.commentary = true;
-	FPauseForVag();
-	if (!s_vagStream.loaded || !s_vagStream.started)
-		return;
-
-	// PlayCommentaryAudio applies mixer modifier 8 after successfully starting
-	// the stream. It ducks music, effects, and user channel 1 to one half while
-	// leaving the dialog channel untouched.
-	s_dialogMusicDuck = 1.0f;
-	SetMvgkRvol(0.5f, 8, 1);
-	SetMvgkRvol(0.5f, 8, 0);
-	SetMvgkRvol(0.5f, 8, 3);
+	s_commentaryStartPending = true;
 }
 
 bool FPlayingCommentaryAudio()
 {
-	return s_vagStream.loaded && s_vagStream.commentary;
+	return s_commentaryStartPending || (s_vagStream.loaded && s_vagStream.commentary);
 }
 
 void ContinueMusic()
@@ -3474,10 +4234,11 @@ void ContinueMusic()
 	s_musicVolume = 1.0f;
 	s_music989.lastUpdate = std::chrono::steady_clock::now();
 	for (MusicVoice& active : s_music989.voices)
-		if (active.voice) active.voice->SetVolume(
+		if (active.voice) SetVoiceVolumeChecked(active.voice,
 			active.baseVolume * (active.envelope.level / 32767.0f) *
 			s_channelVolumes[std::clamp(s_music989.cueVolumeGroup, 0,
-				static_cast<int>(s_channelVolumes.size()) - 1)] * s_dialogMusicDuck);
+				static_cast<int>(s_channelVolumes.size()) - 1)] * s_dialogMusicDuck *
+			s_userMusicVolume, "Continue music volume");
 }
 
 void PauseMusic()
@@ -3485,11 +4246,17 @@ void PauseMusic()
 	std::lock_guard<std::recursive_mutex> lock(s_musicMutex);
 	s_musicVolume = 0.0f;
 	for (MusicVoice& active : s_music989.voices)
-		if (active.voice) active.voice->SetVolume(0.0f);
+		if (active.voice) SetVoiceVolumeChecked(active.voice, 0.0f, "Pause music volume");
 }
 
 void UnloadMusic()
 {
+	if (s_musicStream.state != MusicState::None)
+	{
+		std::printf("[MUSIC LOAD] unload musid=0x%X state=%d\n",
+			static_cast<unsigned>(s_musicStream.musid),
+			static_cast<int>(s_musicStream.state));
+	}
 	CloseMusicVoice();
 }
 
@@ -3555,12 +4322,27 @@ void ResetAMRegisters()
 
 void KillSoundSystem()
 {
+	MarkLevelTransitionAudioTrace("kill_sound_system_begin");
 	// Retail stops the active 989SND handle before it clears ambient sounds,
 	// excitement, and the eight cached AM registers.  Closing our in-process
 	// sequencer first prevents register reset callbacks from being applied to
 	// the outgoing world's still-live music state.
+	// Disable the wet return before touching any source or processor. SPU2's
+	// effect-enable gate makes the return silent immediately while its work-area
+	// pointers remain valid; destroying a live XAudio effect first can expose one
+	// final buffer of its feedback tail during a world transition.
+	s_effectReverbKind = REVERBK_None;
+	s_effectReverbDepth = 0;
+	ApplyCurrentEffectReverb();
+	if (s_effectWetInputVoice)
+		ReportXAudioFailureOnce("Mute wet-input bus during world teardown",
+			s_effectWetInputVoice->SetVolume(0.0f));
 	KillMusic();
 	KillSounds(0);
+	// All source voices are gone and every wet return is silent, so rebuilding
+	// the downstream graph cannot create a routing discontinuity. This clears
+	// both Studio C and the otherwise opaque XAudio generic-reverb history.
+	ResetEffectReverbProcessors();
 	KillExcitement();
 	ResetAMRegisters();
 
@@ -3576,9 +4358,7 @@ void KillSoundSystem()
 	s_effectLastUpdate = {};
 	s_effectGlobalRegisters.fill(0);
 	s_fPauseAmbients = 0;
-	s_effectReverbKind = REVERBK_None;
-	s_effectReverbDepth = 0;
-	ApplyCurrentEffectReverb();
+	MarkLevelTransitionAudioTrace("kill_sound_system_end");
 	// Bank 0 is permanent in the original. The current world bank is released
 	// by SbpEnsureBank when the next world requests a different IBNK.
 }
@@ -3667,16 +4447,25 @@ void PreloadMusidSong(MUSID musid)
 	const std::filesystem::path bankPath = FindMusicBank(musid);
 	if (bankPath.empty())
 	{
+		ReportRuntimeError("Music", "Bank was not found for MUSID 0x%X",
+			static_cast<unsigned>(musid));
 		return;
 	}
 	const bool loaded = bankPath.extension() == L".mus"
 		? LoadMusic989Mus(bankPath)
 		: LoadMusic989Bank(bankPath);
-	if (!EnsureMusicEngine() || !loaded)
+	const bool engineReady = EnsureMusicEngine();
+	if (!engineReady || !loaded)
 	{
+		ReportRuntimeError("Music", "Load failed for MUSID 0x%X (%s), path '%ls'",
+			static_cast<unsigned>(musid), loaded ? "audio_engine" : "bank_parse",
+			bankPath.c_str());
 		CloseMusicVoice();
 		return;
 	}
+	std::printf("[MUSIC LOAD] ready musid=0x%X path=%ls segments=%zu tones=%zu\n",
+		static_cast<unsigned>(musid), bankPath.c_str(),
+		s_music989.segmentOffsets.size(), s_music989.tones.size());
 	s_music989.registers = s_amRegisters;
 	s_musicStream.musid = musid;
 	s_musicStream.path = bankPath;
@@ -3691,10 +4480,22 @@ void StartMusidSong(MUSID musid)
 		return;
 	if (s_musicStream.state == MusicState::Playing)
 		return;
-
 	QueueMusicSegment(0);
 	ActivateQueuedMusicSegments();
 	PrimeMusicSequencerStartup();
+	std::printf("[MUSIC START] musid=0x%X active=%zu pending=%zu voices=%zu excite=%u",
+		static_cast<unsigned>(musid), s_music989.activeSegments.size(),
+		s_music989.pendingStarts.size(), s_music989.voices.size(),
+		static_cast<unsigned>(s_globalExcite));
+	for (const MusicSegment& segment : s_music989.activeSegments)
+	{
+		unsigned mutedMask = 0;
+		for (std::size_t channel = 0; channel < segment.muted.size(); ++channel)
+			if (segment.muted[channel]) mutedMask |= 1u << channel;
+		std::printf(" segment=%u:complete%d:muted%04X",
+			segment.id, segment.complete ? 1 : 0, mutedMask);
+	}
+	std::printf("\n");
 	s_music989.lastUpdate = std::chrono::steady_clock::now();
 	s_musicStream.state = MusicState::Playing;
 	s_musicStream.paused = false;
@@ -3727,13 +4528,204 @@ void SetSwDefaultReverb(SW* psw, REVERBK rvrbk, int depth)
 	psw->arse[0].rvrbk = rvrbk;
 	psw->arse[0].depth = depth;
 	psw->irse = 1;
-	s_effectReverbKind = rvrbk;
-	s_effectReverbDepth = depth;
+	SetEffectReverbTypeDepth(rvrbk, depth);
+}
+
+static void DiscardAmbientEngineVoices(bool restartPersistentSounds)
+{
+	if (!g_psw)
+		return;
+	for (const std::unique_ptr<AMB>& slot : g_psw->ambOwners)
+	{
+		if (!slot)
+			continue;
+		AMB& amb = *slot;
+		if (amb.voices.empty() && amb.voice)
+			amb.voice->DestroyVoice();
+		for (EFFECTVOICE& active : amb.voices)
+		{
+			if (active.voice)
+				active.voice->DestroyVoice();
+			active.voice = nullptr;
+			active.pcm.clear();
+		}
+		amb.voices.clear();
+		amb.voice = nullptr;
+		if (!restartPersistentSounds || amb.fStopped || static_cast<int>(amb.sfxid) == -2)
+			continue;
+		if (amb.fContinuous && !amb.fOutOfRange)
+		{
+			amb.nextGrain = 0;
+			amb.grainCountdown = 0;
+			amb.handlerDone = false;
+			amb.currentPitchBend = 0;
+		}
+		else if (amb.lmRepeat.gMin >= 0.0f)
+		{
+			amb.handlerDone = true;
+			amb.tNext = g_clock.t;
+		}
+		else
+		{
+			// A one-shot cannot be resumed at an exact sample after device loss.
+			// Let the normal update remove it rather than replaying it from frame zero.
+			amb.fStopped = 1;
+			amb.handlerDone = true;
+		}
+	}
+}
+
+static void ReleaseAudioEngineGraph(bool restartPersistentSounds)
+{
+	DiscardAmbientEngineVoices(restartPersistentSounds);
+	CloseMusicVoice();
+	CloseVagStream();
+	if (s_effectWetInputVoice)
+	{
+		s_effectWetInputVoice->DestroyVoice();
+		s_effectWetInputVoice = nullptr;
+	}
+	if (s_effectReverbVoice)
+	{
+		s_effectReverbVoice->DestroyVoice();
+		s_effectReverbVoice = nullptr;
+	}
+	if (s_effectStudioCVoice)
+	{
+		s_effectStudioCProcessor = nullptr;
+		s_effectStudioCVoice->DestroyVoice();
+		s_effectStudioCVoice = nullptr;
+	}
+	if (s_effectDryVoice)
+	{
+		s_effectDryVoice->DestroyVoice();
+		s_effectDryVoice = nullptr;
+	}
+	s_effectReverbCreationAttempted = false;
+	s_effectStudioCCreationAttempted = false;
+	if (s_musicMasterVoice)
+	{
+		s_musicMasterVoice->DestroyVoice();
+		s_musicMasterVoice = nullptr;
+	}
 	if (s_xaudio2)
 	{
-		EnsureEffectReverb();
-		ApplyCurrentEffectReverb();
+		s_xaudio2->UnregisterForCallbacks(&s_audioEngineCallback);
+		s_xaudio2->Release();
+		s_xaudio2 = nullptr;
 	}
+}
+
+static bool CompleteSoundStartup()
+{
+	if (!EnsureMusicEngine())
+		return false;
+	if (!s_soundStartupComplete)
+	{
+		SbpEnsureBank(0);
+		s_globalExcite = 20;
+		InitializeSoundOptions();
+		s_effectReverbKind = REVERBK_None;
+		s_effectReverbDepth = 0;
+		s_soundStartupComplete = true;
+	}
+	EnsureEffectReverb();
+	ApplyCurrentEffectReverb();
+	// Every destination and effect is valid now, so it is safe to expose the
+	// graph at the requested volume.
+	if (s_musicMasterVoice)
+		ReportXAudioFailureOnce("Enable initialized mastering voice",
+			s_musicMasterVoice->SetVolume(s_masterVolume));
+	if (!s_musicWorkerRunning.exchange(true, std::memory_order_acq_rel))
+		s_musicWorker = std::thread(MusicWorkerMain);
+	s_audioRecoveryPending = false;
+	return true;
+}
+
+static bool RecoverAudioEngine()
+{
+	MUSID previousMusic = MUSID_Nil;
+	bool musicWasLoaded = false;
+	bool musicWasPlaying = false;
+	bool musicWasPaused = false;
+	VagStreamState previousVag{};
+	uint64_t previousVagSample = 0;
+	if (s_musicWorkerRunning.exchange(false, std::memory_order_acq_rel) &&
+		s_musicWorker.joinable())
+		s_musicWorker.join();
+	{
+		std::lock_guard<std::recursive_mutex> lock(s_musicMutex);
+		previousMusic = s_musicStream.musid;
+		musicWasLoaded = s_musicStream.state != MusicState::None;
+		musicWasPlaying = s_musicStream.state == MusicState::Playing;
+		musicWasPaused = s_musicStream.paused;
+		if (s_vagStream.loaded && s_vagStream.voice && !s_vagStream.pcm.empty())
+		{
+			previousVag.loaded = true;
+			previousVag.started = s_vagStream.started;
+			previousVag.paused = s_vagStream.paused;
+			previousVag.commentary = s_vagStream.commentary;
+			previousVag.path = s_vagStream.path;
+			previousVag.format = s_vagStream.format;
+			previousVag.pcm = s_vagStream.pcm;
+			previousVagSample = s_vagStream.playBegin;
+			if (s_vagStream.started)
+			{
+				XAUDIO2_VOICE_STATE state{};
+				s_vagStream.voice->GetState(&state);
+				previousVagSample += state.SamplesPlayed;
+			}
+		}
+		ReleaseAudioEngineGraph(true);
+	}
+	if (!CompleteSoundStartup())
+		return false;
+	if (musicWasLoaded && previousMusic != MUSID_Nil)
+	{
+		PreloadMusidSong(previousMusic);
+		if (musicWasPlaying)
+		{
+			StartMusidSong(previousMusic);
+			if (musicWasPaused)
+				PauseMusicSequencer();
+		}
+	}
+	if (previousVag.loaded)
+	{
+		const uint64_t totalSamples = previousVag.format.blockAlign == 0 ? 0 :
+			previousVag.pcm.size() / previousVag.format.blockAlign;
+		if (previousVagSample < totalSamples &&
+			CreateVagStreamVoice(previousVag, previousVagSample))
+		{
+			const bool shouldStart = previousVag.started && !previousVag.paused;
+			const bool wasCommentary = previousVag.commentary;
+			s_vagStream = std::move(previousVag);
+			if (s_pambVagAmbient)
+				s_hvagAmbient = 1;
+			RecalculateChannelVolume(2);
+			if (shouldStart)
+			{
+				const HRESULT startResult = s_vagStream.voice->Start();
+				if (FAILED(startResult))
+				{
+					ReportXAudioFailureOnce("Resume VAG/dialog after device recovery", startResult);
+					CloseVagStream();
+				}
+			}
+			if (s_vagStream.loaded && s_vagStream.started)
+				ApplyDialogMusicDuck(0.2f);
+			if (s_vagStream.loaded && wasCommentary)
+			{
+				SetMvgkRvol(0.5f, 8, 1);
+				SetMvgkRvol(0.5f, 8, 0);
+				SetMvgkRvol(0.5f, 8, 3);
+			}
+		}
+	}
+	s_effectLastUpdate = std::chrono::steady_clock::now();
+	s_effectTickAccumulator = 0.0;
+	std::printf("[AUDIO] Windows audio engine rebuilt successfully.\n");
+	return true;
 }
 
 void StartupSound()
@@ -3742,57 +4734,54 @@ void StartupSound()
 	// equivalent PC-side state, initialize XAudio2, and keep bank 0 resident as
 	// the common effects bank.
 	UnloadEffectBank();
-	if (!EnsureMusicEngine())
+	// Keep file loading independent from XAudio2 initialization.  Movie playback
+	// can then detect an unavailable output device and continue silently instead
+	// of waiting forever for a loader thread that was never started.
 	{
-		std::printf("[SOUND] Could not initialize XAudio2.\n");
+		std::lock_guard<std::mutex> lock(s_vagLoadMutex);
+		s_vagLoadWorkerRunning = true;
+	}
+	if (!s_vagLoadWorker.joinable())
+		s_vagLoadWorker = std::thread(VagLoadWorkerMain);
+
+	if (!CompleteSoundStartup())
+	{
+		ReportRuntimeError("Audio",
+			"Sound initialization failed; playback will retry when an output device becomes available");
+		s_audioRecoveryPending = true;
+		s_audioRecoveryRetry = std::chrono::steady_clock::now() + std::chrono::seconds(1);
 		return;
 	}
-
-	SbpEnsureBank(0);
-	s_globalExcite = 20;
-	InitializeSoundOptions();
-
-	// Mixer mode, SPU voice ranges, VAG stream buffers, and reverb work-area
-	// allocation are owned internally by XAudio2 in this port.
-	s_effectReverbKind = REVERBK_None;
-	s_effectReverbDepth = 0;
-	EnsureEffectReverb();
-	ApplyCurrentEffectReverb();
-
-	if (!s_musicWorkerRunning.exchange(true, std::memory_order_acq_rel))
-		s_musicWorker = std::thread(MusicWorkerMain);
 }
 
 void ShutdownSound()
 {
+	{
+		std::lock_guard<std::mutex> lock(s_vagLoadMutex);
+		s_vagLoadWorkerRunning = false;
+		s_vagLoad.requested = false;
+		++s_vagLoadGeneration;
+	}
+	s_vagLoadCondition.notify_one();
+	if (s_vagLoadWorker.joinable())
+		s_vagLoadWorker.join();
+	{
+		std::lock_guard<std::mutex> lock(s_vagLoadMutex);
+		s_vagLoad = {};
+	}
+
 	if (s_musicWorkerRunning.exchange(false, std::memory_order_acq_rel) &&
 		s_musicWorker.joinable())
 		s_musicWorker.join();
 
 	std::lock_guard<std::recursive_mutex> lock(s_musicMutex);
-	// World teardown normally closes these first, but make final shutdown
-	// independently safe for startup failures and exits without a loaded world.
-	CloseMusicVoice();
-	CloseVagStream();
+	// Explicitly discard every source voice before its destination submixes.
+	ReleaseAudioEngineGraph(false);
 	UnloadEffectBank();
-
-	if (s_effectReverbVoice != nullptr)
-	{
-		s_effectReverbVoice->DestroyVoice();
-		s_effectReverbVoice = nullptr;
-	}
-
-	if (s_musicMasterVoice != nullptr)
-	{
-		s_musicMasterVoice->DestroyVoice();
-		s_musicMasterVoice = nullptr;
-	}
-
-	if (s_xaudio2 != nullptr)
-	{
-		s_xaudio2->Release();
-		s_xaudio2 = nullptr;
-	}
+	s_soundStartupComplete = false;
+	s_audioRecoveryPending = false;
+	s_audioCriticalResult.store(S_OK, std::memory_order_release);
+	s_audioCriticalError.store(false, std::memory_order_release);
 }
 
 void InitializeSoundOptions()
@@ -3816,7 +4805,8 @@ void SetMasterVolume(float uVol)
 	// equivalent normalized float directly on the mastering voice.
 	s_masterVolume = std::clamp(uVol, 0.0f, 1.0f);
 	if (EnsureMusicEngine() && s_musicMasterVoice)
-		s_musicMasterVoice->SetVolume(s_masterVolume);
+		ReportXAudioFailureOnce("Set mastering volume",
+			s_musicMasterVoice->SetVolume(s_masterVolume));
 }
 
 float GetMasterVolume()
@@ -3833,6 +4823,9 @@ void SetFmvAudioMode(bool enabled)
 
 void SetSwIntermittentSound(SW* psw, SFXID sfxid)
 {
+	if (psw == nullptr)
+		return;
+
 	if (psw->cisi >= 16)
 		return;
 
@@ -3845,6 +4838,9 @@ void SetSwIntermittentSound(SW* psw, SFXID sfxid)
 
 void SetSwIntermittentVolPct(SW* psw, const LM* plmVolPct)
 {
+	if (psw == nullptr)
+		return;
+
 	if (psw->cisi == 0 || plmVolPct == nullptr)
 		return;
 
@@ -3856,6 +4852,9 @@ void SetSwIntermittentVolPct(SW* psw, const LM* plmVolPct)
 
 void SetSwIntermittentRepeat(SW* psw, const LM* plmRepeat)
 {
+	if (psw == nullptr)
+		return;
+
 	if (psw->cisi == 0 || plmRepeat == nullptr)
 		return;
 
@@ -3867,15 +4866,59 @@ void StartSwIntermittentSounds(SW* psw)
 	for (int i = 0; i < psw->cisi; ++i)
 	{
 		ISI& isi = psw->aisi[i];
-
 		StartSound(isi.sfxid, nullptr, nullptr, nullptr, 8000.0f, 3000.0f, 1.0f, 0.0f, 0.0f, &isi.lmRepeat, &isi.lmRepDist);
+	}
+}
+
+void ServiceAudioDevice()
+{
+	if (s_audioCriticalError.exchange(false, std::memory_order_acq_rel))
+	{
+		const HRESULT result = s_audioCriticalResult.load(std::memory_order_acquire);
+		ReportRuntimeError("Audio",
+			"The Windows audio device stopped, changed format, or was removed (HRESULT 0x%08X). Rebuilding the audio engine.",
+			static_cast<unsigned>(result));
+		s_audioRecoveryPending = true;
+		s_audioRecoveryRetry = {};
+	}
+	if (!s_audioRecoveryPending)
+		return;
+
+	const auto now = std::chrono::steady_clock::now();
+	if (s_audioRecoveryRetry.time_since_epoch().count() != 0 && now < s_audioRecoveryRetry)
+		return;
+	if (!RecoverAudioEngine())
+	{
+		s_audioRecoveryPending = true;
+		s_audioRecoveryRetry = now + std::chrono::seconds(1);
 	}
 }
 
 void UpdateSounds()
 {
+	ServiceAudioDevice();
+	if (s_audioRecoveryPending)
+		return;
+
 	if (FAmbientsPaused() != 0)
 		return;
+
+	if (s_commentaryStartPending && !FPauseForVag())
+	{
+		s_commentaryStartPending = false;
+		if (s_vagStream.loaded && s_vagStream.started)
+		{
+			s_vagStream.commentary = true;
+			// Commentary uses mixer modifier 8 to duck music and effects while
+			// leaving the dialogue channel at full volume.
+			s_dialogMusicDuck = 1.0f;
+			SetMvgkRvol(0.5f, 8, 1);
+			SetMvgkRvol(0.5f, 8, 0);
+			SetMvgkRvol(0.5f, 8, 3);
+		}
+	}
+	else if (s_vagStartWhenReady)
+		FPauseForVag();
 
 	// Retail polls the active VAG handle here every sound update. Without this,
 	// a naturally completed dialog stream can leave music ducking engaged until
@@ -3918,10 +4961,12 @@ void UpdateSounds()
 		s_effectLastUpdate = effectNow;
 	const double effectElapsed = std::chrono::duration<double>(effectNow - s_effectLastUpdate).count();
 	s_effectLastUpdate = effectNow;
-	// The SPU2 keeps advancing while the EE/game thread is delayed. Discarding
-	// elapsed time here stretched grain delays and ADSR envelopes after loading
-	// or a frame-time spike, so preserve the complete 240 Hz sound timeline.
-	s_effectTickAccumulator += effectElapsed * 240.0;
+	// Do not batch an arbitrarily long loading pause into one XAudio quantum.
+	// The SPU2 advances these changes over real time; applying hundreds of
+	// envelope, LFO, and grain updates at once can expose a one-buffer gain
+	// transient when a new world's graph begins processing. Preserve ordinary
+	// frame stalls while bounding transition-time catch-up.
+	s_effectTickAccumulator += (std::min)(effectElapsed, 0.25) * 240.0;
 	const int effectTicks = static_cast<int>(s_effectTickAccumulator);
 	s_effectTickAccumulator -= effectTicks;
 
@@ -3933,7 +4978,9 @@ void UpdateSounds()
 			if (!bank || amb.soundIndex < 0 ||
 				amb.soundIndex >= static_cast<int>(bank->sounds.size()) ||
 				bank->sounds[amb.soundIndex].grains.empty())
+			{
 				return;
+			}
 			amb.nextGrain = 0;
 			amb.grainCountdown = bank->sounds[amb.soundIndex].grains[0].delay;
 			amb.handlerDone = false;
@@ -4004,11 +5051,16 @@ void UpdateSounds()
 				g_clock.t >= amb.tNext)
 			{
 				ScheduleNextIntermittentSound(&amb);
-				// Retail applies this shared one-second gate to every inactive
-				// intermittent sound, not only sources that were out of range.
-				const bool allowStart = g_clock.t - s_tLastIntermittent >= 1.0f;
-				if (allowStart)
-					s_tLastIntermittent = g_clock.t;
+				// Retail applies the shared one-second gate only when this AMB was
+				// previously out of range. In-range intermittent sounds are allowed to
+				// overlap even when two independent timers expire close together.
+				bool allowStart = true;
+				if (amb.fOutOfRange)
+				{
+					allowStart = g_clock.t - s_tLastIntermittent >= 1.0f;
+					if (allowStart)
+						s_tLastIntermittent = g_clock.t;
+				}
 				// Scheduling may move an unattached intermittent source around the
 				// listener, so calculate its new attenuation before deciding to play.
 				SetPambVol(&amb, amb.uVolAtSource);
@@ -4173,8 +5225,8 @@ int s_fPauseAmbients = 0;
 VagStreamState s_vagStream;
 const std::array<const wchar_t*, kEffectBankCount> kEffectBankNames =
 {
-	L"Common.bnk", L"Intro.bnk", L"Snow.bnk", L"Underwater.bnk",
-	L"Muggshot.bnk", L"Voodoo.bnk", L"Clockwerk.bnk"
+	L"Common.bnk", L"Intro.bnk", L"Underwater.bnk", L"Muggshot.bnk",
+	L"Voodoo.bnk", L"Snow.bnk", L"Clockwerk.bnk"
 };
 LM s_lmRepeatDefault = { 4.0f, 6.0f };
 LM s_lmDistDefault = { 3000.0f, 8000.0f };

@@ -1,6 +1,7 @@
 #include "step.h"
 #include "bbmark.h"
 #include "jt.h"
+#include <cstdio>
 
 STEP* NewStep()
 {

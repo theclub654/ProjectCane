@@ -273,11 +273,7 @@ void DrawNote(NOTE* pnote)
     glm::vec4 fadedColor = pnote->rgba;
     fadedColor.a *= pnote->uOn;
 
-    // Credit events and NOTE dimensions are authored in the PS2's
-    // 640 x 492.8 virtual canvas. Credits fill the active output canvas rather
-    // than the centered 4:3 HUD canvas, so scale each axis independently.
-    // Embedded CREDIT notes remain at Modern 125%; the global gameplay NOTE
-    // continues to honor the selected HUD scale.
+    // NOTE coordinates are authored in the PS2's 640 x 492.8 virtual canvas.
     const GuiScale guiScale = FModernGui() && pnote->blotk == BLOTK_CreditNote
         ? GetGuiScale(1.25f)
         : GetGuiScale();
@@ -322,10 +318,6 @@ void DrawNote(NOTE* pnote)
         }
     }
 
-    // Letterbox geometry always uses the full PS2-canvas-to-framebuffer
-    // height conversion, even when Modern GUI content is drawn smaller.
-    // Using Modern's density here moves the note by too little and lets its
-    // lower edge overlap the black bar.
     constexpr float kPs2CanvasHeight = 492.80002f;
     const float letterboxScale = g_gl.height / kPs2CanvasHeight;
 
@@ -418,6 +410,11 @@ void PostCreditLoad(CREDIT* pcredit)
         pnote->pvtblot->pfnPostBlotLoad(pnote);
 
         pnote->pte = nullptr;
+        // Retail credits use the font's 0.8 base scale below. PostNoteLoad also
+        // applies the 0.6 gameplay-note scale, which shrinks PS2-style credits
+        // a second time. Preserve the existing Modern presentation.
+        if (!FModernGui())
+            pnote->rFontScale = 1.0f;
         pnote->pfont->m_rxScale = 0.8f;
         pnote->pfont->m_ryScale = 0.8f;
 

@@ -16,9 +16,8 @@ inline GuiScale GetGuiScale(float scaleSetting)
     if (g_guiStyle == GuiStyle_PS2)
     {
         // Preserve the proportions of artwork authored for the PS2 canvas.
-        // Screen-edge anchoring can still respond to framebuffer width, but
-        // changing only the host aspect ratio must not stretch fonts, blots,
-        // prompts, or icons horizontally.
+        // Screen-edge anchoring still uses the framebuffer bounds, but a
+        // widescreen output must not stretch fonts and icons horizontally.
         const float uniformScale = (g_gl.height / kPs2CanvasHeight) *
             scaleSetting;
         return { uniformScale, uniformScale };

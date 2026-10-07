@@ -1,5 +1,6 @@
 #include "brx.h"
 #include "rwm.h"
+#include "sound.h"
 #include <cstdio>
 
 void StartupBrx()

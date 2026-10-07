@@ -4,6 +4,8 @@
 #include "rip.h"
 #include "crv.h"
 
+class BLIPG;
+
 enum EMITRK 
 {
     EMITRK_Nil = -1,

@@ -47,8 +47,8 @@ void MOUSE::CursorPosCallback(GLFWwindow* window, double _x, double _y) {
         firstMouse = false;
     }
 
-    dx = x - lastX;
-    dy = lastY - y; // y coordinates are inverted
+    dx += x - lastX;
+    dy += lastY - y; // y coordinates are inverted
     lastX = x;
     lastY = y;
 }
@@ -100,6 +100,13 @@ double MOUSE::GetDY() {
     // set to 0 because change no longer new
     dy = 0;
     return _dy;
+}
+
+void MOUSE::ResetDelta() {
+    dx = 0;
+    dy = 0;
+    lastX = x;
+    lastY = y;
 }
 
 // get scroll value in x

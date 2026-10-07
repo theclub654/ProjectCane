@@ -173,6 +173,8 @@ void SetDialogDialogs(DIALOG* pdialog, DIALOGS dialogs);
 void HandleDialogMessage(DIALOG* pdialog, MSGID msgid, void* pv);
 bool FPauseDialog(DIALOG* pdialog);
 void FinishDialogEvents(DIALOG* pdialog);
+void SkipDialogVoiceLine(DIALOG* pdialog);
+bool FDialogSkipProtected(const DIALOG* pdialog);
 void HandleDialogEvents(DIALOG* pdialog);
 void StartDialog(DIALOG* pdialog, PO* ppo);
 void TriggerDialog(DIALOG* pdialog);

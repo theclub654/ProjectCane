@@ -1,0 +1,130 @@
+<Window xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="File_Extractor_GUI.Views.MainWindow" Title="ProjectCane File Extractor"
+        Icon="/Assets/file-extractor-icon.ico"
+        Width="1280" Height="720" MinWidth="1280" MinHeight="720"
+        WindowStartupLocation="CenterScreen" CanResize="False" SystemDecorations="None" Background="#030A11">
+  <Window.Styles>
+    <Style Selector="TextBlock"><Setter Property="FontFamily" Value="Inter"/><Setter Property="Foreground" Value="#ECF3FA"/></Style>
+    <Style Selector="Button">
+      <Setter Property="FontFamily" Value="Inter"/><Setter Property="FontSize" Value="15"/><Setter Property="FontWeight" Value="SemiBold"/>
+      <Setter Property="Foreground" Value="#E8F2FC"/><Setter Property="Background" Value="#0B2133"/><Setter Property="BorderBrush" Value="#28587A"/>
+      <Setter Property="BorderThickness" Value="1"/><Setter Property="CornerRadius" Value="7"/><Setter Property="Padding" Value="18,10"/>
+    </Style>
+    <Style Selector="Button:pointerover /template/ ContentPresenter"><Setter Property="Background" Value="#12304A"/></Style>
+    <Style Selector="Button:pressed /template/ ContentPresenter"><Setter Property="Background" Value="#0B5F99"/></Style>
+    <Style Selector="Button.windowButton">
+      <Setter Property="Width" Value="48"/><Setter Property="Height" Value="58"/><Setter Property="Padding" Value="0"/><Setter Property="FontSize" Value="21"/>
+      <Setter Property="FontWeight" Value="Normal"/><Setter Property="Background" Value="Transparent"/><Setter Property="BorderThickness" Value="0"/><Setter Property="CornerRadius" Value="0"/>
+    </Style>
+    <Style Selector="Button.windowButton:pointerover /template/ ContentPresenter"><Setter Property="Background" Value="#14283A"/></Style>
+    <Style Selector="Button.closeButton:pointerover /template/ ContentPresenter"><Setter Property="Background" Value="#C83E4D"/></Style>
+    <Style Selector="Button.primary">
+      <Setter Property="Height" Value="56"/><Setter Property="HorizontalAlignment" Value="Stretch"/><Setter Property="FontSize" Value="22"/><Setter Property="FontWeight" Value="Bold"/>
+      <Setter Property="BorderBrush" Value="#35A9E8"/><Setter Property="Background"><LinearGradientBrush StartPoint="0%,0%" EndPoint="100%,100%"><GradientStop Offset="0" Color="#116A9D"/><GradientStop Offset="0.55" Color="#0B5488"/><GradientStop Offset="1" Color="#073E69"/></LinearGradientBrush></Setter>
+    </Style>
+    <Style Selector="TextBox.pathBox">
+      <Setter Property="Height" Value="48"/><Setter Property="Padding" Value="15,9"/><Setter Property="FontFamily" Value="Inter"/><Setter Property="FontSize" Value="15"/>
+      <Setter Property="Foreground" Value="#D5E2EE"/><Setter Property="Background" Value="#071522"/><Setter Property="BorderBrush" Value="#294E6B"/>
+      <Setter Property="BorderThickness" Value="1"/><Setter Property="CornerRadius" Value="7"/><Setter Property="SelectionBrush" Value="#176C9F"/>
+    </Style>
+  </Window.Styles>
+
+  <Border BorderBrush="#27506C" BorderThickness="1" ClipToBounds="True">
+    <Border.Background>
+      <LinearGradientBrush StartPoint="0%,0%" EndPoint="100%,100%">
+        <GradientStop Offset="0" Color="#02070D"/>
+        <GradientStop Offset="0.48" Color="#06121E"/>
+        <GradientStop Offset="1" Color="#02080E"/>
+      </LinearGradientBrush>
+    </Border.Background>
+    <Grid RowDefinitions="84,*">
+      <Canvas Grid.RowSpan="2" IsHitTestVisible="False">
+        <Path Fill="#071522" Opacity="0.85" Data="M 0,392 L 328,720 L 0,720 Z"/>
+        <Path Fill="#091725" Opacity="0.65" Data="M 0,535 L 185,720 L 80,720 L 0,640 Z"/>
+        <Path Fill="#081725" Opacity="0.82" Data="M 1280,0 L 1035,0 L 1280,245 Z"/>
+        <Path Fill="#0B1B2B" Opacity="0.55" Data="M 1280,315 L 1110,485 L 1280,655 Z"/>
+        <Path Fill="#06131F" Opacity="0.9" Data="M 1280,535 L 1095,720 L 1280,720 Z"/>
+        <Path Stroke="#17384F" StrokeThickness="1" Opacity="0.9" Data="M 0,486 L 234,720 M 0,568 L 152,720 M 1035,0 L 1280,245 M 1110,0 L 1280,170 M 1110,485 L 1280,315"/>
+      </Canvas>
+      <Border Grid.Row="0" Background="#071522" BorderBrush="#1B3B52" BorderThickness="0,0,0,1" PointerPressed="TitleBar_PointerPressed">
+        <Grid ColumnDefinitions="Auto,*,Auto">
+          <Image Width="350" Height="66" Margin="34,9,0,9" Source="/Assets/projectcane-logo.png" Stretch="Uniform" HorizontalAlignment="Left"/>
+          <Border Grid.Column="1" Width="1" Height="47" Margin="20,0,0,0" HorizontalAlignment="Left" VerticalAlignment="Center" Background="#294156"/>
+          <TextBlock Grid.Column="1" Margin="44,0,0,0" VerticalAlignment="Center" FontSize="11" Foreground="#617E97" Text="FILE EXTRACTOR"/>
+          <StackPanel Grid.Column="2" Orientation="Horizontal"><Button Classes="windowButton" Content="−" Click="Minimize_Click"/><Button Classes="windowButton closeButton" Content="×" Click="Close_Click"/></StackPanel>
+        </Grid>
+      </Border>
+
+      <Grid Grid.Row="1" ColumnDefinitions="265,*">
+        <Border Grid.Column="0" Background="#050E17" BorderBrush="#17344A" BorderThickness="0,0,1,0">
+          <Grid Margin="38,48,24,30" RowDefinitions="92,92,92,*">
+            <Border x:Name="Step1Circle" Grid.Row="0" Width="48" Height="48" HorizontalAlignment="Left" VerticalAlignment="Top" CornerRadius="24" Background="#0B2436" BorderBrush="#31B5E6" BorderThickness="2"><TextBlock x:Name="Step1Number" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="20" FontWeight="SemiBold" Text="1"/></Border>
+            <Border Grid.Row="0" Width="2" Height="50" Margin="23,47,0,0" HorizontalAlignment="Left" VerticalAlignment="Top" Background="#23455E"/>
+            <StackPanel Grid.Row="0" Margin="64,7,0,0" Spacing="5"><TextBlock x:Name="Step1Title" FontSize="17" FontWeight="Bold" Text="Select ISO"/><TextBlock x:Name="Step1Description" FontSize="12" Foreground="#7991A7" Text="Choose a supported game ISO" TextWrapping="Wrap"/></StackPanel>
+            <Border x:Name="Step2Circle" Grid.Row="1" Width="48" Height="48" HorizontalAlignment="Left" VerticalAlignment="Top" CornerRadius="24" Background="#081522" BorderBrush="#314963" BorderThickness="2"><TextBlock x:Name="Step2Number" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="20" Foreground="#7E96AF" Text="2"/></Border>
+            <Border Grid.Row="1" Width="2" Height="50" Margin="23,47,0,0" HorizontalAlignment="Left" VerticalAlignment="Top" Background="#203B50"/>
+            <StackPanel Grid.Row="1" Margin="64,7,0,0" Spacing="5"><TextBlock x:Name="Step2Title" FontSize="15" FontWeight="SemiBold" Foreground="#89A2BA" Text="Choose Output Folder" TextWrapping="Wrap"/><TextBlock x:Name="Step2Description" FontSize="12" Foreground="#60798F" Text="Set the destination path"/></StackPanel>
+            <Border x:Name="Step3Circle" Grid.Row="2" Width="48" Height="48" HorizontalAlignment="Left" VerticalAlignment="Top" CornerRadius="24" Background="#081522" BorderBrush="#314963" BorderThickness="2"><TextBlock x:Name="Step3Number" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="20" Foreground="#7E96AF" Text="3"/></Border>
+            <StackPanel Grid.Row="2" Margin="64,7,0,0" Spacing="5"><TextBlock x:Name="Step3Title" FontSize="17" FontWeight="SemiBold" Foreground="#89A2BA" Text="Extract Files"/><TextBlock x:Name="Step3Description" FontSize="12" Foreground="#60798F" Text="Unpack game data"/></StackPanel>
+            <StackPanel Grid.Row="3" VerticalAlignment="Bottom" Spacing="5"><TextBlock FontSize="11" Foreground="#537087" Text="PROJECTCANE"/><TextBlock FontSize="11" Foreground="#537087" Text="UNIVERSAL FILE EXTRACTOR"/></StackPanel>
+          </Grid>
+        </Border>
+
+        <Border Grid.Column="1" Margin="34,14,36,16" Padding="20,12" CornerRadius="11"
+                Background="#091723" BorderBrush="#294B63" BorderThickness="1">
+        <Grid RowDefinitions="Auto,Auto,Auto,Auto,*" RowSpacing="7">
+          <Border Grid.Row="0" Padding="8" CornerRadius="10" Background="#081522" BorderBrush="#294B63" BorderThickness="1">
+            <Border Height="190" CornerRadius="8" Background="#07111C" BorderBrush="#537793" BorderThickness="1">
+              <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="8">
+                <TextBlock x:Name="DropPromptText" FontSize="23" FontWeight="Bold" Text="Choose your Sly 1 NTSC ISO"/>
+                <TextBlock x:Name="DropSubtext" FontSize="14" Foreground="#7695AE" Text="The game will be detected automatically"/>
+                <Button x:Name="BrowseIsoButton" Width="220" Margin="0,3,0,0" Content="Browse ISO" Click="BrowseIso_Click"/>
+              </StackPanel>
+            </Border>
+          </Border>
+
+          <StackPanel Grid.Row="1" Spacing="5">
+            <TextBlock FontSize="13" Foreground="#829CB2" Text="Selected ISO"/>
+            <Border x:Name="SelectedIsoPanel" Height="54" Padding="14,0" CornerRadius="7" Background="#071522" BorderBrush="#294E6B" BorderThickness="1">
+              <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                <StackPanel VerticalAlignment="Center" Spacing="2"><TextBlock x:Name="SelectedIsoNameText" FontSize="16" FontWeight="SemiBold" Text="No ISO selected"/><TextBlock x:Name="SelectedIsoPathText" FontSize="12" Foreground="#70899F" Text="Choose an ISO to continue"/></StackPanel>
+                <Border x:Name="DetectionBadge" Grid.Column="1" Margin="0,7" Padding="13,0" CornerRadius="6" Background="#10202D" BorderBrush="#345169" BorderThickness="1" IsVisible="False">
+                  <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Spacing="9"><Border x:Name="DetectionIcon" Width="22" Height="22" CornerRadius="11" Background="#42D9AF"><TextBlock x:Name="DetectionIconText" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="15" FontWeight="Bold" Foreground="#062018" Text="✓"/></Border><StackPanel VerticalAlignment="Center"><TextBlock x:Name="DetectedGameText" FontSize="13" FontWeight="SemiBold" Foreground="#57DDBA" Text="Sly 1 detected"/><TextBlock x:Name="DetectedSerialText" FontSize="10" Foreground="#7FA99D" Text="NTSC • SCUS-97198"/></StackPanel></StackPanel>
+                </Border>
+              </Grid>
+            </Border>
+          </StackPanel>
+
+          <StackPanel Grid.Row="2" Spacing="5">
+            <TextBlock FontSize="13" Foreground="#829CB2" Text="Output Folder"/>
+            <Grid ColumnDefinitions="*,170" ColumnSpacing="12">
+              <Border Height="48" CornerRadius="7" Background="#071522" BorderBrush="#294E6B" BorderThickness="1">
+                <Grid ColumnDefinitions="52,*">
+                  <Viewbox Width="27" Height="27" HorizontalAlignment="Center" VerticalAlignment="Center">
+                    <Canvas Width="32" Height="28">
+                      <Path Fill="#312A08" Stroke="#F1C84B" StrokeThickness="2" Data="M 2,7 L 12,7 L 15,10 L 30,10 L 30,26 L 2,26 Z"/>
+                      <Path Stroke="#FFE080" StrokeThickness="2" Data="M 3,12 L 29,12"/>
+                    </Canvas>
+                  </Viewbox>
+                  <TextBox x:Name="OutputFolderPathText" Grid.Column="1" BorderThickness="0" Background="Transparent" Padding="0,9,12,9" FontFamily="Inter" FontSize="15" Foreground="#70899F" Text="No output folder selected" IsReadOnly="True"/>
+                </Grid>
+              </Border>
+              <Button x:Name="ChangeFolderButton" Grid.Column="1" Content="Choose Folder" Click="ChooseOutputFolder_Click"/>
+            </Grid>
+          </StackPanel>
+
+          <Button x:Name="ExtractButton" Grid.Row="3" Classes="primary" IsEnabled="False" Click="ExtractFiles_Click"><StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="13"><Border Width="25" Height="25" BorderBrush="#D5ECF8" BorderThickness="1.5"><TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="14" Text="◇"/></Border><TextBlock x:Name="ExtractButtonText" VerticalAlignment="Center" FontSize="23" FontWeight="Bold" Text="Extract Files"/></StackPanel></Button>
+
+          <Border x:Name="ProgressPanel" Grid.Row="4" MinHeight="86" Padding="13,8" CornerRadius="8" Background="#050F19" BorderBrush="#243F54" BorderThickness="1" IsVisible="False">
+            <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="4">
+              <Grid ColumnDefinitions="*,Auto"><TextBlock x:Name="ProgressStatusText" VerticalAlignment="Center" FontSize="13" FontWeight="SemiBold" Text="Preparing extraction..."/><TextBlock x:Name="ProgressPercentText" Grid.Column="1" FontSize="25" FontWeight="Bold" Foreground="#46B9ED" Text="0%"/></Grid>
+              <ProgressBar x:Name="ExtractionProgressBar" Grid.Row="1" Height="15" Minimum="0" Maximum="100" Value="0" Foreground="#39B8E6" Background="#081B2A" BorderBrush="#496B85" BorderThickness="1"/>
+              <Grid Grid.Row="2" ColumnDefinitions="*,Auto,Auto" ColumnSpacing="22"><TextBlock x:Name="CurrentItemText" FontSize="11" Foreground="#829BB0" Text="Current item: Waiting"/><TextBlock x:Name="FileCountText" Grid.Column="1" FontSize="11" Foreground="#829BB0" Text="0 / 46 files"/><TextBlock x:Name="ByteCountText" Grid.Column="2" FontSize="11" Foreground="#829BB0" Text="0 MB / 0 MB"/></Grid>
+            </Grid>
+          </Border>
+        </Grid>
+        </Border>
+      </Grid>
+    </Grid>
+  </Border>
+</Window>

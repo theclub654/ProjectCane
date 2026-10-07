@@ -4,6 +4,7 @@
 #include "mb.h"
 #include "clock.h"
 #include "rwm.h"
+#include "sound.h"
 #include <cstdio>
 #include "sm.h"
 

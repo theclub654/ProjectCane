@@ -161,9 +161,6 @@ void HandleAsegaEvent(ASEGA* pasega, EA* pea, int* pfRetracted)
             if (pasega->pambContinuous && fContinuous)
                 return;
 
-            // Retail uses the actual ASEGA root for an unqualified sound.  A
-            // null root means non-positional audio; it must not fall back to
-            // interpreting the ASEG resource itself as an ALO transform.
             ALO* paloSound = pasega->paloRoot;
 
             if (peasnd->oid != -1)
@@ -176,7 +173,6 @@ void HandleAsegaEvent(ASEGA* pasega, EA* pea, int* pfRetracted)
             }
 
             AMB** ppamb = fContinuous ? &pasega->pambContinuous : nullptr;
-
             if (!paloSound)
                 StartSound(sfxid, ppamb, nullptr, nullptr, 3000.0f, 300.0f, 1.0f, 0.0f, 0.0f, nullptr, nullptr);
             else
@@ -191,7 +187,6 @@ void HandleAsegaEvent(ASEGA* pasega, EA* pea, int* pfRetracted)
                 if (fContinuous && pasega->pambContinuous) 
                     paloSound->pvtlo->pfnSendLoMessage(paloSound, MSGID_sfx_start, nullptr);
             }
-
             break;
         }
 
@@ -624,7 +619,7 @@ void HandleAsegaEvent(ASEGA* pasega, EA* pea, int* pfRetracted)
         break;
 
         case EATYP_PreloadVag:
-        PreloadVag(pea->string.pchz.get());
+        PreloadVagDescriptor(pea->string.pchz.get());
         break;
 
         case EATYP_PoseCombo:

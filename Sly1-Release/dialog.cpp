@@ -11,6 +11,9 @@
 #include "suv.h"
 #include "fmv.h"
 #include "debug.h"
+#include "cplook.h"
+#include "sw.h"
+#include "pzo.h"
 #include <array>
 #include <cstdio>
 #include <cstring>
@@ -311,6 +314,7 @@ void SetDialogDialogs(DIALOG* pdialog, DIALOGS dialogs)
 					g_pcm->cplook.ppntAnchor = nullptr;
 				else
 					g_pcm->cplook.ppntAnchor = static_cast<PNT*>(PloFindSwNearest(pdialog->psw, (OID)pdialog->oidPntAnchorDefault, nullptr));
+
 			}
 		}
 	}
@@ -521,6 +525,36 @@ void FinishDialogEvents(DIALOG* pdialog)
 	if (pdialog->dialogk == DIALOGK_Confront)
 		PopUiActiveBlot(&g_ui);
 }
+
+bool FDialogSkipProtected(const DIALOG* pdialog)
+{
+	// The vault combination dialog is gameplay-critical: it is the only place
+	// Bentley tells the player the three-digit code. Protect this exact dialog
+	// rather than disabling skipping for all vault-related conversations.
+	return pdialog != nullptr && g_psw != nullptr && g_psw->pvault != nullptr &&
+		g_psw->pvault->pdialogCombo == pdialog;
+}
+
+void SkipDialogVoiceLine(DIALOG* pdialog)
+{
+	if (pdialog == nullptr || pdialog->dialogs != DIALOGS_Playing)
+		return;
+
+	// End only the currently active talk event. Clearing its pause mask lets
+	// the normal event walker perform every transition between this line and
+	// the next one without marking the entire dialog complete.
+	StopVag();
+
+	if (pdialog->dp.pasegaLipsync != nullptr)
+	{
+		RetractAsega(pdialog->dp.pasegaLipsync);
+		pdialog->dp.pasegaLipsync = nullptr;
+	}
+
+	pdialog->dp.grfdp = 0;
+	HandleDialogEvents(pdialog);
+}
+
 void HandleDialogEvents(DIALOG* pdialog)
 {
 	if (pdialog->ideCur >= pdialog->cde)
@@ -701,20 +735,37 @@ void UpdateDialog(DIALOG* pdialog, float dt)
 
 		case DIALOGS_Playing:
 		{
-			const bool fSkipPressed =
-				(g_joy.current[BTN_L1] && !g_joy.previous[BTN_L1]) ||
-				(g_joy.current[BTN_R1] && !g_joy.previous[BTN_R1]);
+			const bool fSkipLinePressed = g_joy.IsPressed(BTN_L1);
+			const bool fSkipDialogPressed = g_joy.IsPressed(BTN_R1);
+			const bool fSkipPressed = fSkipLinePressed || fSkipDialogPressed;
 
 			if (g_fSkipBinocDialogs &&
 				g_binoc.pdialogPlaying == pdialog &&
+				FDialogSkipProtected(pdialog) && fSkipPressed)
+			{
+				if (fSkipLinePressed)
+					g_joy.SetHandled(BTN_L1);
+				if (fSkipDialogPressed)
+					g_joy.SetHandled(BTN_R1);
+				break;
+			}
+
+			if (g_fSkipBinocDialogs &&
+				g_binoc.pdialogPlaying == pdialog &&
+				!FDialogSkipProtected(pdialog) &&
 				fSkipPressed)
 			{
-				if (g_joy.current[BTN_L1])
+				if (fSkipLinePressed)
+				{
 					g_joy.SetHandled(BTN_L1);
-				if (g_joy.current[BTN_R1])
+					SkipDialogVoiceLine(pdialog);
+				}
+				else
+				{
 					g_joy.SetHandled(BTN_R1);
+					FinishDialogEvents(pdialog);
+				}
 
-				FinishDialogEvents(pdialog);
 				dialogs = pdialog->dialogs;
 				break;
 			}
@@ -784,7 +835,7 @@ void HandleDialogEvent(DIALOG* pdialog, DE* pde)
 	{
 		case DEK_PreloadVag:
 		{
-			PreloadVag(pde->string.pchz.get());
+			PreloadVagDescriptor(pde->string.pchz.get());
 			dp.grfdp |= GRFDP_VagPreloaded;
 			break;
 		}

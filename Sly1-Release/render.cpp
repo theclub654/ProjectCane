@@ -1,4 +1,5 @@
 #include "render.h"
+#include "emitter.h"
 #include "main.h"
 #include "blip.h"
 #include "emitter.h"
@@ -6,6 +7,7 @@
 #include "tv.h"
 #include "thndflash.h"
 #include "sensor.h"
+#include "button.h"
 #include "wm.h"
 #include <algorithm>
 #include <cmath>
@@ -319,18 +321,12 @@ void SubmitRpl(RPL* prpl)
 		break;
 
 		case RP_Translucent:
-		if (prpl->fTransluscentSort == 1)
-		{
-			g_translucentPrpl[g_translucentCount] = *prpl;
-			g_translucentPrpl[g_translucentCount].PFNDRAWRPL = DrawGlob;
-			g_translucentCount++;
-		}
-		else
-		{
-			g_translucentAddPrpl[g_translucentAddCount] = *prpl;
-			g_translucentAddPrpl[g_translucentAddCount].PFNDRAWRPL = DrawGlob;
-			g_translucentAddCount++;
-		}
+		// Retail partitions every RP_Translucent RPL into one bucket and sorts
+		// that bucket by the owning glob's Z.  Blend state is material state and
+		// is selected per subglob in DrawGlob; it is not a second RPL partition.
+		g_translucentPrpl[g_translucentCount] = *prpl;
+		g_translucentPrpl[g_translucentCount].PFNDRAWRPL = DrawGlob;
+		g_translucentCount++;
 		break;
 
 		case RP_Blip:
@@ -407,6 +403,113 @@ inline bool compareZ(const RPL& prpl0, const RPL& prpl1)
 	return prpl0.z > prpl1.z;
 }
 
+static bool FStageTvContext(const TV* ptv)
+{
+	if (ptv == nullptr)
+		return false;
+
+	int itvbMin = 0;
+	int itvbMax = 0;
+	GetTvItvbMinMax(const_cast<TV*>(ptv), &itvbMin, &itvbMax);
+	if (itvbMin == itvbMax)
+		return false;
+
+	const float x0 = glm::clamp(ptv->x, 0.0f, static_cast<float>(g_gl.width));
+	const float x1 = glm::clamp(ptv->x + ptv->dx, 0.0f, static_cast<float>(g_gl.width));
+	const float y0 = glm::clamp(ptv->y, 0.0f, static_cast<float>(g_gl.height));
+	const float y1 = glm::clamp(ptv->y + ptv->dy, 0.0f, static_cast<float>(g_gl.height));
+	return x1 > x0 && y1 > y0;
+}
+
+static void StageGlobRecord(RPL* prpl, TV* ptvContext)
+{
+	prpl->fQueuedCacheWrite = prpl->ro.trlk == TRLK_Relight;
+	prpl->ro.blotTvLight = 0;
+
+	GLOB* pglob = prpl->pglob;
+	if (ptvContext != nullptr && pglob != nullptr &&
+		pglob->fThreeWay == 1 &&
+		pglob->pblot == static_cast<BLOT*>(ptvContext))
+	{
+		if (ptvContext == &g_tvLeft)
+			prpl->ro.blotTvLight = 1;
+		else if (ptvContext == &g_tvRight)
+			prpl->ro.blotTvLight = 2;
+
+		if (prpl->ro.blotTvLight != 0)
+		{
+			prpl->ro.trlk = TRLK_Quick;
+			prpl->ro.fDynamicLight = 0;
+		}
+	}
+
+	prpl->streamOffset = StageFrameStream(&ropStream, &prpl->ro, sizeof(ROGL));
+}
+
+static void StageDrawStreams()
+{
+	auto StageList = [](std::vector<RPL>& list, int count)
+	{
+		for (int i = 0; i < count; ++i)
+		{
+			RPL& rpl = list[i];
+			if (rpl.PFNDRAWRPL == DrawGlob)
+				StageGlobRecord(&rpl, nullptr);
+		}
+	};
+
+	StageList(g_backGroundPrpl, g_backGroundCount);
+	StageList(g_backGroundBlendPrpl, g_backGroundBlendCount);
+
+	TV* ptvContext = nullptr;
+	for (int i = 0; i < g_blotContextCount; ++i)
+	{
+		RPL& rpl = g_blotContextPrpl[i];
+		if (rpl.PFNDRAWRPL == PreTvContext)
+			ptvContext = FStageTvContext(rpl.ptv) ? rpl.ptv : nullptr;
+		else if (rpl.PFNDRAWRPL == PostTvContext)
+			ptvContext = nullptr;
+		else if (rpl.PFNDRAWRPL == DrawGlob)
+			StageGlobRecord(&rpl, ptvContext);
+	}
+
+	StageList(g_opaquePrpl, g_opaqueCount);
+	StageList(g_cutOutBlendAddPrpl, g_cutOutBlendAddCount);
+	StageList(g_cutOutPrpl, g_cutOutCount);
+	StageList(g_projVolumePrpl, g_projVolumeCount);
+	StageList(g_opaqueAfterProjVolumePrpl, g_opaqueAfterProjVolumeCount);
+	StageList(g_cutOutAfterProjVolumeAddPrpl, g_cutOutAfterProjVolumeAddCount);
+	StageList(g_cutOutAfterProjVolumePrpl, g_cutOutAfterProjVolumeCount);
+	StageList(g_murkClearPrpl, g_murkClearCount);
+	StageList(g_murkOpaquePrpl, g_murkOpaqueCount);
+	StageList(g_murkFillPrpl, g_murkFillCount);
+	StageList(g_translucentAddPrpl, g_translucentAddCount);
+	StageList(g_translucentPrpl, g_translucentCount);
+	StageList(g_foreGroundPrpl, g_foreGroundCount);
+	StageList(g_worldMapPrpl, g_worldMapCount);
+	StageList(g_maxPrpl, g_maxCount);
+
+	auto StageCelList = [](std::vector<RPLCEL>& list, int count)
+	{
+		for (int i = 0; i < count; ++i)
+			list[i].streamOffset = StageFrameStream(
+				&rcbStream, &list[i].rocel, sizeof(ROCEL));
+	};
+
+	const int celRecordCount = g_celBorderCount +
+		g_celBorderAfterProjVolumeCount + g_translucentCelBorderCount;
+	if (celRecordCount > 0)
+	{
+		StageCelList(g_celBorderPrpl, g_celBorderCount);
+		StageCelList(g_celBorderAfterProjVolumePrpl, g_celBorderAfterProjVolumeCount);
+		StageCelList(g_translucentCelBorderPrpl, g_translucentCelBorderCount);
+	}
+
+	UploadFrameStream(&ropStream);
+	if (celRecordCount > 0)
+		UploadFrameStream(&rcbStream);
+}
+
 void DrawSw(SW* psw, CM* pcm)
 {
 	/*std::cout << numFrameObjs << "\n";*/
@@ -424,6 +527,7 @@ void DrawSw(SW* psw, CM* pcm)
 		BeginFrameStream(&rcbStream);
 	
 	SortRenderRpl();
+	StageDrawStreams();
 
 	glBindBuffer(GL_UNIFORM_BUFFER, cmUBO);
 	glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(CMGL), &pcm->matWorldToClip);
@@ -822,6 +926,7 @@ void DrawSw(SW* psw, CM* pcm)
 
 	if (g_worldMapCount > 0)
 	{
+		g_worldMapDrawnCount = g_worldMapCount;
 		glEnable(GL_BLEND);
 		glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ZERO);
 		glDepthMask(false);
@@ -1004,32 +1109,10 @@ void BindGlobThreeWayTextures(GLuint ambientTexture, GLuint diffuseTexture, GLui
 void DrawGlob(RPL* prpl)
 {
 	GLOB* pglob = prpl->pglob;
-	const bool fQueuedCacheWrite = prpl->ro.trlk == TRLK_Relight;
-	prpl->ro.blotTvLight = 0;
-
-	// Retail evaluates three-way TV globs through the Quick path against the
-	// final posed/skinned normals. The glob directly selects its persistent TV
-	// light slot, completely bypassing the world's light selection.
-	// pglob->pblot persists after a dialogue and is also present on full-screen
-	// confrontation speakers. Only PreTvContext establishes an active isolated
-	// TV-light domain; PostTvContext clears it again.
-	if (g_ptvDrawContext != nullptr && pglob != nullptr &&
-		pglob->fThreeWay == 1 &&
-		pglob->pblot == static_cast<BLOT*>(g_ptvDrawContext))
-	{
-		if (g_ptvDrawContext == &g_tvLeft)
-			prpl->ro.blotTvLight = 1;
-		else if (g_ptvDrawContext == &g_tvRight)
-			prpl->ro.blotTvLight = 2;
-
-		if (prpl->ro.blotTvLight != 0)
-		{
-			prpl->ro.trlk = TRLK_Quick;
-			prpl->ro.fDynamicLight = 0;
-		}
-	}
-
-	AppendStream(&ropStream, &prpl->ro, sizeof(ROGL), sizeof(ROGL));
+	const bool fDebugWireframe = g_fDebugObjectInspector &&
+		g_paloDebugSelected != nullptr && prpl->palo == g_paloDebugSelected;
+	const bool fQueuedCacheWrite = prpl->fQueuedCacheWrite;
+	BindFrameStreamRange(&ropStream, prpl->streamOffset, sizeof(ROGL));
 
 	GLOBSET* pglobset = prpl->palo != nullptr ? &prpl->palo->globset : nullptr;
 
@@ -1060,6 +1143,11 @@ void DrawGlob(RPL* prpl)
 
 	glBindVertexArray(pglob->VAO);
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, pglob->EBO);
+	if (fDebugWireframe)
+	{
+		glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+		glLineWidth(2.0f);
+	}
 
 	if (prpl->ro.warpType != WARP_NONE)
 		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 6, pglob->pwarpGlob->ssboState);
@@ -1091,6 +1179,17 @@ void DrawGlob(RPL* prpl)
 			glUniform2f(glsluvOffsets, sai->tcx.du, sai->tcx.dv);
 
 		SHD* pshd = sub.pshd;
+
+		if (prpl->rp == RP_Translucent && pshd != nullptr)
+		{
+			// FillShaders emits the GS ALPHA state with each material packet.
+			// grfshd 2/6 use ordinary source-alpha blending; the remaining
+			// translucent material variants use additive destination blending.
+			if (pshd->grfshd == 2 || pshd->grfshd == 6)
+				glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ZERO);
+			else
+				glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE, GL_ONE, GL_ZERO);
+		}
 
 		// The visible projected-color packet uses PRIM 0x6c (TME=0), so its
 		// PackRGBA bytes are ordinary 0..255 framebuffer color. The earlier
@@ -1188,6 +1287,12 @@ void DrawGlob(RPL* prpl)
 		pglob->PFNDRAW(sub.baseVertex, sub.firstIndex, sub.indexCount);
 	}
 
+	if (fDebugWireframe)
+	{
+		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+		glLineWidth(1.0f);
+	}
+
 	glUniform1i(glslfSkin, 0);
 	glUniform1i(glslfPose, 0);
 
@@ -1211,7 +1316,7 @@ void DrawGlob(RPL* prpl)
 
 void DrawCelBorder(RPLCEL* prplcel)
 {
-	AppendStream(&rcbStream, &prplcel->rocel, sizeof(ROCEL), sizeof(ROCEL));
+	BindFrameStreamRange(&rcbStream, prplcel->streamOffset, sizeof(ROCEL));
 
 	GLOB* pglob = prplcel->pglob;
 	GLOBSET* pglobset = prplcel->palo != nullptr ? &prplcel->palo->globset : nullptr;
@@ -1366,15 +1471,14 @@ void DrawMurkFill(int baseVertex, int firstIndex, int indexCount)
 
 void DrawTranslucent(int baseVertex, int firstIndex, int indexCount)
 {
-	GLboolean depthWriteWasEnabled = GL_TRUE;
-	glGetBooleanv(GL_DEPTH_WRITEMASK, &depthWriteWasEnabled);
-
 	// Retail's translucent packet performs an alpha-tested depth-writing
 	// pass followed by a blended pass which does not write depth.  The packet
 	// must not leak that second pass's Z-write mask into the next glob.  Sly's
 	// TV model mixes translucent and ordinary globs, so leaking GL_FALSE here
 	// caused every glob after his first translucent piece to stop populating
-	// depth and visually overlap into his face.
+	// depth and visually overlap into his face. Every render phase which calls
+	// DrawTranslucent expects depth writes enabled between subglobs, so restore
+	// that known state directly instead of querying the driver for every draw.
 	glUniform1i(glslfAlphaTest, 1);
 	glDepthMask(GL_TRUE);
 	glDrawElementsBaseVertex(GL_TRIANGLES, (GLsizei)indexCount, GL_UNSIGNED_INT, (void*)(uintptr_t)(firstIndex * sizeof(uint32_t)), (GLint)baseVertex);
@@ -1383,7 +1487,7 @@ void DrawTranslucent(int baseVertex, int firstIndex, int indexCount)
 	glDepthMask(GL_FALSE);
 	glDrawElementsBaseVertex(GL_TRIANGLES, (GLsizei)indexCount, GL_UNSIGNED_INT, (void*)(uintptr_t)(firstIndex * sizeof(uint32_t)), (GLint)baseVertex);
 
-	glDepthMask(depthWriteWasEnabled);
+	glDepthMask(GL_TRUE);
 }
 
 void DrawBlip(RPL* prplblip)
@@ -1392,9 +1496,18 @@ void DrawBlip(RPL* prplblip)
 		return;
 
 	BLIPG* pblipg = prplblip->pblipg;
-
-	if (pblipg->pshd == nullptr || pblipg->pshd->atex.empty() || pblipg->pshd->atex[0].abmp.empty() || pblipg->cblipe <= 0)
+	if (pblipg->pshd == nullptr) {
 		return;
+	}
+	if (pblipg->pshd->atex.empty()) {
+		return;
+	}
+	if (pblipg->pshd->atex[0].abmp.empty()) {
+		return;
+	}
+	if (pblipg->cblipe <= 0) {
+		return;
+	}
 
 	// DrawBlipg selected between the PS2's normal and clamped-add GIF
 	// packets from shader flag bit 0.  Applying additive blending to every
@@ -1442,8 +1555,9 @@ void DrawBlip(RPL* prplblip)
 
 	const TEX& tex = pblipg->pshd->atex[0];
 	const int textureTableCount = (std::min)(pblipg->cqwTexture, 32);
-	if (textureTableCount <= 0)
+	if (textureTableCount <= 0) {
 		return;
+	}
 
 	GLuint tableTextures[32]{};
 	int tableBatches[32]{};
@@ -1640,6 +1754,7 @@ void DrawSwCollisionAll(CM* pcm)
 	glBindBuffer(GL_UNIFORM_BUFFER, geomUBO);
 
 	glLineWidth(2.0);
+	glUniform4f(glslGeomDebugColor, 0.76f, 0.76f, 0.76f, 1.0f);
 
 	glm::mat4 model{};
 
@@ -1668,6 +1783,64 @@ void DrawSwCollisionAll(CM* pcm)
 		}
 	}
 
+	glBindVertexArray(0);
+}
+
+void DrawSwDialogTriggers(CM* pcm)
+{
+	glGeomShader.Use();
+
+	glBindBufferBase(GL_UNIFORM_BUFFER, 0, cmUBO);
+	glBindBuffer(GL_UNIFORM_BUFFER, cmUBO);
+	glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(CMGL), &pcm->matWorldToClip);
+
+	glBindBufferBase(GL_UNIFORM_BUFFER, 1, geomUBO);
+	glBindBuffer(GL_UNIFORM_BUFFER, geomUBO);
+	glLineWidth(4.0f);
+
+	glm::mat4 model{};
+	for (SO* pso : allSWSoObjs)
+	{
+		if (pso == nullptr || !FIsBasicDerivedFrom(pso, CID_VOLBTN))
+			continue;
+
+		VOLBTN* pvolbtn = static_cast<VOLBTN*>(pso);
+		if (pvolbtn->btn.oidDialog == OID_Nil)
+			continue;
+
+		if (!SphereInFrustum(pcm->frustum, pso->xf.posWorld, pso->geomLocal.sRadius))
+			continue;
+
+		// Yellow is an available dialogue volume, green means Sly is currently
+		// inside it, and red means the volume is disabled or already pushed.
+		if (!pvolbtn->btn.fEnabled || pvolbtn->btn.buttons == BUTTONS_Disabled ||
+			pvolbtn->btn.buttons == BUTTONS_Pushed)
+			glUniform4f(glslGeomDebugColor, 1.0f, 0.20f, 0.16f, 1.0f);
+		else if (pvolbtn->btn.buttons == BUTTONS_Contact || pvolbtn->cploPushWithin > 0)
+			glUniform4f(glslGeomDebugColor, 0.20f, 1.0f, 0.30f, 1.0f);
+		else
+			glUniform4f(glslGeomDebugColor, 1.0f, 0.78f, 0.08f, 1.0f);
+
+		LoadMatrixFromPosRot(&pso->xf.posWorld, &pso->xf.matWorld, &model);
+		const glm::mat4 modelToClip = pcm->matWorldToClip * model;
+		glUniformMatrix4fv(glslGeomModelToClip, 1, GL_FALSE, glm::value_ptr(modelToClip));
+
+		if (pso->geomLocal.VAO != 0)
+		{
+			glBindVertexArray(pso->geomLocal.VAO);
+			glDrawElements(GL_LINES, static_cast<GLsizei>(pso->geomLocal.indices.size()),
+				GL_UNSIGNED_SHORT, nullptr);
+		}
+
+		if (pso->geomCameraLocal.VAO != 0)
+		{
+			glBindVertexArray(pso->geomCameraLocal.VAO);
+			glDrawElements(GL_LINES, static_cast<GLsizei>(pso->geomCameraLocal.indices.size()),
+				GL_UNSIGNED_SHORT, nullptr);
+		}
+	}
+
+	glLineWidth(1.0f);
 	glBindVertexArray(0);
 }
 
@@ -1755,6 +1928,7 @@ std::vector <RPL> g_foreGroundPrpl;
 
 int g_worldMapCount = 0;
 std::vector <RPL> g_worldMapPrpl;
+int g_worldMapDrawnCount = 0;
 
 int g_maxCount = 0;
 std::vector <RPL> g_maxPrpl;

@@ -9,8 +9,15 @@
 #include "fmv.h"
 #include "sound.h"
 #include "tv.h"
+#include "resource1.h"
+#include "runtime_error.h"
+#include "emitter.h"
+#include "blip.h"
 #include <atomic>
+#include <cstdio>
+#include <cstdlib>
 #include <cwchar>
+#include <exception>
 #include <filesystem>
 #include <iostream>
 #include <thread>
@@ -89,7 +96,8 @@ public:
 
         if (now >= m_deadline)
         {
-            // Do not issue rapid catch-up frames after a stall or breakpoint.
+            // Drop missed presentation deadlines. The next call schedules one
+            // complete interval from this presentation rather than catching up.
             m_deadline = now;
             return;
         }
@@ -130,7 +138,20 @@ private:
     int m_frameRate = 60;
 };
 
+FramePacer* s_framePacer = nullptr;
 bool s_runningFrame = false;
+
+void FlushTransitionFrame()
+{
+    // Retail FlushFrames(1) waits for rendering to become idle and freezes the
+    // last completed frame while synchronous world loading runs. The previous
+    // RunGameFrame has already swapped that frame on desktop GL, so only drain
+    // outstanding GPU work here. The completed front buffer remains visible
+    // while synchronous loading runs. Once the destination frame is complete,
+    // present it immediately; holding an already-complete map frame advances
+    // its close animation off-screen and creates a visible jump.
+    glFinish();
+}
 
 void RunGameFrame()
 {
@@ -146,7 +167,11 @@ void RunGameFrame()
         ExecutePendingCutscenes();
 
     if (g_transition.m_fPending != 0)
+    {
+        FlushTransitionFrame();
         g_transition.Execute(file);
+		ResyncClockTick(&g_clock);
+    }
 
     if (FCutscenePending() && g_wipe.wipes != WIPES_WipingOut)
         ExecutePendingCutscenes();
@@ -189,13 +214,19 @@ void RunGameFrame()
 
         if (g_fRenderModels == true)
         {
+            g_worldMapDrawnCount = 0;
             RenderSw(g_psw, g_pcm);
             RenderUi(&g_ui);
             DrawSw(g_psw, g_pcm);
         }
 
         if (g_fRenderCollision == true)
+		{
             DrawSwCollisionAll(g_pcm);
+		}
+
+		if (g_fRenderDialogTriggers == true)
+			DrawSwDialogTriggers(g_pcm);
 
         DrawUi(&g_ui);
     }
@@ -224,6 +255,8 @@ void RunGameFrame()
 
     ImGui::Render();
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+    if (s_framePacer != nullptr)
+        s_framePacer->Wait();
     glfwSwapBuffers(g_gl.window);
 
     ++g_cframe;
@@ -237,6 +270,98 @@ std::atomic_bool s_windowTracking = false;
 std::atomic_bool s_windowFrameThreadRunning = false;
 HWND s_gameWindow = nullptr;
 std::thread s_windowFrameThread;
+int s_cutsceneNcDrag = HTNOWHERE;
+POINT s_cutsceneNcDragStart{};
+RECT s_cutsceneNcWindowStart{};
+
+bool BeginCutsceneNonClientDrag(HWND hwnd, int hitTest)
+{
+	switch (hitTest)
+	{
+	case HTCAPTION:
+	case HTLEFT:
+	case HTRIGHT:
+	case HTTOP:
+	case HTTOPLEFT:
+	case HTTOPRIGHT:
+	case HTBOTTOM:
+	case HTBOTTOMLEFT:
+	case HTBOTTOMRIGHT:
+		break;
+	default:
+		return false;
+	}
+
+	s_cutsceneNcDrag = hitTest;
+	GetCursorPos(&s_cutsceneNcDragStart);
+	GetWindowRect(hwnd, &s_cutsceneNcWindowStart);
+	SetCapture(hwnd);
+	return true;
+}
+
+void UpdateCutsceneNonClientDrag(HWND hwnd)
+{
+	if (s_cutsceneNcDrag == HTNOWHERE)
+		return;
+
+	POINT cursor{};
+	GetCursorPos(&cursor);
+	const int dx = cursor.x - s_cutsceneNcDragStart.x;
+	const int dy = cursor.y - s_cutsceneNcDragStart.y;
+	RECT rect = s_cutsceneNcWindowStart;
+
+	if (s_cutsceneNcDrag == HTCAPTION)
+	{
+		OffsetRect(&rect, dx, dy);
+	}
+	else
+	{
+		if (s_cutsceneNcDrag == HTLEFT || s_cutsceneNcDrag == HTTOPLEFT ||
+			s_cutsceneNcDrag == HTBOTTOMLEFT)
+			rect.left += dx;
+		if (s_cutsceneNcDrag == HTRIGHT || s_cutsceneNcDrag == HTTOPRIGHT ||
+			s_cutsceneNcDrag == HTBOTTOMRIGHT)
+			rect.right += dx;
+		if (s_cutsceneNcDrag == HTTOP || s_cutsceneNcDrag == HTTOPLEFT ||
+			s_cutsceneNcDrag == HTTOPRIGHT)
+			rect.top += dy;
+		if (s_cutsceneNcDrag == HTBOTTOM || s_cutsceneNcDrag == HTBOTTOMLEFT ||
+			s_cutsceneNcDrag == HTBOTTOMRIGHT)
+			rect.bottom += dy;
+
+		constexpr int minimumWidth = 320;
+		constexpr int minimumHeight = 240;
+		if (rect.right - rect.left < minimumWidth)
+		{
+			if (s_cutsceneNcDrag == HTLEFT || s_cutsceneNcDrag == HTTOPLEFT ||
+				s_cutsceneNcDrag == HTBOTTOMLEFT)
+				rect.left = rect.right - minimumWidth;
+			else
+				rect.right = rect.left + minimumWidth;
+		}
+		if (rect.bottom - rect.top < minimumHeight)
+		{
+			if (s_cutsceneNcDrag == HTTOP || s_cutsceneNcDrag == HTTOPLEFT ||
+				s_cutsceneNcDrag == HTTOPRIGHT)
+				rect.top = rect.bottom - minimumHeight;
+			else
+				rect.bottom = rect.top + minimumHeight;
+		}
+	}
+
+	SetWindowPos(hwnd, nullptr, rect.left, rect.top,
+		rect.right - rect.left, rect.bottom - rect.top,
+		SWP_NOACTIVATE | SWP_NOZORDER);
+}
+
+void EndCutsceneNonClientDrag(HWND hwnd)
+{
+	if (s_cutsceneNcDrag == HTNOWHERE)
+		return;
+	s_cutsceneNcDrag = HTNOWHERE;
+	if (GetCapture() == hwnd)
+		ReleaseCapture();
+}
 
 void WindowFrameThreadMain()
 {
@@ -255,11 +380,84 @@ void WindowFrameThreadMain()
 
 LRESULT CALLBACK LiveResizeWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
-	// Keep Windows' native caption-button behavior. Its private tracking loop
-	// blocks GLFW's outer loop, so the helper thread sends this window a frame
-	// request which Windows dispatches back on the original OpenGL thread.
-	if (message == WM_NCLBUTTONDOWN &&
-		(wParam == HTMINBUTTON || wParam == HTMAXBUTTON || wParam == HTCLOSE))
+	// DefWindowProc enters a modal tracking loop for caption dragging, resizing,
+	// caption buttons, and the system menu. A movie is driven by the main thread,
+	// so that loop freezes its video while XAudio continues independently. During
+	// an FMV, handle these interactions without entering the modal loop.
+	if (FCutscenePlaying())
+	{
+		if (message == WM_NCLBUTTONDOWN)
+		{
+			const int hitTest = static_cast<int>(wParam);
+			if (BeginCutsceneNonClientDrag(hwnd, hitTest))
+				return 0;
+			if (hitTest == HTMINBUTTON)
+			{
+				ShowWindow(hwnd, SW_MINIMIZE);
+				return 0;
+			}
+			if (hitTest == HTMAXBUTTON)
+			{
+				ShowWindow(hwnd, IsZoomed(hwnd) ? SW_RESTORE : SW_MAXIMIZE);
+				return 0;
+			}
+			if (hitTest == HTCLOSE)
+			{
+				PostMessageW(hwnd, WM_CLOSE, 0, 0);
+				return 0;
+			}
+			// Do not pass any remaining caption presses (for example the window
+			// icon) to DefWindowProc while an FMV is active; they can also start a
+			// modal system-menu loop.
+			return 0;
+		}
+		else if (message == WM_NCLBUTTONDBLCLK && wParam == HTCAPTION)
+		{
+			ShowWindow(hwnd, IsZoomed(hwnd) ? SW_RESTORE : SW_MAXIMIZE);
+			return 0;
+		}
+		else if (message == WM_NCRBUTTONDOWN || message == WM_NCRBUTTONUP ||
+			message == WM_NCMBUTTONDOWN || message == WM_NCMBUTTONUP ||
+			message == WM_NCXBUTTONDOWN || message == WM_NCXBUTTONUP ||
+			message == WM_CONTEXTMENU)
+		{
+			// The native system menu is modal too. Suppress it only while a movie
+			// is active so right-clicking or holding the caption cannot stop video.
+			return 0;
+		}
+		else if (message == WM_MOUSEMOVE && s_cutsceneNcDrag != HTNOWHERE)
+		{
+			UpdateCutsceneNonClientDrag(hwnd);
+			return 0;
+		}
+		else if (message == WM_LBUTTONUP && s_cutsceneNcDrag != HTNOWHERE)
+		{
+			EndCutsceneNonClientDrag(hwnd);
+			return 0;
+		}
+		else if (message == WM_CAPTURECHANGED && s_cutsceneNcDrag != HTNOWHERE)
+		{
+			s_cutsceneNcDrag = HTNOWHERE;
+		}
+		else if (message == WM_CANCELMODE && s_cutsceneNcDrag != HTNOWHERE)
+		{
+			EndCutsceneNonClientDrag(hwnd);
+			return 0;
+		}
+	}
+	else if (s_cutsceneNcDrag != HTNOWHERE)
+	{
+		EndCutsceneNonClientDrag(hwnd);
+	}
+
+	// Any mouse hold in the non-client area can enter a private Windows tracking
+	// loop before GLFW receives another event. Start pumping immediately instead
+	// of waiting for WM_ENTERSIZEMOVE or WM_ENTERMENULOOP. This covers caption
+	// buttons, title-bar dragging, and holding right-click before the system menu
+	// is shown, while still letting GLFW's original procedure own the behavior.
+	if (message == WM_NCLBUTTONDOWN ||
+		message == WM_NCRBUTTONDOWN ||
+		message == WM_NCMBUTTONDOWN)
 	{
 		s_windowTracking.store(true, std::memory_order_release);
 		const LRESULT result = CallWindowProcW(s_glfwWindowProc, hwnd, message, wParam, lParam);
@@ -270,6 +468,7 @@ LRESULT CALLBACK LiveResizeWindowProc(HWND hwnd, UINT message, WPARAM wParam, LP
     switch (message)
     {
         case WM_ENTERSIZEMOVE:
+		case WM_ENTERMENULOOP:
 		s_windowTracking.store(true, std::memory_order_release);
 		break;
 
@@ -282,6 +481,7 @@ LRESULT CALLBACK LiveResizeWindowProc(HWND hwnd, UINT message, WPARAM wParam, LP
         break;
 
         case WM_EXITSIZEMOVE:
+		case WM_EXITMENULOOP:
 		s_windowTracking.store(false, std::memory_order_release);
 		break;
 
@@ -298,6 +498,18 @@ void InstallLiveResizeWindowProc()
     HWND hwnd = glfwGetWin32Window(g_gl.window);
     if (hwnd == nullptr)
         return;
+
+	HINSTANCE instance = GetModuleHandleW(nullptr);
+	HICON largeIcon = static_cast<HICON>(LoadImageW(instance,
+		MAKEINTRESOURCEW(IDI_APP_ICON), IMAGE_ICON,
+		GetSystemMetrics(SM_CXICON), GetSystemMetrics(SM_CYICON), LR_DEFAULTCOLOR));
+	HICON smallIcon = static_cast<HICON>(LoadImageW(instance,
+		MAKEINTRESOURCEW(IDI_APP_ICON), IMAGE_ICON,
+		GetSystemMetrics(SM_CXSMICON), GetSystemMetrics(SM_CYSMICON), LR_DEFAULTCOLOR));
+	if (largeIcon != nullptr)
+		SendMessageW(hwnd, WM_SETICON, ICON_BIG, reinterpret_cast<LPARAM>(largeIcon));
+	if (smallIcon != nullptr)
+		SendMessageW(hwnd, WM_SETICON, ICON_SMALL, reinterpret_cast<LPARAM>(smallIcon));
 
     s_glfwWindowProc = reinterpret_cast<WNDPROC>(GetWindowLongPtrW(hwnd, GWLP_WNDPROC));
     SetWindowLongPtrW(hwnd, GWLP_WNDPROC, reinterpret_cast<LONG_PTR>(LiveResizeWindowProc));
@@ -322,35 +534,47 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int)
 int main(int cphzArgs, char* aphzArgs[])
 #endif
 {
-    Startup();
-    SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_ABOVE_NORMAL);
-    FramePacer framePacer;
-#ifdef _WIN32
-	InstallLiveResizeWindowProc();
-#endif
-
-    while (!glfwWindowShouldClose(g_gl.window) && fQuitGame != true)
+    InstallRuntimeErrorHandlers();
+    try
     {
-		RunGameFrame();
-		glfwPollEvents();
-
-        // This remains authoritative with VSync on or off. VSync controls
-        // presentation; it no longer changes the game's update frequency.
-        framePacer.Wait();
-
-    }
-
+        Startup();
+		SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_ABOVE_NORMAL);
+		FramePacer framePacer;
+		s_framePacer = &framePacer;
 #ifdef _WIN32
-	ShutdownLiveResizeWindowProc();
+		InstallLiveResizeWindowProc();
 #endif
 
-    if (g_psw != nullptr)
-        DeleteWorld(g_psw);
+		while (!glfwWindowShouldClose(g_gl.window) && fQuitGame != true)
+		{
+			RunGameFrame();
+			glfwPollEvents();
 
-    ShutdownSound();
-    FreeTvGL();
-    g_gl.TerminateGL();
-    return 0;
+		}
+		s_framePacer = nullptr;
+
+#ifdef _WIN32
+		ShutdownLiveResizeWindowProc();
+#endif
+
+		if (g_psw != nullptr)
+			DeleteWorld(g_psw);
+
+		ShutdownSound();
+		FreeTvGL();
+		g_gl.TerminateGL();
+		return EXIT_SUCCESS;
+	}
+	catch (const std::exception& exception)
+	{
+		ReportFatalRuntimeError(exception.what());
+		return EXIT_FAILURE;
+	}
+	catch (...)
+	{
+		ReportFatalRuntimeError("Unknown C++ exception");
+		return EXIT_FAILURE;
+	}
 }
 
 void Startup()

@@ -27,6 +27,9 @@
     <ClCompile Include="render.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="runtime_error.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="shd.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -980,6 +983,9 @@
     <ClInclude Include="sound.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="runtime_error.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="so.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -1738,6 +1744,11 @@
     <ResourceCompile Include="EmbeddedShaders.rc">
       <Filter>Resource Files</Filter>
     </ResourceCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="Assets\Sly1.ico">
+      <Filter>Resource Files</Filter>
+    </Image>
   </ItemGroup>
   <ItemGroup>
     <None Include="glob.vert">

@@ -572,8 +572,8 @@ void LoadExitFromBrx(EXIT* pexit, CBinaryInputStream* pbis)
 	LEVELINFOBRX levelBrx{};
 	LEVELINFOBRX levelAltBrx{};
 
-	pbis->file.read(reinterpret_cast<char*>(&levelBrx), sizeof(levelBrx));
-	pbis->file.read(reinterpret_cast<char*>(&levelAltBrx), sizeof(levelAltBrx));
+	pbis->ReadBytes(&levelBrx, sizeof(levelBrx));
+	pbis->ReadBytes(&levelAltBrx, sizeof(levelAltBrx));
 
 	const uint32_t searchKey = levelBrx.searchValue ^ levelBrx.searchCipher;
 	const uint32_t searchKeyAlt = levelAltBrx.searchValue ^ levelAltBrx.searchCipher;

@@ -5,6 +5,7 @@
 #include "render.h"
 #include "save.h"
 #include "binoc.h"
+#include "debug.h"
 
 void InitWipe(WIPE* pwipe)
 {
@@ -252,7 +253,9 @@ void SetWipeWipes(WIPE* pwipe, WIPES wipes)
     else if (wipes == static_cast<WIPES>(2))
     {
         if (pwipe->trans.fSet)
+        {
             g_transition.Set(pwipe->trans.plevel, pwipe->trans.oidWarp, pwipe->trans.oidWarpContext, pwipe->trans.grftrans);
+        }
 
         pwipe->trans.fSet = 0;
         pwipe->uBlack = 1.0f;

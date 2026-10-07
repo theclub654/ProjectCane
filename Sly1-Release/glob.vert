@@ -1,4 +1,3 @@
-
 #version 430 core
 
 #define RKO_OneWay   0
@@ -202,15 +201,15 @@ vec3  light;
 
 MATERIAL baseMaterial;
 
-out vec4 worldPos;
-out vec3 worldNormal;
-out vec4 vertexColor;
-out vec2 texcoord;
+layout(location = 0) out vec4 worldPos;
+layout(location = 1) out vec3 worldNormal;
+layout(location = 2) out vec4 vertexColor;
+layout(location = 3) out vec2 texcoord;
 
-out MATERIAL material;
-flat out int vShadowCount;
-flat out int vShadowIndices[MAX_OBJECT_SHADOWS];
-out float fogIntensity;
+layout(location = 4) out MATERIAL material;
+layout(location = 7) flat out int vShadowCount;
+layout(location = 8) flat out ivec4 vShadowIndices[3];
+layout(location = 11) out float fogIntensity;
 
 void ApplyWarp(inout vec4 vLocal, inout vec2 uvLocal);
 void ApplyPoses(inout vec4 positionLocal, inout vec3 normalLocal);
@@ -238,8 +237,37 @@ void CalculateFog();
 void CalculateFogPS2();
 void CalculateFogPS3();
 
+void SetObjectShadowIndex(int slot, int value)
+{
+    vShadowIndices[slot >> 2][slot & 3] = value;
+}
+
+vec3 SafeNormalize(vec3 value)
+{
+    float length2 = dot(value, value);
+    return length2 > 1e-12 ? value * inversesqrt(length2) : vec3(0.0);
+}
+
+int AvailableLightCount()
+{
+    return min(clamp(numLights, 0, MAX_LIGHTS), lights.length());
+}
+
 void main()
 {
+    worldPos = vec4(0.0);
+    worldNormal = vec3(0.0);
+    vertexColor = vec4(0.0);
+    texcoord = vec2(0.0);
+    material.ambient = 0.0;
+    material.midtone = vec4(0.0);
+    material.light = vec4(0.0);
+    vShadowCount = 0;
+
+    for (int i = 0; i < 3; ++i)
+        vShadowIndices[i] = ivec4(-1);
+    fogIntensity = 0.0;
+
     vec4 positionLocal = vec4(vertex, 1.0);
     normalLocal = normal;
 
@@ -251,25 +279,27 @@ void main()
         mat4 matSkin = mat4(0.0);
         float totalWeight = 0.0;
 
-        if (boneWeights.x != 0.0)
+        int boneCount = boneMatrices.length();
+
+        if (boneWeights.x != 0.0 && boneIndices.x < uint(boneCount))
         {
             matSkin += boneMatrices[boneIndices.x] * boneWeights.x;
             totalWeight += boneWeights.x;
         }
 
-        if (boneWeights.y != 0.0)
+        if (boneWeights.y != 0.0 && boneIndices.y < uint(boneCount))
         {
             matSkin += boneMatrices[boneIndices.y] * boneWeights.y;
             totalWeight += boneWeights.y;
         }
 
-        if (boneWeights.z != 0.0)
+        if (boneWeights.z != 0.0 && boneIndices.z < uint(boneCount))
         {
             matSkin += boneMatrices[boneIndices.z] * boneWeights.z;
             totalWeight += boneWeights.z;
         }
 
-        if (boneWeights.w != 0.0)
+        if (boneWeights.w != 0.0 && boneIndices.w < uint(boneCount))
         {
             matSkin += boneMatrices[boneIndices.w] * boneWeights.w;
             totalWeight += boneWeights.w;
@@ -287,7 +317,7 @@ void main()
     }
 
     worldPos = op.model * positionLocal;
-    worldNormal = normalize(mat3(op.model) * normalLocal);
+    worldNormal = SafeNormalize(mat3(op.model) * normalLocal);
     uvLocal = uv;
 
     if (fAnimateUv > 0)
@@ -302,15 +332,16 @@ void main()
     if (rko == RKO_ThreeWay)
         StartThreeWay();
 
-    vShadowCount = 0;
-
     if (numActiveShadows > 0)
     {
-        int shadowCount = min(numActiveShadows, MAX_SHADOWS);
+        int shadowCount = clamp(numActiveShadows, 0, MAX_SHADOWS);
+        int levelShadowCount = min(max(numLevelShadows, 0), shadows.length());
 
         for (int i = 0; i < shadowCount; ++i)
         {
             int shIdx = shadowIndices[i];
+            if (shIdx < 0 || shIdx >= levelShadowCount)
+                continue;
             SHADOW shadow = shadows[shIdx];
 
             if (!FShadowValid(shadow, op.grfglob))
@@ -321,7 +352,7 @@ void main()
 
             if (vShadowCount < MAX_OBJECT_SHADOWS)
             {
-                vShadowIndices[vShadowCount] = shIdx;
+                SetObjectShadowIndex(vShadowCount, shIdx);
                 vShadowCount++;
             }
         }
@@ -335,14 +366,21 @@ void main()
 
 void ApplyWarp(inout vec4 vLocal, inout vec2 uvLocal)
 {
+    int matrixCount = clamp(op.warpCmat, 0, 4);
+    if (op.warpCvtx <= 0)
+        return;
+
     switch(op.warpType)
     {
         case WARP_POS:
         vec4 sumPos0 = vec4(0.0);
 
-        for (int imat = 0; imat < op.warpCmat; ++imat)
+        for (int imat = 0; imat < matrixCount; ++imat)
         {
-            vec4 st  = warpState[imat * op.warpCvtx + gl_VertexID];
+            int stateIndex = imat * op.warpCvtx + gl_VertexID;
+            if (stateIndex < 0 || stateIndex >= warpState.length())
+                continue;
+            vec4 st  = warpState[stateIndex];
             sumPos0 += op.amatDpos[imat] * st;
         }
 
@@ -352,9 +390,12 @@ void ApplyWarp(inout vec4 vLocal, inout vec2 uvLocal)
         case WARP_UV:
         vec2 sumUv0 = vec2(0.0);
 
-        for (int imat = 0; imat < op.warpCmat; ++imat)
+        for (int imat = 0; imat < matrixCount; ++imat)
         {
-             vec4 st = warpState[imat * op.warpCvtx + gl_VertexID];
+             int stateIndex = imat * op.warpCvtx + gl_VertexID;
+             if (stateIndex < 0 || stateIndex >= warpState.length())
+                 continue;
+             vec4 st = warpState[stateIndex];
              sumUv0 += (op.amatDuv[imat] * st).xy;
         }
 
@@ -365,9 +406,12 @@ void ApplyWarp(inout vec4 vLocal, inout vec2 uvLocal)
         vec4 sumPos1 = vec4(0.0);
         vec2 sumUv1  = vec2(0.0);
 
-        for (int imat = 0; imat < op.warpCmat; ++imat)
+        for (int imat = 0; imat < matrixCount; ++imat)
         {
-             vec4 st  = warpState[imat * op.warpCvtx + gl_VertexID];
+             int stateIndex = imat * op.warpCvtx + gl_VertexID;
+             if (stateIndex < 0 || stateIndex >= warpState.length())
+                 continue;
+             vec4 st  = warpState[stateIndex];
              sumPos1 += op.amatDpos[imat] * st;
              sumUv1  += (op.amatDuv[imat] * st).xy;
         }
@@ -382,7 +426,7 @@ void ApplyPoses(inout vec4 positionLocal, inout vec3 normalLocal)
 {
     vec3 dpos = vec3(0.0);
     vec3 dnormal = vec3(0.0);
-    int count = min(poseCount, MAX_POSES);
+    int count = clamp(poseCount, 0, MAX_POSES);
     int poseBase = gl_VertexID * poseCount;
 
     for (int ipose = 0; ipose < count; ++ipose)
@@ -392,8 +436,13 @@ void ApplyPoses(inout vec4 positionLocal, inout vec3 normalLocal)
         if (weight == 0.0)
             continue;
 
-        dpos += poseDpos[poseBase + ipose].xyz * weight;
-        dnormal += poseDnormal[poseBase + ipose].xyz * weight;
+        int poseIndex = poseBase + ipose;
+        if (poseIndex < 0 || poseIndex >= poseDpos.length() ||
+            poseIndex >= poseDnormal.length())
+            continue;
+
+        dpos += poseDpos[poseIndex].xyz * weight;
+        dnormal += poseDnormal[poseIndex].xyz * weight;
     }
 
     positionLocal.xyz += dpos;
@@ -454,7 +503,7 @@ void ApplyQuickLights()
     // Retail sends TRLK_Quick through the same VU lighting path as
     // TRLK_Relight. The TV glob uses its one directly indexed detached light.
     int idx = op.blotTvLight - 1;
-    if (idx < 0)
+    if (idx < 0 || idx >= tvLights.length())
         return;
 
     LIGHT tvLight = tvLights[idx];
@@ -488,7 +537,8 @@ void ApplyStaticLightsRelight()
     // A relight result is cached on the glob and can outlive the camera's
     // current BSP zone.  Build that persistent cache from the complete GPU
     // light table instead of the camera-zone-filtered active-light list.
-    for (int i = 0; i < numLights; ++i)
+    int lightCount = AvailableLightCount();
+    for (int i = 0; i < lightCount; ++i)
     {
         if (lights[i].fActive == 0 || lights[i].fDynamic != 0)
             continue;
@@ -524,9 +574,12 @@ void ApplyStaticLights()
 
     if (op.fDynamic != 1)
     {
-        for (int i = 0; i < numStaticLights; ++i)
+        int count = clamp(numStaticLights, 0, MAX_LIGHTS);
+        for (int i = 0; i < count; ++i)
         {
             int idx = staticLightIndices[i];
+            if (idx < 0 || idx >= AvailableLightCount())
+                continue;
 
             switch (lights[idx].lightk)
             {
@@ -553,9 +606,12 @@ void ApplyStaticLights()
     }
     else
     {
-        for (int i = 0; i < numStaticLights; ++i)
+        int count = clamp(numStaticLights, 0, MAX_LIGHTS);
+        for (int i = 0; i < count; ++i)
         {
             int idx = staticLightIndices[i];
+            if (idx < 0 || idx >= AvailableLightCount())
+                continue;
 
             if (lights[idx].fExcludeDynamicObjects != 0)
                 continue;
@@ -592,9 +648,12 @@ void ApplyDynamicLights()
 
     if (op.fDynamic != 1)
     {
-        for (int i = 0; i < numDynamicLights; ++i)
+        int count = clamp(numDynamicLights, 0, MAX_LIGHTS);
+        for (int i = 0; i < count; ++i)
         {
             int idx = dynamicLightIndices[i];
+            if (idx < 0 || idx >= AvailableLightCount())
+                continue;
 
             switch (lights[idx].lightk)
             {
@@ -621,9 +680,12 @@ void ApplyDynamicLights()
     }
     else
     {
-        for (int i = 0; i < numDynamicLights; ++i)
+        int count = clamp(numDynamicLights, 0, MAX_LIGHTS);
+        for (int i = 0; i < count; ++i)
         {
             int idx = dynamicLightIndices[i];
+            if (idx < 0 || idx >= AvailableLightCount())
+                continue;
 
             if (lights[idx].fExcludeDynamicObjects != 0)
                 continue;
@@ -672,7 +734,7 @@ void AddDynamicMaterial()
 
 vec4 AddDirectionLight(LIGHT dirlight)
 {
-    vec3 L = normalize(dirlight.dir.xyz);
+    vec3 L = SafeNormalize(dirlight.dir.xyz);
 
     float f = dot(normalWorld, L);
 
@@ -691,7 +753,7 @@ vec4 AddDirectionLight(LIGHT dirlight)
 
 vec4 AddDynamicLight(vec4 dir, vec4 color, vec4 ru, vec4 du)
 {
-    vec3 lightDir = normalize(mat3(transpose(op.model)) * vec3(dir));
+    vec3 lightDir = SafeNormalize(mat3(transpose(op.model)) * vec3(dir));
     float diffuse = dot(lightDir, normalLocal);
     diffuse += diffuse * diffuse * diffuse;
 
@@ -726,7 +788,11 @@ vec4 AddPositionLight(LIGHT pointlight)
 {
     vec3 toLight = pointlight.pos.xyz - worldPos.xyz;
 
-    float invLen = inversesqrt(dot(toLight, toLight));
+    float distance2 = dot(toLight, toLight);
+    if (distance2 <= 1e-12)
+        return vec4(0.0);
+
+    float invLen = inversesqrt(distance2);
     vec3 L = toLight * invLen;
 
     vec3 N = normalWorld;
@@ -886,8 +952,8 @@ bool ShadowIntersectsSphere(SHADOW shadow, vec3 objectCenter, float objectRadius
 {
     if (shadow.fDynamic == 1)
     {
-        vec3 N = normalize(worldNormal);
-        vec3 castDir = normalize(shadow.normalCast.xyz);
+        vec3 N = SafeNormalize(worldNormal);
+        vec3 castDir = SafeNormalize(shadow.normalCast.xyz);
 
         if (dot(N, -castDir) <= -0.5)
             return false;
@@ -901,6 +967,9 @@ bool ShadowIntersectsSphere(SHADOW shadow, vec3 objectCenter, float objectRadius
 
 void CacheWriteMaterial()
 {
+    if (gl_VertexID < 0 || gl_VertexID >= cachedMaterial.length())
+        return;
+
     cachedMaterial[gl_VertexID].ambient = material.ambient;
     cachedMaterial[gl_VertexID].midtone = material.midtone;
     cachedMaterial[gl_VertexID].light   = material.light;
@@ -908,6 +977,14 @@ void CacheWriteMaterial()
 
 void CacheReadMaterial()
 {
+    if (gl_VertexID < 0 || gl_VertexID >= cachedMaterial.length())
+    {
+        material.ambient = 0.0;
+        material.midtone = vec4(0.0);
+        material.light = vec4(0.0);
+        return;
+    }
+
     material.ambient = cachedMaterial[gl_VertexID].ambient;
     material.midtone = cachedMaterial[gl_VertexID].midtone;
     material.light   = cachedMaterial[gl_VertexID].light;
@@ -951,8 +1028,8 @@ void CalculateFogPS2()
     float z = length(cm.cameraPos.xyz - worldPos.xyz);
     float recipZ = 1.0 / max(z, 1e-4);
 
-    float recipNear = 1.0 / swp.fogNear;
-    float recipFar  = 1.0 / swp.fogFar;
+    float recipNear = 1.0 / max(abs(swp.fogNear), 1e-6);
+    float recipFar  = 1.0 / max(abs(swp.fogFar), 1e-6);
 
     float denom = max(recipNear - recipFar, 1e-6);
     float fog   = clamp((recipNear - recipZ) * (1.0 / denom), 0.0, 1.0);

@@ -12,16 +12,255 @@
 #include "jt.h"
 #include "actseg.h"
 #include "save.h"
+#include "fmv.h"
+#include "pzo.h"
+#include "cptn.h"
+#include <algorithm>
+#include <array>
+#include <cfloat>
+#include <cmath>
+#include <cstdio>
+#include <fstream>
 
 static bool s_fInfiniteTimer = false;
 static float s_svtTimerBeforeCheat = -1.0f;
 static bool s_fDisableAllSound = false;
 static float s_masterVolumeBeforeMute = 1.0f;
+static AMB* s_pambSfxAudition = nullptr;
+static bool s_fFovOverride = false;
+static float s_degFovOverride = glm::degrees(1.0f);
+static float s_radFovBeforeOverride = 1.0f;
 static glm::vec3 s_posTeleport(0.0f);
 static JT* s_pjtTeleportSource = nullptr;
+
+struct DEBUG_TELEPORT_SLOT
+{
+    glm::vec3 pos{ 0.0f };
+    bool fValid = false;
+};
+
+static std::array<DEBUG_TELEPORT_SLOT, 5> s_aTeleportSlot{};
+static bool s_fTeleportSlotsLoaded = false;
+
+static std::filesystem::path DebugTeleportDirectory()
+{
+    return std::filesystem::current_path() / L"Saves";
+}
+
+static std::filesystem::path DebugTeleportSlotsPath()
+{
+    return DebugTeleportDirectory() / L"debug_teleports.json";
+}
+
+static void LoadDebugTeleportSlots()
+{
+    if (s_fTeleportSlotsLoaded)
+        return;
+
+    s_fTeleportSlotsLoaded = true;
+    std::ifstream input(DebugTeleportSlotsPath());
+    if (!input)
+        return;
+
+    try
+    {
+        const json root = json::parse(input);
+        const json& slots = root.at("slots");
+        for (size_t i = 0; i < s_aTeleportSlot.size() && i < slots.size(); ++i)
+        {
+            const json& slot = slots.at(i);
+            s_aTeleportSlot[i].fValid = slot.value("valid", false);
+            s_aTeleportSlot[i].pos.x = slot.value("x", 0.0f);
+            s_aTeleportSlot[i].pos.y = slot.value("y", 0.0f);
+            s_aTeleportSlot[i].pos.z = slot.value("z", 0.0f);
+        }
+    }
+    catch (const json::exception&)
+    {
+        s_aTeleportSlot = {};
+    }
+}
+
+static void SaveDebugTeleportSlots()
+{
+    std::error_code ec;
+    std::filesystem::create_directories(DebugTeleportDirectory(), ec);
+    if (ec)
+        return;
+
+    json root;
+    root["slots"] = json::array();
+    for (const DEBUG_TELEPORT_SLOT& slot : s_aTeleportSlot)
+    {
+        root["slots"].push_back({
+            { "valid", slot.fValid },
+            { "x", slot.pos.x },
+            { "y", slot.pos.y },
+            { "z", slot.pos.z }
+        });
+    }
+
+    std::ofstream output(DebugTeleportSlotsPath(), std::ios::trunc);
+    if (output)
+        output << root.dump(2);
+}
+
+static void TeleportSlyTo(const glm::vec3& pos)
+{
+    if (g_pjt == nullptr || g_pjt->pvtalo == nullptr ||
+        g_pjt->pvtalo->pfnTranslateAloToPos == nullptr)
+    {
+        return;
+    }
+
+    glm::vec3 posTarget = pos;
+    g_pjt->xf.v = glm::vec3(0.0f);
+    g_pjt->xf.w = glm::vec3(0.0f);
+    g_pjt->pvtalo->pfnTranslateAloToPos(g_pjt, &posTarget);
+    g_pjt->posWorldPrev = g_pjt->xf.posWorld;
+    g_pjt->xf.v = glm::vec3(0.0f);
+    g_pjt->xf.w = glm::vec3(0.0f);
+}
 bool g_fSkipBinocDialogs = false;
 bool g_fShowAutosaveIcon = false;
 bool g_fDebugGuiOpen = false;
+bool g_fDebugObjectInspector = false;
+ALO* g_paloDebugSelected = nullptr;
+
+static void PickDebugObject()
+{
+    if (g_gl.window == nullptr || g_pcm == nullptr)
+        return;
+
+    double mouseX = 0.0;
+    double mouseY = 0.0;
+    glfwGetCursorPos(g_gl.window, &mouseX, &mouseY);
+
+    int windowWidth = 0;
+    int windowHeight = 0;
+    int framebufferWidth = 0;
+    int framebufferHeight = 0;
+    glfwGetWindowSize(g_gl.window, &windowWidth, &windowHeight);
+    glfwGetFramebufferSize(g_gl.window, &framebufferWidth, &framebufferHeight);
+    if (windowWidth <= 0 || windowHeight <= 0 || framebufferWidth <= 0 || framebufferHeight <= 0)
+        return;
+
+    const float framebufferX = static_cast<float>(mouseX) * framebufferWidth / windowWidth;
+    const float framebufferY = static_cast<float>(mouseY) * framebufferHeight / windowHeight;
+    const float presentLeft = static_cast<float>(g_gl.presentX);
+    const float presentTop = static_cast<float>(framebufferHeight - g_gl.presentY - g_gl.presentHeight);
+
+    if (framebufferX < presentLeft || framebufferX >= presentLeft + g_gl.presentWidth ||
+        framebufferY < presentTop || framebufferY >= presentTop + g_gl.presentHeight)
+        return;
+
+    const float u = (framebufferX - presentLeft) / static_cast<float>(g_gl.presentWidth);
+    const float v = (framebufferY - presentTop) / static_cast<float>(g_gl.presentHeight);
+    const float ndcX = u * 2.0f - 1.0f;
+    const float ndcY = 1.0f - v * 2.0f;
+    const glm::vec2 pointNdc(ndcX, ndcY);
+
+    ALO* paloBest = nullptr;
+    float depthBest = FLT_MAX;
+    for (ALO* palo : allSWAloObjs)
+    {
+        if (palo == nullptr || palo->fHidden != 0 || palo->globset.aglob.empty())
+            continue;
+
+        glm::mat4 model(1.0f);
+        LoadMatrixFromPosRot(&palo->xf.posWorld, &palo->xf.matWorld, &model);
+
+        for (GLOB& glob : palo->globset.aglob)
+        {
+            glm::mat4 globModel = model;
+            if (glob.pdmat != nullptr)
+                globModel *= *glob.pdmat;
+
+            for (SUBGLOB& sub : glob.asubglob)
+            {
+                if (sub.vertices.empty() || sub.indices.empty())
+                    continue;
+
+                std::vector<glm::vec3> projected(sub.vertices.size());
+                std::vector<uint8_t> projectable(sub.vertices.size(), 0);
+
+                for (size_t ivtx = 0; ivtx < sub.vertices.size(); ++ivtx)
+                {
+                    const VERTICE& vertex = sub.vertices[ivtx];
+                    glm::vec4 positionLocal(vertex.pos, 1.0f);
+
+                    if (glob.poseCount > 0 && !glob.poseDpos.empty() &&
+                        !palo->globset.agPoses.empty())
+                    {
+                        const size_t vertexGlobal = static_cast<size_t>(sub.baseVertex) + ivtx;
+                        const size_t poseBase = vertexGlobal * static_cast<size_t>(glob.poseCount);
+                        const int poseCount = glm::min(glob.poseCount,
+                            static_cast<int>(palo->globset.agPoses.size()));
+                        for (int ipose = 0; ipose < poseCount; ++ipose)
+                        {
+                            const size_t poseIndex = poseBase + static_cast<size_t>(ipose);
+                            if (poseIndex < glob.poseDpos.size())
+                                positionLocal += glob.poseDpos[poseIndex] *
+                                    palo->globset.agPoses[ipose];
+                        }
+                    }
+
+                    if (sub.cibnd > 0 && !palo->globset.boneMatrices.empty())
+                    {
+                        glm::mat4 skin(0.0f);
+                        float totalWeight = 0.0f;
+                        for (int iweight = 0; iweight < 4; ++iweight)
+                        {
+                            const float weight = vertex.boneWeights[iweight];
+                            const unsigned int bone = vertex.boneIndices[iweight];
+                            if (weight != 0.0f && bone < palo->globset.boneMatrices.size())
+                            {
+                                skin += palo->globset.boneMatrices[bone] * weight;
+                                totalWeight += weight;
+                            }
+                        }
+                        if (totalWeight > 0.0f)
+                            positionLocal = skin * positionLocal;
+                    }
+
+                    const glm::vec4 clip = g_pcm->matWorldToClip * globModel * positionLocal;
+                    if (clip.w > 0.0001f)
+                    {
+                        projected[ivtx] = glm::vec3(clip) / clip.w;
+                        projectable[ivtx] = 1;
+                    }
+                }
+
+                for (const INDICE& triangle : sub.indices)
+                {
+                    if (triangle.v1 >= projected.size() || triangle.v2 >= projected.size() ||
+                        triangle.v3 >= projected.size() || !projectable[triangle.v1] ||
+                        !projectable[triangle.v2] || !projectable[triangle.v3])
+                        continue;
+
+                    const glm::vec3& p0 = projected[triangle.v1];
+                    const glm::vec3& p1 = projected[triangle.v2];
+                    const glm::vec3& p2 = projected[triangle.v3];
+                    float w0 = 0.0f;
+                    float w1 = 0.0f;
+                    float w2 = 0.0f;
+                    if (!ComputeBarycentric(pointNdc, glm::vec2(p0), glm::vec2(p1),
+                        glm::vec2(p2), w0, w1, w2))
+                        continue;
+
+                    const float depth = p0.z * w0 + p1.z * w1 + p2.z * w2;
+                    if (depth >= -1.0f && depth <= 1.0f && depth < depthBest)
+                    {
+                        paloBest = palo;
+                        depthBest = depth;
+                    }
+                }
+            }
+        }
+    }
+
+    g_paloDebugSelected = paloBest;
+}
 void RenderMenuGui(SW* psw)
 {
     // Start frame
@@ -35,6 +274,12 @@ void RenderMenuGui(SW* psw)
     // voice volume. Keep the menu mute authoritative while it is enabled.
     if (s_fDisableAllSound && s_masterVolume != 0.0f)
         SetMasterVolume(0.0f);
+
+    // Camera policies are free to animate the retail target FOV. A debug
+    // override must therefore reapply through the normal camera setter each
+    // frame, including while the menu itself is closed.
+    if (s_fFovOverride && g_pcm != nullptr)
+        SetCmFov(g_pcm, glm::radians(s_degFovOverride));
 
     // Keep the ImGui frame lifecycle active for the renderer, but do not
     // create any debug windows or menu bars in normal gameplay mode.
@@ -93,6 +338,54 @@ void RenderMenuGui(SW* psw)
 
             if (ImGui::MenuItem("Collision", "", &g_fRenderCollision));
             if (ImGui::IsItemHovered()) g_fDisableInput = true;
+
+            if (ImGui::MenuItem("Dialogue Triggers", "", &g_fRenderDialogTriggers));
+            if (ImGui::IsItemHovered()) g_fDisableInput = true;
+
+            if (ImGui::MenuItem("Object Inspector", "", &g_fDebugObjectInspector))
+            {
+                if (!g_fDebugObjectInspector)
+                    g_paloDebugSelected = nullptr;
+            }
+            if (ImGui::IsItemHovered()) g_fDisableInput = true;
+
+            ImGui::Separator();
+            bool fFovOverride = s_fFovOverride;
+            if (ImGui::MenuItem("FOV Override", nullptr, &fFovOverride,
+                g_pcm != nullptr))
+            {
+                if (fFovOverride)
+                {
+                    s_radFovBeforeOverride = g_pcm->radFOVTarget;
+                    s_degFovOverride = glm::degrees(g_pcm->radFOV);
+                    s_fFovOverride = true;
+                    SetCmFov(g_pcm, glm::radians(s_degFovOverride));
+                }
+                else
+                {
+                    s_fFovOverride = false;
+                    SetCmFov(g_pcm, s_radFovBeforeOverride);
+                }
+            }
+            if (ImGui::IsItemHovered()) g_fDisableInput = true;
+
+            if (s_fFovOverride)
+            {
+                ImGui::SetNextItemWidth(180.0f);
+                if (ImGui::SliderFloat("FOV (degrees)", &s_degFovOverride,
+                    20.0f, 120.0f, "%.1f deg"))
+                {
+                    SetCmFov(g_pcm, glm::radians(s_degFovOverride));
+                }
+                if (ImGui::IsItemHovered()) g_fDisableInput = true;
+
+                if (ImGui::MenuItem("Reset FOV"))
+                {
+                    s_fFovOverride = false;
+                    SetCmFov(g_pcm, s_radFovBeforeOverride);
+                }
+                if (ImGui::IsItemHovered()) g_fDisableInput = true;
+            }
 
             if (ImGui::MenuItem("Cel Borders", "", &g_fRenderCelBorders));
             if (ImGui::IsItemHovered()) g_fDisableInput = true;
@@ -262,11 +555,76 @@ void RenderMenuGui(SW* psw)
             if (ImGui::IsItemHovered())
                 g_fDisableInput = true;
 
+            ImGui::Separator();
+            if (ImGui::BeginMenu("Audition Loaded SFX"))
+            {
+                if (ImGui::Button("Stop Current Preview"))
+                {
+                    if (s_pambSfxAudition != nullptr)
+                        StopSound(s_pambSfxAudition, 0);
+                    s_pambSfxAudition = nullptr;
+                }
+
+                if (ImGui::IsItemHovered())
+                    g_fDisableInput = true;
+
+                ImGui::Separator();
+                bool foundLoadedBank = false;
+                for (int ibnk = 0; ibnk < static_cast<int>(kEffectBankCount); ++ibnk)
+                {
+                    const EFFECTBANK* bank = s_effectBanks[ibnk].get();
+                    if (bank == nullptr)
+                        continue;
+
+                    foundLoadedBank = true;
+                    const std::string bankName =
+                        std::filesystem::path(kEffectBankNames[ibnk]).filename().string();
+                    char bankLabel[64];
+                    std::snprintf(bankLabel, sizeof(bankLabel), "%s - Bank %d (%zu sounds)",
+                        bankName.c_str(), ibnk, bank->sounds.size());
+                    if (ImGui::BeginMenu(bankLabel))
+                    {
+                        const int firstSfxid = static_cast<int>(kEffectBankStarts[ibnk]);
+                        for (int isnd = 0; isnd < static_cast<int>(bank->sounds.size()); ++isnd)
+                        {
+                            const int sfxid = firstSfxid + isnd;
+                            char soundLabel[48];
+                            std::snprintf(soundLabel, sizeof(soundLabel),
+                                "SFX %d (sound %d)", sfxid, isnd);
+                            if (ImGui::Selectable(soundLabel, false,
+                                ImGuiSelectableFlags_DontClosePopups))
+                            {
+                                if (s_pambSfxAudition != nullptr)
+                                    StopSound(s_pambSfxAudition, 0);
+
+                                StartSound(static_cast<SFXID>(sfxid), &s_pambSfxAudition,
+                                    nullptr, nullptr,
+                                    0.0f, 0.0f, 1.0f, 0.0f, 0.0f, nullptr, nullptr);
+                                std::printf("[SFX AUDITION] bank=%d sound=%d sfx=%d\n",
+                                    ibnk, isnd, sfxid);
+                            }
+
+                            if (ImGui::IsItemHovered())
+                                g_fDisableInput = true;
+                        }
+
+                        ImGui::EndMenu();
+                    }
+                }
+
+                if (!foundLoadedBank)
+                    ImGui::MenuItem("No sound banks loaded", nullptr, false, false);
+
+                ImGui::EndMenu();
+            }
+
             ImGui::EndMenu();
         }
 
         if (ImGui::BeginMenu("Misc."))
         {
+            if (ImGui::IsItemHovered()) g_fDisableInput = true;
+
             if (psw != nullptr)
             {
                 if (ImGui::MenuItem("Export Map"))
@@ -375,6 +733,21 @@ void RenderMenuGui(SW* psw)
                 g_coinctr.pvtblot->pfnShowBlot(&g_coinctr);
             }
 
+            const bool fCanCollectAllClues =
+                psw != nullptr &&
+                g_plsCur != nullptr &&
+                psw->cclueAll > 0 &&
+                g_plsCur->abitClue.m_cbitSet < psw->cclueAll;
+
+            if (ImGui::MenuItem("Collect All Clue Bottles (Current Level)", nullptr,
+                false, fCanCollectAllClues))
+            {
+                // Use the same retail path as the controller cheat. It marks
+                // each bottle's level bit, runs its collection splice, removes
+                // the bottle/container hierarchy, and refreshes the clue HUD.
+                CollectAllClues();
+            }
+
             const bool fCanUnlockPowerUps = g_pgsCur != nullptr && psw != nullptr;
 
             if (ImGui::MenuItem("Unlock All Power-Ups", nullptr, false, fCanUnlockPowerUps))
@@ -451,7 +824,7 @@ void RenderMenuGui(SW* psw)
 
             ImGui::MenuItem("Disable Death Barriers", nullptr, &g_fDisableDeathBarriers);
 
-            ImGui::MenuItem("Skip Binocucom Dialogs with L1/R1", nullptr,
+            ImGui::MenuItem("Binocucom Skip: L1 Line / R1 Scene", nullptr,
                 &g_fSkipBinocDialogs);
 
             if (ImGui::MenuItem("Show Autosave Icon and Percent", nullptr,
@@ -496,6 +869,15 @@ void RenderMenuGui(SW* psw)
                 // Also refresh an already-open hideout selector instead of
                 // requiring the player to leave and re-enter it.
                 UnlockAllHubWorlds();
+            }
+
+            if (ImGui::MenuItem("Unlock All Hideout FMVs", nullptr, false,
+                g_pgsCur != nullptr))
+            {
+                // The hideout FMV grid contains the first 16 cutscenes. The
+                // remaining table entries are internal additional/startup
+                // movies and are not part of the viewer.
+                g_pgsCur->unlockedCutscenes |= 0xFFFFU;
             }
 
             const bool fCanUnlockKeys =
@@ -654,6 +1036,8 @@ void RenderMenuGui(SW* psw)
 
         if (ImGui::BeginMenu("Teleport"))
         {
+            LoadDebugTeleportSlots();
+
             const bool fCanTeleport = g_pjt != nullptr && g_pjt->pvtalo != nullptr &&
                 g_pjt->pvtalo->pfnTranslateAloToPos != nullptr;
 
@@ -685,13 +1069,50 @@ void RenderMenuGui(SW* psw)
             ImGui::SameLine();
 
             if (ImGui::Button("Teleport Sly") && fCanTeleport)
+                TeleportSlyTo(s_posTeleport);
+
+            ImGui::SeparatorText("Saved Coordinates");
+            for (size_t i = 0; i < s_aTeleportSlot.size(); ++i)
             {
-                g_pjt->xf.v = glm::vec3(0.0f);
-                g_pjt->xf.w = glm::vec3(0.0f);
-                g_pjt->pvtalo->pfnTranslateAloToPos(g_pjt, &s_posTeleport);
-                g_pjt->posWorldPrev = g_pjt->xf.posWorld;
-                g_pjt->xf.v = glm::vec3(0.0f);
-                g_pjt->xf.w = glm::vec3(0.0f);
+                DEBUG_TELEPORT_SLOT& slot = s_aTeleportSlot[i];
+                ImGui::PushID(static_cast<int>(i));
+
+                if (slot.fValid)
+                {
+                    ImGui::Text("Slot %d: %.3f, %.3f, %.3f", static_cast<int>(i + 1),
+                        slot.pos.x, slot.pos.y, slot.pos.z);
+                }
+                else
+                {
+                    ImGui::TextDisabled("Slot %d: Empty", static_cast<int>(i + 1));
+                }
+
+                if (ImGui::Button("Save Current") && g_pjt != nullptr)
+                {
+                    slot.pos = g_pjt->xf.posWorld;
+                    slot.fValid = true;
+                    SaveDebugTeleportSlots();
+                }
+
+                ImGui::SameLine();
+                if (ImGui::Button("Use") && slot.fValid)
+                    s_posTeleport = slot.pos;
+
+                ImGui::SameLine();
+                if (ImGui::Button("Teleport") && slot.fValid && fCanTeleport)
+                {
+                    s_posTeleport = slot.pos;
+                    TeleportSlyTo(slot.pos);
+                }
+
+                ImGui::SameLine();
+                if (ImGui::Button("Clear") && slot.fValid)
+                {
+                    slot = {};
+                    SaveDebugTeleportSlots();
+                }
+
+                ImGui::PopID();
             }
 
             if (ImGui::IsWindowHovered(ImGuiHoveredFlags_AllowWhenBlockedByPopup) ||
@@ -706,9 +1127,50 @@ void RenderMenuGui(SW* psw)
         ImGui::EndMainMenuBar();
     }
 
+    if (g_paloDebugSelected != nullptr &&
+        std::find(allSWAloObjs.begin(), allSWAloObjs.end(), g_paloDebugSelected) == allSWAloObjs.end())
+    {
+        g_paloDebugSelected = nullptr;
+    }
+
+    const ImGuiIO& io = ImGui::GetIO();
+    if (g_fDebugObjectInspector)
+    {
+        ImGui::SetNextWindowBgAlpha(0.75f);
+        ImGui::SetNextWindowPos(ImVec2(10.0f, 115.0f), ImGuiCond_FirstUseEver);
+        ImGui::Begin("Object Inspector", &g_fDebugObjectInspector,
+            ImGuiWindowFlags_AlwaysAutoResize |
+            ImGuiWindowFlags_NoSavedSettings);
+        ImGui::TextUnformatted("Click a rendered object to inspect it.");
+        ImGui::Separator();
+
+        if (g_paloDebugSelected != nullptr)
+        {
+            const int cid = static_cast<int>(g_paloDebugSelected->pvtalo->cid);
+            const int oid = static_cast<int>(g_paloDebugSelected->oid);
+            ImGui::Text("CID: %d (0x%X)", cid, static_cast<unsigned int>(cid));
+            ImGui::Text("OID: %d (0x%X)", oid, static_cast<unsigned int>(oid));
+            ImGui::Text("Position: %.2f, %.2f, %.2f",
+                g_paloDebugSelected->xf.posWorld.x,
+                g_paloDebugSelected->xf.posWorld.y,
+                g_paloDebugSelected->xf.posWorld.z);
+
+            if (ImGui::Button("Clear Selection"))
+                g_paloDebugSelected = nullptr;
+        }
+        else
+        {
+            ImGui::TextDisabled("No object selected");
+        }
+
+        if (ImGui::IsWindowHovered(ImGuiHoveredFlags_AllowWhenBlockedByPopup) ||
+            ImGui::IsAnyItemActive())
+            g_fDisableInput = true;
+        ImGui::End();
+    }
+
     // F3 owns the debug overlay as a whole, so keep the frame-rate readout
     // visible for exactly the same lifetime as the menu bar.
-    const ImGuiIO& io = ImGui::GetIO();
     ImGui::SetNextWindowBgAlpha(0.55f);
     ImGui::SetNextWindowPos(
         ImVec2(io.DisplaySize.x - 10.0f, 30.0f),
@@ -778,6 +1240,16 @@ void RenderMenuGui(SW* psw)
 
     if (ImGuiFileDialog::Instance()->IsOpened("ChooseFileDlgKey"))
         g_fDisableInput = true;
+
+    // Test after every debug window has been submitted. WantCaptureMouse can
+    // remain set for a frame after closing a menu, while this directly rejects
+    // only clicks that are actually over an ImGui window.
+    if (g_fDebugObjectInspector && psw != nullptr &&
+        ImGui::IsMouseClicked(ImGuiMouseButton_Left) &&
+        !ImGui::IsWindowHovered(ImGuiHoveredFlags_AnyWindow))
+    {
+        PickDebugObject();
+    }
 }
 
 void AppendFloat(std::vector<uint8_t>& buf, float v)

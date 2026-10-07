@@ -1,5 +1,132 @@
 #include "font.h"
 
+namespace
+{
+	using GlyphVertices = std::vector<BLOTLINEVERTEX>;
+
+	// Fonts 1, 3, and 4 are image atlases (controller prompts, HUD icons,
+	// frames, and preview pictures). Fonts 0 and 2 contain readable text and
+	// intentionally retain their existing linear filtering.
+	constexpr uint32_t kGuiSpriteFontMask =
+		(1U << 1) |
+		(1U << 3) |
+		(1U << 4);
+
+	bool FGuiSpriteFont(const CFontBrx* font)
+	{
+		return font != nullptr &&
+			(static_cast<uint32_t>(font->m_grffont) & kGuiSpriteFontMask) != 0;
+	}
+
+	GLuint GuiNearestSampler()
+	{
+		static GLuint sampler = 0;
+		if (sampler == 0)
+		{
+			glGenSamplers(1, &sampler);
+			glSamplerParameteri(sampler, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+			glSamplerParameteri(sampler, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+			// Preserve the atlas texture's existing addressing behavior; this
+			// sampler overrides filtering only.
+			glSamplerParameteri(sampler, GL_TEXTURE_WRAP_S, GL_REPEAT);
+			glSamplerParameteri(sampler, GL_TEXTURE_WRAP_T, GL_REPEAT);
+		}
+		return sampler;
+	}
+
+	void BindGlyphTexture(GLuint texture, bool nearest)
+	{
+		BindBlotTexture(texture);
+		glBindSampler(0, nearest ? GuiNearestSampler() : 0);
+	}
+
+	void AppendQuad(GlyphVertices& vertices, float left, float top,
+		float right, float bottom, float u0, float v0, float u1, float v1,
+		const glm::vec4& color)
+	{
+		auto add = [&](float px, float py, float u, float v)
+		{
+			vertices.push_back({ glm::vec3(px, py, 0.0f), glm::vec2(u, v), color });
+		};
+
+		add(left,  top,    u0, v0);
+		add(right, top,    u1, v0);
+		add(right, bottom, u1, v1);
+		add(left,  top,    u0, v0);
+		add(right, bottom, u1, v1);
+		add(left,  bottom, u0, v1);
+	}
+
+	void AppendGlyph(GlyphVertices& vertices, CFontBrx* font, char ch,
+		float x, float y, const glm::vec4& color)
+	{
+		GLYFF* glyph = font->PglyffFromCh(ch);
+		if (glyph == nullptr || font->m_pbmp == nullptr)
+			return;
+
+		const float width = static_cast<float>(glyph->dx + 1) * font->m_rxScale;
+		const float height = static_cast<float>(font->m_dyUnscaled) * font->m_ryScale;
+		const float left = x;
+		const float top = y;
+		const float right = x + width;
+		const float bottom = y + height;
+		const float u0 = glyph->x / static_cast<float>(font->m_pbmp->bmpWidth);
+		const float v0 = glyph->y / static_cast<float>(font->m_pbmp->bmpHeight);
+		const float u1 = (glyph->x + glyph->dx) / static_cast<float>(font->m_pbmp->bmpWidth);
+		const float v1 = (glyph->y + font->m_dyUnscaled) / static_cast<float>(font->m_pbmp->bmpHeight);
+
+		AppendQuad(vertices, left, top, right, bottom, u0, v0, u1, v1, color);
+	}
+
+	void FlushGlyphs(GlyphVertices& vertices, GLuint texture, bool nearest)
+	{
+		if (vertices.empty())
+			return;
+
+		const GLsizeiptr byteCount = static_cast<GLsizeiptr>(vertices.size() * sizeof(BLOTLINEVERTEX));
+		glBlotShader.Use();
+		glUniformMatrix4fv(u_projectionLoc, 1, GL_FALSE, glm::value_ptr(g_gl.blotProjection));
+		const glm::mat4 identity(1.0f);
+		glUniformMatrix4fv(u_modelLoc, 1, GL_FALSE, glm::value_ptr(identity));
+		glUniform4f(uvRectLoc, 0.0f, 0.0f, 1.0f, 1.0f);
+		glUniform4f(blotColorLoc, 1.0f, 1.0f, 1.0f, 1.0f);
+		glUniform1i(u_useVertexColorLoc, 1);
+		BindGlyphTexture(texture, nearest);
+
+		glBindVertexArray(g_gl.fontVao);
+		glBindBuffer(GL_ARRAY_BUFFER, g_gl.fontVbo);
+		if (byteCount > g_gl.fontVboCapacity)
+		{
+			g_gl.fontVboCapacity = byteCount;
+			glBufferData(GL_ARRAY_BUFFER, g_gl.fontVboCapacity, vertices.data(), GL_STREAM_DRAW);
+		}
+		else
+		{
+			// Orphaning avoids waiting when a previous text batch is still in flight.
+			glBufferData(GL_ARRAY_BUFFER, g_gl.fontVboCapacity, nullptr, GL_STREAM_DRAW);
+			glBufferSubData(GL_ARRAY_BUFFER, 0, byteCount, vertices.data());
+		}
+		glDrawArrays(GL_TRIANGLES, 0, static_cast<GLsizei>(vertices.size()));
+		vertices.clear();
+	}
+
+	void BeginGlyphDraw()
+	{
+		glEnable(GL_BLEND);
+		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+		glDisable(GL_DEPTH_TEST);
+	}
+
+	void EndGlyphDraw()
+	{
+		glBindSampler(0, 0);
+		glUniform1i(u_useVertexColorLoc, 0);
+		glDisable(GL_BLEND);
+		glEnable(GL_DEPTH_TEST);
+		glBindVertexArray(0);
+	}
+}
+
 void CTextBox::SetPos(float x, float y)
 {
 	this->m_y = y;
@@ -197,10 +324,9 @@ char CRichText::ChNext()
 
 				if (m_pfontCur != nullptr)
 				{
-					const float rx = scale * m_pfontCur->m_rxScale;
-					const float ry = scale * m_pfontCur->m_ryScale;
-
-					m_pfontCur->PushScaling(rx, ry);
+					m_pfontCur->PushScaling(
+						scale * m_pfontCur->m_rxScale,
+						scale * m_pfontCur->m_ryScale);
 				}
 
 				m_pchCur += 3;
@@ -428,7 +554,8 @@ void CRichText::Reset()
 	m_rgbaCur = m_rgbaBase;
 }
 
-void CRichText::Draw(CTextBox* ptbx, CTextBox* ptbxClip)
+void CRichText::Draw(CTextBox* ptbx, CTextBox* ptbxClip,
+	float outputScaleX, float outputScaleY)
 {
 	if (ptbx == nullptr || m_pfontBase == nullptr)
 		return;
@@ -454,10 +581,11 @@ void CRichText::Draw(CTextBox* ptbx, CTextBox* ptbxClip)
 		}
 
 		if (m_pfontCur != nullptr)
-			lineWidths[lineCount] += m_pfontCur->DxFromCh(ch);
+			lineWidths[lineCount] += m_pfontCur->DxFromCh(ch) * outputScaleX;
 	}
 
-	const float lineHeight = static_cast<float>(m_pfontBase->m_dyUnscaled) * m_pfontBase->m_ryScale;
+	const float lineHeight = static_cast<float>(m_pfontBase->m_dyUnscaled) *
+		m_pfontBase->m_ryScale * outputScaleY;
 	const float totalHeight = static_cast<float>(lineCount + 1) * lineHeight;
 
 	float yCursor = ptbx->m_y;
@@ -522,9 +650,13 @@ void CRichText::Draw(CTextBox* ptbx, CTextBox* ptbxClip)
 
 	int currentLine = 0;
 	bool newLineStart = true;
-	bool drawStarted = false;
 	float xCursor = 0.0f;
-	CFontBrx* previousFont = nullptr;
+	GLuint batchTexture = 0;
+	bool batchNearest = false;
+	bool batchActive = false;
+	GlyphVertices glyphs;
+	glyphs.reserve(m_text.size() * 6);
+	BeginGlyphDraw();
 
 	while (true)
 	{
@@ -560,31 +692,30 @@ void CRichText::Draw(CTextBox* ptbx, CTextBox* ptbxClip)
 			newLineStart = false;
 		}
 
-		if (!drawStarted)
+		const GLuint currentTexture = currentFont->m_pbmp->glDiffuseMap;
+		const bool currentNearest = FGuiSpriteFont(currentFont);
+		if (batchActive &&
+			(m_fFontChanged || currentTexture != batchTexture || currentNearest != batchNearest))
 		{
-			glBlotShader.Use();
-			currentFont->SetupDraw();
-
-			previousFont = currentFont;
-			drawStarted = true;
-			m_fFontChanged = false;
+			FlushGlyphs(glyphs, batchTexture, batchNearest);
 		}
-		else if (m_fFontChanged || currentFont != previousFont)
-		{
-			// m_fontOther is reused for every alternate font, so pointer comparison
-			// alone cannot detect all rich-text font changes. The release keeps a
-			// separate dirty flag and switches the complete font draw state here.
-			glBlotShader.Use();
-			currentFont->SetupDraw();
-			previousFont = currentFont;
-			m_fFontChanged = false;
-		}
+		batchTexture = currentTexture;
+		batchNearest = currentNearest;
+		batchActive = true;
+		m_fFontChanged = false;
 
-		xCursor += currentFont->DxDrawCh(ch, xCursor, yCursor, m_rgbaCur);
+		const float rxScale = currentFont->m_rxScale;
+		const float ryScale = currentFont->m_ryScale;
+		currentFont->m_rxScale *= outputScaleX;
+		currentFont->m_ryScale *= outputScaleY;
+		AppendGlyph(glyphs, currentFont, ch, xCursor, yCursor, m_rgbaCur);
+		xCursor += currentFont->DxFromCh(ch);
+		currentFont->m_rxScale = rxScale;
+		currentFont->m_ryScale = ryScale;
 	}
 
-	if (drawStarted)
-		previousFont->CleanUpDraw();
+	FlushGlyphs(glyphs, batchTexture, batchNearest);
+	EndGlyphDraw();
 
 	if (appliedClip)
 	{
@@ -718,7 +849,8 @@ void CFontBrx::SetupDraw()
 {
 	glUniformMatrix4fv(u_projectionLoc, 1, GL_FALSE, glm::value_ptr(g_gl.blotProjection));
 
-	BindBlotTexture(m_pbmp != nullptr ? m_pbmp->glDiffuseMap : 0);
+	BindGlyphTexture(m_pbmp != nullptr ? m_pbmp->glDiffuseMap : 0,
+		FGuiSpriteFont(this));
 	// The shared blot VAO has no per-vertex color attribute.  Other UI paths
 	// may leave this enabled, which multiplies font/preview RGB by the generic
 	// attribute's default zero value and turns colored FMV glyphs black.
@@ -821,38 +953,64 @@ void CFontBrx::EdgeRect(CTextEdge* pte, CTextBox* ptbx)
 	float outerX1 = x1 + glyphW;
 	float outerY1 = y1 + glyphH;
 
-	float s0 = glyph->x / static_cast<float>(m_pbmp->bmpWidth);
-	float t1 = glyph->y / static_cast<float>(m_pbmp->bmpHeight);
-	float s1 = (glyph->x + glyph->dx) / static_cast<float>(m_pbmp->bmpWidth);
-	float t0 = (glyph->y + dyUnscaled) / static_cast<float>(m_pbmp->bmpHeight);
+	// Retail DrawPart submits integer GS texel coordinates (UV 12.4 fixed
+	// point), and EdgeRect truncates both midpoint calculations to an integer.
+	// OpenGL's normalized coordinates address texel boundaries, so translate
+	// those retail coordinates to texel centers to keep linear filtering from
+	// pulling neighboring atlas pixels into the stretched strips.
+	const int texWidth = m_pbmp->bmpWidth;
+	const int texHeight = m_pbmp->bmpHeight;
+	const int texelLeft = glyph->x;
+	const int texelRight = glyph->x + glyph->dx;
+	const int texelMidX = (texelLeft + texelRight) / 2;
+	const int texelTop = glyph->y;
+	const int texelBottom = glyph->y + m_dyUnscaled;
+	// The GS calculation averages vertically flipped coordinates, which maps
+	// back to a ceiling midpoint in the top-down atlas used by OpenGL.
+	const int texelMidY = (texelTop + texelBottom + 1) / 2;
+	const auto normalizedS = [texWidth](int texel)
+	{
+		return (static_cast<float>(texel) + 0.5f) / static_cast<float>(texWidth);
+	};
+	const auto normalizedT = [texHeight](int texel)
+	{
+		return (static_cast<float>(texel) + 0.5f) / static_cast<float>(texHeight);
+	};
 
-	float sMid = (s0 + s1) * 0.5f;
-	float tMid = (t0 + t1) * 0.5f;
+	const float s0 = normalizedS(texelLeft);
+	const float sMid = normalizedS(texelMidX);
+	const float s1 = normalizedS(texelRight);
+	const float t0 = normalizedT(texelBottom);
+	const float tMid = normalizedT(texelMidY);
+	const float t1 = normalizedT(texelTop);
 
 	glm::vec4 color = pte->m_rgba;
 
-	SetupDraw();
+	GlyphVertices vertices;
+	vertices.reserve(9 * 6);
+	AppendQuad(vertices, outerX0, outerY0, x0, y0, s0, t0, sMid, tMid, color);
+	AppendQuad(vertices, x0, outerY0, x1, y0, sMid, t0, sMid, tMid, color);
+	AppendQuad(vertices, x1, outerY0, outerX1, y0, sMid, t0, s1, tMid, color);
+	AppendQuad(vertices, outerX0, y0, x0, y1, s0, tMid, sMid, tMid, color);
+	AppendQuad(vertices, x0, y0, x1, y1, sMid, tMid, sMid, tMid, color);
+	AppendQuad(vertices, x1, y0, outerX1, y1, sMid, tMid, s1, tMid, color);
+	AppendQuad(vertices, outerX0, y1, x0, outerY1, s0, tMid, sMid, t1, color);
+	AppendQuad(vertices, x0, y1, x1, outerY1, sMid, tMid, sMid, t1, color);
+	AppendQuad(vertices, x1, y1, outerX1, outerY1, sMid, tMid, s1, t1, color);
 
-	// Draw 9-patch
-	DrawPart(outerX0, outerY0, x0, y0, s0, t0, sMid, tMid, color); // Top-left
-	DrawPart(x0, outerY0, x1, y0, sMid, t0, sMid, tMid, color);    // Top
-	DrawPart(x1, outerY0, outerX1, y0, sMid, t0, s1, tMid, color); // Top-right
-
-	DrawPart(outerX0, y0, x0, y1, s0, tMid, sMid, tMid, color); // Left
-	DrawPart(x0, y0, x1, y1, sMid, tMid, sMid, tMid, color);	// Center
-	DrawPart(x1, y0, outerX1, y1, sMid, tMid, s1, tMid, color); // Right
-
-	DrawPart(outerX0, y1, x0, outerY1, s0, tMid, sMid, t1, color); // Bottom-left
-	DrawPart(x0, y1, x1, outerY1, sMid, tMid, sMid, t1, color);    // Bottom
-	DrawPart(x1, y1, outerX1, outerY1, sMid, tMid, s1, t1, color); // Bottom-right
-
-	CleanUpDraw();
+	BeginGlyphDraw();
+	// EdgeRect is a nine-slice GUI frame even when its cells live beside font
+	// glyphs in an atlas, so it should always use crisp sprite sampling.
+	FlushGlyphs(vertices, m_pbmp != nullptr ? m_pbmp->glDiffuseMap : 0, true);
+	EndGlyphDraw();
 
 	pte->m_pfont->PopScaling();
 }
 
 void CFontBrx::PushScaling(float rx, float ry)
 {
+	if (m_csfr >= static_cast<int>(sizeof(m_asfr) / sizeof(m_asfr[0])))
+		return;
 	// Pointer to the previous scale on the stack
 	SFR* previousScale;
 
@@ -925,6 +1083,8 @@ void CFontBrx::GetExtents(char* pchz, float* pdx, float* pdy, float dxMax)
 
 void CFontBrx::PopScaling()
 {
+	if (m_csfr <= 0)
+		return;
 	int topIndex = this->m_csfr;
 	this->m_csfr = topIndex - 1;
 
@@ -1047,7 +1207,9 @@ void CFontBrx::DrawPchz(char* pchz, CTextBox* ptbx)
 {
 	if (!pchz || !ptbx) return;
 
-	SetupDraw();
+	BeginGlyphDraw();
+	GlyphVertices glyphs;
+	glyphs.reserve(std::strlen(pchz) * 6);
 
 	float y = ptbx->m_y;
 
@@ -1097,16 +1259,36 @@ void CFontBrx::DrawPchz(char* pchz, CTextBox* ptbx)
 			newLine = false;
 		}
 
-		float charWidth = DxDrawCh(*pchz, x, y, ptbx->m_rgba);
+		AppendGlyph(glyphs, this, *pchz, x, y, ptbx->m_rgba);
+		float charWidth = DxFromCh(*pchz);
 		x += charWidth;
 		pchz++;
 	}
 
-	CleanUpDraw();
+	FlushGlyphs(glyphs, m_pbmp != nullptr ? m_pbmp->glDiffuseMap : 0,
+		FGuiSpriteFont(this));
+	EndGlyphDraw();
+}
+
+void CFontBrx::DrawGlyphRun(const char* text, const float* xPositions,
+	std::size_t count, float y, const glm::vec4& color)
+{
+	if (text == nullptr || xPositions == nullptr || count == 0 || m_pbmp == nullptr)
+		return;
+
+	GlyphVertices glyphs;
+	glyphs.reserve(count * 6);
+	for (std::size_t i = 0; i < count; ++i)
+		AppendGlyph(glyphs, this, text[i], xPositions[i], y, color);
+
+	BeginGlyphDraw();
+	FlushGlyphs(glyphs, m_pbmp->glDiffuseMap, FGuiSpriteFont(this));
+	EndGlyphDraw();
 }
 
 void CFontBrx::CleanUpDraw()
 {
+	glBindSampler(0, 0);
 	glDisable(GL_BLEND);
 	glEnable(GL_DEPTH_TEST);
 	glBindVertexArray(0);

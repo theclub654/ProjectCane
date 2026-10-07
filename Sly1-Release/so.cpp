@@ -270,6 +270,7 @@ void CloneSo(SO* pso, SO* psoBase)
 
 	pso->fNoGravity = psoBase->fNoGravity;
 	pso->fCenterXp = psoBase->fCenterXp;
+	pso->fCenterXpFrame = psoBase->fCenterXpFrame;
 	pso->fLockedSelf = psoBase->fLockedSelf;
 	pso->fLockedAll = psoBase->fLockedAll;
 	pso->fLockedAbove = psoBase->fLockedAbove;

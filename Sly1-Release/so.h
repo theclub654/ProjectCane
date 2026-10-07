@@ -235,6 +235,7 @@ class SO : public ALO
 	unsigned int fPhys : 1;
 	unsigned int fNoGravity : 1;
 	unsigned int fCenterXp : 1;
+	unsigned int fCenterXpFrame : 1;
 	unsigned int fLockedSelf : 1;
 	unsigned int fLockedAll : 1;
 	unsigned int fLockedAbove : 1;

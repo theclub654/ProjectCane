@@ -48,6 +48,8 @@ struct EFFECTVOICE
     float baseFrequencyRatio = 1.0f;
     int8_t pitchBendLow = 0;
     int8_t pitchBendHigh = 0;
+    int appliedPitchBend = 0;
+    bool hasAppliedPitchBend = false;
     int authoredPan = 0;
     uint32_t envelopeBits = 0;
     uint32_t envelopeCounter = 0;
@@ -125,6 +127,7 @@ struct AMB
     int autoVolumeTicks = 0;
     int autoVolumeTicksRemaining = 0;
     struct AMB* parent = nullptr;
+    float parentVolumeScale = 1.0f;
     std::vector<struct AMB*> children;
     float tNext;
     LM lmRepeat;
@@ -156,7 +159,7 @@ struct EFFECTBANK
         int8_t priority = 0;
         int8_t volume = 0;
         int8_t centerNote = 0;
-        int8_t centerFine = 0;
+        uint8_t centerFine = 0;
         int16_t pan = 0;
         int8_t mapLow = 0;
         int8_t mapHigh = 0;
@@ -221,6 +224,7 @@ struct MusicStreamState
 struct MusicTone
 {
     std::filesystem::path wavePath;
+	uint32_t sampleOffset = 0;
     int program = 0;
     int mapLow = 0;
     int mapHigh = 127;
@@ -274,6 +278,7 @@ struct MusicSegment
     const uint8_t* cursor = nullptr;
     const uint8_t* end = nullptr;
     uint32_t tempo = 500000;
+    uint32_t initialTempo = 500000;
     int32_t ppq = 480;
     uint8_t status = 0;
     int ticksLeft = 0;
@@ -298,6 +303,7 @@ struct MusicVoice
     float baseFrequencyRatio = 1.0f;
     int pitchBendLow = 0;
     int pitchBendHigh = 0;
+    int pan = 0;
     MusicEnvelope envelope{};
 };
 
@@ -342,6 +348,7 @@ struct VagStreamState
     SoundWaveFormat format{};
     std::vector<uint8_t> pcm;
     IXAudio2SourceVoice* voice = nullptr;
+    uint64_t playBegin = 0;
 };
 
 struct DecodedEffectSample
@@ -394,7 +401,6 @@ bool ReadMusicVlq(MusicSegment& segment, uint32_t& value);
 void QueueMusicSegment(uint32_t id);
 void StopMusicSegment(uint32_t id);
 void SetGlobalExciteValue(int excite);
-void ReapplyRegisterAmeGroups(int registerIndex);
 bool RunMusicAme(MusicSegment& midi, const uint8_t*& stream);
 void ConfigureMusicEnvelope(MusicEnvelope& envelope);
 void StartMusicEnvelope(MusicEnvelope& envelope, uint16_t adsr1, uint16_t adsr2);
@@ -456,6 +462,7 @@ void UnsetExcitement(EXC* pexc);
 void StartAloAmbient(float sStart, float sFull, ALO* palo, AMB** pamb);
 bool FPauseForVag();
 int FVagPlaying();
+double VagPlaybackSeconds();
 bool FHasAmbientVag();
 int HsNextFootFall();
 void NextSneakyFootstep();
@@ -478,10 +485,14 @@ void PauseVag();
 void ContinueVag();
 void BeginDialogAudioDuck();
 void EndDialogAudioDuck();
+void PauseAmbientSounds();
+void ContinueAmbientSounds();
 void PauseMusicSequencer();
-void ContinueMusicSequencer();
+void ContinueMusicSequencer(bool continueAmbientSounds = true);
 bool FMusicSequencerPaused();
 void PreloadVag(const char* filename);
+void PreloadVag(const std::filesystem::path& path);
+void PreloadVagDescriptor(const void* descriptor);
 void PushSwReverb(SW* psw, REVERBK rvrbk, int depth);
 void PopSwReverb(SW* psw);
 void PlayCommentaryAudio(char* audioFileLocation);
@@ -500,6 +511,7 @@ SoundBankPtr SbpEnsureBank(int ibnk);
 void UnloadEffectBank();
 bool FContinuousSound(SFXID sfxid);
 void SetSwDefaultReverb(SW* psw, REVERBK rvrbk, int depth);
+
 void StartupSound();
 void ShutdownSound();
 void InitializeSoundOptions();
@@ -511,6 +523,7 @@ void SetSwIntermittentVolPct(SW* psw, const LM* plmVolPct);
 void SetSwIntermittentRepeat(SW* psw, const LM* plmRepeat);
 void StartSwIntermittentSounds(SW* psw);
 void UpdateSounds();
+void ServiceAudioDevice();
 
 // Sound globals
 extern int s_hvagAmbient;

@@ -980,12 +980,20 @@ void UpdateJtWater(JT* pjt)
     if (pbspWater == nullptr)
         return;
 
-    if (pjt->jts != JTS_Jump || pjt->xf.v.z < 0.0f)
+    // Retail raw-state behavior: upward normal jumps and zap substates 43/44
+    // are already escaping the water, so do not restart the damage sequence.
+    // Keep these as raw values because the named JTBS table is prototype-based.
+    const bool fEscapingWater =
+        pjt->xf.v.z >= 0.0f &&
+        (pjt->jts == JTS_Jump || pjt->jtbs == 44 || pjt->jtbs == 43);
+
+    if (!fEscapingWater)
     {
         ZPR zpr;
         InitZpr(&zpr, ZPK_Water, reinterpret_cast<LO*>(pwater));
 
-        if (pwater->pvtso->pfnFInflictSoZap(pwater, nullptr, &zpr))
+        const int fInflicted = pwater->pvtso->pfnFInflictSoZap(pwater, nullptr, &zpr);
+        if (fInflicted)
             pjt->pvtpo->pfnFTakePoDamage(pjt, &zpr);
     }
 

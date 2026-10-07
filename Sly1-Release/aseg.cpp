@@ -279,7 +279,7 @@ void LoadAsegEventsFromBrx(ASEG* paseg, CBinaryInputStream* pbis, int fFrame, in
 
                 LEVELINFOBRX levelBrx{};
 
-                pbis->file.read(reinterpret_cast<char*>(&levelBrx), sizeof(levelBrx));
+				pbis->ReadBytes(&levelBrx, sizeof(levelBrx));
 
                 const uint32_t searchKey = levelBrx.searchValue ^ levelBrx.searchCipher;
 
@@ -524,7 +524,16 @@ void PostAsegLoadCallback(ASEG* paseg, MSGID msgid, void* pvData)
     ALO* paloAsegRoot = nullptr;
 
     if (paseg->oidRoot != OID_Nil)
-        paloAsegRoot = (ALO*)PloFindSwNearest(paseg->psw, (OID)paseg->oidRoot, paseg);
+    {
+        paloAsegRoot = static_cast<ALO*>(
+            PloFindSwObject(paseg->psw, 4, static_cast<OID>(paseg->oidRoot), paseg));
+
+        if (paloAsegRoot == nullptr)
+        {
+            paloAsegRoot = static_cast<ALO*>(
+                PloFindSwObject(paseg->psw, 260, static_cast<OID>(paseg->oidRoot), paseg));
+        }
+    }
 
     ASEGA* pasega = nullptr;
 

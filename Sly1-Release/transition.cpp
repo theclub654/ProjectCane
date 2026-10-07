@@ -4,6 +4,7 @@
 #include "difficulty.h"
 #include "chkpnt.h"
 #include "hubblot.h"
+#include "spu_reverb_xapo.h"
 #include <Windows.h>
 
 namespace
@@ -89,10 +90,12 @@ std::filesystem::path LevelPath(const LEVELINFO& levelInfo, const std::string& c
     // per-level directory layout.
     return directory / fileName;
 }
+
 }
 
 void CTransition::ResetWorld(int nParam)
 {
+	MarkLevelTransitionAudioTrace("reset_world_begin");
     SetMasterVolume(0.0f);
 
     if (nParam == 1)
@@ -130,7 +133,15 @@ void CTransition::Set(LEVELINFO* plevel, OID oidWarp, OID oidWarpContext, GRFTRA
 
 void CTransition::Execute(std::string& file)
 {
+	MarkLevelTransitionAudioTrace("transition_execute_begin");
     SetPhase(PHASE_Load);
+
+	// Every transition reaches Execute, including player-death checkpoint
+	// returns which do not pass through ResetWorld. Silence the mastering voice
+	// before deleting the old world's sources and wet graph so no final hardware
+	// buffer can expose a reverb tail. InitializeSoundOptions restores the user's
+	// output level after the destination world has finished loading.
+	SetMasterVolume(0.0f);
 
     bool fLoadSucceeded = true;
 
@@ -151,9 +162,10 @@ void CTransition::Execute(std::string& file)
         const bool fWorldChanged = m_plevelCurrent == nullptr || m_plevelCurrent->searchKey != plevelTarget->searchKey;
 
         CBinaryInputStream bis;
+
         try
         {
-            bis.OpenFile(fileNew);
+			bis.OpenFile(fileNew);
         }
         catch (const std::exception& exception)
         {
@@ -164,7 +176,7 @@ void CTransition::Execute(std::string& file)
         if (!fLoadSucceeded || !bis.file.is_open())
         {
             if (fLoadSucceeded)
-                std::printf("TRANSITION EXECUTE ERROR: could not open '%s'\n", fileNew.c_str());
+				std::printf("TRANSITION EXECUTE ERROR: could not open '%s'\n", fileNew.c_str());
             fLoadSucceeded = false;
         }
         else
@@ -226,6 +238,7 @@ void CTransition::Execute(std::string& file)
     m_plevelPending = nullptr;
     m_worldPending.clear();
     m_fPending = 0;
+	MarkLevelTransitionAudioTrace(fLoadSucceeded ? "transition_execute_end" : "transition_execute_failed");
 
     //ClearPhase(PHASE_Load);
 }

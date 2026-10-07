@@ -154,6 +154,10 @@ void ConfirmHubselSelection(HUBSEL* phubsel)
         if (FWipingAseg(pasegWorld) != 0)
         {
             PopUiActiveBlot(&g_ui);
+            // Retail still advances the hub selector to its accepted state
+            // after the world ASEG starts. That state drives the first-visit
+            // camera/map zoom while the cutscene or wipe takes over.
+            SetHubselSelection(phubsel, gameWorld, 1);
             return;
         }
     }
@@ -167,6 +171,11 @@ void ConfirmHubselSelection(HUBSEL* phubsel)
 
     if (fCloseHub)
         PopUiActiveBlot(&g_ui);
+
+    // First-time world selections also enter the accepted hub state. Without
+    // this, psmaWorld remains on the wide selection pose and the introductory
+    // zoom is skipped.
+    SetHubselSelection(phubsel, gameWorld, 1);
 }
 bool FHubselWorldAvailable(GAMEWORLD gameWorld)
 {
@@ -317,7 +326,7 @@ void SetHubselSelection(HUBSEL* phubsel, GAMEWORLD gameworld, int fAccepted)
 
         if (pvag != nullptr)
         {
-            PreloadVag(reinterpret_cast<const char*>(pvag));
+            PreloadVagDescriptor(pvag);
             g_hubblot.fWaitVag = FVagPlaying();
         }
     }

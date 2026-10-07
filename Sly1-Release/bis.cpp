@@ -428,3 +428,29 @@ CBinaryInputStream::~CBinaryInputStream()
 {
     Close();
 }
+
+void CBinaryInputStream::Seek(std::size_t offset)
+{
+    switch (m_bisk)
+    {
+    case BISK_File:
+        if (!file.is_open())
+            throw std::runtime_error("CBinaryInputStream file is not open");
+        if (offset > static_cast<std::size_t>((std::numeric_limits<std::streamoff>::max)()))
+            throw std::length_error("Binary input seek is too large");
+        file.clear();
+        file.seekg(static_cast<std::streamoff>(offset), std::ios::beg);
+        if (!file)
+            throw std::runtime_error("Failed to seek binary input file");
+        break;
+
+    case BISK_Mem:
+        if (offset > m_cb)
+            throw std::runtime_error("Binary memory stream seek exceeded buffer size");
+        m_ib = offset;
+        break;
+
+    default:
+        throw std::runtime_error("CBinaryInputStream is not open");
+    }
+}

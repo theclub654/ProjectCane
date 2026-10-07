@@ -37,6 +37,8 @@ struct VIDEOSAVESETTINGS
     float musicVolume;
     float soundEffectsVolume;
     float dialogueVolume;
+    int mouseCameraEnabled;
+    int cutsceneSkipControlsEnabled;
 };
 
 struct SAVEDATA

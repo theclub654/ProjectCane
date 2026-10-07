@@ -10,7 +10,6 @@
 #include "rwm.h"
 #include "xform.h"
 #include <cmath>
-#include <cstdio>
 #include <cstring>
 
 namespace

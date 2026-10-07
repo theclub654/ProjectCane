@@ -119,7 +119,6 @@ void DrawAttract(ATTRACT* pattract)
     const float scaleY = guiScale.y;
     const float dx = pattract->dx * scaleX;
     const float dy = pattract->dy * scaleY;
-
     float xOn = pattract->xOn;
     float yOn = pattract->yOn;
 
@@ -129,37 +128,25 @@ void DrawAttract(ATTRACT* pattract)
             xOn -= dx - pattract->dx;
         else if (pattract->pbloti->x == 0.0f)
             xOn -= (dx - pattract->dx) * 0.5f;
-
         if (pattract->pbloti->y < 0.0f)
             yOn -= dy - pattract->dy;
         else if (pattract->pbloti->y == 0.0f)
             yOn -= (dy - pattract->dy) * 0.5f;
-
         xOn += pattract->pbloti->x * (scaleX - 1.0f);
         yOn += pattract->pbloti->y * (scaleY - 1.0f);
     }
 
     float xOff = xOn;
     float yOff = yOn;
-
     if (pattract->pbloti != nullptr)
     {
         switch (pattract->pbloti->blote)
         {
-        case BLOTE_Left:
-            xOff = -dx;
-            break;
-        case BLOTE_Right:
-            xOff = g_gl.width;
-            break;
-        case BLOTE_Top:
-            yOff = -dy;
-            break;
-        case BLOTE_Bottom:
-            yOff = g_gl.height;
-            break;
-        default:
-            break;
+        case BLOTE_Left: xOff = -dx; break;
+        case BLOTE_Right: xOff = g_gl.width; break;
+        case BLOTE_Top: yOff = -dy; break;
+        case BLOTE_Bottom: yOff = g_gl.height; break;
+        default: break;
         }
     }
 

@@ -11,6 +11,7 @@
 #include "imgui/imgui_impl_opengl3.h"
 #include "imgui/ImGuiFileDialog.h"
 #include "mouse.h"
+#include <vector>
 
 enum AspectMode
 {
@@ -83,6 +84,7 @@ struct STREAM
 	GLsizeiptr frameSize; // bytes in this frame slice
 	uint8_t* mappedPtr;
 	GLsync* fences; // length = g_frames
+	std::vector<uint8_t> staging;
 };
 
 struct BLOTLINEVERTEX
@@ -126,6 +128,11 @@ class GL
 	// Text Buffer Object
 	GLuint gbo;
 	GLuint geo;
+	// Dynamic glyph geometry. Text is expanded into screen-space triangles so
+	// an entire font/texture run can be submitted with one draw call.
+	GLuint fontVao;
+	GLuint fontVbo;
+	GLsizeiptr fontVboCapacity;
 
 	// Instanced particle billboard geometry.
 	GLuint blipVao;
@@ -163,7 +170,7 @@ class GL
 
 	void InitGL();
 	void CreateFramebuffers(int w, int h);
-	void ResizeFramebuffers(int w, int h);
+	bool ResizeFramebuffers(int w, int h);
 	void UpdateGLProjections();
 	void TerminateGL();
 };
@@ -171,11 +178,14 @@ class GL
 void InitCameraUbo();
 void InitFrameStream(STREAM* pstream, int streamSize);
 void BeginFrameStream(STREAM* pstream);
+GLsizeiptr StageFrameStream(STREAM* pstream, const void* ptr, int copySize);
+void UploadFrameStream(STREAM* pstream);
+void BindFrameStreamRange(STREAM* pstream, GLsizeiptr offset, int size);
 void AppendStream(STREAM* pstream, void* ptr, int size, int copySize);
 void EndFrameStream(STREAM* pstream);
 void DeleteFrameStream(STREAM* pstream);
-void ApplyMsaaSettings();
-void ApplyInternalResolutionSettings();
+bool ApplyMsaaSettings();
+bool ApplyInternalResolutionSettings();
 void ApplyWindowModeSettings(WindowMode mode);
 void ApplyAspectRatioSettings(AspectMode mode);
 void FrameBufferSizeCallBack(GLFWwindow* window, int width, int height);
@@ -214,6 +224,7 @@ extern GLuint glslAmbientMap;
 extern GLuint glslDiffuseMap;
 extern GLuint glslSaturateMap;
 extern GLuint glslGeomModelToClip;
+extern GLuint glslGeomDebugColor;
 extern GLuint u_fontTexLoc;
 extern GLuint glslfCull;
 extern uint64_t screenTextureHandle;

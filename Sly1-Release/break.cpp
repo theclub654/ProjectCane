@@ -3,6 +3,7 @@
 #include "expl.h"
 #include "jt.h"
 #include "lgn.h"
+#include <algorithm>
 
 BRK* NewBrk()
 {

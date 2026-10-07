@@ -1,11 +1,11 @@
 #version 430 core
-in vec2 v_texcoord;
-in vec4 v_color;
+layout(location = 0) in vec2 v_texcoord;
+layout(location = 1) in vec4 v_color;
 
 uniform sampler2D u_fontTex;
 uniform vec4 blotColor;
 
-out vec4 fragColor;
+layout(location = 0) out vec4 fragColor;
 
 void main()
 {

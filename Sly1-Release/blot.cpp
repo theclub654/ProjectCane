@@ -613,6 +613,7 @@ void GetGuiScaledBlotRect(BLOT* pblot, float scaleSetting,
     const GuiScale guiScale = GetGuiScale(scaleSetting);
     const float scaleX = guiScale.x;
     const float scaleY = guiScale.y;
+
     const float dx = pblot->dx * scaleX;
     const float dy = pblot->dy * scaleY;
     float x = pblot->x;

@@ -1431,106 +1431,85 @@ void DeleteWorld(SW *psw)
 
 	g_dynamicTextureCount = 0;
 	g_dynamicTexturePrpl.clear();
-	g_dynamicTexturePrpl.shrink_to_fit();
 
 	g_backGroundCount = 0;
 	g_backGroundPrpl.clear();
-	g_backGroundPrpl.shrink_to_fit();
 
 	g_backGroundBlendCount = 0;
 	g_backGroundBlendPrpl.clear();
-	g_backGroundBlendPrpl.shrink_to_fit();
 
 	g_blotContextCount = 0;
 	g_blotContextPrpl.clear();
-	g_blotContextPrpl.shrink_to_fit();
 
 	g_opaqueCount = 0;
 	g_opaquePrpl.clear();
-	g_opaquePrpl.shrink_to_fit();
 
 	g_cutOutCount = 0;
 	g_cutOutPrpl.clear();
-	g_cutOutPrpl.shrink_to_fit();
 
 	g_cutOutBlendAddCount = 0;
 	g_cutOutBlendAddPrpl.clear();
-	g_cutOutBlendAddPrpl.shrink_to_fit();
 
 	g_celBorderCount = 0;
 	g_celBorderPrpl.clear();
-	g_celBorderPrpl.shrink_to_fit();
 
 	g_projVolumeCount = 0;
 	g_projVolumePrpl.clear();
-	g_projVolumePrpl.shrink_to_fit();
 
 	g_opaqueAfterProjVolumeCount = 0;
 	g_opaqueAfterProjVolumePrpl.clear();
-	g_opaqueAfterProjVolumePrpl.shrink_to_fit();
 
 	g_cutOutAfterProjVolumeCount = 0;
 	g_cutOutAfterProjVolumePrpl.clear();
-	g_cutOutAfterProjVolumePrpl.shrink_to_fit();
 
 	g_cutOutAfterProjVolumeAddCount = 0;
 	g_cutOutAfterProjVolumeAddPrpl.clear();
-	g_cutOutAfterProjVolumeAddPrpl.shrink_to_fit();
 
 	g_celBorderAfterProjVolumeCount = 0;
 	g_celBorderAfterProjVolumePrpl.clear();
-	g_celBorderAfterProjVolumePrpl.shrink_to_fit();
 
 	g_murkClearCount = 0;
 	g_murkClearPrpl.clear();
-	g_murkClearPrpl.shrink_to_fit();
 
 	g_murkOpaqueCount = 0;
 	g_murkOpaquePrpl.clear();
-	g_murkOpaquePrpl.shrink_to_fit();
 
 	g_murkFillCount = 0;
 	g_murkFillPrpl.clear();
-	g_murkFillPrpl.shrink_to_fit();
 	
 	g_translucentCount = 0;
 	g_translucentPrpl.clear();
-	g_translucentPrpl.shrink_to_fit();
 
 	g_translucentAddCount = 0;
 	g_translucentAddPrpl.clear();
-	g_translucentAddPrpl.shrink_to_fit();
 
 	g_translucentCelBorderCount = 0;
 	g_translucentCelBorderPrpl.clear();
-	g_translucentCelBorderPrpl.shrink_to_fit();
 
 	g_blipCount = 0;
 	g_blipPrpl.clear();
-	g_blipPrpl.shrink_to_fit();
 
 	g_foreGroundCount = 0;
 	g_foreGroundPrpl.clear();
-	g_foreGroundPrpl.shrink_to_fit();
 
 	g_worldMapCount = 0;
 	g_worldMapPrpl.clear();
-	g_worldMapPrpl.shrink_to_fit();
 
 	g_maxCount = 0;
 	g_maxPrpl.clear();
-	g_maxPrpl.shrink_to_fit();
 
 	DeallocateLightBlkList();
 	// Projected shadow maps share an array texture on unit 3. Release that binding
 	// and their SSBOs before deleting DYSH world objects and their textures.
 	DeallocateSwShadows();
 
+	const int modelCount = static_cast<int>(allSWAloObjs.size());
 	for (int i = 0; i < allSWAloObjs.size(); i++)
 		DeleteModel(allSWAloObjs[i]);
 
 	DeleteSwCollision();
 
+	const int objectCount = static_cast<int>(allWorldObjs.size());
 	while (!allWorldObjs.empty())
 	{
 		auto pobj = allWorldObjs.back();
@@ -1538,9 +1517,7 @@ void DeleteWorld(SW *psw)
 	}
 
 	allSWAloObjs.clear();
-	allSWAloObjs.shrink_to_fit();
 	allWorldObjs.clear();
-	allWorldObjs.shrink_to_fit();
 
 	DeallocateSoVector();
 

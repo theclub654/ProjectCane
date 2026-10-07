@@ -19,6 +19,7 @@ void StartupClock();
 void SetClockRate(float rt);
 TICK TickNow();
 void MarkClockTick(CLOCK* pclock);
+void ResyncClockTick(CLOCK* pclock);
 void SetClockEnabled(CLOCK* pclock, int fEnabled);
 void ResetClock(CLOCK* pclock, float t);
 

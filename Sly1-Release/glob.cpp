@@ -300,28 +300,17 @@ void LoadGlobsetFromBrx(GLOBSET* pglobset, ALO* palo, CBinaryInputStream* pbis)
                 pglobset->aglob[i].asubglob[a].pshd  = &g_ashd[pglobset->aglob[i].asubglob[a].shdID];
 
                 auto& glob = pglobset->aglob[i];
-                auto* shd  = glob.asubglob[a].pshd;
+                auto* shd = glob.asubglob[a].pshd;
 
-                if (!glob.fTransluscentSort && shd)
-                {
-                    const uint32_t g = (uint32_t)shd->grfshd;
-
-                    if (g == 2)
-                    {
-                        if (glob.rp == RP_Background ||
-                            glob.rp == RP_Cutout ||
-                            glob.rp == RP_CutoutAfterProjVolume ||
-                            glob.rp == RP_Translucent)
-                        {
-                            glob.fTransluscentSort = 1;
-                        }
-                    }
-                    else if (g == 6)
-                    {
-                        if (glob.rp == RP_Translucent)
-                            glob.fTransluscentSort = 1;
-                    }
-                }
+				// Background and cutout packets still use this compatibility flag
+				// to select their sorted queues.  RP_Translucent is always sorted as
+				// one retail bucket and must not be split by material blend state.
+				if (!glob.fTransluscentSort && shd != nullptr && shd->grfshd == 2 &&
+					(glob.rp == RP_Background || glob.rp == RP_Cutout ||
+					 glob.rp == RP_CutoutAfterProjVolume))
+				{
+					glob.fTransluscentSort = 1;
+				}
 
                 if (glob.rp == RP_ProjVolume)
                     glob.grfshd = glob.asubglob[a].pshd->grfshd;
@@ -1121,6 +1110,7 @@ void UpdateGlobset(GLOBSET* pglobset, ALO* palo, float dt)
 int  g_fogType = 1;
 bool g_fRenderModels = true;
 bool g_fRenderCollision = false;
+bool g_fRenderDialogTriggers = false;
 bool g_fRenderCelBorders = true;
 bool g_fBsp = true;
 float g_uAlpha = 1.0;

@@ -85,8 +85,6 @@ void DrawTitle(TITLE* ptitle)
         ptitle->blots != BLOTS_Disappearing)
         return;
 
-    // TITLE coordinates are authored in the PS2's 640 x 492.8 canvas. It is
-    // anchored to the lower-left corner, so preserve its bottom distance.
     const GuiScale guiScale = GetGuiScale();
     const float scaleX = guiScale.x;
     const float scaleY = guiScale.y;
@@ -100,8 +98,6 @@ void DrawTitle(TITLE* ptitle)
     if (!font)
         return;
 
-    // Retail delegates the settled title to DrawBlot. Draw it locally so the
-    // generic BLOT path does not lose the PS2 reference-canvas conversion.
     if (ptitle->blots == BLOTS_Visible)
     {
         CTextBox tbx;
@@ -110,12 +106,17 @@ void DrawTitle(TITLE* ptitle)
         tbx.SetTextColor(&ptitle->rgba);
         tbx.SetHorizontalJust(JH_Left);
         tbx.SetVerticalJust(JV_Top);
-
         if (ptitle->pte && ptitle->pte->m_pfont)
+        {
+            const float edgeScaleX = ptitle->pte->m_rxScaling;
+            const float edgeScaleY = ptitle->pte->m_ryScaling;
+            ptitle->pte->m_rxScaling *= scaleX;
+            ptitle->pte->m_ryScaling *= scaleY;
             ptitle->pte->m_pfont->EdgeRect(ptitle->pte, &tbx);
-
-        font->PushScaling(ptitle->rFontScale * scaleX,
-            ptitle->rFontScale * scaleY);
+            ptitle->pte->m_rxScaling = edgeScaleX;
+            ptitle->pte->m_ryScaling = edgeScaleY;
+        }
+        font->PushScaling(ptitle->rFontScale * scaleX, ptitle->rFontScale * scaleY);
         font->DrawPchz(ptitle->achzDraw, &tbx);
         font->PopScaling();
         return;
@@ -129,38 +130,33 @@ void DrawTitle(TITLE* ptitle)
     float xOn = ScaleX(ptitle->xOn);
     float xOff = ScaleX(ptitle->xOff);
     float y = ScaleY(ptitle->yOn);
-
-    // Interpolate overall draw position based on progress
     float xInterp = std::clamp(uOn / (1.0f / static_cast<float>(length)), 0.0f, 1.0f);
     float xStart = xOff * (1.0f - xInterp) + xOn * xInterp;
 
-    // Edge text rendering
     if (ptitle->pte && ptitle->pte->m_pfont)
     {
         CTextBox tbx;
         tbx.SetPos(xStart, ScaleY(ptitle->y));
-        // Match retail's animated edge rectangle. Its width follows the
-        // title's un-eased uOn while the first character uses xInterp.
-        const float edgeWidth = xOn * uOn + xOff * (1.0f - uOn) +
-            ptitle->dx * scaleX;
+        const float edgeWidth = xOn * uOn + xOff * (1.0f - uOn) + ptitle->dx * scaleX;
         tbx.SetSize(edgeWidth, ptitle->dy * scaleY);
         glm::vec4 textColor(1.0f);
         tbx.SetTextColor(&textColor);
-
         tbx.SetHorizontalJust(JH_Left);
         tbx.SetVerticalJust(JV_Top);
-
+        const float edgeScaleX = ptitle->pte->m_rxScaling;
+        const float edgeScaleY = ptitle->pte->m_ryScaling;
+        ptitle->pte->m_rxScaling *= scaleX;
+        ptitle->pte->m_ryScaling *= scaleY;
         ptitle->pte->m_pfont->EdgeRect(ptitle->pte, &tbx);
+        ptitle->pte->m_rxScaling = edgeScaleX;
+        ptitle->pte->m_ryScaling = edgeScaleY;
     }
 
-    // Retail draws each animated character directly. Apply the output scaling
-    // around that sequence so glyph size and cursor advances remain paired.
-    font->PushScaling(ptitle->rFontScale * scaleX,
-        ptitle->rFontScale * scaleY);
-    font->SetupDraw();
+    font->PushScaling(ptitle->rFontScale * scaleX, ptitle->rFontScale * scaleY);
 
     float xCursorOn = xOn;
     float xCursorOff = xOff;
+    std::vector<float> xPositions(length);
 
     for (size_t i = 0; i < length; ++i)
     {
@@ -170,13 +166,13 @@ void DrawTitle(TITLE* ptitle)
         float xChar = xCursorOff * (1.0f - ratio) + xCursorOn * ratio;
         char ch = text[i];
 
-        // Draw the glyph and advance
-        float dx = font->DxDrawCh(ch, xChar, y, ptitle->rgba);
+        xPositions[i] = xChar;
+        float dx = font->DxFromCh(ch);
         xCursorOn += dx;
         xCursorOff += dx;
     }
 
-    font->CleanUpDraw();
+    font->DrawGlyphRun(text.data(), xPositions.data(), length, y, ptitle->rgba);
     font->PopScaling();
 }
 

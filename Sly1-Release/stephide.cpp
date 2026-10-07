@@ -14,7 +14,6 @@
 #include "stepcane.h"
 #include "stephang.h"
 #include "stepguard.h"
-
 int JtbsChooseJtHide(JT* pjt, LO* ploForce, int* pjthk)
 {
     int hideType = -1;
@@ -421,6 +420,7 @@ void MeasureJtJumpToTargetAtTime(float dt, JT* pjt, ALO* paloTargetParent, const
 
     if (pvGoal != nullptr)
         *pvGoal = vAdjusted;
+
 }
 
 float GMeasureJumpTargetTime(MJT* pmjt, float dt)
@@ -497,7 +497,7 @@ bool FFindJtObstruction(JT* pjt, float dt, PFNFILTER pfnFilter, void* pvFilter, 
         LSG lsg{};
         SO* psoHit = PsoHitTestLineObjects(static_cast<GRFHTL>(0), &posPrev, pposFinal, objects, &lsg);
 
-        if (psoHit != nullptr && lsg.au[0] != 1.0f && glm::distance(lsg.apos[0], *pposFinal) > 50.0f)
+        if (psoHit != nullptr && lsg.au[1] != 1.0f && glm::distance(lsg.apos[0], *pposFinal) > 50.0f)
             return true;
     }
 

@@ -72,6 +72,9 @@
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
+  <PropertyGroup>
+    <TargetName>Sly Cooper and the Thievius Raccoonus</TargetName>
+  </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <IncludePath>$(SolutionDir)Libraries\include;$(IncludePath)</IncludePath>
     <LibraryPath>$(SolutionDir)Libraries\lib;$(LibraryPath)</LibraryPath>
@@ -126,7 +129,7 @@
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalLibraryDirectories>$(SolutionDir)Libraries\lib\Debug;$(SolutionDir)Libraries\ffmpeg\ffmpeg-master-latest-win64-lgpl-shared\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>glfw3_debug.lib;opengl32.lib;winmm.lib;xaudio2.lib;avformat.lib;avcodec.lib;avutil.lib;swscale.lib;%(AdditionalDependencies)</AdditionalDependencies>
+		<AdditionalDependencies>glfw3_debug.lib;opengl32.lib;winmm.lib;xaudio2.lib;avformat.lib;avcodec.lib;avutil.lib;swscale.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -151,7 +154,7 @@
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalLibraryDirectories>$(SolutionDir)Libraries\lib\Release;$(SolutionDir)Libraries\ffmpeg\ffmpeg-master-latest-win64-lgpl-shared\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>glfw3.lib;opengl32.lib;winmm.lib;xaudio2.lib;avformat.lib;avcodec.lib;avutil.lib;swscale.lib;%(AdditionalDependencies)</AdditionalDependencies>
+		<AdditionalDependencies>glfw3.lib;opengl32.lib;winmm.lib;xaudio2.lib;avformat.lib;avcodec.lib;avutil.lib;swscale.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -386,7 +389,9 @@
     <ClCompile Include="smoketrail.cpp" />
     <ClCompile Include="so.cpp" />
     <ClCompile Include="solve.cpp" />
-    <ClCompile Include="sound.cpp" />
+	<ClCompile Include="runtime_error.cpp" />
+	<ClCompile Include="sound.cpp" />
+	<ClCompile Include="spu_reverb_xapo.cpp" />
     <ClCompile Include="spaprops.cpp" />
     <ClCompile Include="spark.cpp" />
     <ClCompile Include="speaker.cpp" />
@@ -680,7 +685,9 @@
     <ClInclude Include="smoketrail.h" />
     <ClInclude Include="so.h" />
     <ClInclude Include="solve.h" />
-    <ClInclude Include="sound.h" />
+	<ClInclude Include="runtime_error.h" />
+	<ClInclude Include="sound.h" />
+	<ClInclude Include="spu_reverb_xapo.h" />
     <ClInclude Include="spaprops.h" />
     <ClInclude Include="spark.h" />
     <ClInclude Include="speaker.h" />
@@ -742,6 +749,9 @@
     <ResourceCompile Include="EmbeddedShaders.rc" />
   </ItemGroup>
   <ItemGroup>
+    <Image Include="Assets\Sly1.ico" />
+  </ItemGroup>
+  <ItemGroup>
     <None Include="blot.frag" />
     <None Include="blot.vert" />
     <None Include="blip.frag" />
@@ -761,8 +771,10 @@
   <Target Name="CopyFFmpegRuntime" AfterTargets="Build">
     <ItemGroup>
       <FFmpegRuntime Include="$(SolutionDir)Libraries\ffmpeg\ffmpeg-master-latest-win64-lgpl-shared\bin\avformat-63.dll;$(SolutionDir)Libraries\ffmpeg\ffmpeg-master-latest-win64-lgpl-shared\bin\avcodec-63.dll;$(SolutionDir)Libraries\ffmpeg\ffmpeg-master-latest-win64-lgpl-shared\bin\avutil-61.dll;$(SolutionDir)Libraries\ffmpeg\ffmpeg-master-latest-win64-lgpl-shared\bin\swscale-10.dll;$(SolutionDir)Libraries\ffmpeg\ffmpeg-master-latest-win64-lgpl-shared\bin\swresample-7.dll" />
+      <CutsceneRuntime Include="$(ProjectDir)Cutscenes\**\*.*" />
     </ItemGroup>
     <Copy SourceFiles="@(FFmpegRuntime)" DestinationFolder="$(OutDir)" SkipUnchangedFiles="true" />
+    <Copy SourceFiles="@(CutsceneRuntime)" DestinationFolder="$(OutDir)Cutscenes\%(RecursiveDir)" SkipUnchangedFiles="true" />
   </Target>
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>

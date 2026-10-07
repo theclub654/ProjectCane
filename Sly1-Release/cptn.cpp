@@ -4,6 +4,12 @@
 #include "jt.h"
 #include "wm.h"
 #include "mark.h"
+#include "mouse.h"
+#include "gl.h"
+namespace
+{
+bool s_fMouseCameraCaptured = false;
+}
 
 void ActivateCptn(CPTN* pcptn, TN *ptn)
 {
@@ -70,6 +76,7 @@ void ActivateCptn(CPTN* pcptn, TN *ptn)
     }
 
     AdaptCm(pcm, &posFocus, ptnfn->xScreenPref, ptnfn->yScreenPref);
+
 }
 
 void DeativateCptn(CPTN* pcptn)
@@ -226,6 +233,29 @@ void UpdateCptn(CPTN* pcptn, CPDEFI* pcpdefi, JOY* pjoy, float dt)
 
 	const float radManualPrev = pcptn->radManual;
 	float radManual = radManualPrev;
+	float mouseOrbit = 0.0f;
+	if (g_fMouseCamera && (grftnd & FTND_Manual) != 0 &&
+		g_gl.window != nullptr && !g_fDisableInput &&
+		glfwGetWindowAttrib(g_gl.window, GLFW_FOCUSED) == GLFW_TRUE)
+	{
+		if (!s_fMouseCameraCaptured ||
+			glfwGetInputMode(g_gl.window, GLFW_CURSOR) != GLFW_CURSOR_DISABLED)
+		{
+			glfwSetInputMode(g_gl.window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+			MOUSE::ResetDelta();
+			s_fMouseCameraCaptured = true;
+		}
+		constexpr float mouseRadiansPerPixel = 0.0035f;
+		mouseOrbit = static_cast<float>(MOUSE::GetDX()) * mouseRadiansPerPixel;
+		if ((g_pgsCur->grfgs & 0x1000U) != 0)
+			mouseOrbit = -mouseOrbit;
+	}
+	else if (s_fMouseCameraCaptured && g_gl.window != nullptr)
+	{
+		glfwSetInputMode(g_gl.window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+		s_fMouseCameraCaptured = false;
+		MOUSE::ResetDelta();
+	}
 
 	if (pjoy->IsPressed(BTN_R3) && (grftnd & FTND_Manual) != 0)
 	{
@@ -237,7 +267,7 @@ void UpdateCptn(CPTN* pcptn, CPDEFI* pcpdefi, JOY* pjoy, float dt)
 		pcptn->fPanOnEntryDone = 1;
 		pcptn->tLastOrbit = g_clock.t;
 	}
-	else if ((grftnd & FTND_Manual) != 0 && (pjoy->uDeflect2 > 0.0f || pcptn->swOrbit != 0.0f || pcptn->fHome != 0))
+	else if ((grftnd & FTND_Manual) != 0 && (pjoy->uDeflect2 > 0.0f || mouseOrbit != 0.0f || pcptn->swOrbit != 0.0f || pcptn->fHome != 0))
 	{
 		if (pcptn->ftnd != FTND_Manual)
 			StartSound((SFXID)3, nullptr, nullptr, nullptr, 3000.0f, 300.0f, 1.0f, 0.0f, 0.0f, nullptr, nullptr);
@@ -247,13 +277,21 @@ void UpdateCptn(CPTN* pcptn, CPDEFI* pcpdefi, JOY* pjoy, float dt)
 
 		if (pcptn->fHome == 0)
 		{
-			const float xCamera = (g_pgsCur->grfgs & 0x1000U) != 0 ? -pjoy->x2 : pjoy->x2;
-			const float swTarget = xCamera * std::abs(xCamera) * SW_CptnOrbitMax;
-			const float swMin = pcptn->swOrbit - DSW_CptnOrbit * dtInput;
-			const float swMax = pcptn->swOrbit + DSW_CptnOrbit * dtInput;
+			if (mouseOrbit != 0.0f)
+			{
+				pcptn->swOrbit = 0.0f;
+				radManual = RadNormalize(pcptn->radManual + mouseOrbit);
+			}
+			else
+			{
+				const float xCamera = (g_pgsCur->grfgs & 0x1000U) != 0 ? -pjoy->x2 : pjoy->x2;
+				const float swTarget = xCamera * std::abs(xCamera) * SW_CptnOrbitMax;
+				const float swMin = pcptn->swOrbit - DSW_CptnOrbit * dtInput;
+				const float swMax = pcptn->swOrbit + DSW_CptnOrbit * dtInput;
 
-			pcptn->swOrbit = std::clamp(swTarget, swMin, swMax);
-			radManual = RadNormalize(pcptn->radManual + pcptn->swOrbit * dtInput);
+				pcptn->swOrbit = std::clamp(swTarget, swMin, swMax);
+				radManual = RadNormalize(pcptn->radManual + pcptn->swOrbit * dtInput);
+			}
 		}
 		else
 		{
@@ -271,13 +309,18 @@ void UpdateCptn(CPTN* pcptn, CPDEFI* pcpdefi, JOY* pjoy, float dt)
 	if (pcptn->ftnd == FTND_Manual &&
 		!(pjoy->IsPressed(BTN_R3) && (grftnd & FTND_Manual) != 0) &&
 		!((grftnd & FTND_Manual) != 0 &&
-		  (pjoy->uDeflect2 > 0.0f || pcptn->swOrbit != 0.0f || pcptn->fHome != 0)))
+		  (pjoy->uDeflect2 > 0.0f || mouseOrbit != 0.0f ||
+		   pcptn->swOrbit != 0.0f || pcptn->fHome != 0)))
 	{
 		glm::vec2 joy(pjoy->x, pjoy->y);
 		const float joyLength = glm::length(joy);
 		joy = (joyLength < 0.0001f) ? glm::vec2(1.0f, 0.0f) : joy / joyLength;
 
 		glm::vec3 vCamera = posFocus - pcm->pos;
+		// Retail explicitly clears local_190.z at 0x001e3984 before
+		// measuring and normalizing this direction. Camera-follow yaw is
+		// therefore based on the horizontal camera vector, not its 3D pitch.
+		vCamera.z = 0.0f;
 		const float cameraDistance = glm::length(vCamera);
 		vCamera = (cameraDistance < 0.0001f) ? g_normalX : vCamera / cameraDistance;
 
@@ -299,7 +342,6 @@ void UpdateCptn(CPTN* pcptn, CPDEFI* pcpdefi, JOY* pjoy, float dt)
 		const float dtOrbit = g_clock.t - pcptn->tLastOrbit;
 		// SCUS_971.98: CLQ at 0x00275a70 is (0, 1, 0).
 		const float uOrbitFollow = std::clamp(dtOrbit, 0.0f, 1.0f);
-
 		radManual = RadNormalize(radManual + swFollow * pcptn->uFollowCur * uSpin * uOrbitFollow * dt);
 
 		if ((grftnd & (FTND_Forward | FTND_Reverse)) != 0 && ptn != nullptr)
@@ -348,7 +390,9 @@ void UpdateCptn(CPTN* pcptn, CPDEFI* pcpdefi, JOY* pjoy, float dt)
 			float uLock = 0.0f;
 			if (g_pjt != nullptr)
 			{
-				const float speed = glm::length(vFollow);
+				// Retail measures only horizontal follow speed here (vmul.xy/vaddy).
+				// Including Z changes the authored lock strength on steep paths.
+				const float speed = glm::length(glm::vec2(vFollow.x, vFollow.y));
 				// Release checks raw player state 6 and hide kind 0 here. The
 				// prototype-derived JTHK_Nil value is -1 and previously prevented
 				// the intended flatten-camera lock rate from ever being selected.

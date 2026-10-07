@@ -86,17 +86,17 @@ uniform int   rko;
 uniform vec4  projectedVolumeColor;
 uniform int   projectedVolumeFinalPass;
 
-in vec4 worldPos;
-in vec3 worldNormal;
-in vec4 vertexColor;
-in vec2 texcoord;
+layout(location = 0) in vec4 worldPos;
+layout(location = 1) in vec3 worldNormal;
+layout(location = 2) in vec4 vertexColor;
+layout(location = 3) in vec2 texcoord;
 
-in MATERIAL material;
-flat in int vShadowCount;
-flat in int vShadowIndices[MAX_OBJECT_SHADOWS];
-in float fogIntensity;
+layout(location = 4) in MATERIAL material;
+layout(location = 7) flat in int vShadowCount;
+layout(location = 8) flat in ivec4 vShadowIndices[3];
+layout(location = 11) in float fogIntensity;
 
-out vec4 FragColor;
+layout(location = 0) out vec4 FragColor;
 
 void AlphaTest();
 void DrawOneWay();
@@ -105,6 +105,16 @@ bool ShadowIntersectsSphere(vec3 objectCenter, float objectRadius, vec3 shadowCe
 vec3 ApplyProjectedShadow(SHADOW shadow);
 float SampleShadowTexture(SHADOW shadow, vec2 uv);
 void ApplyFog();
+
+int ObjectShadowIndex(int slot)
+{
+    return vShadowIndices[slot >> 2][slot & 3];
+}
+
+int AvailableShadowCount()
+{
+    return min(max(numLevelShadows, 0), shadows.length());
+}
 
 void main()
 {
@@ -164,9 +174,12 @@ void DrawOneWay()
 
     if (alpha > 0.9)
     {
-        for (int i = 0; i < vShadowCount; ++i)
+        int shadowCount = clamp(vShadowCount, 0, MAX_OBJECT_SHADOWS);
+        for (int i = 0; i < shadowCount; ++i)
         {
-            int idx = vShadowIndices[i];
+            int idx = ObjectShadowIndex(i);
+            if (idx < 0 || idx >= AvailableShadowCount())
+                continue;
             FragColor.rgb *= ApplyProjectedShadow(shadows[idx]);
         }
     }
@@ -185,9 +198,12 @@ void DrawThreeWay()
 
     if (alpha > 0.9)
     {
-        for (int i = 0; i < vShadowCount; ++i)
+        int shadowCount = clamp(vShadowCount, 0, MAX_OBJECT_SHADOWS);
+        for (int i = 0; i < shadowCount; ++i)
         {
-            int idx = vShadowIndices[i];
+            int idx = ObjectShadowIndex(i);
+            if (idx < 0 || idx >= AvailableShadowCount())
+                continue;
             lit.rgb *= ApplyProjectedShadow(shadows[idx]);
         }
     }
@@ -259,7 +275,8 @@ vec3 ApplyProjectedShadow(SHADOW shadow)
 
 float SampleShadowTexture(SHADOW shadow, vec2 uv)
 {
-    if (shadow.textureSlot < 0)
+    int layerCount = textureSize(shadowTextureArray, 0).z;
+    if (shadow.textureSlot < 0 || shadow.textureSlot >= layerCount)
         return 0.0;
 
     // A dynamic layer is a single frame-local silhouette render target. It

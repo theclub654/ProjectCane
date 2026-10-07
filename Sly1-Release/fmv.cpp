@@ -6,13 +6,16 @@
 #include "transition.h"
 #include "ui.h"
 #include "gl.h"
+#include "runtime_error.h"
 
 #include <Windows.h>
+#include <atomic>
 #include <chrono>
 #include <cstring>
 #include <filesystem>
 #include <iostream>
 #include <thread>
+#include <vector>
 
 extern "C"
 {
@@ -31,6 +34,13 @@ namespace
     // cannot be used as the empty-queue marker.
     OID s_aoidPending[2] = { OID_Nil, OID_Nil };
     bool s_afSkippable[2] = {};
+    std::atomic_bool s_cutscenePlaying = false;
+
+    struct ScopedCutscenePlaying
+    {
+        ScopedCutscenePlaying() { s_cutscenePlaying.store(true, std::memory_order_release); }
+        ~ScopedCutscenePlaying() { s_cutscenePlaying.store(false, std::memory_order_release); }
+    };
 
     // Identity word (descriptor[2] ^ descriptor[6]) for each of the retail
     // game's encrypted 32-byte cutscene descriptors. The runtime-loaded
@@ -110,29 +120,67 @@ namespace
         return partialMatch;
     }
 
-    std::filesystem::path CutsceneDirectory(const std::string& videoFileName)
+    std::filesystem::path CutsceneDirectory(const std::string& videoFileName,
+        const std::string& audioFileName)
     {
-        wchar_t executable[MAX_PATH]{};
-        const DWORD length = GetModuleFileNameW(nullptr, executable, MAX_PATH);
-        if (length != 0 && length < MAX_PATH)
+        std::vector<std::filesystem::path> candidates;
+        std::filesystem::path executableDirectory;
+        std::vector<wchar_t> executable(512);
+        while (executable.size() <= 32768)
         {
-        const std::filesystem::path besideExecutable =
-            std::filesystem::path(executable).parent_path() / L"Cutscenes";
-            if (std::filesystem::exists(besideExecutable / videoFileName))
-                return besideExecutable;
+            SetLastError(ERROR_SUCCESS);
+            const DWORD length = GetModuleFileNameW(nullptr, executable.data(),
+                static_cast<DWORD>(executable.size()));
+            if (length == 0)
+                break;
+            if (length < executable.size())
+            {
+                executableDirectory = std::filesystem::path(
+                    std::wstring(executable.data(), length)).parent_path();
+                break;
+            }
+            executable.resize(executable.size() * 2);
         }
 
-    const std::filesystem::path workingDirectory =
-        std::filesystem::current_path() / L"Cutscenes";
-        if (std::filesystem::exists(workingDirectory / videoFileName))
-            return workingDirectory;
+        if (!executableDirectory.empty())
+        {
+            std::filesystem::path parent = executableDirectory;
+            for (int depth = 0; depth < 4 && !parent.empty(); ++depth)
+            {
+                candidates.push_back(parent / L"Cutscenes");
+                candidates.push_back(parent / L"Sly1-Release" / L"Cutscenes");
+                parent = parent.parent_path();
+            }
+        }
 
-    const std::filesystem::path projectDirectory =
-        std::filesystem::current_path() / L"Sly1-Release" / L"Cutscenes";
-        if (std::filesystem::exists(projectDirectory / videoFileName))
-            return projectDirectory;
+        std::error_code currentPathError;
+        std::filesystem::path workingDirectory =
+            std::filesystem::current_path(currentPathError);
+        if (currentPathError)
+            workingDirectory = executableDirectory.empty()
+                ? std::filesystem::path(L".") : executableDirectory;
+        candidates.push_back(workingDirectory / L"Cutscenes");
+        candidates.push_back(workingDirectory / L"Sly1-Release" / L"Cutscenes");
 
-        return workingDirectory;
+        std::error_code error;
+        for (const std::filesystem::path& candidate : candidates)
+        {
+            if (std::filesystem::is_regular_file(candidate / videoFileName, error) &&
+                std::filesystem::is_regular_file(candidate / audioFileName, error))
+                return candidate;
+            error.clear();
+        }
+
+        // Preserve video-only playback when the WAV is genuinely unavailable,
+        // but do not let an incomplete directory shadow a complete pair above.
+        for (const std::filesystem::path& candidate : candidates)
+        {
+            if (std::filesystem::is_regular_file(candidate / videoFileName, error))
+                return candidate;
+            error.clear();
+        }
+
+        return workingDirectory / L"Cutscenes";
     }
 
     std::string AvError(int error)
@@ -140,6 +188,12 @@ namespace
         char message[AV_ERROR_MAX_STRING_SIZE]{};
         av_strerror(error, message, sizeof(message));
         return message;
+    }
+
+    std::string Utf8Path(const std::filesystem::path& path)
+    {
+        const std::u8string utf8 = path.u8string();
+        return std::string(reinterpret_cast<const char*>(utf8.data()), utf8.size());
     }
 
     bool SkipPressed()
@@ -203,16 +257,20 @@ namespace
 
     bool PlayCutscene(const CUTSCENEINFO& info, bool skippable)
     {
-        const std::filesystem::path directory = CutsceneDirectory(info.videoFileName);
+        const ScopedCutscenePlaying playing;
+        const std::filesystem::path directory =
+            CutsceneDirectory(info.videoFileName, info.audioFileName);
         const std::filesystem::path videoPath = directory / info.videoFileName;
         const std::filesystem::path audioPath = directory / info.audioFileName;
         const bool isStartupSplash = info.identityId == STARTUP_SPLASH_QUEUE_ID;
 
         AVFormatContext* format = nullptr;
-        int result = avformat_open_input(&format, videoPath.string().c_str(), nullptr, nullptr);
+        const std::string videoPathUtf8 = Utf8Path(videoPath);
+        int result = avformat_open_input(&format, videoPathUtf8.c_str(), nullptr, nullptr);
         if (result < 0)
         {
-            std::cerr << "Failed to open cutscene video: " << videoPath << " (" << AvError(result) << ")\n";
+            ReportRuntimeError("FMV", "Could not open video '%s': %s (FFmpeg code %d)",
+                videoPathUtf8.c_str(), AvError(result).c_str(), result);
             return false;
         }
 
@@ -221,11 +279,17 @@ namespace
         // runs on its own worker, so preserve and restore its pause state
         // around FFmpeg playback instead of letting it continue underneath.
         const bool musicWasPaused = FMusicSequencerPaused();
+        const bool ambientSoundsWerePaused = FAmbientsPaused() != 0;
         const float masterVolumeBeforeMovie = GetMasterVolume();
         if (isStartupSplash)
             KillMusic();
         else
             PauseMusicSequencer();
+        // Retail movie playback owns the audible output while active. Pause
+        // gameplay effects as well so looping world sounds, such as Bentley's
+        // computer static, do not continue beneath the FMV audio.
+        if (!ambientSoundsWerePaused)
+            PauseAmbientSounds();
         // World transitions mute the game master while the screen is black,
         // but retail movie audio is still audible during that interval. The
         // port currently shares one XAudio mastering voice, so temporarily
@@ -301,10 +365,42 @@ namespace
             if (fps <= 1.0 || fps > 120.0)
                 fps = 29.97;
 
-            const auto start = std::chrono::steady_clock::now();
+            auto fallbackStart = std::chrono::steady_clock::now();
             int64_t frameNumber = 0;
+            int64_t firstPts = AV_NOPTS_VALUE;
             bool quit = false;
             bool audioStarted = false;
+            const double frameDuration = 1.0 / fps;
+
+            auto waitForVisibleWindow = [&]()
+            {
+                int framebufferWidth = 0;
+                int framebufferHeight = 0;
+                glfwGetFramebufferSize(g_gl.window, &framebufferWidth, &framebufferHeight);
+                if (framebufferWidth > 0 && framebufferHeight > 0)
+                    return;
+
+                const auto hiddenAt = std::chrono::steady_clock::now();
+                const bool pauseAudio = audioStarted;
+                if (pauseAudio)
+                    PauseVag();
+                while (!quit && (framebufferWidth <= 0 || framebufferHeight <= 0))
+                {
+                    glfwWaitEventsTimeout(0.05);
+                    g_joy.Update(g_gl.window);
+                    ServiceAudioDevice();
+                    if (glfwWindowShouldClose(g_gl.window) ||
+                        (skippable && SkipPressed()))
+                    {
+                        quit = true;
+                        break;
+                    }
+                    glfwGetFramebufferSize(g_gl.window, &framebufferWidth, &framebufferHeight);
+                }
+                fallbackStart += std::chrono::steady_clock::now() - hiddenAt;
+                if (pauseAudio && !quit)
+                    ResumeVag();
+            };
 
             auto outputFrames = [&]()
             {
@@ -330,26 +426,83 @@ namespace
 
                     if (!audioStarted)
                     {
-                        PreloadVag(audioPath.string().c_str());
-                        FPauseForVag();
-                        if (!FVagPlaying())
-                            std::cerr << "Failed to start cutscene audio: " << audioPath << '\n';
-                        audioStarted = true;
+                        PreloadVag(audioPath);
+                        const auto audioLoadDeadline =
+                            std::chrono::steady_clock::now() + std::chrono::seconds(30);
+                        while (!quit && FPauseForVag())
+                        {
+                            glfwPollEvents();
+                            g_joy.Update(g_gl.window);
+                            ServiceAudioDevice();
+                            if (glfwWindowShouldClose(g_gl.window) ||
+                                (skippable && SkipPressed()))
+                                quit = true;
+                            if (!quit && std::chrono::steady_clock::now() >= audioLoadDeadline)
+                            {
+                                ReportRuntimeError("FMV",
+                                    "Timed out after 30 seconds while loading audio '%s'",
+                                    Utf8Path(audioPath).c_str());
+                                StopVag();
+                                break;
+                            }
+                            if (!quit)
+                                std::this_thread::sleep_for(std::chrono::milliseconds(1));
+                        }
+                        audioStarted = FVagPlaying() != 0;
+                        fallbackStart = std::chrono::steady_clock::now();
+                        if (!audioStarted)
+                            ReportRuntimeError("FMV",
+                                "Audio '%s' could not be started; continuing with silent video",
+                                Utf8Path(audioPath).c_str());
                     }
 
-                    const auto due = start + std::chrono::duration_cast<std::chrono::steady_clock::duration>(
-                        std::chrono::duration<double>(static_cast<double>(frameNumber) / fps));
-                    while (!quit && std::chrono::steady_clock::now() < due)
+                    waitForVisibleWindow();
+                    if (quit)
+                        return;
+
+                    const int64_t pts = frame->best_effort_timestamp;
+                    if (firstPts == AV_NOPTS_VALUE && pts != AV_NOPTS_VALUE)
+                        firstPts = pts;
+                    double presentationTime = static_cast<double>(frameNumber) / fps;
+                    if (pts != AV_NOPTS_VALUE && firstPts != AV_NOPTS_VALUE)
+                    {
+                        presentationTime = static_cast<double>(pts - firstPts) *
+                            av_q2d(stream->time_base);
+                        if (presentationTime < 0.0)
+                            presentationTime = 0.0;
+                    }
+
+                    auto playbackTime = [&]()
+                    {
+                        const double audioTime = audioStarted ? VagPlaybackSeconds() : -1.0;
+                        if (audioTime >= 0.0)
+                            return audioTime;
+                        return std::chrono::duration<double>(
+                            std::chrono::steady_clock::now() - fallbackStart).count();
+                    };
+
+                    while (!quit && playbackTime() + 0.001 < presentationTime)
                     {
                         glfwPollEvents();
                         g_joy.Update(g_gl.window);
+                        ServiceAudioDevice();
                         if (glfwWindowShouldClose(g_gl.window) || (skippable && SkipPressed()))
                             quit = true;
+                        waitForVisibleWindow();
                         if (!quit)
                             std::this_thread::sleep_for(std::chrono::milliseconds(1));
                     }
                     if (quit)
                         return;
+
+                    // Audio is the retail movie clock. If decoding or rendering
+                    // falls behind it, discard stale pictures instead of showing
+                    // every late frame and allowing A/V drift to accumulate.
+                    if (playbackTime() - presentationTime > frameDuration * 1.5)
+                    {
+                        ++frameNumber;
+                        continue;
+                    }
 
                     glBindTexture(GL_TEXTURE_2D, texture);
                     glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
@@ -358,6 +511,7 @@ namespace
                     PresentCutsceneFrame(texture, decoder->width, decoder->height);
                     glfwPollEvents();
                     g_joy.Update(g_gl.window);
+                    ServiceAudioDevice();
                     if (glfwWindowShouldClose(g_gl.window) || (skippable && SkipPressed()))
                         quit = true;
                     ++frameNumber;
@@ -369,18 +523,67 @@ namespace
             {
                 if (packet->stream_index == streamIndex)
                 {
-                    result = avcodec_send_packet(decoder, packet);
-                    if (result >= 0)
-                        outputFrames();
+                    // A decoder may require its output queue to be drained
+                    // before it accepts another compressed packet. Dropping
+                    // that packet on EAGAIN causes visible jumps and can make
+                    // the movie appear to end early on some FFmpeg builds.
+                    for (;;)
+                    {
+                        result = avcodec_send_packet(decoder, packet);
+                        if (result == AVERROR(EAGAIN))
+                        {
+                            outputFrames();
+                            if (quit)
+                                break;
+                            continue;
+                        }
+                        if (result < 0)
+                            quit = true;
+                        else
+                            outputFrames();
+                        break;
+                    }
                 }
                 av_packet_unref(packet);
             }
             if (!quit)
             {
-                avcodec_send_packet(decoder, nullptr);
-                outputFrames();
+                for (;;)
+                {
+                    result = avcodec_send_packet(decoder, nullptr);
+                    if (result == AVERROR(EAGAIN))
+                    {
+                        outputFrames();
+                        if (quit)
+                            break;
+                        continue;
+                    }
+                    if (result < 0 && result != AVERROR_EOF)
+                        quit = true;
+                    else
+                        outputFrames();
+                    break;
+                }
             }
-            result = 0;
+
+            // Keep the final picture visible until the independently queued WAV
+            // reaches its end. Previously StopVag below could truncate audio when
+            // the elementary video stream ended a little earlier.
+            while (!quit && audioStarted && FVagPlaying())
+            {
+                glfwPollEvents();
+                g_joy.Update(g_gl.window);
+                ServiceAudioDevice();
+                if (glfwWindowShouldClose(g_gl.window) || (skippable && SkipPressed()))
+                    quit = true;
+                waitForVisibleWindow();
+                if (!quit)
+                    std::this_thread::sleep_for(std::chrono::milliseconds(1));
+            }
+            // Preserve decoder failures for the diagnostic below. A user skip
+            // is not a decode failure and normally leaves result non-negative.
+            if (result >= 0 || result == AVERROR_EOF)
+                result = 0;
         } while (false);
 
         StopVag();
@@ -394,13 +597,18 @@ namespace
         avformat_close_input(&format);
 
         if (result < 0)
-            std::cerr << "Cutscene decode failed for " << videoPath << ": " << AvError(result) << '\n';
+            ReportRuntimeError("FMV", "Decode failed for '%s': %s (FFmpeg code %d)",
+                videoPathUtf8.c_str(), AvError(result).c_str(), result);
         SetMasterVolume(masterVolumeBeforeMovie);
         // Startup playback permanently discarded splash.brx's sequencer above;
         // the destination world starts a fresh song after loading. Other
         // movies restore the song they interrupted when no transition follows.
         if (!musicWasPaused && !isStartupSplash && g_transition.m_fPending == 0)
-            ContinueMusicSequencer();
+            ContinueMusicSequencer(!ambientSoundsWerePaused);
+        if (ambientSoundsWerePaused)
+            PauseAmbientSounds();
+        else
+            ContinueAmbientSounds();
         return played;
     }
 }
@@ -415,7 +623,8 @@ void QueueCutscene(OID identityId)
 
     if (info == nullptr)
     {
-        std::cerr << "Unknown cutscene OID: " << static_cast<int>(identityId) << '\n';
+        ReportRuntimeError("FMV", "Unknown cutscene OID: %d",
+            static_cast<int>(identityId));
         return;
     }
 
@@ -439,7 +648,7 @@ void QueueCutsceneDescriptor(const char* descriptor)
 {
     if (descriptor == nullptr)
     {
-        std::cerr << "Null cutscene descriptor\n";
+        ReportRuntimeError("FMV", "Received a null cutscene descriptor");
         return;
     }
 
@@ -469,13 +678,18 @@ void QueueCutsceneDescriptor(const char* descriptor)
         }
     }
 
-    std::cerr << "Unknown cutscene descriptor identity: 0x" << std::hex
-              << identityKey << std::dec << '\n';
+    ReportRuntimeError("FMV", "Unknown cutscene descriptor identity: 0x%08X",
+        identityKey);
 }
 
 bool FCutscenePending()
 {
     return s_aoidPending[0] != OID_Nil;
+}
+
+bool FCutscenePlaying()
+{
+    return s_cutscenePlaying.load(std::memory_order_acquire);
 }
 
 void ExecutePendingCutscenes()
@@ -656,9 +870,6 @@ void DrawFmvMenu(FMVMENU* pfmvmenu)
     glm::vec4 color = pfmvmenu->rgba;
     color.a *= pfmvmenu->uOn;
 
-    // FMVMENU is centered in the PS2's 640 x 492.8 canvas. Convert the BLOT
-    // rectangle and all grid spacing to output pixels while preserving that
-    // center anchor and the user's GUI scale.
     const GuiScale guiScale = GetGuiScale();
     const float scaleX = guiScale.x;
     const float scaleY = guiScale.y;
@@ -669,16 +880,10 @@ void DrawFmvMenu(FMVMENU* pfmvmenu)
 
     if (pfmvmenu->pbloti != nullptr)
     {
-        if (pfmvmenu->pbloti->x < 0.0f)
-            x -= dx - pfmvmenu->dx;
-        else if (pfmvmenu->pbloti->x == 0.0f)
-            x -= (dx - pfmvmenu->dx) * 0.5f;
-
-        if (pfmvmenu->pbloti->y < 0.0f)
-            y -= dy - pfmvmenu->dy;
-        else if (pfmvmenu->pbloti->y == 0.0f)
-            y -= (dy - pfmvmenu->dy) * 0.5f;
-
+        if (pfmvmenu->pbloti->x < 0.0f) x -= dx - pfmvmenu->dx;
+        else if (pfmvmenu->pbloti->x == 0.0f) x -= (dx - pfmvmenu->dx) * 0.5f;
+        if (pfmvmenu->pbloti->y < 0.0f) y -= dy - pfmvmenu->dy;
+        else if (pfmvmenu->pbloti->y == 0.0f) y -= (dy - pfmvmenu->dy) * 0.5f;
         x += pfmvmenu->pbloti->x * (scaleX - 1.0f);
         y += pfmvmenu->pbloti->y * (scaleY - 1.0f);
     }
@@ -693,8 +898,14 @@ void DrawFmvMenu(FMVMENU* pfmvmenu)
     if (pfmvmenu->pte != nullptr && pfmvmenu->pte->m_pfont != nullptr)
     {
         const glm::vec4 edgeColor = pfmvmenu->pte->m_rgba;
+        const float edgeScaleX = pfmvmenu->pte->m_rxScaling;
+        const float edgeScaleY = pfmvmenu->pte->m_ryScaling;
         pfmvmenu->pte->m_rgba.a *= pfmvmenu->uOn;
+        pfmvmenu->pte->m_rxScaling *= scaleX;
+        pfmvmenu->pte->m_ryScaling *= scaleY;
         pfmvmenu->pte->m_pfont->EdgeRect(pfmvmenu->pte, &textBox);
+        pfmvmenu->pte->m_rxScaling = edgeScaleX;
+        pfmvmenu->pte->m_ryScaling = edgeScaleY;
         pfmvmenu->pte->m_rgba = edgeColor;
     }
 

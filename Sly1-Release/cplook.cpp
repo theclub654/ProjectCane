@@ -313,7 +313,8 @@ void UpdateCplook(CPLOOK* pcplook, CPDEFI* pcpdefi, JOY* pjoy, float dt)
 	if (lookk == LOOKK_Dialog)
 	{
 		glm::vec3 posLookat{};
-		if (!FGetCplookTargetPos(reinterpret_cast<LO*>(g_binoc.paloLookat), &posLookat))
+		const bool fHasLookat = FGetCplookTargetPos(reinterpret_cast<LO*>(g_binoc.paloLookat), &posLookat);
+		if (!fHasLookat)
 			PosCplookEye(pcplook, &posEye);
 		else
 		{
@@ -347,11 +348,15 @@ void UpdateCplook(CPLOOK* pcplook, CPDEFI* pcpdefi, JOY* pjoy, float dt)
 			: posAnchor + pcm->mat[0] * 100.0f;
 		if (turret != nullptr && !turret->fTrack)
 		{
+			// Retail advances this controller at 60 Hz. This offset is a temporary
+			// angular lead from the current camera, not a value accumulated over time;
+			// scaling it by render dt makes the lead (and sensitivity) shrink above 60 FPS.
+			constexpr float dtSniperTrackRetail = 1.0f / 60.0f;
 			glm::vec3 projected = posAnchor + pcm->mat * glm::vec3(100.0f, 0.0f, 0.0f);
 			glm::vec3 screen{};
 			ConvertBinocWorldToScreen(pcm, projected, &screen);
 			screen += glm::vec3(pjoy->x, ((g_pgsCur->grfgs & 1024U) == 0) ? -pjoy->y : pjoy->y, 0.0f) *
-				(DT_CplookSniperTrack * dt);
+				(DT_CplookSniperTrack * dtSniperTrackRetail);
 			ConvertBinocScreenToWorld(pcm, screen, &aim);
 		}
 
@@ -441,7 +446,6 @@ void UpdateCplook(CPLOOK* pcplook, CPDEFI* pcpdefi, JOY* pjoy, float dt)
 		const float spring = glm::mix(20.0f, springTarget, u);
 		const float damping = glm::mix(-7.0f, dampingTarget, u);
 		const float limit = glm::mix(1.0f, 0.25f, u);
-
 		SetCmLookAtSmooth(pcm, grflas, &posEye, &posAnchor, nullptr, spring, damping, limit, 0.0f, 0.0f, dt);
 	}
 }

@@ -30,6 +30,7 @@ const CUTSCENEINFO* PcutsceneinfoFromIdentityId(OID identityId);
 void QueueCutscene(OID identityId);
 void QueueCutsceneDescriptor(const char* descriptor);
 bool FCutscenePending();
+bool FCutscenePlaying();
 void ExecutePendingCutscenes();
 
 struct VTFMV

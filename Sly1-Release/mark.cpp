@@ -98,6 +98,7 @@ XP* PxpAdd(SO* pso0, SO* pso1, glm::vec3* ppos, glm::vec3* pnormal, float gDist,
     pxp->pv0 = pv0;
     pxp->pv1 = pv1;
 
+
     for (int ixpd = 0; ixpd < 2; ixpd++)
     {
         SO* psoHook = PsoFindSoPhysHook(pxp->axpd[ixpd].psoLeaf, offsetof(VTSO, pfnAdjustSoNewXp));
@@ -182,6 +183,7 @@ void RecalcSwXpMovement(SW* psw, int cpxp, XP** apxp)
         }
 
         pxp->vRelAdj = pxp->axpd[0].v - pxp->axpd[1].v;
+
     }
 }
 
@@ -962,6 +964,7 @@ int FMarkSoContactsCenterBsp(SO* pso0, SO* pso1, int cbspPruned, BSP* abspPruned
         SURF* psurf = alsg[ilsg].data.bsp.apsurf[0];
 
         CalculateCenterContact(pso0, &psurf->normal, psurf->gDot, &pos, &s);
+
         PxpAdd(pso0, pso1, &pos, &psurf->normal, s, XPK_CenterToSurface, nullptr, psurf, ppxpFirst);
     }
 
@@ -1061,7 +1064,7 @@ void AddSoXps(SO* psoRoot, SO* psoOther, int fCenterXp, int cbspPruned, BSP* abs
 
                     if (hit)
                     {
-                        pso0->fCenterXp = 1;
+						pso0->fCenterXpFrame = 1;
                         // Retail advances to the next physics child once this
                         // swept-center contact has been accepted.  Generating
                         // the regular shape contact as well duplicates the
@@ -1090,7 +1093,7 @@ void AddSoXps(SO* psoRoot, SO* psoOther, int fCenterXp, int cbspPruned, BSP* abs
 
                     if (hit)
                     {
-                        psoOther->fCenterXp = 1;
+						psoOther->fCenterXpFrame = 1;
                         continue;
                     }
                 }
@@ -1233,7 +1236,7 @@ int IsurfFromBspSurf(const GEOM& geom, const SURF* psurf)
 
 MTLKWA s_mpmtlkwaMu[12] = 
 {
-    { 1.0f, 1.0f  },
+    { 1.0f, 0.5f  },
     { 3.0f, 2.4f  },
     { 1.0f, 0.4f  },
     { 1.0f, 0.5f  },
@@ -1243,7 +1246,7 @@ MTLKWA s_mpmtlkwaMu[12] =
     { 1.0f, 1.5f  },
     { 3.0f, 1.5f  },
     { 1.0f, 0.5f  },
-    { 1.0f, -10.0f },
+    { 1.0f, 0.5f   },
     { 1.0f, -10.0f },
 };
 
@@ -1259,6 +1262,6 @@ MTLKWA s_mpmtlkwaElas[12] =
     { 1.0f, -1.0f },
     { 1.0f, -1.0f },
     { 1.0f, -1.0f },
-    { 1.0f, 0.5f },
+    { 1.0f, -1.0f },
     { 1.0f, 1.0f },
 };

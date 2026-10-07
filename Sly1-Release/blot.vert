@@ -9,8 +9,8 @@ uniform mat4 u_projection;
 uniform vec4 u_uvRect;
 uniform int  u_useVertexColor;
 
-out vec2 v_texcoord;
-out vec4 v_color;
+layout(location = 0) out vec2 v_texcoord;
+layout(location = 1) out vec4 v_color;
 
 void main()
 {

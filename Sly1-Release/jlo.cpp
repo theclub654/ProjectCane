@@ -523,7 +523,11 @@ void FireJlo(JLO* pjlo)
 		prwm->rwfi.v = v * scale;
 	}
 
-	prwm->rwfi.tMax = pjloc->dtMissile;
+	// The retail release gives JLO projectiles 25% more lifetime than the
+	// authored travel time.  The extra margin lets the projectile pass its
+	// nominal target time and register contacts with objects such as the
+	// exposed Paris cop-car body.
+	prwm->rwfi.tMax = pjloc->dtMissile * 1.25f;
 	prwm->rwti.pos = posTarget;
 
 	if (FFireRwm(prwm, 0))

@@ -33,7 +33,8 @@
 #include "call.h"
 #include "gl.h"
 #include "gui_layout.h"
-
+#include "debug.h"
+#include <cstdio>
 void StartupJtIcon(JTICON* pjticon)
 {
     pjticon->pvtjticon = &g_vtjticon;
@@ -72,13 +73,11 @@ void DrawJtIcon(JTICON* pjticon)
     if (iconScale <= 0.0f)
         return;
 
-    // Keep layout anchoring in the active logical canvas, but render the icon
-    // itself uniformly. Using the canvas Y scale for both glyph axes prevents
-    // square icons from becoming wider or narrower when only the host aspect
-    // ratio changes. Modern mode already supplies the same X/Y value.
+    // Retail applies the final GS X/Y conversion to the icon independently.
+    // Modern mode remains uniform through GetGuiScale().
     const GuiScale guiScale = GetGuiScale();
-    const float glyphScale = iconScale * guiScale.y;
-    pjticon->pfont->PushScaling(glyphScale, glyphScale);
+    pjticon->pfont->PushScaling(iconScale * guiScale.x,
+        iconScale * guiScale.y);
 
     CTextBox tbx;
     float x, y, dx, dy;
@@ -88,6 +87,7 @@ void DrawJtIcon(JTICON* pjticon)
     tbx.SetTextColor(&pjticon->rgba);
     tbx.SetHorizontalJust(JH_Left);
     tbx.SetVerticalJust(JV_Top);
+
     pjticon->pfont->DrawPchz(pjticon->achzDraw, &tbx);
 
     pjticon->pfont->PopScaling();
@@ -748,11 +748,6 @@ int FCheckJtXpBase(JT* pjt, XP* pxp, int ixpd)
 
 void AdjustJtXpVelocity(JT* pjt, XP* pxp, int ixpd)
 {
-    const int ixpdOther = 1 - ixpd;
-    SO* psoOther = pxp->axpd[ixpdOther].psoLeaf;
-    const bool fButton1524 =
-        psoOther != nullptr && static_cast<int>(psoOther->oid) == 1524;
-
     if (pjt->jts == 4)
     {
         if (pxp->xpk == XPK_PointToSurface && ixpd == 0 && pxp->pv0 == pjt->pposBumper)
@@ -770,21 +765,6 @@ void AdjustJtXpVelocity(JT* pjt, XP* pxp, int ixpd)
 
     if (pjt->pvtstep->pfnFCheckStepXpBase(pjt, pxp, ixpd))
     {
-		// A button can discard and rebuild its contact XP in the same solver
-		// timestamp when its animation starts.  Do not attach JT to the rebuilt
-		// base when the two contact points are already separating; doing so
-		// replaces the launch velocity with the platform's downward velocity.
-		if (fButton1524)
-		{
-			const glm::vec3 relativeVelocity =
-				pxp->axpd[ixpd].v - pxp->axpd[ixpdOther].v;
-			const float separatingSpeed =
-				glm::dot(relativeVelocity, pxp->normal) * g_mpixpdr[ixpd];
-
-			if (separatingSpeed > 0.0f)
-				return;
-		}
-
         AdjustStepXpVelocityBase(pjt, pxp, ixpd);
         return;
     }
@@ -1493,6 +1473,7 @@ void ThrowJt(JT* pjt, glm::vec3* pposTarget, float angVert, float uSteer)
 
     if (uSteer == 0.0f)
         pjt->fCanBoost = 0;
+
 }
 
 void UnhookJt(JT* pjt)
@@ -1713,7 +1694,10 @@ void AdjustJtXps(JT* pjt)
             // Transfer selected contacts to the active decoy's private list.
             if (pxp->axpd[iOther].psoRoot == pjt->pdecoy)
             {        
-                const bool fTransfer = pjt->pvtjt->pfnFCheckJtXpBase(pjt, pxp, iOther);
+                // FCheckJtXpBase expects the XPD index belonging to Sly. Passing
+                // the decoy side rejects the floor contact, so UpdateDecoy never
+                // receives the walk-over XP that triggers its flatten/damage path.
+                const bool fTransfer = pjt->pvtjt->pfnFCheckJtXpBase(pjt, pxp, iJt);
 
                 if (fTransfer)
                 {
@@ -2396,22 +2380,34 @@ void UpdateJtActive(JT* pjt, JOY* pjoy, float dt)
 
     UpdateJtActivePowerUp(pjt, pjoy);
 
-    // Release dialog/peek input handling. L1/R1 either finishes the current
-    // skippable dialog, starts an available instruction, or requests a peek
-    // transition. Camera policies suppress these inputs while active.
+    // Release dialog/peek input handling. With the Binocucom skipper enabled,
+    // L1 advances one voice line and R1 finishes the complete dialog.
+    // Camera policies suppress these inputs while active.
     if (FActiveCplcy(&g_pcm->cpman) == 0)
     {
         JOY* pjoyDialog = (g_grfjoyt & 4U) != 0 ? &g_joy : &g_joyZero;
-        const bool fDialogButtonPressed =
-            (pjoyDialog->current[BTN_L1] && !pjoyDialog->previous[BTN_L1]) ||
-            (pjoyDialog->current[BTN_R1] && !pjoyDialog->previous[BTN_R1]);
+		const bool fSkipLinePressed =
+			pjoyDialog->current[BTN_L1] && !pjoyDialog->previous[BTN_L1];
+		const bool fSkipDialogPressed =
+			pjoyDialog->current[BTN_R1] && !pjoyDialog->previous[BTN_R1];
+		const bool fDialogButtonPressed = fSkipLinePressed || fSkipDialogPressed;
         const bool fPeekButtonPressed =
             pjoy->IsPressed(BTN_L1) ||
             pjoy->IsPressed(BTN_R1);
 
         int fCancelPeek = pjt->fCancelPeek;
 
-        if (g_binoc.pdialogPlaying != nullptr &&
+		if (g_binoc.pdialogPlaying != nullptr &&
+			g_binoc.pdialogPlaying->dialogs == DIALOGS_Playing &&
+			FDialogSkipProtected(g_binoc.pdialogPlaying) &&
+			fDialogButtonPressed)
+		{
+			if (fSkipLinePressed)
+				pjoyDialog->SetHandled(BTN_L1);
+			if (fSkipDialogPressed)
+				pjoyDialog->SetHandled(BTN_R1);
+		}
+		else if (g_binoc.pdialogPlaying != nullptr &&
             g_binoc.pdialogPlaying->dialogs == DIALOGS_Playing &&
             g_binoc.pdialogPlaying->fNoSkip == 0 &&
             fDialogButtonPressed &&
@@ -2422,11 +2418,14 @@ void UpdateJtActive(JT* pjt, JOY* pjoy, float dt)
             if (fPeek)
                 pjt->pdialogPeekPending = nullptr;
 
-            FinishDialogEvents(g_binoc.pdialogPlaying);
+			if (g_fSkipBinocDialogs && fSkipLinePressed)
+				SkipDialogVoiceLine(g_binoc.pdialogPlaying);
+			else
+				FinishDialogEvents(g_binoc.pdialogPlaying);
 
-            if (pjoyDialog->current[BTN_L1] && !pjoyDialog->previous[BTN_L1])
+			if (fSkipLinePressed)
                 pjoyDialog->SetHandled(BTN_L1);
-            if (pjoyDialog->current[BTN_R1] && !pjoyDialog->previous[BTN_R1])
+			if (fSkipDialogPressed)
                 pjoyDialog->SetHandled(BTN_R1);
         }
         else if (fCancelPeek != 0 || fPeekButtonPressed)
@@ -2649,9 +2648,10 @@ void UpdateJtActive(JT* pjt, JOY* pjoy, float dt)
                 // hides have their own exit rules.
                 if (fJump)
                 {
-                    pjt->jtjk = pjt->jthk == JTHK_Rail
-                        ? JTJK_Swinging
-                        : JTJK_Standing;
+                    // Retail does not overwrite jtjk here. SetJtJts supplies
+                    // JTJK_Standing when no jump kind is active, so rail jumps
+                    // use the normal jump animation and launch velocity rather
+                    // than the lower hanging/ledge jump.
                     jtsNext = JTS_Jump;
                     jtbsNext = pjt->jthk == JTHK_Basket
                         ? JTBS_Jump_Out
@@ -2801,12 +2801,6 @@ void UpdateJtActive(JT* pjt, JOY* pjoy, float dt)
     {
         case 1:
         SetStepRunTarget(pjt, pjt->radJoy, pjt->uJoyDeflect, pjt->ablrunRun, pjt->pasegblRun);
-
-        // Keep the target basis synchronized with the heading selected by
-        // this input frame.  Waiting for the later UpdateJt pass allowed an
-        // animation/constraint update to consume a stale sideways basis.
-        UpdateStepMatTarget(pjt);
-
         break;
 
         case 2:
@@ -5009,13 +5003,11 @@ void StartJtZapJumpToTarget(JT* pjt, float dtJump, const JTJUMPTARGET* ptarget)
     glm::vec3 vGoal;
 
     CalculateJtJumpTrajectory(pjt, dtJump, const_cast<JTJUMPTARGET*>(ptarget), &vLaunch, &posGoal, &vGoal);
-
     pjt->pactvalJump->tMatch = g_clock.t + dtJump;
     pjt->pactvalJump->posGoal = posGoal;
     pjt->pactvalJump->vGoal = vGoal;
 
     pjt->pvtalo->pfnSetAloVelocityVec(pjt, &vLaunch);
-
     pjt->jtJumpTarget = *ptarget;
 
     SetJtJts(pjt, 4, 44);
@@ -5028,7 +5020,6 @@ void FindBestJtJumpDuration(JT* pjt, JTJUMPTARGET* ptarget, std::vector<SO*>* pa
 
     float scoreBest = std::numeric_limits<float>::max();
     float dtBest = s_adtJtJumpCandidate[0];
-
     for (float dtJump : s_adtJtJumpCandidate)
     {
         glm::vec3 vLaunch;
@@ -5048,10 +5039,10 @@ void FindBestJtJumpDuration(JT* pjt, JTJUMPTARGET* ptarget, std::vector<SO*>* pa
             glm::vec3 posNext;
             LSG alsg[8];
 
-            EvaluateBezierPos(dtJump, tNext, 1.0f, &posStart, &vLaunch, &posGoal, &vGoal, nullptr, nullptr, &posNext);
+            EvaluateBezierPos(dtJump, tNext, 1.0f, &posStart, &vLaunch, &posGoal, &vGoal,
+                &posNext, nullptr, nullptr);
 
             int clsg = ClsgClipEdgeToObjects(&posPrev, &posNext, papso, 8, alsg);
-
             for (int i = 0; i < clsg; ++i)
                 scoreFactor += glm::distance(alsg[i].apos[0], alsg[i].apos[1]);
 
@@ -5060,7 +5051,6 @@ void FindBestJtJumpDuration(JT* pjt, JTJUMPTARGET* ptarget, std::vector<SO*>* pa
         }
 
         float score = scoreFactor * glm::length(vLaunch);
-
         if (score < scoreBest)
         {
             scoreBest = score;

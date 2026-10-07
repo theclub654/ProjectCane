@@ -55,6 +55,12 @@ void main()
     bool first = (gl_VertexID & 1) == 0;
     int pointBase = edgeID * 4;
 
+    if (pointBase < 0 || pointBase + 3 >= edges.length())
+    {
+        CullVertex();
+        return;
+    }
+
     vec3 E0 = GetEdgePosition(pointBase + 0);
     vec3 E1 = GetEdgePosition(pointBase + 1);
     vec3 OA = GetEdgePosition(pointBase + 2);
@@ -106,19 +112,25 @@ vec3 GetEdgePosition(int pointIndex)
 
     if (fPose != 0)
     {
-        int count = min(poseCount, MAX_POSES);
+        int count = clamp(poseCount, 0, MAX_POSES);
         int poseBase = pointIndex * poseCount;
 
         for (int ipose = 0; ipose < count; ++ipose)
         {
             float weight = poseWeights[ipose];
 
-            if (weight != 0.0)
-                position.xyz += edgePoseDpos[poseBase + ipose].xyz * weight;
+            int poseIndex = poseBase + ipose;
+            if (weight != 0.0 && poseIndex >= 0 &&
+                poseIndex < edgePoseDpos.length())
+                position.xyz += edgePoseDpos[poseIndex].xyz * weight;
         }
     }
 
     if (fSkin == 0)
+        return position.xyz;
+
+    if (pointIndex < 0 || pointIndex >= edgeBoneIndices.length() ||
+        pointIndex >= edgeBoneWeights.length())
         return position.xyz;
 
     uvec4 indices = edgeBoneIndices[pointIndex];
@@ -126,26 +138,27 @@ vec3 GetEdgePosition(int pointIndex)
     vec4 localPosition = vec4(position.xyz, 1.0);
     vec4 skinnedPosition = vec4(0.0);
     float totalWeight = 0.0;
+    int boneCount = boneMatrices.length();
 
-    if (weights.x != 0.0)
+    if (weights.x != 0.0 && indices.x < uint(boneCount))
     {
         skinnedPosition += boneMatrices[indices.x] * localPosition * weights.x;
         totalWeight += weights.x;
     }
 
-    if (weights.y != 0.0)
+    if (weights.y != 0.0 && indices.y < uint(boneCount))
     {
         skinnedPosition += boneMatrices[indices.y] * localPosition * weights.y;
         totalWeight += weights.y;
     }
 
-    if (weights.z != 0.0)
+    if (weights.z != 0.0 && indices.z < uint(boneCount))
     {
         skinnedPosition += boneMatrices[indices.z] * localPosition * weights.z;
         totalWeight += weights.z;
     }
 
-    if (weights.w != 0.0)
+    if (weights.w != 0.0 && indices.w < uint(boneCount))
     {
         skinnedPosition += boneMatrices[indices.w] * localPosition * weights.w;
         totalWeight += weights.w;

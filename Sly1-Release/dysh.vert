@@ -16,7 +16,7 @@ layout(std430, binding = 9) readonly buffer BONEBLK
     mat4 boneMatrices[];
 };
 
-out vec4 vertexColor;
+layout(location = 0) out vec4 vertexColor;
 
 void main()
 {
@@ -28,26 +28,27 @@ void main()
     {
         mat4 matSkin = mat4(0.0);
         float totalWeight = 0.0;
+        int boneCount = boneMatrices.length();
 
-        if (boneWeights.x != 0.0)
+        if (boneWeights.x != 0.0 && boneIndices.x < uint(boneCount))
         {
             matSkin += boneMatrices[boneIndices.x] * boneWeights.x;
             totalWeight += boneWeights.x;
         }
 
-        if (boneWeights.y != 0.0)
+        if (boneWeights.y != 0.0 && boneIndices.y < uint(boneCount))
         {
             matSkin += boneMatrices[boneIndices.y] * boneWeights.y;
             totalWeight += boneWeights.y;
         }
 
-        if (boneWeights.z != 0.0)
+        if (boneWeights.z != 0.0 && boneIndices.z < uint(boneCount))
         {
             matSkin += boneMatrices[boneIndices.z] * boneWeights.z;
             totalWeight += boneWeights.z;
         }
 
-        if (boneWeights.w != 0.0)
+        if (boneWeights.w != 0.0 && boneIndices.w < uint(boneCount))
         {
             matSkin += boneMatrices[boneIndices.w] * boneWeights.w;
             totalWeight += boneWeights.w;

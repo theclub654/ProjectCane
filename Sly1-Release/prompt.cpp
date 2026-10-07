@@ -12,6 +12,7 @@
 #include "screen.h"
 #include "gl.h"
 #include "gui_layout.h"
+#include "debug.h"
 #include <algorithm>
 #include <cmath>
 #include <cstdio>
@@ -200,47 +201,51 @@ std::vector<int> SupportedFrameRates()
     return frameRates;
 }
 
-void SelectNextSupportedFrameRate()
+void SelectSupportedFrameRate(int direction)
 {
     const std::vector<int> frameRates = SupportedFrameRates();
-    auto next = std::upper_bound(frameRates.begin(), frameRates.end(), g_targetFrameRate);
 
-    if (next == frameRates.end())
-        next = frameRates.begin();
-
-    g_targetFrameRate = *next;
+    if (direction < 0)
+    {
+        auto previous = std::lower_bound(frameRates.begin(), frameRates.end(), g_targetFrameRate);
+        if (previous == frameRates.begin())
+            previous = frameRates.end();
+        g_targetFrameRate = *--previous;
+    }
+    else
+    {
+        auto next = std::upper_bound(frameRates.begin(), frameRates.end(), g_targetFrameRate);
+        if (next == frameRates.end())
+            next = frameRates.begin();
+        g_targetFrameRate = *next;
+    }
 }
 
-void SelectNextInternalResolution()
+void SelectInternalResolution(int direction)
 {
     constexpr int resolutions[] = { 0, 360, 480, 720, 1080, 1440, 2160 };
     auto current = std::find(std::begin(resolutions), std::end(resolutions),
         g_internalResolutionHeight);
-
-    if (current == std::end(resolutions) || ++current == std::end(resolutions))
-        current = std::begin(resolutions);
-
-    g_internalResolutionHeight = *current;
-    ApplyInternalResolutionSettings();
+    int index = current == std::end(resolutions)
+        ? 0
+        : static_cast<int>(current - std::begin(resolutions));
+    constexpr int count = static_cast<int>(std::size(resolutions));
+    index = (index + (direction < 0 ? -1 : 1) + count) % count;
+	const int previousResolution = g_internalResolutionHeight;
+	g_internalResolutionHeight = resolutions[index];
+	if (!ApplyInternalResolutionSettings())
+		g_internalResolutionHeight = previousResolution;
 }
 
-void SelectNextGuiScale()
+void SelectGuiScale(int direction)
 {
     constexpr float ps2Scales[] = { 0.75f, 1.0f };
     constexpr float modernScales[] = { 1.0f, 1.25f };
-
-    if (g_guiStyle == GuiStyle_Modern)
-    {
-        auto next = std::upper_bound(std::begin(modernScales), std::end(modernScales),
-            g_guiScale + 0.001f);
-        g_guiScale = next == std::end(modernScales) ? modernScales[0] : *next;
-    }
-    else
-    {
-        auto next = std::upper_bound(std::begin(ps2Scales), std::end(ps2Scales),
-            g_guiScale + 0.001f);
-        g_guiScale = next == std::end(ps2Scales) ? ps2Scales[0] : *next;
-    }
+    const float* scales = g_guiStyle == GuiStyle_Modern ? modernScales : ps2Scales;
+    constexpr int count = 2;
+    int index = std::abs(g_guiScale - scales[1]) < 0.001f ? 1 : 0;
+    index = (index + (direction < 0 ? -1 : 1) + count) % count;
+    g_guiScale = scales[index];
 
     int width = 0;
     int height = 0;
@@ -266,25 +271,26 @@ void SelectNextGuiStyle()
     FrameBufferSizeCallBack(g_gl.window, width, height);
 }
 
-void SelectNextDrawDistance()
+void SelectDrawDistance(int direction)
 {
     if (g_pcm == nullptr)
         return;
 
     constexpr float multipliers[] = { 0.75f, 1.0f, 1.5f, 2.0f, 3.0f };
-    auto next = std::upper_bound(std::begin(multipliers), std::end(multipliers),
-        g_pcm->rMRD + 0.001f);
-
-    if (next == std::end(multipliers))
-        next = std::begin(multipliers);
-
-    SetCmMrdRatio(g_pcm, *next);
-    g_drawDistanceMultiplier = *next;
+    auto current = std::lower_bound(std::begin(multipliers), std::end(multipliers),
+        g_drawDistanceMultiplier - 0.001f);
+    int index = current == std::end(multipliers)
+        ? 0
+        : static_cast<int>(current - std::begin(multipliers));
+    constexpr int count = static_cast<int>(std::size(multipliers));
+    index = (index + (direction < 0 ? -1 : 1) + count) % count;
+    SetCmMrdRatio(g_pcm, multipliers[index]);
+    g_drawDistanceMultiplier = multipliers[index];
 }
 
-void SelectNextWindowMode()
+void SelectWindowMode(int direction)
 {
-    const int next = (static_cast<int>(g_windowMode) + 1) % 3;
+    const int next = (static_cast<int>(g_windowMode) + (direction < 0 ? -1 : 1) + 3) % 3;
     ApplyWindowModeSettings(static_cast<WindowMode>(next));
 }
 }
@@ -650,9 +656,13 @@ void SetPromptPrk(PROMPT* pprompt)
         static_cast<int>(std::lround(g_guiScale * 100.0f)));
     std::snprintf(g_achzRespk60, sizeof(g_achzRespk60), "GUI Style: %s",
         g_guiStyle == GuiStyle_Modern ? "Modern" : "PS2");
-    std::snprintf(g_achzRespk61, sizeof(g_achzRespk61),
+	std::snprintf(g_achzRespk61, sizeof(g_achzRespk61),
         "Disable Controller Input When Unfocused: %s",
         g_fDisableControllerInputWhenUnfocused ? "On" : "Off");
+	std::snprintf(g_achzRespk66, sizeof(g_achzRespk66), "Mouse Camera: %s",
+		g_fMouseCamera ? "On" : "Off");
+	std::snprintf(g_achzRespk67, sizeof(g_achzRespk67), "Dialogue Skip Controls: %s",
+		g_fSkipBinocDialogs ? "On" : "Off");
 
     // -------------------------------------------------------------------------
     // Choose initial response
@@ -809,6 +819,11 @@ void OpenMappingPrompt(PROMPT* pprompt, PRK prk)
 }
 
 void ExecutePrompt(PROMPT* pprompt)
+{
+    ExecutePrompt(pprompt, 1);
+}
+
+void ExecutePrompt(PROMPT* pprompt, int direction)
 {
     if (pprompt == nullptr || pprompt->prk < PRK_PauseMenu || pprompt->prk >= PRK_Max)
         return;
@@ -989,19 +1004,19 @@ void ExecutePrompt(PROMPT* pprompt)
         switch (response)
         {
             case RESPK_Msaa:
-            if (!g_fMsaa)
             {
-                g_fMsaa = true;
-                g_msaaSamples = 2;
+                constexpr int samples[] = { 0, 2, 4, 8, 16 };
+                const int currentSamples = g_fMsaa ? g_msaaSamples : 0;
+                auto current = std::find(std::begin(samples), std::end(samples), currentSamples);
+                int index = current == std::end(samples)
+                    ? 0
+                    : static_cast<int>(current - std::begin(samples));
+                constexpr int count = static_cast<int>(std::size(samples));
+                index = (index + (direction < 0 ? -1 : 1) + count) % count;
+                g_fMsaa = samples[index] != 0;
+                if (g_fMsaa)
+                    g_msaaSamples = samples[index];
             }
-            else if (g_msaaSamples < 4)
-                g_msaaSamples = 4;
-            else if (g_msaaSamples < 8)
-                g_msaaSamples = 8;
-            else if (g_msaaSamples < 16)
-                g_msaaSamples = 16;
-            else
-                g_fMsaa = false;
 
             ApplyMsaaSettings();
             SaveSystemSettings();
@@ -1009,19 +1024,19 @@ void ExecutePrompt(PROMPT* pprompt)
             return;
 
             case RESPK_FrameRate:
-            SelectNextSupportedFrameRate();
+            SelectSupportedFrameRate(direction);
             SaveSystemSettings();
             rebuildPromptKeepingSelection();
             return;
 
             case RESPK_InternalResolution:
-            SelectNextInternalResolution();
+            SelectInternalResolution(direction);
             SaveSystemSettings();
             rebuildPromptKeepingSelection();
             return;
 
             case RESPK_GuiScale:
-            SelectNextGuiScale();
+            SelectGuiScale(direction);
             SaveSystemSettings();
             rebuildPromptKeepingSelection();
             return;
@@ -1033,13 +1048,13 @@ void ExecutePrompt(PROMPT* pprompt)
             return;
 
             case RESPK_DrawDistance:
-            SelectNextDrawDistance();
+            SelectDrawDistance(direction);
             SaveSystemSettings();
             rebuildPromptKeepingSelection();
             return;
 
             case RESPK_WindowMode:
-            SelectNextWindowMode();
+            SelectWindowMode(direction);
             SaveSystemSettings();
             rebuildPromptKeepingSelection();
             return;
@@ -1052,27 +1067,19 @@ void ExecutePrompt(PROMPT* pprompt)
             return;
 
             case RESPK_AspectRatio:
-            switch (g_gl.aspectMode)
             {
-                case FitToScreen:
-                ApplyAspectRatioSettings(Fixed_16_9);
-                break;
-                case Fixed_16_9:
-                ApplyAspectRatioSettings(Fixed_16_10);
-                break;
-                case Fixed_16_10:
-                ApplyAspectRatioSettings(Fixed_4_3);
-                break;
-                case Fixed_4_3:
-                ApplyAspectRatioSettings(PS2_4_3);
-                break;
-                case PS2_4_3:
-                ApplyAspectRatioSettings(PS2_16_9);
-                break;
-                case PS2_16_9:
-                default:
-                ApplyAspectRatioSettings(FitToScreen);
-                break;
+                constexpr AspectMode modes[] =
+                {
+                    FitToScreen, Fixed_16_9, Fixed_16_10,
+                    Fixed_4_3, PS2_4_3, PS2_16_9
+                };
+                auto current = std::find(std::begin(modes), std::end(modes), g_gl.aspectMode);
+                int index = current == std::end(modes)
+                    ? 0
+                    : static_cast<int>(current - std::begin(modes));
+                constexpr int count = static_cast<int>(std::size(modes));
+                index = (index + (direction < 0 ? -1 : 1) + count) % count;
+                ApplyAspectRatioSettings(modes[index]);
             }
             SaveSystemSettings();
             rebuildPromptKeepingSelection();
@@ -1101,13 +1108,19 @@ void ExecutePrompt(PROMPT* pprompt)
 			SetUserStereoEnabled(!FUserStereoEnabled());
 			break;
 			case RESPK_MusicVolume:
-			SetUserMusicVolume(GetUserMusicVolume() >= 0.999f ? 0.0f : GetUserMusicVolume() + 0.1f);
+			SetUserMusicVolume(direction < 0
+				? (GetUserMusicVolume() <= 0.001f ? 1.0f : GetUserMusicVolume() - 0.1f)
+				: (GetUserMusicVolume() >= 0.999f ? 0.0f : GetUserMusicVolume() + 0.1f));
 			break;
 			case RESPK_SfxVolume:
-			SetUserSfxVolume(GetUserSfxVolume() >= 0.999f ? 0.0f : GetUserSfxVolume() + 0.1f);
+			SetUserSfxVolume(direction < 0
+				? (GetUserSfxVolume() <= 0.001f ? 1.0f : GetUserSfxVolume() - 0.1f)
+				: (GetUserSfxVolume() >= 0.999f ? 0.0f : GetUserSfxVolume() + 0.1f));
 			break;
 			case RESPK_DialogueVolume:
-			SetUserDialogueVolume(GetUserDialogueVolume() >= 0.999f ? 0.0f : GetUserDialogueVolume() + 0.1f);
+			SetUserDialogueVolume(direction < 0
+				? (GetUserDialogueVolume() <= 0.001f ? 1.0f : GetUserDialogueVolume() - 0.1f)
+				: (GetUserDialogueVolume() >= 0.999f ? 0.0f : GetUserDialogueVolume() + 0.1f));
 			break;
 			case RESPK_Back:
 			SetPrompt(pprompt, PRP_Basic, PRK_OptionsMenu);
@@ -1362,6 +1375,12 @@ void ExecutePrompt(PROMPT* pprompt)
                 rebuildPromptKeepingSelection();
                 return;
 
+				case RESPK_CutsceneSkipControls:
+				g_fSkipBinocDialogs = !g_fSkipBinocDialogs;
+				SaveSystemSettings();
+				rebuildPromptKeepingSelection();
+				return;
+
 				case RESPK_Sound:
 				SetPrompt(pprompt, PRP_Basic, PRK_SoundMenu);
 				return;
@@ -1422,6 +1441,11 @@ void ExecutePrompt(PROMPT* pprompt)
 
 			case RESPK_CameraInvert:
 			g_pgsCur->grfgs ^= 0x1000;
+			break;
+
+			case RESPK_MouseCamera:
+			g_fMouseCamera = !g_fMouseCamera;
+			SaveSystemSettings();
 			break;
 
             case RESPK_BinocInvert:
@@ -1537,6 +1561,12 @@ void OnPromptActive(PROMPT* pprompt, int fActive)
         return;
 
     const int levelId = (g_pgsCur->gameWorldCur << 8) | g_pgsCur->worldLevelCur;
+
+    if (fActive != 0 && g_fMouseCamera && g_gl.window != nullptr)
+    {
+        glfwSetInputMode(g_gl.window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+        MOUSE::ResetDelta();
+    }
 
     if (fActive == 0)
     {
@@ -1811,6 +1841,38 @@ void UpdatePromptActive(PROMPT* pprompt, JOY* pjoy)
     if (!canAcceptInput)
         return;
 
+    if (promptResponses != nullptr && pprompt->irespk >= 0 &&
+        pprompt->irespk < promptResponseCount)
+    {
+        const RESPK selectedResponse = promptResponses[pprompt->irespk];
+        bool adjustable = prk == PRK_VideoMenu || prk == PRK_SoundMenu;
+
+        if (prk == PRK_ControlsMenu)
+        {
+            adjustable = selectedResponse == RESPK_CameraInvert ||
+                selectedResponse == RESPK_MouseCamera ||
+                selectedResponse == RESPK_BinocInvert ||
+                selectedResponse == RESPK_TurretInvert ||
+                selectedResponse == RESPK_JetpackInvert ||
+                selectedResponse == RESPK_DisableControllerWhenUnfocused;
+        }
+
+        adjustable = adjustable && selectedResponse != RESPK_Back;
+
+        if (adjustable)
+        {
+            const int optionDelta = pjoy->DxSelectionJoy(g_clock.tReal);
+
+            if (optionDelta != 0)
+            {
+                ExecutePrompt(pprompt, optionDelta < 0 ? -1 : 1);
+                StartSound(static_cast<SFXID>(121), nullptr, nullptr, nullptr,
+                    3000.0f, 300.0f, 1.0f, 0.0f, 0.0f, nullptr, nullptr);
+                return;
+            }
+        }
+    }
+
     if (pjoy->IsPressed(BTN_START) || pjoy->IsPressed(BTN_TRIANGLE))
     {
         pjoy->SetHandled(BTN_START);
@@ -1945,10 +2007,6 @@ void DrawPrompt(PROMPT* pprompt)
     const float yUnscaled = pprompt->yOn * uOn + centerY * (1.0f - uOn);
     const float dx = dxUnscaled * promptScaleX;
     const float dy = dyUnscaled * promptScaleY;
-    // RepositionBlot currently centers xOn/yOn in output-pixel space while
-    // retaining the retail (unscaled) dx/dy.  Preserve that already-correct
-    // output-space center and scale only the offset from it.  Scaling xOn or
-    // yOn again would move the prompt toward the lower-right corner.
     const float x = centerX + (xUnscaled - centerX) * promptScaleX;
     float y = centerY + (yUnscaled - centerY) * promptScaleY;
 

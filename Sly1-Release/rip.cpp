@@ -320,40 +320,18 @@ void InitRip(RIP* prip, glm::vec3* ppos, float scale, SO* psoTouch)
 RIPG* PripgNew(SW* psw, RIPGT ripgt)
 {
 	if (ripgt == RIPGT_Default && psw->pripgDefault != nullptr)
-	{
-		// Empty RIP groups remove themselves from the world.  The default group
-		// remains cached, so reactivate it before appending a new particle.
-		if (FIsLoInWorld(psw->pripgDefault) == 0)
-			psw->pripgDefault->pvtlo->pfnAddLo(psw->pripgDefault);
-
 		return psw->pripgDefault;
-	}
 
 	RIPG* pripg = psw->pripgFree;
 
 	if (pripg == nullptr)
-	{
-		// The original world supplied a pool of RIPG objects. Some converted
-		// worlds do not, so create one through the normal LO factory instead
-		// of dropping every effect that requests the default group.
-		pripg = static_cast<RIPG*>(PloNew(CID_RIPG, psw, nullptr, OID_Nil, -1));
+		return nullptr;
 
-		if (pripg == nullptr)
-			return nullptr;
-
-	}
-	else
-	{
-		psw->pripgFree = pripg->pripgNext;
-	}
+	psw->pripgFree = pripg->pripgNext;
 
 	pripg->ripgt = ripgt;
 	pripg->pripgNext = nullptr;
 
-	// PloNew only constructs and registers an LO; it does not place it in the
-	// world's child/update/render lists.  Newly allocated groups must be added
-	// just like groups taken from the free list, otherwise their RIPs are
-	// created successfully but are never updated or rendered.
 	pripg->pvtlo->pfnAddLo(pripg);
 
 	if (ripgt == RIPGT_Default)

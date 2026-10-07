@@ -19,7 +19,7 @@ namespace
 constexpr char kSaveMagic[8] = { 'P', 'C', 'A', 'N', 'E', 'S', 'A', 'V' };
 constexpr uint32_t kSaveVersion = 3;
 constexpr char kSettingsMagic[8] = { 'P', 'C', 'A', 'N', 'E', 'S', 'Y', 'S' };
-constexpr uint32_t kSettingsVersion = 8;
+constexpr uint32_t kSettingsVersion = 10;
 int s_lastSaveSlot = -1;
 
 struct VideoSaveSettingsV1
@@ -110,6 +110,35 @@ struct VideoSaveSettingsV7
 {
 	VideoSaveSettingsV6 base;
 	int lastSaveSlot;
+};
+
+struct VideoSaveSettingsV8
+{
+	int fogType;
+	int msaaEnabled;
+	int msaaSamples;
+	int frameRate;
+	int internalResolutionHeight;
+	float drawDistance;
+	int windowMode;
+	int vsyncEnabled;
+	int aspectMode;
+	float guiScale;
+	int guiStyle;
+	int keyboardBindings[BTN_MAX];
+	int gamepadBindings[BTN_MAX];
+	int disableControllerInputWhenUnfocused;
+	int lastSaveSlot;
+	int stereoEnabled;
+	float musicVolume;
+	float soundEffectsVolume;
+	float dialogueVolume;
+};
+
+struct VideoSaveSettingsV9
+{
+	VideoSaveSettingsV8 base;
+	int mouseCameraEnabled;
 };
 
 struct SaveFileHeader
@@ -267,6 +296,8 @@ VIDEOSAVESETTINGS CaptureVideoSettings()
 	settings.musicVolume = GetUserMusicVolume();
 	settings.soundEffectsVolume = GetUserSfxVolume();
 	settings.dialogueVolume = GetUserDialogueVolume();
+	settings.mouseCameraEnabled = g_fMouseCamera ? 1 : 0;
+	settings.cutsceneSkipControlsEnabled = g_fSkipBinocDialogs ? 1 : 0;
     return settings;
 }
 
@@ -297,6 +328,8 @@ void ValidateVideoSettings(VIDEOSAVESETTINGS& settings)
 		static_cast<int>(GuiStyle_PS2), static_cast<int>(GuiStyle_Modern));
     settings.disableControllerInputWhenUnfocused =
         settings.disableControllerInputWhenUnfocused != 0;
+	settings.mouseCameraEnabled = settings.mouseCameraEnabled != 0;
+	settings.cutsceneSkipControlsEnabled = settings.cutsceneSkipControlsEnabled != 0;
     settings.lastSaveSlot = std::clamp(settings.lastSaveSlot, -1, SAVE_SLOT_COUNT - 1);
 	settings.stereoEnabled = settings.stereoEnabled != 0;
 	settings.musicVolume = std::clamp(settings.musicVolume, 0.0f, 1.0f);
@@ -377,6 +410,8 @@ void ApplySavedVideoSettings(VIDEOSAVESETTINGS settings)
 		g_gamepadBindings.begin());
     g_fDisableControllerInputWhenUnfocused =
         settings.disableControllerInputWhenUnfocused != 0;
+	g_fMouseCamera = settings.mouseCameraEnabled != 0;
+	g_fSkipBinocDialogs = settings.cutsceneSkipControlsEnabled != 0;
     s_lastSaveSlot = settings.lastSaveSlot;
 	SetUserStereoEnabled(settings.stereoEnabled != 0);
 	SetUserMusicVolume(settings.musicVolume);
@@ -384,6 +419,14 @@ void ApplySavedVideoSettings(VIDEOSAVESETTINGS settings)
 	SetUserDialogueVolume(settings.dialogueVolume);
 
     ApplyAspectRatioSettings(static_cast<AspectMode>(settings.aspectMode));
+    if (g_gl.renderHeight != g_internalResolutionHeight &&
+        g_internalResolutionHeight != 0)
+    {
+        // A saved supersampling mode may be valid on one GPU but too expensive
+        // on another. Keep the working native-sized framebuffer in that case.
+        g_internalResolutionHeight = 0;
+        ApplyInternalResolutionSettings();
+    }
     ApplyMsaaSettings();
     glfwSwapInterval(g_fVsync ? 1 : 0);
 
@@ -615,6 +658,36 @@ bool LoadSystemSettings(VIDEOSAVESETTINGS* settings)
 		return true;
 	}
 
+	if (header.version == 8 && header.payloadSize == sizeof(VideoSaveSettingsV8))
+	{
+		VideoSaveSettingsV8 oldV8{};
+		if (!stream.read(reinterpret_cast<char*>(&oldV8), sizeof(oldV8)) ||
+			SaveChecksum(&oldV8, sizeof(oldV8)) != header.checksum)
+		{
+			*settings = {};
+			return false;
+		}
+
+		std::memcpy(settings, &oldV8, sizeof(oldV8));
+		settings->mouseCameraEnabled = 0;
+		return true;
+	}
+
+	if (header.version == 9 && header.payloadSize == sizeof(VideoSaveSettingsV9))
+	{
+		VideoSaveSettingsV9 oldV9{};
+		if (!stream.read(reinterpret_cast<char*>(&oldV9), sizeof(oldV9)) ||
+			SaveChecksum(&oldV9, sizeof(oldV9)) != header.checksum)
+		{
+			*settings = {};
+			return false;
+		}
+
+		std::memcpy(settings, &oldV9, sizeof(oldV9));
+		settings->cutsceneSkipControlsEnabled = 0;
+		return true;
+	}
+
     if (header.version != kSettingsVersion || header.payloadSize != sizeof(*settings) ||
         !stream.read(reinterpret_cast<char*>(settings), sizeof(*settings)) ||
         SaveChecksum(settings, sizeof(*settings)) != header.checksum)
@@ -716,21 +789,17 @@ void DrawAutoSave(SAVEBLOT* psaveblot)
         psaveblot->blots == BLOTS_Visible && dtVisible > 1.0f)
         HideBlot(psaveblot);
 
-    const bool fPs2Gui = !FModernGui();
-    const float autosaveScale = fPs2Gui ? GetGuiScale().y : 1.0f;
-    float xAutosave = psaveblot->x;
-    float yAutosave = psaveblot->y + yOffset;
-    float dxAutosave = psaveblot->dx;
-    float dyAutosave = psaveblot->dy;
+    const GuiScale guiScale = GetGuiScale();
+    const float dxAutosave = psaveblot->dx * guiScale.x;
+    const float dyAutosave = psaveblot->dy * guiScale.y;
 
-    if (fPs2Gui)
-    {
-        // Scale the complete BLOT rectangle as well as the glyph so its
-        // authored screen-edge anchor and appear/disappear motion stay intact.
-        GetGuiScaledBlotRect(psaveblot,
-            &xAutosave, &yAutosave, &dxAutosave, &dyAutosave);
-        yAutosave += yOffset * autosaveScale;
-    }
+    // Retail positions this bottom-anchored blot after measuring its scaled
+    // text. ProjectCane keeps the authored blot dimensions, so preserve the
+    // already-correct 18/20 pixel margins and move the enlarged box upward by
+    // the extra height instead of allowing it to grow into the letterbox.
+    const float xAutosave = psaveblot->x;
+    const float yAutosave = psaveblot->y - (dyAutosave - psaveblot->dy) +
+        yOffset * guiScale.y;
 
     CTextBox tbx;
     tbx.SetPos(xAutosave, yAutosave);
@@ -745,16 +814,14 @@ void DrawAutoSave(SAVEBLOT* psaveblot)
         : 0;
 
     char achz[32];
-    // Exact retail format at SCUS_971.98 0x24CFA0. The percentage switches
-    // font, scales to 0.7, and uses the retail yellow before restoring font.
+    // Exact retail format: switch to the percentage font, apply its 0.7
+    // rich-text scale and yellow color, then restore the base font.
     std::snprintf(achz, sizeof(achz), "%c&1^07~b2a83d%d%%&.", chPrompt, percent);
 
-    psaveblot->pfont->PushScaling(
-        psaveblot->rFontScale * autosaveScale,
-        psaveblot->rFontScale * autosaveScale);
+    psaveblot->pfont->PushScaling(psaveblot->rFontScale, psaveblot->rFontScale);
 
     CRichText richText(achz, psaveblot->pfont);
-    richText.Draw(&tbx, nullptr);
+    richText.Draw(&tbx, nullptr, guiScale.x, guiScale.y);
 
     psaveblot->pfont->PopScaling();
 }

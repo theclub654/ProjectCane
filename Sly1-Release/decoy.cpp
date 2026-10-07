@@ -49,7 +49,7 @@ void DamageJtDecoy(DECOY* pdecoy, JT* pjt, int fForceDestroy)
     {
         DECOYDAMAGE damage = { pdecoy, pjt };
 
-        pdecoy->pvtlo->pfnHandleLoMessage(pdecoy, (MSGID)23, &damage);
+        pdecoy->pvtlo->pfnSendLoMessage(pdecoy, MSGID_damaged, &damage);
 
         --pdecoy->cHitsRemaining;
 

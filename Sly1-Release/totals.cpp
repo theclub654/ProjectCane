@@ -92,9 +92,9 @@ void FormatTotalsTasks(char* pchzText, LS* pls, uint32_t grfTasks)
             const float dtBest = pls->dtTimedBest;
 
             if (dtBest >= 1.0f)
-                std::sprintf(pchzWrite, "^10~b2a83d%d:%02d~.^.", static_cast<int>(dtBest) / 60, static_cast<int>(dtBest) % 60);
+                std::sprintf(pchzWrite, "^05~b2a83d%d:%02d~.^.", static_cast<int>(dtBest) / 60, static_cast<int>(dtBest) % 60);
             else
-                std::sprintf(pchzWrite, "^10~b2a83d0.%d~.^.", static_cast<int>(dtBest * 10.0f));
+                std::sprintf(pchzWrite, "^05~b2a83d0.%d~.^.", static_cast<int>(dtBest * 10.0f));
         }
 
         std::strcat(pchzWrite, "&.");
@@ -225,32 +225,39 @@ void DrawTotals(TOTALS* ptotals)
     textColor.a *= opacity;
 
     const bool fPs2Gui = !FModernGui();
+    // TOTALS is one rich-text row containing both text and inline icons.
+    // Preserve its authored proportions and let the blot's right-edge peg
+    // anchor the complete row, as on PS2.
     const float totalsScale = fPs2Gui ? GetGuiScale().y : 1.0f;
     float xTotals = ptotals->xOn;
     float yTotals = ptotals->yOn + yOffset;
     float dxTotals = ptotals->dx;
     float dyTotals = ptotals->dy;
 
+    ptotals->pfont->PushScaling(
+        ptotals->rFontScale * totalsScale,
+        ptotals->rFontScale * totalsScale);
+
+    CRichText rt(ptotals->achzDraw, ptotals->pfont);
+
     if (fPs2Gui)
     {
-        dxTotals *= totalsScale;
-        dyTotals *= totalsScale;
+        // Rich text changes fonts for the task counts and icons. Measure the
+        // final scaled row instead of assuming its width is the unscaled blot
+        // extent multiplied by one factor.
+        rt.GetExtents(&dxTotals, &dyTotals, 0.0f);
 
-        // RepositionBlot anchors TOTALS with its unscaled bounds. Preserve
-        // that same screen edge while enlarging its PS2-authored rectangle.
         if (ptotals->pbloti != nullptr)
         {
             if (ptotals->pbloti->x < 0.0f)
-                xTotals -= dxTotals - ptotals->dx;
+                xTotals = g_gl.width + ptotals->pbloti->x * totalsScale - dxTotals;
             else if (ptotals->pbloti->x == 0.0f)
-                xTotals -= (dxTotals - ptotals->dx) * 0.5f;
+                xTotals = (g_gl.width - dxTotals) * 0.5f;
+            else
+                xTotals = ptotals->pbloti->x * totalsScale;
 
-            if (ptotals->pbloti->y < 0.0f)
-                yTotals -= dyTotals - ptotals->dy;
-            else if (ptotals->pbloti->y == 0.0f)
-                yTotals -= (dyTotals - ptotals->dy) * 0.5f;
-
-            xTotals += ptotals->pbloti->x * (totalsScale - 1.0f);
+            if (ptotals->pbloti->y < 0.0f) yTotals -= dyTotals - ptotals->dy;
+            else if (ptotals->pbloti->y == 0.0f) yTotals -= (dyTotals - ptotals->dy) * 0.5f;
             yTotals += ptotals->pbloti->y * (totalsScale - 1.0f);
         }
     }
@@ -281,11 +288,6 @@ void DrawTotals(TOTALS* ptotals)
     // relies on the final GS projection to scale them to the output.  The PC
     // renderer draws in framebuffer pixels, so reproduce that projection for
     // the PS2 presentation.  Keep Modern's established compact sizing intact.
-    ptotals->pfont->PushScaling(
-        ptotals->rFontScale * totalsScale,
-        ptotals->rFontScale * totalsScale);
-
-    CRichText rt(ptotals->achzDraw, ptotals->pfont);
     rt.Draw(&tbx, nullptr);
 
     ptotals->pfont->PopScaling();

@@ -231,6 +231,7 @@ extern int vibrationSetting;
 extern std::array<int, BTN_MAX> g_keyboardBindings;
 extern std::array<int, BTN_MAX> g_gamepadBindings;
 extern bool g_fDisableControllerInputWhenUnfocused;
+extern bool g_fMouseCamera;
 
 inline constexpr int GAMEPAD_BINDING_LEFT_TRIGGER = 1000;
 inline constexpr int GAMEPAD_BINDING_RIGHT_TRIGGER = 1001;

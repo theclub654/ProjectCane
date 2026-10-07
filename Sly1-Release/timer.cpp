@@ -1,4 +1,5 @@
 #include "timer.h"
+#include "gui_layout.h"
 #include <cstdio>
 
 void StartupTimer(TIMER* ptimer)
@@ -235,23 +236,36 @@ void DrawTimer(TIMER* ptimer)
     if (ptimer->achzDraw[0] == '\0')
         return;
 
+    const GuiScale guiScale = GetGuiScale();
+    float x, y, dx, dy;
+    GetGuiScaledBlotRect(ptimer, &x, &y, &dx, &dy);
+
     CTextBox tbx;
-    tbx.SetPos(ptimer->x, ptimer->y);
-    tbx.SetSize(ptimer->dx, ptimer->dy);
+    tbx.SetPos(x, y);
+    tbx.SetSize(dx, dy);
     tbx.SetTextColor(&ptimer->rgba);
     tbx.SetHorizontalJust(JH_Left);
     tbx.SetVerticalJust(JV_Top);
 
     if (ptimer->pte && ptimer->pte->m_pfont)
+    {
+        const float edgeScaleX = ptimer->pte->m_rxScaling;
+        const float edgeScaleY = ptimer->pte->m_ryScaling;
+        ptimer->pte->m_rxScaling *= guiScale.x;
+        ptimer->pte->m_ryScaling *= guiScale.y;
         ptimer->pte->m_pfont->EdgeRect(ptimer->pte, &tbx);
+        ptimer->pte->m_rxScaling = edgeScaleX;
+        ptimer->pte->m_ryScaling = edgeScaleY;
+    }
 
-    ptimer->pfont->PushScaling(ptimer->rFontScale, ptimer->rFontScale);
+    ptimer->pfont->PushScaling(ptimer->rFontScale * guiScale.x,
+        ptimer->rFontScale * guiScale.y);
 
     char achzStopwatch[2] = { 'T', '\0' };
     ptimer->pfont->DrawPchz(achzStopwatch, &tbx);
 
-    tbx.m_x = ptimer->x + ptimer->pfont->DxFromPchz(achzStopwatch);
-    tbx.m_y = ptimer->y;
+    tbx.m_x = x + ptimer->pfont->DxFromPchz(achzStopwatch);
+    tbx.m_y = y;
 
     if (ptimer->fThreshold)
         tbx.SetTextColor(&ptimer->rgbaThreshold);

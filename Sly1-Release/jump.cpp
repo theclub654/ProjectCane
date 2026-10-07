@@ -6,7 +6,6 @@
 #include "spire.h"
 #include "rail.h"
 #include "hnd.h"
-
 void PresetJtAccelJump(JT* pjt)
 {
     AccelSoTowardMatSmooth(pjt, g_clock.dt, &pjt->matTarget, &pjt->smpSpin);
@@ -387,11 +386,62 @@ int FCheckJtSingleEdge(JT* pjt, SO* psoOther, EDGE* pedge, glm::vec3* pnormal)
     return 1;
 }
 
+static int CedgeFindAtPos(GEOM* pgeom, BSPC* pbspc, int ipos, int cedgeMax, EDGE** apedge)
+{
+    if (pgeom == nullptr || pbspc == nullptr || apedge == nullptr || cedgeMax <= 0 ||
+        ipos < 0 || ipos >= static_cast<int>(pgeom->apos.size()) || pbspc->absp.empty() ||
+        pbspc->cbspFull <= 0)
+        return 0;
+
+    // Retail allocates cbspFull temporary BSP nodes and prunes the tree with a
+    // radius of 1 around the selected vertex.  Only surfaces represented in
+    // that mixed/pruned tree contribute candidate edges.
+    std::vector<BSP> abspPruned(static_cast<size_t>(pbspc->cbspFull));
+    BSP* pbspNext = abspPruned.data();
+
+    if (PruneBsp(pbspc->absp.data(), &pgeom->apos[ipos], 1.0f, &pbspNext) != PRUNE_Mixed)
+        return 0;
+
+    const int cbspPruned = static_cast<int>(pbspNext - abspPruned.data());
+    int cedge = 0;
+
+    for (int ibsp = 0; ibsp < cbspPruned; ++ibsp)
+    {
+        SURF* psurf = abspPruned[ibsp].psurf;
+
+        if (psurf == nullptr)
+            continue;
+
+        for (EDGE* pedge = psurf->pedge; pedge != nullptr; pedge = pedge->pedgeNext)
+        {
+            if (static_cast<int16_t>(pedge->aipos[0]) != ipos &&
+                static_cast<int16_t>(pedge->aipos[1]) != ipos)
+                continue;
+
+            bool fDuplicate = false;
+
+            for (int iedge = 0; iedge < cedge; ++iedge)
+            {
+                if (apedge[iedge] == pedge)
+                {
+                    fDuplicate = true;
+                    break;
+                }
+            }
+
+            if (fDuplicate)
+                continue;
+
+            if (cedge < cedgeMax)
+                apedge[cedge++] = pedge;
+        }
+    }
+
+    return cedge;
+}
+
 int FCheckJtEdgeNormal(JT* pjt, glm::vec3* pposEdge, glm::vec3* pnormal)
 {
-    constexpr uint64_t SO_FLAG_SKIP_PHYS_ROOT = 1ull << 42;
-    constexpr uint64_t SO_FLAG_SKIP_EDGE_TEST = 1ull << 43;
-
     int cFloorHits = 0;
 
     glm::mat3 matEdge{};
@@ -414,9 +464,11 @@ int FCheckJtEdgeNormal(JT* pjt, glm::vec3* pposEdge, glm::vec3* pnormal)
         {
             SO* psoRoot = pox->psoOther;
 
-            const uint64_t rootFlags = *reinterpret_cast<const uint64_t*>(&psoRoot->bspcCamera.absp);
-
-            if ((rootFlags & SO_FLAG_SKIP_PHYS_ROOT) != 0)
+            // Retail tests inherited SO flag bit 42 here.  In the original
+            // layout that bit is fNoXpsAll; bspcCamera.absp only happened to
+            // share the decompiler's reported address.  Reading the bits of
+            // our std::vector made this test depend on a host pointer value.
+            if (psoRoot->fNoXpsAll)
                 continue;
 
             for (SO* pso = psoRoot->dlPhys.psoFirst; pso != nullptr; pso = pso->dlePhys.psoNext)
@@ -523,21 +575,15 @@ int FCheckJtEdgeGrab(JT* pjt, SO* psoOther, glm::vec3* pposEdge, XPK xpk, void* 
         GEOM& geom = psoOther->geomWorld;
         glm::vec3* ppos = static_cast<glm::vec3*>(pv);
         const int ipos = static_cast<int>(ppos - geom.apos.data());
-
-        if (geom.mpiposiiedgeMac == nullptr)
-            return 0;
-
-        const int iedgeMin = ipos == 0 ? 0 : geom.mpiposiiedgeMac[ipos - 1];
-        const int iedgeMac = geom.mpiposiiedgeMac[ipos];
-
+        EDGE* apedge[64]{};
+        const int cedge = CedgeFindAtPos(&geom, &psoOther->bspc, ipos, 64, apedge);
         bool foundEdge = false;
 
-        for (int iedge = iedgeMin; iedge < iedgeMac; ++iedge)
+        for (int iedge = 0; iedge < cedge; ++iedge)
         {
-            EDGE* pedge = &geom.aedge[geom.aiedge[iedge]];
             glm::vec3 normal(0.0f);
 
-            if (FCheckJtSingleEdge(pjt, psoOther, pedge, &normal))
+            if (FCheckJtSingleEdge(pjt, psoOther, apedge[iedge], &normal))
             {
                 normalSum += normal;
                 foundEdge = true;
