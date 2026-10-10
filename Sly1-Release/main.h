@@ -1,6 +1,6 @@
 #pragma once
 #include <iostream>
-#include <windows.h>
+#include "../platform/platform.h"
 #include <chrono>
 #include <thread>
 

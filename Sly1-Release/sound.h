@@ -446,6 +446,7 @@ void PausePamb(AMB* pamb);
 void ContinuePamb(AMB* pamb);
 void SetAMRegister(int ireg, byte bVal);
 void RefreshMidiRegister(int ireg);
+void SetMusicSequencerGameplayClock(bool enabled);
 void SetPambVol(AMB* pamb, float uVolAtSource);
 void CalculateVolPan(float sDist, glm::vec3* pposSound, float* pvol, float* ppan,
     float uvol, float sStart, float sFull);

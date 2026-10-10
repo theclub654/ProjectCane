@@ -609,11 +609,47 @@ static float s_radTvFovTargetSaved = 0.0f;
 static float s_svTvFovSaved = 0.0f;
 TV* g_ptvDrawContext = nullptr;
 
+static void RestoreTvContextState(bool clearStencil)
+{
+    glDepthRange(0.0, 1.0);
+
+    if (clearStencil && glIsEnabled(GL_SCISSOR_TEST))
+    {
+        glStencilMask(0xFF);
+        glClearStencil(0);
+        glClear(GL_STENCIL_BUFFER_BIT);
+    }
+
+    glStencilFunc(GL_ALWAYS, 0, 0xFF);
+    glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP);
+    glStencilMask(0xFF);
+    glDisable(GL_STENCIL_TEST);
+    glDisable(GL_SCISSOR_TEST);
+
+    glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+    glDepthMask(GL_TRUE);
+    glEnable(GL_DEPTH_TEST);
+    glDepthFunc(GL_LESS);
+    glDisable(GL_BLEND);
+    glGlobShader.Use();
+
+    if (s_fTvCameraSaved && g_pcm != nullptr)
+    {
+        SetCmFov(g_pcm, s_radTvFovSaved);
+        g_pcm->radFOVTarget = s_radTvFovTargetSaved;
+        g_pcm->svRadFOV = s_svTvFovSaved;
+        glBindBuffer(GL_UNIFORM_BUFFER, cmUBO);
+        glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(CMGL), &g_pcm->matWorldToClip);
+    }
+
+    s_fTvCameraSaved = false;
+}
+
 void PreTvContext(RPL* prpl)
 {
     TV* ptv = prpl->ptv;
 
-    if (!ptv)
+    if (!ptv || g_pcm == nullptr || ptv->pspeakerDraw == nullptr)
         return;
 
 
@@ -778,6 +814,9 @@ void PostTvContext(RPL* prpl)
 {
     TV* ptv = prpl->ptv;
 
+    const bool ownsActiveContext =
+        (ptv != nullptr && g_ptvDrawContext == ptv) || s_fTvCameraSaved;
+
     // End the light domain even if the remainder of the post pass has no TV
     // rectangle to process. This prevents a stale context from affecting
     // ordinary world draws later in the frame or after dialogue finishes.
@@ -785,6 +824,15 @@ void PostTvContext(RPL* prpl)
         g_ptvDrawContext = nullptr;
 
     if (!ptv)
+    {
+        if (ownsActiveContext)
+            RestoreTvContextState(true);
+        return;
+    }
+
+    // PreTvContext can decline an empty or fully clipped TV. Its paired post
+    // callback must not install stencil/depth state when no context began.
+    if (!ownsActiveContext)
         return;
 
     int itvbMin;
@@ -792,7 +840,11 @@ void PostTvContext(RPL* prpl)
     GetTvItvbMinMax(ptv, &itvbMin, &itvbMax);
 
     if (itvbMin == itvbMax)
+    {
+        if (ownsActiveContext)
+            RestoreTvContextState(true);
         return;
+    }
 
     // The retail TV context executes before the main world passes.  Stencil 1
     // is untouched TV background, while Bentley's successful fragments have
@@ -828,40 +880,7 @@ void PostTvContext(RPL* prpl)
     if (cullFaceWasEnabled)
         glEnable(GL_CULL_FACE);
 
-    glDepthRange(0.0, 1.0);
-
-    glGlobShader.Use();
-    glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
-    glDepthFunc(GL_LESS);
-
-    // Clear only the currently scissored TV stencil region.
-    glStencilMask(0xFF);
-    glClearStencil(0);
-    glClear(GL_STENCIL_BUFFER_BIT);
-
-    glStencilFunc(GL_ALWAYS, 0, 0xFF);
-    glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP);
-
-    glDisable(GL_STENCIL_TEST);
-    glDisable(GL_SCISSOR_TEST);
-
-    glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
-
-    glDepthMask(GL_TRUE);
-    glEnable(GL_DEPTH_TEST);
-    glDepthFunc(GL_LESS);
-
-    glDisable(GL_BLEND);
-
-    if (s_fTvCameraSaved)
-    {
-        SetCmFov(g_pcm, s_radTvFovSaved);
-        g_pcm->radFOVTarget = s_radTvFovTargetSaved;
-        g_pcm->svRadFOV = s_svTvFovSaved;
-        glBindBuffer(GL_UNIFORM_BUFFER, cmUBO);
-        glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(CMGL), &g_pcm->matWorldToClip);
-        s_fTvCameraSaved = false;
-    }
+    RestoreTvContextState(true);
 }
 
 void DrawTv(TV* ptv)

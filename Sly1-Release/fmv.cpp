@@ -7,8 +7,8 @@
 #include "ui.h"
 #include "gl.h"
 #include "runtime_error.h"
+#include "../platform/platform.h"
 
-#include <Windows.h>
 #include <atomic>
 #include <chrono>
 #include <cstring>
@@ -124,23 +124,7 @@ namespace
         const std::string& audioFileName)
     {
         std::vector<std::filesystem::path> candidates;
-        std::filesystem::path executableDirectory;
-        std::vector<wchar_t> executable(512);
-        while (executable.size() <= 32768)
-        {
-            SetLastError(ERROR_SUCCESS);
-            const DWORD length = GetModuleFileNameW(nullptr, executable.data(),
-                static_cast<DWORD>(executable.size()));
-            if (length == 0)
-                break;
-            if (length < executable.size())
-            {
-                executableDirectory = std::filesystem::path(
-                    std::wstring(executable.data(), length)).parent_path();
-                break;
-            }
-            executable.resize(executable.size() * 2);
-        }
+        const std::filesystem::path executableDirectory = cane::DataDirectory();
 
         if (!executableDirectory.empty())
         {

@@ -7,11 +7,14 @@
 #include "frame.h"
 #include "hide.h"
 #include "mb.h"
+#include "ps2_float.h"
 #ifndef NOMINMAX
 #define NOMINMAX
 #endif
-#include <Windows.h>
+#include "../platform/platform.h"
+#if defined(_MSC_VER)
 #include <intrin.h>
+#endif
 #include <cstdio>
 #include <limits>
 
@@ -2435,6 +2438,8 @@ void CalculateSoEffect(SO* pso, glm::vec3* ppos, FX* pfx, glm::vec3* pdv)
 
 void PropagateSoForce(SO* psoRoot, GRFSG grfsg, XP* pxp, int ixpd, DZ* pdz, FX* afx)
 {
+	const ScopedPs2FloatMode ps2FloatMode;
+
 	glm::vec3 f = pdz->f;
 
 	if (ixpd != 0)
@@ -2463,17 +2468,25 @@ void PropagateSoForce(SO* psoRoot, GRFSG grfsg, XP* pxp, int ixpd, DZ* pdz, FX* 
 
 		// EE DIV.S saturates division by zero to the largest finite float.
 		// Native IEEE division produces infinity and poisons the solve group.
-		const float rm = pso->m == 0.0f ? std::copysign((std::numeric_limits<float>::max)(), pso->m) : 1.0f / pso->m;
-		const double maxFloat = static_cast<double>((std::numeric_limits<float>::max)());
-		auto MulEe = [maxFloat](float value, float scale)
+		auto RoundEe = [](float value)
 		{
-			const double product = static_cast<double>(value) * scale;
-			if (product > maxFloat)
-				return (std::numeric_limits<float>::max)();
-			if (product < -maxFloat)
-				return -(std::numeric_limits<float>::max)();
-			return static_cast<float>(product);
+			volatile float rounded = value;
+			return rounded;
 		};
+		auto FiniteEe = [&RoundEe](float value)
+		{
+			if (std::isfinite(value))
+				return RoundEe(value);
+			return std::copysign((std::numeric_limits<float>::max)(), value);
+		};
+		auto MulEe = [&RoundEe, &FiniteEe](float value, float scale)
+		{
+			return FiniteEe(RoundEe(value) * RoundEe(scale));
+		};
+
+		const float rm = pso->m == 0.0f
+			? std::copysign((std::numeric_limits<float>::max)(), pso->m)
+			: FiniteEe(RoundEe(1.0f) / RoundEe(pso->m));
 		afx[ipso].dv = glm::vec3(MulEe(fConstr.x, rm), MulEe(fConstr.y, rm), MulEe(fConstr.z, rm));
 
 		CalculateSoAngularEffectWorld(pso, &tau, &afx[ipso].dw);
@@ -2485,6 +2498,8 @@ void PropagateSoForce(SO* psoRoot, GRFSG grfsg, XP* pxp, int ixpd, DZ* pdz, FX* 
 
 void DistributeSoEffects(SO* psoRoot, GRFSG grfsg, int cpso, SO** apso, FX* afx)
 {
+	const ScopedPs2FloatMode ps2FloatMode;
+
 	for (int i = 1; i < cpso; i++)
 	{
 		SO* pso = apso[i];
@@ -2510,7 +2525,12 @@ void DistributeSoEffects(SO* psoRoot, GRFSG grfsg, int cpso, SO** apso, FX* afx)
 
 		if (pso->constrTorque.ct != CT_Locked)
 		{
-			if (glm::length(pso->posComLocal) > 0.0001f)
+			const bool fZeroPosCom =
+				std::abs(pso->posComLocal.x) < 0.0001f &&
+				std::abs(pso->posComLocal.y) < 0.0001f &&
+				std::abs(pso->posComLocal.z) < 0.0001f;
+
+			if (!fZeroPosCom)
 			{
 				glm::mat3 matWorld = glm::mat3(pso->xf.matWorld);
 

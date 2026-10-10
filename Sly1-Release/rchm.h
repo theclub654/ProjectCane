@@ -1,7 +1,7 @@
 #pragma once
 #include "steprun.h"
 
-enum RCHMK
+enum RCHMK : int
 {
 	RCHMK_Nil = -1,
 	RCHMK_Reach = 0,

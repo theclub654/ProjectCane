@@ -3,6 +3,7 @@
     <RootNamespace>File_Extractor_GUI</RootNamespace>
     <OutputType>WinExe</OutputType>
     <TargetFramework>net9.0</TargetFramework>
+    <Version>0.4.0-beta.1</Version>
     <Nullable>enable</Nullable>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <ApplicationIcon>Assets\file-extractor-icon.ico</ApplicationIcon>

@@ -42,7 +42,7 @@ void SetTrailTrls(TRAIL* ptrail, TRLS trls, void* pv)
         ALO* paloOld = ptrail->paloTrack;
 
         if (paloOld != nullptr && paloOld->pvtlo->pfnUnsubscribeLoStruct != nullptr)
-            paloOld->pvtlo->pfnUnsubscribeLoStruct(paloOld, HandleTrailMessage, ptrail);
+            paloOld->pvtlo->pfnUnsubscribeLoStruct(paloOld, reinterpret_cast<void*>(HandleTrailMessage), ptrail);
 
         if (trls == TRLS_None)
         {
@@ -101,7 +101,7 @@ void SetTrailTrls(TRAIL* ptrail, TRLS trls, void* pv)
             ptrail->v = paloTrack->xf.v;
 
             if (paloTrack->pvtlo->pfnSubscribeLoStruct != nullptr)
-                paloTrack->pvtlo->pfnSubscribeLoStruct(paloTrack, HandleTrailMessage, ptrail);
+                paloTrack->pvtlo->pfnSubscribeLoStruct(paloTrack, reinterpret_cast<void*>(HandleTrailMessage), ptrail);
 
             break;
         }

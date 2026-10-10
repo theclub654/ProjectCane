@@ -2,38 +2,11 @@
 
 #include <algorithm>
 #include <cmath>
-#include <cstdio>
 #include <cstring>
-#include <fstream>
-#include <iomanip>
 #include <limits>
 
 namespace
 {
-	std::mutex s_traceMutex;
-	std::ofstream s_traceFile;
-	bool s_traceActive = false;
-	uint64_t s_traceFrame = 0;
-	int s_traceReverbKind = -1;
-	int s_traceReverbDepth = -1;
-	float s_traceDesiredWet = 0.0f;
-	float s_traceActualWet = 0.0f;
-	float s_traceWetBusVolume = 0.0f;
-	bool s_traceFeedStudio = false;
-	bool s_traceFeedGeneric = false;
-	constexpr uint64_t kTraceFrameLimit = 48000ULL * 20ULL;
-
-	void WriteTraceEventLocked(const char* eventName, int kind, int depth)
-	{
-		if (!s_traceActive || !s_traceFile)
-			return;
-		s_traceFile << s_traceFrame << ",event," << eventName << ',' << kind << ',' << depth
-			<< ",0,0,0,0,0,0,0,0,0,0," << s_traceDesiredWet << ',' << s_traceActualWet << ','
-			<< static_cast<int>(s_traceFeedStudio) << ',' << static_cast<int>(s_traceFeedGeneric) << ','
-			<< s_traceWetBusVolume << ",0,0,0,0,0\n";
-		s_traceFile.flush();
-	}
-
 	constexpr std::array<short, 39> kDownFilter = {
 		-1, 0, 2, 0, -10, 0, 35, 0, -103, 0, 266, 0, -616, 0,
 		1332, 0, -2960, 0, 10246, 16384, 10246, 0, -2960, 0, 1332, 0,
@@ -82,72 +55,6 @@ namespace
 		return extensible->Samples.wValidBitsPerSample == 32 &&
 			IsEqualGUID(extensible->SubFormat, kIeeeFloatSubFormat);
 	}
-}
-
-void ToggleLevelTransitionAudioTrace()
-{
-	const std::lock_guard<std::mutex> lock(s_traceMutex);
-	if (s_traceActive)
-	{
-		WriteTraceEventLocked("manual_stop", -1, -1);
-		s_traceFile.close();
-		s_traceActive = false;
-		std::printf("[Audio trace] stopped projectcane_level_transition_audio.csv\n");
-		return;
-	}
-
-	s_traceFile.open("projectcane_level_transition_audio.csv", std::ios::out | std::ios::trunc);
-	if (!s_traceFile)
-	{
-		std::printf("[ERROR] [Audio trace] could not create projectcane_level_transition_audio.csv\n");
-		return;
-	}
-	s_traceFile << "frame,record,event,reverb_kind,reverb_depth,frames,in_peak_l,in_peak_r,in_rms_l,in_rms_r,out_peak_l,out_peak_r,out_rms_l,out_rms_r,clipped,desired_wet,actual_wet,feed_studio,feed_generic,wet_bus_volume,post_gain_peak_l,post_gain_peak_r,post_gain_rms_l,post_gain_rms_r,sound_details\n";
-	s_traceActive = true;
-	s_traceFrame = 0;
-	WriteTraceEventLocked("manual_start", -1, -1);
-	std::printf("[Audio trace] recording projectcane_level_transition_audio.csv (20 seconds max)\n");
-}
-
-void StopLevelTransitionAudioTrace()
-{
-	const std::lock_guard<std::mutex> lock(s_traceMutex);
-	if (!s_traceActive)
-		return;
-	WriteTraceEventLocked("manual_stop", -1, -1);
-	s_traceFile.close();
-	s_traceActive = false;
-}
-
-void MarkLevelTransitionAudioTrace(const char* eventName, const int reverbKind, const int reverbDepth)
-{
-	const std::lock_guard<std::mutex> lock(s_traceMutex);
-	if (reverbKind >= 0)
-		s_traceReverbKind = reverbKind;
-	if (reverbDepth >= 0)
-		s_traceReverbDepth = reverbDepth;
-	WriteTraceEventLocked(eventName ? eventName : "marker", reverbKind, reverbDepth);
-}
-
-void UpdateLevelTransitionAudioTraceRouting(const float desiredWet, const float actualWet,
-	const bool feedStudio, const bool feedGeneric, const float wetBusVolume)
-{
-	const std::lock_guard<std::mutex> lock(s_traceMutex);
-	s_traceDesiredWet = desiredWet;
-	s_traceActualWet = actualWet;
-	s_traceFeedStudio = feedStudio;
-	s_traceFeedGeneric = feedGeneric;
-	s_traceWetBusVolume = wetBusVolume;
-	WriteTraceEventLocked("routing_update", s_traceReverbKind, s_traceReverbDepth);
-}
-
-void MarkLevelTransitionSoundStart(const int sfxid, const float volume, const float frequency,
-	const bool attached, const bool continuous)
-{
-	char event[160]{};
-	std::snprintf(event, sizeof(event), "start_sound:id=%d vol=%.6g freq=%.6g attached=%d continuous=%d",
-		sfxid, volume, frequency, attached ? 1 : 0, continuous ? 1 : 0);
-	MarkLevelTransitionAudioTrace(event);
 }
 
 SpuStudioCReverb::SpuStudioCReverb()
@@ -247,7 +154,6 @@ UINT32 SpuStudioCReverb::CalcOutputFrames(const UINT32 inputFrames)
 
 void SpuStudioCReverb::Reset()
 {
-	MarkLevelTransitionAudioTrace("studio_c_reset");
 	const std::lock_guard<std::mutex> lock(m_processMutex);
 	std::fill(m_effectBuffer.begin(), m_effectBuffer.end(), 0);
 	m_down = {};
@@ -364,11 +270,6 @@ void SpuStudioCReverb::Process(UINT32 inputCount,
 	auto* output = static_cast<float*>(outputs[0].pBuffer);
 	outputs[0].ValidFrameCount = frames;
 	outputs[0].BufferFlags = XAPO_BUFFER_VALID;
-	double inputSquares[2]{};
-	double outputSquares[2]{};
-	float inputPeaks[2]{};
-	float outputPeaks[2]{};
-	uint32_t clipped = 0;
 	for (UINT32 frame = 0; frame < frames; ++frame)
 	{
 		float left = inputs[0].BufferFlags == XAPO_BUFFER_SILENT ? 0.0f : input[frame * 2];
@@ -378,10 +279,6 @@ void SpuStudioCReverb::Process(UINT32 inputCount,
 		// could otherwise turn a rare device-start transient into full-scale noise.
 		left = std::isfinite(left) ? std::clamp(left, -1.0f, 1.0f) : 0.0f;
 		right = std::isfinite(right) ? std::clamp(right, -1.0f, 1.0f) : 0.0f;
-		inputPeaks[0] = (std::max)(inputPeaks[0], std::abs(left));
-		inputPeaks[1] = (std::max)(inputPeaks[1], std::abs(right));
-		inputSquares[0] += static_cast<double>(left) * left;
-		inputSquares[1] += static_cast<double>(right) * right;
 		if (!enabled)
 		{
 			output[frame * 2] = left;
@@ -393,42 +290,6 @@ void SpuStudioCReverb::Process(UINT32 inputCount,
 				static_cast<int>(std::lround(right * 32768.0f)));
 			output[frame * 2] = std::clamp(wet[0] / 32768.0f, -1.0f, 1.0f);
 			output[frame * 2 + 1] = std::clamp(wet[1] / 32768.0f, -1.0f, 1.0f);
-		}
-		const float outLeft = output[frame * 2];
-		const float outRight = output[frame * 2 + 1];
-		outputPeaks[0] = (std::max)(outputPeaks[0], std::abs(outLeft));
-		outputPeaks[1] = (std::max)(outputPeaks[1], std::abs(outRight));
-		outputSquares[0] += static_cast<double>(outLeft) * outLeft;
-		outputSquares[1] += static_cast<double>(outRight) * outRight;
-		clipped += static_cast<uint32_t>(std::abs(outLeft) >= 0.999f);
-		clipped += static_cast<uint32_t>(std::abs(outRight) >= 0.999f);
-	}
-
-	{
-		const std::lock_guard<std::mutex> traceLock(s_traceMutex);
-		if (s_traceActive && s_traceFile)
-		{
-			const double divisor = frames ? static_cast<double>(frames) : 1.0;
-			const float postPeakLeft = outputPeaks[0] * s_traceActualWet;
-			const float postPeakRight = outputPeaks[1] * s_traceActualWet;
-			s_traceFile << s_traceFrame << ",block,studio_c," << s_traceReverbKind << ','
-				<< s_traceReverbDepth << ',' << frames << ','
-				<< inputPeaks[0] << ',' << inputPeaks[1] << ','
-				<< std::sqrt(inputSquares[0] / divisor) << ',' << std::sqrt(inputSquares[1] / divisor) << ','
-				<< outputPeaks[0] << ',' << outputPeaks[1] << ','
-				<< std::sqrt(outputSquares[0] / divisor) << ',' << std::sqrt(outputSquares[1] / divisor) << ','
-				<< clipped << ',' << s_traceDesiredWet << ',' << s_traceActualWet << ','
-				<< static_cast<int>(s_traceFeedStudio) << ',' << static_cast<int>(s_traceFeedGeneric) << ','
-				<< s_traceWetBusVolume << ',' << postPeakLeft << ',' << postPeakRight << ','
-				<< std::sqrt(outputSquares[0] / divisor) * s_traceActualWet << ','
-				<< std::sqrt(outputSquares[1] / divisor) * s_traceActualWet << ",\n";
-			s_traceFrame += frames;
-			if (s_traceFrame >= kTraceFrameLimit)
-			{
-				WriteTraceEventLocked("automatic_stop", -1, -1);
-				s_traceFile.close();
-				s_traceActive = false;
-			}
 		}
 	}
 }

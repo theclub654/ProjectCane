@@ -3,7 +3,7 @@
 #include "shape.h"
 #include "pnt.h"
 
-enum JTHK
+enum JTHK : int
 {
 	JTHK_Nil = -1,
 	JTHK_Flatten = 0,
@@ -16,7 +16,7 @@ enum JTHK
 	JTHK_Vault = 7,
 	JTHK_Max = 8
 };
-enum HBSKS 
+enum HBSKS : int
 {
 	HBSKS_Nil = -1,
 	HBSKS_Available = 0,

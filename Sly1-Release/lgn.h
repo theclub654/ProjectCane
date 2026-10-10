@@ -3,7 +3,7 @@
 #include "break.h"
 #include "acgb.h"
 
-enum LGNS 
+enum LGNS : int
 {
     LGNS_Nil = -1,
     LGNS_Passive = 0,

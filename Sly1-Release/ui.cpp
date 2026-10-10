@@ -1,4 +1,5 @@
 #include "ui.h"
+#include "mb.h"
 #include "binoc.h"
 #include "wm.h"
 #include "logo.h"

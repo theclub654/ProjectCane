@@ -1,22 +1,15 @@
 #pragma once
 
+#ifdef _WIN32
 #include <xapo.h>
+#endif
 #include <array>
 #include <atomic>
 #include <cstdint>
 #include <mutex>
 #include <vector>
 
-// Bounded diagnostic capture used to compare ProjectCane's Studio C path with
-// PCSX2. The capture is opt-in and has no effect on normal audio processing.
-void ToggleLevelTransitionAudioTrace();
-void StopLevelTransitionAudioTrace();
-void MarkLevelTransitionAudioTrace(const char* eventName, int reverbKind = -1, int reverbDepth = -1);
-void UpdateLevelTransitionAudioTraceRouting(float desiredWet, float actualWet,
-	bool feedStudio, bool feedGeneric, float wetBusVolume);
-void MarkLevelTransitionSoundStart(int sfxid, float volume, float frequency,
-	bool attached, bool continuous);
-
+#ifdef _WIN32
 class SpuStudioCReverb final : public IXAPO
 {
 public:
@@ -62,3 +55,10 @@ private:
 	unsigned m_ringPosition = 0;
 	unsigned long long m_cycle = 0;
 };
+#else
+class SpuStudioCReverb
+{
+public:
+	void Reset() {}
+};
+#endif

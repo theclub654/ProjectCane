@@ -334,7 +334,7 @@ void SortSwGroup(int cpso, SO** apso)
         SO* pso = apso[i];
         unsigned int key = 0;
 
-        if (pso->fLockedAll)
+        if (pso->fLockedAll && pso->poxa != nullptr)
         {
             for (OX* pox = pso->poxa->pox; pox; pox = pox->poxNext)
             {

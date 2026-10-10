@@ -14,6 +14,7 @@
 #include "hubblot.h"
 #include "hubsel.h"
 #include "fmv.h"
+#include "mb.h"
 
 ASEGA* PasegaNew(SW* psw)
 {

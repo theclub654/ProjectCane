@@ -1,5 +1,5 @@
 #pragma once
-enum LOOKK;
+enum LOOKK : int;
 struct CPMAN;
 struct CPLOOK;
 struct CPALIGN;
@@ -213,6 +213,7 @@ extern glm::vec3 s_dposCmSquishMin;
 extern glm::vec3 s_dposCmSquishMax;
 extern float S_CmSquishEye;
 extern SMP s_smpSquishEye;
+extern SMP s_smpSquishEyeConstraint;
 extern SMPA s_smpaRadFOV;
 extern float g_uFogMax;
 extern float g_sNearFog;

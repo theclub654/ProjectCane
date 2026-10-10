@@ -90,4 +90,6 @@ std::atomic<uint32_t> Count{ 0 };
 float g_rtClockDebug = 1.0;
 float g_rtClockPowerUp = 1.0;
 float g_rtClock = 1.0;
-int g_targetFrameRate = 120;
+// Safe first-run fallback. StartupSaveData replaces this with the frame rate
+// saved from the pause-menu video settings before the frame pacer starts.
+int g_targetFrameRate = 60;

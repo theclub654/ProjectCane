@@ -28,6 +28,12 @@ Saves/
 *.log
 *.bak
 build-output.txt
+build/
+dist/
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+compile_commands.json
 Sly1-Release/*.csv
 Sly1-Release/*.dll
 

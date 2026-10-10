@@ -1,7 +1,7 @@
 #pragma once
 #include "lo.h"
 
-enum WREK 
+enum WREK : int
 {
     WREK_Nil = -1,
     WREK_Circle = 0,

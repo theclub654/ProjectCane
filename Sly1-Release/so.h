@@ -5,7 +5,7 @@
 #include "clip.h"
 #include "dzg.h"
 
-enum ZPK
+enum ZPK : int
 {
 	ZPK_Nil = -1,
 	ZPK_Blunt = 0,
@@ -16,7 +16,7 @@ enum ZPK
 	ZPK_Pit = 5,
 	ZPK_Max = 6
 };
-enum CMK 
+enum CMK : int
 {
 	CMK_Nil = -1,
 	CMK_Translucent = 0,
@@ -24,7 +24,7 @@ enum CMK
 	CMK_Opaque = 2,
 	CMK_Max = 3
 };
-enum EGK 
+enum EGK : int
 {
 	EGK_Nil = -1,
 	EGK_Inherit = 0,
@@ -33,7 +33,7 @@ enum EGK
 	EGK_Max = 3
 };
 
-enum ZOK 
+enum ZOK : int
 {
 	ZOK_Nil = -1,
 	ZOK_Inherit = 0,
@@ -44,7 +44,7 @@ enum ZOK
 	ZOK_Max = 5
 };
 
-enum CNSTR
+enum CNSTR : int
 {
 	CNSTR_Nil = -1,
 	CNSTR_Free = 0,
@@ -80,7 +80,7 @@ struct XPD
 	glm::vec3 v;
 };
 
-enum XPK
+enum XPK : int
 {
 	XPK_Nil = -1,
 	XPK_Illegal = 0,

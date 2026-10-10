@@ -117,18 +117,22 @@ void RecalcCm(CM* pcm)
 		renderFov = 2.0f * std::atan(
 			std::tan(pcm->radFOV * 0.5f) * pcm->rAspect / widescreenAspect);
 	}
-	// Keep authored camera behavior in the original PS2 camera space.  These
-	// ranges are consumed by SetCm/AdaptCm and sRadiusNearClip is used by the
-	// camera collision solver.  Making them follow a resized window changes the
-	// camera path and inflates its collision sphere on wide windows.
+	// Keep authored aiming and camera behavior in the original PS2 camera space.
+	// These ranges are consumed by SetCm/AdaptCm and must not follow the window.
 	const float gameplayAspect = pcm->rAspect;
 	const float yScreenRange = tanf(pcm->radFOV * 0.5f);
+	const float renderScreenRange = tanf(renderFov * 0.5f);
 
 	// Match RecalcCmFrustum: rAspect remains the fixed authored camera aspect.
 	pcm->yScreenRange = yScreenRange;
 	pcm->xScreenRange = yScreenRange * gameplayAspect;
 	pcm->rMRDAdjust = std::max(1.0f, pcm->rMRD * (1.0f / pcm->radFOV));
-	pcm->sRadiusNearClip = yScreenRange * sqrtf(gameplayAspect * gameplayAspect + 1.0f) * pcm->sNearClip + 1.0f;
+	// Collision must cover the near-plane corners of the projection that is
+	// actually rendered. Otherwise Hor+ widescreen modes can put the expanded
+	// sides of the near plane through nearby walls while the authored 4:3
+	// collision sphere still reports the camera as clear.
+	pcm->sRadiusNearClip = renderScreenRange *
+		sqrtf(renderAspect * renderAspect + 1.0f) * pcm->sNearClip + 1.0f;
 
 	// Only rendering and the extracted world-space frustum use the display
 	// aspect, preserving the wider view without altering gameplay camera logic.
@@ -1285,7 +1289,7 @@ float SvSquishCmEyeConstraint(void* pvContext, float sRadius, const glm::vec3* p
 
 	(void)sRadius;
 
-	GSmooth(psbi->gDist, pcm->sRadiusNearClip - S_CmSquishEye, g_clock.dtReal, &s_smpSquishEye, &sv);
+	GSmooth(psbi->gDist, pcm->sRadiusNearClip - S_CmSquishEye, g_clock.dtReal, &s_smpSquishEyeConstraint, &sv);
 
 	return glm::dot(*pvEye, psbi->normal) - sv;
 }
@@ -1448,7 +1452,8 @@ float s_acCmClearSamples[9] =
 glm::vec3 s_dposCmSquishMin = {-250, -250, -250};
 glm::vec3 s_dposCmSquishMax = {250, 250, 250};
 float S_CmSquishEye = 250.0f;
-SMP s_smpSquishEye = {2500.0f, 0.0f, 0.25f};
+SMP s_smpSquishEye = {250.0f, 1500.0f, 0.0f};
+SMP s_smpSquishEyeConstraint = {2500.0f, 0.0f, 0.25f};
 SMPA s_smpaRadFOV = {0.5, 0.0, 0.1, 10.0};
 float g_uFogMax = 0.5;
 float g_sNearFog = 500;

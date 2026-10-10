@@ -348,22 +348,37 @@ void UpdateCplook(CPLOOK* pcplook, CPDEFI* pcpdefi, JOY* pjoy, float dt)
 			: posAnchor + pcm->mat[0] * 100.0f;
 		if (turret != nullptr && !turret->fTrack)
 		{
-			// Retail advances this controller at 60 Hz. This offset is a temporary
-			// angular lead from the current camera, not a value accumulated over time;
-			// scaling it by render dt makes the lead (and sensitivity) shrink above 60 FPS.
-			constexpr float dtSniperTrackRetail = 1.0f / 60.0f;
+			// Retail ran this controller at 60 Hz. The screen-space offset below is
+			// rebuilt from the current camera every frame rather than accumulated, so
+			// render dt would make aiming slower as the presentation rate increases.
+			constexpr float dtSniperTrack = 1.0f / 60.0f;
 			glm::vec3 projected = posAnchor + pcm->mat * glm::vec3(100.0f, 0.0f, 0.0f);
 			glm::vec3 screen{};
-			ConvertBinocWorldToScreen(pcm, projected, &screen);
+			ConvertCmWorldToScreen(pcm, &projected, &screen);
 			screen += glm::vec3(pjoy->x, ((g_pgsCur->grfgs & 1024U) == 0) ? -pjoy->y : pjoy->y, 0.0f) *
-				(DT_CplookSniperTrack * dtSniperTrackRetail);
-			ConvertBinocScreenToWorld(pcm, screen, &aim);
+				(DT_CplookSniperTrack * dtSniperTrack);
+			ConvertCmScreenToWorld(pcm, &screen, &aim);
 		}
 
 		glm::vec3 direction = aim - posAnchor;
 		glm::mat3 look{};
 		LoadLookAtMatrix(&direction, &look);
-		DecomposeRotateMatrixPanTilt(&look, &pcplook->radPan, &pcplook->radTilt);
+		float radPan;
+		float radTilt;
+		DecomposeRotateMatrixPanTilt(&look, &radPan, &radTilt);
+
+		if (turret != nullptr)
+		{
+			const float dradPan = GLimitLm(&turret->lmPan, RadNormalize(radPan - turret->radPan));
+			const float dradTilt = GLimitLm(&turret->lmTilt, RadNormalize(radTilt - turret->radTilt));
+			pcplook->radPan = RadNormalize(turret->radPan + dradPan);
+			pcplook->radTilt = RadNormalize(turret->radTilt + dradTilt);
+		}
+		else
+		{
+			pcplook->radPan = radPan;
+			pcplook->radTilt = radTilt;
+		}
 		PosCplookEye(pcplook, &posEye);
 		SetCmLookAtSmooth(pcm, 1, &posEye, &posAnchor, nullptr, 20.0f, -7.0f, 1.0f, 0.0f, 0.0f, dt);
 		return;

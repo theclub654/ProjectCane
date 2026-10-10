@@ -1434,7 +1434,7 @@ GRFVAULT s_agrfvaultInstruct[28] =
 	0x10000000,
 	0x20000000,
 	0x40000000,
-	0x80000000,
+	static_cast<GRFVAULT>(0x80000000u),
 	0x1,
 };
 

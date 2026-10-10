@@ -6,13 +6,13 @@
 #include "glob.h"
 #include "debug.h"
 #include "sound.h"
+#include "../platform/platform.h"
 #include <algorithm>
 #include <cstdint>
 #include <cstring>
 #include <filesystem>
 #include <fstream>
 #include <iterator>
-#include <Windows.h>
 
 namespace
 {
@@ -439,22 +439,17 @@ void ApplySavedVideoSettings(VIDEOSAVESETTINGS settings)
 
 std::filesystem::path SaveDirectory()
 {
-    wchar_t executablePath[MAX_PATH]{};
-    const DWORD length = GetModuleFileNameW(nullptr, executablePath, MAX_PATH);
-    std::filesystem::path base = length != 0
-        ? std::filesystem::path(executablePath).parent_path()
-        : std::filesystem::current_path();
-    return base / L"Saves";
+    return cane::UserDirectory() / "Saves";
 }
 
 std::filesystem::path SaveSlotPath(int slot)
 {
-    return SaveDirectory() / (L"slot" + std::to_wstring(slot + 1) + L".sav");
+    return SaveDirectory() / ("slot" + std::to_string(slot + 1) + ".sav");
 }
 
 std::filesystem::path SystemSettingsPath()
 {
-    return SaveDirectory() / L"system_settings.dat";
+    return SaveDirectory() / "system_settings.dat";
 }
 
 bool WriteSaveSlot(int slot, const GS& save)
@@ -465,7 +460,8 @@ bool WriteSaveSlot(int slot, const GS& save)
         return false;
 
     const std::filesystem::path path = SaveSlotPath(slot);
-    const std::filesystem::path temporary = path.wstring() + L".tmp";
+    std::filesystem::path temporary = path;
+    temporary += ".tmp";
     const GS payload = save;
     const SaveFileHeader header{ { 'P', 'C', 'A', 'N', 'E', 'S', 'A', 'V' }, kSaveVersion,
         static_cast<uint32_t>(sizeof(payload)), SaveChecksum(&payload, sizeof(payload)) };
@@ -481,8 +477,7 @@ bool WriteSaveSlot(int slot, const GS& save)
         return false;
     stream.close();
 
-    return MoveFileExW(temporary.c_str(), path.c_str(),
-        MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH) != FALSE;
+    return cane::AtomicReplace(temporary, path);
 }
 
 bool ReadSaveSlot(int slot, GS* save, VIDEOSAVESETTINGS* legacyVideo, bool* hasLegacyVideo)
@@ -712,7 +707,8 @@ bool SaveSystemSettings()
         kSettingsVersion, static_cast<uint32_t>(sizeof(settings)),
         SaveChecksum(&settings, sizeof(settings)) };
     const std::filesystem::path path = SystemSettingsPath();
-    const std::filesystem::path temporary = path.wstring() + L".tmp";
+    std::filesystem::path temporary = path;
+    temporary += ".tmp";
     std::ofstream stream(temporary, std::ios::binary | std::ios::trunc);
     if (!stream)
         return false;
@@ -724,8 +720,7 @@ bool SaveSystemSettings()
         return false;
     stream.close();
 
-    return MoveFileExW(temporary.c_str(), path.c_str(),
-        MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH) != FALSE;
+    return cane::AtomicReplace(temporary, path);
 }
 
 void StartupSaveBlot(SAVEBLOT* psaveblot)
@@ -832,7 +827,8 @@ void AutosaveCurrentGame(SAVEDATA* psaveData)
         return;
 
     g_autosave.fSaveComplete = 0;
-    g_autosave.pvtblot->pfnShowBlot(&g_autosave);
+    if (g_autosave.pvtblot != nullptr && g_autosave.pvtblot->pfnShowBlot != nullptr)
+        g_autosave.pvtblot->pfnShowBlot(&g_autosave);
 }
 
 void StartupSaveData(SAVEDATA* psaveData)

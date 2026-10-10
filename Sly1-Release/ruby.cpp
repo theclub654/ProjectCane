@@ -116,12 +116,14 @@ void PostRubyLoad(RUBY* pruby)
 
 void OnRubyRemove(RUBY* pruby) 
 {
+    SetMusicSequencerGameplayClock(false);
     OnPoRemove(pruby); 
 }
 
 void OnRubyAdd(RUBY* pruby) 
 {
     OnPoAdd(pruby); 
+    SetMusicSequencerGameplayClock(true);
 }
 
 int FCanRubyAttack(RUBY* pruby)

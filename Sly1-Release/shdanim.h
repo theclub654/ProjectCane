@@ -6,9 +6,7 @@ struct SAAF
 {
     uint16_t oid;
     short fInstanced;
-    union
-    {
-        union LOOPF
+    union LOOPF
         {
             float dtLoopMin;
             float dtLoopMax;
@@ -18,7 +16,7 @@ struct SAAF
             uint8_t  pad0x12;
             uint8_t  pad0x13;
             uint32_t padTail;
-        }loopf;
+        };
         union PINGPONGF
         {
             float dtPingpongMin;
@@ -29,19 +27,19 @@ struct SAAF
             uint8_t  pad0x12;
             uint8_t  pad0x13;
             uint32_t padTail;
-        }pingpongf;
+        };
         union SHUTTLEF
         {
             float dtPauseMin;
             float dtPauseMax;
             uint32_t pad[4];
-        }shufflef;
+        };
         union HOLOGRAMF
         {
             float dradAdjust;
             uint32_t cSymmetry;
             uint32_t pad[4];
-        }hologramf;
+        };
         union EYESF
         {
             float dtBlink;
@@ -52,7 +50,7 @@ struct SAAF
             uint8_t pad0x12;
             uint8_t pad0x13;
             uint32_t padTail;
-        }eyesf;
+        };
         union SCROLLERF
         {
             float svu;
@@ -60,7 +58,7 @@ struct SAAF
             float duMod;
             float dvMod;
             uint32_t pad[2];
-        }scrollerf;
+        };
         union CIRCLEF
         {
             float sw;
@@ -68,7 +66,7 @@ struct SAAF
             float du;
             float dv;
             uint32_t pad[2];
-        }circlerf;
+        };
         union LOOKERF
         {
             float uCenter;
@@ -77,7 +75,17 @@ struct SAAF
             float uMax;
             float vMin;
             float vMax;
-        }lookerf;
+        };
+    union
+    {
+        LOOPF loopf;
+        PINGPONGF pingpongf;
+        SHUTTLEF shufflef;
+        HOLOGRAMF hologramf;
+        EYESF eyesf;
+        SCROLLERF scrollerf;
+        CIRCLEF circlerf;
+        LOOKERF lookerf;
     };
 };
 

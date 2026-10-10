@@ -1,56 +1,75 @@
 #include "dzg.h"
+#include "ps2_float.h"
 #include <cmath>
 #include <limits>
 
 namespace
 {
-    float EeSaturateFloat(double value)
+    float EeRoundFloat(float value)
     {
-        const double maxFloat = static_cast<double>((std::numeric_limits<float>::max)());
-        if (value > maxFloat)
-            return (std::numeric_limits<float>::max)();
-        if (value < -maxFloat)
-            return -(std::numeric_limits<float>::max)();
-        return static_cast<float>(value);
+        // Keep every solver intermediate at single precision, like the EE/VU.
+        // Volatile prevents the host compiler from retaining extra precision or
+        // contracting separate multiply/add operations into a host FMA.
+        volatile float rounded = value;
+        return rounded;
+    }
+
+    float EeFiniteFloat(float value)
+    {
+        if (std::isfinite(value))
+            return EeRoundFloat(value);
+
+        return std::copysign((std::numeric_limits<float>::max)(), value);
+    }
+
+    float EeMul(float lhs, float rhs)
+    {
+        return EeFiniteFloat(EeRoundFloat(lhs) * EeRoundFloat(rhs));
+    }
+
+    float EeAdd(float lhs, float rhs)
+    {
+        return EeFiniteFloat(EeRoundFloat(lhs) + EeRoundFloat(rhs));
+    }
+
+    float EeSub(float lhs, float rhs)
+    {
+        return EeFiniteFloat(EeRoundFloat(lhs) - EeRoundFloat(rhs));
     }
 
     void AddScaledEe(glm::vec3* pdst, const glm::vec3& src, float scale)
     {
-        pdst->x = EeSaturateFloat(static_cast<double>(pdst->x) + static_cast<double>(src.x) * scale);
-        pdst->y = EeSaturateFloat(static_cast<double>(pdst->y) + static_cast<double>(src.y) * scale);
-        pdst->z = EeSaturateFloat(static_cast<double>(pdst->z) + static_cast<double>(src.z) * scale);
+        pdst->x = EeAdd(pdst->x, EeMul(src.x, scale));
+        pdst->y = EeAdd(pdst->y, EeMul(src.y, scale));
+        pdst->z = EeAdd(pdst->z, EeMul(src.z, scale));
     }
 
     glm::vec3 SubtractEe(const glm::vec3& lhs, const glm::vec3& rhs)
     {
         return glm::vec3(
-            EeSaturateFloat(static_cast<double>(lhs.x) - rhs.x),
-            EeSaturateFloat(static_cast<double>(lhs.y) - rhs.y),
-            EeSaturateFloat(static_cast<double>(lhs.z) - rhs.z));
+            EeSub(lhs.x, rhs.x),
+            EeSub(lhs.y, rhs.y),
+            EeSub(lhs.z, rhs.z));
     }
 
     float DotEe(const glm::vec3& lhs, const glm::vec3& rhs)
     {
-        return EeSaturateFloat(
-            static_cast<double>(lhs.x) * rhs.x +
-            static_cast<double>(lhs.y) * rhs.y +
-            static_cast<double>(lhs.z) * rhs.z);
+        const float xy = EeAdd(EeMul(lhs.x, rhs.x), EeMul(lhs.y, rhs.y));
+        return EeAdd(xy, EeMul(lhs.z, rhs.z));
     }
 
     void ClampVectorLength(glm::vec3* pvec, float lengthMax)
     {
-        const double x = pvec->x;
-        const double y = pvec->y;
-        const double z = pvec->z;
-        const double lengthSq = x * x + y * y + z * z;
-        const double lengthMaxSq = static_cast<double>(lengthMax) * lengthMax;
+        const float lengthSq = DotEe(*pvec, *pvec);
+        const float lengthMaxSq = EeMul(lengthMax, lengthMax);
 
         if (lengthSq > lengthMaxSq)
         {
-            const double scale = static_cast<double>(lengthMax) / std::sqrt(lengthSq);
-            pvec->x = static_cast<float>(x * scale);
-            pvec->y = static_cast<float>(y * scale);
-            pvec->z = static_cast<float>(z * scale);
+            const float scale = EeFiniteFloat(EeRoundFloat(lengthMax) /
+                EeRoundFloat(std::sqrt(lengthSq)));
+            pvec->x = EeMul(pvec->x, scale);
+            pvec->y = EeMul(pvec->y, scale);
+            pvec->z = EeMul(pvec->z, scale);
         }
     }
 
@@ -411,6 +430,8 @@ void CroutSolve(int c, float* aagCrout, float* agConst, float* agSoln)
 
 void ApplyDzg(DZG* pdzg, int cpsoRoot, int* acpso, SO*** aapso, float sdvMax, float sdwMax)
 {
+    const ScopedPs2FloatMode ps2FloatMode;
+
     std::vector<std::vector<FX>> aafxSum(cpsoRoot);
     for (int ipsoRoot = 0; ipsoRoot < cpsoRoot; ipsoRoot++) {
         aafxSum[ipsoRoot].assign(acpso[ipsoRoot], FX{});

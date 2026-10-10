@@ -129,6 +129,27 @@ void GL::InitGL()
 		throw std::runtime_error("OpenGL function loading failed.");
 	}
 
+	// GLFW window dimensions are logical screen coordinates and can differ
+	// from the drawable pixel dimensions on a DPI-scaled display. Initialize
+	// every framebuffer-related dimension from the actual drawable size so the
+	// first frame does not depend on receiving a later resize callback.
+	int framebufferWidth = 0;
+	int framebufferHeight = 0;
+	glfwGetFramebufferSize(window, &framebufferWidth, &framebufferHeight);
+	framebufferWidth = std::max(1, framebufferWidth);
+	framebufferHeight = std::max(1, framebufferHeight);
+	width = static_cast<float>(framebufferWidth);
+	height = static_cast<float>(framebufferHeight);
+	renderWidth = framebufferWidth;
+	renderHeight = framebufferHeight;
+	outputWidth = framebufferWidth;
+	outputHeight = framebufferHeight;
+	presentX = 0;
+	presentY = 0;
+	presentWidth = framebufferWidth;
+	presentHeight = framebufferHeight;
+	aspectRatio = width / height;
+
 	const char* glVendor = reinterpret_cast<const char*>(glGetString(GL_VENDOR));
 	const char* glRenderer = reinterpret_cast<const char*>(glGetString(GL_RENDERER));
 	const char* glVersion = reinterpret_cast<const char*>(glGetString(GL_VERSION));
@@ -549,8 +570,14 @@ void GL::CreateFramebuffers(int w, int h)
 	glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, dyshWidth, dyshHeight);
 	glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, dyshRbo);
 
-	GLenum drawBuffers[] = { GL_COLOR_ATTACHMENT0 };
-	glDrawBuffers(1, drawBuffers);
+	// No color layer is attached until DrawDysh selects one from the shared
+	// texture array. Keep the idle framebuffer complete as a depth-only target.
+	glDrawBuffer(GL_NONE);
+	glReadBuffer(GL_NONE);
+	if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+	{
+		ReportRuntimeError("Graphics", "The dynamic-shadow depth framebuffer is incomplete.");
+	}
 
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	glBindRenderbuffer(GL_RENDERBUFFER, 0);
@@ -561,12 +588,15 @@ bool GL::ResizeFramebuffers(int w, int h)
 	const int fbW = std::max(1, w);
 	const int fbH = std::max(1, h);
 	GLint maxTextureSize = 0;
+	GLint maxRenderbufferSize = 0;
 	glGetIntegerv(GL_MAX_TEXTURE_SIZE, &maxTextureSize);
-	if (fbW > maxTextureSize || fbH > maxTextureSize)
+	glGetIntegerv(GL_MAX_RENDERBUFFER_SIZE, &maxRenderbufferSize);
+	const GLint maxFramebufferSize = std::min(maxTextureSize, maxRenderbufferSize);
+	if (fbW > maxFramebufferSize || fbH > maxFramebufferSize)
 	{
 		ReportRuntimeError("Graphics",
-			"Internal resolution %dx%d exceeds this GPU's maximum texture size of %d.",
-			fbW, fbH, maxTextureSize);
+			"Internal resolution %dx%d exceeds this GPU's maximum framebuffer size of %d.",
+			fbW, fbH, maxFramebufferSize);
 		return false;
 	}
 
@@ -576,7 +606,13 @@ bool GL::ResizeFramebuffers(int w, int h)
 	GLuint newMsaaFbo = 0;
 	GLuint newMsaaColor = 0;
 	GLuint newMsaaDepth = 0;
-	while (glGetError() != GL_NO_ERROR) {}
+	for (GLenum staleError = glGetError(); staleError != GL_NO_ERROR;
+		staleError = glGetError())
+	{
+		ReportRuntimeError("Graphics",
+			"OpenGL error 0x%X was pending before framebuffer resize began.",
+			staleError);
+	}
 
 	glGenFramebuffers(1, &newFbo);
 	glBindFramebuffer(GL_FRAMEBUFFER, newFbo);
@@ -808,8 +844,7 @@ void UploadFrameStream(STREAM* pstream)
 	// BeginFrameStream retired this slot's previous fence, so the whole range
 	// is CPU-owned until EndFrameStream fences the draws that consume it.
 	glBindBuffer(GL_UNIFORM_BUFFER, pstream->bufferObject);
-	glBufferSubData(GL_UNIFORM_BUFFER, pstream->frameBase, pstream->cursor,
-		pstream->staging.data());
+	glBufferSubData(GL_UNIFORM_BUFFER, pstream->frameBase, pstream->cursor, pstream->staging.data());
 }
 
 void BindFrameStreamRange(STREAM* pstream, GLsizeiptr offset, int size)
@@ -892,7 +927,12 @@ bool ApplyMsaaSettings()
 		if (g_gl.rboColorMSAA) glDeleteRenderbuffers(1, &g_gl.rboColorMSAA);
 		if (g_gl.rboDepthStencilMSAA) glDeleteRenderbuffers(1, &g_gl.rboDepthStencilMSAA);
 		g_gl.fboMSAA = g_gl.rboColorMSAA = g_gl.rboDepthStencilMSAA = 0;
-		glBindFramebuffer(GL_FRAMEBUFFER, 0);
+		// Video options are changed from UpdateUi after the scene target has
+		// already been bound for this frame.  Continue that frame on the resolved
+		// scene target instead of accidentally drawing it to the window.
+		g_sceneFbo = g_gl.fbo;
+		glBindFramebuffer(GL_FRAMEBUFFER, g_sceneFbo);
+		glViewport(0, 0, g_gl.renderWidth, g_gl.renderHeight);
 		return true;
 	}
 
@@ -909,7 +949,13 @@ bool ApplyMsaaSettings()
 	GLuint newFbo = 0;
 	GLuint newColor = 0;
 	GLuint newDepth = 0;
-	while (glGetError() != GL_NO_ERROR) {}
+	for (GLenum staleError = glGetError(); staleError != GL_NO_ERROR;
+		staleError = glGetError())
+	{
+		ReportRuntimeError("Graphics",
+			"OpenGL error 0x%X was pending before MSAA framebuffer creation began.",
+			staleError);
+	}
 	glGenFramebuffers(1, &newFbo);
 	glBindFramebuffer(GL_FRAMEBUFFER, newFbo);
 
@@ -931,7 +977,16 @@ bool ApplyMsaaSettings()
 		if (newFbo) glDeleteFramebuffers(1, &newFbo);
 		if (newColor) glDeleteRenderbuffers(1, &newColor);
 		if (newDepth) glDeleteRenderbuffers(1, &newDepth);
+		if (g_gl.fboMSAA) glDeleteFramebuffers(1, &g_gl.fboMSAA);
+		if (g_gl.rboColorMSAA) glDeleteRenderbuffers(1, &g_gl.rboColorMSAA);
+		if (g_gl.rboDepthStencilMSAA) glDeleteRenderbuffers(1, &g_gl.rboDepthStencilMSAA);
+		g_gl.fboMSAA = 0;
+		g_gl.rboColorMSAA = 0;
+		g_gl.rboDepthStencilMSAA = 0;
 		g_fMsaa = false;
+		g_sceneFbo = g_gl.fbo;
+		glBindFramebuffer(GL_FRAMEBUFFER, g_sceneFbo);
+		glViewport(0, 0, g_gl.renderWidth, g_gl.renderHeight);
 		ReportRuntimeError("Graphics",
 			"Could not allocate %dx MSAA at %dx%d (OpenGL error 0x%X, status 0x%X). MSAA has been disabled.",
 			g_msaaSamples, w, h, error, status);
@@ -945,6 +1000,12 @@ bool ApplyMsaaSettings()
 	g_gl.fboMSAA = newFbo;
 	g_gl.rboColorMSAA = newColor;
 	g_gl.rboDepthStencilMSAA = newDepth;
+	// ApplyMsaaSettings can run in the middle of a frame.  Bind the replacement
+	// immediately so world/UI drawing and the resolve at frame end agree on the
+	// same framebuffer.
+	g_sceneFbo = g_gl.fboMSAA;
+	glBindFramebuffer(GL_FRAMEBUFFER, g_sceneFbo);
+	glViewport(0, 0, g_gl.renderWidth, g_gl.renderHeight);
 	return true;
 }
 
@@ -1097,6 +1158,12 @@ void FrameBufferSizeCallBack(GLFWwindow* window, int width, int height)
 		sceneH = previousSceneH;
 	}
 
+	// Aspect/internal-resolution settings can be changed from UpdateUi after
+	// this frame's scene target has already been bound. ResizeFramebuffers
+	// replaces and deletes that target, so update the cached binding now rather
+	// than allowing the rest of the frame to reuse a deleted framebuffer name.
+	g_sceneFbo = g_fMsaa ? g_gl.fboMSAA : g_gl.fbo;
+	glBindFramebuffer(GL_FRAMEBUFFER, g_sceneFbo);
 	glViewport(0, 0, sceneW, sceneH);
 
 	g_gl.UpdateGLProjections();

@@ -5,7 +5,7 @@
 #include "chkpnt.h"
 #include "hubblot.h"
 #include "spu_reverb_xapo.h"
-#include <Windows.h>
+#include "../platform/platform.h"
 
 namespace
 {
@@ -22,17 +22,6 @@ const char* WorldDirectoryName(int levelId)
     }
 }
 
-std::filesystem::path ExecutableDirectory()
-{
-    wchar_t executablePath[MAX_PATH]{};
-    const DWORD length = GetModuleFileNameW(nullptr, executablePath, MAX_PATH);
-
-    if (length == 0 || length >= MAX_PATH)
-        return std::filesystem::current_path();
-
-    return std::filesystem::path(executablePath).parent_path();
-}
-
 std::filesystem::path FindWorldsDirectory(const std::string& currentFile)
 {
     const std::filesystem::path selectedPath(currentFile);
@@ -46,7 +35,7 @@ std::filesystem::path FindWorldsDirectory(const std::string& currentFile)
             break;
     }
 
-    const std::filesystem::path executableDirectory = ExecutableDirectory();
+    const std::filesystem::path executableDirectory = cane::DataDirectory();
     const std::filesystem::path candidates[] =
     {
         selectedPath.parent_path() / "Worlds",
@@ -95,7 +84,6 @@ std::filesystem::path LevelPath(const LEVELINFO& levelInfo, const std::string& c
 
 void CTransition::ResetWorld(int nParam)
 {
-	MarkLevelTransitionAudioTrace("reset_world_begin");
     SetMasterVolume(0.0f);
 
     if (nParam == 1)
@@ -133,7 +121,6 @@ void CTransition::Set(LEVELINFO* plevel, OID oidWarp, OID oidWarpContext, GRFTRA
 
 void CTransition::Execute(std::string& file)
 {
-	MarkLevelTransitionAudioTrace("transition_execute_begin");
     SetPhase(PHASE_Load);
 
 	// Every transition reaches Execute, including player-death checkpoint
@@ -197,7 +184,9 @@ void CTransition::Execute(std::string& file)
             g_psw = static_cast<SW*>(PloNew(CID_SW, nullptr, nullptr, OID__WORLD, OID_Nil));
 
             if (g_psw != nullptr)
+            {
                 g_psw->pvtlo->pfnLoadLoFromBrx(g_psw, &bis);
+            }
             else
                 fLoadSucceeded = false;
 
@@ -233,13 +222,12 @@ void CTransition::Execute(std::string& file)
     }
 
     InitializeSoundOptions();
-    SetMvgkRvol(g_psw->uMusicVolume, 1, 1);
+    if (g_psw != nullptr)
+        SetMvgkRvol(g_psw->uMusicVolume, 1, 1);
 
     m_plevelPending = nullptr;
     m_worldPending.clear();
     m_fPending = 0;
-	MarkLevelTransitionAudioTrace(fLoadSucceeded ? "transition_execute_end" : "transition_execute_failed");
-
     //ClearPhase(PHASE_Load);
 }
 

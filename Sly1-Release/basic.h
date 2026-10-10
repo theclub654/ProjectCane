@@ -1,4 +1,5 @@
 #pragma once
+#include <memory>
 #include <unordered_map>
 #include "spaprops.h"
 #include "sidebag.h"
@@ -1552,7 +1553,7 @@ struct VTPUFFC
     GRFCID grfcid = 0xB;
 
     PUFFC* (*pfnNewPuffc) () = NewPuffc;
-    void(*pfnInitStepGuard) = InitStepGuard;
+    void* pfnInitStepGuard = reinterpret_cast<void*>(InitStepGuard);
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
     void (*pfnRemoveLo)(LO*) = RemoveLo;
@@ -2787,7 +2788,7 @@ struct VTLGN
     void(*pfnAdjustSoXpVelocity) = nullptr;
     void (*pfnAdjustSoDz)(SO*, GRFADJ, DZ*, int, float) = nullptr;
     void (*pfnAdjustLgnXps)(LGN*) = AdjustLgnXps;
-    void(*pfnUpdateSuvInternalXps) = UpdateSuvInternalXps;
+    void* pfnUpdateSuvInternalXps = reinterpret_cast<void*>(UpdateSuvInternalXps);
     void(*pfnNotifySoImpact) = nullptr;
     void(*pfnUpdateSoPivots) = nullptr;
     void (*pfnUpdateSoImpacts)(SO*) = UpdateSoImpacts;
@@ -2852,7 +2853,7 @@ struct VTJETPACK
     void (*pfnProjectJetpackTransform)(JETPACK*, float, int) = ProjectJetpackTransform;
     void (*pfnPresetJetpackAccel)(JETPACK*, float) = PresetJetpackAccel;
     void (*pfnTranslateSoToPos) (SO*, glm::vec3*) = TranslateSoToPos;
-    void(*pfnRotateSoToMat) = RotateSoToMat;
+    void* pfnRotateSoToMat = reinterpret_cast<void*>(RotateSoToMat);
     void (*pfnMatchAloOtherObject)(ALO*, ALO*) = MatchAloOtherObject;
     void (*pfnSetSoVelocityVec)(SO*, glm::vec3*) = SetSoVelocityVec;
     void (*pfnSetSoAngularVelocityVec)(SO*, glm::vec3*) = SetSoAngularVelocityVec;
@@ -2951,7 +2952,7 @@ struct VTRYTHM
     void (*pfnProjectSoTransform)(SO*, float, int) = ProjectSoTransform;
     void (*pfnPresetSoAccel)(SO*, float) = PresetSoAccel;
     void (*pfnTranslateSoToPos) (SO*, glm::vec3*) = TranslateSoToPos;
-    void (*pfnRotateSoToMat) = RotateSoToMat;
+    void* pfnRotateSoToMat = reinterpret_cast<void*>(RotateSoToMat);
     void (*pfnMatchAloOtherObject)(ALO*, ALO*) = MatchAloOtherObject;
     void (*pfnSetSoVelocityVec)(SO*, glm::vec3*) = SetSoVelocityVec;
     void (*pfnSetSoAngularVelocityVec)(SO*, glm::vec3*) = SetSoAngularVelocityVec;
@@ -3050,7 +3051,7 @@ struct VTMGV
     void (*pfnProjectSoTransform)(SO*, float, int) = ProjectSoTransform;
     void (*pfnPresetMgvAccel)(MGV*, float) = PresetMgvAccel;
     void (*pfnTranslateSoToPos) (SO*, glm::vec3*) = TranslateSoToPos;
-    void(*pfnRotateSoToMat) = RotateSoToMat;
+    void* pfnRotateSoToMat = reinterpret_cast<void*>(RotateSoToMat);
     void (*pfnMatchAloOtherObject)(ALO*, ALO*) = MatchAloOtherObject;
     void (*pfnSetSoVelocityVec)(SO*, glm::vec3*) = SetSoVelocityVec;
     void (*pfnSetSoAngularVelocityVec)(SO*, glm::vec3*) = SetSoAngularVelocityVec;
@@ -4596,7 +4597,7 @@ struct VTCLUE
     void (*pfnGetSoCpdefi)(SO*, float, CPDEFI*) = GetSoCpdefi;
     void (*pfnAddSoWaterAcceleration)(SO*, WATER*, float) = AddSoWaterAcceleration;
     int  (*pfnFInflictSoZap)(SO*, XP*, ZPR*) = FInflictSoZap;
-    void(*pfnPcsFromSprize) = PcsFromSprize;
+    void* pfnPcsFromSprize = reinterpret_cast<void*>(PcsFromSprize);
     void (*pfnCollectClue)(CLUE*) = CollectClue;
     void (*pfnEmitSprizeExplosion)(SPRIZE*) = EmitSprizeExplosion;
 };

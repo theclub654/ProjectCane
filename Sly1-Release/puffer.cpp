@@ -1088,8 +1088,8 @@ void DeletePufft(PUFFT *ppufft)
 	ReleaseWorldObject(ppufft);
 }
 
-float ELAS_Puffer = 0.3f;
-float MU_Puffer = 0.3f;
+float ELAS_Puffer = 0.2f;
+float MU_Puffer = 0.1f;
 float SDV_PuffcMax = 5000.0f;
 CLQ s_clqDradToULimit{3.0, -2.0, -1.0};
 PUFFER* g_ppuffer;

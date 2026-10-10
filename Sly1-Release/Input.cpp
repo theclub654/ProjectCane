@@ -4,10 +4,13 @@
 #include "pzo.h"
 #include "sound.h"
 #include "transition.h"
+#ifdef _WIN32
 #include "spu_reverb_xapo.h"
-#include "ui.h"
 #include <Windows.h>
 #include <Xinput.h>
+#endif
+#include "ui.h"
+#include "mb.h"
 #include <cstdio>
 #include <iterator>
 
@@ -207,6 +210,50 @@ float GamepadActivity(const GLFWgamepadstate& state)
     return activity;
 }
 
+void InitializeGamepadState(GLFWgamepadstate* state)
+{
+    *state = {};
+    // GLFW's standardized trigger convention rests at -1.  A zero-initialized
+    // trigger otherwise looks half pressed to activity selection.
+    state->axes[GLFW_GAMEPAD_AXIS_LEFT_TRIGGER] = -1.0f;
+    state->axes[GLFW_GAMEPAD_AXIS_RIGHT_TRIGGER] = -1.0f;
+}
+
+bool GetRawJoystickState(int jid, GLFWgamepadstate* state)
+{
+    if (!state || !glfwJoystickPresent(jid))
+        return false;
+
+    InitializeGamepadState(state);
+    int axisCount = 0;
+    const float* axes = glfwGetJoystickAxes(jid, &axisCount);
+    if (axes && axisCount > 0) state->axes[GLFW_GAMEPAD_AXIS_LEFT_X] = axes[0];
+    if (axes && axisCount > 1) state->axes[GLFW_GAMEPAD_AXIS_LEFT_Y] = axes[1];
+    if (axes && axisCount > 2) state->axes[GLFW_GAMEPAD_AXIS_RIGHT_X] = axes[2];
+    if (axes && axisCount > 3) state->axes[GLFW_GAMEPAD_AXIS_RIGHT_Y] = axes[3];
+    // Do not guess trigger axes for an unmapped device. Some DirectInput pads
+    // expose a centered combined trigger at zero, which would look permanently
+    // half pressed under GLFW's standardized -1..1 trigger convention.
+
+    int buttonCount = 0;
+    const unsigned char* buttons = glfwGetJoystickButtons(jid, &buttonCount);
+    const int copyCount = (std::min)(buttonCount, GLFW_GAMEPAD_BUTTON_LAST + 1);
+    for (int button = 0; buttons && button < copyCount; ++button)
+        state->buttons[button] = buttons[button];
+
+    int hatCount = 0;
+    const unsigned char* hats = glfwGetJoystickHats(jid, &hatCount);
+    if (hats && hatCount > 0)
+    {
+        state->buttons[GLFW_GAMEPAD_BUTTON_DPAD_UP] |= (hats[0] & GLFW_HAT_UP) != 0;
+        state->buttons[GLFW_GAMEPAD_BUTTON_DPAD_RIGHT] |= (hats[0] & GLFW_HAT_RIGHT) != 0;
+        state->buttons[GLFW_GAMEPAD_BUTTON_DPAD_DOWN] |= (hats[0] & GLFW_HAT_DOWN) != 0;
+        state->buttons[GLFW_GAMEPAD_BUTTON_DPAD_LEFT] |= (hats[0] & GLFW_HAT_LEFT) != 0;
+    }
+    return axes != nullptr || buttons != nullptr || hats != nullptr;
+}
+
+#ifdef _WIN32
 using XInputGetStateFn = DWORD(WINAPI*)(DWORD, XINPUT_STATE*);
 
 XInputGetStateFn PfnXInputGetState()
@@ -246,7 +293,7 @@ float NormalizeXInputAxis(SHORT value)
         : static_cast<float>(value) / 32767.0f;
 }
 
-bool GetXInputGamepadState(GLFWgamepadstate* state)
+bool GetXInputGamepadState(GLFWgamepadstate* state, int* selectedUser, int preferredUser)
 {
     XInputGetStateFn getState = PfnXInputGetState();
     if (getState == nullptr || state == nullptr)
@@ -262,6 +309,7 @@ bool GetXInputGamepadState(GLFWgamepadstate* state)
             continue;
 
         GLFWgamepadstate candidate{};
+        InitializeGamepadState(&candidate);
         const WORD buttons = xstate.Gamepad.wButtons;
         candidate.buttons[GLFW_GAMEPAD_BUTTON_A] = (buttons & XINPUT_GAMEPAD_A) != 0;
         candidate.buttons[GLFW_GAMEPAD_BUTTON_B] = (buttons & XINPUT_GAMEPAD_B) != 0;
@@ -287,10 +335,14 @@ bool GetXInputGamepadState(GLFWgamepadstate* state)
         candidate.axes[GLFW_GAMEPAD_AXIS_RIGHT_TRIGGER] =
             static_cast<float>(xstate.Gamepad.bRightTrigger) / 127.5f - 1.0f;
 
-        const float activity = GamepadActivity(candidate);
+        float activity = GamepadActivity(candidate);
+        if (static_cast<int>(user) == preferredUser)
+            activity += 3.0f;
         if (!found || activity > bestActivity)
         {
             *state = candidate;
+            if (selectedUser)
+                *selectedUser = static_cast<int>(user);
             bestActivity = activity;
             found = true;
         }
@@ -298,6 +350,7 @@ bool GetXInputGamepadState(GLFWgamepadstate* state)
 
     return found;
 }
+#endif
 
 const char* PchzKeyboardKeyNameInternal(int key)
 {
@@ -358,12 +411,6 @@ const char* PchzGamepadBindingName(int binding)
 
 void JOY::Update(GLFWwindow* window)
 {
-	static bool traceKeyWasDown = false;
-	const bool traceKeyDown = glfwGetKey(window, GLFW_KEY_F7) == GLFW_PRESS;
-	if (traceKeyDown && !traceKeyWasDown)
-		ToggleLevelTransitionAudioTrace();
-	traceKeyWasDown = traceKeyDown;
-
     const uint16_t grfbtnPrev = GrfbtnFromState(current);
     previous = current;
     handled.clear();
@@ -385,8 +432,13 @@ void JOY::Update(GLFWwindow* window)
     float y2Raw = 0.0f;
 
     GLFWgamepadstate state{};
+    InitializeGamepadState(&state);
     bool haveGamepadState = false;
     int activeJoystickId = JOYID_Nil;
+    bool activeIsXInput = false;
+#ifdef _WIN32
+    int activeXInputUser = -1;
+#endif
     float bestActivity = -1.0f;
     const bool allowControllerInput = !g_fDisableControllerInputWhenUnfocused ||
         glfwGetWindowAttrib(window, GLFW_FOCUSED) == GLFW_TRUE;
@@ -400,16 +452,20 @@ void JOY::Update(GLFWwindow* window)
         if (!allowControllerInput)
             break;
 
-        if (!glfwJoystickPresent(jid) || !glfwJoystickIsGamepad(jid))
+        if (!glfwJoystickPresent(jid))
             continue;
 
         GLFWgamepadstate candidate{};
-        if (!glfwGetGamepadState(jid, &candidate))
+        InitializeGamepadState(&candidate);
+        const bool readable = glfwJoystickIsGamepad(jid)
+            ? glfwGetGamepadState(jid, &candidate) == GLFW_TRUE
+            : GetRawJoystickState(jid, &candidate);
+        if (!readable)
             continue;
 
         float activity = GamepadActivity(candidate);
         if (jid == joystickId)
-            activity += 0.01f;
+            activity += 3.0f; // retain the selected device until it disconnects
 
         if (!haveGamepadState || activity > bestActivity)
         {
@@ -420,31 +476,54 @@ void JOY::Update(GLFWwindow* window)
         }
     }
 
-    // GLFW 3.3.3 can lose its mapped DirectInput device when Steam Input or
-    // another controller-aware program changes device ownership. XInput is
-    // non-exclusive and remains queryable for Xbox-compatible controllers and
-    // Steam virtual pads, so use it whenever GLFW has no readable gamepad.
-    if (allowControllerInput && !haveGamepadState)
+    // Poll XInput even when GLFW found something. Steam may expose an idle
+    // virtual DirectInput pad that is technically readable but carries no
+    // input; allowing it to block XInput makes the real controller appear dead.
+    #ifdef _WIN32
+    if (allowControllerInput)
     {
         GLFWgamepadstate candidate{};
-        if (GetXInputGamepadState(&candidate))
+        InitializeGamepadState(&candidate);
+        int candidateUser = -1;
+        if (GetXInputGamepadState(&candidate, &candidateUser, xinputUser))
         {
-            state = candidate;
-            activeJoystickId = JOYID_Nil;
-            haveGamepadState = true;
+            const float activity = GamepadActivity(candidate);
+            const float selectedActivity = haveGamepadState ? GamepadActivity(state) : -1.0f;
+            const bool currentlyUsingXInput = gamepadConnected && joystickId == JOYID_Nil && xinputUser >= 0;
+            const bool deliberateNewInput = activity >= 0.5f && selectedActivity < 0.25f;
+            if (!haveGamepadState || currentlyUsingXInput || deliberateNewInput)
+            {
+                state = candidate;
+                activeJoystickId = JOYID_Nil;
+                activeXInputUser = candidateUser;
+                activeIsXInput = true;
+                haveGamepadState = true;
+            }
         }
     }
+    #endif
 
     if (haveGamepadState)
     {
-        if (!gamepadConnected || activeJoystickId != joystickId)
+        const bool xinputDeviceChanged =
+#ifdef _WIN32
+            activeIsXInput && activeXInputUser != xinputUser;
+#else
+            false;
+#endif
+        if (!gamepadConnected || activeJoystickId != joystickId || xinputDeviceChanged)
         {
             calibration = StickCalibration{};
             calibration2 = StickCalibration{};
         }
 
         joystickId = activeJoystickId;
+#ifdef _WIN32
+        xinputUser = activeIsXInput ? activeXInputUser : -1;
+#endif
         gamepadConnected = true;
+        gamepadState = state;
+        hasGamepadState = true;
         for (int button = 0; button < BTN_MAX; ++button)
         {
             const int binding = g_gamepadBindings[button];
@@ -468,7 +547,12 @@ void JOY::Update(GLFWwindow* window)
     else
     {
         joystickId = JOYID_Nil;
+#ifdef _WIN32
+        xinputUser = -1;
+#endif
         gamepadConnected = false;
+        hasGamepadState = false;
+        InitializeGamepadState(&gamepadState);
     }
 
     // Keyboard movement emulates the left analog stick.  The base CPMAN

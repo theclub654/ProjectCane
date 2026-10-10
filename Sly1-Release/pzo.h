@@ -18,7 +18,7 @@ enum FSP
 	FSP_Max = 7
 };
 
-enum PCS 
+enum PCS : int
 {
 	PCS_Nil = -1,
 	PCS_Collected = 0,

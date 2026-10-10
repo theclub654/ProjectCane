@@ -13,10 +13,15 @@
 #include "util.h"
 #include "spu_reverb_xapo.h"
 #include "runtime_error.h"
+#include "../platform/platform.h"
+#ifdef _WIN32
 #include <Windows.h>
 #include <mmsystem.h>
 #include <xaudio2.h>
 #include <xaudio2fx.h>
+#else
+#include "../platform/audio_linux.h"
+#endif
 #include <filesystem>
 #include <fstream>
 #include <vector>
@@ -45,7 +50,9 @@ extern std::string file;
 
 static std::recursive_mutex s_musicMutex;
 static std::atomic<bool> s_musicWorkerRunning{ false };
+static std::atomic<bool> s_musicUsesGameplayClock{ false };
 static std::thread s_musicWorker;
+static int s_musicGameplayClockFrame = -1;
 static constexpr float kVagDriverGain = 0x3ffc / 32767.0f;
 static bool s_fFmvAudioMode = false;
 static bool s_dialogAudioDuckHeld = false;
@@ -125,7 +132,7 @@ static bool s_vagLoadWorkerRunning = false;
 static uint64_t s_vagLoadGeneration = 0;
 static PendingVagLoad s_vagLoad;
 
-static void UpdateMusicSequencer();
+static void UpdateMusicSequencer(double logicalElapsed = -1.0);
 static void PrimeMusicSequencerStartup();
 static bool FinishPendingVagLoad();
 static bool RecoverAudioEngine();
@@ -138,6 +145,7 @@ static void MusicWorkerMain()
 	using namespace std::chrono_literals;
 	while (s_musicWorkerRunning.load(std::memory_order_acquire))
 	{
+		if (!s_musicUsesGameplayClock.load(std::memory_order_acquire))
 		{
 			std::lock_guard<std::recursive_mutex> lock(s_musicMutex);
 			UpdateMusicSequencer();
@@ -294,11 +302,7 @@ bool Parse989SfxBank(EFFECTBANK& bank)
 
 std::filesystem::path ExecutableDirectory()
 {
-    wchar_t executablePath[MAX_PATH]{};
-    const DWORD length = GetModuleFileNameW(nullptr, executablePath, MAX_PATH);
-    if (length == 0 || length >= MAX_PATH)
-        return std::filesystem::current_path();
-    return std::filesystem::path(executablePath).parent_path();
+    return cane::DataDirectory();
 }
 
 bool IsReadablePath(const char* value)
@@ -546,7 +550,31 @@ bool LoadPcmWave(const std::filesystem::path& path, SoundWaveFormat& format,
 			std::memcpy(&format.avgBytesPerSec, file.data() + payload + 8, sizeof(format.avgBytesPerSec));
 			std::memcpy(&format.blockAlign, file.data() + payload + 12, sizeof(format.blockAlign));
 			std::memcpy(&format.bitsPerSample, file.data() + payload + 14, sizeof(format.bitsPerSample));
-			foundFormat = format.formatTag == 1;
+			// Accept both classic PCM and WAVE_FORMAT_EXTENSIBLE carrying the PCM
+			// subtype. Modern editors commonly emit the extensible header even for
+			// ordinary stereo files. The sample payload is identical, so normalize
+			// it to WAVE_FORMAT_PCM before creating the source voice.
+			if (format.formatTag == 1)
+			{
+				foundFormat = true;
+			}
+			else if (format.formatTag == 0xfffe && size >= 40)
+			{
+				uint16_t extensionSize = 0;
+				uint16_t validBits = 0;
+				std::memcpy(&extensionSize, file.data() + payload + 16, sizeof(extensionSize));
+				std::memcpy(&validBits, file.data() + payload + 18, sizeof(validBits));
+				static constexpr uint8_t pcmSubtype[16] =
+				{
+					0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x10, 0x00,
+					0x80, 0x00, 0x00, 0xaa, 0x00, 0x38, 0x9b, 0x71
+				};
+				foundFormat = extensionSize >= 22 &&
+					std::memcmp(file.data() + payload + 24, pcmSubtype, sizeof(pcmSubtype)) == 0 &&
+					(validBits == 0 || validBits <= format.bitsPerSample);
+				if (foundFormat)
+					format.formatTag = 1;
+			}
 		}
 		else if (std::memcmp(file.data() + offset, "data", 4) == 0)
 		{
@@ -562,15 +590,16 @@ bool LoadPcmWave(const std::filesystem::path& path, SoundWaveFormat& format,
 	const bool valid = format.channels >= 1 && format.channels <= XAUDIO2_MAX_AUDIO_CHANNELS &&
 		format.samplesPerSec >= XAUDIO2_MIN_SAMPLE_RATE &&
 		format.samplesPerSec <= XAUDIO2_MAX_SAMPLE_RATE &&
-		(format.bitsPerSample == 8 || format.bitsPerSample == 16) &&
+		(format.bitsPerSample == 8 || format.bitsPerSample == 16 ||
+			format.bitsPerSample == 24 || format.bitsPerSample == 32) &&
 		format.blockAlign == expectedBlockAlign && format.blockAlign != 0 &&
 		format.avgBytesPerSec == format.samplesPerSec * format.blockAlign &&
 		pcm.size() % format.blockAlign == 0;
 	if (!valid)
 	{
 		ReportRuntimeError("Audio",
-			"Invalid PCM WAV '%ls' (%u Hz, %u channels, %u-bit, block %u, average %u, data %zu bytes)",
-			path.c_str(), format.samplesPerSec, format.channels, format.bitsPerSample,
+			"Invalid PCM WAV '%s' (%u Hz, %u channels, %u-bit, block %u, average %u, data %zu bytes)",
+			path.string().c_str(), format.samplesPerSec, format.channels, format.bitsPerSample,
 			format.blockAlign, format.avgBytesPerSec, pcm.size());
 		pcm.clear();
 	}
@@ -588,6 +617,7 @@ bool EnsureEffectReverb()
 		ReportXAudioFailureOnce("Create 48 kHz dry-effects submix", dryResult);
 	}
 	HRESULT studioResult = S_OK;
+	#ifdef _WIN32
 	if (!s_effectStudioCVoice && !s_effectStudioCCreationAttempted)
 	{
 		s_effectStudioCCreationAttempted = true;
@@ -601,6 +631,7 @@ bool EnsureEffectReverb()
 		if (SUCCEEDED(studioResult) && s_effectStudioCVoice)
 			s_effectStudioCProcessor = studio;
 	}
+	#endif
 
 	HRESULT genericResult = S_OK;
 	if (!s_effectReverbVoice && !s_effectReverbCreationAttempted)
@@ -669,7 +700,6 @@ void SetEffectVoiceDestinations(IXAudio2SourceVoice* voice)
 
 void ResetEffectReverbProcessors()
 {
-	MarkLevelTransitionAudioTrace("destroy_reverb_graph");
 	if (s_effectWetInputVoice)
 	{
 		s_effectWetInputVoice->DestroyVoice();
@@ -746,14 +776,6 @@ void ApplyCurrentEffectReverb()
 	const HRESULT genericInputResult = s_effectWetInputVoice && s_effectReverbVoice
 		? s_effectWetInputVoice->SetOutputMatrix(
 			s_effectReverbVoice, 2, 2, genericInputMatrix) : S_OK;
-	float actualStudioWet = 0.0f;
-	float actualWetBusVolume = 0.0f;
-	if (s_effectStudioCVoice)
-		s_effectStudioCVoice->GetVolume(&actualStudioWet);
-	if (s_effectWetInputVoice)
-		s_effectWetInputVoice->GetVolume(&actualWetBusVolume);
-	UpdateLevelTransitionAudioTraceRouting(studioWetLevel, actualStudioWet,
-		feedStudio, feedGeneric, actualWetBusVolume);
 	if (FAILED(parametersResult) || FAILED(volumeResult) || FAILED(studioVolumeResult) ||
 		FAILED(studioInputResult) || FAILED(genericInputResult))
 	{
@@ -780,7 +802,12 @@ bool EnsureMusicEngine()
 	const HRESULT callbackResult = s_xaudio2->RegisterForCallbacks(&s_audioEngineCallback);
 	if (FAILED(callbackResult))
 		ReportXAudioFailureOnce("Register audio engine callback", callbackResult);
-	const HRESULT masteringResult = s_xaudio2->CreateMasteringVoice(&s_musicMasterVoice);
+	// Keep ProjectCane's internal mix deterministic. The PS2 mix is stereo at
+	// 48 kHz; asking XAudio/FAudio for the endpoint's native layout made source
+	// channels 0 and 1 mean different things on stereo, surround and virtual
+	// devices. The operating system can perform the final endpoint conversion.
+	const HRESULT masteringResult = s_xaudio2->CreateMasteringVoice(
+		&s_musicMasterVoice, 2, 48000);
 	if (FAILED(masteringResult))
 	{
 		ReportRuntimeError("Audio",
@@ -2368,31 +2395,12 @@ bool PlayEffectTone(AMB& amb, const EFFECTBANK& bank, const EFFECTBANK::SOUND& s
 	const HRESULT startResult = SUCCEEDED(submitResult) ? active.voice->Start() : E_FAIL;
 	if (FAILED(pitchResult) || FAILED(submitResult) || FAILED(startResult))
 	{
-		char traceEvent[256]{};
-		std::snprintf(traceEvent, sizeof(traceEvent),
-			"voice_reject:sfx=%d serial=%d bank=%d sound=%d sample=%u create=0x%08X pitch=0x%08X submit=0x%08X start=0x%08X",
-			static_cast<int>(amb.sfxid), amb.iSerial, bank.ibnk, amb.soundIndex,
-			tone.sampleOffset, static_cast<unsigned>(createResult),
-			static_cast<unsigned>(pitchResult), static_cast<unsigned>(submitResult),
-			static_cast<unsigned>(startResult));
-		MarkLevelTransitionAudioTrace(traceEvent);
 		ReportXAudioFailureOnce("Set gameplay-effect pitch", pitchResult);
 		ReportXAudioFailureOnce("Submit gameplay-effect buffer", submitResult);
 		ReportXAudioFailureOnce("Start gameplay-effect voice", startResult);
 		active.voice->DestroyVoice();
 		return false;
 	}
-	int decodedPeak = 0;
-	for (const int16_t sample : active.pcm)
-		decodedPeak = (std::max)(decodedPeak, std::abs(static_cast<int>(sample)));
-	char traceEvent[320]{};
-	std::snprintf(traceEvent, sizeof(traceEvent),
-		"voice_start:sfx=%d serial=%d bank=%d sound=%d sample=%u pcm=%zu loop=%d peak=%d appvol=%.6g soundvol=%.6g tonevol=%.6g group=%d pan=%d ratio=%.6g noise=%d",
-		static_cast<int>(amb.sfxid), amb.iSerial, bank.ibnk, amb.soundIndex,
-		tone.sampleOffset, active.pcm.size(), active.loop ? 1 : 0, decodedPeak,
-		applicationVolume, active.soundVolume, active.toneVolume, active.volumeGroup,
-		active.authoredPan, active.baseFrequencyRatio, (tone.flags & 8) != 0 ? 1 : 0);
-	MarkLevelTransitionAudioTrace(traceEvent);
 	amb.voices.push_back(std::move(active));
 	amb.voice = amb.voices.front().voice;
 	amb.frequencyRatioBase = amb.voices.front().baseFrequencyRatio;
@@ -2756,47 +2764,24 @@ void ExecuteEffectGrain(AMB& amb)
 
 void StartSound(SFXID sfxid, AMB** ppamb, ALO* palo, glm::vec3* ppos, float sStart, float sFull, float uVolAtSource, float frq, float uDoppler, LM* plmRepeat, LM* plmRepDist)
 {
-	MarkLevelTransitionSoundStart(static_cast<int>(sfxid), uVolAtSource, frq,
-		palo != nullptr || ppos != nullptr, ppamb != nullptr || plmRepeat != nullptr);
 	const int index = static_cast<int>(sfxid);
 	if (index < 0 || index >= static_cast<int>(kSfxCount) || g_psw == nullptr)
 	{
-		char traceEvent[160]{};
-		std::snprintf(traceEvent, sizeof(traceEvent),
-			"sound_reject:id=%d reason=%s", index,
-			g_psw == nullptr ? "no_world" : "invalid_id");
-		MarkLevelTransitionAudioTrace(traceEvent);
 		return;
 	}
 	const SND& mapping = g_mpsfxidsndbnk[index];
 	if (mapping.ibnk > 0 && mapping.ibnk != g_psw->ibnk)
 	{
-		char traceEvent[192]{};
-		std::snprintf(traceEvent, sizeof(traceEvent),
-			"sound_reject:id=%d reason=world_bank bank=%d world_bank=%d sound=%d",
-			index, mapping.ibnk, g_psw->ibnk, mapping.isnd);
-		MarkLevelTransitionAudioTrace(traceEvent);
 		return;
 	}
 	EFFECTBANK* bank = static_cast<EFFECTBANK*>(SbpEnsureBank(mapping.ibnk));
 	if (!bank || mapping.isnd < 0 || mapping.isnd >= static_cast<int>(bank->sounds.size()))
 	{
-		char traceEvent[192]{};
-		std::snprintf(traceEvent, sizeof(traceEvent),
-			"sound_reject:id=%d reason=bank_or_sound bank=%d sound=%d bank_loaded=%d sound_count=%zu",
-			index, mapping.ibnk, mapping.isnd, bank ? 1 : 0,
-			bank ? bank->sounds.size() : 0U);
-		MarkLevelTransitionAudioTrace(traceEvent);
 		return;
 	}
 	EFFECTBANK::SOUND& sound = bank->sounds[mapping.isnd];
 	if (sound.grains.empty())
 	{
-		char traceEvent[160]{};
-		std::snprintf(traceEvent, sizeof(traceEvent),
-			"sound_reject:id=%d reason=no_grains bank=%d sound=%d",
-			index, mapping.ibnk, mapping.isnd);
-		MarkLevelTransitionAudioTrace(traceEvent);
 		return;
 	}
 	if ((sound.flags & 8u) != 0 && sound.instanceLimit > 0)
@@ -2816,11 +2801,6 @@ void StartSound(SFXID sfxid, AMB** ppamb, ALO* palo, glm::vec3* ppos, float sSta
 					if (!weakest || instance->tStarted < weakest->tStarted) weakest = instance;
 			if (!weakest || ((sound.flags & 0x10u) != 0 && weakest->uVolAtSource >= uVolAtSource))
 			{
-				char traceEvent[192]{};
-				std::snprintf(traceEvent, sizeof(traceEvent),
-					"sound_reject:id=%d reason=instance_limit bank=%d sound=%d instances=%zu limit=%d",
-					index, mapping.ibnk, mapping.isnd, instances.size(), sound.instanceLimit);
-				MarkLevelTransitionAudioTrace(traceEvent);
 				return;
 			}
 			StopSound(weakest, 0);
@@ -2854,11 +2834,6 @@ void StartSound(SFXID sfxid, AMB** ppamb, ALO* palo, glm::vec3* ppos, float sSta
 				// can start playing when the listener subsequently enters range.
 				if (!continuous && !recurring)
 				{
-					char traceEvent[192]{};
-					std::snprintf(traceEvent, sizeof(traceEvent),
-						"sound_reject:id=%d reason=out_of_range bank=%d sound=%d distance=%.6g start=%.6g",
-						index, mapping.ibnk, mapping.isnd, distance, sStart);
-					MarkLevelTransitionAudioTrace(traceEvent);
 					return;
 				}
 				attenuatedVolume = 0.0f;
@@ -2871,11 +2846,6 @@ void StartSound(SFXID sfxid, AMB** ppamb, ALO* palo, glm::vec3* ppos, float sSta
 	AMB* amb = PambAlloc();
 	if (!amb)
 	{
-		char traceEvent[160]{};
-		std::snprintf(traceEvent, sizeof(traceEvent),
-			"sound_reject:id=%d reason=amb_pool bank=%d sound=%d",
-			index, mapping.ibnk, mapping.isnd);
-		MarkLevelTransitionAudioTrace(traceEvent);
 		return;
 	}
 	amb->sfxid = sfxid;
@@ -2901,15 +2871,6 @@ void StartSound(SFXID sfxid, AMB** ppamb, ALO* palo, glm::vec3* ppos, float sSta
 	amb->nextGrain = 0;
 	amb->grainCountdown = sound.grains[0].delay;
 	amb->handlerDone = recurring || (continuous && outOfRange);
-	{
-		char traceEvent[256]{};
-		std::snprintf(traceEvent, sizeof(traceEvent),
-			"sound_accept:id=%d serial=%d bank=%d world_bank=%d sound=%d grains=%zu flags=0x%X continuous=%d recurring=%d positioned=%d out_of_range=%d attenuated=%.6g",
-			index, amb->iSerial, mapping.ibnk, g_psw->ibnk, mapping.isnd,
-			sound.grains.size(), sound.flags, continuous ? 1 : 0, recurring ? 1 : 0,
-			positioned ? 1 : 0, outOfRange ? 1 : 0, attenuatedVolume);
-		MarkLevelTransitionAudioTrace(traceEvent);
-	}
 	if (amb->fAttached)
 		SetPambVol(amb, uVolAtSource);
 	if (recurring)
@@ -2968,16 +2929,6 @@ void RemoveAmb(AMB* pamb)
 {
 	if (pamb == nullptr || g_psw == nullptr)
 		return;
-	{
-		char traceEvent[192]{};
-		std::snprintf(traceEvent, sizeof(traceEvent),
-			"sound_remove:id=%d serial=%d bank=%d sound=%d voices=%zu stopped=%d done=%d",
-			static_cast<int>(pamb->sfxid), pamb->iSerial,
-			pamb->bnk ? static_cast<EFFECTBANK*>(pamb->bnk)->ibnk : -1,
-			pamb->soundIndex, pamb->voices.size(), pamb->fStopped,
-			pamb->handlerDone ? 1 : 0);
-		MarkLevelTransitionAudioTrace(traceEvent);
-	}
 	if (pamb == s_pambVagAmbient)
 	{
 		s_pambVagAmbient = nullptr;
@@ -3111,7 +3062,6 @@ static void StopAllMusicVoicesForSegment(uint32_t segment)
 
 void SetEffectReverbTypeDepth(REVERBK kind, int depth)
 {
-	MarkLevelTransitionAudioTrace("set_reverb", static_cast<int>(kind), depth);
 	if (!s_xaudio2)
 	{
 		s_effectReverbKind = kind;
@@ -3233,6 +3183,16 @@ void RefreshMidiRegister(int ireg)
 	// register value with the result. ProjectCane's live value is maintained
 	// directly by the in-process sequencer.
 	s_amRegisters[ireg] = s_music989.registers[ireg];
+}
+
+void SetMusicSequencerGameplayClock(bool enabled)
+{
+	std::lock_guard<std::recursive_mutex> lock(s_musicMutex);
+	s_musicUsesGameplayClock.store(enabled, std::memory_order_release);
+	s_musicGameplayClockFrame = -1;
+	// Discard wall time accumulated while changing clock domains. Otherwise the
+	// worker can batch the switch interval into the next sequencer update.
+	s_music989.lastUpdate = std::chrono::steady_clock::now();
 }
 
 void CalculateVolPan(float sDist, glm::vec3* pposSound, float* pvol, float* ppan, float uvol, float sStart, float sFull)
@@ -3972,16 +3932,35 @@ static void VagLoadWorkerMain()
 			s_vagLoad.requested = false;
 		}
 
-		request.path = request.readablePath.empty()
-			? ResolveVagDescriptor(request.descriptor.data())
-			: request.readablePath;
-		if (!request.path.empty())
+		if (request.readablePath.empty())
+		{
+			request.path = ResolveVagDescriptor(request.descriptor.data());
+			if (!request.path.empty())
+				request.path.replace_extension(L".wav");
+		}
+		else
+		{
+			request.path = request.readablePath;
 			request.path.replace_extension(L".wav");
+
+			// Named VAG streams are normally supplied as a bare extracted filename.
+			// Resolve those through the same Worlds search used by descriptor-backed
+			// dialogue instead of assuming the process working directory owns them.
+			std::error_code pathError;
+			if (!std::filesystem::is_regular_file(request.path, pathError))
+			{
+				if (std::filesystem::path found =
+					FindExtractedWav(request.path.filename().wstring()); !found.empty())
+				{
+					request.path = std::move(found);
+				}
+			}
+		}
 		if (!request.path.empty() &&
 			!LoadPcmWave(request.path, request.format, request.pcm))
 		{
-			ReportRuntimeError("Audio", "Could not load PCM WAV '%ls'",
-				request.path.c_str());
+			ReportRuntimeError("Audio", "Could not load PCM WAV '%s'",
+				request.path.string().c_str());
 		}
 
 		std::lock_guard<std::mutex> lock(s_vagLoadMutex);
@@ -4032,14 +4011,58 @@ static bool SetVagStreamOutputMatrix(IXAudio2SourceVoice* voice, UINT32 sourceCh
 	}
 	else
 	{
-		const UINT32 mappedChannels = (std::min)(sourceChannels, destinationChannels);
-		for (UINT32 channel = 0; channel < mappedChannels; ++channel)
-			matrix[static_cast<std::size_t>(channel) * destinationChannels + channel] = 1.0f;
+		// The mastering graph is explicitly stereo. Preserve the authored front
+		// left/right pair and ignore unsupported auxiliary channels instead of
+		// relying on the endpoint's vendor-specific native channel order.
+		matrix[0] = 1.0f;
+		matrix[static_cast<std::size_t>(1) * destinationChannels + 1] = 1.0f;
 	}
 	const HRESULT result = voice->SetOutputMatrix(
 		s_musicMasterVoice, sourceChannels, destinationChannels, matrix.data());
 	ReportXAudioFailureOnce("Set VAG/dialog output matrix", result);
 	return SUCCEEDED(result);
+}
+
+static void BalanceFmvStereoPcm(VagStreamState& stream)
+{
+	if (!s_fFmvAudioMode || stream.format.channels != 2 ||
+		stream.format.bitsPerSample != 16 || stream.format.blockAlign != 4 ||
+		stream.pcm.size() < 4)
+		return;
+
+	double sumSquares[2]{};
+	const std::size_t frameCount = stream.pcm.size() / 4;
+	for (std::size_t frame = 0; frame < frameCount; ++frame)
+	{
+		int16_t samples[2]{};
+		std::memcpy(samples, stream.pcm.data() + frame * 4, sizeof(samples));
+		for (int channel = 0; channel < 2; ++channel)
+		{
+			const double sample = static_cast<double>(samples[channel]);
+			sumSquares[channel] += sample * sample;
+		}
+	}
+	if (sumSquares[0] <= 0.0 || sumSquares[1] <= 0.0)
+		return;
+
+	const double imbalanceDb = 10.0 * std::log10(sumSquares[0] / sumSquares[1]);
+	// Small whole-file differences are normal stereo authorship. Correct only
+	// a persistent imbalance large enough to pull centered dialogue off-screen.
+	if (std::abs(imbalanceDb) < 1.5)
+		return;
+
+	const int loudChannel = imbalanceDb > 0.0 ? 0 : 1;
+	const double quieterEnergy = sumSquares[1 - loudChannel];
+	const double gain = std::sqrt(quieterEnergy / sumSquares[loudChannel]);
+	for (std::size_t frame = 0; frame < frameCount; ++frame)
+	{
+		int16_t sample = 0;
+		const std::size_t offset = frame * 4 + loudChannel * sizeof(sample);
+		std::memcpy(&sample, stream.pcm.data() + offset, sizeof(sample));
+		const int adjusted = static_cast<int>(std::lround(static_cast<double>(sample) * gain));
+		sample = static_cast<int16_t>(std::clamp(adjusted, -32768, 32767));
+		std::memcpy(stream.pcm.data() + offset, &sample, sizeof(sample));
+	}
 }
 
 static bool CreateVagStreamVoice(VagStreamState& stream, uint64_t playBegin)
@@ -4057,8 +4080,8 @@ static bool CreateVagStreamVoice(VagStreamState& stream, uint64_t playBegin)
 	if (FAILED(createResult) || !stream.voice)
 	{
 		ReportRuntimeError("Audio",
-			"CreateSourceVoice failed for '%ls' (HRESULT 0x%08X, %u Hz, %u channels, %u-bit)",
-			stream.path.c_str(), static_cast<unsigned>(createResult),
+			"CreateSourceVoice failed for '%s' (HRESULT 0x%08X, %u Hz, %u channels, %u-bit)",
+			stream.path.string().c_str(), static_cast<unsigned>(createResult),
 			stream.format.samplesPerSec, stream.format.channels,
 			stream.format.bitsPerSample);
 		stream.voice = nullptr;
@@ -4082,8 +4105,8 @@ static bool CreateVagStreamVoice(VagStreamState& stream, uint64_t playBegin)
 	if (FAILED(submitResult))
 	{
 		ReportRuntimeError("Audio",
-			"SubmitSourceBuffer failed for '%ls' (HRESULT 0x%08X, %u bytes)",
-			stream.path.c_str(), static_cast<unsigned>(submitResult), buffer.AudioBytes);
+			"SubmitSourceBuffer failed for '%s' (HRESULT 0x%08X, %u bytes)",
+			stream.path.string().c_str(), static_cast<unsigned>(submitResult), buffer.AudioBytes);
 		stream.voice->DestroyVoice();
 		stream.voice = nullptr;
 		return false;
@@ -4112,6 +4135,7 @@ static bool FinishPendingVagLoad()
 	replacement.format = loaded.format;
 	replacement.pcm = std::move(loaded.pcm);
 	replacement.path = std::move(loaded.path);
+	BalanceFmvStereoPcm(replacement);
 	if (!CreateVagStreamVoice(replacement, 0))
 		return true;
 	s_vagStream = std::move(replacement);
@@ -4322,7 +4346,6 @@ void ResetAMRegisters()
 
 void KillSoundSystem()
 {
-	MarkLevelTransitionAudioTrace("kill_sound_system_begin");
 	// Retail stops the active 989SND handle before it clears ambient sounds,
 	// excitement, and the eight cached AM registers.  Closing our in-process
 	// sequencer first prevents register reset callbacks from being applied to
@@ -4358,7 +4381,6 @@ void KillSoundSystem()
 	s_effectLastUpdate = {};
 	s_effectGlobalRegisters.fill(0);
 	s_fPauseAmbients = 0;
-	MarkLevelTransitionAudioTrace("kill_sound_system_end");
 	// Bank 0 is permanent in the original. The current world bank is released
 	// by SbpEnsureBank when the next world requests a different IBNK.
 }
@@ -4395,7 +4417,7 @@ SoundBankPtr SbpEnsureBank(int ibnk)
 	std::vector<uint8_t> bytes((std::istreambuf_iterator<char>(input)), {});
 	if (bytes.empty())
 	{
-		std::printf("[SOUND BANK] Extracted bank is empty: %ls\n", path.c_str());
+		std::printf("[SOUND BANK] Extracted bank is empty: %s\n", path.string().c_str());
 		return nullptr;
 	}
 
@@ -4404,7 +4426,7 @@ SoundBankPtr SbpEnsureBank(int ibnk)
 	replacement->bytes = std::move(bytes);
 	if (!Parse989SfxBank(*replacement))
 	{
-		std::printf("[SOUND BANK] Invalid or unsupported 989SND SBlk: %ls\n", path.c_str());
+		std::printf("[SOUND BANK] Invalid or unsupported 989SND SBlk: %s\n", path.string().c_str());
 		return nullptr;
 	}
 	s_effectBanks[ibnk] = std::move(replacement);
@@ -4457,14 +4479,14 @@ void PreloadMusidSong(MUSID musid)
 	const bool engineReady = EnsureMusicEngine();
 	if (!engineReady || !loaded)
 	{
-		ReportRuntimeError("Music", "Load failed for MUSID 0x%X (%s), path '%ls'",
+		ReportRuntimeError("Music", "Load failed for MUSID 0x%X (%s), path '%s'",
 			static_cast<unsigned>(musid), loaded ? "audio_engine" : "bank_parse",
-			bankPath.c_str());
+			bankPath.string().c_str());
 		CloseMusicVoice();
 		return;
 	}
-	std::printf("[MUSIC LOAD] ready musid=0x%X path=%ls segments=%zu tones=%zu\n",
-		static_cast<unsigned>(musid), bankPath.c_str(),
+	std::printf("[MUSIC LOAD] ready musid=0x%X path=%s segments=%zu tones=%zu\n",
+		static_cast<unsigned>(musid), bankPath.string().c_str(),
 		s_music989.segmentOffsets.size(), s_music989.tones.size());
 	s_music989.registers = s_amRegisters;
 	s_musicStream.musid = musid;
@@ -4816,6 +4838,11 @@ float GetMasterVolume()
 
 void SetFmvAudioMode(bool enabled)
 {
+	// A movie is never positional. A dialogue VAG interrupted by a transition
+	// may still own the shared stream through an AMB; remove that ownership so
+	// it cannot attenuate or pan the subsequently loaded movie.
+	if (enabled && s_pambVagAmbient != nullptr)
+		RemoveAmb(s_pambVagAmbient);
 	s_fFmvAudioMode = enabled;
 	if (s_vagStream.loaded)
 		RecalculateChannelVolume(2);
@@ -4876,7 +4903,7 @@ void ServiceAudioDevice()
 	{
 		const HRESULT result = s_audioCriticalResult.load(std::memory_order_acquire);
 		ReportRuntimeError("Audio",
-			"The Windows audio device stopped, changed format, or was removed (HRESULT 0x%08X). Rebuilding the audio engine.",
+			"The audio device stopped, changed format, or was removed (HRESULT 0x%08X). Rebuilding the audio engine.",
 			static_cast<unsigned>(result));
 		s_audioRecoveryPending = true;
 		s_audioRecoveryRetry = {};
@@ -4899,6 +4926,18 @@ void UpdateSounds()
 	ServiceAudioDevice();
 	if (s_audioRecoveryPending)
 		return;
+
+	// Ruby's retail rhythm logic and 989SND were both driven by fixed PS2 time.
+	// During that encounter, advance adaptive music from the same capped game
+	// delta exactly once per rendered game frame. This prevents a host stall from
+	// moving the music ahead while g_clock intentionally discards excess time.
+	if (s_musicUsesGameplayClock.load(std::memory_order_acquire) &&
+		s_musicGameplayClockFrame != g_cframe)
+	{
+		s_musicGameplayClockFrame = g_cframe;
+		std::lock_guard<std::recursive_mutex> lock(s_musicMutex);
+		UpdateMusicSequencer(static_cast<double>(g_clock.dt));
+	}
 
 	if (FAmbientsPaused() != 0)
 		return;
@@ -5117,15 +5156,25 @@ void UpdateSounds()
 	}
 }
 
-static void UpdateMusicSequencer()
+static void UpdateMusicSequencer(double logicalElapsed)
 {
 	if (s_musicStream.state != MusicState::Playing || s_musicStream.paused)
 		return;
 	const auto now = std::chrono::steady_clock::now();
-	if (s_music989.lastUpdate.time_since_epoch().count() == 0)
-		s_music989.lastUpdate = now;
-	const double elapsed = std::chrono::duration<double>(now - s_music989.lastUpdate).count();
+	double elapsed = logicalElapsed;
+	if (elapsed < 0.0)
+	{
+		if (s_music989.lastUpdate.time_since_epoch().count() == 0)
+			s_music989.lastUpdate = now;
+		elapsed = std::chrono::duration<double>(now - s_music989.lastUpdate).count();
+	}
 	s_music989.lastUpdate = now;
+	// MarkClockTick already applies the retail maximum step. Keep this guard for
+	// callers outside the game loop and reject invalid clock values.
+	if (!std::isfinite(elapsed) || elapsed <= 0.0)
+		elapsed = 0.0;
+	else if (logicalElapsed >= 0.0)
+		elapsed = (std::min)(elapsed, 1.0 / 30.0);
 	s_music989.tickAccumulator += elapsed * 240.0;
 	while (s_music989.tickAccumulator >= 1.0)
 	{

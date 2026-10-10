@@ -1,6 +1,8 @@
 #include "blot.h"
+#include "boss.h"
 #include "gui_layout.h"
 #include "totals.h"
+#include "mb.h"
 #include "gl.h"
 
 void InitBlot(BLOT* pblot, BLOTK blotk)

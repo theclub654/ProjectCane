@@ -1,5 +1,7 @@
 #include "mb.h"
+#if defined(_MSC_VER)
 #include <intrin.h>
+#endif
 #include "steprun.h"
 #include "sm.h"
 #include "jt.h"
@@ -15,7 +17,13 @@
 #include "pnt.h"
 #include "xform.h"
 #include "acs.h"
-
+#include "ui.h"
+#include "wipe.h"
+#include "wm.h"
+#include "binoc.h"
+#include "cm.h"
+#include "letterbox.h"
+#include <cstdio>
 MBG* NewMbg()
 {
 	return NewWorldObject<MBG>();
@@ -657,7 +665,8 @@ void UpdateBhg(BHG* pbhg, float dt)
 
 void UpdateBhgBlot()
 {
-    if (FCanShowGameplayBlot())
+    const bool fCanShow = FCanShowGameplayBlot();
+    if (fCanShow)
         g_boss.pvtblot->pfnShowBlot(&g_boss);
     else
         g_boss.pvtblot->pfnHideBlot(&g_boss);

@@ -24,7 +24,7 @@ enum EXRK
     EXRK_All = 1,
     EXRK_Max = 2
 };
-enum BRKPS
+enum BRKPS : int
 {
     BRKPS_Nil = -1,
     BRKPS_Idle = 0,

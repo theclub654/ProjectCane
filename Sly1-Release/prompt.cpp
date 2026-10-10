@@ -72,12 +72,10 @@ int GamepadBindingPressed()
         return -1;
     }
 
-    if (g_joy.joystickId < GLFW_JOYSTICK_1 || g_joy.joystickId > GLFW_JOYSTICK_LAST)
+    if (!g_joy.gamepadConnected || !g_joy.hasGamepadState)
         return -1;
 
-    GLFWgamepadstate state{};
-    if (!glfwGetGamepadState(g_joy.joystickId, &state))
-        return -1;
+    const GLFWgamepadstate& state = g_joy.gamepadState;
 
     for (int button = 0; button <= GLFW_GAMEPAD_BUTTON_LAST; ++button)
         if (state.buttons[button] == GLFW_PRESS) return button;
@@ -90,9 +88,11 @@ int GamepadBindingPressed()
 
 bool FGamepadAvailable()
 {
+    if (g_joy.gamepadConnected)
+        return true;
     for (int jid = GLFW_JOYSTICK_1; jid <= GLFW_JOYSTICK_LAST; ++jid)
     {
-        if (glfwJoystickPresent(jid) && glfwJoystickIsGamepad(jid))
+        if (glfwJoystickPresent(jid))
             return true;
     }
     return false;
@@ -177,7 +177,12 @@ GLFWmonitor* ActiveMonitor()
 
 std::vector<int> SupportedFrameRates()
 {
-    std::vector<int> frameRates;
+    // A frame cap is independent of the display modes exposed by GLFW.  Some
+    // Linux compositors (including Steam Deck's game session) expose only the
+    // current refresh rate, which previously left this option with one value
+    // and made it appear broken.  Keep the universally useful caps available
+    // and supplement them with the monitor's reported refresh rates.
+    std::vector<int> frameRates{ 30, 60 };
     GLFWmonitor* monitor = ActiveMonitor();
 
     if (monitor != nullptr)
@@ -194,9 +199,6 @@ std::vector<int> SupportedFrameRates()
 
     std::sort(frameRates.begin(), frameRates.end());
     frameRates.erase(std::unique(frameRates.begin(), frameRates.end()), frameRates.end());
-
-    if (frameRates.empty())
-        frameRates.push_back(60);
 
     return frameRates;
 }
@@ -340,6 +342,7 @@ void HandlePromptPrkTransition(PROMPT* pprompt, PRK prkOld, PRK prkNew)
 
     switch (prkOld)
     {
+        case PRK_MemcardChooseSaveSlot:
         case PRK_MemcardChooseLoadSlot:
         g_pnote.pvtblot->pfnSetBlotBlots(&g_pnote, BLOTS_Hidden);
         g_pnote.pvtblot->pfnSetBlotAchzDraw(&g_pnote, nullptr);
@@ -359,6 +362,7 @@ void HandlePromptPrkTransition(PROMPT* pprompt, PRK prkOld, PRK prkNew)
         g_percentctr.pvtctr->pfnHideBlot(&g_percentctr);
         break;
 
+        case PRK_MemcardChooseSaveSlot:
         case PRK_MemcardChooseLoadSlot:
         g_pnote.pvtblot->pfnSetBlotAchzDraw(&g_pnote, (char*)"&2S&.: Erase Game");
         SetBlotDtVisible(&g_pnote, 0.0f);
@@ -1272,7 +1276,11 @@ void ExecutePrompt(PROMPT* pprompt, int direction)
             SetPrompt(pprompt, PRP_Basic, PRK_Nil);
             g_saveData.pgsCurrentSave = &g_saveData.saveData[slot];
             InitGameState(g_pgsCur);
-            SaveCurrentGameToDisk(&g_saveData);
+            if (!SaveCurrentGameToDisk(&g_saveData))
+            {
+                SetPrompt(pprompt, PRP_Memcard, PRK_Unknown15);
+                return;
+            }
             ReloadCurrentLevel();
             return;
         }
@@ -1293,7 +1301,11 @@ void ExecutePrompt(PROMPT* pprompt, int direction)
             {
                 SetPrompt(pprompt, PRP_Basic, PRK_Nil);
                 InitGameState(g_pgsCur);
-                SaveCurrentGameToDisk(&g_saveData);
+                if (!SaveCurrentGameToDisk(&g_saveData))
+                {
+                    SetPrompt(pprompt, PRP_Memcard, PRK_Unknown15);
+                    return;
+                }
                 ReloadCurrentLevel();
                 return;
             }
@@ -1337,7 +1349,11 @@ void ExecutePrompt(PROMPT* pprompt, int direction)
             {
                 case PRK_Nil:
                 SetPrompt(pprompt, PRP_Memcard, PRK_Nil);
-                g_autosave.pvtblot->pfnShowBlot(&g_autosave);
+                if (g_autosave.pvtblot != nullptr &&
+                    g_autosave.pvtblot->pfnShowBlot != nullptr)
+                {
+                    g_autosave.pvtblot->pfnShowBlot(&g_autosave);
+                }
                 break;
 
                 case PRK_QuitConfirm:
@@ -1885,7 +1901,8 @@ void UpdatePromptActive(PROMPT* pprompt, JOY* pjoy)
     {
         pjoy->SetHandled(BTN_SQUARE);
 
-        if (prk == PRK_MemcardChooseLoadSlot &&
+        if ((prk == PRK_MemcardChooseSaveSlot ||
+             prk == PRK_MemcardChooseLoadSlot) &&
             promptResponses != nullptr &&
             pprompt->irespk >= 0 && pprompt->irespk < SAVE_SLOT_COUNT)
         {

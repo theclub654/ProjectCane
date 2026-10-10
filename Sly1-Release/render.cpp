@@ -12,7 +12,179 @@
 #include <algorithm>
 #include <cmath>
 #include <cstring>
+#include <iterator>
+#include <limits>
 #include <vector>
+
+namespace
+{
+	struct RENDERSTATECACHE
+	{
+		GLuint vao = std::numeric_limits<GLuint>::max();
+		GLenum activeTexture = std::numeric_limits<GLenum>::max();
+		GLuint textures2D[32]{};
+		GLuint textures2DArray[32]{};
+		GLuint ssboBindings[16]{};
+
+		void Invalidate()
+		{
+			vao = std::numeric_limits<GLuint>::max();
+			activeTexture = std::numeric_limits<GLenum>::max();
+			std::fill(std::begin(textures2D), std::end(textures2D),
+				std::numeric_limits<GLuint>::max());
+			std::fill(std::begin(textures2DArray), std::end(textures2DArray),
+				std::numeric_limits<GLuint>::max());
+			std::fill(std::begin(ssboBindings), std::end(ssboBindings),
+				std::numeric_limits<GLuint>::max());
+		}
+	};
+
+	RENDERSTATECACHE s_renderState;
+
+	void SetActiveTextureUnit(GLuint unit)
+	{
+		const GLenum textureUnit = GL_TEXTURE0 + unit;
+		if (s_renderState.activeTexture != textureUnit)
+		{
+			glActiveTexture(textureUnit);
+			s_renderState.activeTexture = textureUnit;
+		}
+	}
+
+	void BindTexture2D(GLuint unit, GLuint texture)
+	{
+		SetActiveTextureUnit(unit);
+		if (unit >= std::size(s_renderState.textures2D) ||
+			s_renderState.textures2D[unit] != texture)
+		{
+			glBindTexture(GL_TEXTURE_2D, texture);
+			if (unit < std::size(s_renderState.textures2D))
+				s_renderState.textures2D[unit] = texture;
+		}
+	}
+
+	void BindTexture2DArray(GLuint unit, GLuint texture)
+	{
+		SetActiveTextureUnit(unit);
+		if (unit >= std::size(s_renderState.textures2DArray) ||
+			s_renderState.textures2DArray[unit] != texture)
+		{
+			glBindTexture(GL_TEXTURE_2D_ARRAY, texture);
+			if (unit < std::size(s_renderState.textures2DArray))
+				s_renderState.textures2DArray[unit] = texture;
+		}
+	}
+
+	void BindVertexArray(GLuint vao)
+	{
+		if (s_renderState.vao != vao)
+		{
+			glBindVertexArray(vao);
+			s_renderState.vao = vao;
+		}
+	}
+
+	void BindShaderStorageBuffer(GLuint index, GLuint buffer)
+	{
+		if (index >= std::size(s_renderState.ssboBindings) ||
+			s_renderState.ssboBindings[index] != buffer)
+		{
+			glBindBufferBase(GL_SHADER_STORAGE_BUFFER, index, buffer);
+			if (index < std::size(s_renderState.ssboBindings))
+				s_renderState.ssboBindings[index] = buffer;
+		}
+	}
+
+	struct alignas(16) BLIPGPU
+	{
+		glm::vec4 posCreated;
+		glm::vec4 velocity;
+		glm::vec4 color;
+		glm::vec4 roll;
+	};
+
+	struct BLIPDRAWRANGE
+	{
+		GLuint texture = 0;
+		GLuint baseInstance = 0;
+		GLsizei instanceCount = 0;
+	};
+
+	struct BLIPDRAWGROUP
+	{
+		bool additive = false;
+		GLsizeiptr streamOffset = -1;
+		size_t firstRange = 0;
+		size_t rangeCount = 0;
+	};
+
+	std::vector<BLIPGPU> s_blipFrameInstances;
+	std::vector<BLIPDRAWRANGE> s_blipFrameRanges;
+	std::vector<BLIPDRAWGROUP> s_blipFrameGroups;
+
+	void BeginBlipFrame()
+	{
+		s_blipFrameInstances.clear();
+		s_blipFrameRanges.clear();
+		s_blipFrameGroups.clear();
+	}
+
+	void DrawStagedBlips()
+	{
+		if (s_blipFrameInstances.empty() || s_blipFrameGroups.empty())
+			return;
+
+		UploadFrameStream(&blipStream);
+
+		const GLsizeiptr uploadSize = static_cast<GLsizeiptr>(
+			s_blipFrameInstances.size() * sizeof(BLIPGPU));
+		if (uploadSize > g_gl.blipInstanceCapacity)
+			g_gl.blipInstanceCapacity = uploadSize;
+
+		// Orphan and upload once for the complete frame instead of once per
+		// BLIP group. Retaining capacity avoids shrinking the store when particle
+		// counts fluctuate between frames.
+		glBufferData(GL_ARRAY_BUFFER, g_gl.blipInstanceCapacity, nullptr, GL_STREAM_DRAW);
+		glBufferSubData(GL_ARRAY_BUFFER, 0, uploadSize, s_blipFrameInstances.data());
+
+		for (const BLIPDRAWGROUP& group : s_blipFrameGroups)
+		{
+			BindFrameStreamRange(&blipStream, group.streamOffset, sizeof(BLIPGROUPGPU));
+			if (group.additive)
+				glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE, GL_ONE, GL_ZERO);
+			else
+				glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ZERO);
+
+			auto drawRanges = [&]()
+			{
+				for (size_t i = 0; i < group.rangeCount; ++i)
+				{
+					const BLIPDRAWRANGE& range = s_blipFrameRanges[group.firstRange + i];
+					BindTexture2D(0, range.texture);
+					glDrawElementsInstancedBaseInstance(GL_TRIANGLES, 6, GL_UNSIGNED_SHORT,
+						nullptr, range.instanceCount, range.baseInstance);
+				}
+			};
+
+			if (group.additive)
+			{
+				glUniform1i(glslBlipAlphaPass, 0);
+				glDepthMask(GL_FALSE);
+				drawRanges();
+			}
+			else
+			{
+				glUniform1i(glslBlipAlphaPass, 1);
+				glDepthMask(GL_TRUE);
+				drawRanges();
+
+				glUniform1i(glslBlipAlphaPass, 2);
+				glDepthMask(GL_FALSE);
+				drawRanges();
+			}
+		}
+	}
+}
 
 void SetGlobDraw(GLOB* pglob)
 {
@@ -512,6 +684,9 @@ static void StageDrawStreams()
 
 void DrawSw(SW* psw, CM* pcm)
 {
+	// Other renderers (notably ImGui) may have changed OpenGL state since the
+	// previous world frame. Re-learn it lazily instead of querying the driver.
+	s_renderState.Invalidate();
 	/*std::cout << numFrameObjs << "\n";*/
 	//numFrameObjs = 0;
 
@@ -547,9 +722,8 @@ void DrawSw(SW* psw, CM* pcm)
 	if (g_dynamicTextureCount > 0)
 	{
 		// Do not leave the array simultaneously attached and bound for sampling.
-		glActiveTexture(GL_TEXTURE0 + SHADOW_TEXTURE_UNIT);
-		glBindTexture(GL_TEXTURE_2D_ARRAY, 0);
-		glActiveTexture(GL_TEXTURE0);
+		BindTexture2DArray(SHADOW_TEXTURE_UNIT, 0);
+		SetActiveTextureUnit(0);
 
 		glBindFramebuffer(GL_FRAMEBUFFER, g_gl.dyshFbo);
 		glViewport(0, 0, g_gl.dyshWidth, g_gl.dyshHeight);
@@ -880,10 +1054,11 @@ void DrawSw(SW* psw, CM* pcm)
 
 		glBlipShader.Use();
 		glBindBufferBase(GL_UNIFORM_BUFFER, 0, cmUBO);
-		glActiveTexture(GL_TEXTURE0);
-		glBindVertexArray(g_gl.blipVao);
+		SetActiveTextureUnit(0);
+		BindVertexArray(g_gl.blipVao);
 		glBindBuffer(GL_ARRAY_BUFFER, g_gl.blipInstanceVbo);
 		BeginFrameStream(&blipStream);
+		BeginBlipFrame();
 
 		// DrawBlipg loads g_clock.t for curve age and g_clock.dtReal for the
 		// flying-strip displacement (retail instructions 0x0013B0E8 and
@@ -895,10 +1070,12 @@ void DrawSw(SW* psw, CM* pcm)
 		for (int i = 0; i < g_blipCount; i++)
 			g_blipPrpl[i].PFNDRAWRPL(&g_blipPrpl[i]);
 
+		DrawStagedBlips();
+
 		EndFrameStream(&blipStream);
-		glBindVertexArray(0);
+		BindVertexArray(0);
 		glBindBuffer(GL_ARRAY_BUFFER, 0);
-		glBindTexture(GL_TEXTURE_2D, 0);
+		BindTexture2D(0, 0);
 		glDepthMask(true);
 		glDisable(GL_BLEND);
 		glEnable(GL_CULL_FACE);
@@ -1013,8 +1190,16 @@ void FillScreenRect(int r, int g, int b, int alpha, float xLeft, float yTop, flo
 	const GLboolean fBlendEnabled = glIsEnabled(GL_BLEND);
 	GLint blendEquationRgb = GL_FUNC_ADD;
 	GLint blendEquationAlpha = GL_FUNC_ADD;
+	GLint blendSrcRgb = GL_ONE;
+	GLint blendDstRgb = GL_ZERO;
+	GLint blendSrcAlpha = GL_ONE;
+	GLint blendDstAlpha = GL_ZERO;
 	glGetIntegerv(GL_BLEND_EQUATION_RGB, &blendEquationRgb);
 	glGetIntegerv(GL_BLEND_EQUATION_ALPHA, &blendEquationAlpha);
+	glGetIntegerv(GL_BLEND_SRC_RGB, &blendSrcRgb);
+	glGetIntegerv(GL_BLEND_DST_RGB, &blendDstRgb);
+	glGetIntegerv(GL_BLEND_SRC_ALPHA, &blendSrcAlpha);
+	glGetIntegerv(GL_BLEND_DST_ALPHA, &blendDstAlpha);
 
 	glBlotShader.Use();
 
@@ -1031,14 +1216,14 @@ void FillScreenRect(int r, int g, int b, int alpha, float xLeft, float yTop, flo
 	glBlendEquation(GL_FUNC_ADD);
 	glBlendFunc(GL_SRC_ALPHA, fAdditive ? GL_ONE : GL_ONE_MINUS_SRC_ALPHA);
 
-	glActiveTexture(GL_TEXTURE0);
-	glBindTexture(GL_TEXTURE_2D, whiteTex);
+	BindTexture2D(0, whiteTex);
 	glUniform1i(u_fontTexLoc, 0);
 
-	glBindVertexArray(g_gl.gao);
+	BindVertexArray(g_gl.gao);
 	glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_SHORT, nullptr);
-	glBindVertexArray(0);
+	BindVertexArray(0);
 
+	glBlendFuncSeparate(blendSrcRgb, blendDstRgb, blendSrcAlpha, blendDstAlpha);
 	glBlendEquationSeparate(blendEquationRgb, blendEquationAlpha);
 	if (!fBlendEnabled)
 		glDisable(GL_BLEND);
@@ -1057,6 +1242,7 @@ void DrawDysh(RPL *prpl)
 
 	glFramebufferTextureLayer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0,
 		pdysh->shadowTex, 0, pdysh->shadowLayer);
+	glDrawBuffer(GL_COLOR_ATTACHMENT0);
 
 	glClearColor(0.f, 0.f, 0.f, 0.f);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -1070,12 +1256,12 @@ void DrawDysh(RPL *prpl)
 	const bool fHasBones = pglobset->cbnd > 0 && pglobset->boneMatrixSSBO != 0;
 
 	if (fHasBones)
-		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 9, pglobset->boneMatrixSSBO);
+		BindShaderStorageBuffer(9, pglobset->boneMatrixSSBO);
 
 	for (int i = 0; i < pglobset->aglob.size(); i++)
 	{
 		GLOB& glob = pglobset->aglob[i];
-		glBindVertexArray(glob.VAO);
+		BindVertexArray(glob.VAO);
 
 		for (int a = 0; a < glob.asubglob.size(); a++)
 		{
@@ -1090,20 +1276,16 @@ void DrawDysh(RPL *prpl)
 
 void BindGlobOneWayTexture(GLuint diffuseTexture)
 {
-	glActiveTexture(GL_TEXTURE1);
-	glBindTexture(GL_TEXTURE_2D, diffuseTexture != 0 ? diffuseTexture : whiteTex);
-	glActiveTexture(GL_TEXTURE0);
+	BindTexture2D(1, diffuseTexture != 0 ? diffuseTexture : whiteTex);
+	SetActiveTextureUnit(0);
 }
 
 void BindGlobThreeWayTextures(GLuint ambientTexture, GLuint diffuseTexture, GLuint saturateTexture)
 {
 	const GLuint textures[3] = { ambientTexture, diffuseTexture, saturateTexture };
 	for (int unit = 0; unit < 3; ++unit)
-	{
-		glActiveTexture(GL_TEXTURE0 + unit);
-		glBindTexture(GL_TEXTURE_2D, textures[unit] != 0 ? textures[unit] : whiteTex);
-	}
-	glActiveTexture(GL_TEXTURE0);
+		BindTexture2D(unit, textures[unit] != 0 ? textures[unit] : whiteTex);
+	SetActiveTextureUnit(0);
 }
 
 void DrawGlob(RPL* prpl)
@@ -1122,14 +1304,14 @@ void DrawGlob(RPL* prpl)
 	glUniform1i(glslfPose, fHasPoses ? 1 : 0);
 
 	if (fHasBones)
-		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 9, pglobset->boneMatrixSSBO);
+		BindShaderStorageBuffer(9, pglobset->boneMatrixSSBO);
 
 	if (fHasPoses)
 	{
 		const int poseCount = pglob->poseCount;
 
-		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 10, pglob->poseDposSSBO);
-		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 11, pglob->poseDnormalSSBO);
+		BindShaderStorageBuffer(10, pglob->poseDposSSBO);
+		BindShaderStorageBuffer(11, pglob->poseDnormalSSBO);
 		glUniform1i(glslPoseCount, pglob->poseCount);
 		glUniform1fv(glslPoseWeights, poseCount, pglobset->agPoses.data());
 	}
@@ -1138,10 +1320,10 @@ void DrawGlob(RPL* prpl)
 	{
 		if (prpl->ro.trlk == TRLK_Relight ||
 			(prpl->ro.trlk == TRLK_Baked && prpl->ro.fDynamic == 0))
-			glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 7, pglob->ssboCachedMaterial);
+			BindShaderStorageBuffer(7, pglob->ssboCachedMaterial);
 	}
 
-	glBindVertexArray(pglob->VAO);
+	BindVertexArray(pglob->VAO);
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, pglob->EBO);
 	if (fDebugWireframe)
 	{
@@ -1150,7 +1332,7 @@ void DrawGlob(RPL* prpl)
 	}
 
 	if (prpl->ro.warpType != WARP_NONE)
-		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 6, pglob->pwarpGlob->ssboState);
+		BindShaderStorageBuffer(6, pglob->pwarpGlob->ssboState);
 
 	for (int i = 0; i < static_cast<int>(pglob->asubglob.size()); ++i)
 	{
@@ -1324,20 +1506,20 @@ void DrawCelBorder(RPLCEL* prplcel)
 	const bool fSkin = pglobset != nullptr && pglobset->cbnd > 0 && pglobset->boneMatrixSSBO != 0 && pglob->edgeBoneIndicesSSBO != 0 && pglob->edgeBoneWeightsSSBO != 0;
 	const bool fPose = pglobset != nullptr && pglob->poseCount > 0 && pglob->edgePoseDposSSBO != 0 && !pglobset->agPoses.empty();
 
-	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 8, pglob->edgeSSBO);
+	BindShaderStorageBuffer(8, pglob->edgeSSBO);
 
 	if (fSkin)
 	{
-		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 9, pglobset->boneMatrixSSBO);
-		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 10, pglob->edgeBoneIndicesSSBO);
-		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 11, pglob->edgeBoneWeightsSSBO);
+		BindShaderStorageBuffer(9, pglobset->boneMatrixSSBO);
+		BindShaderStorageBuffer(10, pglob->edgeBoneIndicesSSBO);
+		BindShaderStorageBuffer(11, pglob->edgeBoneWeightsSSBO);
 	}
 
 	if (fPose)
 	{
 		const int cposeUpload = pglobset->agPoses.size();
 
-		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 12, pglob->edgePoseDposSSBO);
+		BindShaderStorageBuffer(12, pglob->edgePoseDposSSBO);
 		glUniform1i(glslCelPoseCount, pglob->poseCount);
 		glUniform1fv(glslCelPoseWeights, cposeUpload, pglobset->agPoses.data());
 	}
@@ -1514,19 +1696,6 @@ void DrawBlip(RPL* prplblip)
 	// BLIP makes effects such as jump/landing dust glow and disappear into
 	// the scene, even though additive rain still happens to look plausible.
 	const bool additiveBlip = (pblipg->pshd->grfshd & 1u) != 0;
-	if (additiveBlip)
-		glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE, GL_ONE, GL_ZERO);
-	else
-		glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ZERO);
-
-	struct alignas(16) BLIPGPU
-	{
-		glm::vec4 posCreated;
-		glm::vec4 velocity;
-		glm::vec4 color;
-		glm::vec4 roll;
-	};
-
 	struct BLIPBATCH
 	{
 		GLuint texture = 0;
@@ -1538,7 +1707,6 @@ void DrawBlip(RPL* prplblip)
 	// Retain these buffers between calls so particle rendering does not create
 	// and destroy several vectors every frame.
 	static BLIPBATCH batches[32];
-	static std::vector<BLIPGPU> uploadInstances;
 	static std::vector<BLIPGPU> orderedInstances;
 	static std::vector<GLuint> orderedTextures;
 	static std::vector<BLIPBATCH> orderedBatches;
@@ -1548,7 +1716,6 @@ void DrawBlip(RPL* prplblip)
 		batch.instances.clear();
 		batch.baseInstance = 0;
 	}
-	uploadInstances.clear();
 	orderedInstances.clear();
 	orderedTextures.clear();
 	orderedBatches.clear();
@@ -1652,13 +1819,14 @@ void DrawBlip(RPL* prplblip)
 		}
 	}
 
+	const size_t groupInstanceBegin = s_blipFrameInstances.size();
 	if (additiveBlip)
 	{
 		for (int ibatch = 0; ibatch < batchCount; ++ibatch)
 		{
 			BLIPBATCH& batch = batches[ibatch];
-			batch.baseInstance = static_cast<GLuint>(uploadInstances.size());
-			uploadInstances.insert(uploadInstances.end(), batch.instances.begin(), batch.instances.end());
+			batch.baseInstance = static_cast<GLuint>(s_blipFrameInstances.size());
+			s_blipFrameInstances.insert(s_blipFrameInstances.end(), batch.instances.begin(), batch.instances.end());
 		}
 	}
 	else
@@ -1671,15 +1839,15 @@ void DrawBlip(RPL* prplblip)
 			{
 				orderedBatches.emplace_back();
 				orderedBatches.back().texture = orderedTextures[i];
-				orderedBatches.back().baseInstance = static_cast<GLuint>(uploadInstances.size());
+				orderedBatches.back().baseInstance = static_cast<GLuint>(s_blipFrameInstances.size());
 			}
 
 			orderedBatches.back().instances.push_back(orderedInstances[i]);
-			uploadInstances.push_back(orderedInstances[i]);
+			s_blipFrameInstances.push_back(orderedInstances[i]);
 		}
 	}
 
-	if (uploadInstances.empty())
+	if (groupInstanceBegin == s_blipFrameInstances.size())
 	{
 		return;
 	}
@@ -1689,61 +1857,37 @@ void DrawBlip(RPL* prplblip)
 	groupGpu.params = glm::vec4(prplblip->ro.uAlpha, pblipg->rSFlying, static_cast<float>(pblipg->blipok), 0.0f);
 	groupGpu.clqScale = glm::vec4(pblipg->clqScale.g0, pblipg->clqScale.g1, pblipg->clqScale.g2, 0.0f);
 	groupGpu.clqAlpha = glm::vec4(pblipg->clqAlpha.g0, pblipg->clqAlpha.g1, pblipg->clqAlpha.g2, 0.0f);
-	AppendStream(&blipStream, &groupGpu, sizeof(groupGpu), sizeof(groupGpu));
+	BLIPDRAWGROUP group{};
+	group.additive = additiveBlip;
+	group.streamOffset = StageFrameStream(&blipStream, &groupGpu, sizeof(groupGpu));
+	group.firstRange = s_blipFrameRanges.size();
 
-	const GLsizeiptr uploadSize = static_cast<GLsizeiptr>(uploadInstances.size() * sizeof(BLIPGPU));
-
-	// Orphan the previous instance store before uploading this frame. This
-	// avoids synchronizing against draws which may still consume the old store
-	// and does not rely on unsynchronized mapped-buffer behavior.
-	glBufferData(GL_ARRAY_BUFFER, uploadSize, nullptr, GL_STREAM_DRAW);
-	glBufferSubData(GL_ARRAY_BUFFER, 0, uploadSize, uploadInstances.data());
-	g_gl.blipInstanceCapacity = uploadSize;
-
-	auto drawBatches = [&]()
+	if (additiveBlip)
 	{
-		if (!additiveBlip)
-		{
-			for (const BLIPBATCH& batch : orderedBatches)
-			{
-				glBindTexture(GL_TEXTURE_2D, batch.texture);
-				glDrawElementsInstancedBaseInstance(GL_TRIANGLES, 6, GL_UNSIGNED_SHORT, nullptr,
-					static_cast<GLsizei>(batch.instances.size()), batch.baseInstance);
-			}
-			return;
-		}
-
 		for (int ibatch = 0; ibatch < batchCount; ++ibatch)
 		{
 			const BLIPBATCH& batch = batches[ibatch];
-			if (batch.instances.empty())
-				continue;
-			glBindTexture(GL_TEXTURE_2D, batch.texture);
-			glDrawElementsInstancedBaseInstance(GL_TRIANGLES, 6, GL_UNSIGNED_SHORT, nullptr, static_cast<GLsizei>(batch.instances.size()), batch.baseInstance);
+			if (!batch.instances.empty())
+				s_blipFrameRanges.push_back({ batch.texture, batch.baseInstance,
+					static_cast<GLsizei>(batch.instances.size()) });
 		}
-	};
-
-	if (!additiveBlip)
-	{
-		glUniform1i(glslBlipAlphaPass, 1);
-		glDepthMask(GL_TRUE);
-		drawBatches();
-
-		glUniform1i(glslBlipAlphaPass, 2);
-		glDepthMask(GL_FALSE);
-		drawBatches();
 	}
 	else
 	{
-		glUniform1i(glslBlipAlphaPass, 0);
-		glDepthMask(GL_FALSE);
-		drawBatches();
+		for (const BLIPBATCH& batch : orderedBatches)
+			s_blipFrameRanges.push_back({ batch.texture, batch.baseInstance,
+				static_cast<GLsizei>(batch.instances.size()) });
 	}
+
+	group.rangeCount = s_blipFrameRanges.size() - group.firstRange;
+	if (group.streamOffset >= 0 && group.rangeCount > 0)
+		s_blipFrameGroups.push_back(group);
 
 }
 
 void DrawSwCollisionAll(CM* pcm)
 {
+	s_renderState.Invalidate();
 	glGeomShader.Use();
 
 	glBindBufferBase(GL_UNIFORM_BUFFER, 0, cmUBO);
@@ -1772,22 +1916,23 @@ void DrawSwCollisionAll(CM* pcm)
 
 		if (pso->geomLocal.VAO != 0) 
 		{
-			glBindVertexArray(pso->geomLocal.VAO);
+			BindVertexArray(pso->geomLocal.VAO);
 			glDrawElements(GL_LINES, (GLsizei)pso->geomLocal.indices.size(), GL_UNSIGNED_SHORT, 0);
 		}
 
 		if (pso->geomCameraLocal.VAO != 0) 
 		{
-			glBindVertexArray(pso->geomCameraLocal.VAO);
+			BindVertexArray(pso->geomCameraLocal.VAO);
 			glDrawElements(GL_LINES, (GLsizei)pso->geomCameraLocal.indices.size(), GL_UNSIGNED_SHORT, 0);
 		}
 	}
 
-	glBindVertexArray(0);
+	BindVertexArray(0);
 }
 
 void DrawSwDialogTriggers(CM* pcm)
 {
+	s_renderState.Invalidate();
 	glGeomShader.Use();
 
 	glBindBufferBase(GL_UNIFORM_BUFFER, 0, cmUBO);
@@ -1827,21 +1972,21 @@ void DrawSwDialogTriggers(CM* pcm)
 
 		if (pso->geomLocal.VAO != 0)
 		{
-			glBindVertexArray(pso->geomLocal.VAO);
+			BindVertexArray(pso->geomLocal.VAO);
 			glDrawElements(GL_LINES, static_cast<GLsizei>(pso->geomLocal.indices.size()),
 				GL_UNSIGNED_SHORT, nullptr);
 		}
 
 		if (pso->geomCameraLocal.VAO != 0)
 		{
-			glBindVertexArray(pso->geomCameraLocal.VAO);
+			BindVertexArray(pso->geomCameraLocal.VAO);
 			glDrawElements(GL_LINES, static_cast<GLsizei>(pso->geomCameraLocal.indices.size()),
 				GL_UNSIGNED_SHORT, nullptr);
 		}
 	}
 
 	glLineWidth(1.0f);
-	glBindVertexArray(0);
+	BindVertexArray(0);
 }
 
 int numRo = 0;

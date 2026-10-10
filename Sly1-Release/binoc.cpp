@@ -7,6 +7,87 @@
 
 namespace
 {
+    struct ScopedBinocGlState
+    {
+        GLboolean blend = GL_FALSE;
+        GLboolean depthTest = GL_FALSE;
+        GLboolean stencilTest = GL_FALSE;
+        GLboolean scissorTest = GL_FALSE;
+        GLboolean depthMask = GL_TRUE;
+        GLboolean colorMask[4] = { GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE };
+        GLint depthFunc = GL_LESS;
+        GLint blendSrcRgb = GL_ONE;
+        GLint blendDstRgb = GL_ZERO;
+        GLint blendSrcAlpha = GL_ONE;
+        GLint blendDstAlpha = GL_ZERO;
+        GLint blendEquationRgb = GL_FUNC_ADD;
+        GLint blendEquationAlpha = GL_FUNC_ADD;
+        GLint stencilFunc = GL_ALWAYS;
+        GLint stencilRef = 0;
+        GLint stencilValueMask = ~0;
+        GLint stencilWriteMask = ~0;
+        GLint stencilFail = GL_KEEP;
+        GLint stencilDepthFail = GL_KEEP;
+        GLint stencilDepthPass = GL_KEEP;
+        GLint scissorBox[4] = { 0, 0, 0, 0 };
+        GLdouble depthRange[2] = { 0.0, 1.0 };
+
+        ScopedBinocGlState()
+        {
+            blend = glIsEnabled(GL_BLEND);
+            depthTest = glIsEnabled(GL_DEPTH_TEST);
+            stencilTest = glIsEnabled(GL_STENCIL_TEST);
+            scissorTest = glIsEnabled(GL_SCISSOR_TEST);
+            glGetBooleanv(GL_DEPTH_WRITEMASK, &depthMask);
+            glGetBooleanv(GL_COLOR_WRITEMASK, colorMask);
+            glGetIntegerv(GL_DEPTH_FUNC, &depthFunc);
+            glGetIntegerv(GL_BLEND_SRC_RGB, &blendSrcRgb);
+            glGetIntegerv(GL_BLEND_DST_RGB, &blendDstRgb);
+            glGetIntegerv(GL_BLEND_SRC_ALPHA, &blendSrcAlpha);
+            glGetIntegerv(GL_BLEND_DST_ALPHA, &blendDstAlpha);
+            glGetIntegerv(GL_BLEND_EQUATION_RGB, &blendEquationRgb);
+            glGetIntegerv(GL_BLEND_EQUATION_ALPHA, &blendEquationAlpha);
+            glGetIntegerv(GL_STENCIL_FUNC, &stencilFunc);
+            glGetIntegerv(GL_STENCIL_REF, &stencilRef);
+            glGetIntegerv(GL_STENCIL_VALUE_MASK, &stencilValueMask);
+            glGetIntegerv(GL_STENCIL_WRITEMASK, &stencilWriteMask);
+            glGetIntegerv(GL_STENCIL_FAIL, &stencilFail);
+            glGetIntegerv(GL_STENCIL_PASS_DEPTH_FAIL, &stencilDepthFail);
+            glGetIntegerv(GL_STENCIL_PASS_DEPTH_PASS, &stencilDepthPass);
+            glGetIntegerv(GL_SCISSOR_BOX, scissorBox);
+            glGetDoublev(GL_DEPTH_RANGE, depthRange);
+        }
+
+        ~ScopedBinocGlState()
+        {
+            glBlendFuncSeparate(blendSrcRgb, blendDstRgb, blendSrcAlpha, blendDstAlpha);
+            glBlendEquationSeparate(blendEquationRgb, blendEquationAlpha);
+            glDepthFunc(depthFunc);
+            glDepthMask(depthMask);
+            glDepthRange(depthRange[0], depthRange[1]);
+            glStencilFunc(stencilFunc, stencilRef, static_cast<GLuint>(stencilValueMask));
+            glStencilMask(static_cast<GLuint>(stencilWriteMask));
+            glStencilOp(stencilFail, stencilDepthFail, stencilDepthPass);
+            glColorMask(colorMask[0], colorMask[1], colorMask[2], colorMask[3]);
+            glScissor(scissorBox[0], scissorBox[1], scissorBox[2], scissorBox[3]);
+
+            SetEnabled(GL_BLEND, blend);
+            SetEnabled(GL_DEPTH_TEST, depthTest);
+            SetEnabled(GL_STENCIL_TEST, stencilTest);
+            SetEnabled(GL_SCISSOR_TEST, scissorTest);
+
+        }
+
+    private:
+        static void SetEnabled(GLenum capability, GLboolean enabled)
+        {
+            if (enabled)
+                glEnable(capability);
+            else
+                glDisable(capability);
+        }
+    };
+
     glm::vec2 GetBinocScreenRange(const CM* pcm)
     {
         // Binocular targeting is drawn over the complete rendered viewport.
@@ -48,9 +129,6 @@ namespace
         const float leftJoin = centreOrigin + centreLeft * scale;
         const float rightJoin = centreOrigin + centreRight * scale;
 
-        const GLint leftCut = static_cast<GLint>(std::lround(leftJoin));
-        const GLint rightCut = static_cast<GLint>(std::lround(rightJoin));
-
         struct Region
         {
             GLint clipLeft;
@@ -59,13 +137,23 @@ namespace
             float translateX;
         };
 
-        const float leftScale = leftJoin / centreLeft;
-        const float rightScale = (screenWidth - rightJoin) / (virtualWidth - centreRight);
+        // Very narrow windows can place the joins outside the framebuffer.
+        // Clamp them so a region never receives a negative scale or scissor.
+        const float clampedLeftJoin = glm::clamp(leftJoin, 0.0f, screenWidth);
+        const float clampedRightJoin = glm::clamp(rightJoin, clampedLeftJoin, screenWidth);
+        const float rasterScaleX = static_cast<float>(g_gl.renderWidth) / screenWidth;
+        const GLint clampedLeftCut = static_cast<GLint>(std::lround(clampedLeftJoin * rasterScaleX));
+        const GLint clampedRightCut = static_cast<GLint>(std::lround(clampedRightJoin * rasterScaleX));
+        const GLint rasterWidth = g_gl.renderWidth;
+        const GLint rasterHeight = g_gl.renderHeight;
+        const float leftScale = clampedLeftJoin / centreLeft;
+        const float rightScale = (screenWidth - clampedRightJoin) / (virtualWidth - centreRight);
         const Region regions[] =
         {
-            { 0, leftCut, leftScale, 0.0f },
-            { leftCut, rightCut, scale, centreOrigin },
-            { rightCut, g_gl.width, rightScale, rightJoin - centreRight * rightScale }
+            { 0, clampedLeftCut, leftScale, 0.0f },
+            { clampedLeftCut, clampedRightCut, scale, centreOrigin },
+            { clampedRightCut, rasterWidth, rightScale,
+                clampedRightJoin - centreRight * rightScale }
         };
 
         const GLboolean scissorWasEnabled = glIsEnabled(GL_SCISSOR_TEST);
@@ -77,7 +165,7 @@ namespace
         for (const Region& region : regions)
         {
             glScissor(region.clipLeft, 0,
-                std::max(region.clipRight - region.clipLeft, 0), g_gl.height);
+                std::max(region.clipRight - region.clipLeft, 0), rasterHeight);
 
             glm::mat4 model(1.0f);
             model = glm::translate(model,
@@ -225,9 +313,10 @@ void PostBinocLoad(BINOC* pbinoc)
 
     glBindVertexArray(pbinoc->reticleVAO);
     glBindBuffer(GL_ARRAY_BUFFER, pbinoc->reticleVBO);
-    // Large enough for the largest batched 2D primitive here (the 8-segment
-    // zoom ladder: 48 vertices, each containing position and color).
-    glBufferData(GL_ARRAY_BUFFER, sizeof(float) * 6 * 48, nullptr, GL_DYNAMIC_DRAW);
+    // Large enough for the largest fixed-size upload that can occur before
+    // the streamed reticle draw grows this buffer (11 compass ticks = 66
+    // vertices, each containing position and color).
+    glBufferData(GL_ARRAY_BUFFER, sizeof(float) * 6 * 66, nullptr, GL_DYNAMIC_DRAW);
 
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 6 * sizeof(float), nullptr);
@@ -1166,14 +1255,9 @@ void DrawBinocReticle(BINOC* pbinoc)
     float yFocus;
     GetBinocReticleFocus(pbinoc, &xFocus, &yFocus);
 
-    constexpr float kUiWidth = 640.0f;
-    constexpr float kUiHeight = 492.80002f;
-    const float targetWidth = static_cast<float>(g_gl.width);
-    const float targetHeight = static_cast<float>(g_gl.height);
-    const float uiScale = glm::min(targetWidth / kUiWidth, targetHeight / kUiHeight);
-    const glm::vec2 focusPixels(
-        xFocus * targetWidth / kUiWidth,
-        yFocus * targetHeight / kUiHeight);
+    const float uiScale = g_gl.uiScale;
+    const glm::vec2 focusPixels =
+        g_gl.uiOrigin + glm::vec2(xFocus, yFocus) * uiScale;
 
     struct ReticleVertex
     {
@@ -1347,8 +1431,10 @@ void DrawBinocBackground(BINOC* pbinoc)
     const GLboolean depthTestWasEnabled = glIsEnabled(GL_DEPTH_TEST);
     GLboolean depthWriteWasEnabled = GL_TRUE;
     GLint depthFuncPrevious = GL_LESS;
+    GLdouble depthRangePrevious[2] = { 0.0, 1.0 };
     glGetBooleanv(GL_DEPTH_WRITEMASK, &depthWriteWasEnabled);
     glGetIntegerv(GL_DEPTH_FUNC, &depthFuncPrevious);
+    glGetDoublev(GL_DEPTH_RANGE, depthRangePrevious);
 
     glBlotShader.Use();
 
@@ -1374,7 +1460,7 @@ void DrawBinocBackground(BINOC* pbinoc)
     DrawBinocMaskGeometry(pbinoc->backGroundBinocVAO,
         static_cast<GLsizei>(pbinoc->backGroundBinocIndices.size()));
 
-    glDepthRange(0.0, 1.0);
+    glDepthRange(depthRangePrevious[0], depthRangePrevious[1]);
     glDepthMask(depthWriteWasEnabled);
     glDepthFunc(depthFuncPrevious);
     glDisable(GL_BLEND);
@@ -1396,6 +1482,7 @@ void DrawBinocCompass(BINOC* pbinoc)
     glDepthFunc(GL_ALWAYS);
 
     glEnable(GL_STENCIL_TEST);
+    glStencilMask(0xFF);
 
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -2007,6 +2094,10 @@ void DrawBinocFilter(BINOC* pbinoc)
     if (pbinoc->binocs != BINOCS_Peek)
         return;
 
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glDisable(GL_DEPTH_TEST);
+
     const GRFVAULT grfvaultAvailable = GetAvailableVaultFlags();
 
     if ((grfvaultAvailable & 0x800) != 0)
@@ -2103,6 +2194,10 @@ void DrawBinoc(BINOC* pbinoc)
     if (!FCanDrawBinoc())
         return;
 
+    // Binocular drawing touches more GL state than ordinary blots. Restore
+    // the caller's complete 2D-relevant state once for the whole overlay.
+    const ScopedBinocGlState glState;
+
     const BINOCS state = pbinoc->binocs;
 
     if (state > BINOCS_None && state < BINOCS_Instruct)
@@ -2122,17 +2217,11 @@ void DrawBinoc(BINOC* pbinoc)
     if (state == BINOCS_Instruct && pbinoc->achzDraw[0] == '\0')
         return;
 
-    constexpr float kUiWidth = 640.0f;
-    constexpr float kUiHeight = 492.80002f;
-
-    const float targetWidth = static_cast<float>(g_gl.width);
-    const float targetHeight = static_cast<float>(g_gl.height);
-    // Keep the BINOC text in the same 640 x 492.8 virtual space as the
-    // resized TV panels.  Height-only scaling lets the text grow underneath
-    // the TVs on narrow window aspect ratios.
-    const float uiScale = glm::min(targetWidth / kUiWidth, targetHeight / kUiHeight);
-    const float uiOriginX = (targetWidth - kUiWidth * uiScale) * 0.5f;
-    const float uiOriginY = targetHeight - kUiHeight * uiScale;
+    // Use the same centered virtual canvas as the mask, reticle, compass and
+    // zoom overlay so all BINOC elements stay registered at every aspect.
+    const float uiScale = g_gl.uiScale;
+    const float uiOriginX = g_gl.uiOrigin.x;
+    const float uiOriginY = g_gl.uiOrigin.y;
 
     const auto UiX = [uiOriginX, uiScale](float x) { return uiOriginX + x * uiScale; };
     const auto UiY = [uiOriginY, uiScale](float y) { return uiOriginY + y * uiScale; };
@@ -2465,4 +2554,4 @@ glm::vec4 RGBA_Green = glm::vec4(0.184f, 0.447f, 0.243f, 0.502f);
 glm::vec4 RGBA_LightBlue = glm::vec4(0.000f, 0.322f, 0.494f, 0.502f);
 glm::vec4 RGBA_Overlay = glm::vec4(0.000f, 0.000f, 0.000f, 0.75f);
 float DT_BinocRoseInterval = 0.25;
-int s_mpbfkgrfvault[2] = { 0xF0000000, 0xF0000000};
+int s_mpbfkgrfvault[2] = { static_cast<int>(0xF0000000u), static_cast<int>(0xF0000000u)};

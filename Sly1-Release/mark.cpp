@@ -637,6 +637,73 @@ void MarkSoContactsBspBsp(SO* pso0, SO* pso1, int cbspPruned, BSP* abspPruned, B
         int isurf1 = static_cast<int>(psurf1 - asurf1);
         int clsgOther = CplsgFindEdgePath(asurf1, isurf0, isurf1, aplsgEdge[1], aplsgOther);
 
+        if (clsgOther <= 0)
+        {
+            EDGE* pedge0 = plsg0->pedge;
+            SURF* asurf0 = pso0->geomWorld.asurf.data();
+            SURF* psurfEdge0 = &asurf0[pedge0->aisurf[0]];
+            SURF* psurfEdge1 = &asurf0[pedge0->aisurf[1]];
+
+            // Retail suppresses this fallback when the opposite clipping pass
+            // already represents either surface adjacent to this edge.
+            bool fEdgeRepresented = false;
+            for (int ilsg = 0; ilsg < aclsg[1]; ++ilsg)
+            {
+                SURF* psurfClip0 = aalsg[1][ilsg].data.bsp.apsurf[0];
+                SURF* psurfClip1 = aalsg[1][ilsg].data.bsp.apsurf[1];
+
+                if (psurfClip0 == psurfEdge0 || psurfClip0 == psurfEdge1 ||
+                    psurfClip1 == psurfEdge0 || psurfClip1 == psurfEdge1)
+                {
+                    fEdgeRepresented = true;
+                    break;
+                }
+            }
+
+            if (fEdgeRepresented)
+                continue;
+
+            const float g0 = glm::dot(pso0->xf.posWorld - plsg0->apos[0], plsg0->anormal[0]);
+            const float g1 = glm::dot(pso0->xf.posWorld - plsg0->apos[1], plsg0->anormal[1]);
+
+            SURF* psurfFallback;
+            int iiposFallback;
+            if (g1 < g0)
+            {
+                psurfFallback = psurf0;
+                iiposFallback = 1 - plsg0->iiposSwap;
+            }
+            else
+            {
+                psurfFallback = psurf1;
+                iiposFallback = plsg0->iiposSwap;
+            }
+
+            glm::vec3* pposFallback =
+                &pso0->geomWorld.apos[pedge0->aipos[iiposFallback]];
+
+            bool fDuplicate = false;
+            for (XP* pxp = *ppxpFirst; pxp != nullptr; pxp = pxp->pxpNext)
+            {
+                if (static_cast<int>(pxp->xpk) == 1 &&
+                    pxp->pv0 == pposFallback && pxp->pv1 == psurfFallback)
+                {
+                    fDuplicate = true;
+                    break;
+                }
+            }
+
+            if (fDuplicate)
+                continue;
+
+            const float gDist =
+                glm::dot(*pposFallback, psurfFallback->normal) - psurfFallback->gDot;
+
+            PxpAdd(pso0, pso1, pposFallback, &psurfFallback->normal, gDist,
+                static_cast<XPK>(1), pposFallback, psurfFallback, ppxpFirst);
+            continue;
+        }
+
         for (int ilsg = 0; ilsg < clsgOther; ilsg++)
         {
             LSG* plsg1 = aplsgOther[ilsg];

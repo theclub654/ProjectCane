@@ -188,7 +188,7 @@ void SetShadowFarCast(SHADOW* pshadow, float sFarCast)
 void SetShadowConeAngle(SHADOW* pshadow, float degConeAngle)
 {
 	// Convert degrees to radians: 0.008726647 / 360
-	float coneTangent = std::tanf(degConeAngle * 0.008726647f);
+	float coneTangent = std::tan(degConeAngle * 0.008726647f);
 
 	pshadow->sNearRadius = coneTangent * pshadow->sNearCast;
 	pshadow->sFarRadius = coneTangent * pshadow->sFarCast;

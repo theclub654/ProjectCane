@@ -416,6 +416,7 @@ void RenderWmAll(WM* pwm, CM* pcm, RO* pro)
 
     for (int i = worldMapFirst; i < g_worldMapCount; ++i)
         g_worldMapPrpl[i].ro.model = queuedProjection * g_worldMapPrpl[i].ro.model;
+
 }
 
 void HandleWmMessage(WM* pwm, MSGID msgid, void* pv)
@@ -1024,6 +1025,7 @@ void DrawWmc(WMC* pwmc)
 
     if (pwm == nullptr)
         return;
+
 
     const float radFov = g_pcm->radFOV;
     const float radFovTarget = g_pcm->radFOVTarget;

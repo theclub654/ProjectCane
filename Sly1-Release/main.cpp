@@ -13,7 +13,9 @@
 #include "runtime_error.h"
 #include "emitter.h"
 #include "blip.h"
+#include "../platform/platform.h"
 #include <atomic>
+#include <chrono>
 #include <cstdio>
 #include <cstdlib>
 #include <cwchar>
@@ -33,25 +35,7 @@ namespace
 {
 void LoadDebugModeSetting()
 {
-	wchar_t executablePath[MAX_PATH]{};
-	const DWORD pathLength = GetModuleFileNameW(nullptr, executablePath, MAX_PATH);
-	const std::filesystem::path baseDirectory = pathLength != 0
-		? std::filesystem::path(executablePath).parent_path()
-		: std::filesystem::current_path();
-	const std::filesystem::path iniPath = baseDirectory / L"Debug Mode.ini";
-
-	if (!std::filesystem::is_regular_file(iniPath))
-	{
-		WritePrivateProfileStringW(L"Debug", L"Debug Mode", L"0", iniPath.c_str());
-		g_fDeveloperDebugMode = false;
-		return;
-	}
-
-	wchar_t value[32]{};
-	GetPrivateProfileStringW(L"Debug", L"Debug Mode", L"0", value,
-		static_cast<DWORD>(sizeof(value) / sizeof(value[0])), iniPath.c_str());
-	g_fDeveloperDebugMode =
-		_wcsicmp(value, L"true") == 0 || std::wcstol(value, nullptr, 10) != 0;
+	g_fDeveloperDebugMode = cane::DebugMode();
 }
 
 class FramePacer
@@ -62,6 +46,7 @@ public:
     FramePacer()
         : m_deadline(Clock::now())
     {
+#ifdef _WIN32
         // CREATE_WAITABLE_TIMER_HIGH_RESOLUTION is 0x2. Use the value directly
         // so this still builds with Windows SDKs that predate the named flag.
         m_timer = CreateWaitableTimerExW(
@@ -70,18 +55,20 @@ public:
         if (m_timer == nullptr)
             m_timer = CreateWaitableTimerExW(
                 nullptr, nullptr, 0, TIMER_MODIFY_STATE | SYNCHRONIZE);
+#endif
     }
 
     ~FramePacer()
     {
+#ifdef _WIN32
         if (m_timer != nullptr)
             CloseHandle(m_timer);
+#endif
     }
 
     void Wait()
     {
         constexpr auto kSpinMargin = std::chrono::microseconds(500);
-
         if (m_frameRate != g_targetFrameRate)
         {
             m_frameRate = g_targetFrameRate;
@@ -105,6 +92,7 @@ public:
         const auto coarseDeadline = m_deadline - kSpinMargin;
         if (now < coarseDeadline)
         {
+#ifdef _WIN32
             if (m_timer != nullptr)
             {
                 const auto wait100ns = std::chrono::duration_cast<
@@ -123,17 +111,32 @@ public:
             {
                 std::this_thread::sleep_until(coarseDeadline);
             }
+#else
+			std::this_thread::sleep_until(coarseDeadline);
+#endif
         }
 
         // YieldProcessor is a CPU pause hint, not a scheduler yield. It keeps
         // the final sub-millisecond boundary precise without giving up a full
         // Windows scheduling quantum.
         while (Clock::now() < m_deadline)
+#ifdef _WIN32
             YieldProcessor();
+#else
+			std::this_thread::yield();
+#endif
+    }
+
+    void Resync()
+    {
+        m_frameRate = g_targetFrameRate;
+        m_deadline = Clock::now();
     }
 
 private:
+#ifdef _WIN32
     HANDLE m_timer = nullptr;
+#endif
     Clock::time_point m_deadline;
     int m_frameRate = 60;
 };
@@ -143,13 +146,10 @@ bool s_runningFrame = false;
 
 void FlushTransitionFrame()
 {
-    // Retail FlushFrames(1) waits for rendering to become idle and freezes the
-    // last completed frame while synchronous world loading runs. The previous
-    // RunGameFrame has already swapped that frame on desktop GL, so only drain
-    // outstanding GPU work here. The completed front buffer remains visible
-    // while synchronous loading runs. Once the destination frame is complete,
-    // present it immediately; holding an already-complete map frame advances
-    // its close animation off-screen and creates a visible jump.
+    // The previous game frame has already been presented. Drain outstanding
+    // GPU work and leave that front-buffer image visible while the synchronous
+    // world transition runs. This is the original lightweight desktop path:
+    // no extra framebuffer allocation, copy, redraw, or swap.
     glFinish();
 }
 
@@ -164,17 +164,23 @@ void RunGameFrame()
     // Once the screen reaches black, play the movie before executing the
     // transition that replaces the current world.
     if (FCutscenePending() && g_wipe.wipes != WIPES_WipingOut)
+    {
         ExecutePendingCutscenes();
+    }
 
     if (g_transition.m_fPending != 0)
     {
         FlushTransitionFrame();
-        g_transition.Execute(file);
+		g_transition.Execute(file);
 		ResyncClockTick(&g_clock);
+        if (s_framePacer != nullptr)
+            s_framePacer->Resync();
     }
 
     if (FCutscenePending() && g_wipe.wipes != WIPES_WipingOut)
+    {
         ExecutePendingCutscenes();
+    }
 
     static bool s_fF3WasDown = false;
 	const bool fF3Down = g_fDeveloperDebugMode && g_gl.window != nullptr &&
@@ -242,22 +248,32 @@ void RunGameFrame()
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
     glViewport(g_gl.presentX, g_gl.presentY, g_gl.presentWidth, g_gl.presentHeight);
 
+	// Presentation is a hard OpenGL state boundary. World, shadow, particle,
+	// and UI passes are allowed to use these states internally, but none of
+	// them may influence the default-framebuffer clear or fullscreen composite.
+	glDisable(GL_SCISSOR_TEST);
+	glDisable(GL_CULL_FACE);
+	glDisable(GL_DEPTH_TEST);
+	glDisable(GL_BLEND);
+	glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+	glDepthMask(GL_TRUE);
+
     glClearColor(0, 0, 0, 0);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
-    glDisable(GL_DEPTH_TEST);
-    glDisable(GL_BLEND);
 
-    glScreenShader.Use();
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, g_gl.fbc);
-    glBindVertexArray(g_gl.sao);
-    glDrawArrays(GL_TRIANGLES, 0, 6);
+    {
+        glScreenShader.Use();
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, g_gl.fbc);
+        glBindVertexArray(g_gl.sao);
+        glDrawArrays(GL_TRIANGLES, 0, 6);
 
-    ImGui::Render();
-    ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+        ImGui::Render();
+        ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+    }
+    glfwSwapBuffers(g_gl.window);
     if (s_framePacer != nullptr)
         s_framePacer->Wait();
-    glfwSwapBuffers(g_gl.window);
 
     ++g_cframe;
     s_runningFrame = false;
@@ -528,17 +544,16 @@ void ShutdownLiveResizeWindowProc()
 #endif
 }
 
-#ifdef NDEBUG
-int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int)
-#else
-int main(int cphzArgs, char* aphzArgs[])
-#endif
+int RunApplication(const std::vector<std::string>& arguments)
 {
     InstallRuntimeErrorHandlers();
     try
     {
+		cane::ConfigureRuntime(arguments);
         Startup();
+		#ifdef _WIN32
 		SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_ABOVE_NORMAL);
+		#endif
 		FramePacer framePacer;
 		s_framePacer = &framePacer;
 #ifdef _WIN32
@@ -576,6 +591,18 @@ int main(int cphzArgs, char* aphzArgs[])
 		return EXIT_FAILURE;
 	}
 }
+
+#if defined(_WIN32) && defined(NDEBUG)
+int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int)
+{
+	return RunApplication(cane::Arguments(0, nullptr));
+}
+#else
+int main(int argc, char* argv[])
+{
+	return RunApplication(cane::Arguments(argc, argv));
+}
+#endif
 
 void Startup()
 {

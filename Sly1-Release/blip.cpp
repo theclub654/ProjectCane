@@ -4,16 +4,22 @@
 
 #include <algorithm>
 #include <iostream>
-#include <unordered_map>
 
 namespace
 {
-constexpr int kBlipgPoolInitial = 40;
-constexpr int kBlipgPoolMaximum = 128;
+constexpr int kBlipgPoolMaximum = 256;
 
-// Keep PC-only capacity bookkeeping out of SW so none of the reconstructed
-// game structure's original field offsets move.
-std::unordered_map<SW*, int> s_mpSwCblipgPool;
+int CountSwBlipgObjects(const SW* psw)
+{
+	int count = 0;
+	for (const std::shared_ptr<LO>& object : allWorldObjs)
+	{
+		if (object != nullptr && object->psw == psw &&
+			FIsBasicDerivedFrom(object.get(), CID_BLIPG))
+			++count;
+	}
+	return count;
+}
 }
 
 // Retail leaves this debug switch disabled by default.  When enabled it adds
@@ -734,12 +740,15 @@ BLIPG* PblipgNew(SW* psw)
 	// the group requested by this call; creating a reserve batch here would put
 	// unconfigured groups on the update list before they have a shader. Retain a
 	// hard ceiling so a genuine lifecycle leak remains bounded and diagnosable.
-	int& cblipgPool = s_mpSwCblipgPool.try_emplace(psw, kBlipgPoolInitial).first->second;
+	// Count the objects actually belonging to this world instead of caching the
+	// count by SW address. World allocations can reuse an old SW address after a
+	// level transition; the cached value then incorrectly made a fresh pool look
+	// as though it had already reached the safety ceiling.
+	const int cblipgPool = CountSwBlipgObjects(psw);
 	if (pblipg == nullptr && cblipgPool < kBlipgPoolMaximum)
 	{
 		pblipg = static_cast<BLIPG*>(
 			PloNew(CID_BLIPG, psw, nullptr, OID_blip_group, -1));
-		++cblipgPool;
 		fAlreadyActive = true;
 	}
 	else if (pblipg == nullptr)

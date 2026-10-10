@@ -32,7 +32,7 @@ enum SHDK
 };
 
 // Render Priority
-enum RP
+enum RP : int
 {
     RP_Nil = -1,
     RP_DynamicTexture = 0,

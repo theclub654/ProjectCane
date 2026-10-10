@@ -18,6 +18,7 @@
 #include "crusher.h"
 #include "path.h"
 #include "dialog.h"
+#include "mb.h"
 #include "binoc.h"
 #include "thndflash.h"
 #include <algorithm>

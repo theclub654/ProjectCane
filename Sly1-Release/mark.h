@@ -1,5 +1,5 @@
 #pragma once
-enum XPK;
+enum XPK : int;
 #include "solve.h"
 
 struct MTLKWA

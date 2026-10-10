@@ -1,7 +1,7 @@
 #pragma once
 #include "so.h"
 
-enum BTNT 
+enum BTNT : int
 {
     BTNT_Nil = -1,
     BTNT_Push = 0,
@@ -26,7 +26,7 @@ struct ASH
     int cpaseg;
     struct ASEG* apaseg[16];
 };
-enum BUTTONS 
+enum BUTTONS : int
 {
     BUTTONS_Nil = -1,
     BUTTONS_NoContact = 0,

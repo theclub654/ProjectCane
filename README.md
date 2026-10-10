@@ -1,42 +1,156 @@
+<p align="center">
+  <img alt="ProjectCane" src="README-assets/projectcane-logo.png" />
+</p>
+
 # ProjectCane
 
-<img alt="ProjectCane" src="README-assets/projectcane-logo.png" />
+ProjectCane is a native PC port of the NTSC release of *Sly Cooper and the
+Thievius Raccoonus*. It began as a map viewer and has grown into a complete,
+playable port for Windows and Linux.
 
-ProjectCane is a playable PC port of the NTSC release of *Sly Cooper and the Thievius Raccoonus*. The project originally began as a map viewer, but it has since grown into a complete playable port.
+> [!IMPORTANT]
+> ProjectCane does not include the original game's copyrighted data. You must
+> provide a legally obtained NTSC copy of the game and extract its data with
+> the included File Extractor GUI.
 
-> **Platform support:** ProjectCane currently supports Windows only. Linux compatibility is planned for a future release.
+## Download
 
-## Requirements
+Prebuilt Windows and Linux packages are available from the
+[GitHub Releases page](https://github.com/theclub654/ProjectCane/releases).
 
-- Windows
-- Visual Studio 2022 with the **Desktop development with C++** workload
-- A legally obtained NTSC ISO of *Sly Cooper and the Thievius Raccoonus*
+The Linux release is distributed as a portable x86-64 AppImage and is built
+against Ubuntu 22.04 / glibc 2.35 for compatibility with SteamOS and other
+modern Linux distributions.
 
-ProjectCane does not include the original game's copyrighted data. You must extract the required files from your own NTSC copy of the game.
+## Installation
 
-## Setup
+### Windows
 
-1. Clone or download this repository.
-2. Open `ProjectCane.sln` in Visual Studio 2022.
-3. In **Solution Explorer**, right-click the **File Extractor GUI** project and select **Set as Startup Project**.
-4. Build and run the **File Extractor GUI** project.
-5. In the extractor, select your legally obtained NTSC *Sly Cooper and the Thievius Raccoonus* ISO.
-6. Choose an installation folder, click **Extract Files**, and wait for the extraction to finish completely.
-7. Return to Visual Studio, right-click the **Sly1-Release** project, and select **Set as Startup Project**.
-8. Build the **Sly1-Release** project.
-9. Copy the built `Sly Cooper and the Thievius Raccoonus.exe` into the installation folder selected in the extractor.
-10. Run `Sly Cooper and the Thievius Raccoonus.exe` to play.
+1. Download and extract the Windows release into a normal writable folder.
+2. Run the included **File Extractor GUI**.
+3. Select your legally obtained NTSC ISO.
+4. Choose the same folder that contains ProjectCane as the installation
+   destination.
+5. Wait for extraction to finish, then launch
+   `Sly Cooper and the Thievius Raccoonus.exe`.
 
-No external shader files are required—the shaders are embedded in the executable.
+The extractor creates the required `Worlds` and `Cutscenes` directories.
+Keep these directories beside the game executable.
 
-## Status
+### Linux and Steam Deck
 
-The full game is playable. Development is continuing with bug fixes, compatibility improvements, and future Linux support.
+1. Download and extract the complete Linux package into a normal writable
+   folder. Do not run it from inside the archive.
+2. Open a terminal in that folder. Steam Deck users can use **Konsole** in
+   Desktop Mode.
+3. Start the extractor:
+
+   ```bash
+   bash "Run File Extractor.sh"
+   ```
+
+4. Select your NTSC ISO and extract the game data into the same folder as
+   `ProjectCane-x86_64.AppImage`.
+5. Start the game:
+
+   ```bash
+   bash "Run ProjectCane.sh"
+   ```
+
+The launch scripts automatically set the required executable permissions.
+The AppImage includes the non-system runtime libraries needed by ProjectCane;
+graphics drivers and normal operating-system libraries are supplied by the
+host system.
+
+## Save Data and Settings
+
+On Windows, writable game data is stored beside the executable, including the
+`Saves` directory.
+
+On Linux, they are stored in:
+
+```text
+~/.local/share/ProjectCane
+```
+
+If `XDG_DATA_HOME` is configured, ProjectCane uses
+`$XDG_DATA_HOME/ProjectCane` instead.
+
+## Troubleshooting
+
+Make sure the extracted `Worlds` and `Cutscenes` directories are beside the
+game executable or AppImage.
+
+To capture a Linux startup log, run:
+
+```bash
+./ProjectCane-x86_64.AppImage 2>&1 | tee projectcane_startup.log
+```
+
+When reporting a problem, include the log, your operating system, GPU, CPU,
+audio device, and the steps needed to reproduce the issue.
+
+## Building from Source
+
+### Windows with Visual Studio
+
+Requirements:
+
+- Visual Studio 2022
+- **Desktop development with C++** workload
+- .NET 9 SDK for the File Extractor GUI
+
+Open `ProjectCane.sln`, select the `Release` and `x64` configuration, and
+build the `Sly1-Release` project. The shaders are embedded into the executable
+at build time, so external shader files are not required.
+
+The cross-platform extractor is the `File Extractor GUI` project in the same
+solution.
+
+### Windows with CMake
+
+```powershell
+cmake --preset windows-release
+cmake --build --preset windows-release
+```
+
+### Linux development build
+
+The Linux build requires CMake 3.22 or newer, Ninja, a C++20 compiler,
+PkgConfig, and FFmpeg development packages providing `libavformat`,
+`libavcodec`, `libavutil`, and `libswscale`.
+
+```bash
+cmake --preset linux-release
+cmake --build --preset linux-release
+```
+
+The executable is written to `build/linux-release/bin/ProjectCane`.
+
+### Portable Linux AppImage
+
+Distribution builds must use the Ubuntu 22.04 / glibc 2.35 baseline. Detailed
+Docker and packaging instructions are available in
+[`packaging/linux/README.md`](packaging/linux/README.md).
+
+## Project Status
+
+The full game is playable. Development continues to focus on accuracy,
+performance, controller support, platform compatibility, and remaining
+differences from the original PlayStation 2 release.
 
 ## Help Bring Sly 2 and Sly 3 to PC
 
-ProjectCane is not intended to stop with *Sly Cooper and the Thievius Raccoonus*. The goal is to bring *Sly 2: Band of Thieves* and *Sly 3: Honor Among Thieves* to PC as native ports as well.
+ProjectCane is not intended to stop with *Sly Cooper and the Thievius
+Raccoonus*. The long-term goal is to bring *Sly 2: Band of Thieves* and
+*Sly 3: Honor Among Thieves* to PC as native ports as well.
 
-If you know where to find a debug build of *Sly 2* or *Sly 3* that includes debug symbols, please let me know. You can contact me at [projectcane182@gmail.com](mailto:projectcane182@gmail.com).
+If you know where to find a debug build of *Sly 2* or *Sly 3* containing debug
+symbols, please contact [projectcane182@gmail.com](mailto:projectcane182@gmail.com).
 
-If you would like to see native PC ports of all three games up and running, any information that can help make that possible would be greatly appreciated. Thank you!
+## Legal
+
+ProjectCane is an unofficial fan project and is not affiliated with or
+endorsed by Sony Interactive Entertainment or Sucker Punch Productions.
+*Sly Cooper* and related names and assets belong to their respective owners.
+No original game data is distributed with this repository or its releases.

@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=ProjectCane
+Comment=Play Sly Cooper and the Thievius Raccoonus with ProjectCane
+Exec=ProjectCane
+Icon=projectcane
+Terminal=false
+Categories=Game;

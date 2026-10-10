@@ -55,7 +55,7 @@ enum RUMK
     RUMK_Max = 11
 };
 
-enum JOYID 
+enum JOYID : int
 {
     JOYID_Nil = -1,
     JOYID_Left = 0,
@@ -114,6 +114,14 @@ struct JOY
     JOYS joys = JOYS_Ready;
     int joystickId = JOYID_Nil;
     bool gamepadConnected = false;
+    // The binding UI must read the same backend/state selected by gameplay.
+    // joystickId is GLFW-only, while this cache also represents XInput and
+    // best-effort raw joystick devices.
+    GLFWgamepadstate gamepadState{};
+    bool hasGamepadState = false;
+#ifdef _WIN32
+    int xinputUser = -1;
+#endif
 
     void Update(GLFWwindow* window);
     bool IsPressed(JOY_BUTTON button);
