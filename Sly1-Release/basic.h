@@ -4,6 +4,12 @@
 #include "spaprops.h"
 #include "sidebag.h"
 
+#ifdef __SWITCH__
+#define CANE_VTABLE(type, name) extern type name
+#else
+#define CANE_VTABLE(type, name) static type name
+#endif
+
 struct BASIC
 {
     union
@@ -161,7 +167,7 @@ struct VTBASIC
     CID cid = CID_BASIC;
 };
 
-static VTBASIC g_vtbasic;
+CANE_VTABLE(VTBASIC, g_vtbasic);
 
 struct VTLO
 {
@@ -203,7 +209,7 @@ struct VTLO
     void (*pfnDeleteLo) (LO*) = DeleteLo;
 };
 
-static VTLO g_vtlo;
+CANE_VTABLE(VTLO, g_vtlo);
 
 struct VTALO
 {
@@ -265,7 +271,7 @@ struct VTALO
     void (*pfnUpdateAloBlot)(ALO*) = nullptr;
 };
 
-static VTALO g_vtalo;
+CANE_VTABLE(VTALO, g_vtalo);
 
 struct VTSO
 {
@@ -352,7 +358,7 @@ struct VTSO
     int  (*pfnFInflictSoZap)(SO*, XP*, ZPR*) = FInflictSoZap;
 };
 
-static VTSO g_vtso;
+CANE_VTABLE(VTSO, g_vtso);
 
 struct VTMS
 {
@@ -439,7 +445,7 @@ struct VTMS
     int  (*pfnFInflictSoZap)(SO*, XP*, ZPR*) = FInflictSoZap;
 };
 
-static VTMS g_vtms;
+CANE_VTABLE(VTMS, g_vtms);
 
 struct VTPO
 {
@@ -538,7 +544,7 @@ struct VTPO
     void (*pfnPlayPoDialog)(PO*, DIALOG*) = PlayPoDialog;
 };
 
-static VTPO g_vtpo;
+CANE_VTABLE(VTPO, g_vtpo);
 
 struct VTSTEP
 {
@@ -640,7 +646,7 @@ struct VTSTEP
     int  (*pfnFCheckStepXpBase)(STEP*, XP*, int) = FCheckStepXpBase;
 };
 
-static VTSTEP g_vtstep;
+CANE_VTABLE(VTSTEP, g_vtstep);
 
 struct VTJT
 {
@@ -743,7 +749,7 @@ struct VTJT
     int (*pfnFCheckJtXpBase)(JT*, XP*, int) = FCheckJtXpBase;
 };
 
-static VTJT g_vtjt;
+CANE_VTABLE(VTJT, g_vtjt);
 
 struct VTSTEPGUARD
 {
@@ -857,7 +863,7 @@ struct VTSTEPGUARD
     SO* (*pfnPsoEnemyStepguard)(STEPGUARD*) = PsoEnemyStepguard;
 };
 
-static VTSTEPGUARD g_vtstepguard;
+CANE_VTABLE(VTSTEPGUARD, g_vtstepguard);
 
 struct VTSMARTGUARD
 {
@@ -971,7 +977,7 @@ struct VTSMARTGUARD
     SO* (*pfnPsoEnemyStepguard)(STEPGUARD*) = PsoEnemyStepguard;
 };
 
-static VTSMARTGUARD g_vtsmartguard;
+CANE_VTABLE(VTSMARTGUARD, g_vtsmartguard);
 
 struct VTGOMER
 {
@@ -1088,7 +1094,7 @@ struct VTGOMER
     SO* (*pfnPsoEnemyStepguard)(STEPGUARD*) = PsoEnemyStepguard;
 };
 
-static VTGOMER g_vtgomer;
+CANE_VTABLE(VTGOMER, g_vtgomer);
 
 struct VTUBG
 {
@@ -1202,7 +1208,7 @@ struct VTUBG
     SO* (*pfnPsoEnemyStepguard)(STEPGUARD*) = PsoEnemyStepguard;
 };
 
-static VTUBG g_vtubg;
+CANE_VTABLE(VTUBG, g_vtubg);
 
 struct VTMBG
 {
@@ -1316,7 +1322,7 @@ struct VTMBG
     SO* (*pfnPsoEnemyStepguard)(STEPGUARD*) = PsoEnemyStepguard;
 };
 
-static VTMBG g_vtmbg;
+CANE_VTABLE(VTMBG, g_vtmbg);
 
 struct VTBHG
 {
@@ -1430,7 +1436,7 @@ struct VTBHG
     SO* (*pfnPsoEnemyStepguard)(STEPGUARD*) = PsoEnemyStepguard;
 };
 
-static VTBHG g_vtbhg;
+CANE_VTABLE(VTBHG, g_vtbhg);
 
 struct VTMURRAY
 {
@@ -1544,7 +1550,7 @@ struct VTMURRAY
     SO* (*pfnPsoEnemyStepguard)(STEPGUARD*) = PsoEnemyStepguard;
 };
 
-static VTMURRAY g_vtmurray;
+CANE_VTABLE(VTMURRAY, g_vtmurray);
 
 struct VTPUFFC
 {
@@ -1553,7 +1559,7 @@ struct VTPUFFC
     GRFCID grfcid = 0xB;
 
     PUFFC* (*pfnNewPuffc) () = NewPuffc;
-    void* pfnInitStepGuard = reinterpret_cast<void*>(InitStepGuard);
+    void(*pfnInitStepGuard)(STEPGUARD*) = InitStepGuard;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
     void (*pfnRemoveLo)(LO*) = RemoveLo;
@@ -1658,7 +1664,7 @@ struct VTPUFFC
     SO* (*pfnPsoEnemyStepguard)(STEPGUARD*) = PsoEnemyStepguard;
 };
 
-static VTPUFFC g_vtpuffc;
+CANE_VTABLE(VTPUFFC, g_vtpuffc);
 
 struct VTCRFOD
 {
@@ -1772,7 +1778,7 @@ struct VTCRFOD
     SO* (*pfnPsoEnemyStepguard)(STEPGUARD*) = PsoEnemyStepguard;
 };
 
-static VTCRFOD g_vtcrfod;
+CANE_VTABLE(VTCRFOD, g_vtcrfod);
 
 struct VTCRFODB
 {
@@ -1886,7 +1892,7 @@ struct VTCRFODB
     SO* (*pfnPsoEnemyStepguard)(STEPGUARD*) = PsoEnemyStepguard;
 };
 
-static VTCRFODB g_vtcrfodb;
+CANE_VTABLE(VTCRFODB, g_vtcrfodb);
 
 struct VTCRFODK
 {
@@ -2000,7 +2006,7 @@ struct VTCRFODK
     SO* (*pfnPsoEnemyStepguard)(STEPGUARD*) = PsoEnemyStepguard;
 };
 
-static VTCRFODK g_vtcrfodk;
+CANE_VTABLE(VTCRFODK, g_vtcrfodk);
 
 struct VTRUBY
 {
@@ -2114,7 +2120,7 @@ struct VTRUBY
     SO* (*pfnPsoEnemyStepguard)(STEPGUARD*) = PsoEnemyStepguard;
 };
 
-static VTRUBY g_vtruby;
+CANE_VTABLE(VTRUBY, g_vtruby);
 
 struct VTTANK
 {
@@ -2216,7 +2222,7 @@ struct VTTANK
     int  (*pfnFCheckStepXpBase)(STEP*, XP*, int) = FCheckStepXpBase;
 };
 
-static VTTANK g_vttank;
+CANE_VTABLE(VTTANK, g_vttank);
 
 struct VTROV
 {
@@ -2315,7 +2321,7 @@ struct VTROV
     void (*pfnPlayPoDialog)(PO*, DIALOG*) = PlayPoDialog;
 };
 
-static VTROV g_vtrov;
+CANE_VTABLE(VTROV, g_vtrov);
 
 struct VTTURRET
 {
@@ -2414,7 +2420,7 @@ struct VTTURRET
     void (*pfnPlayPoDialog)(PO*, DIALOG*) = PlayPoDialog;
 };
 
-static VTTURRET g_vtturret;
+CANE_VTABLE(VTTURRET, g_vtturret);
 
 struct VTVAULT
 {
@@ -2513,7 +2519,7 @@ struct VTVAULT
     void (*pfnPlayPoDialog)(PO*, DIALOG*) = PlayPoDialog;
 };
 
-static VTVAULT g_vtvault;
+CANE_VTABLE(VTVAULT, g_vtvault);
 
 struct VTPUFFER
 {
@@ -2612,7 +2618,7 @@ struct VTPUFFER
     void (*pfnPlayPoDialog)(PO*, DIALOG*) = PlayPoDialog;
 };
 
-static VTPUFFER g_vtpuffer;
+CANE_VTABLE(VTPUFFER, g_vtpuffer);
 
 struct VTSUV
 {
@@ -2711,7 +2717,7 @@ struct VTSUV
     void (*pfnPlayPoDialog)(PO*, DIALOG*) = PlayPoDialog;
 };
 
-static VTSUV g_vtsuv;
+CANE_VTABLE(VTSUV, g_vtsuv);
 
 struct VTLGN
 {
@@ -2788,7 +2794,7 @@ struct VTLGN
     void(*pfnAdjustSoXpVelocity) = nullptr;
     void (*pfnAdjustSoDz)(SO*, GRFADJ, DZ*, int, float) = nullptr;
     void (*pfnAdjustLgnXps)(LGN*) = AdjustLgnXps;
-    void* pfnUpdateSuvInternalXps = reinterpret_cast<void*>(UpdateSuvInternalXps);
+    void(*pfnUpdateSuvInternalXps)(SUV*) = UpdateSuvInternalXps;
     void(*pfnNotifySoImpact) = nullptr;
     void(*pfnUpdateSoPivots) = nullptr;
     void (*pfnUpdateSoImpacts)(SO*) = UpdateSoImpacts;
@@ -2810,7 +2816,7 @@ struct VTLGN
     void (*pfnPlayPoDialog)(PO*, DIALOG*) = PlayPoDialog;
 };
 
-static VTLGN g_vtlgn;
+CANE_VTABLE(VTLGN, g_vtlgn);
 
 struct VTJETPACK
 {
@@ -2853,7 +2859,7 @@ struct VTJETPACK
     void (*pfnProjectJetpackTransform)(JETPACK*, float, int) = ProjectJetpackTransform;
     void (*pfnPresetJetpackAccel)(JETPACK*, float) = PresetJetpackAccel;
     void (*pfnTranslateSoToPos) (SO*, glm::vec3*) = TranslateSoToPos;
-    void* pfnRotateSoToMat = reinterpret_cast<void*>(RotateSoToMat);
+    void(*pfnRotateSoToMat)(SO*, glm::mat3&) = RotateSoToMat;
     void (*pfnMatchAloOtherObject)(ALO*, ALO*) = MatchAloOtherObject;
     void (*pfnSetSoVelocityVec)(SO*, glm::vec3*) = SetSoVelocityVec;
     void (*pfnSetSoAngularVelocityVec)(SO*, glm::vec3*) = SetSoAngularVelocityVec;
@@ -2909,10 +2915,10 @@ struct VTJETPACK
     void (*pfnPlayPoDialog)(PO*, DIALOG*) = PlayPoDialog;
 };
 
-static VTJETPACK g_vtjetpack;
+CANE_VTABLE(VTJETPACK, g_vtjetpack);
 
 struct VTRYTHM
-{ 
+{
     VT* pvtSuper = reinterpret_cast<VT*>(&g_vtpo);
     CID cid = CID_RYTHM;
     GRFCID grfcid = 0xB;
@@ -2952,7 +2958,7 @@ struct VTRYTHM
     void (*pfnProjectSoTransform)(SO*, float, int) = ProjectSoTransform;
     void (*pfnPresetSoAccel)(SO*, float) = PresetSoAccel;
     void (*pfnTranslateSoToPos) (SO*, glm::vec3*) = TranslateSoToPos;
-    void* pfnRotateSoToMat = reinterpret_cast<void*>(RotateSoToMat);
+    void (*pfnRotateSoToMat)(SO*, glm::mat3&) = RotateSoToMat;
     void (*pfnMatchAloOtherObject)(ALO*, ALO*) = MatchAloOtherObject;
     void (*pfnSetSoVelocityVec)(SO*, glm::vec3*) = SetSoVelocityVec;
     void (*pfnSetSoAngularVelocityVec)(SO*, glm::vec3*) = SetSoAngularVelocityVec;
@@ -3008,7 +3014,7 @@ struct VTRYTHM
     void (*pfnPlayPoDialog)(PO*, DIALOG*) = PlayPoDialog;
 };
 
-static VTRYTHM g_vtrythm;
+CANE_VTABLE(VTRYTHM, g_vtrythm);
 
 struct VTMGV
 {
@@ -3051,7 +3057,7 @@ struct VTMGV
     void (*pfnProjectSoTransform)(SO*, float, int) = ProjectSoTransform;
     void (*pfnPresetMgvAccel)(MGV*, float) = PresetMgvAccel;
     void (*pfnTranslateSoToPos) (SO*, glm::vec3*) = TranslateSoToPos;
-    void* pfnRotateSoToMat = reinterpret_cast<void*>(RotateSoToMat);
+    void(*pfnRotateSoToMat)(SO*, glm::mat3&) = RotateSoToMat;
     void (*pfnMatchAloOtherObject)(ALO*, ALO*) = MatchAloOtherObject;
     void (*pfnSetSoVelocityVec)(SO*, glm::vec3*) = SetSoVelocityVec;
     void (*pfnSetSoAngularVelocityVec)(SO*, glm::vec3*) = SetSoAngularVelocityVec;
@@ -3107,7 +3113,7 @@ struct VTMGV
     void (*pfnPlayPoDialog)(PO*, DIALOG*) = PlayPoDialog;
 };
 
-static VTMGV g_vtmgv;
+CANE_VTABLE(VTMGV, g_vtmgv);
 
 struct VTRIPG
 {
@@ -3194,7 +3200,7 @@ struct VTRIPG
     int  (*pfnFInflictSoZap)(SO*, XP*, ZPR*) = FInflictSoZap;
 };
 
-static VTRIPG g_vtripg;
+CANE_VTABLE(VTRIPG, g_vtripg);
 
 struct VTWATER
 {
@@ -3281,7 +3287,7 @@ struct VTWATER
     int  (*pfnFInflictWaterZap)(WATER*, XP*, ZPR*) = FInflictWaterZap;
 };
 
-static VTWATER g_vtwater;
+CANE_VTABLE(VTWATER, g_vtwater);
 
 struct VTBRK
 {
@@ -3369,7 +3375,7 @@ struct VTBRK
     void (*pfnBreakBrk)(BRK*) = BreakBrk;
 };
 
-static VTBRK g_vtbrk;
+CANE_VTABLE(VTBRK, g_vtbrk);
 
 struct VTBREAK
 {
@@ -3457,7 +3463,7 @@ struct VTBREAK
     void (*pfnBreakBrk)(BRK*) = BreakBrk;
 };
 
-static VTBREAK g_vtbreak;
+CANE_VTABLE(VTBREAK, g_vtbreak);
 
 struct VTALBRK
 {
@@ -3545,7 +3551,7 @@ struct VTALBRK
     void (*pfnBreakAlbrk)(ALBRK*) = BreakAlbrk;
 };
 
-static VTALBRK g_vtalbrk;
+CANE_VTABLE(VTALBRK, g_vtalbrk);
 
 struct VTDARTGUN
 {
@@ -3633,7 +3639,7 @@ struct VTDARTGUN
     void (*pfnBreakDartgun)(DARTGUN*) = BreakDartgun;
 };
 
-static VTDARTGUN g_vtdartgun;
+CANE_VTABLE(VTDARTGUN, g_vtdartgun);
 
 struct VTSWP
 {
@@ -3721,7 +3727,7 @@ struct VTSWP
     void (*pfnBreakBrk)(BRK*) = BreakBrk;
 };
 
-static VTSWP g_vtswp;
+CANE_VTABLE(VTSWP, g_vtswp);
 
 struct VTFRAGILE
 {
@@ -3809,7 +3815,7 @@ struct VTFRAGILE
     void (*pfnBreakBrk)(BRK*) = BreakBrk;
 };
 
-static VTFRAGILE g_vtfragile;
+CANE_VTABLE(VTFRAGILE, g_vtfragile);
 
 struct VTZAPBREAK
 {
@@ -3897,7 +3903,7 @@ struct VTZAPBREAK
     void (*pfnBreakBrk)(BRK*) = BreakBrk;
 };
 
-static VTZAPBREAK g_vtzapbreak;
+CANE_VTABLE(VTZAPBREAK, g_vtzapbreak);
 
 struct VTBRKP
 {
@@ -3984,7 +3990,7 @@ struct VTBRKP
     int  (*pfnFInflictSoZap)(SO*, XP*, ZPR*) = FInflictSoZap;
 };
 
-static VTBRKP g_vtbrkp;
+CANE_VTABLE(VTBRKP, g_vtbrkp);
 
 struct VTBUTTON
 {
@@ -4071,7 +4077,7 @@ struct VTBUTTON
     int  (*pfnFInflictSoZap)(SO*, XP*, ZPR*) = FInflictSoZap;
 };
 
-static VTBUTTON g_vtbutton;
+CANE_VTABLE(VTBUTTON, g_vtbutton);
 
 struct VTVOLBTN
 {
@@ -4158,7 +4164,7 @@ struct VTVOLBTN
     int  (*pfnFInflictSoZap)(SO*, XP*, ZPR*) = FInflictSoZap;
 };
 
-static VTVOLBTN g_vtvolbtn;
+CANE_VTABLE(VTVOLBTN, g_vtvolbtn);
 
 struct VTJLOVOL
 {
@@ -4245,7 +4251,7 @@ struct VTJLOVOL
     int  (*pfnFInflictSoZap)(SO*, XP*, ZPR*) = FInflictSoZap;
 };
 
-static VTJLOVOL g_vtjlovol;
+CANE_VTABLE(VTJLOVOL, g_vtjlovol);
 
 struct VTBONE
 {
@@ -4332,7 +4338,7 @@ struct VTBONE
     int  (*pfnFInflictSoZap)(SO*, XP*, ZPR*) = FInflictSoZap;
 };
 
-static VTBONE g_vtbone;
+CANE_VTABLE(VTBONE, g_vtbone);
 
 struct VTSPRIZE
 {
@@ -4422,7 +4428,7 @@ struct VTSPRIZE
     void (*pfnEmitSprizeExplosion)(SPRIZE*) = EmitSprizeExplosion;
 };
 
-static VTSPRIZE g_vtsprize;
+CANE_VTABLE(VTSPRIZE, g_vtsprize);
 
 struct VTSCPRIZE
 {
@@ -4512,7 +4518,7 @@ struct VTSCPRIZE
     void (*pfnEmitSprizeExplosion)(SPRIZE*) = EmitSprizeExplosion;
 };
 
-static VTSCPRIZE g_vtscprize;
+CANE_VTABLE(VTSCPRIZE, g_vtscprize);
 
 struct VTCLUE
 {
@@ -4597,12 +4603,12 @@ struct VTCLUE
     void (*pfnGetSoCpdefi)(SO*, float, CPDEFI*) = GetSoCpdefi;
     void (*pfnAddSoWaterAcceleration)(SO*, WATER*, float) = AddSoWaterAcceleration;
     int  (*pfnFInflictSoZap)(SO*, XP*, ZPR*) = FInflictSoZap;
-    void* pfnPcsFromSprize = reinterpret_cast<void*>(PcsFromSprize);
+    PCS(*pfnPcsFromSprize)(SPRIZE*) = PcsFromSprize;
     void (*pfnCollectClue)(CLUE*) = CollectClue;
     void (*pfnEmitSprizeExplosion)(SPRIZE*) = EmitSprizeExplosion;
 };
 
-static VTCLUE g_vtclue;
+CANE_VTABLE(VTCLUE, g_vtclue);
 
 struct VTALARM
 {
@@ -4689,7 +4695,7 @@ struct VTALARM
     int  (*pfnFInflictSoZap)(SO*, XP*, ZPR*) = FInflictSoZap;
 };
 
-static VTALARM g_vtalarm;
+CANE_VTABLE(VTALARM, g_vtalarm);
 
 struct VTSENSOR
 {
@@ -4782,7 +4788,7 @@ struct VTSENSOR
     void (*pfnSetSensorSensors)(SENSOR*, SENSORS) = SetSensorSensors;
 };
 
-static VTSENSOR g_vtsensor;
+CANE_VTABLE(VTSENSOR, g_vtsensor);
 
 struct VTLASEN
 {
@@ -4875,7 +4881,7 @@ struct VTLASEN
     void (*pfnSetLasenSensors)(LASEN*, SENSORS) = SetLasenSensors;
 };
 
-static VTLASEN g_vtlasen;
+CANE_VTABLE(VTLASEN, g_vtlasen);
 
 struct VTCAMSEN
 {
@@ -4968,7 +4974,7 @@ struct VTCAMSEN
     void (*pfnSetCamsenSensors)(CAMSEN*, SENSORS) = SetCamsenSensors;
 };
 
-static VTCAMSEN g_vtcamsen;
+CANE_VTABLE(VTCAMSEN, g_vtcamsen);
 
 struct VTPRSEN
 {
@@ -5061,7 +5067,7 @@ struct VTPRSEN
     void (*pfnSetPrsenSensors)(PRSEN*, SENSORS) = SetPrsenSensors;
 };
 
-static VTPRSEN g_vtprsen;
+CANE_VTABLE(VTPRSEN, g_vtprsen);
 
 struct VTBARRIER
 {
@@ -5148,7 +5154,7 @@ struct VTBARRIER
     int  (*pfnFInflictSoZap)(SO*, XP*, ZPR*) = FInflictSoZap;
 };
 
-static VTBARRIER g_vtbarrier;
+CANE_VTABLE(VTBARRIER, g_vtbarrier);
 
 struct VTIKH
 {
@@ -5235,7 +5241,7 @@ struct VTIKH
     int  (*pfnFInflictSoZap)(SO*, XP*, ZPR*) = FInflictSoZap;
 };
 
-static VTIKH g_vtikh;
+CANE_VTABLE(VTIKH, g_vtikh);
 
 struct VTTZP
 {
@@ -5322,7 +5328,7 @@ struct VTTZP
     int  (*pfnFInflictTzpZap)(TZP*, XP*, ZPR*) = FInflictTzpZap;
 };
 
-static VTTZP g_vttzp;
+CANE_VTABLE(VTTZP, g_vttzp);
 
 struct VTVOLZP
 {
@@ -5409,7 +5415,7 @@ struct VTVOLZP
     int  (*pfnFInflictTzpZap)(TZP*, XP*, ZPR*) = FInflictTzpZap;
 };
 
-static VTVOLZP g_vtvolzp;
+CANE_VTABLE(VTVOLZP, g_vtvolzp);
 
 struct VTCHKPNT
 {
@@ -5496,7 +5502,7 @@ struct VTCHKPNT
     int  (*pfnFInflictSoZap)(SO*, XP*, ZPR*) = FInflictSoZap;
 };
 
-static VTCHKPNT g_vtchkpnt;
+CANE_VTABLE(VTCHKPNT, g_vtchkpnt);
 
 struct VTCNVO
 {
@@ -5583,7 +5589,7 @@ struct VTCNVO
     int  (*pfnFInflictSoZap)(SO*, XP*, ZPR*) = FInflictSoZap;
 };
 
-static VTCNVO g_vtcnvo;
+CANE_VTABLE(VTCNVO, g_vtcnvo);
 
 struct VTHBSK
 {
@@ -5670,7 +5676,7 @@ struct VTHBSK
     int  (*pfnFInflictSoZap)(SO*, XP*, ZPR*) = FInflictSoZap;
 };
 
-static VTHBSK g_vthbsk;
+CANE_VTABLE(VTHBSK, g_vthbsk);
 
 struct VTBOMB
 {
@@ -5757,7 +5763,7 @@ struct VTBOMB
     int  (*pfnFInflictSoZap)(SO*, XP*, ZPR*) = FInflictSoZap;
 };
 
-static VTBOMB g_vtbomb;
+CANE_VTABLE(VTBOMB, g_vtbomb);
 
 struct VTMISSILE
 {
@@ -5845,7 +5851,7 @@ struct VTMISSILE
     void (*pfnFireMissile)(MISSILE*, ALO*, glm::vec3*) = FireMissile;
 };
 
-static VTMISSILE g_vtmissile;
+CANE_VTABLE(VTMISSILE, g_vtmissile);
 
 struct VTACCMISS
 {
@@ -5933,7 +5939,7 @@ struct VTACCMISS
     void (*pfnFireAccmiss)(ACCMISS*, ALO*, glm::vec3*) = FireAccmiss;
 };
 
-static VTACCMISS g_vtaccmiss;
+CANE_VTABLE(VTACCMISS, g_vtaccmiss);
 
 struct VTTARMISS
 {
@@ -6021,7 +6027,7 @@ struct VTTARMISS
     void(*pfnFireAccmiss)(TARMISS*, ALO*, glm::vec3*) = FireTarmiss;
 };
 
-static VTTARMISS g_vttarmiss;
+CANE_VTABLE(VTTARMISS, g_vttarmiss);
 
 struct VTMINE
 {
@@ -6108,7 +6114,7 @@ struct VTMINE
     int  (*pfnFInflictSoZap)(SO*, XP*, ZPR*) = FInflictSoZap;
 };
 
-static VTMINE g_vtmine;
+CANE_VTABLE(VTMINE, g_vtmine);
 
 struct VTFLY
 {
@@ -6195,7 +6201,7 @@ struct VTFLY
     int  (*pfnFInflictSoZap)(SO*, XP*, ZPR*) = FInflictSoZap;
 };
 
-static VTFLY g_vtfly;
+CANE_VTABLE(VTFLY, g_vtfly);
 
 struct VTRAT
 {
@@ -6282,7 +6288,7 @@ struct VTRAT
     int  (*pfnFInflictSoZap)(SO*, XP*, ZPR*) = FInflictSoZap;
 };
 
-static VTRAT g_vtrat;
+CANE_VTABLE(VTRAT, g_vtrat);
 
 struct VTROH
 {
@@ -6369,7 +6375,7 @@ struct VTROH
     int  (*pfnFInflictSoZap)(SO*, XP*, ZPR*) = FInflictSoZap;
 };
 
-static VTROH g_vtroh;
+CANE_VTABLE(VTROH, g_vtroh);
 
 struct VTROC
 {
@@ -6456,7 +6462,7 @@ struct VTROC
     int  (*pfnFInflictSoZap)(SO*, XP*, ZPR*) = FInflictSoZap;
 };
 
-static VTROC g_vtroc;
+CANE_VTABLE(VTROC, g_vtroc);
 
 struct VTROST
 {
@@ -6543,7 +6549,7 @@ struct VTROST
     int  (*pfnFInflictSoZap)(SO*, XP*, ZPR*) = FInflictSoZap;
 };
 
-static VTROST g_vtrost;
+CANE_VTABLE(VTROST, g_vtrost);
 
 struct VTROP
 {
@@ -6630,7 +6636,7 @@ struct VTROP
     int  (*pfnFInflictSoZap)(SO*, XP*, ZPR*) = FInflictSoZap;
 };
 
-static VTROP g_vtrop;
+CANE_VTABLE(VTROP, g_vtrop);
 
 struct VTDART
 {
@@ -6717,7 +6723,7 @@ struct VTDART
     int  (*pfnFInflictSoZap)(SO*, XP*, ZPR*) = FInflictSoZap;
 };
 
-static VTDART g_vtdart;
+CANE_VTABLE(VTDART, g_vtdart);
 
 struct VTJLO
 {
@@ -6804,7 +6810,7 @@ struct VTJLO
     int  (*pfnFInflictSoZap)(SO*, XP*, ZPR*) = FInflictSoZap;
 };
 
-static VTJLO g_vtjlo;
+CANE_VTABLE(VTJLO, g_vtjlo);
 
 struct VTPUFFT
 {
@@ -6891,7 +6897,7 @@ struct VTPUFFT
     int  (*pfnFInflictSoZap)(SO*, XP*, ZPR*) = FInflictSoZap;
 };
 
-static VTPUFFT g_vtpufft;
+CANE_VTABLE(VTPUFFT, g_vtpufft);
 
 struct VTMRKV
 {
@@ -6978,7 +6984,7 @@ struct VTMRKV
     int  (*pfnFInflictSoZap)(SO*, XP*, ZPR*) = FInflictSoZap;
 };
 
-static VTMRKV g_vtmrkv;
+CANE_VTABLE(VTMRKV, g_vtmrkv);
 
 struct VTCLKWORK
 {
@@ -7065,7 +7071,7 @@ struct VTCLKWORK
     int  (*pfnFInflictSoZap)(SO*, XP*, ZPR*) = FInflictSoZap;
 };
 
-static VTCLKWORK g_vtclkwork;
+CANE_VTABLE(VTCLKWORK, g_vtclkwork);
 
 struct VTCLKWRKDMG
 {
@@ -7152,7 +7158,7 @@ struct VTCLKWRKDMG
     int  (*pfnFInflictSoZap)(SO*, XP*, ZPR*) = FInflictSoZap;
 };
 
-static VTCLKWRKDMG g_vtclkwrkdmg;
+CANE_VTABLE(VTCLKWRKDMG, g_vtclkwrkdmg);
 
 struct VTDECOY
 {
@@ -7239,7 +7245,7 @@ struct VTDECOY
     int  (*pfnFInflictSoZap)(SO*, XP*, ZPR*) = FInflictSoZap;
 };
 
-static VTDECOY g_vtdecoy;
+CANE_VTABLE(VTDECOY, g_vtdecoy);
 
 struct VTBLIPG
 {
@@ -7301,7 +7307,7 @@ struct VTBLIPG
     void (*pfnUpdateAloBlot)(ALO*) = nullptr;
 };
 
-static VTBLIPG g_vtblipg;
+CANE_VTABLE(VTBLIPG, g_vtblipg);
 
 struct VTCAMERA
 {
@@ -7363,7 +7369,7 @@ struct VTCAMERA
     void (*pfnUpdateAloBlot)(ALO*) = nullptr;
 };
 
-static VTCAMERA g_vtcamera;
+CANE_VTABLE(VTCAMERA, g_vtcamera);
 
 struct VTLBONE
 {
@@ -7425,7 +7431,7 @@ struct VTLBONE
     void (*pfnUpdateAloBlot)(ALO*) = nullptr;
 };
 
-static VTLBONE g_vtlbone;
+CANE_VTABLE(VTLBONE, g_vtlbone);
 
 struct VTEMITTER
 {
@@ -7487,7 +7493,7 @@ struct VTEMITTER
     void (*pfnUpdateAloBlot)(ALO*) = nullptr;
 };
 
-static VTEMITTER g_vtemitter;
+CANE_VTABLE(VTEMITTER, g_vtemitter);
 
 struct VTLIGHT
 {
@@ -7549,7 +7555,7 @@ struct VTLIGHT
     void (*pfnUpdateAloBlot)(ALO*) = nullptr;
 };
 
-static VTLIGHT g_vtlight;
+CANE_VTABLE(VTLIGHT, g_vtlight);
 
 struct VTSCH
 {
@@ -7611,7 +7617,7 @@ struct VTSCH
     void (*pfnUpdateAloBlot)(ALO*) = nullptr;
 };
 
-static VTSCH g_vtsch;
+CANE_VTABLE(VTSCH, g_vtsch);
 
 struct VTPROXY
 {
@@ -7673,7 +7679,7 @@ struct VTPROXY
     void (*pfnUpdateAloBlot)(ALO*) = nullptr;
 };
 
-static VTPROXY g_vtproxy;
+CANE_VTABLE(VTPROXY, g_vtproxy);
 
 struct VTSKY
 {
@@ -7735,7 +7741,7 @@ struct VTSKY
     void (*pfnUpdateAloBlot)(ALO*) = nullptr;
 };
 
-static VTSKY g_vtsky;
+CANE_VTABLE(VTSKY, g_vtsky);
 
 struct VTDPRIZE
 {
@@ -7798,7 +7804,7 @@ struct VTDPRIZE
     void (*pfnSetDprizeDprizes)(DPRIZE*, DPRIZES) = SetDprizeDprizes;
 };
 
-static VTDPRIZE g_vtdprize;
+CANE_VTABLE(VTDPRIZE, g_vtdprize);
 
 struct VTCHARM
 {
@@ -7861,7 +7867,7 @@ struct VTCHARM
     void (*pfnSetCharmDprizes)(CHARM*, DPRIZES) = SetCharmDprizes;
 };
 
-static VTCHARM g_vtcharm;
+CANE_VTABLE(VTCHARM, g_vtcharm);
 
 struct VTCOIN
 {
@@ -7924,7 +7930,7 @@ struct VTCOIN
     void(*pfnSetCoinDprizes)(COIN*, DPRIZES) = SetCoinDprizes;
 };
 
-static VTCOIN g_vtcoin;
+CANE_VTABLE(VTCOIN, g_vtcoin);
 
 struct VTLIFETKN
 {
@@ -7987,7 +7993,7 @@ struct VTLIFETKN
     void(*pfnSetLifetknDprizes)(LIFETKN*, DPRIZES) = SetLifetknDprizes;
 };
 
-static VTLIFETKN g_vtlifetkn;
+CANE_VTABLE(VTLIFETKN, g_vtlifetkn);
 
 struct VTKEY
 {
@@ -8050,7 +8056,7 @@ struct VTKEY
     void (*pfnSetKeyDprizes)(KEY*, DPRIZES) = SetKeyDprizes;
 };
 
-static VTKEY g_vtkey;
+CANE_VTABLE(VTKEY, g_vtkey);
 
 struct VTGOLD
 {
@@ -8113,7 +8119,7 @@ struct VTGOLD
     void (*pfnSetGoldDprizes)(GOLD*, DPRIZES) = SetGoldDprizes;
 };
 
-static VTGOLD g_vtgold;
+CANE_VTABLE(VTGOLD, g_vtgold);
 
 struct VTBOOST
 {
@@ -8176,7 +8182,7 @@ struct VTBOOST
     void (*pfnSetDprizeDprizes)(DPRIZE*, DPRIZES) = SetDprizeDprizes;
 };
 
-static VTBOOST g_vtunk7;
+CANE_VTABLE(VTBOOST, g_vtunk7);
 
 struct VTLOCK
 {
@@ -8238,7 +8244,7 @@ struct VTLOCK
     void (*pfnUpdateAloBlot)(ALO*) = nullptr;
 };
 
-static VTLOCK g_vtlock;
+CANE_VTABLE(VTLOCK, g_vtlock);
 
 struct VTLOCKG
 {
@@ -8300,7 +8306,7 @@ struct VTLOCKG
     void (*pfnUpdateAloBlot)(ALO*) = nullptr;
 };
 
-static VTLOCKG g_vtlockg;
+CANE_VTABLE(VTLOCKG, g_vtlockg);
 
 struct VTTAIL
 {
@@ -8362,7 +8368,7 @@ struct VTTAIL
     void (*pfnUpdateAloBlot)(ALO*) = nullptr;
 };
 
-static VTTAIL g_vttail;
+CANE_VTABLE(VTTAIL, g_vttail);
 
 struct VTROB
 {
@@ -8424,7 +8430,7 @@ struct VTROB
     void (*pfnUpdateRobBlot)(ROB*) = UpdateRobBlot;
 };
 
-static VTROB g_vtrob;
+CANE_VTABLE(VTROB, g_vtrob);
 
 struct VTFLASH
 {
@@ -8486,7 +8492,7 @@ struct VTFLASH
     void (*pfnUpdateAloBlot)(ALO*) = nullptr;
 };
 
-static VTFLASH g_vtflash;
+CANE_VTABLE(VTFLASH, g_vtflash);
 
 struct VTDYSH
 {
@@ -8548,7 +8554,7 @@ struct VTDYSH
     void (*pfnUpdateAloBlot)(ALO*) = nullptr;
 };
 
-static VTDYSH g_vtdysh;
+CANE_VTABLE(VTDYSH, g_vtdysh);
 
 struct VTWAYPOINT
 {
@@ -8610,7 +8616,7 @@ struct VTWAYPOINT
     void (*pfnUpdateAloBlot)(ALO*) = nullptr;
 };
 
-static VTWAYPOINT g_vtwaypoint;
+CANE_VTABLE(VTWAYPOINT, g_vtwaypoint);
 
 struct VTTN
 {
@@ -8672,7 +8678,7 @@ struct VTTN
     void (*pfnUpdateAloBlot)(ALO*) = nullptr;
 };
 
-static VTTN g_vttn;
+CANE_VTABLE(VTTN, g_vttn);
 
 struct VTJLOC
 {
@@ -8734,7 +8740,7 @@ struct VTJLOC
     void (*pfnUpdateAloBlot)(ALO*) = nullptr;
 };
 
-static VTJLOC g_vtjloc;
+CANE_VTABLE(VTJLOC, g_vtjloc);
 
 struct VTDIALOG
 {
@@ -8796,7 +8802,7 @@ struct VTDIALOG
     void (*pfnUpdateAloBlot)(ALO*) = nullptr;
 };
 
-static VTDIALOG g_vtdialog;
+CANE_VTABLE(VTDIALOG, g_vtdialog);
 
 struct VTSPEAKER
 {
@@ -8858,7 +8864,7 @@ struct VTSPEAKER
     void (*pfnUpdateAloBlot)(ALO*) = nullptr;
 };
 
-static VTSPEAKER g_vtspeaker;
+CANE_VTABLE(VTSPEAKER, g_vtspeaker);
 
 struct VTWM
 {
@@ -8920,7 +8926,7 @@ struct VTWM
     void (*pfnUpdateAloBlot)(ALO*) = nullptr;
 };
 
-static VTWM g_vtwm;
+CANE_VTABLE(VTWM, g_vtwm);
 
 struct VTCRFODKSPAWN
 {
@@ -8982,7 +8988,7 @@ struct VTCRFODKSPAWN
     void (*pfnUpdateAloBlot)(CRFODKSPAWN*) = UpdateCrfodkSpawnerBlot;
 };
 
-static VTCRFODKSPAWN g_vtcrfodkspawner;
+CANE_VTABLE(VTCRFODKSPAWN, g_vtcrfodkspawner);
 
 struct VTHUBSEL
 {
@@ -9044,7 +9050,7 @@ struct VTHUBSEL
     void (*pfnUpdateAloBlot)(ALO*) = nullptr;
 };
 
-static VTHUBSEL g_vthubsel;
+CANE_VTABLE(VTHUBSEL, g_vthubsel);
 
 struct VTHUBPROG
 {
@@ -9106,7 +9112,7 @@ struct VTHUBPROG
     void (*pfnUpdateAloBlot)(ALO*) = nullptr;
 };
 
-static VTHUBPROG g_vthubprog;
+CANE_VTABLE(VTHUBPROG, g_vthubprog);
 
 struct VTUNK11
 {
@@ -9168,7 +9174,7 @@ struct VTUNK11
     void (*pfnUpdateAloBlot)(ALO*) = nullptr;
 };
 
-static VTUNK11 g_vtunk11;
+CANE_VTABLE(VTUNK11, g_vtunk11);
 
 struct VTSW
 {
@@ -9210,7 +9216,7 @@ struct VTSW
     void (*pfnDeleteSw) (SW*) = DeleteSw;
 };
 
-static VTSW g_vtsw;
+CANE_VTABLE(VTSW, g_vtsw);
 
 struct VTCM
 {
@@ -9252,7 +9258,7 @@ struct VTCM
     void (*pfnDeleteCm) (CM*) = DeleteCm;
 };
 
-static VTCM g_vtcm;
+CANE_VTABLE(VTCM, g_vtcm);
 
 struct VTSHAPE
 {
@@ -9294,7 +9300,7 @@ struct VTSHAPE
     void (*pfnDeleteShape) (SHAPE*) = DeleteShape;
 };
 
-static VTSHAPE g_vtshape;
+CANE_VTABLE(VTSHAPE, g_vtshape);
 
 struct VTHSHAPE
 {
@@ -9336,7 +9342,7 @@ struct VTHSHAPE
     void (*pfnDeleteHshape) (HSHAPE*) = DeleteHshape;
 };
 
-static VTHSHAPE g_vthshape;
+CANE_VTABLE(VTHSHAPE, g_vthshape);
 
 struct VTPIPE
 {
@@ -9378,7 +9384,7 @@ struct VTPIPE
     void (*pfnDeletePipe) (PIPE*) = DeletePipe;
 };
 
-static VTPIPE g_vtpipe;
+CANE_VTABLE(VTPIPE, g_vtpipe);
 
 struct VTRAIL
 {
@@ -9420,7 +9426,7 @@ struct VTRAIL
     void (*pfnDeleteRail) (RAIL*) = DeleteRail;
 };
 
-static VTRAIL g_vtrail;
+CANE_VTABLE(VTRAIL, g_vtrail);
 
 struct VTLANDING
 {
@@ -9462,7 +9468,7 @@ struct VTLANDING
     void (*pfnDeleteLanding) (LANDING*) = DeleteLanding;
 };
 
-static VTLANDING g_vtlanding;
+CANE_VTABLE(VTLANDING, g_vtlanding);
 
 struct VTXFM
 {
@@ -9504,7 +9510,7 @@ struct VTXFM
     void (*pfnDeleteXfm) (XFM*) = DeleteXfm;
 };
 
-static VTXFM g_vtxfm;
+CANE_VTABLE(VTXFM, g_vtxfm);
 
 struct VTWARP
 {
@@ -9546,7 +9552,7 @@ struct VTWARP
     void (*pfnDeleteWarp) (WARP*) = DeleteWarp;
 };
 
-static VTWARP g_vtwarp;
+CANE_VTABLE(VTWARP, g_vtwarp);
 
 struct VTTARGET
 {
@@ -9588,7 +9594,7 @@ struct VTTARGET
     void (*pfnDeleteTarget) (TARGET*) = DeleteTarget;
 };
 
-static VTTARGET g_vttarget;
+CANE_VTABLE(VTTARGET, g_vttarget);
 
 struct VTHND
 {
@@ -9630,7 +9636,7 @@ struct VTHND
     void (*pfnDeleteHnd) (HND*) = DeleteHnd;
 };
 
-static VTHND g_vthnd;
+CANE_VTABLE(VTHND, g_vthnd);
 
 struct VTEXPL
 {
@@ -9673,7 +9679,7 @@ struct VTEXPL
     void (*pfnExplodeExplExplso)(EXPLO*, EXPLSO*) = nullptr;
 };
 
-static VTEXPL g_vtexpl;
+CANE_VTABLE(VTEXPL, g_vtexpl);
 
 struct VTEXPLG
 {
@@ -9716,7 +9722,7 @@ struct VTEXPLG
     void(*pfnExplodeExplgExplso)(EXPLG*, EXPLSO*) = ExplodeExplgExplso;
 };
 
-static VTEXPLG g_vtexplg;
+CANE_VTABLE(VTEXPLG, g_vtexplg);
 
 struct VTEXPLO
 {
@@ -9759,7 +9765,7 @@ struct VTEXPLO
     void (*pfnExplodeExploExplso)(EXPLO*, EXPLSO*) = nullptr;
 };
 
-static VTEXPLO g_vtexplo;
+CANE_VTABLE(VTEXPLO, g_vtexplo);
 
 struct VTEXPLS
 {
@@ -9802,7 +9808,7 @@ struct VTEXPLS
     void (*pfnExplodeExplsExplso)(EXPLS*, EXPLSO*) = ExplodeExplsExplso;
 };
 
-static VTEXPLS g_vtexpls;
+CANE_VTABLE(VTEXPLS, g_vtexpls);
 
 struct VTVOL
 {
@@ -9844,7 +9850,7 @@ struct VTVOL
     void (*pfnDeleteVol) (VOL*) = DeleteVol;
 };
 
-static VTVOL g_vtvol;
+CANE_VTABLE(VTVOL, g_vtvol);
 
 struct VTRATHOLE
 {
@@ -9886,7 +9892,7 @@ struct VTRATHOLE
     void (*pfnDeleteRathole) (RATHOLE*) = DeleteRathole;
 };
 
-static VTRATHOLE g_vtrathole;
+CANE_VTABLE(VTRATHOLE, g_vtrathole);
 
 struct VTEXIT
 {
@@ -9948,7 +9954,7 @@ struct VTEXIT
     void (*pfnUpdateAloBlot)(ALO*) = nullptr;
 };
 
-static VTEXIT g_vtexit;
+CANE_VTABLE(VTEXIT, g_vtexit);
 
 struct VTPNT
 {
@@ -9990,7 +9996,7 @@ struct VTPNT
     void (*pfnDeletePnt) (PNT*) = DeletePnt;
 };
 
-static VTPNT g_vtpnt;
+CANE_VTABLE(VTPNT, g_vtpnt);
 
 struct VTHPNT
 {
@@ -10032,7 +10038,7 @@ struct VTHPNT
     void (*pfnDeleteHpnt) (HPNT*) = DeleteHpnt;
 };
 
-static VTHPNT g_vthpnt;
+CANE_VTABLE(VTHPNT, g_vthpnt);
 
 struct VTJMT
 {
@@ -10074,7 +10080,7 @@ struct VTJMT
     void (*pfnDeleteJmt) (JMT*) = DeleteJmt;
 };
 
-static VTJMT g_vtjmt;
+CANE_VTABLE(VTJMT, g_vtjmt);
 
 struct VTSPIRE
 {
@@ -10116,7 +10122,7 @@ struct VTSPIRE
     void (*pfnDeleteSpire) (SPIRE*) = DeleteSpire;
 };
 
-static VTSPIRE g_vtspire;
+CANE_VTABLE(VTSPIRE, g_vtspire);
 
 struct VTSCAN
 {
@@ -10158,7 +10164,7 @@ struct VTSCAN
     void (*pfnDeleteScan) (SCAN*) = DeleteScan;
 };
 
-static VTSCAN g_vtscan;
+CANE_VTABLE(VTSCAN, g_vtscan);
 
 struct VTASEG
 {
@@ -10200,7 +10206,7 @@ struct VTASEG
     void (*pfnDeleteAseg) (ASEG*) = DeleteAseg;
 };
 
-static VTASEG g_vtaseg;
+CANE_VTABLE(VTASEG, g_vtaseg);
 
 struct VTASEGBL
 {
@@ -10244,7 +10250,7 @@ struct VTASEGBL
     void (*pfnDeleteAsegbl) (ASEGBL*) = DeleteAsegbl;
 };
 
-static VTASEGBL g_vtasegbl;
+CANE_VTABLE(VTASEGBL, g_vtasegbl);
 
 struct VT_VISZONE
 {
@@ -10286,7 +10292,7 @@ struct VT_VISZONE
     void (*pfnDeleteViszone) (LO*) = DeleteLo;
 };
 
-static VT_VISZONE g_vt_viszone;
+CANE_VTABLE(VT_VISZONE, g_vt_viszone);
 
 struct VTVISMAP
 {
@@ -10370,7 +10376,7 @@ struct VTFRZG
     void (*pfnDeleteFrzg) (FRZG*) = DeleteFrzg;
 };
 
-static VTFRZG g_vtfrzg;
+CANE_VTABLE(VTFRZG, g_vtfrzg);
 
 struct VTSM
 {
@@ -10412,7 +10418,7 @@ struct VTSM
     void (*pfnDeleteSm) (SM*) = DeleteSm;
 };
 
-static VTSM g_vtsm;
+CANE_VTABLE(VTSM, g_vtsm);
 
 struct VTSGG
 {
@@ -10454,7 +10460,7 @@ struct VTSGG
     void (*pfnDeleteSgg) (SGG*) = DeleteSgg;
 };
 
-static VTSGG g_vtsgg;
+CANE_VTABLE(VTSGG, g_vtsgg);
 
 struct VTPATHZONE
 {
@@ -10496,7 +10502,7 @@ struct VTPATHZONE
     void (*pfnDeletePathzone) (PATHZONE*) = DeletePathzone;
 };
 
-static VTPATHZONE g_vtpathzone;
+CANE_VTABLE(VTPATHZONE, g_vtpathzone);
 
 struct VTRCHM
 {
@@ -10538,7 +10544,7 @@ struct VTRCHM
     void (*pfnDeleteRchm) (RCHM*) = DeleteRchm;
 };
 
-static VTRCHM g_vtrchm;
+CANE_VTABLE(VTRCHM, g_vtrchm);
 
 struct VTRWM
 {
@@ -10580,7 +10586,7 @@ struct VTRWM
     void (*pfnDeleteRwm) (RWM*) = DeleteRwm;
 };
 
-static VTRWM g_vtrwm;
+CANE_VTABLE(VTRWM, g_vtrwm);
 
 struct VTWR
 {
@@ -10622,7 +10628,7 @@ struct VTWR
     void (*pfnDeleteWr) (WR*) = DeleteWr;
 };
 
-static VTWR g_vtwr;
+CANE_VTABLE(VTWR, g_vtwr);
 
 struct VTKEYHOLE
 {
@@ -10664,7 +10670,7 @@ struct VTKEYHOLE
     void (*pfnDeleteKeyhole) (KEYHOLE*) = DeleteKeyhole;
 };
 
-static VTKEYHOLE g_vtkeyhole;
+CANE_VTABLE(VTKEYHOLE, g_vtkeyhole);
 
 struct VTJSG
 {
@@ -10706,7 +10712,7 @@ struct VTJSG
     void (*pfnDeleteJsg) (JSG*) = DeleteJsg;
 };
 
-static VTJSG g_vtjsg;
+CANE_VTABLE(VTJSG, g_vtjsg);
 
 struct VTRYTHMSEQUENCE
 {
@@ -10748,7 +10754,7 @@ struct VTRYTHMSEQUENCE
     void (*pfnDeleteRythmSequence) (RYTHMSEQUENCE*) = DeleteRythmSequence;
 };
 
-static VTRYTHMSEQUENCE g_vtrythmsequence;
+CANE_VTABLE(VTRYTHMSEQUENCE, g_vtrythmsequence);
 
 struct VTTHNDFLASH
 {
@@ -10790,7 +10796,7 @@ struct VTTHNDFLASH
     void (*pfnDeleteThndFlash) (THNDFLASH*) = DeleteThndFlash;
 };
 
-static VTTHNDFLASH g_vtthndflash;
+CANE_VTABLE(VTTHNDFLASH, g_vtthndflash);
 
 struct VTASEGA
 {
@@ -10798,7 +10804,7 @@ struct VTASEGA
     CID cid = CID_ASEGA;
 };
 
-static VTASEGA g_vtasega;
+CANE_VTABLE(VTASEGA, g_vtasega);
 
 struct VTSMA
 {
@@ -10806,7 +10812,7 @@ struct VTSMA
     CID cid = CID_SMA;
 };
 
-static VTSMA g_vtsma;
+CANE_VTABLE(VTSMA, g_vtsma);
 
 // This is used to store the global vtables for Local Objects
 static std::unordered_map <CID, void*> g_mpcidpvt =
@@ -10964,3 +10970,5 @@ static std::unordered_map <CID, void*> g_mpcidpvt =
 void GetBasicCid(BASIC* pbasic, CID* pcid);
 bool FIsBasicDerivedFrom(const BASIC* basic, CID cid);
 void EnsureBasicSidebag(BASIC* pbasic);
+
+#undef CANE_VTABLE

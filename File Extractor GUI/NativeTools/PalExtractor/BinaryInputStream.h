@@ -7,6 +7,8 @@
 #include <string>
 #include <vector>
 
+namespace cane::pal
+{
 enum class StringEncoding { Narrow, Utf16Le, Auto };
 
 struct Vec2 { float x{}, y{}; };
@@ -55,3 +57,5 @@ private:
     std::size_t size_{};
     StringEncoding encoding_{};
 };
+
+}

@@ -1,5 +1,10 @@
 #version 430 core
 
+#ifdef DEKO3D
+invariant gl_Position;
+precise gl_Position;
+#endif
+
 #define RKO_OneWay   0
 #define RKO_ThreeWay 1
 
@@ -101,7 +106,7 @@ layout(std140, binding = 0) uniform CMGL
 
 layout(std140, binding = 1) uniform RO
 {
-    mat4  model; 
+    mat4  model;
     float uAlpha;
     float uFog;
     float darken;
@@ -120,7 +125,7 @@ layout(std140, binding = 1) uniform RO
 } op;
 
 layout(std430, binding = 2) readonly buffer LIGHTBLK
-{   
+{
     int numLights;
     int pad[3];
     LIGHT lights[];
@@ -211,7 +216,14 @@ layout(location = 3) out vec2 texcoord;
 
 layout(location = 4) out MATERIAL material;
 layout(location = 7) flat out int vShadowCount;
+
+#ifdef DEKO3D
+layout(location = 8) flat out ivec4 vShadowIndices0;
+layout(location = 9) flat out ivec4 vShadowIndices1;
+layout(location = 10) flat out ivec4 vShadowIndices2;
+#else
 layout(location = 8) flat out ivec4 vShadowIndices[3];
+#endif
 layout(location = 11) out float fogIntensity;
 
 void ApplyWarp(inout vec4 vLocal, inout vec2 uvLocal);
@@ -239,11 +251,8 @@ void ProcessGlobLighting();
 void CalculateFog();
 void CalculateFogPS2();
 void CalculateFogPS3();
+void AppendShadowIndex(int index);
 
-void SetObjectShadowIndex(int slot, int value)
-{
-    vShadowIndices[slot >> 2][slot & 3] = value;
-}
 
 vec3 SafeNormalize(vec3 value)
 {
@@ -267,8 +276,14 @@ void main()
     material.light = vec4(0.0);
     vShadowCount = 0;
 
+#ifdef DEKO3D
+    vShadowIndices0 = ivec4(-1);
+    vShadowIndices1 = ivec4(-1);
+    vShadowIndices2 = ivec4(-1);
+#else
     for (int i = 0; i < 3; ++i)
         vShadowIndices[i] = ivec4(-1);
+#endif
     fogIntensity = 0.0;
 
     vec4 positionLocal = vec4(vertex, 1.0);
@@ -355,8 +370,7 @@ void main()
 
             if (vShadowCount < MAX_OBJECT_SHADOWS)
             {
-                SetObjectShadowIndex(vShadowCount, shIdx);
-                vShadowCount++;
+                AppendShadowIndex(shIdx);
             }
         }
     }
@@ -365,6 +379,31 @@ void main()
         CalculateFog();
 
     gl_Position = cm.matWorldToClip * worldPos;
+}
+
+void AppendShadowIndex(int index)
+{
+#ifdef DEKO3D
+    switch (vShadowCount)
+    {
+        case 0: vShadowIndices0.x = index; break;
+        case 1: vShadowIndices0.y = index; break;
+        case 2: vShadowIndices0.z = index; break;
+        case 3: vShadowIndices0.w = index; break;
+        case 4: vShadowIndices1.x = index; break;
+        case 5: vShadowIndices1.y = index; break;
+        case 6: vShadowIndices1.z = index; break;
+        case 7: vShadowIndices1.w = index; break;
+        case 8: vShadowIndices2.x = index; break;
+        case 9: vShadowIndices2.y = index; break;
+        case 10: vShadowIndices2.z = index; break;
+        case 11: vShadowIndices2.w = index; break;
+        default: return;
+    }
+#else
+    vShadowIndices[vShadowCount >> 2][vShadowCount & 3] = index;
+#endif
+    ++vShadowCount;
 }
 
 void ApplyWarp(inout vec4 vLocal, inout vec2 uvLocal)

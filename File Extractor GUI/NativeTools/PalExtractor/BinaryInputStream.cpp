@@ -5,6 +5,8 @@
 #include <limits>
 #include <stdexcept>
 
+namespace cane::pal
+{
 namespace {
 std::string Utf8FromCodePoint(std::uint32_t cp) {
     std::string out;
@@ -132,4 +134,6 @@ std::string CBinaryInputStream::ReadFixedString32() {
     ReadBytes(text, sizeof(text));
     const auto end = std::find(std::begin(text), std::end(text), '\0');
     return std::string(text, end);
+}
+
 }

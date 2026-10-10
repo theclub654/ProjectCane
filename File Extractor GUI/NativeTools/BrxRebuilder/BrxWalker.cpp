@@ -11,8 +11,8 @@
 #include <stdexcept>
 #include <utility>
 
-BrxWalker::BrxWalker(StringEncoding encoding, BrxSourceRegion region)
-    : encoding_(encoding), region_(region) {}
+BrxWalker::BrxWalker(StringEncoding encoding, BrxSourceRegion region, bool verbose)
+    : verbose_(verbose), encoding_(encoding), region_(region) {}
 
 void BrxWalker::WalkFile(const std::filesystem::path& path) {
     WalkFileInternal(path);
@@ -36,7 +36,7 @@ void BrxWalker::WalkFileInternal(const std::filesystem::path& path) {
         throw std::runtime_error("BRX walk ended before EOF at offset "+
             std::to_string(stream.GetOffset())+" of "+std::to_string(stream.GetSize()));
     const auto outputPath = WriteRebuiltFile(path);
-    std::wcout << L"Rebuilt file: " << outputPath.wstring() << L'\n';
+    if (verbose_) std::wcout << L"Rebuilt file: " << outputPath.wstring() << L'\n';
 }
 
 void BrxWalker::LoadSwFromBrx(CBinaryInputStream& stream) {
@@ -536,6 +536,7 @@ std::filesystem::path BrxWalker::WriteRebuiltFile(
 }
 
 void BrxWalker::Trace(const char* name,std::size_t begin,std::size_t end) const {
+    if (!verbose_) return;
     std::cout<<std::left<<std::setw(36)<<name<<"  0x"<<std::hex<<begin
         <<"..0x"<<end<<std::dec<<" ("<<(end-begin)<<" bytes)\n";
 }

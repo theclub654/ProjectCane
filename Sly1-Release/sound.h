@@ -1,5 +1,6 @@
 #pragma once
 #include "lo.h"
+#include "pcm_wave.h"
 #include <array>
 #include <chrono>
 #include <cstdint>
@@ -12,16 +13,6 @@ struct IXAudio2;
 struct IXAudio2MasteringVoice;
 struct IXAudio2SubmixVoice;
 struct IXAudio2SourceVoice;
-
-struct SoundWaveFormat
-{
-    uint16_t formatTag = 1;
-    uint16_t channels = 0;
-    uint32_t samplesPerSec = 0;
-    uint32_t avgBytesPerSec = 0;
-    uint16_t blockAlign = 0;
-    uint16_t bitsPerSample = 0;
-};
 
 inline constexpr std::size_t kSfxCount = 771;
 inline constexpr std::size_t kEffectBankCount = 7;
@@ -510,6 +501,11 @@ void PauseMusicSequencer();
 void ContinueMusicSequencer(bool continueAmbientSounds = true);
 bool FMusicSequencerPaused();
 void PreloadVag(const char* filename);
+#ifdef __SWITCH__
+void PrefetchVag(const char* filename);
+bool FReadyVag(const char* filename);
+void ClearVagPrefetch();
+#endif
 void PreloadVag(const std::filesystem::path& path);
 void PreloadVagFileName(const char* fileName);
 void PushSwReverb(SW* psw, REVERBK rvrbk, int depth);

@@ -8,6 +8,9 @@
 #include <stdexcept>
 #include <string>
 #include <vector>
+#ifdef __SWITCH__
+#include "switch/file_io.h"
+#endif
 
 #ifdef _WIN32
 #ifndef NOMINMAX
@@ -49,7 +52,7 @@ inline fs::path ExecutableDirectory()
         path.resize(length);
         return fs::path(path).parent_path();
     }
-#else
+#elif !defined(__SWITCH__)
     std::vector<char> path(4096);
     const ssize_t length = readlink("/proc/self/exe", path.data(), path.size());
     if (length > 0 && static_cast<size_t>(length) < path.size())
@@ -63,7 +66,7 @@ inline fs::path DataDirectory()
     if (!g_dataOverride.empty())
         return g_dataOverride;
 
-#ifndef _WIN32
+#if !defined(_WIN32) && !defined(__SWITCH__)
     // AppImage runs the real executable from a temporary, read-only mount.
     // The APPIMAGE variable points at the user-visible image, beside which the
     // extracted Worlds and Cutscenes directories are stored.
@@ -79,7 +82,7 @@ inline fs::path UserDirectory()
     if (!g_userOverride.empty())
         return g_userOverride;
 
-#ifdef _WIN32
+#if defined(_WIN32) || defined(__SWITCH__)
     return ExecutableDirectory();
 #else
     // ExecutableDirectory() is read-only for AppImages. Follow the XDG base
@@ -135,7 +138,9 @@ inline void ConfigureRuntime(const std::vector<std::string>& args)
 
 inline bool AtomicReplace(const fs::path& temporary, const fs::path& destination)
 {
-#ifdef _WIN32
+#ifdef __SWITCH__
+    return CaneIo::AtomicReplace(temporary, destination);
+#elif defined(_WIN32)
     return MoveFileExW(temporary.c_str(), destination.c_str(),
         MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH) != 0;
 #else
@@ -147,6 +152,9 @@ inline bool AtomicReplace(const fs::path& temporary, const fs::path& destination
 
 inline bool DebugMode()
 {
+#ifdef __SWITCH__
+    return false;
+#else
     const fs::path iniPath = UserDirectory() / "Debug Mode.ini";
     std::ifstream input(iniPath);
     if (!input)
@@ -174,6 +182,7 @@ inline bool DebugMode()
         return value == "true" || std::strtol(value.c_str(), nullptr, 10) != 0;
     }
     return false;
+#endif
 }
 
 inline int CompareInsensitive(const char* left, const char* right)
@@ -189,7 +198,7 @@ inline int CompareInsensitive(const char* left, const char* right)
 }
 }
 
-#ifndef _WIN32
+#if !defined(_WIN32) && !defined(__SWITCH__)
 #define _stricmp cane::CompareInsensitive
 #define __debugbreak() raise(SIGTRAP)
 #endif

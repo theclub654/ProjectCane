@@ -23,7 +23,7 @@ enum class BrxSourceRegion { Auto, NtscU, Pal, Japanese };
 
 class BrxWalker {
 public:
-    explicit BrxWalker(StringEncoding encoding, BrxSourceRegion region = BrxSourceRegion::Auto);
+    explicit BrxWalker(StringEncoding encoding, BrxSourceRegion region = BrxSourceRegion::Auto, bool verbose = true);
     void WalkFile(const std::filesystem::path& path);
     [[nodiscard]] const WalkStats& Stats() const { return stats_; }
     GeometrySummary ReadGeom(CBinaryInputStream& stream);
@@ -78,6 +78,7 @@ private:
     std::uint8_t LoadGlobset(CBinaryInputStream& stream);
     void LoadAlox(CBinaryInputStream& stream);
     void Trace(const char* name, std::size_t begin, std::size_t end) const;
+    bool verbose_;
     StringEncoding encoding_;
     BrxSourceRegion region_;
     bool pal_{};
