@@ -1,4 +1,8 @@
 #version 430 core
+#ifdef DEKO3D
+invariant gl_Position;
+precise gl_Position;
+#endif
 
 layout (location = 0) in vec3  vertex;
 layout (location = 1) in vec3  normal;
@@ -18,9 +22,18 @@ layout(std430, binding = 9) readonly buffer BONEBLK
 
 layout(location = 0) out vec4 vertexColor;
 
+#ifdef DEKO3D
+out float vertexAlpha;
+flat out float triangleAlpha;
+#endif
+
 void main()
 {
     vertexColor = color;
+#ifdef DEKO3D
+    vertexAlpha = color.a;
+    triangleAlpha = color.a;
+#endif
 
     vec4 positionLocal = vec4(vertex, 1.0);
 
@@ -58,5 +71,10 @@ void main()
             positionLocal = matSkin * positionLocal;
     }
 
+#ifdef DEKO3D
+    vec4 worldPosition = model * positionLocal;
+    gl_Position = matWorldToClip * worldPosition;
+#else
     gl_Position = matWorldToClip * model * positionLocal;
+#endif
 }

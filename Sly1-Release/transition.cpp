@@ -224,6 +224,11 @@ void CTransition::Execute(std::string& file)
     InitializeSoundOptions();
     if (g_psw != nullptr)
         SetMvgkRvol(g_psw->uMusicVolume, 1, 1);
+#ifdef __SWITCH__
+    if (!fLoadSucceeded || g_psw == nullptr)
+        throw std::runtime_error(std::string("World loading failed: ") + fileNew);
+
+#endif
 
     m_plevelPending = nullptr;
     m_worldPending.clear();

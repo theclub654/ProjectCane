@@ -386,6 +386,22 @@ const char* PchzKeyboardKeyName(int key)
 
 const char* PchzGamepadBindingName(int binding)
 {
+#ifdef __SWITCH__
+    switch (binding)
+    {
+    case GLFW_GAMEPAD_BUTTON_A: return "B / Cross";
+    case GLFW_GAMEPAD_BUTTON_B: return "A / Circle";
+    case GLFW_GAMEPAD_BUTTON_X: return "Y / Square";
+    case GLFW_GAMEPAD_BUTTON_Y: return "X / Triangle";
+    case GLFW_GAMEPAD_BUTTON_LEFT_BUMPER: return "L";
+    case GLFW_GAMEPAD_BUTTON_RIGHT_BUMPER: return "R";
+    case GLFW_GAMEPAD_BUTTON_BACK: return "Minus / Select";
+    case GLFW_GAMEPAD_BUTTON_START: return "Plus / Start";
+    case GAMEPAD_BINDING_LEFT_TRIGGER: return "ZL";
+    case GAMEPAD_BINDING_RIGHT_TRIGGER: return "ZR";
+    default: break;
+    }
+#endif
     switch (binding)
     {
     case GLFW_GAMEPAD_BUTTON_A: return "A / Cross";

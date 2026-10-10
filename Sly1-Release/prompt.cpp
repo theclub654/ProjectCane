@@ -1010,12 +1010,14 @@ void ExecutePrompt(PROMPT* pprompt, int direction)
             case RESPK_Msaa:
             {
                 constexpr int samples[] = { 0, 2, 4, 8, 16 };
+                GLint maxSamples = 0;
+                glGetIntegerv(GL_MAX_SAMPLES, &maxSamples);
                 const int currentSamples = g_fMsaa ? g_msaaSamples : 0;
                 auto current = std::find(std::begin(samples), std::end(samples), currentSamples);
                 int index = current == std::end(samples)
                     ? 0
                     : static_cast<int>(current - std::begin(samples));
-                constexpr int count = static_cast<int>(std::size(samples));
+                const int count = static_cast<int>(std::upper_bound(std::begin(samples), std::end(samples), std::max(0, maxSamples)) - std::begin(samples));
                 index = (index + (direction < 0 ? -1 : 1) + count) % count;
                 g_fMsaa = samples[index] != 0;
                 if (g_fMsaa)

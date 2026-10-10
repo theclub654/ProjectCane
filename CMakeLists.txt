@@ -1,6 +1,11 @@
 cmake_minimum_required(VERSION 3.22)
 project(ProjectCane VERSION 0.4.0 LANGUAGES C CXX)
 
+if(CMAKE_CXX_COMPILER MATCHES "aarch64-none-elf")
+    include(cmake/Switch.cmake)
+    return()
+endif()
+
 # CMake 4 no longer enables compatibility policies older than 3.5 by default.
 # Some pinned third-party projects (currently FAudio 25.02) still declare an
 # older minimum, so provide the supported policy floor to those subprojects.
