@@ -107,13 +107,20 @@ foreach(header
 endforeach()
 set_source_files_properties(Sly1-Release/alo.cpp PROPERTIES
     COMPILE_DEFINITIONS ALO_IMPLEMENTATION SKIP_PRECOMPILE_HEADERS ON)
+# Self-contained translation units (the Visual Studio project gives them no
+# forced includes either).
+set_source_files_properties(Sly1-Release/dlss.cpp Sly1-Release/fsr.cpp Sly1-Release/perf.cpp
+    PROPERTIES SKIP_PRECOMPILE_HEADERS ON)
 
 if(WIN32)
     if(NOT CANE_FFMPEG_ROOT)
         set(CANE_FFMPEG_ROOT
             "${CMAKE_CURRENT_SOURCE_DIR}/Libraries/ffmpeg/ffmpeg-master-latest-win64-lgpl-shared")
     endif()
-    target_include_directories(ProjectCane PRIVATE "${CANE_FFMPEG_ROOT}/include")
+    target_include_directories(ProjectCane PRIVATE "${CANE_FFMPEG_ROOT}/include"
+        "${CMAKE_CURRENT_SOURCE_DIR}/Libraries/streamline/include"
+        "${CMAKE_CURRENT_SOURCE_DIR}/Libraries/vulkan/include"
+        "${CMAKE_CURRENT_SOURCE_DIR}/Libraries/fidelityfx")
     target_link_directories(ProjectCane PRIVATE "${CANE_FFMPEG_ROOT}/lib")
     target_link_libraries(ProjectCane PRIVATE
         opengl32 winmm xaudio2 avformat avcodec avutil swscale)
