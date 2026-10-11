@@ -3193,10 +3193,13 @@ bool FDlssPresentFrame(bool fGameplay)
 
 	if (s_dlss.mainSwap == nullptr)
 	{
-		// OpenGL presents. Present the hidden helper swapchain so Streamline's
-		// per-frame bookkeeping and garbage collection still run.
+		// OpenGL presents. While DLSS is in use, present the hidden helper
+		// swapchain so Streamline's per-frame bookkeeping and garbage collection
+		// still run. Never present it with DLSS off: capture tools (Discord,
+		// OBS game capture) hook the first DirectX swapchain that presents and
+		// would capture this invisible 16x16 window instead of the game.
 		SetPclMarker(sl::PCLMarker::ePresentStart);
-		if (s_dlss.hiddenSwap != nullptr)
+		if (s_dlss.hiddenSwap != nullptr && s_dlss.dlssq != DLSSQ_Off)
 			s_dlss.hiddenSwap->Present(0, s_dlss.fTearing ? DXGI_PRESENT_ALLOW_TEARING : 0);
 		SetPclMarker(sl::PCLMarker::ePresentEnd);
 		return false;
