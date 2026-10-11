@@ -10,6 +10,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <stdexcept>
+#include <iostream>
 
 #ifdef _WIN32
 #ifndef NOMINMAX
@@ -432,7 +433,7 @@ void GL::InitGL()
 	if (blipGroupBlock != GL_INVALID_INDEX)
 		glUniformBlockBinding(glBlipShader.ID, blipGroupBlock, blipStream.bindIndex);
 
-	glDepthMask(GL_TRUE);
+	GlDepthMask(GL_TRUE);
 	glCullFace(GL_BACK);
 	glFrontFace(GL_CCW);
 	////
@@ -482,12 +483,27 @@ void GL::InitGL()
 	glslCelPoseWeights = glGetUniformLocation(glCelBorderShader.ID, "poseWeights[0]");
 }
 
+namespace
+{
+void CreateSceneDepthTexture(GLuint* ptex, int w, int h)
+{
+	glGenTextures(1, ptex);
+	glBindTexture(GL_TEXTURE_2D, *ptex);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH24_STENCIL8, w, h, 0, GL_DEPTH_STENCIL, GL_UNSIGNED_INT_24_8, nullptr);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_MODE, GL_NONE);
+	glTexParameteri(GL_TEXTURE_2D, GL_DEPTH_STENCIL_TEXTURE_MODE, GL_DEPTH_COMPONENT);
+	glBindTexture(GL_TEXTURE_2D, 0);
+}
+}
+
 void GL::CreateFramebuffers(int w, int h)
 {
 	// delete old
 	if (fbo)  glDeleteFramebuffers(1, &fbo);
 	if (fbc)  glDeleteTextures(1, &fbc);
-	if (rbo)  glDeleteRenderbuffers(1, &rbo);
+	if (fbd)  glDeleteTextures(1, &fbd);
 
 	if (fboMSAA) glDeleteFramebuffers(1, &fboMSAA);
 	if (rboColorMSAA) glDeleteRenderbuffers(1, &rboColorMSAA);
@@ -497,7 +513,7 @@ void GL::CreateFramebuffers(int w, int h)
 	if (dyshFbc) glDeleteTextures(1, &dyshFbc);
 	if (dyshRbo) glDeleteRenderbuffers(1, &dyshRbo);
 
-	fbo = fbc = rbo = 0;
+	fbo = fbc = fbd = 0;
 	fboMSAA = rboColorMSAA = rboDepthStencilMSAA = 0;
 	dyshFbo = dyshFbc = dyshRbo = 0;
 
@@ -512,10 +528,9 @@ void GL::CreateFramebuffers(int w, int h)
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, fbc, 0);
 
-	glGenRenderbuffers(1, &rbo);
-	glBindRenderbuffer(GL_RENDERBUFFER, rbo);
-	glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, w, h);
-	glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, rbo);
+	// Scene depth is a texture (not a renderbuffer) so DLSS / FSR can read it.
+	CreateSceneDepthTexture(&fbd, w, h);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_TEXTURE_2D, fbd, 0);
 
 	if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
 	{
@@ -622,10 +637,8 @@ bool GL::ResizeFramebuffers(int w, int h)
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, newColor, 0);
-	glGenRenderbuffers(1, &newDepth);
-	glBindRenderbuffer(GL_RENDERBUFFER, newDepth);
-	glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, fbW, fbH);
-	glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, newDepth);
+	CreateSceneDepthTexture(&newDepth, fbW, fbH);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_TEXTURE_2D, newDepth, 0);
 
 	GLenum error = glGetError();
 	GLenum status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
@@ -655,7 +668,7 @@ bool GL::ResizeFramebuffers(int w, int h)
 	{
 		if (newFbo) glDeleteFramebuffers(1, &newFbo);
 		if (newColor) glDeleteTextures(1, &newColor);
-		if (newDepth) glDeleteRenderbuffers(1, &newDepth);
+		if (newDepth) glDeleteTextures(1, &newDepth);
 		if (newMsaaFbo) glDeleteFramebuffers(1, &newMsaaFbo);
 		if (newMsaaColor) glDeleteRenderbuffers(1, &newMsaaColor);
 		if (newMsaaDepth) glDeleteRenderbuffers(1, &newMsaaDepth);
@@ -667,13 +680,13 @@ bool GL::ResizeFramebuffers(int w, int h)
 
 	if (fbo) glDeleteFramebuffers(1, &fbo);
 	if (fbc) glDeleteTextures(1, &fbc);
-	if (rbo) glDeleteRenderbuffers(1, &rbo);
+	if (fbd) glDeleteTextures(1, &fbd);
 	if (fboMSAA) glDeleteFramebuffers(1, &fboMSAA);
 	if (rboColorMSAA) glDeleteRenderbuffers(1, &rboColorMSAA);
 	if (rboDepthStencilMSAA) glDeleteRenderbuffers(1, &rboDepthStencilMSAA);
 	fbo = newFbo;
 	fbc = newColor;
-	rbo = newDepth;
+	fbd = newDepth;
 	fboMSAA = newMsaaFbo;
 	rboColorMSAA = newMsaaColor;
 	rboDepthStencilMSAA = newMsaaDepth;
@@ -712,7 +725,7 @@ void GL::TerminateGL()
 	}
 	glDeleteFramebuffers(1, &fbo);
 	glDeleteTextures(1, &fbc);
-	glDeleteRenderbuffers(1, &rbo);
+	glDeleteTextures(1, &fbd);
 	
 	glDeleteFramebuffers(1, &fboMSAA);
 	glDeleteRenderbuffers(1, &rboColorMSAA);
@@ -759,6 +772,8 @@ void GL::TerminateGL()
 	glfwDestroyWindow(window);
 	glfwTerminate();
 }
+
+GLboolean g_glDepthMask = GL_TRUE;
 
 void InitCameraUbo()
 {
@@ -1019,9 +1034,14 @@ bool ApplyInternalResolutionSettings()
 	return s_lastFramebufferResizeSucceeded;
 }
 
+static bool s_fFullscreenBorderless = false;
+
 void ApplyWindowModeSettings(WindowMode mode)
 {
-	if (g_gl.window == nullptr || mode == g_windowMode)
+	// DLSS Frame Generation cannot present over exclusive OpenGL fullscreen,
+	// so "Fullscreen" becomes a borderless window covering the monitor then.
+	const bool fBorderlessFs = mode == WindowMode_Fullscreen && FDlssNeedsBorderlessFullscreen();
+	if (g_gl.window == nullptr || (mode == g_windowMode && fBorderlessFs == s_fFullscreenBorderless))
 		return;
 
 	GLFWmonitor* monitor = MonitorForWindow(g_gl.window);
@@ -1056,6 +1076,17 @@ void ApplyWindowModeSettings(WindowMode mode)
 		glfwSetWindowMonitor(g_gl.window, nullptr, x, y,
 			videoMode->width, videoMode->height, GLFW_DONT_CARE);
 	}
+	else if (fBorderlessFs)
+	{
+		const GLFWvidmode* videoMode = glfwGetVideoMode(monitor);
+		if (videoMode == nullptr)
+			return;
+		int x = 0;
+		int y = 0;
+		glfwGetMonitorPos(monitor, &x, &y);
+		glfwSetWindowAttrib(g_gl.window, GLFW_DECORATED, GLFW_FALSE);
+		glfwSetWindowMonitor(g_gl.window, nullptr, x, y, videoMode->width, videoMode->height, GLFW_DONT_CARE);
+	}
 	else
 	{
 		const GLFWvidmode* videoMode = glfwGetVideoMode(monitor);
@@ -1066,6 +1097,7 @@ void ApplyWindowModeSettings(WindowMode mode)
 			videoMode->width, videoMode->height, videoMode->refreshRate);
 	}
 
+	s_fFullscreenBorderless = fBorderlessFs;
 	g_windowMode = mode;
 	glfwSwapInterval(g_fVsync ? 1 : 0);
 }
@@ -1121,7 +1153,24 @@ void FrameBufferSizeCallBack(GLFWwindow* window, int width, int height)
 	int sceneW = presentW;
 	int sceneH = presentH;
 
-	if (g_internalResolutionHeight > 0)
+	int dlssW = 0;
+	int dlssH = 0;
+	if (FDlssRenderSize(presentW, presentH, &dlssW, &dlssH))
+	{
+		// DLSS picks the render resolution for the selected quality mode and
+		// upscales to the present size. Internal resolution is ignored.
+		sceneW = dlssW;
+		sceneH = dlssH;
+		ResetDlssHistory();
+	}
+	else if (FFsrRenderSize(presentW, presentH, &dlssW, &dlssH))
+	{
+		// AMD FSR: render at the mode's lower resolution, upscale to present.
+		sceneW = dlssW;
+		sceneH = dlssH;
+		ResetFsrHistory();
+	}
+	else if (g_internalResolutionHeight > 0)
 	{
 		sceneH = g_internalResolutionHeight;
 		sceneW = std::max(1, static_cast<int>(std::lround(

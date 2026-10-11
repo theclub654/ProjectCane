@@ -1,4 +1,5 @@
 #include "tv.h"
+#include "gl.h"
 #include "light.h"
 #include "binoc.h"
 #include "speaker.h"
@@ -627,7 +628,7 @@ static void RestoreTvContextState(bool clearStencil)
     glDisable(GL_SCISSOR_TEST);
 
     glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
-    glDepthMask(GL_TRUE);
+    GlDepthMask(GL_TRUE);
     glEnable(GL_DEPTH_TEST);
     glDepthFunc(GL_LESS);
     glDisable(GL_BLEND);
@@ -638,8 +639,7 @@ static void RestoreTvContextState(bool clearStencil)
         SetCmFov(g_pcm, s_radTvFovSaved);
         g_pcm->radFOVTarget = s_radTvFovTargetSaved;
         g_pcm->svRadFOV = s_svTvFovSaved;
-        glBindBuffer(GL_UNIFORM_BUFFER, cmUBO);
-        glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(CMGL), &g_pcm->matWorldToClip);
+        UploadCmUbo(&g_pcm->matWorldToClip, sizeof(CMGL));
     }
 
     s_fTvCameraSaved = false;
@@ -697,8 +697,11 @@ void PreTvContext(RPL* prpl)
     // Keep the authored projection so the screen-space anchor remains fixed.
     // RenderTv compensates the model's local X scale for the host aspect.
     SetTvCameraFov(g_pcm, ptv->pspeakerDraw->radFov, 1280.0f / 720.0f);
-    glBindBuffer(GL_UNIFORM_BUFFER, cmUBO);
-    glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(CMGL), &g_pcm->matWorldToClip);
+    UploadCmUbo(&g_pcm->matWorldToClip, sizeof(CMGL));
+
+    // The portrait is drawn with its own camera, so the main camera's
+    // reprojection is wrong inside the TV. Tell DLSS it is screen-fixed.
+    AddDlssStaticRect(scissorX, scissorY, scissorWidth, scissorHeight);
 
     glEnable(GL_SCISSOR_TEST);
     glScissor(scissorX, scissorY, scissorWidth, scissorHeight);
@@ -707,7 +710,7 @@ void PreTvContext(RPL* prpl)
     glStencilMask(0xFF);
 
     glClearStencil(0);
-    glDepthMask(GL_TRUE);
+    GlDepthMask(GL_TRUE);
     glClearDepth(1.0);
     glClear(GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
@@ -718,7 +721,7 @@ void PreTvContext(RPL* prpl)
 
     glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
 
-    glDepthMask(GL_FALSE);
+    GlDepthMask(GL_FALSE);
     glDisable(GL_DEPTH_TEST);
     glDisable(GL_BLEND);
 
@@ -744,7 +747,7 @@ void PreTvContext(RPL* prpl)
     // The rectangular depth initialization above corresponds to the first
     // PS2 PreTvContext rectangle.  The speaker now renders against that
     // initialized TV-local depth buffer through the curved stencil mask.
-    glDepthMask(GL_TRUE);
+    GlDepthMask(GL_TRUE);
     glEnable(GL_DEPTH_TEST);
     glDepthFunc(GL_LESS);
 
@@ -860,7 +863,7 @@ void PostTvContext(RPL* prpl)
     glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP);
 
     glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
-    glDepthMask(GL_TRUE);
+    GlDepthMask(GL_TRUE);
     glEnable(GL_DEPTH_TEST);
     glDepthFunc(GL_ALWAYS);
 

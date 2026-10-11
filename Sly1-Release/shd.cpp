@@ -1,4 +1,5 @@
 #include "shd.h"
+#include "qol.h"
 #include "upscale.h"
 #include "sensor.h"
 #include <cstdio>
@@ -345,6 +346,8 @@ void LoadShadersFromBrx(CBinaryInputStream* pbis)
                     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
                     glTexStorage2D(GL_TEXTURE_2D, mipLevels, GL_RGBA8, width, height);
+                    // Anisotropic filtering (Video menu).
+                    QolRegisterTexture(glTex);
 
                 };
 

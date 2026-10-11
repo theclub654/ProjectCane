@@ -1,4 +1,5 @@
 #include "binoc.h"
+#include "gl.h"
 #include "aseg.h"
 #include "totals.h"
 #include "pzo.h"
@@ -63,7 +64,7 @@ namespace
             glBlendFuncSeparate(blendSrcRgb, blendDstRgb, blendSrcAlpha, blendDstAlpha);
             glBlendEquationSeparate(blendEquationRgb, blendEquationAlpha);
             glDepthFunc(depthFunc);
-            glDepthMask(depthMask);
+            GlDepthMask(depthMask);
             glDepthRange(depthRange[0], depthRange[1]);
             glStencilFunc(stencilFunc, stencilRef, static_cast<GLuint>(stencilValueMask));
             glStencilMask(static_cast<GLuint>(stencilWriteMask));
@@ -1432,7 +1433,7 @@ void DrawBinocBackground(BINOC* pbinoc)
     GLboolean depthWriteWasEnabled = GL_TRUE;
     GLint depthFuncPrevious = GL_LESS;
     GLdouble depthRangePrevious[2] = { 0.0, 1.0 };
-    glGetBooleanv(GL_DEPTH_WRITEMASK, &depthWriteWasEnabled);
+    depthWriteWasEnabled = g_glDepthMask;
     glGetIntegerv(GL_DEPTH_FUNC, &depthFuncPrevious);
     glGetDoublev(GL_DEPTH_RANGE, depthRangePrevious);
 
@@ -1448,7 +1449,7 @@ void DrawBinocBackground(BINOC* pbinoc)
     // retain their intended brightness.
     glEnable(GL_DEPTH_TEST);
     glDepthFunc(GL_LESS);
-    glDepthMask(GL_FALSE);
+    GlDepthMask(GL_FALSE);
     glDepthRange(0.0, 0.0);
     glUniform4f(uvRectLoc, 0, 0, 1, 1);
     glUniform4fv(blotColorLoc, 1, glm::value_ptr(RGBA_Overlay));
@@ -1461,7 +1462,7 @@ void DrawBinocBackground(BINOC* pbinoc)
         static_cast<GLsizei>(pbinoc->backGroundBinocIndices.size()));
 
     glDepthRange(depthRangePrevious[0], depthRangePrevious[1]);
-    glDepthMask(depthWriteWasEnabled);
+    GlDepthMask(depthWriteWasEnabled);
     glDepthFunc(depthFuncPrevious);
     glDisable(GL_BLEND);
 

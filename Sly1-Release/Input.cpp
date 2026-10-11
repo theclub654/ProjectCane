@@ -1,4 +1,5 @@
 #include "Input.h"
+#include "mouseinput.h"
 #include "clock.h"
 #include "credit.h"
 #include "pzo.h"
@@ -12,6 +13,8 @@
 #include "ui.h"
 #include "mb.h"
 #include <cstdio>
+#include <cctype>
+#include <string>
 #include <iterator>
 
 namespace
@@ -381,30 +384,92 @@ const char* PchzKeyboardKeyNameInternal(int key)
 
 const char* PchzKeyboardKeyName(int key)
 {
+    if (FMouseBinding(key))
+        return PchzMouseBindingName(key);
     return PchzKeyboardKeyNameInternal(key);
+}
+
+// -----------------------------------------------------------------------------
+// Controller type (Xbox / PlayStation / Nintendo) for button names and icons.
+// -----------------------------------------------------------------------------
+namespace
+{
+GAMEPADTYPE s_gamepadTypeDetected = GAMEPADTYPE_Xbox;
+int s_gamepadIconOverride = 0;   // 0 = auto, else 1 + GAMEPADTYPE
+
+std::string LowerAscii(const char* pchz)
+{
+    std::string s = pchz != nullptr ? pchz : "";
+    for (char& ch : s)
+        ch = static_cast<char>(std::tolower(static_cast<unsigned char>(ch)));
+    return s;
+}
+
+GAMEPADTYPE DetectGamepadType(int jid)
+{
+    const std::string name = LowerAscii(glfwGetGamepadName(jid)) + " " + LowerAscii(glfwGetJoystickName(jid));
+    const std::string guid = LowerAscii(glfwGetJoystickGUID(jid));
+    // SDL-style GUID: hex chars 8..11 are the USB vendor id, little endian.
+    const std::string vendor = guid.size() >= 12 ? guid.substr(8, 4) : std::string();
+    const auto Has = [&](const char* pchz) { return name.find(pchz) != std::string::npos; };
+
+    if (vendor == "4c05" || Has("playstation") || Has("dualshock") || Has("dualsense") ||
+        Has("ps3") || Has("ps4") || Has("ps5") || Has("sony"))
+        return GAMEPADTYPE_PlayStation;
+    if (vendor == "7e05" || Has("nintendo") || Has("switch") || Has("joy-con") || Has("joycon"))
+        return GAMEPADTYPE_Nintendo;
+    return GAMEPADTYPE_Xbox;
+}
+}
+
+void UpdateGamepadType(int jid)
+{
+    if (jid >= GLFW_JOYSTICK_1 && jid <= GLFW_JOYSTICK_LAST && glfwJoystickPresent(jid))
+        s_gamepadTypeDetected = DetectGamepadType(jid);
+}
+
+GAMEPADTYPE DetectedGamepadType()
+{
+    return s_gamepadTypeDetected;
+}
+
+GAMEPADTYPE ActiveGamepadType()
+{
+    if (s_gamepadIconOverride >= 1 && s_gamepadIconOverride <= 3)
+        return static_cast<GAMEPADTYPE>(s_gamepadIconOverride - 1);
+    return s_gamepadTypeDetected;
+}
+
+void SetGamepadIconOverride(int setting)
+{
+    s_gamepadIconOverride = setting;
 }
 
 const char* PchzGamepadBindingName(int binding)
 {
+    const GAMEPADTYPE type = ActiveGamepadType();
+    const bool fPs = type == GAMEPADTYPE_PlayStation;
+    const bool fNin = type == GAMEPADTYPE_Nintendo;
     switch (binding)
     {
-    case GLFW_GAMEPAD_BUTTON_A: return "A / Cross";
-    case GLFW_GAMEPAD_BUTTON_B: return "B / Circle";
-    case GLFW_GAMEPAD_BUTTON_X: return "X / Square";
-    case GLFW_GAMEPAD_BUTTON_Y: return "Y / Triangle";
-    case GLFW_GAMEPAD_BUTTON_LEFT_BUMPER: return "Left Bumper";
-    case GLFW_GAMEPAD_BUTTON_RIGHT_BUMPER: return "Right Bumper";
-    case GLFW_GAMEPAD_BUTTON_BACK: return "Back / Select";
-    case GLFW_GAMEPAD_BUTTON_START: return "Start";
-    case GLFW_GAMEPAD_BUTTON_GUIDE: return "Guide";
-    case GLFW_GAMEPAD_BUTTON_LEFT_THUMB: return "Left Stick";
-    case GLFW_GAMEPAD_BUTTON_RIGHT_THUMB: return "Right Stick";
+    // Face buttons by position: bottom, right, left, top.
+    case GLFW_GAMEPAD_BUTTON_A: return fPs ? "Cross" : (fNin ? "B" : "A");
+    case GLFW_GAMEPAD_BUTTON_B: return fPs ? "Circle" : (fNin ? "A" : "B");
+    case GLFW_GAMEPAD_BUTTON_X: return fPs ? "Square" : (fNin ? "Y" : "X");
+    case GLFW_GAMEPAD_BUTTON_Y: return fPs ? "Triangle" : (fNin ? "X" : "Y");
+    case GLFW_GAMEPAD_BUTTON_LEFT_BUMPER: return fPs ? "L1" : (fNin ? "L" : "LB");
+    case GLFW_GAMEPAD_BUTTON_RIGHT_BUMPER: return fPs ? "R1" : (fNin ? "R" : "RB");
+    case GLFW_GAMEPAD_BUTTON_BACK: return fPs ? "Share" : (fNin ? "Minus" : "View");
+    case GLFW_GAMEPAD_BUTTON_START: return fPs ? "Options" : (fNin ? "Plus" : "Menu");
+    case GLFW_GAMEPAD_BUTTON_GUIDE: return fPs ? "PS" : (fNin ? "Home" : "Guide");
+    case GLFW_GAMEPAD_BUTTON_LEFT_THUMB: return fPs ? "L3" : "Left Stick";
+    case GLFW_GAMEPAD_BUTTON_RIGHT_THUMB: return fPs ? "R3" : "Right Stick";
     case GLFW_GAMEPAD_BUTTON_DPAD_UP: return "D-Pad Up";
     case GLFW_GAMEPAD_BUTTON_DPAD_RIGHT: return "D-Pad Right";
     case GLFW_GAMEPAD_BUTTON_DPAD_DOWN: return "D-Pad Down";
     case GLFW_GAMEPAD_BUTTON_DPAD_LEFT: return "D-Pad Left";
-    case GAMEPAD_BINDING_LEFT_TRIGGER: return "Left Trigger";
-    case GAMEPAD_BINDING_RIGHT_TRIGGER: return "Right Trigger";
+    case GAMEPAD_BINDING_LEFT_TRIGGER: return fPs ? "L2" : (fNin ? "ZL" : "LT");
+    case GAMEPAD_BINDING_RIGHT_TRIGGER: return fPs ? "R2" : (fNin ? "ZR" : "RT");
     default: return "Unbound";
     }
 }
@@ -422,8 +487,14 @@ void JOY::Update(GLFWwindow* window)
     for (int button = 0; button < BTN_MAX; ++button)
     {
         const int key = g_keyboardBindings[button];
-        if (key != GLFW_KEY_UNKNOWN)
+        if (FMouseBinding(key))
+            current[static_cast<JOY_BUTTON>(button)] = FMouseBindingHeld(key);
+        else if (key != GLFW_KEY_UNKNOWN)
+        {
             current[static_cast<JOY_BUTTON>(button)] = glfwGetKey(window, key) == GLFW_PRESS;
+            if (current[static_cast<JOY_BUTTON>(button)])
+                NoteInputDevice(INPUTDEV_Keyboard);   // button prompt bar shows keys
+        }
     }
 
     float xRaw = 0.0f;
@@ -505,6 +576,8 @@ void JOY::Update(GLFWwindow* window)
 
     if (haveGamepadState)
     {
+        if (bestActivity > 0.5f)
+            NoteInputDevice(INPUTDEV_Gamepad);   // button prompt bar shows pad glyphs
         const bool xinputDeviceChanged =
 #ifdef _WIN32
             activeIsXInput && activeXInputUser != xinputUser;
@@ -517,6 +590,8 @@ void JOY::Update(GLFWwindow* window)
             calibration2 = StickCalibration{};
         }
 
+        if (activeJoystickId != joystickId)
+            UpdateGamepadType(activeJoystickId);
         joystickId = activeJoystickId;
 #ifdef _WIN32
         xinputUser = activeIsXInput ? activeXInputUser : -1;

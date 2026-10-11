@@ -1,4 +1,6 @@
 #include "ui.h"
+#include "qol.h"
+#include "mods.h"
 #include "mb.h"
 #include "binoc.h"
 #include "wm.h"
@@ -284,7 +286,10 @@ void UpdateUi(UI* pui)
             if (g_saveData.pgsAttractSave != nullptr)
                 LoadCurrentSave(&g_saveData);
             else
+            {
                 InitGameState(g_pgsCur);
+                OnModsNewGame();
+            }
 
             ReloadCurrentLevel();
             uis = pui->uis;
@@ -311,9 +316,12 @@ void UpdateUi(UI* pui)
             break;
 
         const bool fPausePressed = pjoy->IsPressed(BTN_START);
+        // Options > Pause When Unfocused: open the pause menu while the
+        // window is in the background.
+        const bool fFocusPause = FQolFocusLossPause();
         const bool fControllerMissing = pjoy->joys == JOYS_Searching && g_clock.t >= 5.0f;
 
-        if (fPausePressed || fControllerMissing)
+        if (fPausePressed || fControllerMissing || fFocusPause)
         {
             SetPrompt(&g_prompt, PRP_Basic, PRK_PauseMenu);
             uis = pui->uis;

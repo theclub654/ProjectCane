@@ -1,4 +1,5 @@
 #include "sqtr.h"
+#include "gl.h"
 #include "alo.h"
 #include "render.h"
 
@@ -334,13 +335,13 @@ void DrawSqtrm(RPL* prpl)
     const GLboolean depthTestWasEnabled = glIsEnabled(GL_DEPTH_TEST);
     GLboolean depthWriteWasEnabled = GL_TRUE;
     GLint depthFunc = GL_LESS;
-    glGetBooleanv(GL_DEPTH_WRITEMASK, &depthWriteWasEnabled);
+    depthWriteWasEnabled = g_glDepthMask;
     glGetIntegerv(GL_DEPTH_FUNC, &depthFunc);
 
     glDisable(GL_CULL_FACE);
     glEnable(GL_DEPTH_TEST);
     glDepthFunc(GL_LESS);
-    glDepthMask(GL_FALSE);
+    GlDepthMask(GL_FALSE);
 
     const GLsizeiptr uploadSize = static_cast<GLsizeiptr>(vertexCount * sizeof(SQTRGPU));
 
@@ -351,7 +352,7 @@ void DrawSqtrm(RPL* prpl)
 
     glDrawArrays(GL_TRIANGLE_STRIP, 0, vertexCount);
 
-    glDepthMask(depthWriteWasEnabled);
+    GlDepthMask(depthWriteWasEnabled);
     glDepthFunc(depthFunc);
     if (!depthTestWasEnabled)
         glDisable(GL_DEPTH_TEST);

@@ -28,9 +28,9 @@ double MOUSE::scrollDy = 0;
 bool MOUSE::firstMouse = true;
 
 // button state array (true for down, false for up)
-bool MOUSE::buttons[GLFW_MOUSE_BUTTON_LAST] = { 0 };
+bool MOUSE::buttons[GLFW_MOUSE_BUTTON_LAST + 1] = { 0 };
 // button changed array (true if changed)
-bool MOUSE::buttonsChanged[GLFW_MOUSE_BUTTON_LAST] = { 0 };
+bool MOUSE::buttonsChanged[GLFW_MOUSE_BUTTON_LAST + 1] = { 0 };
 
 /*
     callbacks
@@ -55,6 +55,8 @@ void MOUSE::CursorPosCallback(GLFWwindow* window, double _x, double _y) {
 
 // mouse button state changed
 void MOUSE::MouseButtonCallback(GLFWwindow* window, int button, int action, int mods) {
+    if (button < 0 || button > GLFW_MOUSE_BUTTON_LAST)
+        return;
     if (action != GLFW_RELEASE) {
         if (!buttons[button]) {
             buttons[button] = true;
@@ -68,8 +70,9 @@ void MOUSE::MouseButtonCallback(GLFWwindow* window, int button, int action, int 
 
 // scroll wheel moved
 void MOUSE::MouseWheelCallback(GLFWwindow* window, double dx, double dy) {
-    scrollDx = dx;
-    scrollDy = dy;
+    // Accumulate: several wheel events can arrive between two frames.
+    scrollDx += dx;
+    scrollDy += dy;
 }
 
 /*
