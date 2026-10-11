@@ -5,6 +5,7 @@
 #include "jt.h"
 #include "call.h"
 #include "dialog.h"
+#include "debug.h"
 #include <cstdio>
 
 PO* NewPo()
@@ -373,7 +374,9 @@ void HandleDialogButtons(JOY* pjoy)
 	if (g_pdialogCalling != nullptr &&
 		g_pdialogCalling->dialogs == DIALOGS_Playing &&
 		!g_pdialogCalling->fNoSkip &&
-		!FDialogSkipProtected(g_pdialogCalling) &&
+		// Retail skips any already-heard call; the vault-code protection only
+		// applies with the optional dialog skip controls turned on.
+		!(g_fSkipBinocDialogs && FDialogSkipProtected(g_pdialogCalling)) &&
 		fDialogButtonPressed &&
 		*g_pdialogCalling->pfPlayed != 0)
 	{

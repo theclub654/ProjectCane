@@ -127,12 +127,12 @@ void RecalcCm(CM* pcm)
 	pcm->yScreenRange = yScreenRange;
 	pcm->xScreenRange = yScreenRange * gameplayAspect;
 	pcm->rMRDAdjust = std::max(1.0f, pcm->rMRD * (1.0f / pcm->radFOV));
-	// Collision must cover the near-plane corners of the projection that is
-	// actually rendered. Otherwise Hor+ widescreen modes can put the expanded
-	// sides of the near plane through nearby walls while the authored 4:3
-	// collision sphere still reports the camera as clear.
-	pcm->sRadiusNearClip = renderScreenRange *
-		sqrtf(renderAspect * renderAspect + 1.0f) * pcm->sNearClip + 1.0f;
+	// Retail camera collision: the near-clip sphere comes from the authored PS2
+	// projection, so the camera's path (and the stick directions that follow
+	// from it) match the console in every aspect mode. Sizing it from the
+	// rendered widescreen projection moves the camera differently than retail.
+	(void)renderScreenRange;
+	pcm->sRadiusNearClip = yScreenRange * sqrtf(gameplayAspect * gameplayAspect + 1.0f) * pcm->sNearClip + 1.0f;
 
 	// Only rendering and the extracted world-space frustum use the display
 	// aspect, preserving the wider view without altering gameplay camera logic.

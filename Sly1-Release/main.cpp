@@ -172,7 +172,9 @@ void RunGameFrame()
     {
         FlushTransitionFrame();
 		g_transition.Execute(file);
-		ResyncClockTick(&g_clock);
+        // Retail does not resync the game clock after a load (main.c): the first
+        // frame of the new world takes the maximum two-frame step. Only the
+        // presentation pacer is resynchronized.
         if (s_framePacer != nullptr)
             s_framePacer->Resync();
     }
