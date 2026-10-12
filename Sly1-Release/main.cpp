@@ -14,6 +14,9 @@
 #include "emitter.h"
 #include "blip.h"
 #include "../platform/platform.h"
+#ifdef __SWITCH__
+#include "runtime.h"
+#endif
 #include <atomic>
 #include <chrono>
 #include <cstdio>
@@ -583,11 +586,21 @@ int RunApplication(const std::vector<std::string>& arguments)
 	catch (const std::exception& exception)
 	{
 		ReportFatalRuntimeError(exception.what());
+#ifdef __SWITCH__
+        ShutdownSound();
+        if (g_gl.window) g_gl.TerminateGL();
+        CaneSwitchError(exception.what());
+#endif
 		return EXIT_FAILURE;
 	}
 	catch (...)
 	{
 		ReportFatalRuntimeError("Unknown C++ exception");
+#ifdef __SWITCH__
+        ShutdownSound();
+        if (g_gl.window) g_gl.TerminateGL();
+        CaneSwitchError("Unknown C++ exception");
+#endif
 		return EXIT_FAILURE;
 	}
 }
@@ -600,7 +613,14 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int)
 #else
 int main(int argc, char* argv[])
 {
+#ifdef __SWITCH__
+    if (!CaneSwitchStartup(argc, argv)) return EXIT_FAILURE;
+    const int result = RunApplication({});
+    CaneSwitchShutdown();
+    return result;
+#else
 	return RunApplication(cane::Arguments(argc, argv));
+#endif
 }
 #endif
 
@@ -609,10 +629,13 @@ void Startup()
 	// Debug mode is intentionally sampled once. Editing the INI while running
 	// takes effect only after restarting the program.
 	LoadDebugModeSetting();
-    g_gl.InitGL();
+    if (g_gl.window == nullptr)
+        g_gl.InitGL();
     glfwSwapInterval(g_fVsync ? 1 : 0);
 
+#ifndef __SWITCH__
     std::cout << "Sly Cooper 2002 Sony Computer Entertainment America & Sucker Punch Productions\n";
+#endif
     SetPhase(PHASE_Startup);
 
     StartupClock();

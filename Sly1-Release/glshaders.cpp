@@ -1,4 +1,7 @@
 #include "glshaders.h"
+#ifdef CANE_DEKO3D
+#include "deko/backend.h"
+#else
 #include "resource1.h"
 
 #ifdef CANE_PORTABLE_SHADERS
@@ -115,8 +118,13 @@ namespace
 	}
 }
 
+#endif
+
 void GLSHADER::Init(const char* vertexFile, const char* geometryFile, const char* fragmentFile)
 {
+#ifdef CANE_DEKO3D
+    ID = CaneDeko::CreateProgram(vertexFile, geometryFile, fragmentFile);
+#else
 	std::string vertexCode{};
 	std::string geometryCode{};
 	std::string fragmentCode{};
@@ -231,7 +239,7 @@ void GLSHADER::Init(const char* vertexFile, const char* geometryFile, const char
 
 	if (fragmentFile != NULL)
 		glDeleteShader(fragmentShader);
-
+#endif
 }
 
 void GLSHADER::Use()
@@ -244,6 +252,7 @@ void GLSHADER::Delete()
 	glDeleteProgram(ID);
 }
 
+#ifndef CANE_DEKO3D
 bool GLSHADER::compileErrors(unsigned int shader, const char* type,
 	const char* vertexFile, const char* geometryFile, const char* fragmentFile)
 {
@@ -311,6 +320,8 @@ bool GLSHADER::compileErrors(unsigned int shader, const char* type,
 
 	return true;
 }
+
+#endif
 
 GLSHADER glScreenShader;
 GLSHADER glDyshadow;
