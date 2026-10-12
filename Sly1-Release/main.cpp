@@ -326,7 +326,7 @@ void RunGameFrame()
             cam.matProj = g_pcm->matProj;
             cam.pos = g_pcm->pos;
             cam.radFov = g_pcm->radFOV;
-            cam.sNearClip = g_pcm->sNearClip;
+            cam.sNearClip = g_pcm->sRenderNearClip;
             cam.sFarClip = g_pcm->sFarClip;
 
             // On success the upscaled output (present resolution) is now
@@ -365,7 +365,7 @@ void RunGameFrame()
             fsrCam.matProj = g_pcm->matProj;
             fsrCam.pos = g_pcm->pos;
             fsrCam.radFov = g_pcm->radFOV;
-            fsrCam.sNearClip = g_pcm->sNearClip;
+            fsrCam.sNearClip = g_pcm->sRenderNearClip;
             fsrCam.sFarClip = g_pcm->sFarClip;
             fFsrUpscaled = FEvaluateFsr(fsrCam, g_gl.fbc, g_gl.fbd, g_gl.renderWidth, g_gl.renderHeight,
                 g_gl.presentWidth, g_gl.presentHeight);

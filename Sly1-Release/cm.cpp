@@ -135,7 +135,8 @@ void RecalcCm(CM* pcm)
 	// views from clipping into walls but moves the camera differently; we keep
 	// the original behaviour.
 	(void)renderScreenRange;
-	pcm->sRadiusNearClip = yScreenRange * sqrtf(gameplayAspect * gameplayAspect + 1.0f) * pcm->sNearClip + 1.0f;
+	const float sRetailNearExtent = yScreenRange * sqrtf(gameplayAspect * gameplayAspect + 1.0f);
+	pcm->sRadiusNearClip = sRetailNearExtent * pcm->sNearClip + 1.0f;
 
 	// Field-of-view option (Video menu): widen only what is drawn. It is applied
 	// after sRadiusNearClip so the QOL setting never changes the camera's
@@ -145,7 +146,18 @@ void RecalcCm(CM* pcm)
 
 	// Only rendering and the extracted world-space frustum use the display
 	// aspect, preserving the wider view without altering gameplay camera logic.
-	BuildProjectionMatrix(renderFov, renderAspect, pcm->sNearClip, pcm->sFarClip, pcm->matProj);
+	//
+	// The collision sphere above only keeps the near plane out of walls for the
+	// PS2's field of view. A wider rendered view (Hor+ widescreen) puts the near
+	// plane's corners outside that sphere, so walls next to the camera get cut
+	// open. Instead of growing the sphere (which changes the camera path), pull
+	// the drawn near plane in until its corners are no farther out than
+	// retail's. Only the projection uses this; gameplay keeps pcm->sNearClip.
+	const float sRenderNearExtent = tanf(renderFov * 0.5f) * sqrtf(renderAspect * renderAspect + 1.0f);
+	pcm->sRenderNearClip = (sRenderNearExtent > sRetailNearExtent)
+		? pcm->sNearClip * (sRetailNearExtent / sRenderNearExtent)
+		: pcm->sNearClip;
+	BuildProjectionMatrix(renderFov, renderAspect, pcm->sRenderNearClip, pcm->sFarClip, pcm->matProj);
 	UpdateCmMat4(pcm);
 }
 
@@ -228,6 +240,7 @@ void CloneCm(CM* pcm, CM* pcmBase)
 	pcm->sNearClip = pcmBase->sNearClip;
 	pcm->sFarClip = pcmBase->sFarClip;
 	pcm->sRadiusNearClip = pcmBase->sRadiusNearClip;
+	pcm->sRenderNearClip = pcmBase->sRenderNearClip;
 	pcm->xScreenRange = pcmBase->xScreenRange;
 	pcm->yScreenRange = pcmBase->yScreenRange;
 	pcm->sNearFog = pcmBase->sNearFog;
