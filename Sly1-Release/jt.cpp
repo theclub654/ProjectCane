@@ -2399,6 +2399,9 @@ void UpdateJtActive(JT* pjt, JOY* pjoy, float dt)
 
 		if (g_binoc.pdialogPlaying != nullptr &&
 			g_binoc.pdialogPlaying->dialogs == DIALOGS_Playing &&
+			// Only protect the vault-code dialog while the optional dialog
+			// skip controls are on; retail lets L1/R1 skip it like any other.
+			g_fSkipBinocDialogs &&
 			FDialogSkipProtected(g_binoc.pdialogPlaying) &&
 			fDialogButtonPressed)
 		{
