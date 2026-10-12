@@ -1,4 +1,5 @@
 #include "wipe.h"
+#include "gl.h"
 #include "keyhole.h"
 #include "dialog.h"
 #include "wm.h"
@@ -99,15 +100,15 @@ void DrawWipe(WIPE* pwipe)
 
     const GLboolean depthTestEnabled = glIsEnabled(GL_DEPTH_TEST);
     GLboolean depthWriteEnabled = GL_TRUE;
-    glGetBooleanv(GL_DEPTH_WRITEMASK, &depthWriteEnabled);
+    depthWriteEnabled = g_glDepthMask;
     glDisable(GL_DEPTH_TEST);
-    glDepthMask(GL_FALSE);
+    GlDepthMask(GL_FALSE);
 
     FillScreenRect(0, 0, 0, alpha, 0.0f, 0.0f,
                    static_cast<float>(g_gl.width),
                    static_cast<float>(g_gl.height));
 
-    glDepthMask(depthWriteEnabled);
+    GlDepthMask(depthWriteEnabled);
     if (depthTestEnabled)
         glEnable(GL_DEPTH_TEST);
 }

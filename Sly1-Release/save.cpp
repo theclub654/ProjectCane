@@ -6,6 +6,7 @@
 #include "glob.h"
 #include "debug.h"
 #include "sound.h"
+#include "mouseinput.h"
 #include "../platform/platform.h"
 #include <algorithm>
 #include <cstdint>
@@ -13,6 +14,11 @@
 #include <filesystem>
 #include <fstream>
 #include <iterator>
+#include <cmath>
+#include <cstdio>
+#include <string>
+#include <vector>
+#include <Windows.h>
 
 namespace
 {
@@ -317,7 +323,9 @@ void ValidateVideoSettings(VIDEOSAVESETTINGS& settings)
     settings.fogType = std::clamp(settings.fogType, 0, 2);
     settings.msaaEnabled = settings.msaaEnabled != 0;
     settings.msaaSamples = std::clamp(settings.msaaSamples, 1, 16);
-    settings.frameRate = (std::max)(settings.frameRate, 30);
+    // 0 = Uncapped; anything else is at least 30.
+    if (settings.frameRate != 0)
+        settings.frameRate = (std::max)(settings.frameRate, 30);
     settings.drawDistance = std::clamp(settings.drawDistance, 0.75f, 3.0f);
     settings.windowMode = std::clamp(settings.windowMode,
         static_cast<int>(WindowMode_Windowed), static_cast<int>(WindowMode_Fullscreen));
@@ -344,7 +352,7 @@ void ValidateVideoSettings(VIDEOSAVESETTINGS& settings)
 	for (int button = 0; button < BTN_MAX; ++button)
 	{
 		const int key = settings.keyboardBindings[button];
-		if (key < GLFW_KEY_SPACE || key > GLFW_KEY_LAST || key == GLFW_KEY_ESCAPE)
+		if (!FMouseBinding(key) && (key < GLFW_KEY_SPACE || key > GLFW_KEY_LAST || key == GLFW_KEY_ESCAPE))
 			settings.keyboardBindings[button] = g_keyboardBindings[button];
 	}
 	for (int button = 0; button < BTN_MAX; ++button)
@@ -368,7 +376,7 @@ void ValidateVideoSettings(VIDEOSAVESETTINGS& settings)
     const GLFWvidmode* mode = monitor != nullptr ? glfwGetVideoMode(monitor) : nullptr;
     if (mode != nullptr)
     {
-        if (settings.frameRate > mode->refreshRate)
+        if (settings.frameRate != 0 && settings.frameRate > mode->refreshRate)
             settings.frameRate = (std::max)(mode->refreshRate, 30);
 
         if (settings.internalResolutionHeight > mode->height)
@@ -437,6 +445,180 @@ void ApplySavedVideoSettings(VIDEOSAVESETTINGS settings)
         SetCmMrdRatio(g_pcm, settings.drawDistance);
 }
 
+// Built-in defaults (captured at startup before any saved settings are applied).
+VIDEOSAVESETTINGS s_videoDefaults{};
+bool s_fHaveVideoDefaults = false;
+
+// The two public functions below are defined outside the file's anonymous
+// namespace so other files (prompt.cpp) can link to them.
+} // namespace
+
+namespace
+{
+// Apply + save, then re-run the resize path so HUD/menu layout follows GUI
+// scale / style / aspect changes.
+void ApplyAndRefreshVideoSettings(VIDEOSAVESETTINGS settings)
+{
+    settings.lastSaveSlot = s_lastSaveSlot;
+    ApplySavedVideoSettings(settings);
+    SaveSystemSettings();
+    if (g_gl.window != nullptr)
+    {
+        int width = 0;
+        int height = 0;
+        glfwGetFramebufferSize(g_gl.window, &width, &height);
+        if (width > 0 && height > 0)
+            FrameBufferSizeCallBack(g_gl.window, width, height);
+    }
+}
+}
+
+VIDEOSAVESETTINGS CaptureCurrentVideoSettings()
+{
+    return CaptureVideoSettings();
+}
+
+void RestoreVideoSettings(const VIDEOSAVESETTINGS& settings)
+{
+    ApplyAndRefreshVideoSettings(settings);
+}
+
+bool FSystemOptionDefault(SYSOPT opt)
+{
+    if (!s_fHaveVideoDefaults)
+        return true;
+    const VIDEOSAVESETTINGS cur = CaptureVideoSettings();
+    const VIDEOSAVESETTINGS& def = s_videoDefaults;
+    switch (opt)
+    {
+    case SYSOPT_FrameRate: return cur.frameRate == def.frameRate;
+    case SYSOPT_InternalResolution: return cur.internalResolutionHeight == def.internalResolutionHeight;
+    case SYSOPT_DrawDistance: return std::abs(cur.drawDistance - def.drawDistance) < 0.001f;
+    case SYSOPT_WindowMode: return cur.windowMode == def.windowMode;
+    case SYSOPT_Vsync: return cur.vsyncEnabled == def.vsyncEnabled;
+    case SYSOPT_AspectRatio: return cur.aspectMode == def.aspectMode;
+    case SYSOPT_Msaa: return cur.msaaEnabled == def.msaaEnabled && (cur.msaaEnabled == 0 || cur.msaaSamples == def.msaaSamples);
+    case SYSOPT_Fog: return cur.fogType == def.fogType;
+    case SYSOPT_GuiScale: return std::abs(cur.guiScale - def.guiScale) < 0.001f;
+    case SYSOPT_GuiStyle: return cur.guiStyle == def.guiStyle;
+    case SYSOPT_Stereo: return cur.stereoEnabled == def.stereoEnabled;
+    case SYSOPT_DisableControllerUnfocused: return cur.disableControllerInputWhenUnfocused == def.disableControllerInputWhenUnfocused;
+    default: return true;
+    }
+}
+
+void ResetSystemOption(SYSOPT opt)
+{
+    if (!s_fHaveVideoDefaults)
+        return;
+    VIDEOSAVESETTINGS cur = CaptureVideoSettings();
+    const VIDEOSAVESETTINGS& def = s_videoDefaults;
+    switch (opt)
+    {
+    case SYSOPT_FrameRate: cur.frameRate = def.frameRate; break;
+    case SYSOPT_InternalResolution: cur.internalResolutionHeight = def.internalResolutionHeight; break;
+    case SYSOPT_DrawDistance: cur.drawDistance = def.drawDistance; break;
+    case SYSOPT_WindowMode: cur.windowMode = def.windowMode; break;
+    case SYSOPT_Vsync: cur.vsyncEnabled = def.vsyncEnabled; break;
+    case SYSOPT_AspectRatio: cur.aspectMode = def.aspectMode; break;
+    case SYSOPT_Msaa: cur.msaaEnabled = def.msaaEnabled; cur.msaaSamples = def.msaaSamples; break;
+    case SYSOPT_Fog: cur.fogType = def.fogType; break;
+    case SYSOPT_GuiScale: cur.guiScale = def.guiScale; break;
+    case SYSOPT_GuiStyle: cur.guiStyle = def.guiStyle; cur.guiScale = def.guiScale; break;
+    case SYSOPT_Stereo: cur.stereoEnabled = def.stereoEnabled; break;
+    case SYSOPT_DisableControllerUnfocused: cur.disableControllerInputWhenUnfocused = def.disableControllerInputWhenUnfocused; break;
+    default: return;
+    }
+    ApplyAndRefreshVideoSettings(cur);
+}
+
+int DefaultKeyboardBinding(int button)
+{
+    return (button >= 0 && button < BTN_MAX) ? s_videoDefaults.keyboardBindings[button] : 0;
+}
+
+int DefaultGamepadBinding(int button)
+{
+    return (button >= 0 && button < BTN_MAX) ? s_videoDefaults.gamepadBindings[button] : -1;
+}
+
+void ResetSystemSettingsToDefault()
+{
+    if (!s_fHaveVideoDefaults)
+        return;
+    // lastSaveSlot is not a setting: ApplyAndRefreshVideoSettings keeps it.
+    ApplyAndRefreshVideoSettings(s_videoDefaults);
+}
+
+namespace
+{
+std::filesystem::path SystemSettingsPath();   // defined below (anonymous namespace)
+}
+
+// Copies every settings file into "Settings Backups\<date_time>" next to the
+// exe. To restore, copy the files back (system_settings.dat goes in Saves).
+bool ExportSettingsBackup(char* pchzFolder, size_t cchFolder)
+{
+    SaveSystemSettings();
+
+    wchar_t executablePath[MAX_PATH]{};
+    if (GetModuleFileNameW(nullptr, executablePath, MAX_PATH) == 0)
+        return false;
+    const std::filesystem::path exeDir = std::filesystem::path(executablePath).parent_path();
+
+    SYSTEMTIME time{};
+    GetLocalTime(&time);
+    char stamp[32];
+    std::snprintf(stamp, sizeof(stamp), "%04d-%02d-%02d_%02d-%02d-%02d",
+        time.wYear, time.wMonth, time.wDay, time.wHour, time.wMinute, time.wSecond);
+
+    const std::filesystem::path folder = exeDir / L"Settings Backups" / stamp;
+    std::error_code ec;
+    std::filesystem::create_directories(folder, ec);
+    if (ec)
+        return false;
+
+    const wchar_t* const apwchzIni[] = { L"DLSS.ini", L"FSR.ini", L"QOL.ini", L"Mods.ini", L"MenuStyle.ini", L"Mouse.ini" };
+    int copied = 0;
+    for (const wchar_t* pwchz : apwchzIni)
+    {
+        const std::filesystem::path source = exeDir / pwchz;
+        if (std::filesystem::exists(source, ec) &&
+            std::filesystem::copy_file(source, folder / pwchz, std::filesystem::copy_options::overwrite_existing, ec))
+            ++copied;
+    }
+    const std::filesystem::path system = SystemSettingsPath();
+    if (std::filesystem::exists(system, ec) &&
+        std::filesystem::copy_file(system, folder / system.filename(), std::filesystem::copy_options::overwrite_existing, ec))
+        ++copied;
+
+    // Options stored in the game save rather than a settings file.
+    {
+        std::ofstream options(folder / L"GameOptions.ini");
+        if (options)
+        {
+            options << "[Game]\n";
+            if (g_pgsCur != nullptr)
+                options << "InvertFlags=" << (g_pgsCur->grfgs & 0x1E20) << "\n";
+            options << "Vibration=" << vibrationSetting << "\n";
+        }
+    }
+
+    std::ofstream readme(folder / L"README.txt");
+    if (readme)
+    {
+        readme << "ProjectCane settings exported before \"Reset to Default\".\n"
+               << "To restore: close the game, copy the .ini files back next to the exe,\n"
+               << "and copy system_settings.dat into the Saves folder.\n";
+    }
+
+    if (pchzFolder != nullptr && cchFolder > 0)
+        std::snprintf(pchzFolder, cchFolder, "Settings Backups\\%s", stamp);
+    return copied > 0;
+}
+
+namespace
+{
 std::filesystem::path SaveDirectory()
 {
     return cane::UserDirectory() / "Saves";
@@ -838,6 +1020,11 @@ void StartupSaveData(SAVEDATA* psaveData)
 
     *psaveData = {};
 
+    // Remember the built-in defaults for Options > Reset to Default.
+    s_videoDefaults = CaptureVideoSettings();
+    SetDefaultAudioSettings(s_videoDefaults);
+    s_fHaveVideoDefaults = true;
+
     VIDEOSAVESETTINGS settings{};
     bool hasSystemSettings = LoadSystemSettings(&settings);
 
@@ -990,3 +1177,106 @@ int LoadCurrentSave(SAVEDATA* psaveData)
 SAVEDATA g_saveData;
 SAVEBLOT g_autosave;
 VTSAVEBLOT g_vtsaveblot;
+
+// -----------------------------------------------------------------------------
+// Settings import (Options > Import / Export Settings)
+// -----------------------------------------------------------------------------
+namespace
+{
+std::vector<std::filesystem::path> s_settingsBackups;
+
+std::filesystem::path ExeDirectoryForSettings()
+{
+    wchar_t executablePath[MAX_PATH]{};
+    GetModuleFileNameW(nullptr, executablePath, MAX_PATH);
+    return std::filesystem::path(executablePath).parent_path();
+}
+}
+
+int ListSettingsBackups(char (*pachzNames)[64], int cMax)
+{
+    s_settingsBackups.clear();
+    std::error_code ec;
+    const std::filesystem::path dir = ExeDirectoryForSettings() / L"Settings Backups";
+    if (!std::filesystem::is_directory(dir, ec))
+        return 0;
+
+    std::vector<std::filesystem::path> folders;
+    for (const std::filesystem::directory_entry& entry : std::filesystem::directory_iterator(dir, ec))
+        if (entry.is_directory(ec))
+            folders.push_back(entry.path());
+    // Folder names are date_time stamps: newest first.
+    std::sort(folders.begin(), folders.end(),
+        [](const std::filesystem::path& a, const std::filesystem::path& b) { return a.filename() > b.filename(); });
+
+    const int count = (std::min)(cMax, static_cast<int>(folders.size()));
+    for (int i = 0; i < count; ++i)
+    {
+        s_settingsBackups.push_back(folders[i]);
+        std::string name = folders[i].filename().string();
+        // "2026-10-10_02-56-12" -> "2026-10-10 02:56:12"
+        if (name.size() == 19 && name[10] == '_' && name[13] == '-' && name[16] == '-')
+        {
+            name[10] = ' ';
+            name[13] = ':';
+            name[16] = ':';
+        }
+        std::snprintf(pachzNames[i], 64, "Import: %s", name.c_str());
+    }
+    return count;
+}
+
+bool ImportSettingsBackup(int index)
+{
+    if (index < 0 || index >= static_cast<int>(s_settingsBackups.size()))
+        return false;
+
+    std::error_code ec;
+    const std::filesystem::path folder = s_settingsBackups[static_cast<size_t>(index)];
+    const std::filesystem::path exeDir = ExeDirectoryForSettings();
+    int copied = 0;
+
+    const wchar_t* const apwchzIni[] = { L"DLSS.ini", L"FSR.ini", L"QOL.ini", L"Mods.ini", L"MenuStyle.ini", L"Mouse.ini" };
+    for (const wchar_t* pwchz : apwchzIni)
+    {
+        const std::filesystem::path source = folder / pwchz;
+        if (std::filesystem::exists(source, ec) &&
+            std::filesystem::copy_file(source, exeDir / pwchz, std::filesystem::copy_options::overwrite_existing, ec))
+            ++copied;
+    }
+
+    const std::filesystem::path systemTarget = SystemSettingsPath();
+    const std::filesystem::path systemSource = folder / systemTarget.filename();
+    bool fSystem = false;
+    if (std::filesystem::exists(systemSource, ec))
+    {
+        std::filesystem::create_directories(systemTarget.parent_path(), ec);
+        fSystem = std::filesystem::copy_file(systemSource, systemTarget, std::filesystem::copy_options::overwrite_existing, ec);
+        if (fSystem)
+            ++copied;
+    }
+
+    const std::wstring options = (folder / L"GameOptions.ini").wstring();
+    if (std::filesystem::exists(options, ec))
+    {
+        const int flags = static_cast<int>(GetPrivateProfileIntW(L"Game", L"InvertFlags", -1, options.c_str()));
+        if (flags >= 0 && g_pgsCur != nullptr)
+            g_pgsCur->grfgs = (g_pgsCur->grfgs & ~0x1E20) | (flags & 0x1E20);
+        const int vibration = static_cast<int>(GetPrivateProfileIntW(L"Game", L"Vibration", -1, options.c_str()));
+        if (vibration >= 0 && vibration <= 3)
+            vibrationSetting = vibration;
+    }
+
+    // Video / sound / bindings take effect right away.
+    if (fSystem)
+    {
+        VIDEOSAVESETTINGS settings{};
+        if (LoadSystemSettings(&settings))
+        {
+            settings.lastSaveSlot = s_lastSaveSlot;
+            ApplySavedVideoSettings(settings);
+            SaveSystemSettings();
+        }
+    }
+    return copied > 0;
+}

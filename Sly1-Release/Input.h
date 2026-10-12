@@ -245,4 +245,11 @@ inline constexpr int GAMEPAD_BINDING_LEFT_TRIGGER = 1000;
 inline constexpr int GAMEPAD_BINDING_RIGHT_TRIGGER = 1001;
 
 const char* PchzKeyboardKeyName(int key);
-const char* PchzGamepadBindingName(int binding);
+const char* PchzGamepadBindingName(int binding);   // brand-aware ("A", "Cross", "B" ...)
+
+// Controller family, for button names and the menu's button icons.
+enum GAMEPADTYPE { GAMEPADTYPE_Xbox = 0, GAMEPADTYPE_PlayStation, GAMEPADTYPE_Nintendo };
+void UpdateGamepadType(int jid);
+GAMEPADTYPE DetectedGamepadType();
+GAMEPADTYPE ActiveGamepadType();          // detected, unless overridden in Controller Settings
+void SetGamepadIconOverride(int setting); // 0 = auto, 1 Xbox, 2 PlayStation, 3 Nintendo

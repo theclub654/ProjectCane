@@ -13,6 +13,8 @@
 #include "imgui/imgui_impl_opengl3.h"
 #include "imgui/ImGuiFileDialog.h"
 #include "mouse.h"
+#include "dlss.h"
+#include "fsr.h"
 #include <vector>
 
 enum AspectMode
@@ -76,6 +78,17 @@ struct alignas(16) BLIPGROUPGPU
 	glm::vec4 clqAlpha; // g0, g1, g2, unused
 };
 
+// Shadowed glDepthMask state: reading GL state back (glGet*) forces the
+// driver's worker thread to sync, which is expensive in hot draw loops. All
+// game code sets the depth mask through GlDepthMask() so it can be read back
+// for free. (DLSS/FSR/ImGui restore whatever they change.)
+extern GLboolean g_glDepthMask;
+inline void GlDepthMask(GLboolean fWrite)
+{
+	g_glDepthMask = fWrite;
+	glDepthMask(fWrite);
+}
+
 struct STREAM
 {
 	GLuint bufferObject;
@@ -105,8 +118,9 @@ class GL
 	GLuint fbo;
 	// Frame Buffer Color
 	GLuint fbc;
-	// Render Buffer Object
-	GLuint rbo;
+	// Frame Buffer Depth/stencil. A texture (not a renderbuffer) so DLSS can
+	// read scene depth to build motion vectors.
+	GLuint fbd;
 
 	GLuint dyshFbo;
 	GLuint dyshFbc;

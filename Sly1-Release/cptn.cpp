@@ -1,15 +1,13 @@
 #include "cptn.h"
+#include "qol.h"
+#include "mouseinput.h"
+#include "Input.h"
 #include "cm.h"
 #include "tn.h"
 #include "jt.h"
 #include "wm.h"
 #include "mark.h"
-#include "mouse.h"
 #include "gl.h"
-namespace
-{
-bool s_fMouseCameraCaptured = false;
-}
 
 void ActivateCptn(CPTN* pcptn, TN *ptn)
 {
@@ -233,29 +231,11 @@ void UpdateCptn(CPTN* pcptn, CPDEFI* pcpdefi, JOY* pjoy, float dt)
 
 	const float radManualPrev = pcptn->radManual;
 	float radManual = radManualPrev;
-	float mouseOrbit = 0.0f;
-	if (g_fMouseCamera && (grftnd & FTND_Manual) != 0 &&
-		g_gl.window != nullptr && !g_fDisableInput &&
-		glfwGetWindowAttrib(g_gl.window, GLFW_FOCUSED) == GLFW_TRUE)
-	{
-		if (!s_fMouseCameraCaptured ||
-			glfwGetInputMode(g_gl.window, GLFW_CURSOR) != GLFW_CURSOR_DISABLED)
-		{
-			glfwSetInputMode(g_gl.window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-			MOUSE::ResetDelta();
-			s_fMouseCameraCaptured = true;
-		}
-		constexpr float mouseRadiansPerPixel = 0.0035f;
-		mouseOrbit = static_cast<float>(MOUSE::GetDX()) * mouseRadiansPerPixel;
-		if ((g_pgsCur->grfgs & 0x1000U) != 0)
-			mouseOrbit = -mouseOrbit;
-	}
-	else if (s_fMouseCameraCaptured && g_gl.window != nullptr)
-	{
-		glfwSetInputMode(g_gl.window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
-		s_fMouseCameraCaptured = false;
-		MOUSE::ResetDelta();
-	}
+	// Mouse camera: a direct orbit angle for this frame. With the retail
+	// default ("Right = Turn Left" on the stick) an increasing radManual turns
+	// the view left, so mouse-right subtracts. Only while the player has
+	// control (pjoy is g_joyZero during cutscenes).
+	const float radMouse = (pjoy == &g_joy && (grftnd & FTND_Manual) != 0) ? -MouseCameraOrbit() : 0.0f;
 
 	if (pjoy->IsPressed(BTN_R3) && (grftnd & FTND_Manual) != 0)
 	{
@@ -267,31 +247,26 @@ void UpdateCptn(CPTN* pcptn, CPDEFI* pcpdefi, JOY* pjoy, float dt)
 		pcptn->fPanOnEntryDone = 1;
 		pcptn->tLastOrbit = g_clock.t;
 	}
-	else if ((grftnd & FTND_Manual) != 0 && (pjoy->uDeflect2 > 0.0f || mouseOrbit != 0.0f || pcptn->swOrbit != 0.0f || pcptn->fHome != 0))
+	else if ((grftnd & FTND_Manual) != 0 && (pjoy->uDeflect2 > 0.0f || radMouse != 0.0f || pcptn->swOrbit != 0.0f || pcptn->fHome != 0))
 	{
 		if (pcptn->ftnd != FTND_Manual)
 			StartSound((SFXID)3, nullptr, nullptr, nullptr, 3000.0f, 300.0f, 1.0f, 0.0f, 0.0f, nullptr, nullptr);
 
-		if (pjoy->uDeflect2 > 0.0f)
+		if (pjoy->uDeflect2 > 0.0f || radMouse != 0.0f)
 			pcptn->fHome = 0;
 
 		if (pcptn->fHome == 0)
 		{
-			if (mouseOrbit != 0.0f)
-			{
-				pcptn->swOrbit = 0.0f;
-				radManual = RadNormalize(pcptn->radManual + mouseOrbit);
-			}
-			else
-			{
-				const float xCamera = (g_pgsCur->grfgs & 0x1000U) != 0 ? -pjoy->x2 : pjoy->x2;
-				const float swTarget = xCamera * std::abs(xCamera) * SW_CptnOrbitMax;
-				const float swMin = pcptn->swOrbit - DSW_CptnOrbit * dtInput;
-				const float swMax = pcptn->swOrbit + DSW_CptnOrbit * dtInput;
+			const float xCamera = (g_pgsCur->grfgs & 0x1000U) != 0 ? -pjoy->x2 : pjoy->x2;
+			// Camera sensitivity option (Controls menu) scales orbit speed and
+			// how quickly it ramps up.
+			const float sensitivity = QolCameraSensitivity();
+			const float swTarget = xCamera * std::abs(xCamera) * SW_CptnOrbitMax * sensitivity;
+			const float swMin = pcptn->swOrbit - DSW_CptnOrbit * sensitivity * dtInput;
+			const float swMax = pcptn->swOrbit + DSW_CptnOrbit * sensitivity * dtInput;
 
-				pcptn->swOrbit = std::clamp(swTarget, swMin, swMax);
-				radManual = RadNormalize(pcptn->radManual + pcptn->swOrbit * dtInput);
-			}
+			pcptn->swOrbit = std::clamp(swTarget, swMin, swMax);
+			radManual = RadNormalize(pcptn->radManual + pcptn->swOrbit * dtInput + radMouse);
 		}
 		else
 		{
@@ -309,8 +284,7 @@ void UpdateCptn(CPTN* pcptn, CPDEFI* pcpdefi, JOY* pjoy, float dt)
 	if (pcptn->ftnd == FTND_Manual &&
 		!(pjoy->IsPressed(BTN_R3) && (grftnd & FTND_Manual) != 0) &&
 		!((grftnd & FTND_Manual) != 0 &&
-		  (pjoy->uDeflect2 > 0.0f || mouseOrbit != 0.0f ||
-		   pcptn->swOrbit != 0.0f || pcptn->fHome != 0)))
+		  (pjoy->uDeflect2 > 0.0f || radMouse != 0.0f || pcptn->swOrbit != 0.0f || pcptn->fHome != 0)))
 	{
 		glm::vec2 joy(pjoy->x, pjoy->y);
 		const float joyLength = glm::length(joy);

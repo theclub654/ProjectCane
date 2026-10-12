@@ -612,8 +612,10 @@ void CRichText::Draw(CTextBox* ptbx, CTextBox* ptbxClip,
 		const float clipRight = ptbxClip->m_x + ptbxClip->m_dx;
 		const float clipBottom = ptbxClip->m_y + ptbxClip->m_dy;
 
-		const GLint targetWidth = g_gl.renderWidth;
-		const GLint targetHeight = g_gl.renderHeight;
+		// While DLSS is active the HUD is drawn into the upscaled output,
+		// not into the scene render target.
+		const GLint targetWidth = g_uiTargetWidth > 0 ? g_uiTargetWidth : g_gl.renderWidth;
+		const GLint targetHeight = g_uiTargetHeight > 0 ? g_uiTargetHeight : g_gl.renderHeight;
 		const float rasterScaleX = static_cast<float>(targetWidth) / g_gl.width;
 		const float rasterScaleY = static_cast<float>(targetHeight) / g_gl.height;
 

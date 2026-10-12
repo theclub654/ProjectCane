@@ -1,4 +1,5 @@
 #include "letterbox.h"
+#include "gl.h"
 #include "binoc.h"
 #include "totals.h"
 
@@ -86,7 +87,7 @@ void DrawLetterBox(LETTERBOX* pletterbox)
     glGetIntegerv(GL_DEPTH_FUNC, &previousDepthFunction);
     glGetIntegerv(GL_VERTEX_ARRAY_BINDING, &previousVertexArray);
     glGetIntegerv(GL_TEXTURE_BINDING_2D, &previousTexture);
-    glGetBooleanv(GL_DEPTH_WRITEMASK, &previousDepthMask);
+    previousDepthMask = g_glDepthMask;
 
     glBlotShader.Use();
     glUniformMatrix4fv(u_projectionLoc, 1, GL_FALSE, glm::value_ptr(g_gl.blotProjection));
@@ -96,7 +97,7 @@ void DrawLetterBox(LETTERBOX* pletterbox)
 
     glDisable(GL_BLEND);
     glDisable(GL_DEPTH_TEST);
-    glDepthMask(GL_FALSE);
+    GlDepthMask(GL_FALSE);
     glBindTexture(GL_TEXTURE_2D, 0);
     glBindVertexArray(g_gl.gao);
 
@@ -114,7 +115,7 @@ void DrawLetterBox(LETTERBOX* pletterbox)
 
     glBindVertexArray(static_cast<GLuint>(previousVertexArray));
     glBindTexture(GL_TEXTURE_2D, static_cast<GLuint>(previousTexture));
-    glDepthMask(previousDepthMask);
+    GlDepthMask(previousDepthMask);
     glDepthFunc(previousDepthFunction);
 
     if (depthTestEnabled)

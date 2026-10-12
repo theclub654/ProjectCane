@@ -9,6 +9,13 @@
 #include "fmv.h"
 #include "sound.h"
 #include "tv.h"
+#include "mods.h"
+#include "perf.h"
+#include "qol.h"
+#include "menustyle.h"
+#include "mouseinput.h"
+#include "prompt.h"
+#include "ui.h"
 #include "resource1.h"
 #include "runtime_error.h"
 #include "emitter.h"
@@ -36,6 +43,22 @@ namespace
 void LoadDebugModeSetting()
 {
 	g_fDeveloperDebugMode = cane::DebugMode();
+}
+
+// Retail Timing paces at the PS2's 59.94 Hz. With VSync on a 60 Hz display,
+// pacing at 59.94 would drift against the vblanks and periodically hold a frame
+// for two refreshes (a double-length game step), so pace at the display's 60 Hz
+// there instead; every step is still exactly one PS2 field (clock.cpp).
+double PacerRateHz()
+{
+    if (g_fRetailTiming && g_fVsync)
+    {
+        GLFWmonitor* monitor = glfwGetPrimaryMonitor();
+        const GLFWvidmode* mode = monitor != nullptr ? glfwGetVideoMode(monitor) : nullptr;
+        if (mode != nullptr && mode->refreshRate >= 59 && mode->refreshRate <= 61)
+            return 60.0;
+    }
+    return EffectiveFrameRateHz();
 }
 
 class FramePacer
@@ -69,14 +92,19 @@ public:
     void Wait()
     {
         constexpr auto kSpinMargin = std::chrono::microseconds(500);
-        if (m_frameRate != g_targetFrameRate)
+
+        // Retail Timing paces at the PS2's 59.94 Hz. "Uncapped" (0) still stops
+        // at 1000 FPS: the minimum update step is 1/1000 s, and going faster
+        // would speed the game up.
+        const double target = PacerRateHz();
+        if (m_frameRate != target)
         {
-            m_frameRate = g_targetFrameRate;
+            m_frameRate = target;
             m_deadline = Clock::now();
         }
 
         const auto frameDuration = std::chrono::duration_cast<Clock::duration>(
-            std::chrono::duration<double>(1.0 / static_cast<double>(m_frameRate)));
+            std::chrono::duration<double>(1.0 / m_frameRate));
 
         m_deadline += frameDuration;
         auto now = Clock::now();
@@ -129,7 +157,7 @@ public:
 
     void Resync()
     {
-        m_frameRate = g_targetFrameRate;
+        m_frameRate = PacerRateHz();
         m_deadline = Clock::now();
     }
 
@@ -138,7 +166,7 @@ private:
     HANDLE m_timer = nullptr;
 #endif
     Clock::time_point m_deadline;
-    int m_frameRate = 60;
+    double m_frameRate = 60.0;
 };
 
 FramePacer* s_framePacer = nullptr;
@@ -159,6 +187,7 @@ void RunGameFrame()
         return;
 
     s_runningFrame = true;
+    PerfFrameStart();
 
     // Retail leaves the movie queued while the outgoing wipe is visible.
     // Once the screen reaches black, play the movie before executing the
@@ -166,13 +195,20 @@ void RunGameFrame()
     if (FCutscenePending() && g_wipe.wipes != WIPES_WipingOut)
     {
         ExecutePendingCutscenes();
+        ResetDlssHistory();
+        ResetFsrHistory();
     }
 
     if (g_transition.m_fPending != 0)
     {
         FlushTransitionFrame();
-		g_transition.Execute(file);
-		ResyncClockTick(&g_clock);
+        g_transition.Execute(file);
+        ResetDlssHistory();
+        ResetFsrHistory();
+        OnModsWorldLoaded();
+        // Retail does not resync the game clock after a load: the first frame
+        // of the new world simply takes the maximum (two-frame) step. Only the
+        // presentation pacer is resynchronized.
         if (s_framePacer != nullptr)
             s_framePacer->Resync();
     }
@@ -180,6 +216,8 @@ void RunGameFrame()
     if (FCutscenePending() && g_wipe.wipes != WIPES_WipingOut)
     {
         ExecutePendingCutscenes();
+        ResetDlssHistory();
+        ResetFsrHistory();
     }
 
     static bool s_fF3WasDown = false;
@@ -196,27 +234,71 @@ void RunGameFrame()
     }
     s_fF3WasDown = fF3Down;
 
-    g_sceneFbo = g_fMsaa ? g_gl.fboMSAA : g_gl.fbo;
+    // DLSS replaces MSAA (it is the anti-aliaser) and needs the resolved
+    // scene color/depth textures, so it always renders into the plain FBO.
+    // Switches "Fullscreen" between exclusive and borderless when DLSS Frame
+    // Generation turns on/off (no-op otherwise).
+    ApplyWindowModeSettings(g_windowMode);
+
+    const bool fDlss = FDlssActive();
+    // Temporal FSR (FSR 4 / 3.1) is also the anti-aliaser and needs the plain
+    // FBO's depth texture, like DLSS. FSR 1 keeps MSAA.
+    const bool fMsaaThisFrame = g_fMsaa && !fDlss && !FFsrTemporal() && g_gl.fboMSAA != 0;
+    g_sceneFbo = fMsaaThisFrame ? g_gl.fboMSAA : g_gl.fbo;
     glBindFramebuffer(GL_FRAMEBUFFER, g_sceneFbo);
+
+    // Pick this frame's sub-pixel jitter before any camera is uploaded.
+    BeginDlssFrame(fDlss && g_psw != nullptr, g_gl.renderWidth, g_gl.renderHeight,
+        g_gl.presentWidth, g_gl.presentHeight);
+    bool fUpscaled = false;
+    bool fFsrUpscaled = false;
+    const bool fFsr = FFsrActive();
+    // Temporal FSR picks its own sub-pixel jitter (after BeginDlssFrame).
+    BeginFsrFrame(fFsr && g_psw != nullptr, g_gl.renderWidth, g_gl.renderHeight,
+        g_gl.presentWidth, g_gl.presentHeight);
 
     glViewport(0, 0, g_gl.renderWidth, g_gl.renderHeight);
     glClearColor(rgbaSky.r, rgbaSky.g, rgbaSky.b, rgbaSky.a);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
     glEnable(GL_DEPTH_TEST);
 
+    UpdateMouseInput(g_gl.window);
     g_joy.Update(g_gl.window);
+    // Mods: hotkeys, controller combos (may hide combo buttons from the game).
+    UpdateModsInput();
+    UpdateQolInput();
+    UpdateQolFocus();
+    UpdateModsTimer();
     RenderMenuGui(g_psw);
 
     if (g_psw != nullptr)
     {
-        UpdateUi(&g_ui);
-        UpdateGameState(g_clock.dt);
+        // Fast forward runs several normal-length game updates per rendered
+        // frame (large single steps would break collision/physics).
+        const int cUpdates = CModsGameUpdates();
+        for (int iUpdate = 0; iUpdate < cUpdates; ++iUpdate)
+        {
+            if (iUpdate > 0)
+            {
+                // Extra steps must not see button presses a second time.
+                if (g_transition.m_fPending != 0)
+                    break;
+                g_joy.previous = g_joy.current;
+            }
 
-        SetupCm(g_pcm);
-        OpenFrame();
-        MarkClockTick(&g_clock);
-        UpdateCodes();
-        UpdateSw(g_psw, g_clock.dt);
+            UpdateUi(&g_ui);
+            UpdateGameState(g_clock.dt);
+
+            SetupCm(g_pcm);
+            if (iUpdate == 0)
+                OpenFrame();
+            MarkClockTick(&g_clock);
+            UpdateCodes();
+            UpdateSw(g_psw, g_clock.dt);
+        }
+
+        DlssMarkRenderStart();
+        PerfZone(PERFZ_Render);
 
         if (g_fRenderModels == true)
         {
@@ -234,10 +316,81 @@ void RunGameFrame()
 		if (g_fRenderDialogTriggers == true)
 			DrawSwDialogTriggers(g_pcm);
 
+        PerfGpuSceneEnd();
+        PerfZone(PERFZ_Post);
+
+        if (fDlss && g_pcm != nullptr)
+        {
+            DLSSCAMERA cam;
+            cam.matWorldToClip = g_pcm->matWorldToClip;
+            cam.matProj = g_pcm->matProj;
+            cam.pos = g_pcm->pos;
+            cam.radFov = g_pcm->radFOV;
+            cam.sNearClip = g_pcm->sRenderNearClip;
+            cam.sFarClip = g_pcm->sFarClip;
+
+            // On success the upscaled output (present resolution) is now
+            // bound, so the HUD below is drawn at full resolution on top of it.
+            fUpscaled = FEvaluateDlss(cam, g_gl.fbc, g_gl.fbd);
+            if (fUpscaled)
+            {
+                g_uiTargetWidth = g_gl.presentWidth;
+                g_uiTargetHeight = g_gl.presentHeight;
+            }
+        }
+
+        // AMD FSR 1: needs the resolved scene, then leaves its full-resolution
+        // output bound so the HUD below is drawn on top of it.
+        if (fFsr && !fUpscaled && g_pcm != nullptr)
+        {
+            if (fMsaaThisFrame)
+            {
+                // Color for FSR, depth/stencil for the HUD drawn on its output.
+                glBindFramebuffer(GL_READ_FRAMEBUFFER, g_gl.fboMSAA);
+                glBindFramebuffer(GL_DRAW_FRAMEBUFFER, g_gl.fbo);
+                const GLboolean fScissor = glIsEnabled(GL_SCISSOR_TEST);
+                const GLboolean fDepthWrite = g_glDepthMask;
+                glDisable(GL_SCISSOR_TEST);
+                GlDepthMask(GL_TRUE);
+                glStencilMask(0xFF);
+                glBlitFramebuffer(0, 0, g_gl.renderWidth, g_gl.renderHeight,
+                    0, 0, g_gl.renderWidth, g_gl.renderHeight,
+                    GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT, GL_NEAREST);
+                GlDepthMask(fDepthWrite);
+                if (fScissor)
+                    glEnable(GL_SCISSOR_TEST);
+            }
+            DLSSCAMERA fsrCam;
+            fsrCam.matWorldToClip = g_pcm->matWorldToClip;
+            fsrCam.matProj = g_pcm->matProj;
+            fsrCam.pos = g_pcm->pos;
+            fsrCam.radFov = g_pcm->radFOV;
+            fsrCam.sNearClip = g_pcm->sRenderNearClip;
+            fsrCam.sFarClip = g_pcm->sFarClip;
+            fFsrUpscaled = FEvaluateFsr(fsrCam, g_gl.fbc, g_gl.fbd, g_gl.renderWidth, g_gl.renderHeight,
+                g_gl.presentWidth, g_gl.presentHeight);
+            if (fFsrUpscaled)
+            {
+                g_uiTargetWidth = g_gl.presentWidth;
+                g_uiTargetHeight = g_gl.presentHeight;
+            }
+            else
+            {
+                glBindFramebuffer(GL_FRAMEBUFFER, g_sceneFbo);
+                glViewport(0, 0, g_gl.renderWidth, g_gl.renderHeight);
+            }
+        }
+
+        // Shift+F12: screenshot of the 3D image without the HUD.
+        QolCaptureBeforeHud((fUpscaled || fFsrUpscaled) ? g_gl.presentWidth : g_gl.renderWidth,
+            (fUpscaled || fFsrUpscaled) ? g_gl.presentHeight : g_gl.renderHeight);
         DrawUi(&g_ui);
+
+        g_uiTargetWidth = 0;
+        g_uiTargetHeight = 0;
     }
 
-    if (g_fMsaa)
+    if (fMsaaThisFrame && !fFsrUpscaled)
     {
         glBindFramebuffer(GL_READ_FRAMEBUFFER, g_gl.fboMSAA);
         glBindFramebuffer(GL_DRAW_FRAMEBUFFER, g_gl.fbo);
@@ -245,7 +398,14 @@ void RunGameFrame()
             0, 0, g_gl.renderWidth, g_gl.renderHeight, GL_COLOR_BUFFER_BIT, GL_NEAREST);
     }
 
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    // With DLSS Frame Generation the final frame goes to an off-screen target
+    // that is presented through DXGI; otherwise it is the window itself.
+    int windowFbWidth = 0;
+    int windowFbHeight = 0;
+    glfwGetFramebufferSize(g_gl.window, &windowFbWidth, &windowFbHeight);
+    const GLuint presentFbo = DlssBeginPresent(windowFbWidth, windowFbHeight,
+        g_gl.presentX, g_gl.presentY, g_gl.presentWidth, g_gl.presentHeight);
+    glBindFramebuffer(GL_FRAMEBUFFER, presentFbo);
     glViewport(g_gl.presentX, g_gl.presentY, g_gl.presentWidth, g_gl.presentHeight);
 
 	// Presentation is a hard OpenGL state boundary. World, shadow, particle,
@@ -256,22 +416,37 @@ void RunGameFrame()
 	glDisable(GL_DEPTH_TEST);
 	glDisable(GL_BLEND);
 	glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
-	glDepthMask(GL_TRUE);
+	GlDepthMask(GL_TRUE);
 
     glClearColor(0, 0, 0, 0);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+    glDisable(GL_DEPTH_TEST);
+    glDisable(GL_BLEND);
 
-    {
-        glScreenShader.Use();
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, g_gl.fbc);
-        glBindVertexArray(g_gl.sao);
-        glDrawArrays(GL_TRIANGLES, 0, 6);
+    glScreenShader.Use();
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, fUpscaled ? DlssOutputTexture() :
+        (fFsrUpscaled ? FsrOutputTexture() : g_gl.fbc));
+    glBindVertexArray(g_gl.sao);
+    glDrawArrays(GL_TRIANGLES, 0, 6);
 
-        ImGui::Render();
-        ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
-    }
-    glfwSwapBuffers(g_gl.window);
+    // F12: screenshot of the final image (with HUD, before our overlays).
+    QolCaptureFinal(presentFbo, g_gl.presentX, g_gl.presentY, g_gl.presentWidth, g_gl.presentHeight);
+
+    DrawModsOverlay();
+    DrawQolOverlay();
+    DrawDlssOverlay();
+    ImGui::Render();
+    ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+
+    // Frame generation pauses itself in menus and when no level is loaded.
+    const bool fGameplay = g_psw != nullptr && g_ui.uis == UIS_Playing &&
+        g_prompt.blots == BLOTS_Hidden;
+    PerfZone(PERFZ_Present);
+    PerfGpuFrameEnd();
+    if (!FDlssPresentFrame(fGameplay))
+        glfwSwapBuffers(g_gl.window);
+    PerfZone(PERFZ_Wait);
     if (s_framePacer != nullptr)
         s_framePacer->Wait();
 
@@ -577,6 +752,8 @@ int RunApplication(const std::vector<std::string>& arguments)
 
 		ShutdownSound();
 		FreeTvGL();
+		ShutdownFsr();
+		ShutdownDlss();
 		g_gl.TerminateGL();
 		return EXIT_SUCCESS;
 	}
@@ -606,11 +783,25 @@ int main(int argc, char* argv[])
 
 void Startup()
 {
+	// Must run before the OpenGL context exists (see dlss.h).
+	PreloadDlssModules();
+
 	// Debug mode is intentionally sampled once. Editing the INI while running
 	// takes effect only after restarting the program.
 	LoadDebugModeSetting();
     g_gl.InitGL();
     glfwSwapInterval(g_fVsync ? 1 : 0);
+    // NVIDIA DLSS through Streamline. Safe on any GPU: it reports "not
+    // available" and leaves the normal OpenGL path untouched when it can't run.
+    StartupDlss(glfwGetWin32Window(g_gl.window));
+    // AMD FidelityFX Super Resolution 1 (any GPU, pure OpenGL).
+    StartupFsr();
+    // Save states, fast forward and controller combos (Options > Mods).
+    StartupMods();
+    // Anisotropic filtering, FOV, camera sensitivity, screenshots (QOL.ini).
+    StartupQol();
+    StartupMenuStyle();
+    StartupMouseInput();
 
     std::cout << "Sly Cooper 2002 Sony Computer Entertainment America & Sucker Punch Productions\n";
     SetPhase(PHASE_Startup);

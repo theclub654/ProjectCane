@@ -39,6 +39,30 @@
     <ClCompile Include="debug.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="dlss.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="mods.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="qol.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="menustyle.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="mouseinput.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="menufont.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="fsr.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="perf.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="unk17.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -1203,6 +1227,33 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="debug.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="dlss.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="mods.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="qol.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="menustyle.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="mouseinput.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="menuhelp.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="menufont.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="fsr.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="perf.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="dartgun.h">

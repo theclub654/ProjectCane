@@ -118,7 +118,7 @@
       <PreprocessorDefinitions>GLFW_STATIC;_DEBUG;_CONSOLE;_CRT_SECURE_NO_WARNINGS;_ENABLE_EXTENDED_ALIGNED_STORAGE;IMGUI_DEFINE_MATH_OPERATORS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>$(SolutionDir)Libraries\include;$(SolutionDir)Libraries\ffmpeg\ffmpeg-master-latest-win64-lgpl-shared\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)Libraries\include;$(SolutionDir)Libraries\ffmpeg\ffmpeg-master-latest-win64-lgpl-shared\include;$(SolutionDir)Libraries\streamline\include;$(SolutionDir)Libraries\vulkan\include;$(SolutionDir)Libraries\fidelityfx;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
       <AdditionalOptions>/FS /MP8 %(AdditionalOptions)</AdditionalOptions>
@@ -131,6 +131,13 @@
       <AdditionalLibraryDirectories>$(SolutionDir)Libraries\lib\Debug;$(SolutionDir)Libraries\ffmpeg\ffmpeg-master-latest-win64-lgpl-shared\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
 		<AdditionalDependencies>glfw3_debug.lib;opengl32.lib;winmm.lib;xaudio2.lib;avformat.lib;avcodec.lib;avutil.lib;swscale.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
+    <PostBuildEvent>
+      <Command>if exist "$(SolutionDir)Libraries\streamline\bin\x64\" xcopy /Y /D /Q "$(SolutionDir)Libraries\streamline\bin\x64\*.dll" "$(OutDir)" &gt;nul
+if exist "$(SolutionDir)Libraries\fidelityfx\bin\x64\" xcopy /Y /D /Q "$(SolutionDir)Libraries\fidelityfx\bin\x64\*.dll" "$(OutDir)" &gt;nul
+if exist "$(SolutionDir)Libraries\fonts\" xcopy /Y /D /Q /I "$(SolutionDir)Libraries\fonts\*" "$(OutDir)Fonts\" &gt;nul
+exit /b 0</Command>
+      <Message>Copying NVIDIA Streamline / DLSS and AMD FSR runtimes next to the executable</Message>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
@@ -139,9 +146,15 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>GLFW_STATIC;NDEBUG;_WINDOWS;_CRT_SECURE_NO_WARNINGS;_ENABLE_EXTENDED_ALIGNED_STORAGE;IMGUI_DEFINE_MATH_OPERATORS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <Optimization>MaxSpeed</Optimization>
+      <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
+      <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
+      <OmitFramePointers>true</OmitFramePointers>
+      <StringPooling>true</StringPooling>
+      <WholeProgramOptimization>true</WholeProgramOptimization>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>$(SolutionDir)Libraries\include;$(SolutionDir)Libraries\ffmpeg\ffmpeg-master-latest-win64-lgpl-shared\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)Libraries\include;$(SolutionDir)Libraries\ffmpeg\ffmpeg-master-latest-win64-lgpl-shared\include;$(SolutionDir)Libraries\streamline\include;$(SolutionDir)Libraries\vulkan\include;$(SolutionDir)Libraries\fidelityfx;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
       <AdditionalOptions>/FS /MP8 %(AdditionalOptions)</AdditionalOptions>
@@ -155,7 +168,15 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalLibraryDirectories>$(SolutionDir)Libraries\lib\Release;$(SolutionDir)Libraries\ffmpeg\ffmpeg-master-latest-win64-lgpl-shared\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
 		<AdditionalDependencies>glfw3.lib;opengl32.lib;winmm.lib;xaudio2.lib;avformat.lib;avcodec.lib;avutil.lib;swscale.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
     </Link>
+    <PostBuildEvent>
+      <Command>if exist "$(SolutionDir)Libraries\streamline\bin\x64\" xcopy /Y /D /Q "$(SolutionDir)Libraries\streamline\bin\x64\*.dll" "$(OutDir)" &gt;nul
+if exist "$(SolutionDir)Libraries\fidelityfx\bin\x64\" xcopy /Y /D /Q "$(SolutionDir)Libraries\fidelityfx\bin\x64\*.dll" "$(OutDir)" &gt;nul
+if exist "$(SolutionDir)Libraries\fonts\" xcopy /Y /D /Q /I "$(SolutionDir)Libraries\fonts\*" "$(OutDir)Fonts\" &gt;nul
+exit /b 0</Command>
+      <Message>Copying NVIDIA Streamline / DLSS and AMD FSR runtimes next to the executable</Message>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="..\Libraries\include\imgui\imgui.cpp" />
@@ -251,6 +272,22 @@
     <ClCompile Include="dartgun.cpp" />
     <ClCompile Include="debris.cpp" />
     <ClCompile Include="debug.cpp" />
+    <ClCompile Include="mods.cpp" />
+    <ClCompile Include="qol.cpp" />
+    <ClCompile Include="menustyle.cpp" />
+    <ClCompile Include="mouseinput.cpp" />
+    <ClCompile Include="menufont.cpp" />
+    <ClCompile Include="perf.cpp">
+      <ForcedIncludeFiles></ForcedIncludeFiles>
+    </ClCompile>
+    <ClCompile Include="fsr.cpp">
+      <!-- Self-contained OpenGL TU; independent of the game headers. -->
+      <ForcedIncludeFiles></ForcedIncludeFiles>
+    </ClCompile>
+    <ClCompile Include="dlss.cpp">
+      <!-- Keep the DLSS/Vulkan/Streamline TU independent of the game headers. -->
+      <ForcedIncludeFiles></ForcedIncludeFiles>
+    </ClCompile>
     <ClCompile Include="debugmenu.cpp" />
     <ClCompile Include="decoy.cpp" />
     <ClCompile Include="dialog.cpp" />
@@ -544,6 +581,15 @@
     <ClInclude Include="dartgun.h" />
     <ClInclude Include="debris.h" />
     <ClInclude Include="debug.h" />
+    <ClInclude Include="dlss.h" />
+    <ClInclude Include="mods.h" />
+    <ClInclude Include="qol.h" />
+    <ClInclude Include="menustyle.h" />
+    <ClInclude Include="mouseinput.h" />
+    <ClInclude Include="menuhelp.h" />
+    <ClInclude Include="menufont.h" />
+    <ClInclude Include="fsr.h" />
+    <ClInclude Include="perf.h" />
     <ClInclude Include="debugmenu.h" />
     <ClInclude Include="dec.h" />
     <ClInclude Include="decoy.h" />

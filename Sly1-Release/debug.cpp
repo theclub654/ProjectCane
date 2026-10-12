@@ -483,6 +483,9 @@ void RenderMenuGui(SW* psw)
                 ImGui::EndMenu();
             }
 
+            DrawDlssDebugMenu();
+            if (ImGui::IsItemHovered()) g_fDisableInput = true;
+
             if (ImGui::MenuItem("V Sync", nullptr, g_fVsync))
             {
                 g_fVsync = !g_fVsync;

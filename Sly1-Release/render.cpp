@@ -1,4 +1,5 @@
 #include "render.h"
+#include "perf.h"
 #include "emitter.h"
 #include "main.h"
 #include "blip.h"
@@ -169,17 +170,17 @@ namespace
 			if (group.additive)
 			{
 				glUniform1i(glslBlipAlphaPass, 0);
-				glDepthMask(GL_FALSE);
+				GlDepthMask(GL_FALSE);
 				drawRanges();
 			}
 			else
 			{
 				glUniform1i(glslBlipAlphaPass, 1);
-				glDepthMask(GL_TRUE);
+				GlDepthMask(GL_TRUE);
 				drawRanges();
 
 				glUniform1i(glslBlipAlphaPass, 2);
-				glDepthMask(GL_FALSE);
+				GlDepthMask(GL_FALSE);
 				drawRanges();
 			}
 		}
@@ -704,8 +705,8 @@ void DrawSw(SW* psw, CM* pcm)
 	SortRenderRpl();
 	StageDrawStreams();
 
-	glBindBuffer(GL_UNIFORM_BUFFER, cmUBO);
-	glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(CMGL), &pcm->matWorldToClip);
+	// Applies this frame's DLSS sub-pixel jitter (if any) to the GPU copy.
+	UploadCmUbo(&pcm->matWorldToClip, sizeof(CMGL));
 
 	PrepareSwLights(psw, pcm);
 	PrepareSwShadows(psw, pcm);
@@ -732,7 +733,7 @@ void DrawSw(SW* psw, CM* pcm)
 		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);*/
 
 		glDepthFunc(GL_ALWAYS);
-		glDepthMask(false);
+		GlDepthMask(false);
 
 		glDyshadow.Use();
 
@@ -745,7 +746,7 @@ void DrawSw(SW* psw, CM* pcm)
 		//glDisable(GL_BLEND);
 
 		glDepthFunc(GL_LESS);
-		glDepthMask(true);
+		GlDepthMask(true);
 
 		glGlobShader.Use();
 
@@ -759,13 +760,13 @@ void DrawSw(SW* psw, CM* pcm)
 	if (g_backGroundCount > 0)
 	{
 		glDepthFunc(GL_ALWAYS);
-		glDepthMask(false);
+		GlDepthMask(false);
 
 		for (int i = 0; i < g_backGroundCount; i++)
 			g_backGroundPrpl[i].PFNDRAWRPL(&g_backGroundPrpl[i]);
 
 		glDepthFunc(GL_LESS);
-		glDepthMask(true);
+		GlDepthMask(true);
 
 		g_backGroundCount = 0;
 	}
@@ -775,14 +776,14 @@ void DrawSw(SW* psw, CM* pcm)
 		glEnable(GL_BLEND);
 		glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ZERO);
 		glDepthFunc(GL_ALWAYS);
-		glDepthMask(false);
+		GlDepthMask(false);
 
 		for (int i = 0; i < g_backGroundBlendCount; i++)
 			g_backGroundBlendPrpl[i].PFNDRAWRPL(&g_backGroundBlendPrpl[i]);
 
 		glDisable(GL_BLEND);
 		glDepthFunc(GL_LESS);
-		glDepthMask(true);
+		GlDepthMask(true);
 
 		g_backGroundBlendCount = 0;
 	}
@@ -818,7 +819,7 @@ void DrawSw(SW* psw, CM* pcm)
 		for (int i = 0; i < g_cutOutBlendAddCount; i++)
 			g_cutOutBlendAddPrpl[i].PFNDRAWRPL(&g_cutOutBlendAddPrpl[i]);
 
-		glDepthMask(true);
+		GlDepthMask(true);
 		glDisable(GL_BLEND);
 
 		g_cutOutBlendAddCount = 0;
@@ -833,7 +834,7 @@ void DrawSw(SW* psw, CM* pcm)
 		for (int i = 0; i < g_cutOutCount; i++)
 			g_cutOutPrpl[i].PFNDRAWRPL(&g_cutOutPrpl[i]);
 
-		glDepthMask(true);
+		GlDepthMask(true);
 		glDisable(GL_BLEND);
 
 		g_cutOutCount = 0;
@@ -851,7 +852,7 @@ void DrawSw(SW* psw, CM* pcm)
 		glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
 
 		glDepthFunc(GL_LEQUAL);
-		glDepthMask(GL_TRUE);
+		GlDepthMask(GL_TRUE);
 
 		for (int i = 0; i < g_celBorderCount; i++)
 			DrawCelBorder(&g_celBorderPrpl[i]);
@@ -871,7 +872,7 @@ void DrawSw(SW* psw, CM* pcm)
 		glEnable(GL_BLEND);
 		glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ZERO);
 		glEnable(GL_STENCIL_TEST);
-		glDepthMask(GL_FALSE);
+		GlDepthMask(GL_FALSE);
 		glDepthFunc(GL_LESS);
 		glStencilMask(128);
 
@@ -882,7 +883,7 @@ void DrawSw(SW* psw, CM* pcm)
 		}
 
 		glStencilMask(0xFF);
-		glDepthMask(GL_TRUE);
+		GlDepthMask(GL_TRUE);
 		glDisable(GL_STENCIL_TEST);
 		glDisable(GL_BLEND);
 		glDepthFunc(GL_LESS);
@@ -908,7 +909,7 @@ void DrawSw(SW* psw, CM* pcm)
 		for (int i = 0; i < g_cutOutAfterProjVolumeAddCount; i++)
 			g_cutOutAfterProjVolumeAddPrpl[i].PFNDRAWRPL(&g_cutOutAfterProjVolumeAddPrpl[i]);
 
-		glDepthMask(true);
+		GlDepthMask(true);
 		glDisable(GL_BLEND);
 
 		g_cutOutAfterProjVolumeAddCount = 0;
@@ -923,7 +924,7 @@ void DrawSw(SW* psw, CM* pcm)
 		for (int i = 0; i < g_cutOutAfterProjVolumeCount; i++)
 			g_cutOutAfterProjVolumePrpl[i].PFNDRAWRPL(&g_cutOutAfterProjVolumePrpl[i]);
 
-		glDepthMask(true);
+		GlDepthMask(true);
 		glDisable(GL_BLEND);
 
 		g_cutOutAfterProjVolumeCount = 0;
@@ -952,13 +953,13 @@ void DrawSw(SW* psw, CM* pcm)
 	if (g_murkClearCount > 0)
 	{
 		glEnable(GL_BLEND);
-		glDepthMask(GL_FALSE);
+		GlDepthMask(GL_FALSE);
 		glDepthFunc(GL_LEQUAL);
 
 		for (int i = 0; i < g_murkClearCount; i++)
 			g_murkClearPrpl[i].PFNDRAWRPL(&g_murkClearPrpl[i]);
 
-		glDepthMask(GL_TRUE);
+		GlDepthMask(GL_TRUE);
 		glDisable(GL_BLEND);
 		glDepthFunc(GL_LESS);
 
@@ -981,14 +982,14 @@ void DrawSw(SW* psw, CM* pcm)
 	if (g_murkFillCount > 0)
 	{
 		glEnable(GL_BLEND);
-		glDepthMask(false);
+		GlDepthMask(false);
 		glDepthFunc(GL_LEQUAL);
 
 		for (int i = 0; i < g_murkFillCount; i++)
 			g_murkFillPrpl[i].PFNDRAWRPL(&g_murkFillPrpl[i]);
 
 		glDisable(GL_BLEND);
-		glDepthMask(true);
+		GlDepthMask(true);
 		glDepthFunc(GL_LESS);
 
 		g_murkFillCount = 0;
@@ -1003,7 +1004,7 @@ void DrawSw(SW* psw, CM* pcm)
 		for (int i = 0; i < g_translucentAddCount; i++)
 			g_translucentAddPrpl[i].PFNDRAWRPL(&g_translucentAddPrpl[i]);
 
-		glDepthMask(true);
+		GlDepthMask(true);
 		glDisable(GL_BLEND);
 
 		g_translucentAddCount = 0;
@@ -1018,7 +1019,7 @@ void DrawSw(SW* psw, CM* pcm)
 		for (int i = 0; i < g_translucentCount; i++)
 			g_translucentPrpl[i].PFNDRAWRPL(&g_translucentPrpl[i]);
 
-		glDepthMask(true);
+		GlDepthMask(true);
 		glDisable(GL_BLEND);
 
 		g_translucentCount = 0;
@@ -1049,7 +1050,7 @@ void DrawSw(SW* psw, CM* pcm)
 		glEnable(GL_BLEND);
 		glEnable(GL_DEPTH_TEST);
 		glDepthFunc(GL_LESS);
-		glDepthMask(false);
+		GlDepthMask(false);
 		glDisable(GL_CULL_FACE);
 
 		glBlipShader.Use();
@@ -1076,7 +1077,7 @@ void DrawSw(SW* psw, CM* pcm)
 		BindVertexArray(0);
 		glBindBuffer(GL_ARRAY_BUFFER, 0);
 		BindTexture2D(0, 0);
-		glDepthMask(true);
+		GlDepthMask(true);
 		glDisable(GL_BLEND);
 		glEnable(GL_CULL_FACE);
 		glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ZERO);
@@ -1090,12 +1091,12 @@ void DrawSw(SW* psw, CM* pcm)
 		// Foreground objects are camera/UI composites (including confrontation
 		// TV speakers), not members of the level depth hierarchy.
 		glDepthFunc(GL_ALWAYS);
-		glDepthMask(GL_FALSE);
+		GlDepthMask(GL_FALSE);
 
 		for (int i = 0; i < g_foreGroundCount; i++)
 			g_foreGroundPrpl[i].PFNDRAWRPL(&g_foreGroundPrpl[i]);
 
-		glDepthMask(GL_TRUE);
+		GlDepthMask(GL_TRUE);
 		glDepthFunc(GL_LESS);
 
 		g_foreGroundCount = 0;
@@ -1106,7 +1107,7 @@ void DrawSw(SW* psw, CM* pcm)
 		g_worldMapDrawnCount = g_worldMapCount;
 		glEnable(GL_BLEND);
 		glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ZERO);
-		glDepthMask(false);
+		GlDepthMask(false);
 		glDepthFunc(GL_ALWAYS);
 
 		// Every world-map presentation uses the original 4:3 frame, including
@@ -1148,7 +1149,7 @@ void DrawSw(SW* psw, CM* pcm)
 			g_worldMapPrpl[i].PFNDRAWRPL(&g_worldMapPrpl[i]);
 		}
 
-		glDepthMask(true);
+		GlDepthMask(true);
 		glDepthFunc(GL_LESS);
 		glDisable(GL_BLEND);
 
@@ -1168,6 +1169,7 @@ void DrawSw(SW* psw, CM* pcm)
 	if (anyCel == true)
 		EndFrameStream(&rcbStream);
 
+	PerfSetSceneStats(g_cFrameGlobs, g_gl.renderWidth, g_gl.renderHeight);
 	g_cFrameGlobs = 0;
 	g_cFrameCelGlobs = 0;
 
@@ -1182,6 +1184,12 @@ void FillScreenRect(int r, int g, int b, int alpha, float xLeft, float yTop, flo
 
 	if (width <= 0.0f || height <= 0.0f || alpha <= 0)
 		return;
+
+	// Menus and overlays (prompt, mods, DLSS/FSR, font draws) bind textures and
+	// VAOs directly between world frames, so the cached bindings may be stale.
+	// Re-learn them here; otherwise the white texture bind below can be skipped
+	// and the rectangle samples whatever texture (e.g. a font atlas) is bound.
+	s_renderState.Invalidate();
 
 	const glm::mat4 model = glm::translate(glm::mat4(1.0f), glm::vec3(xLeft, yTop, 0.0f)) * glm::scale(glm::mat4(1.0f), glm::vec3(width, height, 1.0f));
 	const glm::vec4 color(static_cast<float>(r) / 255.0f, static_cast<float>(g) / 255.0f, static_cast<float>(b) / 255.0f, static_cast<float>(alpha) / 255.0f);
@@ -1662,14 +1670,14 @@ void DrawTranslucent(int baseVertex, int firstIndex, int indexCount)
 	// DrawTranslucent expects depth writes enabled between subglobs, so restore
 	// that known state directly instead of querying the driver for every draw.
 	glUniform1i(glslfAlphaTest, 1);
-	glDepthMask(GL_TRUE);
+	GlDepthMask(GL_TRUE);
 	glDrawElementsBaseVertex(GL_TRIANGLES, (GLsizei)indexCount, GL_UNSIGNED_INT, (void*)(uintptr_t)(firstIndex * sizeof(uint32_t)), (GLint)baseVertex);
 
 	glUniform1i(glslfAlphaTest, 0);
-	glDepthMask(GL_FALSE);
+	GlDepthMask(GL_FALSE);
 	glDrawElementsBaseVertex(GL_TRIANGLES, (GLsizei)indexCount, GL_UNSIGNED_INT, (void*)(uintptr_t)(firstIndex * sizeof(uint32_t)), (GLint)baseVertex);
 
-	glDepthMask(GL_TRUE);
+	GlDepthMask(GL_TRUE);
 }
 
 void DrawBlip(RPL* prplblip)

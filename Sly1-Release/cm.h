@@ -103,6 +103,9 @@ class CM : public LO
     CPALIGN cpalign;
     CPASEG cpaseg;
     CPTN cptn;
+    // Near plane used for drawing (RecalcCm). Equals sNearClip unless the
+    // rendered view is wider than the PS2's; gameplay always uses sNearClip.
+    float sRenderNearClip = 100.0f;
 };
 
 void CalcCmAdjust(CM* pcm, SO* psoFocus, CPDEFI* pcpdefi, glm::vec3* pdpos);

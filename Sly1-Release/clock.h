@@ -31,3 +31,7 @@ extern float g_rtClockDebug;
 extern float g_rtClockPowerUp;
 extern float g_rtClock;
 extern int g_targetFrameRate;
+// Retail Timing: game updates exactly as on the PS2 (see qol.h).
+extern bool g_fRetailTiming;
+// The rate the frame pacer runs at: 59.94 with Retail Timing, else the option.
+double EffectiveFrameRateHz();

@@ -1,5 +1,7 @@
 #include "clock.h"
 #include <chrono>
+#include <algorithm>
+#include <cmath>
 
 void StartupClock()
 {
@@ -46,9 +48,26 @@ void MarkClockTick(CLOCK* pclock)
 
     float dt = dtTicks * 3.390842e-09f;
 
-    // Keep the engine's minimum update step synchronized with the selected
-    // presentation rate (30, 60, or 120 Hz).
-    const float kDtMin = 1.0f / static_cast<float>(g_targetFrameRate);
+    float kDtMin;
+    if (g_fRetailTiming)
+    {
+        // Retail Timing: behave like the PS2. The console's frame loop is locked
+        // to NTSC vsync (59.94 Hz), so its measured step is always a whole
+        // number of fields. Snap the PC's slightly noisy frame time to the
+        // nearest field so every step is identical to the console's, then
+        // apply retail's clamp (one to two 1/60 s frames, clock.c).
+        constexpr float kDtField = 1001.0f / 60000.0f;
+        const float fields = std::max(1.0f, std::round(dt / kDtField));
+        dt = fields * kDtField;
+        kDtMin = 1.0f / 60.0f;
+    }
+    else
+    {
+        // Keep the engine's minimum update step synchronized with the selected
+        // presentation rate. Uncapped (0): the frame pacer stops at 1000 FPS,
+        // so 1 ms is the floor.
+        kDtMin = 1.0f / static_cast<float>(g_targetFrameRate > 0 ? g_targetFrameRate : 1000);
+    }
     if (dt < kDtMin) dt = kDtMin;
     else if (dt > 0.03333334f) dt = 0.03333334f;
 
@@ -93,3 +112,12 @@ float g_rtClock = 1.0;
 // Safe first-run fallback. StartupSaveData replaces this with the frame rate
 // saved from the pause-menu video settings before the frame pacer starts.
 int g_targetFrameRate = 60;
+// Retail Timing (Options > Gameplay). QOL.ini overrides this at startup.
+bool g_fRetailTiming = true;
+
+double EffectiveFrameRateHz()
+{
+    if (g_fRetailTiming)
+        return 60000.0 / 1001.0;   // NTSC field rate, like the PS2
+    return g_targetFrameRate > 0 ? static_cast<double>(g_targetFrameRate) : 1000.0;
+}

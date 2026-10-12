@@ -223,7 +223,12 @@ namespace
             y = (framebufferHeight - height) / 2;
         }
 
-        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        // With DLSS Frame Generation on, the window shows a DXGI swapchain, so
+        // the movie must go through the same present path as game frames
+        // (0 = draw to the window as usual).
+        const GLuint presentFbo = DlssBeginPresent(framebufferWidth, framebufferHeight,
+            0, 0, framebufferWidth, framebufferHeight);
+        glBindFramebuffer(GL_FRAMEBUFFER, presentFbo);
         glViewport(0, 0, framebufferWidth, framebufferHeight);
         glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
@@ -235,7 +240,8 @@ namespace
         glBindTexture(GL_TEXTURE_2D, texture);
         glBindVertexArray(g_gl.sao);
         glDrawArrays(GL_TRIANGLES, 0, 6);
-        glfwSwapBuffers(g_gl.window);
+        if (!FDlssPresentFrame(false))
+            glfwSwapBuffers(g_gl.window);
         return true;
     }
 

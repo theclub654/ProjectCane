@@ -1,4 +1,5 @@
 #include "stepzap.h"
+#include "gl.h"
 #include <cstdio>
 #include "jt.h"
 #include "stephide.h"
@@ -756,9 +757,9 @@ void DrawHaloSpks(glm::vec3* pposRoot, int cspks, SPKS* aspks, SPKD* pspkd, RPL*
 
     const GLboolean cullWasEnabled = glIsEnabled(GL_CULL_FACE);
     GLboolean depthWriteWasEnabled = GL_TRUE;
-    glGetBooleanv(GL_DEPTH_WRITEMASK, &depthWriteWasEnabled);
+    depthWriteWasEnabled = g_glDepthMask;
     glDisable(GL_CULL_FACE);
-    glDepthMask(GL_FALSE);
+    GlDepthMask(GL_FALSE);
     glBindVertexArray(g_gl.sqtrVao);
     glVertexAttrib3f(1, 0.0f, 0.0f, 1.0f);
     glBindBuffer(GL_ARRAY_BUFFER, g_gl.sqtrVbo);
@@ -830,7 +831,7 @@ void DrawHaloSpks(glm::vec3* pposRoot, int cspks, SPKS* aspks, SPKD* pspkd, RPL*
     }
 
     glBindVertexArray(0);
-    glDepthMask(depthWriteWasEnabled);
+    GlDepthMask(depthWriteWasEnabled);
     if (cullWasEnabled)
         glEnable(GL_CULL_FACE);
 }
