@@ -35,6 +35,57 @@ set_source_files_properties(${pal_sources} PROPERTIES SKIP_PRECOMPILE_HEADERS ON
 add_executable(ProjectCane ${cane_sources} ${platform_sources} ${brx_sources} ${pal_sources})
 set_target_properties(ProjectCane PROPERTIES SUFFIX ".elf")
 set_property(TARGET ProjectCane PROPERTY CXX_LINKER_LAUNCHER "${CMAKE_COMMAND};-E;env;DEVKITPRO=${DEVKITPRO}")
+option(CANE_SWITCH_LTO "Enable Switch link-time optimization" ON)
+if(CANE_SWITCH_LTO)
+    set_target_properties(ProjectCane PROPERTIES
+        INTERPROCEDURAL_OPTIMIZATION_RELEASE TRUE
+        INTERPROCEDURAL_OPTIMIZATION_RELWITHDEBINFO TRUE
+        INTERPROCEDURAL_OPTIMIZATION_MINSIZEREL TRUE)
+    find_program(CANE_MAKE NAMES gmake make HINTS "${DEVKITPRO}/../../usr/bin")
+    if(CANE_MAKE)
+        set_property(TARGET ProjectCane APPEND PROPERTY CXX_LINKER_LAUNCHER "MAKE=${CANE_MAKE}")
+    endif()
+endif()
+
+find_package(Python3 REQUIRED COMPONENTS Interpreter)
+option(CANE_SWITCH_PGO "Enable Switch profile-guided optimization" ON)
+set(CANE_SWITCH_PGO_DIR "" CACHE PATH "Switch compiler profile directory")
+if(CANE_SWITCH_PGO AND CMAKE_BUILD_TYPE STREQUAL "Release" AND NOT CANE_SWITCH_PGO_DIR
+        AND CMAKE_CXX_COMPILER_VERSION VERSION_EQUAL "16.1.0")
+    set(CANE_SWITCH_PGO_DIR "${CMAKE_CURRENT_BINARY_DIR}/pgo")
+    file(GLOB_RECURSE pgo_headers CONFIGURE_DEPENDS "Sly1-Release/*.h" "Sly1-Release/*.hpp" "Sly1-Release/*.inl"
+        "Libraries/include/*.h" "Libraries/include/*.hpp" "Libraries/include/*.inl"
+        "platform/*.h" "platform/*.hpp" "platform/*.inl")
+    file(GLOB_RECURSE pgo_sdk_headers CONFIGURE_DEPENDS "${DEVKITPRO}/libnx/include/*"
+        "${DEVKITPRO}/devkitA64/aarch64-none-elf/include/*" "${DEVKITPRO}/portlibs/switch/include/*")
+    set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS ${cane_sources} ${platform_sources}
+        ${pgo_headers} ${pgo_sdk_headers} "cmake/switch_pgo.py" "platform/switch/pgo-gcc-16.1.zip")
+    execute_process(COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/cmake/switch_pgo.py"
+        --source "${CMAKE_CURRENT_SOURCE_DIR}" --devkitpro "${DEVKITPRO}"
+        --archive "${CMAKE_CURRENT_SOURCE_DIR}/platform/switch/pgo-gcc-16.1.zip"
+        --output "${CANE_SWITCH_PGO_DIR}" COMMAND_ERROR_IS_FATAL ANY)
+endif()
+if(CANE_SWITCH_PGO AND CMAKE_BUILD_TYPE STREQUAL "Release" AND CANE_SWITCH_PGO_DIR)
+    file(TO_NATIVE_PATH "${CANE_SWITCH_PGO_DIR}" pgo_directory)
+    file(TO_NATIVE_PATH "${CMAKE_BINARY_DIR}" pgo_prefix)
+    set(pgo_options "-fprofile-use=${pgo_directory}" "-fprofile-prefix-path=${pgo_prefix}"
+        -fno-profile-values -fprofile-correction -fprofile-partial-training)
+    set(has_profiles FALSE)
+    foreach(source IN LISTS cane_sources platform_sources)
+        get_filename_component(source_path "${source}" ABSOLUTE)
+        file(RELATIVE_PATH source_relative "${CMAKE_CURRENT_SOURCE_DIR}" "${source_path}")
+        string(REPLACE "/" "#" profile_name "${source_relative}")
+        set(profile "${CANE_SWITCH_PGO_DIR}/CMakeFiles#ProjectCane.dir#${profile_name}.gcda")
+        if(EXISTS "${profile}")
+            set(has_profiles TRUE)
+            set_property(SOURCE "${source}" APPEND PROPERTY COMPILE_OPTIONS ${pgo_options})
+            set_property(SOURCE "${source}" APPEND PROPERTY OBJECT_DEPENDS "${profile}")
+        endif()
+    endforeach()
+    if(has_profiles)
+        target_link_options(ProjectCane PRIVATE ${pgo_options})
+    endif()
+endif()
 target_include_directories(ProjectCane BEFORE PRIVATE platform/switch)
 target_include_directories(ProjectCane PRIVATE Libraries/include Sly1-Release
     "${CMAKE_CURRENT_BINARY_DIR}/generated" "${PORTLIBS}/include")
@@ -53,7 +104,6 @@ endforeach()
 set_source_files_properties(${platform_sources} PROPERTIES SKIP_PRECOMPILE_HEADERS ON)
 target_compile_options(ProjectCane PRIVATE -pthread -fno-strict-aliasing "$<$<COMPILE_LANGUAGE:CXX>:-Wno-invalid-offsetof>")
 
-find_package(Python3 REQUIRED COMPONENTS Interpreter)
 find_program(CANE_UAM NAMES uam HINTS "${DEVKITPRO}/tools/bin" REQUIRED)
 file(GLOB shaders CONFIGURE_DEPENDS "Sly1-Release/*.vert" "Sly1-Release/*.frag")
 file(GLOB deko_ui_shaders CONFIGURE_DEPENDS "platform/switch/deko/shaders/*")
