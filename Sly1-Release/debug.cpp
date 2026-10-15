@@ -15,12 +15,14 @@
 #include "fmv.h"
 #include "pzo.h"
 #include "cptn.h"
+#include "runtime_error.h"
 #include <algorithm>
 #include <array>
 #include <cfloat>
 #include <cmath>
 #include <cstdio>
 #include <fstream>
+#include <limits>
 #include <string_view>
 
 static bool s_fInfiniteTimer = false;
@@ -631,15 +633,13 @@ void RenderMenuGui(SW* psw)
                 if (ImGui::MenuItem("Export Map"))
                 {
                     std::cout << "Exporting Map..." << "\n";
-                    ExportSw();
-                    std::cout << "Export Complete" << "\n";
+                    std::cout << (ExportSw() ? "Export Complete\n" : "Export Failed\n");
                 }
 
                 if (ImGui::MenuItem("Export Map (Bake Lights)"))
                 {
                     std::cout << "Exporting Map..." << "\n";
-                    ExportSwLightsBaked();
-                    std::cout << "Export Complete" << "\n";
+                    std::cout << (ExportSwLightsBaked() ? "Export Complete\n" : "Export Failed\n");
                 }
 
                 if (ImGui::MenuItem("Export Textures"))
@@ -1291,6 +1291,149 @@ void PngWriteCallback(void* context, void* data, int size)
     png->data.insert(png->data.end(), bytes, bytes + size);
 }
 
+// Return a validated RGBA8 base level for tools which need CPU pixels. Rebuilt
+// BRX files may store BC1/BC3 payloads, and release builds discard their CPU
+// copies after upload, so diffuseTexture cannot be passed directly to stb.
+static bool GetBmpBaseRgba8(const BMP* bmp, std::vector<byte>& readback, const byte*& pixels)
+{
+    pixels = nullptr;
+    if (bmp == nullptr || bmp->bmpWidth == 0 || bmp->bmpHeight == 0)
+        return false;
+
+    const uint64_t byteCount64 =
+        static_cast<uint64_t>(bmp->bmpWidth) * static_cast<uint64_t>(bmp->bmpHeight) * 4u;
+    if (byteCount64 > static_cast<uint64_t>((std::numeric_limits<size_t>::max)()) ||
+        bmp->bmpWidth > static_cast<uint32_t>((std::numeric_limits<int>::max)() / 4))
+        return false;
+
+    const size_t byteCount = static_cast<size_t>(byteCount64);
+    if (bmp->textureFormat == 0 && bmp->diffuseTexture.size() >= byteCount)
+    {
+        pixels = bmp->diffuseTexture.data();
+        return true;
+    }
+
+    if (bmp->glDiffuseMap == 0)
+        return false;
+
+    readback.resize(byteCount);
+    GLint previousTexture = 0;
+    GLint previousPackAlignment = 4;
+    glGetIntegerv(GL_TEXTURE_BINDING_2D, &previousTexture);
+    glGetIntegerv(GL_PACK_ALIGNMENT, &previousPackAlignment);
+    glBindTexture(GL_TEXTURE_2D, bmp->glDiffuseMap);
+    glPixelStorei(GL_PACK_ALIGNMENT, 1);
+    glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_UNSIGNED_BYTE, readback.data());
+    glPixelStorei(GL_PACK_ALIGNMENT, previousPackAlignment);
+    glBindTexture(GL_TEXTURE_2D, static_cast<GLuint>(previousTexture));
+
+    pixels = readback.data();
+    return true;
+}
+
+struct ExportRgbaImage
+{
+    uint32_t width = 0;
+    uint32_t height = 0;
+    std::vector<byte> pixels;
+};
+
+struct BakedTextureSet
+{
+    ExportRgbaImage ambient;
+    ExportRgbaImage diffuse;
+    ExportRgbaImage saturate;
+    bool hasAmbient = false;
+    bool hasDiffuse = false;
+    bool hasSaturate = false;
+};
+
+static BMP* BmpFromImageIndex(int32_t imageIndex)
+{
+    return imageIndex >= 0 && static_cast<size_t>(imageIndex) < g_abmp.size()
+        ? &g_abmp[static_cast<size_t>(imageIndex)] : nullptr;
+}
+
+static bool LoadExportRgbaImage(BMP* bmp, ExportRgbaImage& image)
+{
+    image = {};
+    std::vector<byte> readback;
+    const byte* pixels = nullptr;
+    if (!GetBmpBaseRgba8(bmp, readback, pixels))
+        return false;
+
+    const size_t byteCount = static_cast<size_t>(bmp->bmpWidth) * bmp->bmpHeight * 4u;
+    image.width = bmp->bmpWidth;
+    image.height = bmp->bmpHeight;
+    image.pixels.assign(pixels, pixels + byteCount);
+    return true;
+}
+
+static int ExportTextureFrame(const SUBGLOB& sub, const SHD& shd)
+{
+    if (shd.atex.empty() || shd.atex[0].abmp.empty())
+        return 0;
+
+    int frame = sub.uvSai != nullptr ? sub.uvSai->iframe : 0;
+    return std::clamp(frame, 0, static_cast<int>(shd.atex[0].abmp.size()) - 1);
+}
+
+static uint64_t ExportMaterialKey(int shdID, int frame)
+{
+    return (static_cast<uint64_t>(static_cast<uint32_t>(shdID)) << 32) |
+        static_cast<uint32_t>(frame);
+}
+
+static BakedTextureSet LoadBakedTextureSet(const SHD& shd, int frame)
+{
+    BakedTextureSet result{};
+    if (shd.atex.empty())
+        return result;
+
+    const TEX& tex = shd.atex[0];
+    if (tex.ambientImageIndex.empty() || tex.diffuseImageIndex.empty() ||
+        tex.saturateImageIndex.empty())
+        return result;
+
+    const size_t availableFrames = std::min({tex.ambientImageIndex.size(),
+        tex.diffuseImageIndex.size(), tex.saturateImageIndex.size()});
+    if (availableFrames == 0)
+        return result;
+    const size_t frameIndex = std::min(static_cast<size_t>(std::max(frame, 0)),
+        availableFrames - 1);
+
+    BMP* ambient = BmpFromImageIndex(tex.ambientImageIndex[frameIndex]);
+    BMP* diffuse = BmpFromImageIndex(tex.diffuseImageIndex[frameIndex]);
+    BMP* saturate = BmpFromImageIndex(tex.saturateImageIndex[frameIndex]);
+    result.hasAmbient = LoadExportRgbaImage(ambient, result.ambient);
+    result.hasDiffuse = LoadExportRgbaImage(diffuse != nullptr ? diffuse : ambient,
+        result.diffuse);
+    result.hasSaturate = LoadExportRgbaImage(saturate, result.saturate);
+    return result;
+}
+
+static bool FValidExportIndices(const SUBGLOB& sub)
+{
+    const size_t vertexCount = sub.vertices.size();
+    return std::all_of(sub.indices.begin(), sub.indices.end(),
+        [vertexCount](const INDICE& tri)
+        {
+            return static_cast<size_t>(tri.v1) < vertexCount &&
+                static_cast<size_t>(tri.v2) < vertexCount &&
+                static_cast<size_t>(tri.v3) < vertexCount;
+        });
+}
+
+static glm::vec3 TransformExportNormal(const glm::mat3& normalMatrix,
+                                       const glm::vec3& normal)
+{
+    const glm::vec3 transformed = normalMatrix * normal;
+    const float lengthSquared = glm::dot(transformed, transformed);
+    return lengthSquared > 1.0e-12f
+        ? transformed * glm::inversesqrt(lengthSquared)
+        : glm::vec3(0.0f, 1.0f, 0.0f);
+}
+
 glm::quat RotationBetweenVectors(const glm::vec3& from, const glm::vec3& to)
 {
     glm::vec3 f = glm::normalize(from);
@@ -1323,9 +1466,23 @@ glm::quat RotationBetweenVectors(const glm::vec3& from, const glm::vec3& to)
     return glm::normalize(q);
 }
 
-void ExportSw()
+bool ExportSw()
 {
-    std::filesystem::create_directory(levelName);
+    if (g_psw == nullptr)
+    {
+        ReportRuntimeError("Export", "Cannot export a map without a loaded world");
+        return false;
+    }
+    try
+    {
+    std::error_code directoryError;
+    std::filesystem::create_directories(levelName, directoryError);
+    if (directoryError)
+    {
+        ReportRuntimeError("Export", "Could not create map export directory '%s': %s",
+            levelName.c_str(), directoryError.message().c_str());
+        return false;
+    }
 
     // One buffer for everything (geo + textures)
     std::vector<uint8_t> binaryBuffer;
@@ -1359,7 +1516,29 @@ void ExportSw()
         });
 
     // Cache: shdID material index (so we reuse images/textures)
-    std::unordered_map<int, int> shdToMaterialIndex;
+    std::unordered_map<uint64_t, int> shdToMaterialIndex;
+    // 0 = opaque, 1 = alpha-tested cutout, 2 = blended transparency.
+    std::unordered_map<int, int> shdAlphaMode;
+    for (ALO* alo : allSWAloObjs)
+    {
+        if (alo == nullptr)
+            continue;
+        for (const GLOB& glob : alo->globset.aglob)
+        {
+            for (const SUBGLOB& sub : glob.asubglob)
+            {
+                if (sub.shdID < 0 || sub.shdID >= static_cast<int>(g_ashd.size()))
+                    continue;
+                int mode = 0;
+                if (glob.rp == RP_Cutout || glob.rp == RP_CutoutAfterProjVolume)
+                    mode = 1;
+                if (glob.rp == RP_Translucent ||
+                    (glob.rp == RP_Background && g_ashd[sub.shdID].grfshd == 2))
+                    mode = 2;
+                shdAlphaMode[sub.shdID] = std::max(shdAlphaMode[sub.shdID], mode);
+            }
+        }
+    }
 
     uint32_t modelNum = 0;
     glm::mat4 model(1.0f);
@@ -1406,7 +1585,10 @@ void ExportSw()
             }
 
             glm::mat4 finalModel = zUpToYUp * model;
-            glm::mat3 normalMat = glm::mat3(glm::transpose(glm::inverse(finalModel)));
+            const glm::mat3 linearModel(finalModel);
+            const float modelDeterminant = glm::determinant(linearModel);
+            const glm::mat3 normalMat = std::fabs(modelDeterminant) > 1.0e-12f
+                ? glm::transpose(glm::inverse(linearModel)) : linearModel;
 
             // GLOB node under this ALO's GLOBSET
             int globNodeIndex = (int)nodes.size();
@@ -1430,6 +1612,14 @@ void ExportSw()
                     ++modelNum;
                     continue;
                 }
+                if (!FValidExportIndices(sub))
+                {
+                    ReportRuntimeError("Export",
+                        "Skipping map mesh %d/%d/%d because an index exceeds its %zu vertices",
+                        i, a, b, vertCount);
+                    ++modelNum;
+                    continue;
+                }
 
                 std::string baseName =
                     "SUBGLOB_" + std::to_string(i) + "_" +
@@ -1442,19 +1632,22 @@ void ExportSw()
                 int shdID = sub.shdID;
                 if (shdID >= 0 && shdID < (int)g_ashd.size())
                 {
-                    auto it = shdToMaterialIndex.find(shdID);
+                    SHD& shd = g_ashd[shdID];
+                    const int textureFrame = ExportTextureFrame(sub, shd);
+                    const uint64_t materialKey = ExportMaterialKey(shdID, textureFrame);
+                    auto it = shdToMaterialIndex.find(materialKey);
                     if (it == shdToMaterialIndex.end())
                     {
-                        bool wantsAlphaBlend =
-                            glob.rp == RP_Cutout ||
-                            glob.rp == RP_CutoutAfterProjVolume ||
-                            glob.rp == RP_Translucent ||
-                            (glob.rp == RP_Background && shdID >= 0 && shdID < (int)g_ashd.size() && g_ashd[shdID].grfshd == 2);
+                        const int alphaMode = shdAlphaMode[shdID];
 
-                        SHD& shd = g_ashd[shdID];
-                        BMP* bmp = shd.atex[0].abmp[0];
+                        BMP* bmp = nullptr;
+                        if (!shd.atex.empty() &&
+                            textureFrame < static_cast<int>(shd.atex[0].abmp.size()))
+                            bmp = shd.atex[0].abmp[textureFrame];
 
-                        if (bmp && !bmp->diffuseTexture.empty())
+                        std::vector<byte> rgbaReadback;
+                        const byte* rgbaPixels = nullptr;
+                        if (GetBmpBaseRgba8(bmp, rgbaReadback, rgbaPixels))
                         {
                             // ---- Encode BMP as PNG into memory ----
                             PngBuffer png;
@@ -1465,10 +1658,17 @@ void ExportSw()
                                 bmp->bmpWidth,
                                 bmp->bmpHeight,
                                 4,
-                                bmp->diffuseTexture.data(),
+                                rgbaPixels,
                                 bmp->bmpWidth * 4
                             );
 
+                            if (png.data.empty())
+                            {
+                                materialIndex = defaultMaterialIndex;
+                                shdToMaterialIndex[materialKey] = materialIndex;
+                            }
+                            else
+                            {
                             // ---- Append PNG bytes to binaryBuffer ----
                             AlignTo4(binaryBuffer);
                             size_t pngByteOffset = binaryBuffer.size();
@@ -1496,7 +1696,9 @@ void ExportSw()
 
                             json mat = {
                                 {"name", "Material_Shader_" + std::to_string(shdID) +
-                                         (wantsAlphaBlend ? "_Alpha" : "_Opaque")},
+                                         "_Frame_" + std::to_string(textureFrame) +
+                                         (alphaMode == 2 ? "_Alpha" :
+                                          alphaMode == 1 ? "_Cutout" : "_Opaque")},
                                 {"pbrMetallicRoughness", {
                                     {"baseColorTexture", { {"index", textureIndex} }},
                                     {"metallicFactor", 0.0},
@@ -1505,10 +1707,15 @@ void ExportSw()
                             };
 
                             // Alpha mode selection
-                            if (wantsAlphaBlend)
+                            if (alphaMode == 2)
                             {
                                 mat["alphaMode"] = "BLEND";
-                                mat["alphaCutoff"] = 0.0;
+                                mat["doubleSided"] = true;
+                            }
+                            else if (alphaMode == 1)
+                            {
+                                mat["alphaMode"] = "MASK";
+                                mat["alphaCutoff"] = 0.5;
                                 mat["doubleSided"] = true;
                             }
                             else
@@ -1518,12 +1725,13 @@ void ExportSw()
 
                             materialIndex = (int)materials.size();
                             materials.push_back(mat);
-                            shdToMaterialIndex[shdID] = materialIndex;
+                            shdToMaterialIndex[materialKey] = materialIndex;
+                            }
                         }
                         else
                         {
                             materialIndex = defaultMaterialIndex;
-                            shdToMaterialIndex[shdID] = materialIndex;
+                            shdToMaterialIndex[materialKey] = materialIndex;
                         }
                     }
                     else
@@ -1539,11 +1747,15 @@ void ExportSw()
                 // ========= POSITIONS =========
                 AlignTo4(binaryBuffer);
                 size_t posByteOffset = binaryBuffer.size();
+                glm::vec3 positionMin((std::numeric_limits<float>::max)());
+                glm::vec3 positionMax((std::numeric_limits<float>::lowest)());
 
                 for (auto& v : sub.vertices)
                 {
                     glm::vec4 vt = finalModel * glm::vec4(v.pos, 1.0f);
-                    glm::vec3 p = glm::vec3(vt) / vt.w;
+                    glm::vec3 p = glm::vec3(vt);
+                    positionMin = glm::min(positionMin, p);
+                    positionMax = glm::max(positionMax, p);
 
                     AppendFloat(binaryBuffer, p.x);
                     AppendFloat(binaryBuffer, p.y);
@@ -1565,7 +1777,9 @@ void ExportSw()
                     {"byteOffset", 0},
                     {"componentType", 5126}, // FLOAT
                     {"count", vertCount},
-                    {"type", "VEC3"}
+                    {"type", "VEC3"},
+                    {"min", {positionMin.x, positionMin.y, positionMin.z}},
+                    {"max", {positionMax.x, positionMax.y, positionMax.z}}
                     });
 
                 // ========= NORMALS =========
@@ -1574,9 +1788,10 @@ void ExportSw()
 
                 for (auto& v : sub.vertices)
                 {
-                    AppendFloat(binaryBuffer, v.normal.x);
-                    AppendFloat(binaryBuffer, v.normal.y);
-                    AppendFloat(binaryBuffer, v.normal.z);
+                    const glm::vec3 normal = TransformExportNormal(normalMat, v.normal);
+                    AppendFloat(binaryBuffer, normal.x);
+                    AppendFloat(binaryBuffer, normal.y);
+                    AppendFloat(binaryBuffer, normal.z);
                 }
                 size_t nrmByteLength = binaryBuffer.size() - nrmByteOffset;
 
@@ -1725,7 +1940,12 @@ void ExportSw()
     std::vector<uint8_t> binChunk = binaryBuffer;
     while (binChunk.size() % 4 != 0)
         binChunk.push_back(0x00);
-    uint32_t binChunkLength = (uint32_t)binChunk.size();
+    if (binChunk.size() > (std::numeric_limits<uint32_t>::max)())
+    {
+        ReportRuntimeError("Export", "Map export exceeds the GLB 4 GiB size limit");
+        return false;
+    }
+    uint32_t binChunkLength = static_cast<uint32_t>(binChunk.size());
 
     // ===================== Hook into glTF JSON =====================
     gltf["buffers"] = json::array({
@@ -1755,17 +1975,31 @@ void ExportSw()
     std::vector<uint8_t> jsonChunk(jsonStr.begin(), jsonStr.end());
     while (jsonChunk.size() % 4 != 0)
         jsonChunk.push_back(0x20); // spaces
-    uint32_t jsonChunkLength = (uint32_t)jsonChunk.size();
+    if (jsonChunk.size() > (std::numeric_limits<uint32_t>::max)())
+    {
+        ReportRuntimeError("Export", "Map JSON exceeds the GLB 4 GiB size limit");
+        return false;
+    }
+    uint32_t jsonChunkLength = static_cast<uint32_t>(jsonChunk.size());
 
     // ===================== GLB header & chunks =====================
     uint32_t magic = 0x46546C67; // "glTF"
     uint32_t version = 2;
-    uint32_t totalLength = 12 + 8 + jsonChunkLength + 8 + binChunkLength;
+    const uint64_t totalLength64 = 12ull + 8ull + jsonChunkLength + 8ull + binChunkLength;
+    if (totalLength64 > (std::numeric_limits<uint32_t>::max)())
+    {
+        ReportRuntimeError("Export", "Map export exceeds the GLB 4 GiB size limit");
+        return false;
+    }
+    uint32_t totalLength = static_cast<uint32_t>(totalLength64);
 
     std::string glbPath = levelName + "/" + levelName + ".glb";
-    std::ofstream out(glbPath, std::ios::binary);
+    std::ofstream out(glbPath, std::ios::binary | std::ios::trunc);
     if (!out)
-        return;
+    {
+        ReportRuntimeError("Export", "Could not open map export '%s'", glbPath.c_str());
+        return false;
+    }
 
     auto WriteU32 = [&](uint32_t v) {
         out.write(reinterpret_cast<const char*>(&v), 4);
@@ -1787,6 +2021,18 @@ void ExportSw()
     out.write(reinterpret_cast<const char*>(binChunk.data()), binChunk.size());
 
     out.close();
+    if (!out)
+    {
+        ReportRuntimeError("Export", "Failed while writing map export '%s'", glbPath.c_str());
+        return false;
+    }
+    return true;
+    }
+    catch (const std::exception& error)
+    {
+        ReportRuntimeError("Export", "Map export failed: %s", error.what());
+        return false;
+    }
 }
 
 inline bool ComputeBarycentric(const glm::vec2& p, const glm::vec2& a, const glm::vec2& b, const glm::vec2& c, float& w0, float& w1, float& w2)
@@ -1834,6 +2080,13 @@ inline glm::vec4 SampleRGBA8(const std::vector<byte>& data, int w, int h, float 
     float b = data[idx + 2] / 255.0f;
     float a = data[idx + 3] / 255.0f;
     return glm::vec4(r, g, b, a);
+}
+
+static glm::vec4 SampleExportImage(const ExportRgbaImage& image, float u, float v,
+                                   const glm::vec4& defaultColor)
+{
+    return SampleRGBA8(image.pixels, static_cast<int>(image.width),
+        static_cast<int>(image.height), u, v, defaultColor);
 }
 
 MaterialCPU ProcessGlobLightingCPU(const glm::vec3& vertexColorRGB, float objectShadow, float objectMidtone, const glm::vec3& lightAccum)
@@ -1914,17 +2167,15 @@ MaterialCPU EvaluateLightingAtPointCPU(const glm::vec3& worldPos, const glm::vec
     return ProcessGlobLightingCPU(vertexColorRGB, objectShadow, objectMidtone, lightAccum);
 }
 
-glm::vec4 ComputeBakedVertexColorThreeWay(const SUBGLOB& sub, const glm::mat4& model, const glm::mat3& normalMat, const BMP* bmp, const VERTICE& v)
+glm::vec4 ComputeBakedVertexColorThreeWay(const SUBGLOB& sub, const glm::mat4& model,
+    const glm::mat3& normalMat, const BakedTextureSet& textures, const VERTICE& v)
 {
-    if (!bmp || bmp->bmpWidth <= 0 || bmp->bmpHeight <= 0)
+    if (!textures.hasDiffuse)
         return v.color; // fallback
-
-    int w = bmp->bmpWidth;
-    int h = bmp->bmpHeight;
 
     // World space
     glm::vec3 worldPos = glm::vec3(model * glm::vec4(v.pos, 1.0f));
-    glm::vec3 normalWorld = glm::normalize(normalMat * v.normal);
+    glm::vec3 normalWorld = TransformExportNormal(normalMat, v.normal);
 
     // Game per-vertex color used in lighting
     glm::vec3 vertexBaseColor = glm::vec3(v.color);
@@ -1937,9 +2188,12 @@ glm::vec4 ComputeBakedVertexColorThreeWay(const SUBGLOB& sub, const glm::mat4& m
     float u = glm::clamp(uv.x, 0.0f, 1.0f);
     float vv = glm::clamp(uv.y, 0.0f, 1.0f);
 
-    glm::vec4 shCol = SampleRGBA8(bmp->shadowTexture, w, h, u, vv, glm::vec4(0.0f));
-    glm::vec4 difCol = SampleRGBA8(bmp->diffuseTexture, w, h, u, vv, glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
-    glm::vec4 satCol = SampleRGBA8(bmp->saturateTexture, w, h, u, vv, glm::vec4(0.0f));
+    glm::vec4 shCol = textures.hasAmbient
+        ? SampleExportImage(textures.ambient, u, vv, glm::vec4(0.0f)) : glm::vec4(0.0f);
+    glm::vec4 difCol = SampleExportImage(textures.diffuse, u, vv,
+        glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
+    glm::vec4 satCol = textures.hasSaturate
+        ? SampleExportImage(textures.saturate, u, vv, glm::vec4(0.0f)) : glm::vec4(0.0f);
 
     glm::vec3 shRGB = glm::vec3(shCol);
     glm::vec3 difRGB = glm::vec3(difCol);
@@ -1975,6 +2229,8 @@ glm::vec4 ComputeBakedVertexColorThreeWay(const SUBGLOB& sub, const glm::mat4& m
 
 void ExportLights(json& gltf, std::vector<json>& nodes, std::vector<int>& sceneNodes, const glm::mat4& zUpToYUp)
 {
+    if (g_psw == nullptr)
+        return;
     // --- 1) Mark extension as used/required ---
     if (!gltf.contains("extensionsUsed") || !gltf["extensionsUsed"].is_array())
         gltf["extensionsUsed"] = json::array();
@@ -2039,7 +2295,7 @@ void ExportLights(json& gltf, std::vector<json>& nodes, std::vector<int>& sceneN
 
             json lightNode;
             lightNode["name"] = "DirectionalLightNode_0";
-            lightNode["rotation"] = { pDir->xf.matWorld[2][0], pDir->xf.matWorld[2][1], pDir->xf.matWorld[2][2], 1.0 };
+            lightNode["rotation"] = { q.x, q.y, q.z, q.w };
             lightNode["extensions"] = {
                 { "KHR_lights_punctual", { { "light", lightIndex } } }
             };
@@ -2105,9 +2361,23 @@ void ExportLights(json& gltf, std::vector<json>& nodes, std::vector<int>& sceneN
     }
 }
 
-void ExportSwLightsBaked()
+bool ExportSwLightsBaked()
 {
-    std::filesystem::create_directory(levelName);
+    if (g_psw == nullptr)
+    {
+        ReportRuntimeError("Export", "Cannot export a baked map without a loaded world");
+        return false;
+    }
+    try
+    {
+    std::error_code directoryError;
+    std::filesystem::create_directories(levelName, directoryError);
+    if (directoryError)
+    {
+        ReportRuntimeError("Export", "Could not create baked-map export directory '%s': %s",
+            levelName.c_str(), directoryError.message().c_str());
+        return false;
+    }
 
     std::vector<uint8_t> binaryBuffer;
 
@@ -2163,11 +2433,12 @@ void ExportSwLightsBaked()
         materials.push_back(mat);
     }
 
-    std::unordered_map<int, int> shdToMaterialIndex;
+    std::unordered_map<uint64_t, int> shdToMaterialIndex;
+    std::unordered_map<uint64_t, BakedTextureSet> bakedTextures;
 
-    // PASS 0: Determine which SHDs need blending
-    struct ShdUsageInfo { bool wantsAlphaBlend = false; };
-    std::unordered_map<int, ShdUsageInfo> shdUsage;
+    // PASS 0: Determine which shader/frame pairs are visible and how they blend.
+    struct ShdUsageInfo { int shdID = -1; int frame = 0; int alphaMode = 0; };
+    std::unordered_map<uint64_t, ShdUsageInfo> shdUsage;
 
     for (auto* alo : allSWAloObjs)
     {
@@ -2181,50 +2452,51 @@ void ExportSwLightsBaked()
                 if (shdID < 0 || shdID >= (int)g_ashd.size()) continue;
 
                 SHD& shd = g_ashd[shdID];
-                bool alpha = false;
-
+                const int frame = ExportTextureFrame(sub, shd);
+                const uint64_t materialKey = ExportMaterialKey(shdID, frame);
+                ShdUsageInfo& usage = shdUsage[materialKey];
+                usage.shdID = shdID;
+                usage.frame = frame;
                 if (glob.rp == RP_Cutout || glob.rp == RP_CutoutAfterProjVolume || glob.rp == RP_Translucent)
                 {
-                    alpha = true;
+                    usage.alphaMode = std::max(usage.alphaMode,
+                        glob.rp == RP_Translucent ? 2 : 1);
                 }
 
                 if (glob.rp == RP_Background && shd.grfshd == 2)
-                    alpha = true;
-
-                if (alpha)
-                    shdUsage[shdID].wantsAlphaBlend = true;
+                    usage.alphaMode = 2;
             }
         }
     }
 
     // PASS 1: Build materials
-    for (int shdID = 0; shdID < (int)g_ashd.size(); shdID++)
+    for (const auto& [materialKey, usage] : shdUsage)
     {
+        const int shdID = usage.shdID;
         SHD& shd = g_ashd[shdID];
-        if (shd.atex.empty() || shd.atex[0].abmp.empty() || !shd.atex[0].abmp[0])
-            continue;
-
-        BMP* bmp = shd.atex[0].abmp[0];
-        if (!bmp || bmp->diffuseTexture.empty())
+        BakedTextureSet textureSet = LoadBakedTextureSet(shd, usage.frame);
+        if (!textureSet.hasDiffuse)
         {
-            shdToMaterialIndex[shdID] = defaultMaterialIndex;
+            shdToMaterialIndex[materialKey] = defaultMaterialIndex;
             continue;
         }
+        bakedTextures.emplace(materialKey, std::move(textureSet));
+        const BakedTextureSet& storedTextures = bakedTextures.at(materialKey);
 
         PngBuffer png;
         stbi_write_png_to_func(
             PngWriteCallback,
             &png,
-            bmp->bmpWidth,
-            bmp->bmpHeight,
+            static_cast<int>(storedTextures.diffuse.width),
+            static_cast<int>(storedTextures.diffuse.height),
             4,
-            bmp->diffuseTexture.data(),
-            bmp->bmpWidth * 4
+            storedTextures.diffuse.pixels.data(),
+            static_cast<int>(storedTextures.diffuse.width * 4)
         );
 
         if (png.data.empty())
         {
-            shdToMaterialIndex[shdID] = defaultMaterialIndex;
+            shdToMaterialIndex[materialKey] = defaultMaterialIndex;
             continue;
         }
 
@@ -2248,10 +2520,11 @@ void ExportSwLightsBaked()
         int texIdx = (int)textures.size();
         textures.push_back({ {"source",imgIdx} });
 
-        bool blend = shdUsage[shdID].wantsAlphaBlend;
+        const int alphaMode = usage.alphaMode;
 
         json mat = {
-            {"name","Material_Shader_" + std::to_string(shdID)},
+            {"name","Material_Shader_" + std::to_string(shdID) +
+                "_Frame_" + std::to_string(usage.frame)},
             {"pbrMetallicRoughness",{
                 {"baseColorTexture",{{"index",texIdx}}},
                 {"metallicFactor",0.0},
@@ -2260,12 +2533,15 @@ void ExportSwLightsBaked()
         };
 
         EnsureUnlitExtension(mat);
-        mat["alphaMode"] = blend ? "BLEND" : "OPAQUE";
-        if (blend) mat["doubleSided"] = true;
+        mat["alphaMode"] = alphaMode == 2 ? "BLEND" : alphaMode == 1 ? "MASK" : "OPAQUE";
+        if (alphaMode == 1)
+            mat["alphaCutoff"] = 0.5;
+        if (alphaMode != 0)
+            mat["doubleSided"] = true;
 
         int matIndex = (int)materials.size();
         materials.push_back(mat);
-        shdToMaterialIndex[shdID] = matIndex;
+        shdToMaterialIndex[materialKey] = matIndex;
     }
 
     // PASS 2: GEOMETRY
@@ -2305,8 +2581,12 @@ void ExportSwLightsBaked()
 
             glm::mat4 modelY = zUpToYUp * modelZ;
 
-            glm::mat3 normalMatZ = glm::mat3(glm::transpose(glm::inverse(modelZ)));
-            glm::mat3 normalMatY = glm::mat3(glm::transpose(glm::inverse(modelY)));
+            const glm::mat3 linearModelZ(modelZ);
+            const glm::mat3 linearModelY(modelY);
+            const glm::mat3 normalMatZ = std::fabs(glm::determinant(linearModelZ)) > 1.0e-12f
+                ? glm::transpose(glm::inverse(linearModelZ)) : linearModelZ;
+            const glm::mat3 normalMatY = std::fabs(glm::determinant(linearModelY)) > 1.0e-12f
+                ? glm::transpose(glm::inverse(linearModelY)) : linearModelY;
 
             // GLOB node under this ALO's GLOBSET
             int globNodeIndex = (int)nodes.size();
@@ -2330,27 +2610,42 @@ void ExportSwLightsBaked()
                     subIndex++;
                     continue;
                 }
+                if (!FValidExportIndices(sub))
+                {
+                    ReportRuntimeError("Export",
+                        "Skipping baked-map mesh %u/%u/%u because an index exceeds its %zu vertices",
+                        aloIndex, globIndex, subIndex, vc);
+                    subIndex++;
+                    continue;
+                }
 
                 int matIndex = defaultMaterialIndex;
+                uint64_t materialKey = 0;
                 if (sub.shdID >= 0 && sub.shdID < (int)g_ashd.size())
                 {
-                    auto it = shdToMaterialIndex.find(sub.shdID);
+                    const SHD& shd = g_ashd[sub.shdID];
+                    materialKey = ExportMaterialKey(sub.shdID, ExportTextureFrame(sub, shd));
+                    auto it = shdToMaterialIndex.find(materialKey);
                     if (it != shdToMaterialIndex.end())
                         matIndex = it->second;
                 }
 
-                BMP* bmp = nullptr;
-                if (sub.pshd && !sub.pshd->atex.empty() && !sub.pshd->atex[0].abmp.empty())
-                    bmp = sub.pshd->atex[0].abmp[0];
-
-                bool isThreeWay = (sub.pshd && sub.pshd->shdk == SHDK_ThreeWay && bmp != nullptr);
+                const auto bakedTexture = bakedTextures.find(materialKey);
+                const bool isThreeWay = sub.shdID >= 0 &&
+                    sub.shdID < static_cast<int>(g_ashd.size()) &&
+                    g_ashd[sub.shdID].shdk == SHDK_ThreeWay &&
+                    bakedTexture != bakedTextures.end();
 
                 // POSITIONS (Y-up)
                 AlignTo4(binaryBuffer);
                 size_t posOffset = binaryBuffer.size();
+                glm::vec3 positionMin((std::numeric_limits<float>::max)());
+                glm::vec3 positionMax((std::numeric_limits<float>::lowest)());
                 for (auto& v : sub.vertices)
                 {
                     glm::vec3 p = glm::vec3(modelY * glm::vec4(v.pos, 1.0f));
+                    positionMin = glm::min(positionMin, p);
+                    positionMax = glm::max(positionMax, p);
                     AppendFloat(binaryBuffer, p.x);
                     AppendFloat(binaryBuffer, p.y);
                     AppendFloat(binaryBuffer, p.z);
@@ -2371,7 +2666,9 @@ void ExportSwLightsBaked()
                     {"byteOffset",0},
                     {"componentType",5126},
                     {"count",vc},
-                    {"type","VEC3"}
+                    {"type","VEC3"},
+                    {"min", {positionMin.x, positionMin.y, positionMin.z}},
+                    {"max", {positionMax.x, positionMax.y, positionMax.z}}
                     });
 
                 // NORMALS (Y-up)
@@ -2379,7 +2676,7 @@ void ExportSwLightsBaked()
                 size_t nrmOffset = binaryBuffer.size();
                 for (auto& v : sub.vertices)
                 {
-                    glm::vec3 n = glm::normalize(normalMatY * v.normal);
+                    glm::vec3 n = TransformExportNormal(normalMatY, v.normal);
                     AppendFloat(binaryBuffer, n.x);
                     AppendFloat(binaryBuffer, n.y);
                     AppendFloat(binaryBuffer, n.z);
@@ -2417,7 +2714,7 @@ void ExportSwLightsBaked()
                             sub,
                             modelZ,
                             normalMatZ,
-                            bmp,
+                            bakedTexture->second,
                             v
                         );
                     }
@@ -2554,8 +2851,13 @@ void ExportSwLightsBaked()
     std::vector<uint8_t> binChunk = binaryBuffer;
     while (binChunk.size() % 4 != 0) binChunk.push_back(0);
 
+    if (binChunk.size() > (std::numeric_limits<uint32_t>::max)())
+    {
+        ReportRuntimeError("Export", "Baked-map export exceeds the GLB 4 GiB size limit");
+        return false;
+    }
     gltf["buffers"] = json::array({
-        json{{"byteLength",(uint32_t)binChunk.size()}}
+        json{{"byteLength",static_cast<uint32_t>(binChunk.size())}}
         });
 
     gltf["bufferViews"] = bufferViews;
@@ -2575,14 +2877,22 @@ void ExportSwLightsBaked()
     std::vector<uint8_t> jsonChunk(jsonStr.begin(), jsonStr.end());
     while (jsonChunk.size() % 4 != 0) jsonChunk.push_back(0x20);
 
-    uint32_t totalLength =
-        12 +                       // header
-        8 + (uint32_t)jsonChunk.size() +     // JSON chunk header + data
-        8 + (uint32_t)binChunk.size();       // BIN chunk header + data
+    const uint64_t totalLength64 = 12ull + 8ull + jsonChunk.size() + 8ull + binChunk.size();
+    if (jsonChunk.size() > (std::numeric_limits<uint32_t>::max)() ||
+        totalLength64 > (std::numeric_limits<uint32_t>::max)())
+    {
+        ReportRuntimeError("Export", "Baked-map export exceeds the GLB 4 GiB size limit");
+        return false;
+    }
+    uint32_t totalLength = static_cast<uint32_t>(totalLength64);
 
-    std::string outPath = levelName + "/" + levelName + ".glb";
-    std::ofstream out(outPath, std::ios::binary);
-    if (!out) return;
+    std::string outPath = levelName + "/" + levelName + "_Baked.glb";
+    std::ofstream out(outPath, std::ios::binary | std::ios::trunc);
+    if (!out)
+    {
+        ReportRuntimeError("Export", "Could not open baked-map export '%s'", outPath.c_str());
+        return false;
+    }
 
     auto WriteU32 = [&](uint32_t v)
         {
@@ -2600,12 +2910,62 @@ void ExportSwLightsBaked()
     WriteU32((uint32_t)binChunk.size());
     WriteU32(0x004E4942);
     out.write((const char*)binChunk.data(), binChunk.size());
+    out.close();
+    if (!out)
+    {
+        ReportRuntimeError("Export", "Failed while writing baked-map export '%s'", outPath.c_str());
+        return false;
+    }
+    return true;
+    }
+    catch (const std::exception& error)
+    {
+        ReportRuntimeError("Export", "Baked-map export failed: %s", error.what());
+        return false;
+    }
 }
 
 void ExportTextures()
 {
-    std::string textureDir = levelName + "/Textures";
-    std::filesystem::create_directories(textureDir);
+    const std::filesystem::path textureDir =
+        std::filesystem::path(levelName) / "Textures";
+    std::error_code directoryError;
+    std::filesystem::create_directories(textureDir, directoryError);
+    if (directoryError)
+    {
+        ReportRuntimeError("Export", "Could not create texture export directory '%s': %s",
+            textureDir.string().c_str(), directoryError.message().c_str());
+        return;
+    }
+
+    auto ImageFromIndex = [](int32_t imageIndex) -> BMP*
+    {
+        return imageIndex >= 0 && static_cast<size_t>(imageIndex) < g_abmp.size()
+            ? &g_abmp[static_cast<size_t>(imageIndex)] : nullptr;
+    };
+
+    auto WriteImage = [&](const std::filesystem::path& outputPath, BMP* bmp,
+                          bool flipVertically) -> bool
+    {
+        std::vector<byte> rgbaReadback;
+        const byte* rgbaPixels = nullptr;
+        if (!GetBmpBaseRgba8(bmp, rgbaReadback, rgbaPixels))
+            return false;
+
+        const std::string outputName = outputPath.string();
+        stbi_flip_vertically_on_write(flipVertically ? 1 : 0);
+        const int written = stbi_write_png(outputName.c_str(),
+            static_cast<int>(bmp->bmpWidth), static_cast<int>(bmp->bmpHeight), 4,
+            rgbaPixels, static_cast<int>(bmp->bmpWidth * 4));
+        stbi_flip_vertically_on_write(0);
+        if (written == 0)
+        {
+            ReportRuntimeError("Export", "Could not write texture PNG '%s'",
+                outputName.c_str());
+            return false;
+        }
+        return true;
+    };
 
     for (size_t i = 0; i < g_ashd.size(); ++i)
     {
@@ -2615,42 +2975,34 @@ void ExportTextures()
         {
             TEX& tex = shd.atex[t];
 
-            for (size_t f = 0; f < tex.abmp.size(); ++f)
+            const size_t frameCount = std::min({
+                tex.ambientImageIndex.size(),
+                tex.diffuseImageIndex.size(),
+                tex.saturateImageIndex.size()
+            });
+            for (size_t f = 0; f < frameCount; ++f)
             {
-                BMP* bmp = tex.abmp[f];
+                char prefixBuffer[128]{};
+                std::snprintf(prefixBuffer, sizeof(prefixBuffer),
+                    "shader_%03zu_tex_%02zu_frame_%02zu", i, t, f);
+                const std::string prefix(prefixBuffer);
 
-                if (bmp == nullptr)
-                    continue;
+                BMP* ambient = ImageFromIndex(tex.ambientImageIndex[f]);
+                BMP* diffuse = ImageFromIndex(tex.diffuseImageIndex[f]);
+                BMP* saturate = ImageFromIndex(tex.saturateImageIndex[f]);
 
-                char filename[512];
+                if (ambient != nullptr)
+                    WriteImage(textureDir / (prefix + "_shadow.png"), ambient, true);
 
-                if (!bmp->shadowTexture.empty())
-                {
-                    snprintf(filename, sizeof(filename), "%s/shader_%03zu_tex_%02zu_frame_%02zu_shadow.png",textureDir.c_str(), i, t, f);
-                    stbi_flip_vertically_on_write(1);
-                    stbi_write_png(filename, bmp->bmpWidth, bmp->bmpHeight, 4, bmp->shadowTexture.data(), bmp->bmpWidth * 4);
-                    stbi_flip_vertically_on_write(0);
-                }
+                // Rendering falls back to ambient when a texture has no distinct
+                // diffuse image, so export the same effective diffuse source.
+                if (diffuse == nullptr)
+                    diffuse = ambient;
+                if (diffuse != nullptr)
+                    WriteImage(textureDir / (prefix + "_diffuse.png"), diffuse, true);
 
-                const std::vector<byte>* diffusePixels = &bmp->diffuseTexture;
-                if (f < tex.diffuseTexture.size() && !tex.diffuseTexture[f].empty())
-                    diffusePixels = &tex.diffuseTexture[f];
-
-                if (!diffusePixels->empty())
-                {
-                    snprintf(filename, sizeof(filename), "%s/shader_%03zu_tex_%02zu_frame_%02zu_diffuse.png", textureDir.c_str(), i, t, f);
-                    stbi_flip_vertically_on_write(1);
-                    stbi_write_png(filename, bmp->bmpWidth, bmp->bmpHeight, 4, diffusePixels->data(), bmp->bmpWidth * 4);
-                    stbi_flip_vertically_on_write(0);
-                }
-
-                if (!bmp->saturateTexture.empty())
-                {
-                    snprintf(filename, sizeof(filename), "%s/shader_%03zu_tex_%02zu_frame_%02zu_saturate.png", textureDir.c_str(), i, t, f);
-                    stbi_flip_vertically_on_write(1);
-                    stbi_write_png(filename, bmp->bmpWidth, bmp->bmpHeight, 4, bmp->saturateTexture.data(), bmp->bmpWidth * 4);
-                    stbi_flip_vertically_on_write(0);
-                }
+                if (saturate != nullptr)
+                    WriteImage(textureDir / (prefix + "_saturate.png"), saturate, true);
             }
         }
     }
@@ -2659,14 +3011,9 @@ void ExportTextures()
     {
         BMP* bmp = g_afontBrx[i].m_pbmp;
 
-        if (!bmp || bmp->diffuseTexture.empty())
-            continue;
-
-        char filename[512];
-        snprintf(filename, sizeof(filename), "%s/font_%03zu.png", textureDir.c_str(), i);
-
-        stbi_write_png(filename, bmp->bmpWidth, bmp->bmpHeight, 4,
-            bmp->diffuseTexture.data(), bmp->bmpWidth * 4);
+        char fontName[64]{};
+        std::snprintf(fontName, sizeof(fontName), "font_%03zu.png", i);
+        WriteImage(textureDir / fontName, bmp, false);
     }
 
 }

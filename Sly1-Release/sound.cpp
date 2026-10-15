@@ -760,6 +760,34 @@ std::filesystem::path FindCommentaryWav(uint32_t identity, uint32_t sector)
     return {};
 }
 
+std::filesystem::path FindCommentaryWavByLevelId(uint32_t levelId)
+{
+    const std::filesystem::path mapPath = FindExtractedWav(L"CommentaryMap.txt");
+    if (mapPath.empty())
+        return {};
+
+    std::ifstream map(mapPath);
+    std::string line;
+    while (std::getline(map, line))
+    {
+        char fileName[260]{};
+        unsigned int mapLevelId = 0;
+        if (std::sscanf(line.c_str(), "%259s | levelId 0x%x", fileName, &mapLevelId) != 2)
+            continue;
+        if (mapLevelId != levelId)
+            continue;
+
+        const std::filesystem::path commentaryPath = mapPath.parent_path() / fileName;
+        std::error_code error;
+        if (std::filesystem::is_regular_file(commentaryPath, error))
+            return commentaryPath;
+
+        return FindExtractedWav(commentaryPath.filename().wstring());
+    }
+
+    return {};
+}
+
 
 std::filesystem::path ResolveNamedVag(const char* value)
 {
@@ -777,9 +805,21 @@ std::filesystem::path ResolveNamedVag(const char* value)
         !found.empty())
         return found;
 
+    // The commentary UI uses descriptive names such as Commentary_0202.vag,
+    // while the current extractor stores descriptor-stable VAG names. Resolve
+    // the descriptive level ID through CommentaryMap.txt.
+    const std::string filename = direct.filename().string();
+    unsigned int commentaryLevelId = 0;
+    int commentaryParsedLength = 0;
+    if (std::sscanf(filename.c_str(), "Commentary_%x.wav%n", &commentaryLevelId,
+            &commentaryParsedLength) == 1 &&
+        commentaryParsedLength == static_cast<int>(filename.size()))
+    {
+        return FindCommentaryWavByLevelId(commentaryLevelId);
+    }
+
     // Older extractor releases omitted the sector when an identity was unique
     // inside a level. Keep those asset trees usable with PCBRX v17 files.
-    const std::string filename = direct.filename().string();
     unsigned int identity = 0;
     unsigned int sector = 0;
     int parsedLength = 0;
@@ -4698,8 +4738,9 @@ static void VagLoadWorkerMain()
 			std::error_code pathError;
 			if (!std::filesystem::is_regular_file(request.path, pathError))
 			{
-				if (std::filesystem::path found =
-					FindExtractedWav(request.path.filename().wstring()); !found.empty())
+				const std::string namedVag = request.readablePath.filename().string();
+				if (std::filesystem::path found = ResolveNamedVag(namedVag.c_str());
+					!found.empty())
 				{
 					request.path = std::move(found);
 				}

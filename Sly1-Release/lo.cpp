@@ -1,4 +1,5 @@
 #include "lo.h"
+#include "alo.h"
 #include "game.h"
 #include "spliceobj.h"
 #include "eval.h"
@@ -637,6 +638,13 @@ std::vector<std::shared_ptr<LO>> allWorldObjs;
 
 void ReleaseWorldObject(LO* plo)
 {
+	// ALOs are also tracked by the renderer/exporter as raw pointers. Remove
+	// that non-owning reference before releasing the shared world object.
+	allSWAloObjs.erase(
+		std::remove_if(allSWAloObjs.begin(), allSWAloObjs.end(),
+			[plo](ALO* palo) { return reinterpret_cast<LO*>(palo) == plo; }),
+		allSWAloObjs.end());
+
 	const auto it = std::find_if(allWorldObjs.begin(), allWorldObjs.end(),
 		[plo](const std::shared_ptr<LO>& pobj) { return pobj.get() == plo; });
 
