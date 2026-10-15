@@ -2,7 +2,6 @@
   <img alt="ProjectCane" src="README-assets/projectcane-logo.png" />
 </p>
 
-
 # ProjectCane
 
 ProjectCane is a native PC port of the NTSC release of *Sly Cooper and the
