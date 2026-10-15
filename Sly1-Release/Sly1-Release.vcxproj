@@ -118,7 +118,7 @@
       <PreprocessorDefinitions>GLFW_STATIC;_DEBUG;_CONSOLE;_CRT_SECURE_NO_WARNINGS;_ENABLE_EXTENDED_ALIGNED_STORAGE;IMGUI_DEFINE_MATH_OPERATORS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>$(SolutionDir)Libraries\include;$(SolutionDir)Libraries\ffmpeg\ffmpeg-master-latest-win64-lgpl-shared\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)Libraries\include;$(SolutionDir)Libraries\include\SDL2;$(SolutionDir)Libraries\ffmpeg\ffmpeg-master-latest-win64-lgpl-shared\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
       <AdditionalOptions>/FS /MP8 %(AdditionalOptions)</AdditionalOptions>
@@ -129,8 +129,11 @@
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalLibraryDirectories>$(SolutionDir)Libraries\lib\Debug;$(SolutionDir)Libraries\ffmpeg\ffmpeg-master-latest-win64-lgpl-shared\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-		<AdditionalDependencies>glfw3_debug.lib;opengl32.lib;winmm.lib;xaudio2.lib;avformat.lib;avcodec.lib;avutil.lib;swscale.lib;%(AdditionalDependencies)</AdditionalDependencies>
+		<AdditionalDependencies>glfw3_debug.lib;SDL2.lib;opengl32.lib;winmm.lib;xaudio2.lib;avformat.lib;avcodec.lib;avutil.lib;swscale.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
+    <PostBuildEvent>
+      <Command>copy /Y "$(SolutionDir)Libraries\bin\SDL2.dll" "$(OutDir)SDL2.dll"</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
@@ -141,7 +144,7 @@
       <PreprocessorDefinitions>GLFW_STATIC;NDEBUG;_WINDOWS;_CRT_SECURE_NO_WARNINGS;_ENABLE_EXTENDED_ALIGNED_STORAGE;IMGUI_DEFINE_MATH_OPERATORS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>$(SolutionDir)Libraries\include;$(SolutionDir)Libraries\ffmpeg\ffmpeg-master-latest-win64-lgpl-shared\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)Libraries\include;$(SolutionDir)Libraries\include\SDL2;$(SolutionDir)Libraries\ffmpeg\ffmpeg-master-latest-win64-lgpl-shared\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
       <AdditionalOptions>/FS /MP8 %(AdditionalOptions)</AdditionalOptions>
@@ -154,8 +157,11 @@
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalLibraryDirectories>$(SolutionDir)Libraries\lib\Release;$(SolutionDir)Libraries\ffmpeg\ffmpeg-master-latest-win64-lgpl-shared\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-		<AdditionalDependencies>glfw3.lib;opengl32.lib;winmm.lib;xaudio2.lib;avformat.lib;avcodec.lib;avutil.lib;swscale.lib;%(AdditionalDependencies)</AdditionalDependencies>
+		<AdditionalDependencies>glfw3.lib;SDL2.lib;opengl32.lib;winmm.lib;xaudio2.lib;avformat.lib;avcodec.lib;avutil.lib;swscale.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
+    <PostBuildEvent>
+      <Command>copy /Y "$(SolutionDir)Libraries\bin\SDL2.dll" "$(OutDir)SDL2.dll"</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="..\Libraries\include\imgui\imgui.cpp" />

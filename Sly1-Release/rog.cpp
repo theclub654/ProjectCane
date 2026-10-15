@@ -2797,6 +2797,20 @@ RODD* ProddCurRob(ROB* prob, ENSK ensk)
 
 void DeleteRob(ROB *prob)
 {
+	if (prob == nullptr)
+		return;
+
+	HideBlot(reinterpret_cast<BLOT*>(&g_goldctr));
+
+	if (g_goldctr.pnActual == &prob->crocDestroyed)
+		g_goldctr.pnActual = nullptr;
+
+	if (g_goldctr.pnTotal == &prob->crocCreateMax)
+		g_goldctr.pnTotal = nullptr;
+
+	if (prob->psw != nullptr && prob->psw->paloHud == prob)
+		SetSwGameplayHud(prob->psw, nullptr);
+
 	ReleaseWorldObject(prob);
 }
 

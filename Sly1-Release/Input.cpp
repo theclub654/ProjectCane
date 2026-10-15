@@ -1,4 +1,5 @@
 #include "Input.h"
+float g_controllerDeadzone = 0.35f;
 #include "clock.h"
 #include "credit.h"
 #include "pzo.h"
@@ -6,13 +7,14 @@
 #include "transition.h"
 #ifdef _WIN32
 #include "spu_reverb_xapo.h"
-#include <Windows.h>
-#include <Xinput.h>
 #endif
 #include "ui.h"
 #include "mb.h"
+#define SDL_MAIN_HANDLED
+#include <SDL.h>
 #include <cstdio>
 #include <iterator>
+#include <vector>
 
 namespace
 {
@@ -30,6 +32,11 @@ constexpr uint16_t JBC_TRIANGLE = 0x1000;
 constexpr uint16_t JBC_CIRCLE   = 0x2000;
 constexpr uint16_t JBC_CROSS    = 0x4000;
 constexpr uint16_t JBC_SQUARE   = 0x8000;
+
+// Device selection should be stable around stick drift, but it must not pin a
+// stale Steam Input/DirectInput device forever. A button reports activity 2.0,
+// while axes report 0..1, so this epsilon only resolves near-equal samples.
+constexpr float GAMEPAD_ACTIVITY_TIE_EPSILON = 0.05f;
 
 CODE* s_pcode = nullptr;
 float s_tCodeCheck = 0.0f;
@@ -219,138 +226,213 @@ void InitializeGamepadState(GLFWgamepadstate* state)
     state->axes[GLFW_GAMEPAD_AXIS_RIGHT_TRIGGER] = -1.0f;
 }
 
-bool GetRawJoystickState(int jid, GLFWgamepadstate* state)
+struct SdlControllerDevice
 {
-    if (!state || !glfwJoystickPresent(jid))
-        return false;
+    SDL_GameController* controller = nullptr;
+    SDL_JoystickID instanceId = -1;
+};
 
-    InitializeGamepadState(state);
-    int axisCount = 0;
-    const float* axes = glfwGetJoystickAxes(jid, &axisCount);
-    if (axes && axisCount > 0) state->axes[GLFW_GAMEPAD_AXIS_LEFT_X] = axes[0];
-    if (axes && axisCount > 1) state->axes[GLFW_GAMEPAD_AXIS_LEFT_Y] = axes[1];
-    if (axes && axisCount > 2) state->axes[GLFW_GAMEPAD_AXIS_RIGHT_X] = axes[2];
-    if (axes && axisCount > 3) state->axes[GLFW_GAMEPAD_AXIS_RIGHT_Y] = axes[3];
-    // Do not guess trigger axes for an unmapped device. Some DirectInput pads
-    // expose a centered combined trigger at zero, which would look permanently
-    // half pressed under GLFW's standardized -1..1 trigger convention.
+std::vector<SdlControllerDevice> s_sdlControllers;
+double s_nextControllerScan = 0.0;
 
-    int buttonCount = 0;
-    const unsigned char* buttons = glfwGetJoystickButtons(jid, &buttonCount);
-    const int copyCount = (std::min)(buttonCount, GLFW_GAMEPAD_BUTTON_LAST + 1);
-    for (int button = 0; buttons && button < copyCount; ++button)
-        state->buttons[button] = buttons[button];
-
-    int hatCount = 0;
-    const unsigned char* hats = glfwGetJoystickHats(jid, &hatCount);
-    if (hats && hatCount > 0)
-    {
-        state->buttons[GLFW_GAMEPAD_BUTTON_DPAD_UP] |= (hats[0] & GLFW_HAT_UP) != 0;
-        state->buttons[GLFW_GAMEPAD_BUTTON_DPAD_RIGHT] |= (hats[0] & GLFW_HAT_RIGHT) != 0;
-        state->buttons[GLFW_GAMEPAD_BUTTON_DPAD_DOWN] |= (hats[0] & GLFW_HAT_DOWN) != 0;
-        state->buttons[GLFW_GAMEPAD_BUTTON_DPAD_LEFT] |= (hats[0] & GLFW_HAT_LEFT) != 0;
-    }
-    return axes != nullptr || buttons != nullptr || hats != nullptr;
-}
-
-#ifdef _WIN32
-using XInputGetStateFn = DWORD(WINAPI*)(DWORD, XINPUT_STATE*);
-
-XInputGetStateFn PfnXInputGetState()
+// The PS2 used a binary high-speed motor and an 8-bit low-speed motor. These
+// patterns retain that representation so the retail rumble scheduler can be
+// used unchanged while SDL performs the platform-specific actuator call.
+constexpr RUMINS s_ruminsSteadyBuzz[] = { { 0.08f, 1, 72 } };
+constexpr RUMINS s_ruminsLowThrob[] =
 {
-    static XInputGetStateFn pfn = []() -> XInputGetStateFn
-    {
-        constexpr const wchar_t* dllNames[] =
-        {
-            L"xinput1_4.dll",
-            L"xinput1_3.dll",
-            L"xinput9_1_0.dll"
-        };
+    { 0.10f, 0, 150 }, { 0.12f, 0, 0 }
+};
+constexpr RUMINS s_ruminsMediumThrob[] =
+{
+    { 0.10f, 1, 175 }, { 0.10f, 0, 20 }
+};
+constexpr RUMINS s_ruminsHardThrob[] =
+{
+    { 0.12f, 1, 255 }, { 0.08f, 0, 40 }
+};
+constexpr RUMINS s_ruminsBlunt[] =
+{
+    { 0.07f, 1, 255 }, { 0.08f, 0, 90 }, { 0.10f, 0, 0 }
+};
+constexpr RUMINS s_ruminsElectric[] =
+{
+    { 0.035f, 1, 80 }, { 0.035f, 0, 210 }, { 0.035f, 1, 130 }, { 0.035f, 0, 40 }
+};
+constexpr RUMINS s_ruminsFire[] =
+{
+    { 0.06f, 1, 95 }, { 0.07f, 0, 155 }, { 0.05f, 1, 55 }
+};
+constexpr RUMINS s_ruminsWater[] =
+{
+    { 0.12f, 0, 85 }, { 0.10f, 0, 145 }, { 0.12f, 0, 55 }
+};
+constexpr RUMINS s_ruminsCrush[] =
+{
+    { 0.16f, 1, 255 }, { 0.10f, 1, 190 }, { 0.10f, 0, 80 }
+};
+constexpr RUMINS s_ruminsBreak[] =
+{
+    { 0.06f, 1, 255 }, { 0.05f, 0, 35 }, { 0.08f, 1, 185 }, { 0.10f, 0, 0 }
+};
+constexpr RUMINS s_ruminsBomb[] =
+{
+    { 0.14f, 1, 255 }, { 0.12f, 1, 210 }, { 0.16f, 0, 125 }, { 0.12f, 0, 0 }
+};
 
-        for (const wchar_t* dllName : dllNames)
-        {
-            HMODULE module = LoadLibraryW(dllName);
-            if (module == nullptr)
-                continue;
+constexpr RUMPAT s_arumpat[RUMK_Max] =
+{
+    { s_ruminsSteadyBuzz,  static_cast<int>(std::size(s_ruminsSteadyBuzz)) },
+    { s_ruminsLowThrob,    static_cast<int>(std::size(s_ruminsLowThrob)) },
+    { s_ruminsMediumThrob, static_cast<int>(std::size(s_ruminsMediumThrob)) },
+    { s_ruminsHardThrob,   static_cast<int>(std::size(s_ruminsHardThrob)) },
+    { s_ruminsBlunt,       static_cast<int>(std::size(s_ruminsBlunt)) },
+    { s_ruminsElectric,    static_cast<int>(std::size(s_ruminsElectric)) },
+    { s_ruminsFire,        static_cast<int>(std::size(s_ruminsFire)) },
+    { s_ruminsWater,       static_cast<int>(std::size(s_ruminsWater)) },
+    { s_ruminsCrush,       static_cast<int>(std::size(s_ruminsCrush)) },
+    { s_ruminsBreak,       static_cast<int>(std::size(s_ruminsBreak)) },
+    { s_ruminsBomb,        static_cast<int>(std::size(s_ruminsBomb)) }
+};
 
-            if (auto proc = reinterpret_cast<XInputGetStateFn>(
-                GetProcAddress(module, "XInputGetState")))
-            {
-                return proc;
-            }
-        }
-
-        return nullptr;
-    }();
-
-    return pfn;
-}
-
-float NormalizeXInputAxis(SHORT value)
+float NormalizeSdlAxis(Sint16 value)
 {
     return value < 0
         ? static_cast<float>(value) / 32768.0f
         : static_cast<float>(value) / 32767.0f;
 }
 
-bool GetXInputGamepadState(GLFWgamepadstate* state, int* selectedUser, int preferredUser)
+float NormalizeSdlTrigger(Sint16 value)
 {
-    XInputGetStateFn getState = PfnXInputGetState();
-    if (getState == nullptr || state == nullptr)
-        return false;
+    const float normalized = static_cast<float>((std::max)(0, static_cast<int>(value))) / 32767.0f;
+    return normalized * 2.0f - 1.0f;
+}
 
-    bool found = false;
-    float bestActivity = -1.0f;
-
-    for (DWORD user = 0; user < XUSER_MAX_COUNT; ++user)
+void CloseSdlController(SdlControllerDevice& device)
+{
+    if (device.controller != nullptr)
     {
-        XINPUT_STATE xstate{};
-        if (getState(user, &xstate) != ERROR_SUCCESS)
-            continue;
+        SDL_GameControllerRumble(device.controller, 0, 0, 0);
+        SDL_GameControllerClose(device.controller);
+    }
+    device.controller = nullptr;
+    device.instanceId = -1;
+}
 
-        GLFWgamepadstate candidate{};
-        InitializeGamepadState(&candidate);
-        const WORD buttons = xstate.Gamepad.wButtons;
-        candidate.buttons[GLFW_GAMEPAD_BUTTON_A] = (buttons & XINPUT_GAMEPAD_A) != 0;
-        candidate.buttons[GLFW_GAMEPAD_BUTTON_B] = (buttons & XINPUT_GAMEPAD_B) != 0;
-        candidate.buttons[GLFW_GAMEPAD_BUTTON_X] = (buttons & XINPUT_GAMEPAD_X) != 0;
-        candidate.buttons[GLFW_GAMEPAD_BUTTON_Y] = (buttons & XINPUT_GAMEPAD_Y) != 0;
-        candidate.buttons[GLFW_GAMEPAD_BUTTON_LEFT_BUMPER] = (buttons & XINPUT_GAMEPAD_LEFT_SHOULDER) != 0;
-        candidate.buttons[GLFW_GAMEPAD_BUTTON_RIGHT_BUMPER] = (buttons & XINPUT_GAMEPAD_RIGHT_SHOULDER) != 0;
-        candidate.buttons[GLFW_GAMEPAD_BUTTON_BACK] = (buttons & XINPUT_GAMEPAD_BACK) != 0;
-        candidate.buttons[GLFW_GAMEPAD_BUTTON_START] = (buttons & XINPUT_GAMEPAD_START) != 0;
-        candidate.buttons[GLFW_GAMEPAD_BUTTON_LEFT_THUMB] = (buttons & XINPUT_GAMEPAD_LEFT_THUMB) != 0;
-        candidate.buttons[GLFW_GAMEPAD_BUTTON_RIGHT_THUMB] = (buttons & XINPUT_GAMEPAD_RIGHT_THUMB) != 0;
-        candidate.buttons[GLFW_GAMEPAD_BUTTON_DPAD_UP] = (buttons & XINPUT_GAMEPAD_DPAD_UP) != 0;
-        candidate.buttons[GLFW_GAMEPAD_BUTTON_DPAD_RIGHT] = (buttons & XINPUT_GAMEPAD_DPAD_RIGHT) != 0;
-        candidate.buttons[GLFW_GAMEPAD_BUTTON_DPAD_DOWN] = (buttons & XINPUT_GAMEPAD_DPAD_DOWN) != 0;
-        candidate.buttons[GLFW_GAMEPAD_BUTTON_DPAD_LEFT] = (buttons & XINPUT_GAMEPAD_DPAD_LEFT) != 0;
-
-        candidate.axes[GLFW_GAMEPAD_AXIS_LEFT_X] = NormalizeXInputAxis(xstate.Gamepad.sThumbLX);
-        candidate.axes[GLFW_GAMEPAD_AXIS_LEFT_Y] = -NormalizeXInputAxis(xstate.Gamepad.sThumbLY);
-        candidate.axes[GLFW_GAMEPAD_AXIS_RIGHT_X] = NormalizeXInputAxis(xstate.Gamepad.sThumbRX);
-        candidate.axes[GLFW_GAMEPAD_AXIS_RIGHT_Y] = -NormalizeXInputAxis(xstate.Gamepad.sThumbRY);
-        candidate.axes[GLFW_GAMEPAD_AXIS_LEFT_TRIGGER] =
-            static_cast<float>(xstate.Gamepad.bLeftTrigger) / 127.5f - 1.0f;
-        candidate.axes[GLFW_GAMEPAD_AXIS_RIGHT_TRIGGER] =
-            static_cast<float>(xstate.Gamepad.bRightTrigger) / 127.5f - 1.0f;
-
-        float activity = GamepadActivity(candidate);
-        if (static_cast<int>(user) == preferredUser)
-            activity += 3.0f;
-        if (!found || activity > bestActivity)
+SDL_GameController* PcontrollerFromInstanceId(int instanceId)
+{
+    const auto it = std::find_if(s_sdlControllers.begin(), s_sdlControllers.end(),
+        [instanceId](const SdlControllerDevice& device)
         {
-            *state = candidate;
-            if (selectedUser)
-                *selectedUser = static_cast<int>(user);
-            bestActivity = activity;
-            found = true;
+            return device.instanceId == instanceId;
+        });
+    return it != s_sdlControllers.end() ? it->controller : nullptr;
+}
+
+void SetSdlRumble(const JOY* pjoy, uint8_t highSpeedMotor, uint8_t lowSpeedMotor)
+{
+    if (pjoy == nullptr || !pjoy->gamepadConnected)
+        return;
+
+    SDL_GameController* controller = PcontrollerFromInstanceId(pjoy->joystickId);
+    if (controller == nullptr || SDL_GameControllerHasRumble(controller) != SDL_TRUE)
+        return;
+
+    const Uint16 lowFrequency = static_cast<Uint16>(lowSpeedMotor * 257U);
+    const Uint16 highFrequency = highSpeedMotor != 0 ? static_cast<Uint16>(0xFFFF) : 0;
+    // Each pattern transition refreshes this timeout. It is deliberately
+    // finite so vibration cannot remain stuck if the game stops updating.
+    SDL_GameControllerRumble(controller, lowFrequency, highFrequency, 1000);
+}
+
+void RefreshSdlControllers(bool forceScan)
+{
+    SDL_PumpEvents();
+    SDL_GameControllerUpdate();
+
+    for (auto it = s_sdlControllers.begin(); it != s_sdlControllers.end();)
+    {
+        if (it->controller == nullptr || !SDL_GameControllerGetAttached(it->controller))
+        {
+            CloseSdlController(*it);
+            it = s_sdlControllers.erase(it);
+        }
+        else
+        {
+            ++it;
         }
     }
 
-    return found;
+    const double now = glfwGetTime();
+    if (!forceScan && now < s_nextControllerScan)
+        return;
+    s_nextControllerScan = now + 0.5;
+
+    const int joystickCount = SDL_NumJoysticks();
+    for (int deviceIndex = 0; deviceIndex < joystickCount; ++deviceIndex)
+    {
+        if (!SDL_IsGameController(deviceIndex))
+            continue;
+
+        const SDL_JoystickID instanceId = SDL_JoystickGetDeviceInstanceID(deviceIndex);
+        const bool alreadyOpen = std::any_of(s_sdlControllers.begin(), s_sdlControllers.end(),
+            [instanceId](const SdlControllerDevice& device)
+            {
+                return device.instanceId == instanceId;
+            });
+        if (alreadyOpen)
+            continue;
+
+        SDL_GameController* controller = SDL_GameControllerOpen(deviceIndex);
+        if (controller == nullptr)
+            continue;
+
+        SDL_Joystick* joystick = SDL_GameControllerGetJoystick(controller);
+        s_sdlControllers.push_back({ controller, SDL_JoystickInstanceID(joystick) });
+    }
 }
-#endif
+
+bool GetSdlControllerState(SDL_GameController* controller, GLFWgamepadstate* state)
+{
+    if (controller == nullptr || state == nullptr || !SDL_GameControllerGetAttached(controller))
+        return false;
+
+    InitializeGamepadState(state);
+    const auto button = [controller](SDL_GameControllerButton value)
+    {
+        return SDL_GameControllerGetButton(controller, value) != 0 ? GLFW_PRESS : GLFW_RELEASE;
+    };
+
+    state->buttons[GLFW_GAMEPAD_BUTTON_A] = button(SDL_CONTROLLER_BUTTON_A);
+    state->buttons[GLFW_GAMEPAD_BUTTON_B] = button(SDL_CONTROLLER_BUTTON_B);
+    state->buttons[GLFW_GAMEPAD_BUTTON_X] = button(SDL_CONTROLLER_BUTTON_X);
+    state->buttons[GLFW_GAMEPAD_BUTTON_Y] = button(SDL_CONTROLLER_BUTTON_Y);
+    state->buttons[GLFW_GAMEPAD_BUTTON_LEFT_BUMPER] = button(SDL_CONTROLLER_BUTTON_LEFTSHOULDER);
+    state->buttons[GLFW_GAMEPAD_BUTTON_RIGHT_BUMPER] = button(SDL_CONTROLLER_BUTTON_RIGHTSHOULDER);
+    state->buttons[GLFW_GAMEPAD_BUTTON_BACK] = button(SDL_CONTROLLER_BUTTON_BACK);
+    state->buttons[GLFW_GAMEPAD_BUTTON_START] = button(SDL_CONTROLLER_BUTTON_START);
+    state->buttons[GLFW_GAMEPAD_BUTTON_GUIDE] = button(SDL_CONTROLLER_BUTTON_GUIDE);
+    state->buttons[GLFW_GAMEPAD_BUTTON_LEFT_THUMB] = button(SDL_CONTROLLER_BUTTON_LEFTSTICK);
+    state->buttons[GLFW_GAMEPAD_BUTTON_RIGHT_THUMB] = button(SDL_CONTROLLER_BUTTON_RIGHTSTICK);
+    state->buttons[GLFW_GAMEPAD_BUTTON_DPAD_UP] = button(SDL_CONTROLLER_BUTTON_DPAD_UP);
+    state->buttons[GLFW_GAMEPAD_BUTTON_DPAD_RIGHT] = button(SDL_CONTROLLER_BUTTON_DPAD_RIGHT);
+    state->buttons[GLFW_GAMEPAD_BUTTON_DPAD_DOWN] = button(SDL_CONTROLLER_BUTTON_DPAD_DOWN);
+    state->buttons[GLFW_GAMEPAD_BUTTON_DPAD_LEFT] = button(SDL_CONTROLLER_BUTTON_DPAD_LEFT);
+
+    state->axes[GLFW_GAMEPAD_AXIS_LEFT_X] = NormalizeSdlAxis(
+        SDL_GameControllerGetAxis(controller, SDL_CONTROLLER_AXIS_LEFTX));
+    state->axes[GLFW_GAMEPAD_AXIS_LEFT_Y] = NormalizeSdlAxis(
+        SDL_GameControllerGetAxis(controller, SDL_CONTROLLER_AXIS_LEFTY));
+    state->axes[GLFW_GAMEPAD_AXIS_RIGHT_X] = NormalizeSdlAxis(
+        SDL_GameControllerGetAxis(controller, SDL_CONTROLLER_AXIS_RIGHTX));
+    state->axes[GLFW_GAMEPAD_AXIS_RIGHT_Y] = NormalizeSdlAxis(
+        SDL_GameControllerGetAxis(controller, SDL_CONTROLLER_AXIS_RIGHTY));
+    state->axes[GLFW_GAMEPAD_AXIS_LEFT_TRIGGER] =
+        NormalizeSdlTrigger(SDL_GameControllerGetAxis(controller, SDL_CONTROLLER_AXIS_TRIGGERLEFT));
+    state->axes[GLFW_GAMEPAD_AXIS_RIGHT_TRIGGER] =
+        NormalizeSdlTrigger(SDL_GameControllerGetAxis(controller, SDL_CONTROLLER_AXIS_TRIGGERRIGHT));
+    return true;
+}
 
 const char* PchzKeyboardKeyNameInternal(int key)
 {
@@ -379,8 +461,56 @@ const char* PchzKeyboardKeyNameInternal(int key)
 }
 }
 
+bool StartupControllerInput()
+{
+    SDL_SetMainReady();
+    SDL_SetHint(SDL_HINT_NO_SIGNAL_HANDLERS, "1");
+    SDL_SetHint(SDL_HINT_JOYSTICK_ALLOW_BACKGROUND_EVENTS, "1");
+    if (SDL_InitSubSystem(SDL_INIT_GAMECONTROLLER | SDL_INIT_JOYSTICK | SDL_INIT_HAPTIC) != 0)
+    {
+        std::fprintf(stderr, "[Input] SDL controller initialization failed: %s\n", SDL_GetError());
+        return false;
+    }
+
+    SDL_GameControllerEventState(SDL_ENABLE);
+    RefreshSdlControllers(true);
+    return true;
+}
+
+void ShutdownControllerInput()
+{
+    StopJoyRumble(&g_joy);
+    for (SdlControllerDevice& device : s_sdlControllers)
+        CloseSdlController(device);
+    s_sdlControllers.clear();
+    SDL_QuitSubSystem(SDL_INIT_GAMECONTROLLER | SDL_INIT_JOYSTICK | SDL_INIT_HAPTIC);
+}
+
+bool FControllerInputAvailable()
+{
+    if ((SDL_WasInit(SDL_INIT_GAMECONTROLLER) & SDL_INIT_GAMECONTROLLER) == 0)
+        return false;
+    RefreshSdlControllers(false);
+    return !s_sdlControllers.empty();
+}
+
 const char* PchzKeyboardKeyName(int key)
 {
+    if (FMouseBinding(key))
+    {
+        switch (MouseButtonFromBinding(key))
+        {
+        case GLFW_MOUSE_BUTTON_LEFT: return "Mouse Left";
+        case GLFW_MOUSE_BUTTON_RIGHT: return "Mouse Right";
+        case GLFW_MOUSE_BUTTON_MIDDLE: return "Mouse Middle";
+        case GLFW_MOUSE_BUTTON_4: return "Mouse 4";
+        case GLFW_MOUSE_BUTTON_5: return "Mouse 5";
+        case GLFW_MOUSE_BUTTON_6: return "Mouse 6";
+        case GLFW_MOUSE_BUTTON_7: return "Mouse 7";
+        case GLFW_MOUSE_BUTTON_8: return "Mouse 8";
+        default: return "Mouse Button";
+        }
+    }
     return PchzKeyboardKeyNameInternal(key);
 }
 
@@ -411,6 +541,7 @@ const char* PchzGamepadBindingName(int binding)
 
 void JOY::Update(GLFWwindow* window)
 {
+    const int previousJoystickId = joystickId;
     const uint16_t grfbtnPrev = GrfbtnFromState(current);
     previous = current;
     handled.clear();
@@ -422,7 +553,10 @@ void JOY::Update(GLFWwindow* window)
     for (int button = 0; button < BTN_MAX; ++button)
     {
         const int key = g_keyboardBindings[button];
-        if (key != GLFW_KEY_UNKNOWN)
+        if (FMouseBinding(key))
+            current[static_cast<JOY_BUTTON>(button)] =
+                MOUSE::Button(MouseButtonFromBinding(key));
+        else if (key != GLFW_KEY_UNKNOWN)
             current[static_cast<JOY_BUTTON>(button)] = glfwGetKey(window, key) == GLFW_PRESS;
     }
 
@@ -435,92 +569,43 @@ void JOY::Update(GLFWwindow* window)
     InitializeGamepadState(&state);
     bool haveGamepadState = false;
     int activeJoystickId = JOYID_Nil;
-    bool activeIsXInput = false;
-#ifdef _WIN32
-    int activeXInputUser = -1;
-#endif
     float bestActivity = -1.0f;
     const bool allowControllerInput = !g_fDisableControllerInputWhenUnfocused ||
         glfwGetWindowAttrib(window, GLFW_FOCUSED) == GLFW_TRUE;
 
-    // Steam may leave an idle virtual gamepad in a lower joystick slot than
-    // the physical controller. Poll every mapped gamepad and prefer a device
-    // that is actually receiving input instead of permanently binding to the
-    // first slot returned by GLFW.
-    for (int jid = GLFW_JOYSTICK_1; jid <= GLFW_JOYSTICK_LAST; ++jid)
+    if (allowControllerInput &&
+        (SDL_WasInit(SDL_INIT_GAMECONTROLLER) & SDL_INIT_GAMECONTROLLER) != 0)
     {
-        if (!allowControllerInput)
-            break;
-
-        if (!glfwJoystickPresent(jid))
-            continue;
-
-        GLFWgamepadstate candidate{};
-        InitializeGamepadState(&candidate);
-        const bool readable = glfwJoystickIsGamepad(jid)
-            ? glfwGetGamepadState(jid, &candidate) == GLFW_TRUE
-            : GetRawJoystickState(jid, &candidate);
-        if (!readable)
-            continue;
-
-        float activity = GamepadActivity(candidate);
-        if (jid == joystickId)
-            activity += 3.0f; // retain the selected device until it disconnects
-
-        if (!haveGamepadState || activity > bestActivity)
+        RefreshSdlControllers(!gamepadConnected);
+        for (const SdlControllerDevice& device : s_sdlControllers)
         {
-            state = candidate;
-            activeJoystickId = jid;
-            bestActivity = activity;
-            haveGamepadState = true;
-        }
-    }
+            GLFWgamepadstate candidate{};
+            if (!GetSdlControllerState(device.controller, &candidate))
+                continue;
 
-    // Poll XInput even when GLFW found something. Steam may expose an idle
-    // virtual DirectInput pad that is technically readable but carries no
-    // input; allowing it to block XInput makes the real controller appear dead.
-    #ifdef _WIN32
-    if (allowControllerInput)
-    {
-        GLFWgamepadstate candidate{};
-        InitializeGamepadState(&candidate);
-        int candidateUser = -1;
-        if (GetXInputGamepadState(&candidate, &candidateUser, xinputUser))
-        {
             const float activity = GamepadActivity(candidate);
-            const float selectedActivity = haveGamepadState ? GamepadActivity(state) : -1.0f;
-            const bool currentlyUsingXInput = gamepadConnected && joystickId == JOYID_Nil && xinputUser >= 0;
-            const bool deliberateNewInput = activity >= 0.5f && selectedActivity < 0.25f;
-            if (!haveGamepadState || currentlyUsingXInput || deliberateNewInput)
+            const bool selectedTie = device.instanceId == joystickId &&
+                std::abs(activity - bestActivity) <= GAMEPAD_ACTIVITY_TIE_EPSILON;
+            if (!haveGamepadState ||
+                activity > bestActivity + GAMEPAD_ACTIVITY_TIE_EPSILON || selectedTie)
             {
                 state = candidate;
-                activeJoystickId = JOYID_Nil;
-                activeXInputUser = candidateUser;
-                activeIsXInput = true;
+                activeJoystickId = static_cast<int>(device.instanceId);
+                bestActivity = activity;
                 haveGamepadState = true;
             }
         }
     }
-    #endif
 
     if (haveGamepadState)
     {
-        const bool xinputDeviceChanged =
-#ifdef _WIN32
-            activeIsXInput && activeXInputUser != xinputUser;
-#else
-            false;
-#endif
-        if (!gamepadConnected || activeJoystickId != joystickId || xinputDeviceChanged)
+        if (!gamepadConnected || activeJoystickId != joystickId)
         {
             calibration = StickCalibration{};
             calibration2 = StickCalibration{};
         }
 
         joystickId = activeJoystickId;
-#ifdef _WIN32
-        xinputUser = activeIsXInput ? activeXInputUser : -1;
-#endif
         gamepadConnected = true;
         gamepadState = state;
         hasGamepadState = true;
@@ -547,12 +632,15 @@ void JOY::Update(GLFWwindow* window)
     else
     {
         joystickId = JOYID_Nil;
-#ifdef _WIN32
-        xinputUser = -1;
-#endif
         gamepadConnected = false;
         hasGamepadState = false;
         InitializeGamepadState(&gamepadState);
+    }
+
+    if (previousJoystickId != JOYID_Nil && previousJoystickId != joystickId)
+    {
+        if (SDL_GameController* previousController = PcontrollerFromInstanceId(previousJoystickId))
+            SDL_GameControllerRumble(previousController, 0, 0, 0);
     }
 
     // Keyboard movement emulates the left analog stick.  The base CPMAN
@@ -579,6 +667,8 @@ void JOY::Update(GLFWwindow* window)
     ApplyStickDeadZone(x2Raw, y2Raw, &calibration2, &x2, &y2, &uDeflect2);
 
     _MatchCodes(this, grfbtnPrev);
+
+    UpdateRumble(&rumble, this);
 
     joys = JOYS_Ready;
 }
@@ -826,6 +916,70 @@ void EnableVibration()
         vibrationSetting = 1;
 }
 
+void StopJoyRumble(JOY* pjoy)
+{
+    if (pjoy == nullptr)
+        return;
+
+    SetSdlRumble(pjoy, 0, 0);
+    pjoy->rumble.rums = RUMS_Idle;
+    pjoy->rumble.prumpat = nullptr;
+    pjoy->rumble.irumins = 0;
+    pjoy->rumble.dtRumins = 0.0f;
+    pjoy->rumble.dtRumble = 0.0f;
+}
+
+void TriggerJoyRumbleRumk(JOY* pjoy, RUMK rumk, float dt)
+{
+    if (pjoy == nullptr || rumk < RUMK_SteadyBuzz || rumk >= RUMK_Max || dt <= 0.0f ||
+        g_pgsCur == nullptr || !FVibrationEnabled(g_pgsCur))
+        return;
+
+    const RUMPAT& pattern = s_arumpat[static_cast<int>(rumk)];
+    if (pattern.crumins <= 0)
+        return;
+
+    RUMBLE& rumble = pjoy->rumble;
+    rumble.dtRumble = dt;
+    rumble.prumpat = &pattern;
+    rumble.irumins = 0;
+    rumble.dtRumins = pattern.arumins[0].dt;
+    rumble.rums = RUMS_Rumble;
+    SetSdlRumble(pjoy, pattern.arumins[0].fHighSpeedMotor,
+        pattern.arumins[0].bLowSpeedMotor);
+}
+
+void UpdateRumble(RUMBLE* prumble, JOY* pjoy)
+{
+    if (prumble == nullptr || pjoy == nullptr || prumble->rums != RUMS_Rumble)
+        return;
+
+    if (!g_clock.fEnabled || prumble->dtRumble <= 0.0f || g_pgsCur == nullptr ||
+        !FVibrationEnabled(g_pgsCur) || !pjoy->gamepadConnected ||
+        prumble->prumpat == nullptr || prumble->prumpat->crumins <= 0)
+    {
+        StopJoyRumble(pjoy);
+        return;
+    }
+
+    const float dt = (std::max)(0.0f, g_clock.dtReal);
+    prumble->dtRumble -= dt;
+    prumble->dtRumins -= dt;
+
+    // Advance every elapsed instruction. The loop matters after a long frame:
+    // retail does not stretch a short pulse merely because a frame was late.
+    while (prumble->dtRumins <= 0.0f && prumble->dtRumble > 0.0f)
+    {
+        prumble->irumins = (prumble->irumins + 1) % prumble->prumpat->crumins;
+        const RUMINS& instruction = prumble->prumpat->arumins[prumble->irumins];
+        prumble->dtRumins += (std::max)(instruction.dt, 0.001f);
+        SetSdlRumble(pjoy, instruction.fHighSpeedMotor, instruction.bLowSpeedMotor);
+    }
+
+    if (prumble->dtRumble <= 0.0f)
+        StopJoyRumble(pjoy);
+}
+
 void ToggleVibration(GS* pgs)
 {
     constexpr uint32_t GRFGS_VibrationDisabled = 0x20;
@@ -855,6 +1009,9 @@ void ToggleVibration(GS* pgs)
         vibrationSetting = 2; // Enabled
     else
         vibrationSetting = 3; // Disabled
+
+    if (!FVibrationEnabled(pgs))
+        StopJoyRumble(&g_joy);
 }
 
 void ApplyVibrationSetting(GS* pgs)
@@ -865,6 +1022,7 @@ void ApplyVibrationSetting(GS* pgs)
     }
     if ((2 < vibrationSetting) && (vibrationSetting == 3)) {
         pgs->grfgs = pgs->grfgs | 32;
+        StopJoyRumble(&g_joy);
         return;
     }
 }
@@ -887,5 +1045,16 @@ GRFUSR g_grfusr;
 int vibrationSetting = 1;
 std::array<int, BTN_MAX> g_keyboardBindings = kDefaultKeyboardBindings;
 std::array<int, BTN_MAX> g_gamepadBindings = kDefaultGamepadBindings;
+
+void ResetKeyboardMouseBindings()
+{
+    g_keyboardBindings = kDefaultKeyboardBindings;
+}
+
+void ResetControllerBindings()
+{
+    g_gamepadBindings = kDefaultGamepadBindings;
+}
 bool g_fDisableControllerInputWhenUnfocused = false;
 bool g_fMouseCamera = false;
+float g_mouseCameraSensitivity = 1.0f;

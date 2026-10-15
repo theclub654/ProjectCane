@@ -15,6 +15,7 @@
 #include "hubsel.h"
 #include "fmv.h"
 #include "mb.h"
+#include "Input.h"
 
 ASEGA* PasegaNew(SW* psw)
 {
@@ -531,7 +532,7 @@ void HandleAsegaEvent(ASEGA* pasega, EA* pea, int* pfRetracted)
         }
 
         case EATYP_StartRumble:
-        //TriggerJoyRumbleRumk(&g_joy, static_cast<RUMK>(pea->rumble.rumk), static_cast<float>(pea->rumble.dframe) / 60.0f);
+        TriggerJoyRumbleRumk(&g_joy, static_cast<RUMK>(pea->rumble.rumk), static_cast<float>(pea->rumble.dframe) / 60.0f);
         break;
 
         case EATYP_SendUserMessage:
@@ -620,7 +621,7 @@ void HandleAsegaEvent(ASEGA* pasega, EA* pea, int* pfRetracted)
         break;
 
         case EATYP_PreloadVag:
-        PreloadVagDescriptor(pea->string.pchz.get());
+        PreloadVagFileName(pea->string.pchz.get());
         break;
 
         case EATYP_PoseCombo:
@@ -750,7 +751,7 @@ void HandleAsegaEvent(ASEGA* pasega, EA* pea, int* pfRetracted)
         break;
 
         case EATYP_ShowMovie:
-        QueueCutsceneDescriptor(pea->string.pchz.get());
+        QueueCutsceneFileName(pea->string.pchz.get());
         break;
 
         case EATYP_PlaceCredits:

@@ -89,8 +89,19 @@ enum RESPK : int
 	RESPK_DialogueVolume,
 	RESPK_MouseCamera,
 	RESPK_CutsceneSkipControls,
+	RESPK_MouseSensitivity,
+	RESPK_AutoIconify,
+	RESPK_AnisotropicFiltering,
+	RESPK_OutputGamma,
+	RESPK_TextureFiltering,
+	RESPK_Monitor,
+	RESPK_ResetVideo,
+	RESPK_ResolutionScale,
+	RESPK_ControllerDeadzone,
+	RESPK_AudioOutputDevice,
+	RESPK_ResetMappings,
 
-	RESPK_Max = 68
+	RESPK_Max = 79
 };
 
 // -----------------------------------------------------------------------------
@@ -285,28 +296,31 @@ inline RESPK s_arespkSlots[7] =
     RESPK_Back
 };
 
-inline const RESPK s_arespkControlsMenuAll[9] =
+inline const RESPK s_arespkControlsMenuAll[12] =
 {
+	RESPK_Vibration,
 	RESPK_CameraInvert,
 	RESPK_MouseCamera,
+	RESPK_MouseSensitivity,
     RESPK_BinocInvert,
     RESPK_TurretInvert,
     RESPK_JetpackInvert,
 	RESPK_DisableControllerWhenUnfocused,
+	RESPK_ControllerDeadzone,
 	RESPK_KeyboardMapping,
 	RESPK_ControllerMapping,
     RESPK_Back
 };
 
-inline RESPK s_arespkControlsMenu[9]{};
+inline RESPK s_arespkControlsMenu[12]{};
 
-inline RESPK s_arespkKeyboardMapping[17] =
+inline RESPK s_arespkKeyboardMapping[18] =
 {
 	RESPK_KeyUp, RESPK_KeyDown, RESPK_KeyLeft, RESPK_KeyRight,
 	RESPK_KeySquare, RESPK_KeyCircle, RESPK_KeyCross, RESPK_KeyTriangle,
 	RESPK_KeyStart, RESPK_KeySelect, RESPK_KeyL1, RESPK_KeyR1,
 	RESPK_KeyL2, RESPK_KeyR2, RESPK_KeyL3, RESPK_KeyR3,
-	RESPK_Back
+	RESPK_Back, RESPK_ResetMappings
 };
 
 // -----------------------------------------------------------------------------
@@ -341,6 +355,7 @@ inline const RESPK s_arespkOptionsMenuAll[] =
     RESPK_CutsceneSkipControls,
     RESPK_Video,
     RESPK_Controls,
+	RESPK_AutoIconify,
     RESPK_Back
 };
 
@@ -349,15 +364,21 @@ inline RESPK s_arespkOptionsMenu[std::size(s_arespkOptionsMenuAll)]{};
 inline RESPK s_arespkVideoMenu[] =
 {
     RESPK_Msaa,
+	RESPK_AnisotropicFiltering,
+	RESPK_TextureFiltering,
+	RESPK_OutputGamma,
     RESPK_FrameRate,
     RESPK_InternalResolution,
+	RESPK_ResolutionScale,
     RESPK_DrawDistance,
     RESPK_WindowMode,
+	RESPK_Monitor,
     RESPK_Vsync,
     RESPK_AspectRatio,
     RESPK_Fog,
     RESPK_GuiStyle,
     RESPK_GuiScale,
+	RESPK_ResetVideo,
     RESPK_Back
 };
 
@@ -395,6 +416,16 @@ inline char g_achzRespk64[64]{};
 inline char g_achzRespk65[64]{};
 inline char g_achzRespk66[64]{};
 inline char g_achzRespk67[64]{};
+inline char g_achzRespk68[64]{};
+inline char g_achzRespk69[64]{};
+inline char g_achzRespk70[64]{};
+inline char g_achzRespk71[64]{};
+inline char g_achzRespk72[64]{};
+inline char g_achzRespk73[96]{};
+inline char g_achzRespk74[64]{};
+inline char g_achzRespk75[64]{};
+inline char g_achzRespk76[64]{};
+inline char g_achzRespk77[128]{};
 inline char g_aachzKeyboardBindings[BTN_MAX][64]{};
 
 // -----------------------------------------------------------------------------
@@ -445,6 +476,9 @@ inline const char* const s_apchzRespk26[2] =
 
 inline RESPK s_arespkSoundMenu[] =
 {
+	#ifdef _WIN32
+	RESPK_AudioOutputDevice,
+	#endif
 	RESPK_Speakers, RESPK_MusicVolume, RESPK_SfxVolume,
 	RESPK_DialogueVolume, RESPK_Back
 };
@@ -518,7 +552,18 @@ inline const char* s_mprespkachz[RESPK_Max] =
 	"Sound...",              // 62 RESPK_Sound
 	g_achzRespk63, g_achzRespk64, g_achzRespk65,
 	g_achzRespk66,            // 66 RESPK_MouseCamera
-	g_achzRespk67             // 67 RESPK_CutsceneSkipControls
+	g_achzRespk67,            // 67 RESPK_CutsceneSkipControls
+	g_achzRespk68,            // 68 RESPK_MouseSensitivity
+	g_achzRespk69,            // 69 RESPK_AutoIconify
+	g_achzRespk70,            // 70 RESPK_AnisotropicFiltering
+	g_achzRespk71,            // 71 RESPK_OutputGamma
+	g_achzRespk72,            // 72 RESPK_TextureFiltering
+	g_achzRespk73,            // 73 RESPK_Monitor
+	"Reset Video Settings",  // 74 RESPK_ResetVideo
+	g_achzRespk75,            // 75 RESPK_ResolutionScale
+	g_achzRespk76,            // 76 RESPK_ControllerDeadzone
+	g_achzRespk77,            // 77 RESPK_AudioOutputDevice
+	"Reset Mappings"        // 78 RESPK_ResetMappings
 };
 
 // -----------------------------------------------------------------------------
@@ -579,7 +624,12 @@ inline RESPD s_arespd[RESPK_Max] =
 	{ 0, nullptr },           // 61 RESPK_DisableControllerWhenUnfocused
 	{ 0, nullptr }, { 0, nullptr }, { 0, nullptr }, { 0, nullptr },
 	{ 0, nullptr },           // 66 RESPK_MouseCamera
-	{ 0, nullptr }            // 67 RESPK_CutsceneSkipControls
+	{ 0, nullptr },           // 67 RESPK_CutsceneSkipControls
+	{ 0, nullptr },           // 68 RESPK_MouseSensitivity
+	{ 0, nullptr },           // 69 RESPK_AutoIconify
+	{ 0, nullptr },           // 70 RESPK_AnisotropicFiltering
+	{ 0, nullptr }, { 0, nullptr }, { 0, nullptr }, { 0, nullptr },
+	{ 0, nullptr }, { 0, nullptr }, { 0, nullptr }, { 0, nullptr }
 };
 
 // -----------------------------------------------------------------------------

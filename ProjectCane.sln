@@ -8,6 +8,15 @@ EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Sly1-Release", "Sly1-Release\Sly1-Release.vcxproj", "{04262F3C-D5DA-40AB-8BC9-A943D3CF0611}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "File Extractor GUI", "File Extractor GUI\File Extractor GUI.csproj", "{05AFC091-E5F5-4271-B868-EF75E38B289C}"
+	ProjectSection(ProjectDependencies) = postProject
+		{A971F1C5-4A8F-4E1B-933E-E2ED41167631} = {A971F1C5-4A8F-4E1B-933E-E2ED41167631}
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tools", "Tools", "{07C2787E-EAC7-C090-1BA3-A61EC2A24D84}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "BrxRebuilder", "BrxRebuilder", "{24249719-6CDA-EB21-23DF-D86DDB19E7BA}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Sly1BrxRebuilder", "Tools\BrxRebuilder\Sly1BrxRebuilder.vcxproj", "{A971F1C5-4A8F-4E1B-933E-E2ED41167631}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -55,9 +64,25 @@ Global
 		{05AFC091-E5F5-4271-B868-EF75E38B289C}.Release|x64.Build.0 = Release|Any CPU
 		{05AFC091-E5F5-4271-B868-EF75E38B289C}.Release|x86.ActiveCfg = Release|Any CPU
 		{05AFC091-E5F5-4271-B868-EF75E38B289C}.Release|x86.Build.0 = Release|Any CPU
+		{A971F1C5-4A8F-4E1B-933E-E2ED41167631}.Debug|Any CPU.ActiveCfg = Debug|x64
+		{A971F1C5-4A8F-4E1B-933E-E2ED41167631}.Debug|Any CPU.Build.0 = Debug|x64
+		{A971F1C5-4A8F-4E1B-933E-E2ED41167631}.Debug|x64.ActiveCfg = Debug|x64
+		{A971F1C5-4A8F-4E1B-933E-E2ED41167631}.Debug|x64.Build.0 = Debug|x64
+		{A971F1C5-4A8F-4E1B-933E-E2ED41167631}.Debug|x86.ActiveCfg = Debug|Win32
+		{A971F1C5-4A8F-4E1B-933E-E2ED41167631}.Debug|x86.Build.0 = Debug|Win32
+		{A971F1C5-4A8F-4E1B-933E-E2ED41167631}.Release|Any CPU.ActiveCfg = Release|x64
+		{A971F1C5-4A8F-4E1B-933E-E2ED41167631}.Release|Any CPU.Build.0 = Release|x64
+		{A971F1C5-4A8F-4E1B-933E-E2ED41167631}.Release|x64.ActiveCfg = Release|x64
+		{A971F1C5-4A8F-4E1B-933E-E2ED41167631}.Release|x64.Build.0 = Release|x64
+		{A971F1C5-4A8F-4E1B-933E-E2ED41167631}.Release|x86.ActiveCfg = Release|Win32
+		{A971F1C5-4A8F-4E1B-933E-E2ED41167631}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{24249719-6CDA-EB21-23DF-D86DDB19E7BA} = {07C2787E-EAC7-C090-1BA3-A61EC2A24D84}
+		{A971F1C5-4A8F-4E1B-933E-E2ED41167631} = {24249719-6CDA-EB21-23DF-D86DDB19E7BA}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {1C7E872E-ABB2-4B96-B00E-F76327DB8F11}

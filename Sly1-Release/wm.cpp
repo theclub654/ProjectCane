@@ -897,7 +897,6 @@ void OnWmcActive(WMC* pwmc, int fActive)
             if ((g_pgsCur->gameWorldCur << 8 | g_pgsCur->worldLevelCur) == 776)
             {
                 ResumeVag();
-                ContinueMusicSequencer();
             }
 
             // ForceHideBlots hides the aiming reticle when the map opens, but
@@ -938,7 +937,6 @@ void OnWmcActive(WMC* pwmc, int fActive)
     if ((g_pgsCur->gameWorldCur << 8 | g_pgsCur->worldLevelCur) == 776)
     {
         PauseVag();
-        PauseMusicSequencer();
     }
 
     pwmc->pvtblot->pfnShowBlot(pwmc);

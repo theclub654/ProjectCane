@@ -6,5 +6,6 @@ extractor_dir="${package_dir}/File Extractor GUI"
 cd "${extractor_dir}"
 
 chmod +x "File Extractor GUI"
+chmod +x "Sly1BrxRebuilder"
 export LD_LIBRARY_PATH="${extractor_dir}${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}"
 exec ./"File Extractor GUI" "$@"

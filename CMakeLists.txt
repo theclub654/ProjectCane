@@ -14,6 +14,19 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
 
+set(brx_rebuilder_sources
+    Tools/BrxRebuilder/AssetWalker.cpp
+    Tools/BrxRebuilder/BinaryInputStream.cpp
+    Tools/BrxRebuilder/BrxWalker.cpp
+    Tools/BrxRebuilder/GeometryWalker.cpp
+    Tools/BrxRebuilder/main.cpp
+    Tools/BrxRebuilder/ObjectWalker.cpp
+    Tools/BrxRebuilder/OptionWalker.cpp
+    Tools/BrxRebuilder/SpliceWalker.cpp
+    Tools/BrxRebuilder/TriangleList.cpp)
+add_executable(Sly1BrxRebuilder ${brx_rebuilder_sources})
+target_compile_definitions(Sly1BrxRebuilder PRIVATE _CRT_SECURE_NO_WARNINGS)
+
 set(CANE_FFMPEG_ROOT "" CACHE PATH "FFmpeg development prefix")
 if(CANE_FFMPEG_ROOT AND NOT WIN32)
     list(PREPEND CMAKE_PREFIX_PATH "${CANE_FFMPEG_ROOT}")
@@ -34,6 +47,23 @@ FetchContent_Declare(glfw
     URL https://codeload.github.com/glfw/glfw/tar.gz/refs/tags/3.4
     URL_HASH SHA256=c038d34200234d071fae9345bc455e4a8f2f544ab60150765d7704e08f3dac01)
 FetchContent_MakeAvailable(glfw)
+
+find_package(SDL2 2.24 CONFIG QUIET)
+if(NOT SDL2_FOUND)
+    if(WIN32)
+        set(SDL_SHARED OFF CACHE BOOL "" FORCE)
+        set(SDL_STATIC ON CACHE BOOL "" FORCE)
+    else()
+        set(SDL_SHARED ON CACHE BOOL "" FORCE)
+        set(SDL_STATIC OFF CACHE BOOL "" FORCE)
+    endif()
+    set(SDL_TEST OFF CACHE BOOL "" FORCE)
+    set(SDL2_DISABLE_INSTALL OFF CACHE BOOL "" FORCE)
+    FetchContent_Declare(sdl2
+        URL https://codeload.github.com/libsdl-org/SDL/tar.gz/refs/tags/release-2.30.11
+        URL_HASH SHA256=cc6136dd964854e8846c679703322f3e2a341d27a06a53f8b3f642c26f1b0cfd)
+    FetchContent_MakeAvailable(sdl2)
+endif()
 
 add_library(cane_platform INTERFACE)
 target_include_directories(cane_platform INTERFACE
@@ -73,7 +103,7 @@ if(NOT WIN32)
 endif()
 
 add_executable(ProjectCane ${game_sources} "${imgui_root}/imgui_demo.cpp")
-target_link_libraries(ProjectCane PRIVATE cane_ui Threads::Threads)
+target_link_libraries(ProjectCane PRIVATE cane_ui Threads::Threads SDL2::SDL2)
 target_compile_definitions(ProjectCane PRIVATE
     CANE_PORTABLE_SHADERS
     _CRT_SECURE_NO_WARNINGS
@@ -122,18 +152,6 @@ else()
     pkg_check_modules(FFMPEG REQUIRED IMPORTED_TARGET
         libavformat libavcodec libavutil libswscale)
 
-    find_package(SDL2 2.24 CONFIG QUIET)
-    if(NOT SDL2_FOUND)
-        set(SDL_SHARED ON CACHE BOOL "" FORCE)
-        set(SDL_STATIC OFF CACHE BOOL "" FORCE)
-        set(SDL_TEST OFF CACHE BOOL "" FORCE)
-        set(SDL2_DISABLE_INSTALL OFF CACHE BOOL "" FORCE)
-        FetchContent_Declare(sdl2
-            URL https://codeload.github.com/libsdl-org/SDL/tar.gz/refs/tags/release-2.30.11
-            URL_HASH SHA256=cc6136dd964854e8846c679703322f3e2a341d27a06a53f8b3f642c26f1b0cfd)
-        FetchContent_MakeAvailable(sdl2)
-    endif()
-
     set(BUILD_TESTS OFF CACHE BOOL "" FORCE)
     FetchContent_Declare(faudio
         URL https://codeload.github.com/FNA-XNA/FAudio/tar.gz/refs/tags/25.02
@@ -153,4 +171,4 @@ if(MSVC)
         MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 endif()
 
-install(TARGETS ProjectCane RUNTIME DESTINATION bin)
+install(TARGETS ProjectCane Sly1BrxRebuilder RUNTIME DESTINATION bin)

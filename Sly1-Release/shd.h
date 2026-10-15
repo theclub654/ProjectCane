@@ -56,6 +56,13 @@ enum RP : int
     RP_Max = 18
 };
 
+inline constexpr bool FIsCelBorderRenderPhase(RP rp)
+{
+    return rp == RP_CelBorder ||
+        rp == RP_CelBorderAfterProjVolume ||
+        rp == RP_TranslucentCelBorder;
+}
+
 // Shader animation type
 enum SAAK
 {
@@ -125,33 +132,18 @@ struct SAA
     SAI sai;
 };
 
-// CLUT property
-struct CLUT
-{
-    GRFZON grfzon;
-    // Number of colors in a CLUT
-    short numColors;
-    // Color size of the CLUT
-    short colorSize;
-    // Ptr to CLUT in memory
-    uint32_t baseOffset;
-};
-
-// Texture property
+// Resolved PCBRX RGBA8 image. Palette lookup, GS alpha expansion and optional
+// font flipping are performed offline by the file rebuilder.
 struct BMP
 {
-    // BMP width
-    short bmpWidth;
-    // BMP height
-    short bmpHeight;
+    uint32_t bmpWidth;
+    uint32_t bmpHeight;
     GRFZON grfzon;
-    byte psm;
-    byte cgsRow;
-    short cgsPixels;
-    // BMP size
+    uint32_t mipCount;
     uint32_t cbPixels;
-    // Offset to BMP in memory
     uint32_t baseOffset;
+    uint32_t textureFlags;
+    uint32_t textureFormat;
 
     std::vector <byte> shadowTexture;
     GLuint glShadowMap;
@@ -168,10 +160,7 @@ struct TEXF
 {
     OID oid;
     short grftex;
-    // Number of bmp's
-    byte cibmp;
-    // Number of CLUT's
-    byte ciclut;
+    uint16_t cibmp;
 };
 
 struct SHDP 
@@ -196,19 +185,17 @@ struct SHDF
 struct TEX : public TEXF
 {
     struct SHD* pshd;
-    std::vector <uint16_t> bmpIndex;
-    std::vector <uint16_t> clutIndex;
+    std::vector <int32_t> ambientImageIndex;
+    std::vector <int32_t> diffuseImageIndex;
+    std::vector <int32_t> saturateImageIndex;
 
     std::vector <BMP*>  abmp;
-    std::vector <CLUT*> aclut;
 
-    // World-map layers can share indexed BMP pixels while selecting different
-    // CLUTs. Their resolved textures therefore belong to TEX, not BMP.
+    // Per-frame handles reference resolved images from the PCBRX image table.
     std::vector<GLuint> glDiffuseMap;
     std::vector<std::vector<byte>> diffuseTexture;
 
-    // Three-way shaders can share indexed BMP pixels while using different
-    // ambient, diffuse, and saturate CLUTs. Keep every resolved map per TEX.
+    // Three-way shaders retain distinct ambient, diffuse and saturate images.
     std::vector<GLuint> glShadowMap;
     std::vector<std::vector<byte>> shadowTexture;
     std::vector<GLuint> glSaturateMap;
@@ -227,9 +214,7 @@ struct SHD : public SHDF
 
 // Delete shader data
 void UnloadShaders();
-// Loads CLUT entry data from binary file
-void LoadColorTablesFromBrx(CBinaryInputStream* pbis);
-// Loads texture entry data from binary file
+// Loads resolved PC image descriptors from the rebuilt file.
 void LoadBitmapsFromBrx(CBinaryInputStream* pbis);
 // Loads font property's from binary file
 void LoadFontsFromBrx(CBinaryInputStream* pbis); // GOTTA COME BACK TO THIS
@@ -244,18 +229,11 @@ void LoadShadersFromBrx(CBinaryInputStream* pbis);
 void SetSaiIframe(SAI* psai, int iframe);
 // Loads texture data from binary file
 void LoadTexturesFromBrx(CBinaryInputStream* pbis);
-// Make Texture
-std::vector <byte> MakeBmp(BMP* pbmp, CBinaryInputStream* pbis);
-// Make color pallete
-std::vector <byte> MakePallete(CLUT* pclut, CBinaryInputStream* pbis);
-// Make texture
-void MakeTexture(GLuint& textureReference, BMP* pbmp, std::vector <byte>& texture, CLUT* pclut, bool fFlip, bool fMipMap, CBinaryInputStream* pbis);
+void ApplyAnisotropicFilteringSettings(int level);
+void ApplyTextureFilteringSettings(int mode);
+int MaxSupportedAnisotropicFiltering();
 void UpdateShaders(float dt);
 
-// Global variable which holds the number of CLUT's in a binary file
-extern int g_cclut;
-// Global vector for CLUT property's
-extern std::vector <CLUT> g_aclut;
 extern int g_grfzonShaders;
 // Global variable which holds the number of BMP's in a binary file
 extern int g_cbmp;
@@ -274,7 +252,4 @@ extern std::vector <SAA*> g_apsaa;
 extern std::vector<std::shared_ptr<SAA>> g_apsaaSw;
 extern SAI* g_psaiUpdate;
 extern SAI* g_psaiUpdateTail;
-// Start of texture data
-extern size_t textureDataStart;
-// Unswizzled CLUT indices
-extern uint8_t csm1ClutIndices[256];
+extern int g_anisotropicFiltering;

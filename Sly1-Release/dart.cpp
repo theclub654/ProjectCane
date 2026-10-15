@@ -1,6 +1,7 @@
 #include "dart.h"
 #include "jt.h"
 #include "expl.h"
+#include "Input.h"
 
 DART* NewDart()
 {
@@ -245,9 +246,9 @@ void UpdateDartAirborne(DART* pdart, float dt)
 
         StartSound((SFXID)52, nullptr, nullptr, nullptr, 3000.0f, 300.0f, 1.0f, 0.0f, 0.0f, nullptr, nullptr);
 
-        /*if (g_pjt != nullptr && g_pjt->phbsk == phbsk) {
+        if (g_pjt != nullptr && g_pjt->phbsk == phbsk) {
             TriggerJoyRumbleRumk(&g_joy, RUMK_Blunt, 0.25f);
-        }*/
+        }
 
         if (CdartStuckHbsk(phbsk) >= phbsk->cMaxDartsStuck) {
             DART* pdartOldest = PdartOldestHbskStuck(phbsk);

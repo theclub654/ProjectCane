@@ -4,6 +4,7 @@
 #include "util.h"
 #include "rocel.h"
 #include <glad/glad.h>
+#include <cstddef>
 #include <vector>
 #include "sqtr.h"
 
@@ -80,6 +81,7 @@ struct INDICE
 	uint16_t v2;
 	uint16_t v3;
 };
+static_assert(sizeof(INDICE) == 6, "PCBRX triangle indices must remain uint16");
 
 struct alignas(16) RO
 {
@@ -166,39 +168,17 @@ struct RPLCEL
 	GLsizeiptr streamOffset = -1;
 };
 
-// Vertex Flag
-struct VTXFLG
+struct CELPOINT
 {
-	// Vertex Index
-	byte ipos;
-	// Normal Index
-	byte inormal;
-	// UV Index
-	byte iuv;
-	// Strip Flag
-	byte bMisc;
+	glm::vec4 position;
+	glm::uvec4 boneIndices;
+	glm::vec4 boneWeights;
 };
 
-struct SUBCEL
-{
-	std::vector <glm::vec3> positions;
-	std::vector <uint16_t>  indices;
-	std::vector <float>     weights;
-};
-
-struct SUBPOSEF
-{
-	std::vector <uint16_t> aiposf;
-	std::vector <uint16_t> ainormalf;
-};
-
-struct TWEF
-{
-	uint32_t aipos0;
-	uint32_t aipos1;
-	uint32_t aipos2;
-	uint32_t aipos3;
-};
+static_assert(sizeof(CELPOINT) == 48, "CELPOINT must match the PCBRX/std430 layout");
+static_assert(offsetof(CELPOINT, position) == 0);
+static_assert(offsetof(CELPOINT, boneIndices) == 16);
+static_assert(offsetof(CELPOINT, boneWeights) == 32);
 
 struct WEKI
 {
@@ -276,7 +256,6 @@ struct SUBGLOB
 	// Object shader property
 	struct SHD* pshd;
 	int cibnd;
-	std::vector <int> aibnd;
 	SAI *uvSai;
 	bool usesUvAnim;
 };
@@ -337,19 +316,10 @@ struct GLOB // NOT DONE
 	int csubglob;
 	std::vector <SUBGLOB> asubglob;
 	int csubcel;
-	std::vector <SUBCEL> asubcel;
-	// SSBO: 4 vec4 per edge (E0, E1, OA, OB)
+	// SSBO: four CELPOINT records per edge (E0, E1, OA, OB).
 	GLuint edgeSSBO;  // GL_SHADER_STORAGE_BUFFER
 	GLsizei edgeCount; // number of edges (== ctwef)
-	// Four global bone indices per cel position.
-	GLuint edgeBoneIndicesSSBO;
-	// Four bone weights per cel position.
-	GLuint edgeBoneWeightsSSBO;
-	// Optional CPU copies.
-	std::vector <glm::uvec4> edgeBoneIndices;
-	std::vector <glm::vec4> edgeBoneWeights;
 	GLuint edgePoseDposSSBO = 0;
-	std::vector<glm::vec4> edgePoseDpos;
 	// Ptr to instance model matrix
 	std::shared_ptr <glm::mat4> pdmat;
 	struct BLOT* pblot;
@@ -390,13 +360,15 @@ struct GLOBSET
 // Loads 3D model data from binary file
 void LoadGlobsetFromBrx(GLOBSET* pglobset, ALO* palo, CBinaryInputStream* pbis);
 // Converts strips to tri lists and stores 3D sub model in VRAM
-void BuildSubGlob(GLOB* pglob, SUBGLOB* psubglob, SHD* pshd, std::vector <glm::vec3>& positions, std::vector <glm::vec3>& normals, std::vector <glm::vec4>& colors, std::vector <glm::vec2>& texcoords, std::vector <VTXFLG>& indexes, std::vector< SUBPOSEF> &subposef, std::vector <glm::vec3>& aposfPoses, std::vector <glm::vec3>& anormalfPoses, std::vector <float>& agWeights, int fDynamic);
-void BuildSubcel(GLOBSET* pglobset, GLOB* pglob, SUBCEL* psubcel, int cposf, const std::vector<glm::vec3>& aposf, int ctwef, const std::vector<TWEF>& atwef, int cibnd, const std::vector<int>& aibnd, const std::vector<SUBPOSEF>& asubposef, const std::vector<glm::vec3>& aposfPoses, const std::vector<float>& agWeights, std::vector<glm::vec4>& totalEdges, std::vector<glm::uvec4>& totalBoneIndices, std::vector<glm::vec4>& totalBoneWeights, std::vector<glm::vec4>& totalPoseDpos);
 void BuildGlobsetSaaArray(GLOBSET* pglobset);
 void CloneGlob(GLOBSET* pglobset, GLOB* pglob, GLOBI* pglobi);
 void CloneGlobset(GLOBSET* pglobset, ALO* palo, GLOBSET* pglobsetBase);
 void PostGlobsetLoad(GLOBSET* pglobset, ALO* palo);
 void UpdateGlobset(GLOBSET* pglobset, ALO* palo, float dt);
+void MarkGlobsetPoseWeightsDirty(GLOBSET* pglobset);
+void UploadGlobsetPoseWeights(GLOBSET* pglobset);
+GLuint GetGlobsetPoseWeightBuffer(const GLOBSET* pglobset);
+void DeleteGlobsetPoseWeightBuffer(GLOBSET* pglobset);
 
 extern int  g_fogType;
 extern bool g_fRenderModels;

@@ -524,31 +524,8 @@ void AddVaultGoadDialog(VAULT* pvault, int goadk, OID oidDialog)
 	}
 }
 
-int FCanOpenVault(VAULT* pvault)
-{
-	if (pvault == nullptr || g_pgsCur == nullptr)
-		return 0;
-
-	// Duel by the Dragon (world 4, level 6) is the post-game vault. Retail
-	// keeps it unavailable until the Clockwerk world-complete flag is set.
-	const int levelKey =
-		(static_cast<int>(g_pgsCur->gameWorldCur) << 8) |
-		static_cast<int>(g_pgsCur->worldLevelCur);
-
-	if (levelKey == 0x406 &&
-		(g_pgsCur->aws[GAMEWORLD_Clockwerk].fws & FWS_Complete) == 0)
-	{
-		return 0;
-	}
-
-	return 1;
-}
-
 void OpenVault(VAULT* pvault)
 {
-	if (!FCanOpenVault(pvault))
-		return;
-
 	SetSmaGoal(pvault->psmaVault, (OID)910);
 
 	if (pvault->pvolbtnGoad != nullptr) {

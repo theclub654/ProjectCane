@@ -22,6 +22,8 @@ class GLSHADER
         const char* fragmentFile = nullptr);
 };
 
+void InvalidateShaderProgramCache();
+
 extern GLSHADER glScreenShader;
 extern GLSHADER glDyshadow;
 extern GLSHADER glGlobShader;

@@ -128,7 +128,16 @@ public sealed class Sly1ExtractionService
             Directory.CreateDirectory(levelDirectory);
 
             var outputPath = Path.Combine(levelDirectory, level.Name + ".brx");
-            await File.WriteAllBytesAsync(outputPath, decompressed, cancellationToken);
+            progress?.Report(new Sly1ExtractionProgress(
+                $"Rebuilding Worlds / {GetEpisodeName(level.LevelId)} / {level.Name}",
+                index,
+                levels.Count,
+                processedBytes,
+                totalCompressedBytes));
+            await BrxRebuildService.RebuildAsync(
+                decompressed,
+                outputPath,
+                cancellationToken);
 
             processedBytes += level.CompressedSize;
             progress?.Report(new Sly1ExtractionProgress(

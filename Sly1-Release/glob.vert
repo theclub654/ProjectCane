@@ -26,7 +26,6 @@
 #define FOG_PS2  1
 #define FOG_PS3  2
 
-#define MAX_POSES 64
 
 layout (location = 0) in vec3  vertex;
 layout (location = 1) in vec3  normal;
@@ -173,6 +172,11 @@ layout(std430, binding = 11) readonly buffer POSENORMALBLK
     vec4 poseDnormal[];
 };
 
+layout(std430, binding = 14) readonly buffer POSEWEIGHTBLK
+{
+    float poseWeights[];
+};
+
 layout(std430, binding = 13) readonly buffer TVLIGHTBLK
 {
     LIGHT tvLights[];
@@ -180,7 +184,6 @@ layout(std430, binding = 13) readonly buffer TVLIGHTBLK
 
 uniform int fPose;
 uniform int poseCount;
-uniform float poseWeights[MAX_POSES];
 
 uniform int   rko;
 uniform int   fAnimateUv;
@@ -426,7 +429,7 @@ void ApplyPoses(inout vec4 positionLocal, inout vec3 normalLocal)
 {
     vec3 dpos = vec3(0.0);
     vec3 dnormal = vec3(0.0);
-    int count = clamp(poseCount, 0, MAX_POSES);
+    int count = min(max(poseCount, 0), poseWeights.length());
     int poseBase = gl_VertexID * poseCount;
 
     for (int ipose = 0; ipose < count; ++ipose)
@@ -900,11 +903,7 @@ vec4 AddFrustrumLight(LIGHT frustumlight)
     float mask = fx * fy * fr * fw;
     if (mask <= 0.0) return vec4(0.0);
 
-    return AddDynamicLight(
-        frustumlight.dir,
-        frustumlight.color,
-        frustumlight.ru * mask,
-        frustumlight.du * mask);
+    return AddDynamicLight(frustumlight.dir, frustumlight.color, frustumlight.ru * mask, frustumlight.du * mask);
 }
 
 vec4 AddFrustrumLightDynamic(LIGHT frustumlight)

@@ -2,7 +2,6 @@
   <img alt="ProjectCane" src="README-assets/projectcane-logo.png" />
 </p>
 
-<p align="center"><sub>Logo by k1nomoto</sub></p>
 
 # ProjectCane
 

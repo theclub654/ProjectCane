@@ -7,6 +7,7 @@
 #include "coin.h"
 #include "pzo.h"
 #include "totals.h"
+#include "Input.h"
 
 void StartupUi()
 {
@@ -487,6 +488,8 @@ void ResetUi(UI* pui)
     pui->apblotActive[0] = nullptr;
     pui->uisPlaying = UIS_Nil;
     pui->cpblotActive = 1;
+
+    StopJoyRumble(&g_joy);
 
     ResetBlots();
 

@@ -39,6 +39,16 @@ struct VIDEOSAVESETTINGS
     float dialogueVolume;
     int mouseCameraEnabled;
     int cutsceneSkipControlsEnabled;
+    float mouseCameraSensitivity;
+    int autoIconify;
+    int anisotropicFiltering;
+    float outputGamma;
+    int textureFiltering;
+    int monitorIndex;
+    int resolutionScalePercent;
+    float controllerDeadzone;
+    char audioOutputDeviceId[256];
+    char monitorName[128];
 };
 
 struct SAVEDATA

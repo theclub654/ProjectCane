@@ -3,6 +3,7 @@
 #include "expl.h"
 #include "jt.h"
 #include "lgn.h"
+#include "Input.h"
 #include <algorithm>
 
 BRK* NewBrk()
@@ -410,8 +411,8 @@ int FAbsorbBrkWkr(BRK* pbrk, WKR* pwkr)
 	if ((pwkr->grfic & 16) == 0)
 		return 1;
 
-	/*if (pwkr->ploSource == reinterpret_cast<LO*>(PpoCur()) && (pwkr->grftak & 16) == 0)
-		TriggerJoyRumbleRumk(&g_joy, RUMK_Break, 0.3f);*/
+	if (pwkr->ploSource == reinterpret_cast<LO*>(PpoCur()) && (pwkr->grftak & 16) == 0)
+		TriggerJoyRumbleRumk(&g_joy, RUMK_Break, 0.3f);
 
 	++pbrk->cHits;
 	void* pvArgs = &pbrk->cHits;

@@ -487,13 +487,13 @@ void BuildEopids()
 	g_aeopid[94].optdat.pvThunkFn = RefThunkAloEYES_CLOSED;
 
 	g_aeopid[95].grfeopid = 288;
-	g_aeopid[95].otyp = OTYP_Int;
-	g_aeopid[95].optdat.ibSet = reinterpret_cast<std::intptr_t>(&SetAloCelRgba);
-	g_aeopid[95].optdat.ibSetUser = reinterpret_cast<std::intptr_t>(&SetAloCelRgba);
+	g_aeopid[95].otyp = OTYP_Vector4;
+	g_aeopid[95].optdat.ibSet = reinterpret_cast<std::intptr_t>(&SetAloCelRgbaFloat);
+	g_aeopid[95].optdat.ibSetUser = reinterpret_cast<std::intptr_t>(&SetAloCelRgbaFloat);
 
-	g_aeopid[96].otyp = OTYP_Int;
+	g_aeopid[96].otyp = OTYP_Vector4;
 	g_aeopid[96].grfeopid = 32;
-	g_aeopid[96].optdat.ibSet = reinterpret_cast<std::intptr_t>(&SetAloOverrideCel);
+	g_aeopid[96].optdat.ibSet = reinterpret_cast<std::intptr_t>(&SetAloOverrideCelFloat);
 
 	g_aeopid[97].otyp = OTYP_Exrk;
 	g_aeopid[97].optdat.ibSetUser = reinterpret_cast<std::intptr_t>(&SetAloThrobKind);
@@ -2997,7 +2997,7 @@ void BuildEopids()
 	g_aeopid[527].optdat.ibGet = static_cast<std::intptr_t>(offsetof(SW, lsmDefault) + offsetof(LSM, uShadow));
 
 	g_aeopid[528].optdat.ibSetUser = static_cast<std::intptr_t>(offsetof(SW, rgbaSky));
-	g_aeopid[528].otyp = OTYP_Rgba;
+	g_aeopid[528].otyp = OTYP_Vector4;
 	g_aeopid[528].grfeopid = 128;
 
 	g_aeopid[529].optdat.ibSetUser = reinterpret_cast<std::intptr_t>(&SetSwCameraFov);
@@ -3024,9 +3024,9 @@ void BuildEopids()
 	g_aeopid[534].optdat.ibSetUser = reinterpret_cast<std::intptr_t>(&SetSwCameraUFogMax);
 	g_aeopid[534].grfeopid = 256;
 
-	g_aeopid[535].otyp = OTYP_Rgba;
+	g_aeopid[535].otyp = OTYP_Vector4;
 	g_aeopid[535].grfeopid = 256;
-	g_aeopid[535].optdat.ibSetUser = reinterpret_cast<std::intptr_t>(&SetSwCameraRgbaFog);
+	g_aeopid[535].optdat.ibSetUser = reinterpret_cast<std::intptr_t>(&SetSwCameraRgbaFogFloat);
 
 	g_aeopid[536].otyp = OTYP_Float;
 	g_aeopid[536].grfeopid = 256;
@@ -3959,13 +3959,11 @@ void BuildEopids()
 	g_aeopid[700].optdat.ibSet = static_cast<std::intptr_t>(offsetof(SMARTGUARD, oidSneakVol));
 
 	g_aeopid[701].otyp = OTYP_Oid;
-	g_aeopid[701].optdat.ibSetUser = static_cast<std::intptr_t>(
-		offsetof(SMARTGUARD, sgf) + offsetof(SGF, oidFlash));
+	g_aeopid[701].optdat.ibSetUser = static_cast<std::intptr_t>(offsetof(SMARTGUARD, sgf) + offsetof(SGF, oidFlash));
 	g_aeopid[701].grfeopid = 128;
 
 	g_aeopid[702].otyp = OTYP_Key;
-	g_aeopid[702].optdat.ibGet = static_cast<std::intptr_t>(
-		offsetof(SMARTGUARD, sgf) + offsetof(SGF, pflash));
+	g_aeopid[702].optdat.ibGet = static_cast<std::intptr_t>(offsetof(SMARTGUARD, sgf) + offsetof(SGF, pflash));
 	g_aeopid[702].grfeopid = 2;
 
 	g_aeopid[703].otyp = OTYP_Void;
@@ -5641,11 +5639,11 @@ void BuildEopids()
 	g_aeopid[987].grfeopid = 0;
 	g_aeopid[987].otyp = OTYP_Bool;
 
-	g_aeopid[988].optdat.ibSetUser = static_cast<std::intptr_t>(offsetof(SPEAKER, rgbaTextPacked));
+	g_aeopid[988].optdat.ibSetUser = static_cast<std::intptr_t>(offsetof(SPEAKER, rgbaText));
 	g_aeopid[988].grfeopid = 146;
-	g_aeopid[988].optdat.ibSet = static_cast<std::intptr_t>(offsetof(SPEAKER, rgbaTextPacked));
-	g_aeopid[988].otyp = OTYP_Int;
-	g_aeopid[988].optdat.ibGet = static_cast<std::intptr_t>(offsetof(SPEAKER, rgbaTextPacked));
+	g_aeopid[988].optdat.ibSet = static_cast<std::intptr_t>(offsetof(SPEAKER, rgbaText));
+	g_aeopid[988].otyp = OTYP_Vector4;
+	g_aeopid[988].optdat.ibGet = static_cast<std::intptr_t>(offsetof(SPEAKER, rgbaText));
 
 	g_aeopid[989].grfeopid = 146;
 	g_aeopid[989].optdat.ibSet = static_cast<std::intptr_t>(offsetof(SPEAKER, radFov));
@@ -6491,17 +6489,17 @@ void BuildEopids()
 	g_aeopid[1132].optdat.pvThunkFnUser = RefThunkThndFlashSTART;
 	g_aeopid[1132].optdat.pvThunkFn = RefThunkThndFlashSTART;
 	g_aeopid[1132].optdat.ibSet = 0;
-	g_aeopid[1133].otyp = OTYP_Rgba;
+	g_aeopid[1133].otyp = OTYP_Vector4;
 	g_aeopid[1133].grfeopid = 0x92;
 	g_aeopid[1133].optdat.ibSetUser = static_cast<std::ptrdiff_t>(offsetof(THNDFLASH, rgbaStart));
 	g_aeopid[1133].optdat.ibGet = static_cast<std::ptrdiff_t>(offsetof(THNDFLASH, rgbaStart));
 	g_aeopid[1133].optdat.ibSet = static_cast<std::ptrdiff_t>(offsetof(THNDFLASH, rgbaStart));
-	g_aeopid[1134].otyp = OTYP_Rgba;
+	g_aeopid[1134].otyp = OTYP_Vector4;
 	g_aeopid[1134].grfeopid = 0x92;
 	g_aeopid[1134].optdat.ibSetUser = static_cast<std::ptrdiff_t>(offsetof(THNDFLASH, rgbaPeak));
 	g_aeopid[1134].optdat.ibGet = static_cast<std::ptrdiff_t>(offsetof(THNDFLASH, rgbaPeak));
 	g_aeopid[1134].optdat.ibSet = static_cast<std::ptrdiff_t>(offsetof(THNDFLASH, rgbaPeak));
-	g_aeopid[1135].otyp = OTYP_Rgba;
+	g_aeopid[1135].otyp = OTYP_Vector4;
 	g_aeopid[1135].grfeopid = 0x92;
 	g_aeopid[1135].optdat.ibSetUser = static_cast<std::ptrdiff_t>(offsetof(THNDFLASH, rgbaEnd));
 	g_aeopid[1135].optdat.ibGet = static_cast<std::ptrdiff_t>(offsetof(THNDFLASH, rgbaEnd));

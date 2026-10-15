@@ -1,4 +1,10 @@
 #include "glshaders.h"
+#include <limits>
+
+namespace
+{
+GLuint s_activeShaderProgram = (std::numeric_limits<GLuint>::max)();
+}
 #include "resource1.h"
 
 #ifdef CANE_PORTABLE_SHADERS
@@ -236,12 +242,23 @@ void GLSHADER::Init(const char* vertexFile, const char* geometryFile, const char
 
 void GLSHADER::Use()
 {
-	glUseProgram(ID);
+	if (s_activeShaderProgram != ID)
+	{
+		glUseProgram(ID);
+		s_activeShaderProgram = ID;
+	}
 }
 
 void GLSHADER::Delete()
 {
+	if (s_activeShaderProgram == ID)
+		s_activeShaderProgram = (std::numeric_limits<GLuint>::max)();
 	glDeleteProgram(ID);
+}
+
+void InvalidateShaderProgramCache()
+{
+	s_activeShaderProgram = (std::numeric_limits<GLuint>::max)();
 }
 
 bool GLSHADER::compileErrors(unsigned int shader, const char* type,

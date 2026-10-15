@@ -9,6 +9,19 @@
 #include "scroller.h"
 #include "circler.h"
 #include "looker.h"
+#include <unordered_map>
+
+namespace
+{
+    struct POSEWEIGHTGPU
+    {
+        GLuint buffer = 0;
+        size_t count = 0;
+        bool dirty = true;
+    };
+
+    std::unordered_map<const GLOBSET*, POSEWEIGHTGPU> s_poseWeightGpu;
+}
 
 static std::shared_ptr<SAA> CloneInstancedSaa(SAA* saaBase)
 {
@@ -40,6 +53,7 @@ static std::shared_ptr<SAA> CloneInstancedSaa(SAA* saaBase)
 void LoadGlobsetFromBrx(GLOBSET* pglobset, ALO* palo, CBinaryInputStream* pbis)
 {
     pglobset->cpsaa = 0;
+    pglobset->boneMatrixSSBO = 0;
 
     byte fRelight = pbis->U8Read();
     pbis->U8Read();
@@ -237,67 +251,57 @@ void LoadGlobsetFromBrx(GLOBSET* pglobset, ALO* palo, CBinaryInputStream* pbis)
                 pglobset->aglob[i].asubglob[a].posCenter = pbis->ReadVector();
                 pglobset->aglob[i].asubglob[a].sRadius = pbis->F32Read();
 
-                //std::cout << std::dec << "Vertex Count: " << (uint32_t)vertexCount << "\n";
-                uint32_t vertexCount = pbis->U8Read();
-                //std::cout << std::dec << "Rotations Count: " << (uint32_t)rotationsCount << "\n";
-                uint32_t normalCount = pbis->U8Read();
-                //std::cout << std::dec << "Vertex Color Count: " << (uint32_t)vertexColorCount << "\n";
-                uint32_t vertexColorCount = pbis->U8Read();
-                //std::cout << std::dec << "Texcoords Count: " << (uint32_t)texCoordCount << "\n";
-                uint32_t texcoordCount = pbis->U8Read();
-                //std::cout << std::dec << "Index Count: " << (uint32_t)indexCount << "\n";
-                uint32_t indexCount = pbis->U8Read();
+                // PCBRX stores one fixed, interleaved vertex record. Read every
+                // field explicitly so the file layout never depends on GLM padding.
+                const uint16_t vertexCount = pbis->U16Read();
+                const uint16_t triangleCount = pbis->U16Read();
 
-                std::vector <glm::vec3> vertexes;
-                vertexes.resize(vertexCount);
-
-                std::vector <glm::vec3>normals;
-                normals.resize(normalCount);
-
-                std::vector <glm::vec4> vertexColors;
-                vertexColors.resize(vertexColorCount);
-
-                std::vector <glm::vec2> texcoords;
-                texcoords.resize(texcoordCount);
-
-                std::vector <VTXFLG> indexes;
-                indexes.resize(indexCount);
-
-                pbis->Align(0x4);
-
-                //std::cout << "Vertices: " << std::hex << pbis->file.tellg() << "\n";
-                for (int b = 0; b < vertexCount; b++)
-                    vertexes[b] = pbis->ReadVector();
-
-                //std::cout << "Normals: " << std::hex << pbis->file.tellg() << "\n";
-                for (int c = 0; c < normalCount; c++)
-                    normals[c] = pbis->ReadVector();
-
-                //std::cout << "Vertex Colors: " << std::hex << pbis->file.tellg() << "\n";
-                for (int d = 0; d < vertexColorCount; d++)
-                {
-                    vertexColors[d].r = (pbis->U8Read() * 2.0f) / 0x1FE;
-                    vertexColors[d].g = (pbis->U8Read() * 2.0f) / 0x1FE;
-                    vertexColors[d].b = (pbis->U8Read() * 2.0f) / 0x1FE;
-                    vertexColors[d].a = (pbis->U8Read() * 2.0f) / 0x1FE;
-                }
-
-                //std::cout << "Texcoords: " << std::hex << pbis->file.tellg() << "\n";
-                for (int e = 0; e < texcoordCount; e++)
-                    texcoords[e] = pbis->ReadVector2();
-
-                //std::cout << "Indexes: " << std::hex << pbis->file.tellg() << "\n\n";
-                for (int f = 0; f < indexCount; f++)
-                {
-                    indexes[f].ipos    = pbis->U8Read();
-                    indexes[f].inormal = pbis->U8Read();
-                    indexes[f].iuv     = pbis->U8Read();
-                    indexes[f].bMisc   = pbis->U8Read();
-                }
-
-                // Loading texture property 
                 pglobset->aglob[i].asubglob[a].shdID = pbis->U16Read();
+                pglobset->aglob[i].asubglob[a].cibnd = pbis->U16Read();
                 pglobset->aglob[i].asubglob[a].pshd  = &g_ashd[pglobset->aglob[i].asubglob[a].shdID];
+
+                pglobset->aglob[i].asubglob[a].unSelfIllum = pbis->F32Read();
+
+                SUBGLOB& subglob = pglobset->aglob[i].asubglob[a];
+                subglob.vertices.resize(vertexCount);
+                for (VERTICE& vertex : subglob.vertices)
+                {
+                    vertex.pos = pbis->ReadVector();
+                    vertex.normal = pbis->ReadVector();
+                    vertex.color = pbis->ReadVector4();
+                    vertex.uv = pbis->ReadVector2();
+                    const uint16_t bone0 = pbis->U16Read();
+                    const uint16_t bone1 = pbis->U16Read();
+                    const uint16_t bone2 = pbis->U16Read();
+                    const uint16_t bone3 = pbis->U16Read();
+                    vertex.boneIndices = glm::uvec4(bone0, bone1, bone2, bone3);
+                    vertex.boneWeights = pbis->ReadVector4();
+                }
+
+                subglob.indices.resize(triangleCount);
+                for (INDICE& triangle : subglob.indices)
+                {
+                    triangle.v1 = pbis->U16Read();
+                    triangle.v2 = pbis->U16Read();
+                    triangle.v3 = pbis->U16Read();
+                    if (triangle.v1 >= vertexCount || triangle.v2 >= vertexCount ||
+                        triangle.v3 >= vertexCount)
+                        throw std::runtime_error("PCBRX triangle index is out of range");
+                }
+
+                if (pglobset->cpose != 0)
+                {
+                    GLOB& glob = pglobset->aglob[i];
+                    const size_t deltaCount = static_cast<size_t>(vertexCount) * pglobset->cpose;
+                    glob.poseDpos.reserve(glob.poseDpos.size() + deltaCount);
+                    glob.poseDnormal.reserve(glob.poseDnormal.size() + deltaCount);
+                    for (size_t delta = 0; delta < deltaCount; ++delta)
+                    {
+                        glob.poseDpos.push_back(pbis->ReadVector4());
+                        glob.poseDnormal.push_back(pbis->ReadVector4());
+                    }
+                    glob.poseVertexCount += static_cast<int>(vertexCount);
+                }
 
                 auto& glob = pglobset->aglob[i];
                 auto* shd = glob.asubglob[a].pshd;
@@ -315,56 +319,16 @@ void LoadGlobsetFromBrx(GLOBSET* pglobset, ALO* palo, CBinaryInputStream* pbis)
                 if (glob.rp == RP_ProjVolume)
                     glob.grfshd = glob.asubglob[a].pshd->grfshd;
 
-                pglobset->aglob[i].asubglob[a].unSelfIllum = static_cast<uint16_t>((pbis->U8Read() * 0x7FA6) / 0xFF);
+                if (shd->shdk == SHDK_ThreeWay)
+                    glob.fThreeWay = 1;
 
-                pglobset->aglob[i].asubglob[a].cibnd = pbis->U8Read();
-                pglobset->aglob[i].asubglob[a].aibnd.resize(pglobset->aglob[i].asubglob[a].cibnd);
-
-                for (int g = 0; g < pglobset->aglob[i].asubglob[a].cibnd; g++)
-                    pglobset->aglob[i].asubglob[a].aibnd[g] = pbis->U8Read();
-
-                int weightCount = vertexCount * pglobset->aglob[i].asubglob[a].cibnd;
-
-                std::vector <float> agWeights;
-                agWeights.resize(weightCount);
-
-                for (int i = 0; i < weightCount; i++)
-                    agWeights[i] = pbis->F32Read();
-
-                std::vector <glm::vec3> posfPose;
-                std::vector <glm::vec3> normalfPose;
-                std::vector<SUBPOSEF> asubposef;
-
-                if (pglobset->cpose != 0)
-                {
-                    uint16_t cposfPoses = pbis->U16Read();
-                    posfPose.resize(cposfPoses);
-
-                    for (int i = 0; i < cposfPoses; ++i)
-                        posfPose[i] = pbis->ReadVector();
-
-                    uint16_t cnormalfPoses = pbis->U16Read();
-                    normalfPose.resize(cnormalfPoses);
-
-                    for (int i = 0; i < cnormalfPoses; ++i)
-                        normalfPose[i] = pbis->ReadVector();
-
-                    asubposef.resize(pglobset->cpose);
-
-                    for (int ipose = 0; ipose < pglobset->cpose; ++ipose)
-                    {
-                        asubposef[ipose].aiposf.resize(indexCount);
-                        asubposef[ipose].ainormalf.resize(indexCount);
-
-                        for (int ivtx = 0; ivtx < indexCount; ++ivtx)
-                            asubposef[ipose].aiposf[ivtx] = pbis->U16Read();
-
-                        for (int ivtx = 0; ivtx < indexCount; ++ivtx)
-                            asubposef[ipose].ainormalf[ivtx] = pbis->U16Read();
-                    }
-                }
-
-                BuildSubGlob(&pglobset->aglob[i], &pglobset->aglob[i].asubglob[a], pglobset->aglob[i].asubglob[a].pshd, vertexes, normals, vertexColors, texcoords, indexes, asubposef, posfPose, normalfPose, agWeights, pglobset->aglob[i].fDynamic);
+                SAI* sai = nullptr;
+                if (glob.psaa != nullptr)
+                    sai = glob.psaa->pvtsaa->pfnPsaiFromSaaShd(glob.psaa, shd);
+                if (!sai && shd->psaa)
+                    sai = shd->psaa->pvtsaa->pfnPsaiFromSaaShd(shd->psaa, shd);
+                subglob.uvSai = sai;
+                subglob.usesUvAnim = (sai && (sai->grfsai & 0x2));
             }
 
             if (pglobset->aglob[i].asubglob.size() > 0)
@@ -383,10 +347,10 @@ void LoadGlobsetFromBrx(GLOBSET* pglobset, ALO* palo, CBinaryInputStream* pbis)
 
                 // 2) Allocate final CPU arrays once (no insert() / no reallocation)
                 std::vector <VERTICE>  packedVerts(totalVerts);
-                std::vector <uint32_t> packedIdx(totalIndices);
+                std::vector <uint16_t> packedIdx(totalIndices);
 
                 VERTICE*  vptr = packedVerts.data();
-                uint32_t* iptr = packedIdx.data();
+                uint16_t* iptr = packedIdx.data();
 
                 uint32_t vOffset = 0;
                 uint32_t iOffset = 0;
@@ -408,9 +372,9 @@ void LoadGlobsetFromBrx(GLOBSET* pglobset, ALO* palo, CBinaryInputStream* pbis)
 
                     for (auto& tri : s.indices)
                     {
-                        iptr[0] = (uint32_t)tri.v1;
-                        iptr[1] = (uint32_t)tri.v2;
-                        iptr[2] = (uint32_t)tri.v3;
+                        iptr[0] = tri.v1;
+                        iptr[1] = tri.v2;
+                        iptr[2] = tri.v3;
                         iptr += 3;
                     }
 
@@ -427,7 +391,7 @@ void LoadGlobsetFromBrx(GLOBSET* pglobset, ALO* palo, CBinaryInputStream* pbis)
 
                 glGenBuffers(1, &glob.EBO);
                 glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, glob.EBO);
-                glBufferData(GL_ELEMENT_ARRAY_BUFFER, (GLsizeiptr)(packedIdx.size() * sizeof(uint32_t)), packedIdx.data(), GL_STATIC_DRAW);
+                glBufferData(GL_ELEMENT_ARRAY_BUFFER, (GLsizeiptr)(packedIdx.size() * sizeof(uint16_t)), packedIdx.data(), GL_STATIC_DRAW);
 
                 // 5) Vertex attributes ONCE (your exact layout)
                 glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(VERTICE), (void*)offsetof(VERTICE, pos));
@@ -507,79 +471,34 @@ void LoadGlobsetFromBrx(GLOBSET* pglobset, ALO* palo, CBinaryInputStream* pbis)
             }
 
             pglobset->aglob[i].csubcel = pbis->U16Read();
-            pglobset->aglob[i].asubcel.resize(pglobset->aglob[i].csubcel);
-
-            std::vector<glm::vec4> mergedEdges;
-            std::vector<glm::uvec4> mergedEdgeBoneIndices;
-            std::vector<glm::vec4> mergedEdgeBoneWeights;
+            std::vector<CELPOINT> mergedEdgePoints;
             std::vector<glm::vec4> mergedEdgePoseDpos;
-
 
             for (int k = 0; k < pglobset->aglob[i].csubcel; k++)
             {
-                SUBCEL subcel;
+                const uint32_t edgeCount = pbis->U32Read();
+                const size_t pointCount = static_cast<size_t>(edgeCount) * 4;
+                glob.edgeCount += static_cast<GLsizei>(edgeCount);
+                mergedEdgePoints.reserve(mergedEdgePoints.size() + pointCount);
+                mergedEdgePoseDpos.reserve(mergedEdgePoseDpos.size() + pointCount * pglobset->cpose);
 
-                byte aposfCount = pbis->U8Read();
-
-                std::vector <glm::vec3> aposf;
-                aposf.resize(aposfCount);
-
-                for (int a = 0; a < aposfCount; a++)
-                    aposf[a] = pbis->ReadVector();
-
-                byte ctwef = pbis->U8Read();
-
-                std::vector <TWEF> atwef;
-                atwef.resize(ctwef);
-
-                for (int b = 0; b < ctwef; b++)
+                for (size_t pointIndex = 0; pointIndex < pointCount; ++pointIndex)
                 {
-                    atwef[b].aipos0 = (uint32_t)pbis->U8Read();
-                    atwef[b].aipos1 = (uint32_t)pbis->U8Read();
-                    atwef[b].aipos2 = (uint32_t)pbis->U8Read();
-                    atwef[b].aipos3 = (uint32_t)pbis->U8Read();
+                    CELPOINT point{};
+                    point.position = pbis->ReadVector4();
+                    const uint16_t bone0 = pbis->U16Read();
+                    const uint16_t bone1 = pbis->U16Read();
+                    const uint16_t bone2 = pbis->U16Read();
+                    const uint16_t bone3 = pbis->U16Read();
+                    point.boneIndices = glm::uvec4(bone0, bone1, bone2, bone3);
+                    point.boneWeights = pbis->ReadVector4();
+                    mergedEdgePoints.push_back(point);
                 }
 
-                int cibnd = pbis->U8Read();
+                const size_t poseDeltaCount = pointCount * pglobset->cpose;
 
-                std::vector <int> aibnd;
-                aibnd.resize(cibnd);
-
-                for (int c = 0; c < cibnd; c++)
-                    aibnd[c] = pbis->U8Read();
-
-                int weightsCelCount = cibnd * aposfCount;
-
-                std::vector <float> weightsCel;
-                weightsCel.resize(weightsCelCount);
-
-                for (int d = 0; d < weightsCelCount; d++)
-                    weightsCel[d] = pbis->F32Read();
-
-                std::vector <SUBPOSEF> subposef;
-                std::vector <glm::vec3> aposfPoses;
-
-                if (pglobset->cpose != 0)
-                {
-                    uint16_t aposfPosesCount = pbis->U16Read();
-                    aposfPoses.resize(aposfPosesCount);
-
-                    for (int e = 0; e < aposfPosesCount; e++)
-                        aposfPoses[e] = pbis->ReadVector();
-
-                    subposef.resize(pglobset->cpose);
-
-                    for (int f = 0; f < pglobset->cpose; f++)
-                    {
-                        subposef[f].aiposf.resize(aposfCount);
-
-                        for (int a = 0; a < aposfCount; a++)
-                            subposef[f].aiposf[a] = pbis->U16Read();
-                    }
-                }
-
-                BuildSubcel(pglobset, &glob, &subcel, aposfCount, aposf, ctwef, atwef, cibnd, aibnd, subposef, aposfPoses, weightsCel, mergedEdges, mergedEdgeBoneIndices, mergedEdgeBoneWeights, mergedEdgePoseDpos);
-                glob.asubcel[k] = std::move(subcel);
+                for (size_t delta = 0; delta < poseDeltaCount; ++delta)
+                    mergedEdgePoseDpos.push_back(pbis->ReadVector4());
             }
 
             if (glob.edgeCount > 0)
@@ -587,22 +506,12 @@ void LoadGlobsetFromBrx(GLOBSET* pglobset, ALO* palo, CBinaryInputStream* pbis)
                 const size_t expectedEdgePointCount = static_cast<size_t>(glob.edgeCount) * 4;
                 const size_t expectedEdgePoseCount = expectedEdgePointCount * glob.poseCount;
 
-                assert(mergedEdges.size() == expectedEdgePointCount);
-                assert(mergedEdgeBoneIndices.size() == expectedEdgePointCount);
-                assert(mergedEdgeBoneWeights.size() == expectedEdgePointCount);
+                assert(mergedEdgePoints.size() == expectedEdgePointCount);
                 assert(mergedEdgePoseDpos.size() == expectedEdgePoseCount);
 
                 glGenBuffers(1, &glob.edgeSSBO);
                 glBindBuffer(GL_SHADER_STORAGE_BUFFER, glob.edgeSSBO);
-                glBufferData(GL_SHADER_STORAGE_BUFFER, static_cast<GLsizeiptr>(mergedEdges.size() * sizeof(glm::vec4)), mergedEdges.data(), GL_STATIC_DRAW);
-
-                glGenBuffers(1, &glob.edgeBoneIndicesSSBO);
-                glBindBuffer(GL_SHADER_STORAGE_BUFFER, glob.edgeBoneIndicesSSBO);
-                glBufferData(GL_SHADER_STORAGE_BUFFER, static_cast<GLsizeiptr>(mergedEdgeBoneIndices.size() * sizeof(glm::uvec4)), mergedEdgeBoneIndices.data(), GL_STATIC_DRAW);
-
-                glGenBuffers(1, &glob.edgeBoneWeightsSSBO);
-                glBindBuffer(GL_SHADER_STORAGE_BUFFER, glob.edgeBoneWeightsSSBO);
-                glBufferData(GL_SHADER_STORAGE_BUFFER, static_cast<GLsizeiptr>(mergedEdgeBoneWeights.size() * sizeof(glm::vec4)), mergedEdgeBoneWeights.data(), GL_STATIC_DRAW);
+                glBufferData(GL_SHADER_STORAGE_BUFFER, static_cast<GLsizeiptr>(mergedEdgePoints.size() * sizeof(CELPOINT)), mergedEdgePoints.data(), GL_STATIC_DRAW);
 
                 if (!mergedEdgePoseDpos.empty())
                 {
@@ -613,13 +522,10 @@ void LoadGlobsetFromBrx(GLOBSET* pglobset, ALO* palo, CBinaryInputStream* pbis)
 
                 glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 
-                glob.edgeBoneIndices = std::move(mergedEdgeBoneIndices);
-                glob.edgeBoneWeights = std::move(mergedEdgeBoneWeights);
-                glob.edgePoseDpos = std::move(mergedEdgePoseDpos);
-
                 numRoCel++;
             }
         }
+
         else
         {
             GLOB& inst = pglobset->aglob[i];
@@ -629,10 +535,10 @@ void LoadGlobsetFromBrx(GLOBSET* pglobset, ALO* palo, CBinaryInputStream* pbis)
             inst.asubglob = base.asubglob;
 
             inst.csubcel = base.csubcel;
-            inst.asubcel = base.asubcel;
 
             inst.edgeSSBO  = base.edgeSSBO;
             inst.edgeCount = base.edgeCount;
+            inst.edgePoseDposSSBO = base.edgePoseDposSSBO;
 
             inst.poseDposSSBO = base.poseDposSSBO;
             inst.poseDnormalSSBO = base.poseDnormalSSBO;
@@ -641,212 +547,10 @@ void LoadGlobsetFromBrx(GLOBSET* pglobset, ALO* palo, CBinaryInputStream* pbis)
 
             CloneGlob(pglobset, &inst, &pglobset->aglobi[i]);
         }
+
     }
 
     BuildGlobsetSaaArray(pglobset);
-}
-
-void BuildSubGlob(GLOB* pglob, SUBGLOB* psubglob, SHD* pshd, std::vector <glm::vec3>& positions, std::vector <glm::vec3>& normals, std::vector <glm::vec4>& colors, std::vector <glm::vec2>& texcoords, std::vector <VTXFLG>& indexes, std::vector <SUBPOSEF>& subposef, std::vector <glm::vec3>& aposfPoses, std::vector <glm::vec3>& anormalfPoses, std::vector <float>& agWeights, int fDynamic)
-{
-    if (pshd->shdk == SHDK_ThreeWay)
-        pglob->fThreeWay = 1;
-
-    psubglob->vertices.resize(indexes.size());
-
-    for (int i = 0; i < indexes.size(); i++)
-    {
-        psubglob->vertices[i].pos = positions[indexes[i].ipos];
-
-        if (indexes[i].inormal == 0xFF)
-            psubglob->vertices[i].normal = glm::vec3(0.0);
-        else
-            psubglob->vertices[i].normal = normals[indexes[i].inormal];
-
-        if ((indexes[i].bMisc & 0x7F) == 0x7F)
-            psubglob->vertices[i].color = pshd->rgba;
-        else
-            psubglob->vertices[i].color = colors[indexes[i].bMisc & 0x7F] * pshd->rgba;
-
-        if (indexes[i].iuv == 0xFF)
-            psubglob->vertices[i].uv = glm::vec2{ 0.0 };
-        else
-            psubglob->vertices[i].uv = texcoords[indexes[i].iuv];
-    }
-
-    const int maxInfluences = 4; // Assume 4 for GPU skinning
-    const int cibnd = psubglob->cibnd; // number of influences per vertex
-    const std::vector<int>& aibnd = psubglob->aibnd;
-    const int vertexCount = indexes.size();
-
-    for (int i = 0; i < vertexCount; i++)
-    {
-        int ipos = indexes[i].ipos;
-        glm::uvec4 boneIDs(0);
-        glm::vec4 weights(0.0f);
-
-        for (int j = 0; j < cibnd && j < maxInfluences; j++)
-        {
-            int weightIndex = ipos * cibnd + j;
-
-            if (weightIndex < agWeights.size())
-            {
-                weights[j] = agWeights[weightIndex];
-
-                // aibnd maps influence slot j to real bone ID
-                if (j < aibnd.size())
-                    boneIDs[j] = aibnd[j];
-            }
-        }
-
-        psubglob->vertices[i].boneIndices = boneIDs;
-        psubglob->vertices[i].boneWeights = weights;
-    }
-
-    if (pglob->poseCount > 0)
-    {
-        const size_t vertexCount = indexes.size();
-
-        pglob->poseDpos.reserve(pglob->poseDpos.size() + vertexCount * pglob->poseCount);
-        pglob->poseDnormal.reserve(pglob->poseDnormal.size() + vertexCount * pglob->poseCount);
-
-        for (size_t ivtx = 0; ivtx < vertexCount; ++ivtx)
-        {
-            const VTXFLG& vertex = indexes[ivtx];
-
-            for (int ipose = 0; ipose < pglob->poseCount; ++ipose)
-            {
-                const SUBPOSEF& pose = subposef[ipose];
-
-                glm::vec3 dpos(0.0f);
-                glm::vec3 dnormal(0.0f);
-
-                const uint16_t iposPose = pose.aiposf[ivtx];
-
-                if (iposPose < aposfPoses.size() && vertex.ipos < positions.size())
-                    dpos = aposfPoses[iposPose] - positions[vertex.ipos];
-
-                if (vertex.inormal != 0xFF)
-                {
-                    const uint16_t inormalPose = pose.ainormalf[ivtx];
-
-                    if (inormalPose < anormalfPoses.size() && vertex.inormal < normals.size())
-                        dnormal = anormalfPoses[inormalPose] - normals[vertex.inormal];
-                }
-
-                pglob->poseDpos.emplace_back(dpos, 0.0f);
-                pglob->poseDnormal.emplace_back(dnormal, 0.0f);
-            }
-        }
-
-        pglob->poseVertexCount += static_cast<int>(vertexCount);
-    }
-
-    uint32_t idx = 0;
-    for (int i = 2; i < indexes.size(); i++)
-    {
-        if (!(indexes[idx + 2].bMisc & 0x80))
-        {
-            if (i % 2 == 0)
-            {
-                INDICE indice{};
-
-                indice.v1 = idx + 0;
-                indice.v2 = idx + 1;
-                indice.v3 = idx + 2;
-
-                psubglob->indices.push_back(indice);
-            }
-            else
-            {
-                INDICE indice{};
-
-                indice.v1 = idx + 0;
-                indice.v2 = idx + 2;
-                indice.v3 = idx + 1;
-
-                psubglob->indices.push_back(indice);
-            }
-        }
-
-        idx++;
-    }
-
-    SAI* uvSai = nullptr;
-    bool usesUvAnim = false;
-
-    SAI* sai = nullptr;
-
-    if (pglob->psaa != nullptr)
-        sai = pglob->psaa->pvtsaa->pfnPsaiFromSaaShd(pglob->psaa, pshd);
-
-    if (!sai && pshd->psaa)
-        sai = pshd->psaa->pvtsaa->pfnPsaiFromSaaShd(pshd->psaa, pshd);
-
-    psubglob->uvSai = sai;
-    psubglob->usesUvAnim = (sai && (sai->grfsai & 0x2));
-}
-
-void BuildSubcel(GLOBSET* pglobset, GLOB* pglob, SUBCEL* psubcel, int cposf, const std::vector<glm::vec3>& aposf, int ctwef, const std::vector<TWEF>& atwef, int cibnd, const std::vector<int>& aibnd, const std::vector<SUBPOSEF>& asubposef, const std::vector<glm::vec3>& aposfPoses, const std::vector<float>& agWeights, std::vector<glm::vec4>& totalEdges, std::vector<glm::uvec4>& totalBoneIndices, std::vector<glm::vec4>& totalBoneWeights, std::vector<glm::vec4>& totalPoseDpos)
-{
-    pglob->edgeCount += ctwef;
-
-    const size_t pointCount = static_cast<size_t>(ctwef) * 4;
-
-    totalEdges.reserve(totalEdges.size() + pointCount);
-    totalBoneIndices.reserve(totalBoneIndices.size() + pointCount);
-    totalBoneWeights.reserve(totalBoneWeights.size() + pointCount);
-    totalPoseDpos.reserve(totalPoseDpos.size() + pointCount * pglobset->cpose);
-
-    auto AppendCelPoint = [&](uint32_t ipos)
-    {
-        if (ipos >= aposf.size())
-            return;
-
-        glm::uvec4 boneIndices(0);
-        glm::vec4 boneWeights(0.0f);
-
-        const int influenceCount = std::min(cibnd, 4);
-
-        for (int iibnd = 0; iibnd < influenceCount; ++iibnd)
-        {
-            const size_t weightIndex = static_cast<size_t>(ipos) * cibnd + iibnd;
-
-            if (iibnd < static_cast<int>(aibnd.size()) && weightIndex < agWeights.size())
-            {
-                boneIndices[iibnd] = static_cast<uint32_t>(aibnd[iibnd]);
-                boneWeights[iibnd] = agWeights[weightIndex];
-            }
-        }
-
-        totalEdges.emplace_back(aposf[ipos], 1.0f);
-        totalBoneIndices.push_back(boneIndices);
-        totalBoneWeights.push_back(boneWeights);
-
-        for (int ipose = 0; ipose < pglobset->cpose; ++ipose)
-        {
-            glm::vec3 dpos(0.0f);
-
-            if (ipose < static_cast<int>(asubposef.size()) && ipos < asubposef[ipose].aiposf.size())
-            {
-                const uint16_t iposPose = asubposef[ipose].aiposf[ipos];
-
-                if (iposPose < aposfPoses.size())
-                    dpos = aposfPoses[iposPose] - aposf[ipos];
-            }
-
-            totalPoseDpos.emplace_back(dpos, 0.0f);
-        }
-    };
-
-    for (int itwef = 0; itwef < ctwef; ++itwef)
-    {
-        const TWEF& twef = atwef[itwef];
-
-        AppendCelPoint(twef.aipos1);
-        AppendCelPoint(twef.aipos2);
-        AppendCelPoint(twef.aipos0);
-        AppendCelPoint(twef.aipos3);
-    }
 }
 
 void BuildGlobsetSaaArray(GLOBSET* pglobset)
@@ -959,6 +663,9 @@ void CloneGlobset(GLOBSET* pglobset, ALO* palo, GLOBSET* pglobsetBase)
     // used by all of the others before the deferred render lists are drawn.
     // PostGlobsetLoad allocates and initializes a private buffer for the clone.
     pglobset->boneMatrixSSBO = 0;
+    // Pose-weight GPU state is kept in an external sidecar so cloning does
+    // not copy an OpenGL handle or alter the reconstructed object layout.
+    s_poseWeightGpu.erase(pglobset);
 
     pglobset->cpsaa = 0;
     pglobset->pwrbgFirst.reset();
@@ -1063,6 +770,8 @@ void PostGlobsetLoad(GLOBSET* pglobset, ALO* palo)
         ApplyWrGlob(pwr, palo, wrbg->pglob);
     }
 
+    UploadGlobsetPoseWeights(pglobset);
+
     if (pglobset->cbnd <= 0)
         return;
 
@@ -1075,6 +784,61 @@ void PostGlobsetLoad(GLOBSET* pglobset, ALO* palo)
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, pglobset->boneMatrixSSBO);
     glBufferData(GL_SHADER_STORAGE_BUFFER, pglobset->boneMatrices.size() * sizeof(glm::mat4), pglobset->boneMatrices.data(), GL_DYNAMIC_DRAW);
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+}
+
+void UploadGlobsetPoseWeights(GLOBSET* pglobset)
+{
+    if (pglobset == nullptr || pglobset->agPoses.empty())
+        return;
+
+    POSEWEIGHTGPU& gpu = s_poseWeightGpu[pglobset];
+
+    if (gpu.buffer == 0 || gpu.count != pglobset->agPoses.size())
+    {
+        if (gpu.buffer == 0)
+            glGenBuffers(1, &gpu.buffer);
+        glBindBuffer(GL_SHADER_STORAGE_BUFFER, gpu.buffer);
+        glBufferData(GL_SHADER_STORAGE_BUFFER,
+            static_cast<GLsizeiptr>(pglobset->agPoses.size() * sizeof(float)),
+            pglobset->agPoses.data(), GL_DYNAMIC_DRAW);
+        glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+        gpu.count = pglobset->agPoses.size();
+        gpu.dirty = false;
+        return;
+    }
+
+    if (!gpu.dirty)
+        return;
+
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, gpu.buffer);
+    glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0,
+        static_cast<GLsizeiptr>(pglobset->agPoses.size() * sizeof(float)),
+        pglobset->agPoses.data());
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+    gpu.dirty = false;
+}
+
+void MarkGlobsetPoseWeightsDirty(GLOBSET* pglobset)
+{
+    if (pglobset != nullptr)
+        s_poseWeightGpu[pglobset].dirty = true;
+}
+
+GLuint GetGlobsetPoseWeightBuffer(const GLOBSET* pglobset)
+{
+    const auto it = s_poseWeightGpu.find(pglobset);
+    return it != s_poseWeightGpu.end() ? it->second.buffer : 0;
+}
+
+void DeleteGlobsetPoseWeightBuffer(GLOBSET* pglobset)
+{
+    const auto it = s_poseWeightGpu.find(pglobset);
+    if (it == s_poseWeightGpu.end())
+        return;
+
+    if (it->second.buffer != 0)
+        glDeleteBuffers(1, &it->second.buffer);
+    s_poseWeightGpu.erase(it);
 }
 
 void UpdateGlobset(GLOBSET* pglobset, ALO* palo, float dt)

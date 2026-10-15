@@ -12,23 +12,26 @@
 
 namespace
 {
-    RGBA LerpRgba(const RGBA& rgbaFrom, const RGBA& rgbaTo, float u)
+    glm::vec4 LerpRgba(const glm::vec4& rgbaFrom, const glm::vec4& rgbaTo, float u)
     {
         u = std::clamp(u, 0.0f, 1.0f);
-
-        auto lerpByte = [u](byte from, byte to)
-        {
-            return static_cast<byte>((1.0f - u) * from + u * to);
-        };
-
-        return
-        {
-            lerpByte(rgbaFrom.bRed, rgbaTo.bRed),
-            lerpByte(rgbaFrom.bGreen, rgbaTo.bGreen),
-            lerpByte(rgbaFrom.bBlue, rgbaTo.bBlue),
-            lerpByte(rgbaFrom.bAlpha, rgbaTo.bAlpha)
-        };
+        return glm::mix(rgbaFrom, rgbaTo, u);
     }
+}
+
+void SetThndFlashRgbaStartFloat(THNDFLASH* pthndflash, const glm::vec4* rgba)
+{
+    pthndflash->rgbaStart = glm::clamp(*rgba, 0.0f, 1.0f);
+}
+
+void SetThndFlashRgbaPeakFloat(THNDFLASH* pthndflash, const glm::vec4* rgba)
+{
+    pthndflash->rgbaPeak = glm::clamp(*rgba, 0.0f, 1.0f);
+}
+
+void SetThndFlashRgbaEndFloat(THNDFLASH* pthndflash, const glm::vec4* rgba)
+{
+    pthndflash->rgbaEnd = glm::clamp(*rgba, 0.0f, 1.0f);
 }
 
 THNDFLASH* NewThndFlash()
@@ -109,9 +112,10 @@ void RenderThndFlash(THNDFLASH* pthndflash)
 void DrawThndFlash(RPL* prpl)
 {
     THNDFLASH* pthndflash = prpl->pthndflash;
-    const RGBA& rgba = pthndflash->rgbaCurrent;
+    const glm::vec4 rgba = glm::clamp(pthndflash->rgbaCurrent, 0.0f, 1.0f) * 255.0f;
 
-    FillScreenRect(rgba.bRed, rgba.bGreen, rgba.bBlue, rgba.bAlpha, 0.0f, 0.0f, static_cast<float>(g_gl.width), static_cast<float>(g_gl.height));
+    FillScreenRect(static_cast<byte>(rgba.r), static_cast<byte>(rgba.g), static_cast<byte>(rgba.b), static_cast<byte>(rgba.a), 0.0f, 0.0f,
+        static_cast<float>(g_gl.width), static_cast<float>(g_gl.height));
 }
 
 void DeleteThndFlash(THNDFLASH* pthndflash)

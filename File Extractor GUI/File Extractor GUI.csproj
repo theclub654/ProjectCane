@@ -3,7 +3,7 @@
     <RootNamespace>File_Extractor_GUI</RootNamespace>
     <OutputType>WinExe</OutputType>
     <TargetFramework>net9.0</TargetFramework>
-    <Version>0.4.0-beta.1</Version>
+    <Version>0.4.1</Version>
     <Nullable>enable</Nullable>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <ApplicationIcon>Assets\file-extractor-icon.ico</ApplicationIcon>
@@ -26,4 +26,22 @@
     </PackageReference>
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
   </ItemGroup>
+
+  <Target Name="CopyBrxRebuilderAfterBuild" AfterTargets="Build">
+    <PropertyGroup>
+      <BrxRebuilderPath>$(MSBuildThisFileDirectory)..\Tools\BrxRebuilder\x64\$(Configuration)\Sly1BrxRebuilder.exe</BrxRebuilderPath>
+    </PropertyGroup>
+    <Copy SourceFiles="$(BrxRebuilderPath)"
+          DestinationFolder="$(TargetDir)"
+          Condition="Exists('$(BrxRebuilderPath)')" />
+  </Target>
+
+  <Target Name="CopyBrxRebuilderAfterPublish" AfterTargets="Publish">
+    <PropertyGroup>
+      <BrxRebuilderPath>$(MSBuildThisFileDirectory)..\Tools\BrxRebuilder\x64\$(Configuration)\Sly1BrxRebuilder.exe</BrxRebuilderPath>
+    </PropertyGroup>
+    <Copy SourceFiles="$(BrxRebuilderPath)"
+          DestinationFolder="$(PublishDir)"
+          Condition="Exists('$(BrxRebuilderPath)')" />
+  </Target>
 </Project>

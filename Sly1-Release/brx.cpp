@@ -70,7 +70,7 @@ void LoadSwObjectsFromBrx(SW *psw, ALO *paloParent, CBinaryInputStream *pbis)
 		// Objects ID
 		OID oid = (OID)pbis->S16Read();
 		// Objects splice event index
-  		int isplice = pbis->S16Read();
+		int isplice = pbis->S16Read();
 		// Making new object and initializing the object
 		LO *plo = PloNew(cid, psw, paloParent, oid, isplice);
 		// Loading object from binary file
@@ -379,7 +379,6 @@ void LoadOptionFromBrx(void* pvStruct, EOPID* peopid, CBinaryInputStream* pbis)
 void LoadSkipOptionFromBrx(void* pvObject, EOPID* peopid, int eopidID, CBinaryInputStream* pbis)
 {
 	(void)pvObject;
-	(void)eopidID;
 
 	if ((peopid->grfeopid & 0x400) != 0)
 	{

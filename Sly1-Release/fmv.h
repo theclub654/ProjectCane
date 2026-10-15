@@ -28,7 +28,7 @@ const char* PchzFriendlyFromCid(int iCutscene);
 const CUTSCENEINFO* PcutsceneinfoFromId(int cutsceneId);
 const CUTSCENEINFO* PcutsceneinfoFromIdentityId(OID identityId);
 void QueueCutscene(OID identityId);
-void QueueCutsceneDescriptor(const char* descriptor);
+void QueueCutsceneFileName(const char* fileName);
 bool FCutscenePending();
 bool FCutscenePlaying();
 void ExecutePendingCutscenes();

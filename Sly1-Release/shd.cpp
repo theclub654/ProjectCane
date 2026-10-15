@@ -1,7 +1,44 @@
 #include "shd.h"
 #include "upscale.h"
 #include "sensor.h"
+#include <algorithm>
 #include <cstdio>
+#include <cstring>
+#include <limits>
+#include <stdexcept>
+
+namespace
+{
+constexpr GLenum kTextureMaxAnisotropy = 0x84FE;
+constexpr GLenum kMaxTextureMaxAnisotropy = 0x84FF;
+
+bool FSupportsAnisotropicFiltering()
+{
+	GLint extensionCount = 0;
+	glGetIntegerv(GL_NUM_EXTENSIONS, &extensionCount);
+	for (GLint i = 0; i < extensionCount; ++i)
+	{
+		const char* extension = reinterpret_cast<const char*>(glGetStringi(GL_EXTENSIONS, i));
+		if (extension != nullptr &&
+			(std::strcmp(extension, "GL_EXT_texture_filter_anisotropic") == 0 ||
+			 std::strcmp(extension, "GL_ARB_texture_filter_anisotropic") == 0))
+		{
+			return true;
+		}
+	}
+	return false;
+}
+
+void ApplyAnisotropyToBoundTexture()
+{
+	if (!FSupportsAnisotropicFiltering())
+		return;
+
+	const float level = static_cast<float>((std::clamp)(
+		g_anisotropicFiltering, 1, MaxSupportedAnisotropicFiltering()));
+	glTexParameterf(GL_TEXTURE_2D, kTextureMaxAnisotropy, level);
+}
+}
 
 void UnloadShaders()
 {
@@ -14,33 +51,6 @@ void UnloadShaders()
         glBindTexture(GL_TEXTURE_2D, 0);
     }
     glActiveTexture(GL_TEXTURE0);
-
-    for (SHD& shd : g_ashd)
-    {
-        for (TEX& tex : shd.atex)
-        {
-            for (GLuint& texture : tex.glShadowMap)
-            {
-                if (texture != 0)
-                    glDeleteTextures(1, &texture);
-                texture = 0;
-            }
-
-            for (GLuint& texture : tex.glDiffuseMap)
-            {
-                if (texture != 0)
-                    glDeleteTextures(1, &texture);
-                texture = 0;
-            }
-
-            for (GLuint& texture : tex.glSaturateMap)
-            {
-                if (texture != 0)
-                    glDeleteTextures(1, &texture);
-                texture = 0;
-            }
-        }
-    }
 
     for (int i = 0; i < g_cbmp; i++)
     {
@@ -69,9 +79,6 @@ void UnloadShaders()
     g_cbmp = 0;
     g_abmp.clear();
     g_abmp.shrink_to_fit();
-    g_cclut = 0;
-    g_aclut.clear();
-    g_aclut.shrink_to_fit();
     g_cfontBrx = 0;
     g_afontBrx.clear();
     g_afontBrx.shrink_to_fit();
@@ -87,42 +94,23 @@ void UnloadShaders()
     g_apsaaSw.shrink_to_fit();
     g_testFontBrx.clear();
     g_testFontBrx.shrink_to_fit();
-    textureDataStart = 0;
-}
-
-void LoadColorTablesFromBrx(CBinaryInputStream* pbis)
-{
-    // Loads the number of CLUT propertys from binary file
-    g_cclut = pbis->U16Read();
-    g_aclut.resize(g_cclut);
-
-    // Loading CLUT propertys from binary file
-    for (int i = 0; i < g_cclut; i++)
-    {
-        g_aclut[i].grfzon     = pbis->U32Read();
-        g_aclut[i].numColors  = pbis->U16Read();
-        g_aclut[i].colorSize  = pbis->U16Read();
-        g_aclut[i].baseOffset = pbis->U32Read();
-    }
 }
 
 void LoadBitmapsFromBrx(CBinaryInputStream* pbis)
 {
-    // Loads number of texture propertys
-    g_cbmp = pbis->U16Read();
+    g_cbmp = static_cast<int>(pbis->U32Read());
     g_abmp.resize(g_cbmp);
 
-    // Loading texture propertys from binary file
     for (int i = 0; i < g_cbmp; i++)
     {
-        g_abmp[i].bmpWidth   = pbis->U16Read();
-        g_abmp[i].bmpHeight  = pbis->U16Read();
+        g_abmp[i].bmpWidth   = pbis->U32Read();
+        g_abmp[i].bmpHeight  = pbis->U32Read();
         g_abmp[i].grfzon     = pbis->U32Read();
-        g_abmp[i].psm        = pbis->S8Read();
-        g_abmp[i].cgsRow     = pbis->S8Read();
-        g_abmp[i].cgsPixels  = pbis->U16Read();
+        g_abmp[i].mipCount   = pbis->U32Read();
         g_abmp[i].cbPixels   = pbis->U32Read();
         g_abmp[i].baseOffset = pbis->U32Read();
+        g_abmp[i].textureFlags = pbis->U32Read();
+        g_abmp[i].textureFormat = pbis->U32Read();
     }
 }
 
@@ -144,31 +132,22 @@ void LoadFontsFromBrx(CBinaryInputStream* pbis)
 
 void LoadTexFromBrx(TEX* ptex, CBinaryInputStream* pbis)
 {
-    ptex->oid    = (OID)pbis->U16Read();
+    ptex->oid    = (OID)pbis->S16Read();
     ptex->grftex = pbis->S16Read();
-    ptex->cibmp  = pbis->U8Read();
-    ptex->ciclut = pbis->U8Read();
-
-    ptex->bmpIndex.resize(ptex->cibmp);
-    ptex->abmp.resize(ptex->cibmp);
-    for (int i = 0; i < ptex->cibmp; i++)
+    ptex->cibmp = pbis->U16Read();
+    ptex->ambientImageIndex.resize(ptex->cibmp);
+    ptex->diffuseImageIndex.resize(ptex->cibmp);
+    ptex->saturateImageIndex.resize(ptex->cibmp);
+    ptex->abmp.resize(ptex->cibmp, nullptr);
+    for (int i = 0; i < ptex->cibmp; ++i)
     {
-        int bmpIndex = pbis->U16Read();
-
-        ptex->bmpIndex[i] = bmpIndex;
-        if (bmpIndex < g_cbmp)
-            ptex->abmp[i] = &g_abmp[bmpIndex];
-    }
-
-    ptex->clutIndex.resize(ptex->ciclut);
-    ptex->aclut.resize(ptex->ciclut);
-    for (int i = 0; i < ptex->ciclut; i++)
-    {
-        int clutIndex = pbis->U16Read();
-
-        ptex->clutIndex[i] = clutIndex;
-        if (clutIndex < g_cclut)
-            ptex->aclut[i] = &g_aclut[clutIndex];
+        ptex->ambientImageIndex[i] = pbis->S32Read();
+        ptex->diffuseImageIndex[i] = pbis->S32Read();
+        ptex->saturateImageIndex[i] = pbis->S32Read();
+        const int32_t displayIndex = ptex->diffuseImageIndex[i] >= 0
+            ? ptex->diffuseImageIndex[i] : ptex->ambientImageIndex[i];
+        if (displayIndex >= 0 && displayIndex < g_cbmp)
+            ptex->abmp[i] = &g_abmp[displayIndex];
     }
 }
 
@@ -231,7 +210,6 @@ SHD* PshdFindShader(OID oid)
 
 void LoadShadersFromBrx(CBinaryInputStream* pbis)
 {
-    LoadColorTablesFromBrx(pbis);
     LoadBitmapsFromBrx(pbis);
 
     g_cshd = pbis->U16Read();
@@ -249,15 +227,8 @@ void LoadShadersFromBrx(CBinaryInputStream* pbis)
         shd.grfshd = pbis->U8Read();
         shd.oid = (OID)pbis->S16Read();
 
-        shd.rgba.r = (pbis->U8Read() * 2.0f) / 0x1FE;
-        shd.rgba.g = (pbis->U8Read() * 2.0f) / 0x1FE;
-        shd.rgba.b = (pbis->U8Read() * 2.0f) / 0x1FE;
-        shd.rgba.a = (pbis->U8Read() * 2.0f) / 0x1FE;
-
-        shd.rgbaVolume.r = (pbis->U8Read() * 2.0f) / 0x1FE;
-        shd.rgbaVolume.g = (pbis->U8Read() * 2.0f) / 0x1FE;
-        shd.rgbaVolume.b = (pbis->U8Read() * 2.0f) / 0x1FE;
-        shd.rgbaVolume.a = (pbis->U8Read() * 2.0f) / 0x1FE;
+        shd.rgba = pbis->ReadVector4();
+        shd.rgbaVolume = pbis->ReadVector4();
 
         shd.grfzon = pbis->U32Read();
         shd.oidAltSat = (OID)pbis->U16Read();
@@ -286,78 +257,6 @@ void LoadShadersFromBrx(CBinaryInputStream* pbis)
             shd.cframe = shd.atex[0].cibmp;
         else
             shd.cframe = 0;
-
-        // ------------------------------------------------------------
-        // Create GL textures for every iframe, not just frame 0.
-        // Original PackTexGifs uses ptex->apbmp[iframe].
-        // ------------------------------------------------------------
-        for (int a = 0; a < shd.ctex; a++)
-        {
-            TEX& tex = shd.atex[a];
-
-            // A BMP contains indexed source pixels, but the resolved RGBA
-            // texture also depends on this TEX's CLUT.  Keep that resolved
-            // texture on TEX so shaders which share a BMP cannot overwrite
-            // one another's palette selection.
-            tex.glDiffuseMap.resize(tex.abmp.size(), 0);
-            tex.diffuseTexture.resize(tex.abmp.size());
-
-            if (shd.shdk == SHDK_ThreeWay)
-            {
-                tex.glShadowMap.resize(tex.abmp.size(), 0);
-                tex.shadowTexture.resize(tex.abmp.size());
-                tex.glSaturateMap.resize(tex.abmp.size(), 0);
-                tex.saturateTexture.resize(tex.abmp.size());
-            }
-
-            for (int iframe = 0; iframe < (int)tex.abmp.size(); iframe++)
-            {
-                BMP* pbmp = tex.abmp[iframe];
-
-                if (pbmp == nullptr)
-                    continue;
-
-                int width = pbmp->bmpWidth;
-                int height = pbmp->bmpHeight;
-                int maxDim = std::max(width, height);
-                int mipLevels = 1 + (int)std::floor(std::log2((double)maxDim));
-
-                auto SetupTexture = [&](GLuint& glTex)
-                {
-                    if (glTex != 0)
-                        return;
-
-                    glGenTextures(1, &glTex);
-                    glBindTexture(GL_TEXTURE_2D, glTex);
-
-                    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-
-                    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-                    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-
-                    if (tex.grftex & 1)
-                        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-
-                    if (tex.grftex & 2)
-                        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-
-                    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-                    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-                    glTexStorage2D(GL_TEXTURE_2D, mipLevels, GL_RGBA8, width, height);
-
-                };
-
-                if (shd.shdk == SHDK_ThreeWay)
-                {
-                    SetupTexture(tex.glShadowMap[iframe]);
-                    SetupTexture(tex.glDiffuseMap[iframe]);
-                    SetupTexture(tex.glSaturateMap[iframe]);
-                }
-                else
-                    SetupTexture(tex.glDiffuseMap[iframe]);
-            }
-        }
 
         // ------------------------------------------------------------
         // Original Sly-style SHDP allocation.
@@ -444,30 +343,6 @@ void LoadShadersFromBrx(CBinaryInputStream* pbis)
 
     LoadFontsFromBrx(pbis);
 
-    for (int i = 0; i < g_cfontBrx; i++)
-    {
-        if (g_afontBrx[i].m_pbmp != nullptr && g_afontBrx[i].m_pbmp->glDiffuseMap == 0)
-        {
-            BMP* pbmp = g_afontBrx[i].m_pbmp;
-
-            int width  = pbmp->bmpWidth;
-            int height = pbmp->bmpHeight;
-
-            glGenTextures(1, &pbmp->glDiffuseMap);
-            glBindTexture(GL_TEXTURE_2D, pbmp->glDiffuseMap);
-
-            glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-            glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGBA8, width, height);
-
-        }
-    }
-
     for (int i = 0; i < g_apsaa.size(); i++)
     {
         if (g_apsaa[i]->pvtsaa != nullptr)
@@ -497,198 +372,189 @@ void SetSaiIframe(SAI* psai, int iframe)
 
 void LoadTexturesFromBrx(CBinaryInputStream* pbis)
 {
+    const size_t dataStart = pbis->GetOffset();
+    const size_t dataSize = pbis->Remaining();
+    size_t dataEnd = dataStart;
 
-    for (uint16_t i = 0; i < 0x100; i += 0x20)
+    for (BMP& image : g_abmp)
     {
-        for (uint16_t j = i; j < i + 8; j++)
+        if (image.bmpWidth == 0 || image.bmpHeight == 0 ||
+            image.bmpWidth > 32768 || image.bmpHeight > 32768 ||
+            image.mipCount == 0 || image.mipCount > 32 ||
+            image.baseOffset > dataSize || image.cbPixels > dataSize - image.baseOffset)
+            throw std::runtime_error("invalid PCBRX texture descriptor");
+
+        constexpr uint32_t kTextureRgba8 = 0;
+        constexpr uint32_t kTextureBc1 = 1;
+        constexpr uint32_t kTextureBc3 = 2;
+        constexpr uint32_t kGenerateMipmaps = 1u << 2;
+        if (image.textureFormat > kTextureBc3)
+            throw std::runtime_error("unsupported PCBRX texture format");
+
+        size_t expectedBytes = 0;
+        uint32_t expectedWidth = image.bmpWidth;
+        uint32_t expectedHeight = image.bmpHeight;
+        for (uint32_t level = 0; level < image.mipCount; ++level)
         {
-            csm1ClutIndices[j + 0x0]  = static_cast<uint8_t>(j) + 0x0;
-            csm1ClutIndices[j + 0x8]  = static_cast<uint8_t>(j) + 0x10;
-            csm1ClutIndices[j + 0x10] = static_cast<uint8_t>(j) + 0x8;
-            csm1ClutIndices[j + 0x18] = static_cast<uint8_t>(j) + 0x18;
+            const size_t levelBytes = image.textureFormat == kTextureRgba8
+                ? static_cast<size_t>(expectedWidth) * expectedHeight * 4
+                : static_cast<size_t>((expectedWidth + 3) / 4) * ((expectedHeight + 3) / 4) *
+                    (image.textureFormat == kTextureBc1 ? 8 : 16);
+            if (expectedBytes > std::numeric_limits<size_t>::max() - levelBytes)
+                throw std::runtime_error("PCBRX texture dimensions overflow host size_t");
+            expectedBytes += levelBytes;
+            expectedWidth = std::max(1u, expectedWidth >> 1);
+            expectedHeight = std::max(1u, expectedHeight >> 1);
         }
-    }
+        if (expectedBytes != image.cbPixels)
+            throw std::runtime_error("PCBRX texture payload size does not match its mip chain");
 
-    textureDataStart = pbis->GetOffset();
+        image.diffuseTexture.resize(image.cbPixels);
+        pbis->Seek(dataStart + image.baseOffset);
+        pbis->ReadBytes(image.diffuseTexture.data(), image.diffuseTexture.size());
 
-    for (int i = 0; i < g_cshd; i++)
-    {
-        SHD& shd = g_ashd[i];
+        dataEnd = std::max(dataEnd, dataStart + image.baseOffset + image.cbPixels);
 
-        if (shd.atex.empty())
-            continue;
-
-        TEX &tex = shd.atex[0];
-
-        for (int iframe = 0; iframe < (int)tex.abmp.size(); iframe++)
+        glGenTextures(1, &image.glDiffuseMap);
+        glBindTexture(GL_TEXTURE_2D, image.glDiffuseMap);
+        glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S,
+            (image.textureFlags & 1) ? GL_CLAMP_TO_EDGE : GL_REPEAT);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T,
+            (image.textureFlags & 2) ? GL_CLAMP_TO_EDGE : GL_REPEAT);
+        const bool generateMipmaps = (image.textureFlags & kGenerateMipmaps) != 0;
+        uint32_t storageMipCount = image.mipCount;
+        if (generateMipmaps)
         {
-            BMP* pbmp = tex.abmp[iframe];
+            storageMipCount = 1;
+            for (uint32_t dimension = std::max(image.bmpWidth, image.bmpHeight);
+                dimension > 1; dimension >>= 1)
+                ++storageMipCount;
+        }
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER,
+            storageMipCount > 1
+				? (g_textureFiltering != 0 ? GL_LINEAR_MIPMAP_LINEAR : GL_LINEAR_MIPMAP_NEAREST)
+				: GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        ApplyAnisotropyToBoundTexture();
+        constexpr GLenum kGlBc1 = 0x83F0; // GL_COMPRESSED_RGB_S3TC_DXT1_EXT
+        constexpr GLenum kGlBc3 = 0x83F3; // GL_COMPRESSED_RGBA_S3TC_DXT5_EXT
+        const GLenum internalFormat = image.textureFormat == kTextureBc1
+            ? kGlBc1 : image.textureFormat == kTextureBc3 ? kGlBc3 : GL_RGBA8;
+        glTexStorage2D(GL_TEXTURE_2D, storageMipCount, internalFormat,
+            image.bmpWidth, image.bmpHeight);
 
-            if (!pbmp)
-                continue;
-
-
-            if (shd.shdk == SHDK_ThreeWay)
-            {
-                CLUT *ambientClut  = nullptr;
-                CLUT *diffuseClut  = nullptr;
-                CLUT *saturateClut = nullptr;
-
-                int clutBase = iframe * 3;
-
-                if (clutBase + 0 < (int)tex.aclut.size())
-                    ambientClut = tex.aclut[clutBase + 0];
-
-                if (clutBase + 1 < (int)tex.aclut.size())
-                    diffuseClut = tex.aclut[clutBase + 1];
-
-                if (clutBase + 2 < (int)tex.aclut.size())
-                    saturateClut = tex.aclut[clutBase + 2];
-
-                MakeTexture(tex.glShadowMap[iframe],   pbmp, tex.shadowTexture[iframe],   ambientClut,  false, true, pbis);
-                MakeTexture(tex.glDiffuseMap[iframe],  pbmp, tex.diffuseTexture[iframe],  diffuseClut,  false, true, pbis);
-                MakeTexture(tex.glSaturateMap[iframe], pbmp, tex.saturateTexture[iframe], saturateClut, false, true, pbis);
-            }
+        size_t levelOffset = 0;
+        uint32_t width = image.bmpWidth;
+        uint32_t height = image.bmpHeight;
+        for (uint32_t level = 0; level < image.mipCount; ++level)
+        {
+            const size_t levelBytes = image.textureFormat == kTextureRgba8
+                ? static_cast<size_t>(width) * height * 4
+                : static_cast<size_t>((width + 3) / 4) * ((height + 3) / 4) *
+                    (image.textureFormat == kTextureBc1 ? 8 : 16);
+            if (levelOffset + levelBytes > image.diffuseTexture.size())
+                throw std::runtime_error("truncated PCBRX texture mip chain");
+            if (image.textureFormat == kTextureRgba8)
+                glTexSubImage2D(GL_TEXTURE_2D, level, 0, 0, width, height,
+                    GL_RGBA, GL_UNSIGNED_BYTE, image.diffuseTexture.data() + levelOffset);
             else
+                glCompressedTexSubImage2D(GL_TEXTURE_2D, level, 0, 0, width, height,
+                    internalFormat, static_cast<GLsizei>(levelBytes),
+                    image.diffuseTexture.data() + levelOffset);
+            levelOffset += levelBytes;
+            width = std::max(1u, width >> 1);
+            height = std::max(1u, height >> 1);
+        }
+
+        if (levelOffset != image.diffuseTexture.size())
+            throw std::runtime_error("PCBRX texture payload size does not match its mip chain");
+
+        if (generateMipmaps)
+        {
+            if (image.mipCount != 1)
+                throw std::runtime_error("runtime mip generation requires one source level");
+            glGenerateMipmap(GL_TEXTURE_2D);
+        }
+
+        if (!g_fDeveloperDebugMode)
+        {
+            image.diffuseTexture.clear();
+            image.diffuseTexture.shrink_to_fit();
+        }
+    }
+
+    auto ImageHandle = [](int32_t index) -> GLuint
+    {
+        return index >= 0 && static_cast<size_t>(index) < g_abmp.size()
+            ? g_abmp[static_cast<size_t>(index)].glDiffuseMap : 0;
+    };
+
+    for (SHD& shd : g_ashd)
+    {
+        for (TEX& tex : shd.atex)
+        {
+            tex.glShadowMap.resize(tex.cibmp);
+            tex.glDiffuseMap.resize(tex.cibmp);
+            tex.glSaturateMap.resize(tex.cibmp);
+            for (uint32_t iframe = 0; iframe < tex.cibmp; ++iframe)
             {
-                CLUT *clut = nullptr;
-
-                if (iframe < (int)tex.aclut.size())
-                    clut = tex.aclut[iframe];
-
-                if (iframe < static_cast<int>(tex.glDiffuseMap.size()))
-                {
-                    MakeTexture(tex.glDiffuseMap[iframe], pbmp,
-                        tex.diffuseTexture[iframe], clut, false, true, pbis);
-
-                }
-                else
-                {
-                    MakeTexture(pbmp->glDiffuseMap, pbmp,
-                        pbmp->diffuseTexture, clut, false, true, pbis);
-				}
-			}
-		}
-
-    }
-
-    for (int i = 0; i < g_cfontBrx; i++)
-    {
-        BMP* pbmp = g_afontBrx[i].m_pbmp;
-        MakeTexture(pbmp->glDiffuseMap, pbmp, pbmp->diffuseTexture,
-            g_afontBrx[i].m_pclut, true, false, pbis);
-
-    }
-
-}
-
-std::vector <byte> MakeBmp(BMP *pbmp, CBinaryInputStream *pbis)
-{
-    std::vector <byte> bmpBuffer;
-
-    size_t off  = textureDataStart + pbmp->baseOffset;
-    // cbPixels is the encoded byte count. A 4-bit indexed bitmap stores two
-    // pixels per byte, so width * height would read twice the allocation and
-    // can poison the stream before its CLUT is read (font 4 is affected).
-    size_t size = static_cast<size_t>(pbmp->cbPixels);
-
-    bmpBuffer.resize(size);
-
-	pbis->Seek(off);
-	pbis->ReadBytes(bmpBuffer.data(), size);
-
-    return bmpBuffer;
-}
-
-std::vector <byte> MakePallete(CLUT *pclut, CBinaryInputStream *pbis)
-{
-    std::vector <byte> palleteBuffer;
-
-    size_t off  = textureDataStart + pclut->baseOffset;
-    size_t size = static_cast<size_t>(pclut->numColors) * pclut->colorSize * 4;
-
-    palleteBuffer.resize(size);
-
-	// All texture offsets are absolute relative to textureDataStart.
-	pbis->Seek(off);
-	pbis->ReadBytes(palleteBuffer.data(), size);
-
-    return palleteBuffer;
-}
-
-void MakeTexture(GLuint& textureReference, BMP* pbmp, std::vector<byte>& texture, CLUT* pclut, bool fFlip, bool fMipMap, CBinaryInputStream* pbis)
-{
-    if (pbmp == nullptr || pclut == nullptr || textureReference == 0)
-        return;
-
-    std::vector <byte> image   = MakeBmp(pbmp, pbis);
-    std::vector <byte> pallete = MakePallete(pclut, pbis);
-
-    int width  = pbmp->bmpWidth;
-    int height = pbmp->bmpHeight;
-
-    texture.resize(width * height * 4);
-
-    if (pclut->numColors > 16)
-    {
-        for (int i = 0; i < width * height; i++)
-        {
-            int index = csm1ClutIndices[image[i]] * 4;
-
-            texture[4 * i + 0] = pallete[index + 0];
-            texture[4 * i + 1] = pallete[index + 1];
-            texture[4 * i + 2] = pallete[index + 2];
-            texture[4 * i + 3] = pallete[index + 3] * 255u / 128u;
-        }
-    }
-    else
-    {
-        for (int i = 0; i < width * height / 2; i++)
-        {
-            int index1 = image[i] & 0x0F;
-            int index2 = image[i] >> 4;
-
-            texture[8 * i + 0] = pallete[4 * index1 + 0];
-            texture[8 * i + 1] = pallete[4 * index1 + 1];
-            texture[8 * i + 2] = pallete[4 * index1 + 2];
-            texture[8 * i + 3] = pallete[4 * index1 + 3] * 255u / 128u;
-
-            texture[8 * i + 4] = pallete[4 * index2 + 0];
-            texture[8 * i + 5] = pallete[4 * index2 + 1];
-            texture[8 * i + 6] = pallete[4 * index2 + 2];
-            texture[8 * i + 7] = pallete[4 * index2 + 3] * 255u / 128u;
+                tex.glShadowMap[iframe] = ImageHandle(tex.ambientImageIndex[iframe]);
+                tex.glDiffuseMap[iframe] = ImageHandle(tex.diffuseImageIndex[iframe]);
+                tex.glSaturateMap[iframe] = ImageHandle(tex.saturateImageIndex[iframe]);
+                if (tex.glDiffuseMap[iframe] == 0)
+                    tex.glDiffuseMap[iframe] = tex.glShadowMap[iframe];
+            }
         }
     }
 
-    if (fFlip == true)
-    {
-        int rowSize = width * 4;
-        std::vector <byte> tempRow(rowSize);
+    pbis->Seek(dataEnd);
+}
 
-        for (int y = 0; y < height / 2; ++y)
-        {
-            byte* rowTop = &texture[y * rowSize];
-            byte* rowBottom = &texture[(height - 1 - y) * rowSize];
+int MaxSupportedAnisotropicFiltering()
+{
+	if (!FSupportsAnisotropicFiltering())
+		return 1;
 
-            std::memcpy(tempRow.data(), rowTop, rowSize);
-            std::memcpy(rowTop, rowBottom, rowSize);
-            std::memcpy(rowBottom, tempRow.data(), rowSize);
-        }
-    }
+	GLfloat maximum = 1.0f;
+	glGetFloatv(kMaxTextureMaxAnisotropy, &maximum);
+	return (std::max)(1, static_cast<int>(maximum));
+}
 
-    glBindTexture(GL_TEXTURE_2D, textureReference);
-    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+void ApplyAnisotropicFilteringSettings(int level)
+{
+	const int maximum = MaxSupportedAnisotropicFiltering();
+	g_anisotropicFiltering = (std::clamp)(level, 1, maximum);
 
-    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, texture.data());
-
-    if (fMipMap == true)
-        glGenerateMipmap(GL_TEXTURE_2D);
-
-	if (!g_fDeveloperDebugMode)
+	GLint previousTexture = 0;
+	glGetIntegerv(GL_TEXTURE_BINDING_2D, &previousTexture);
+	for (const BMP& image : g_abmp)
 	{
-		texture.clear();
-		texture.shrink_to_fit();
+		if (image.glDiffuseMap != 0)
+		{
+			glBindTexture(GL_TEXTURE_2D, image.glDiffuseMap);
+			ApplyAnisotropyToBoundTexture();
+		}
 	}
+	glBindTexture(GL_TEXTURE_2D, static_cast<GLuint>(previousTexture));
+}
+
+void ApplyTextureFilteringSettings(int mode)
+{
+	g_textureFiltering = mode != 0 ? 1 : 0;
+	GLint previousTexture = 0;
+	glGetIntegerv(GL_TEXTURE_BINDING_2D, &previousTexture);
+	for (const BMP& image : g_abmp)
+	{
+		if (image.glDiffuseMap == 0)
+			continue;
+		glBindTexture(GL_TEXTURE_2D, image.glDiffuseMap);
+		const bool hasMipmaps = image.mipCount > 1 || (image.textureFlags & (1u << 2)) != 0;
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, hasMipmaps
+			? (g_textureFiltering != 0 ? GL_LINEAR_MIPMAP_LINEAR : GL_LINEAR_MIPMAP_NEAREST)
+			: GL_LINEAR);
+	}
+	glBindTexture(GL_TEXTURE_2D, static_cast<GLuint>(previousTexture));
 }
 
 void UpdateShaders(float dt)
@@ -711,8 +577,6 @@ void UpdateShaders(float dt)
     }
 }
 
-int g_cclut;
-std::vector <CLUT> g_aclut;
 int g_grfzonShaders;
 int g_cbmp;
 std::vector <BMP> g_abmp;
@@ -724,5 +588,4 @@ std::vector <SAA*> g_apsaa;
 std::vector<std::shared_ptr<SAA>> g_apsaaSw;
 SAI* g_psaiUpdate = nullptr;
 SAI* g_psaiUpdateTail = nullptr;
-size_t textureDataStart;
-uint8_t csm1ClutIndices[256];
+int g_anisotropicFiltering = 1;

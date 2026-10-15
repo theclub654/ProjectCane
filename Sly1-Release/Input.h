@@ -55,6 +55,38 @@ enum RUMK
     RUMK_Max = 11
 };
 
+enum RUMS
+{
+    RUMS_Nil = 0,
+    RUMS_Idle = 1,
+    RUMS_Rumble = 2,
+    RUMS_Stop = 3,
+    RUMS_Kill = 4,
+    RUMS_Dead = 5
+};
+
+struct RUMINS
+{
+    float dt;
+    uint8_t fHighSpeedMotor;
+    uint8_t bLowSpeedMotor;
+};
+
+struct RUMPAT
+{
+    const RUMINS* arumins;
+    int crumins;
+};
+
+struct RUMBLE
+{
+    RUMS rums = RUMS_Idle;
+    const RUMPAT* prumpat = nullptr;
+    int irumins = 0;
+    float dtRumins = 0.0f;
+    float dtRumble = 0.0f;
+};
+
 enum JOYID : int
 {
     JOYID_Nil = -1,
@@ -114,14 +146,11 @@ struct JOY
     JOYS joys = JOYS_Ready;
     int joystickId = JOYID_Nil;
     bool gamepadConnected = false;
-    // The binding UI must read the same backend/state selected by gameplay.
-    // joystickId is GLFW-only, while this cache also represents XInput and
-    // best-effort raw joystick devices.
+    // The binding UI reads the same normalized state selected by gameplay.
+    // joystickId stores SDL's stable joystick instance ID.
     GLFWgamepadstate gamepadState{};
     bool hasGamepadState = false;
-#ifdef _WIN32
-    int xinputUser = -1;
-#endif
+    RUMBLE rumble;
 
     void Update(GLFWwindow* window);
     bool IsPressed(JOY_BUTTON button);
@@ -141,11 +170,19 @@ void _ResetCodes();
 void _MatchCodes(JOY* pjoy, uint16_t grfbtnPrev);
 void UpdateCodes();
 void StartupCodes();
+bool StartupControllerInput();
+void ShutdownControllerInput();
+bool FControllerInputAvailable();
+void TriggerJoyRumbleRumk(JOY* pjoy, RUMK rumk, float dt);
+void StopJoyRumble(JOY* pjoy);
+void UpdateRumble(RUMBLE* prumble, JOY* pjoy);
 void EnableVibration();
 void ToggleVibration(GS* pgs);
 void ApplyVibrationSetting(GS* pgs);
 bool FVibrationEnabled(GS* pgs);
 
+
+extern float g_controllerDeadzone;
 
 static void ApplyStickDeadZone(float xRaw, float yRaw, JOY::StickCalibration* calibration,
     float* px, float* py, float* puDeflect)
@@ -215,7 +252,12 @@ static void ApplyStickDeadZone(float xRaw, float yRaw, JOY::StickCalibration* ca
     }
 
     const float magnitudeRaw = std::sqrt(xRaw * xRaw + yRaw * yRaw);
-    const float deflection = glm::clamp((normalizedDeflection - 0.35f) * 2.0f, 0.0f, 1.0f);
+    const float deadzone = glm::clamp(g_controllerDeadzone, 0.0f, 0.50f);
+    // Preserve retail ProjectCane's existing outer response: with the default
+    // 35% deadzone, full deflection is reached at 85%, exactly as before this
+    // setting became configurable.
+    const float deflection = glm::clamp(
+        (normalizedDeflection - deadzone) * 2.0f, 0.0f, 1.0f);
 
     if (magnitudeRaw > 0.0001f)
     {
@@ -238,11 +280,34 @@ extern GRFUSR g_grfusr;
 extern int vibrationSetting;
 extern std::array<int, BTN_MAX> g_keyboardBindings;
 extern std::array<int, BTN_MAX> g_gamepadBindings;
+void ResetKeyboardMouseBindings();
+void ResetControllerBindings();
 extern bool g_fDisableControllerInputWhenUnfocused;
 extern bool g_fMouseCamera;
+extern float g_mouseCameraSensitivity;
 
 inline constexpr int GAMEPAD_BINDING_LEFT_TRIGGER = 1000;
 inline constexpr int GAMEPAD_BINDING_RIGHT_TRIGGER = 1001;
+// Mouse buttons share the keyboard binding table so each gameplay action still
+// has one PC-side binding. Values are kept outside GLFW's key range and away
+// from GLFW_KEY_UNKNOWN (-1).
+inline constexpr int MOUSE_BINDING_BASE = -1000;
+
+inline constexpr int MouseBindingFromButton(int button)
+{
+    return MOUSE_BINDING_BASE - button;
+}
+
+inline constexpr bool FMouseBinding(int binding)
+{
+    return binding <= MOUSE_BINDING_BASE &&
+        binding >= MOUSE_BINDING_BASE - GLFW_MOUSE_BUTTON_LAST;
+}
+
+inline constexpr int MouseButtonFromBinding(int binding)
+{
+    return MOUSE_BINDING_BASE - binding;
+}
 
 const char* PchzKeyboardKeyName(int key);
 const char* PchzGamepadBindingName(int binding);

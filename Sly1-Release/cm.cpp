@@ -121,22 +121,34 @@ void RecalcCm(CM* pcm)
 	// These ranges are consumed by SetCm/AdaptCm and must not follow the window.
 	const float gameplayAspect = pcm->rAspect;
 	const float yScreenRange = tanf(pcm->radFOV * 0.5f);
-	const float renderScreenRange = tanf(renderFov * 0.5f);
 
 	// Match RecalcCmFrustum: rAspect remains the fixed authored camera aspect.
 	pcm->yScreenRange = yScreenRange;
 	pcm->xScreenRange = yScreenRange * gameplayAspect;
 	pcm->rMRDAdjust = std::max(1.0f, pcm->rMRD * (1.0f / pcm->radFOV));
-	// Collision must cover the near-plane corners of the projection that is
-	// actually rendered. Otherwise Hor+ widescreen modes can put the expanded
-	// sides of the near plane through nearby walls while the authored 4:3
-	// collision sphere still reports the camera as clear.
-	pcm->sRadiusNearClip = renderScreenRange *
-		sqrtf(renderAspect * renderAspect + 1.0f) * pcm->sNearClip + 1.0f;
+	// This radius belongs to the authored camera/collision path, not the display
+	// projection. Keeping it in the original PS2 rAspect/radFOV space preserves
+	// console camera obstruction and stick-direction behavior in every host
+	// aspect mode.
+	pcm->sRadiusNearClip = yScreenRange *
+		sqrtf(gameplayAspect * gameplayAspect + 1.0f) * pcm->sNearClip + 1.0f;
 
 	// Only rendering and the extracted world-space frustum use the display
 	// aspect, preserving the wider view without altering gameplay camera logic.
-	BuildProjectionMatrix(renderFov, renderAspect, pcm->sNearClip, pcm->sFarClip, pcm->matProj);
+	// A Hor+ view can place its near-plane corners outside the authored PS2
+	// collision sphere. Pull only the drawn near plane inward until those
+	// corners fit inside the retail extent. Growing the collision sphere would
+	// move the camera and change gameplay, so sNearClip itself stays untouched.
+	const float retailNearExtent = yScreenRange *
+		sqrtf(gameplayAspect * gameplayAspect + 1.0f);
+	const float renderNearExtent = tanf(renderFov * 0.5f) *
+		sqrtf(renderAspect * renderAspect + 1.0f);
+	const float renderNearClip = renderNearExtent > retailNearExtent
+		? pcm->sNearClip * (retailNearExtent / renderNearExtent)
+		: pcm->sNearClip;
+
+	BuildProjectionMatrix(renderFov, renderAspect, renderNearClip,
+		pcm->sFarClip, pcm->matProj);
 	UpdateCmMat4(pcm);
 }
 
@@ -317,6 +329,20 @@ void SetSwCameraUFogMax(SW* psw, float uFogMax)
 void SetSwCameraRgbaFog(SW* psw, RGBA prgbaFog)
 {
 	SetCmRgbaFog(g_pcm, prgbaFog);
+}
+
+void SetSwCameraRgbaFogFloat(SW* psw, const glm::vec4* rgbaFog)
+{
+	(void)psw;
+	if (g_pcm == nullptr)
+		return;
+
+	g_pcm->rgbaFog = glm::vec4(
+		glm::clamp(rgbaFog->r, 0.0f, 1.0f),
+		glm::clamp(rgbaFog->g, 0.0f, 1.0f),
+		glm::clamp(rgbaFog->b, 0.0f, 1.0f),
+		glm::clamp(rgbaFog->a, 0.0f, 1.0f) * 2.0f);
+	RecalcCm(g_pcm);
 }
 
 void SetSwCameraMrdRatio(SW* psw, float rMRD)

@@ -155,7 +155,7 @@ class SW : public LO
 	DL dlThndFlash;
 	class VAULT* pvault;
 	LO* aploStock[31];
-	RGBA rgbaSky;
+	glm::vec4 rgbaSky;
 	LSM lsmDefault;
 	// Sound bank index for level
 	int ibnk;
@@ -210,6 +210,8 @@ class SW : public LO
 	// PC-side ownership for the retail pointer-backed commentary fields above.
 	// Kept at the end so reconstructed gameplay-field ordering is unchanged.
 	std::array<uint8_t, 32> commentaryAudioDescriptor{};
+	std::array<char, 32> soundBankFileName{};
+	std::array<char, 32> musicFileName{};
 	std::string commentarySpeakers;
 };
 
@@ -255,7 +257,6 @@ int  FClipLineHomogeneous(glm::vec4* apos);
 void DrawLineWorld(glm::vec3* ppos1, glm::vec3* ppos2, RGBA* prgba, CM* pcm, int fDepthTest);
 void DrawBezierWorld(float dt, glm::vec3* ppos0, glm::vec3* pv0, glm::vec3* ppos1, glm::vec3* pv1, RGBA* prgba, CM* pcm);
 // Loads level filenames from file
-void LoadNameTableFromBrx(CBinaryInputStream* pbis);
 // Loads the world table from file
 void LoadWorldTableFromBrx(CBinaryInputStream* pbis);
 // Adds a SW proxy source to apsl 
@@ -281,6 +282,7 @@ void*GetSwIllum(SW* psw);
 void*GetSwIllumShadow(SW* psw);
 void SetSwIllum(SW* psw, float uMidtone);
 void SetSwIllumShadow(SW* psw, float uShadow);
+void SetSwRgbaSkyFloat(SW* psw, const glm::vec4* rgbaSky);
 void*GetSwSkyRgba(SW *psw);
 void*GetSwDarken(SW* psw);
 void SetSwDarken(SW* psw, float rDarken);

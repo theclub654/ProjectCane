@@ -25,9 +25,10 @@ extern "C"
 #include <libswscale/swscale.h>
 }
 
+extern std::string file;
+
 namespace
 {
-    constexpr uint32_t STARTUP_SPLASH_SECTOR = 0x000C8F03;
     constexpr OID STARTUP_SPLASH_QUEUE_ID = static_cast<OID>(0x10000344);
 
     // Movie events may contain cutscene table index 0, so OID_Unknown (also 0)
@@ -40,19 +41,6 @@ namespace
     {
         ScopedCutscenePlaying() { s_cutscenePlaying.store(true, std::memory_order_release); }
         ~ScopedCutscenePlaying() { s_cutscenePlaying.store(false, std::memory_order_release); }
-    };
-
-    // Identity word (descriptor[2] ^ descriptor[6]) for each of the retail
-    // game's encrypted 32-byte cutscene descriptors. The runtime-loaded
-    // startup splash shares identity 0x344 with cutscene 16, so its sector is
-    // checked separately in QueueCutsceneDescriptor.
-    constexpr uint32_t s_cutsceneDescriptorKeys[] =
-    {
-        0x340, 0x341, 0x33C, 0x33F,
-        0x345, 0x346, 0x33D, 0x33E,
-        0x347, 0x348, 0x342, 0x343,
-        0x336, 0x33A, 0x33B, 0x338,
-        0x344, 0x344
     };
 
     const char* const s_achzFmvTitle[] =
@@ -125,6 +113,23 @@ namespace
     {
         std::vector<std::filesystem::path> candidates;
         const std::filesystem::path executableDirectory = cane::DataDirectory();
+
+        if (!file.empty())
+        {
+            std::filesystem::path ancestor = std::filesystem::path(file).parent_path();
+            while (!ancestor.empty())
+            {
+                if (ancestor.filename() == L"Worlds")
+                {
+                    candidates.push_back(ancestor.parent_path() / L"Cutscenes");
+                    break;
+                }
+                const std::filesystem::path parent = ancestor.parent_path();
+                if (parent == ancestor)
+                    break;
+                ancestor = parent;
+            }
+        }
 
         if (!executableDirectory.empty())
         {
@@ -274,11 +279,12 @@ namespace
         // computer static, do not continue beneath the FMV audio.
         if (!ambientSoundsWerePaused)
             PauseAmbientSounds();
-        // World transitions mute the game master while the screen is black,
-        // but retail movie audio is still audible during that interval. The
-        // port currently shares one XAudio mastering voice, so temporarily
-        // open it for the movie and restore the transition's value afterward.
-        SetMasterVolume(1.0f);
+        // Keep the shared output closed while FFmpeg and the movie WAV are
+        // initialized. Opening it here used to expose the otherwise-idle audio
+        // graph for several frames before the VAG source existed, which could
+        // produce a short static burst immediately before the startup movie.
+        // The source-ready path below opens it through the final output ramp.
+        SetMasterVolume(0.0f);
         SetFmvAudioMode(true);
 
         AVCodecContext* decoder = nullptr;
@@ -355,8 +361,7 @@ namespace
             bool quit = false;
             bool audioStarted = false;
             const double frameDuration = 1.0 / fps;
-
-            auto waitForVisibleWindow = [&]()
+			auto waitForVisibleWindow = [&]()
             {
                 int framebufferWidth = 0;
                 int framebufferHeight = 0;
@@ -433,6 +438,14 @@ namespace
                                 std::this_thread::sleep_for(std::chrono::milliseconds(1));
                         }
                         audioStarted = FVagPlaying() != 0;
+                        if (audioStarted)
+                        {
+                            // FPauseForVag has submitted and started the source
+                            // by this point. Only now expose the graph; the final
+                            // output processor ramps from silence and masks the
+                            // device/source priming boundary.
+                            SetMasterVolume(1.0f);
+                        }
                         fallbackStart = std::chrono::steady_clock::now();
                         if (!audioStarted)
                             ReportRuntimeError("FMV",
@@ -570,7 +583,7 @@ namespace
                 result = 0;
         } while (false);
 
-        StopVag();
+        StopVagAndWaitForFade();
         SetFmvAudioMode(false);
         if (texture != 0)
             glDeleteTextures(1, &texture);
@@ -628,42 +641,40 @@ void QueueCutscene(OID identityId)
     }
 }
 
-void QueueCutsceneDescriptor(const char* descriptor)
+void QueueCutsceneFileName(const char* fileName)
 {
-    if (descriptor == nullptr)
+    if (fileName == nullptr)
     {
-        ReportRuntimeError("FMV", "Received a null cutscene descriptor");
+        ReportRuntimeError("FMV", "Received a null cutscene filename");
         return;
     }
 
-    uint32_t encodedSectorA = 0;
-    uint32_t encodedSectorB = 0;
-    uint32_t encodedIdentityA = 0;
-    uint32_t encodedIdentityB = 0;
-    std::memcpy(&encodedSectorA, descriptor, sizeof(encodedSectorA));
-    std::memcpy(&encodedSectorB, descriptor + 20, sizeof(encodedSectorB));
-    std::memcpy(&encodedIdentityA, descriptor + 8, sizeof(encodedIdentityA));
-    std::memcpy(&encodedIdentityB, descriptor + 24, sizeof(encodedIdentityB));
-    const uint32_t sector = encodedSectorA ^ encodedSectorB;
-    const uint32_t identityKey = encodedIdentityA ^ encodedIdentityB;
-
-    if (sector == STARTUP_SPLASH_SECTOR && identityKey == 0x344)
+    // PCBRX stores the extractor's video filename directly in this fixed field.
+    std::size_t filenameLength = 0;
+    while (filenameLength < 32 && fileName[filenameLength] != '\0')
     {
-        QueueCutscene(STARTUP_SPLASH_QUEUE_ID);
-        return;
+        const unsigned char ch = static_cast<unsigned char>(fileName[filenameLength]);
+        if (ch < 0x20 || ch > 0x7e)
+            break;
+        ++filenameLength;
     }
-
-    for (int cutsceneId = 0; cutsceneId < CUTSCENE_COUNT; ++cutsceneId)
+    if (filenameLength != 0 && filenameLength < 32 &&
+        fileName[filenameLength] == '\0')
     {
-        if (s_cutsceneDescriptorKeys[cutsceneId] == identityKey)
+        const std::string filename(fileName, filenameLength);
+        for (const CUTSCENEINFO& info : g_cutsceneTable)
         {
-            QueueCutscene(g_cutsceneTable[cutsceneId].identityId);
-            return;
+            if (info.videoFileName == filename)
+            {
+                QueueCutscene(info.identityId);
+                return;
+            }
         }
+        ReportRuntimeError("FMV", "Unknown cutscene filename: %s", filename.c_str());
+        return;
     }
 
-    ReportRuntimeError("FMV", "Unknown cutscene descriptor identity: 0x%08X",
-        identityKey);
+    ReportRuntimeError("FMV", "Invalid PCBRX cutscene filename field");
 }
 
 bool FCutscenePending()

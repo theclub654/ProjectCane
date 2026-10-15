@@ -61,14 +61,26 @@ std::filesystem::path FindWorldsDirectory(const std::string& currentFile)
 
 std::filesystem::path LevelPath(const LEVELINFO& levelInfo, const std::string& currentFile)
 {
+    const char* levelName = levelInfo.levelID == 0x003
+        ? "Paris"
+        : levelInfo.levelName.c_str();
+
+    // The debug file picker supplies the exact file the user selected. Honor
+    // it when its name matches the pending level instead of reconstructing a
+    // different path and silently opening another retail BRX.
+    const std::filesystem::path selectedPath(currentFile);
+    if (std::filesystem::is_regular_file(selectedPath))
+    {
+        const std::string selectedStem = selectedPath.stem().string();
+        if (selectedStem == levelName ||
+            selectedStem == std::string(levelName) + "_Rebuilt")
+            return selectedPath;
+    }
+
     std::filesystem::path directory = FindWorldsDirectory(currentFile);
 
     if (const char* worldDirectory = WorldDirectoryName(levelInfo.levelID))
         directory /= worldDirectory;
-
-    const char* levelName = levelInfo.levelID == 0x003
-        ? "Paris"
-        : levelInfo.levelName.c_str();
 
     const std::filesystem::path fileName = std::string(levelName) + ".brx";
     const std::filesystem::path organizedPath = directory / levelName / fileName;
@@ -131,6 +143,7 @@ void CTransition::Execute(std::string& file)
 	SetMasterVolume(0.0f);
 
     bool fLoadSucceeded = true;
+    const std::string filePrevious = file;
 
     LEVELINFO* plevelTarget = m_plevelPending != nullptr ? m_plevelPending : m_plevelCurrent;
 
@@ -168,10 +181,20 @@ void CTransition::Execute(std::string& file)
         }
         else
         {
+            // Sound-bank and music setup happen inside LoadSwFromBrx. Publish
+            // the destination BRX path before parsing so those loaders can
+            // resolve media beside the extractor output instead of searching
+            // only relative to the executable's working directory.
+            file = fileNew;
             DeleteWorld(g_psw);
 
-            bis.S32Read();
-            bis.S32Read();
+            constexpr uint32_t kPcBrxMagic = 0x52424350u; // "PCBR" little-endian
+            const uint32_t brxHeader = bis.U32Read();
+            const uint32_t brxVersion = bis.U32Read();
+            if (brxHeader != kPcBrxMagic || brxVersion != 17)
+                throw std::runtime_error("level is not in the required PCBRX v17 format");
+            std::printf("Loading rebuilt PCBRX v%u: %s\n", brxVersion,
+                fileNew.c_str());
 
             g_psw = nullptr;
 
@@ -196,8 +219,9 @@ void CTransition::Execute(std::string& file)
             {
                 m_plevelCurrent = plevelTarget;
                 m_worldCurrent = plevelTarget->levelName;
-                file = fileNew;
             }
+            else
+                file = filePrevious;
 
             if (fLoadSucceeded && g_pgsCur != nullptr && (g_pgsCur->grfgs & 0x100U) != 0 && g_saveData.pgsCurrentSave != nullptr && (g_saveData.pgsCurrentSave->gameWorldCur != g_pgsCur->gameWorldCur || g_saveData.pgsCurrentSave->worldLevelCur != g_pgsCur->worldLevelCur))
                 AutosaveCurrentGame(&g_saveData);

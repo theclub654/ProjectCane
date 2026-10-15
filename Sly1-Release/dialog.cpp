@@ -14,9 +14,7 @@
 #include "cplook.h"
 #include "sw.h"
 #include "pzo.h"
-#include <array>
 #include <cstdio>
-#include <cstring>
 
 DIALOG* NewDialog()
 {
@@ -150,27 +148,8 @@ void LoadDialogEventsFromBrx(DIALOG* pdialog, CBinaryInputStream* pbis, int* pcd
 		{
 			case DEK_PreloadVag:
 			case DEK_ShowMovie:
-			{
-				std::array<uint32_t, 8> descriptor{};
-				bool fDescriptorPresent = false;
-				for (uint32_t& word : descriptor)
-				{
-					word = pbis->U32Read();
-					fDescriptorPresent |= word != 0;
-				}
-
-				if (fDescriptorPresent)
-				{
-					pde->string.pchz = std::shared_ptr<char[]>(new char[33]());
-					std::memcpy(pde->string.pchz.get(), descriptor.data(), 32);
-				}
-				else
-				{
-					pde->string.pchz.reset();
-				}
-
-				break;
-			}
+			pde->string.pchz = pbis->ReadFixedString32();
+			break;
 
 			case DEK_SpeakerLeft:
 			case DEK_SpeakerRight:
@@ -835,7 +814,7 @@ void HandleDialogEvent(DIALOG* pdialog, DE* pde)
 	{
 		case DEK_PreloadVag:
 		{
-			PreloadVagDescriptor(pde->string.pchz.get());
+			PreloadVagFileName(pde->string.pchz.get());
 			dp.grfdp |= GRFDP_VagPreloaded;
 			break;
 		}
@@ -923,7 +902,9 @@ void HandleDialogEvent(DIALOG* pdialog, DE* pde)
 			if (pchzText && pchzText[0] != '\0')
 			{
 				g_binoc.pvtblot->pfnSetBlotAchzDraw(&g_binoc, pchzText);
-				g_binoc.rgbaText = pspeaker ? pspeaker->rgbaText : glm::vec4(128.0f / 255.0f);
+				g_binoc.rgbaText = pspeaker
+					? pspeaker->rgbaText
+					: glm::vec4(1.0f, 1.0f, 1.0f, 128.0f / 255.0f);
 
 				float dtText = talk.dtPause;
 
@@ -993,7 +974,7 @@ void HandleDialogEvent(DIALOG* pdialog, DE* pde)
 
 		case DEK_ShowMovie:
 		{
-			QueueCutsceneDescriptor(pde->string.pchz.get());
+			QueueCutsceneFileName(pde->string.pchz.get());
 			break;
 		}
 

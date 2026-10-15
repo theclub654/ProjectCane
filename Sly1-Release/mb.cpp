@@ -23,6 +23,7 @@
 #include "binoc.h"
 #include "cm.h"
 #include "letterbox.h"
+#include "render.h"
 #include <cstdio>
 MBG* NewMbg()
 {
@@ -147,9 +148,7 @@ void RenderMbgSelf(MBG* pmbg, CM* pcm, RO* pro)
         const glm::vec3 dpos = pmbg->xf.posWorld - pcm->pos;
         rpl.z = glm::dot(dpos, pcm->mat[0]);
 
-        g_translucentAddPrpl[g_translucentAddCount] = rpl;
-        g_translucentAddPrpl[g_translucentAddCount].PFNDRAWRPL = DrawMbgHaloFire;
-        g_translucentAddCount++;
+        QueueTranslucentAddRpl(rpl).PFNDRAWRPL = DrawMbgHaloFire;
     }
 }
 

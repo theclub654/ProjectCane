@@ -14,32 +14,200 @@
 #include <cstring>
 #include <iterator>
 #include <limits>
+#include <stdexcept>
+#include <string>
 #include <vector>
 
 namespace
 {
 	struct RENDERSTATECACHE
 	{
-		GLuint vao = std::numeric_limits<GLuint>::max();
-		GLenum activeTexture = std::numeric_limits<GLenum>::max();
+		GLuint vao = (std::numeric_limits<GLuint>::max)();
+		GLenum activeTexture = (std::numeric_limits<GLenum>::max)();
 		GLuint textures2D[32]{};
 		GLuint textures2DArray[32]{};
 		GLuint ssboBindings[16]{};
+		GLint blendEnabled = -1;
+		GLint depthEnabled = -1;
+		GLint cullEnabled = -1;
+		GLint depthMask = -1;
+		GLenum depthFunc = (std::numeric_limits<GLenum>::max)();
+		GLenum blendEquationRgb = (std::numeric_limits<GLenum>::max)();
+		GLenum blendEquationAlpha = (std::numeric_limits<GLenum>::max)();
+		GLenum blendSrcRgb = (std::numeric_limits<GLenum>::max)();
+		GLenum blendDstRgb = (std::numeric_limits<GLenum>::max)();
+		GLenum blendSrcAlpha = (std::numeric_limits<GLenum>::max)();
+		GLenum blendDstAlpha = (std::numeric_limits<GLenum>::max)();
 
 		void Invalidate()
 		{
-			vao = std::numeric_limits<GLuint>::max();
-			activeTexture = std::numeric_limits<GLenum>::max();
+			vao = (std::numeric_limits<GLuint>::max)();
+			activeTexture = (std::numeric_limits<GLenum>::max)();
 			std::fill(std::begin(textures2D), std::end(textures2D),
-				std::numeric_limits<GLuint>::max());
+				(std::numeric_limits<GLuint>::max)());
 			std::fill(std::begin(textures2DArray), std::end(textures2DArray),
-				std::numeric_limits<GLuint>::max());
+				(std::numeric_limits<GLuint>::max)());
 			std::fill(std::begin(ssboBindings), std::end(ssboBindings),
-				std::numeric_limits<GLuint>::max());
+				(std::numeric_limits<GLuint>::max)());
+			blendEnabled = depthEnabled = cullEnabled = depthMask = -1;
+			depthFunc = blendEquationRgb = blendEquationAlpha =
+				blendSrcRgb = blendDstRgb = blendSrcAlpha = blendDstAlpha =
+				(std::numeric_limits<GLenum>::max)();
 		}
 	};
 
 	RENDERSTATECACHE s_renderState;
+
+	void UseShader(GLSHADER& shader)
+	{
+		shader.Use();
+	}
+
+	void InvalidateCachedRenderState()
+	{
+		s_renderState.Invalidate();
+		InvalidateShaderProgramCache();
+	}
+
+	GLint& CapabilityState(GLenum capability)
+	{
+		switch (capability)
+		{
+			case GL_BLEND: return s_renderState.blendEnabled;
+			case GL_DEPTH_TEST: return s_renderState.depthEnabled;
+			case GL_CULL_FACE: return s_renderState.cullEnabled;
+			default: throw std::runtime_error("unsupported cached OpenGL capability");
+		}
+	}
+
+	void SetCapability(GLenum capability, bool enabled)
+	{
+		if (capability != GL_BLEND && capability != GL_DEPTH_TEST && capability != GL_CULL_FACE)
+		{
+			if (enabled)
+				glEnable(capability);
+			else
+				glDisable(capability);
+			return;
+		}
+		GLint& current = CapabilityState(capability);
+		const GLint requested = enabled ? 1 : 0;
+		if (current == requested)
+			return;
+		if (enabled)
+			glEnable(capability);
+		else
+			glDisable(capability);
+		current = requested;
+	}
+
+	GLboolean GetCapability(GLenum capability)
+	{
+		GLint& current = CapabilityState(capability);
+		if (current < 0)
+			current = glIsEnabled(capability) ? 1 : 0;
+		return current ? GL_TRUE : GL_FALSE;
+	}
+
+	void SetDepthMask(GLboolean enabled)
+	{
+		const GLint requested = enabled ? 1 : 0;
+		if (s_renderState.depthMask != requested)
+		{
+			glDepthMask(enabled);
+			s_renderState.depthMask = requested;
+		}
+	}
+
+	void SetDepthFunc(GLenum function)
+	{
+		if (s_renderState.depthFunc != function)
+		{
+			glDepthFunc(function);
+			s_renderState.depthFunc = function;
+		}
+	}
+
+	void SetBlendEquationSeparate(GLenum rgb, GLenum alpha)
+	{
+		if (s_renderState.blendEquationRgb != rgb || s_renderState.blendEquationAlpha != alpha)
+		{
+			glBlendEquationSeparate(rgb, alpha);
+			s_renderState.blendEquationRgb = rgb;
+			s_renderState.blendEquationAlpha = alpha;
+		}
+	}
+
+	void SetBlendEquation(GLenum equation)
+	{
+		SetBlendEquationSeparate(equation, equation);
+	}
+
+	void SetBlendFuncSeparate(GLenum srcRgb, GLenum dstRgb, GLenum srcAlpha, GLenum dstAlpha)
+	{
+		if (s_renderState.blendSrcRgb != srcRgb || s_renderState.blendDstRgb != dstRgb ||
+			s_renderState.blendSrcAlpha != srcAlpha || s_renderState.blendDstAlpha != dstAlpha)
+		{
+			glBlendFuncSeparate(srcRgb, dstRgb, srcAlpha, dstAlpha);
+			s_renderState.blendSrcRgb = srcRgb;
+			s_renderState.blendDstRgb = dstRgb;
+			s_renderState.blendSrcAlpha = srcAlpha;
+			s_renderState.blendDstAlpha = dstAlpha;
+		}
+	}
+
+	void SetBlendFunc(GLenum src, GLenum dst)
+	{
+		SetBlendFuncSeparate(src, dst, src, dst);
+	}
+
+	template <typename T>
+	T& AppendRenderQueue(std::vector<T>& queue, int& count, const T& value, const char* name)
+	{
+		if (count < 0 || static_cast<size_t>(count) >= queue.size())
+			throw std::runtime_error(std::string("render queue overflow: ") + name);
+		T& entry = queue[static_cast<size_t>(count++)];
+		entry = value;
+		return entry;
+	}
+
+	void EnsureBlendStateKnown()
+	{
+		if (s_renderState.blendEquationRgb == (std::numeric_limits<GLenum>::max)())
+		{
+			GLint value = 0;
+			glGetIntegerv(GL_BLEND_EQUATION_RGB, &value);
+			s_renderState.blendEquationRgb = static_cast<GLenum>(value);
+			glGetIntegerv(GL_BLEND_EQUATION_ALPHA, &value);
+			s_renderState.blendEquationAlpha = static_cast<GLenum>(value);
+			glGetIntegerv(GL_BLEND_SRC_RGB, &value);
+			s_renderState.blendSrcRgb = static_cast<GLenum>(value);
+			glGetIntegerv(GL_BLEND_DST_RGB, &value);
+			s_renderState.blendDstRgb = static_cast<GLenum>(value);
+			glGetIntegerv(GL_BLEND_SRC_ALPHA, &value);
+			s_renderState.blendSrcAlpha = static_cast<GLenum>(value);
+			glGetIntegerv(GL_BLEND_DST_ALPHA, &value);
+			s_renderState.blendDstAlpha = static_cast<GLenum>(value);
+		}
+	}
+
+#undef glEnable
+#undef glDisable
+#undef glDepthMask
+#undef glDepthFunc
+#undef glBlendEquation
+#undef glBlendEquationSeparate
+#undef glBlendFunc
+#undef glBlendFuncSeparate
+#define glEnable(capability) SetCapability((capability), true)
+#define glDisable(capability) SetCapability((capability), false)
+#define glDepthMask(enabled) SetDepthMask((enabled))
+#define glDepthFunc(function) SetDepthFunc((function))
+#define glBlendEquation(equation) SetBlendEquation((equation))
+#define glBlendEquationSeparate(rgb, alpha) SetBlendEquationSeparate((rgb), (alpha))
+#define glBlendFunc(src, dst) SetBlendFunc((src), (dst))
+#define glBlendFuncSeparate(srcRgb, dstRgb, srcAlpha, dstAlpha) \
+	SetBlendFuncSeparate((srcRgb), (dstRgb), (srcAlpha), (dstAlpha))
 
 	void SetActiveTextureUnit(GLuint unit)
 	{
@@ -392,138 +560,127 @@ void RenderSwGlobset(SW* psw, CM* pcm)
 }
 
 void SubmitRpl(RPL* prpl)
-{ 
+{
+	if (prpl == nullptr || FIsCelBorderRenderPhase(prpl->rp))
+		return;
 	switch (prpl->rp)
 	{
 		case RP_DynamicTexture:
-		g_dynamicTexturePrpl[g_dynamicTextureCount] = *prpl;
-		g_dynamicTexturePrpl[g_dynamicTextureCount].PFNDRAWRPL = DrawDysh;
-		g_dynamicTextureCount++;
+		AppendRenderQueue(g_dynamicTexturePrpl, g_dynamicTextureCount, *prpl,
+			"dynamic texture").PFNDRAWRPL = DrawDysh;
 		break;
 
 		case RP_Background:
 		if (prpl->fTransluscentSort == 1)
 		{
-			g_backGroundBlendPrpl[g_backGroundBlendCount] = *prpl;
-			g_backGroundBlendPrpl[g_backGroundBlendCount].PFNDRAWRPL = DrawGlob;
-			g_backGroundBlendCount++;
+			AppendRenderQueue(g_backGroundBlendPrpl, g_backGroundBlendCount, *prpl,
+				"background blend").PFNDRAWRPL = DrawGlob;
 		}
 		else
 		{
-			g_backGroundPrpl[g_backGroundCount] = *prpl;
-			g_backGroundPrpl[g_backGroundCount].PFNDRAWRPL = DrawGlob;
-			g_backGroundCount++;
+			AppendRenderQueue(g_backGroundPrpl, g_backGroundCount, *prpl,
+				"background").PFNDRAWRPL = DrawGlob;
 		}
 		break;
 
 		case RP_BlotContext:
-		g_blotContextPrpl[g_blotContextCount] = *prpl;
+		{
+		RPL& entry = AppendRenderQueue(g_blotContextPrpl, g_blotContextCount, *prpl,
+			"blot context");
 		// Blot-context entries are an ordered stream.  Ordinary ALO globs do
 		// not supply a callback here and use DrawGlob, while TV context entries
 		// supply PreTvContext/PostTvContext and must retain those callbacks.
-		if (g_blotContextPrpl[g_blotContextCount].PFNDRAWRPL == nullptr)
-			g_blotContextPrpl[g_blotContextCount].PFNDRAWRPL = DrawGlob;
-		g_blotContextCount++;
+		if (entry.PFNDRAWRPL == nullptr)
+			entry.PFNDRAWRPL = DrawGlob;
+		}
 		break;
 
 		case RP_Opaque:
-		g_opaquePrpl[g_opaqueCount] = *prpl;
-		g_opaquePrpl[g_opaqueCount].PFNDRAWRPL = DrawGlob;
-		g_opaqueCount++;
+		AppendRenderQueue(g_opaquePrpl, g_opaqueCount, *prpl,
+			"opaque").PFNDRAWRPL = DrawGlob;
 		break;
 
 		case RP_Cutout:
 		if (prpl->fTransluscentSort == 1)
 		{
-			g_cutOutPrpl[g_cutOutCount] = *prpl;
-			g_cutOutPrpl[g_cutOutCount].PFNDRAWRPL = DrawGlob;
-			g_cutOutCount++;
+			AppendRenderQueue(g_cutOutPrpl, g_cutOutCount, *prpl,
+				"cutout").PFNDRAWRPL = DrawGlob;
 		}
 		else
 		{
-			g_cutOutBlendAddPrpl[g_cutOutBlendAddCount] = *prpl;
-			g_cutOutBlendAddPrpl[g_cutOutBlendAddCount].PFNDRAWRPL = DrawGlob;
-			g_cutOutBlendAddCount++;
+			AppendRenderQueue(g_cutOutBlendAddPrpl, g_cutOutBlendAddCount, *prpl,
+				"cutout additive").PFNDRAWRPL = DrawGlob;
 		}
 		break;
 
 		case RP_ProjVolume:
-		g_projVolumePrpl[g_projVolumeCount] = *prpl;
-		g_projVolumePrpl[g_projVolumeCount].PFNDRAWRPL = DrawGlob;
-		g_projVolumeCount++;
+		AppendRenderQueue(g_projVolumePrpl, g_projVolumeCount, *prpl,
+			"projected volume").PFNDRAWRPL = DrawGlob;
 		break;
 
 		case RP_OpaqueAfterProjVolume:
-		g_opaqueAfterProjVolumePrpl[g_opaqueAfterProjVolumeCount] = *prpl;
-		g_opaqueAfterProjVolumePrpl[g_opaqueAfterProjVolumeCount].PFNDRAWRPL = DrawGlob;
-		g_opaqueAfterProjVolumeCount++;
+		AppendRenderQueue(g_opaqueAfterProjVolumePrpl, g_opaqueAfterProjVolumeCount, *prpl,
+			"opaque after projected volume").PFNDRAWRPL = DrawGlob;
 		break;
 
 		case RP_CutoutAfterProjVolume:
 		if (prpl->fTransluscentSort == 1)
 		{
-			g_cutOutAfterProjVolumePrpl[g_cutOutAfterProjVolumeCount] = *prpl;
-			g_cutOutAfterProjVolumePrpl[g_cutOutAfterProjVolumeCount].PFNDRAWRPL = DrawGlob;
-			g_cutOutAfterProjVolumeCount++;
+			AppendRenderQueue(g_cutOutAfterProjVolumePrpl, g_cutOutAfterProjVolumeCount, *prpl,
+				"cutout after projected volume").PFNDRAWRPL = DrawGlob;
 		}
 		else
 		{
-			g_cutOutAfterProjVolumeAddPrpl[g_cutOutAfterProjVolumeAddCount] = *prpl;
-			g_cutOutAfterProjVolumeAddPrpl[g_cutOutAfterProjVolumeAddCount].PFNDRAWRPL = DrawGlob;
-			g_cutOutAfterProjVolumeAddCount++;
+			AppendRenderQueue(g_cutOutAfterProjVolumeAddPrpl, g_cutOutAfterProjVolumeAddCount, *prpl,
+				"cutout additive after projected volume").PFNDRAWRPL = DrawGlob;
 		}
 		break;
 
 		case RP_MurkClear:
-		g_murkClearPrpl[g_murkClearCount] = *prpl;
-		g_murkClearPrpl[g_murkClearCount].PFNDRAWRPL = DrawGlob;
-		g_murkClearCount++;
+		AppendRenderQueue(g_murkClearPrpl, g_murkClearCount, *prpl,
+			"murk clear").PFNDRAWRPL = DrawGlob;
 		break;
 
 		case RP_MurkOpaque:
-		g_murkOpaquePrpl[g_murkOpaqueCount] = *prpl;
-		g_murkOpaquePrpl[g_murkOpaqueCount].PFNDRAWRPL = DrawGlob;
-		g_murkOpaqueCount++;
+		AppendRenderQueue(g_murkOpaquePrpl, g_murkOpaqueCount, *prpl,
+			"murk opaque").PFNDRAWRPL = DrawGlob;
 		break;
 
 		case RP_MurkFill:
-		g_murkFillPrpl[g_murkFillCount] = *prpl;
-		g_murkFillPrpl[g_murkFillCount].PFNDRAWRPL = DrawGlob;
-		g_murkFillCount++;
+		AppendRenderQueue(g_murkFillPrpl, g_murkFillCount, *prpl,
+			"murk fill").PFNDRAWRPL = DrawGlob;
 		break;
 
 		case RP_Translucent:
 		// Retail partitions every RP_Translucent RPL into one bucket and sorts
 		// that bucket by the owning glob's Z.  Blend state is material state and
 		// is selected per subglob in DrawGlob; it is not a second RPL partition.
-		g_translucentPrpl[g_translucentCount] = *prpl;
-		g_translucentPrpl[g_translucentCount].PFNDRAWRPL = DrawGlob;
-		g_translucentCount++;
+		AppendRenderQueue(g_translucentPrpl, g_translucentCount, *prpl,
+			"translucent").PFNDRAWRPL = DrawGlob;
 		break;
 
 		case RP_Blip:
-		g_blipPrpl[g_blipCount] = *prpl;
-		g_blipPrpl[g_blipCount].PFNDRAWRPL = DrawBlip;
-		g_blipCount++;
+		AppendRenderQueue(g_blipPrpl, g_blipCount, *prpl,
+			"blip").PFNDRAWRPL = DrawBlip;
 		break;
 
 		case RP_Foreground:
-		g_foreGroundPrpl[g_foreGroundCount] = *prpl;
-		if (g_foreGroundPrpl[g_foreGroundCount].PFNDRAWRPL == nullptr)
-			g_foreGroundPrpl[g_foreGroundCount].PFNDRAWRPL = DrawGlob;
-		g_foreGroundCount++;
+		{
+		RPL& entry = AppendRenderQueue(g_foreGroundPrpl, g_foreGroundCount, *prpl,
+			"foreground");
+		if (entry.PFNDRAWRPL == nullptr)
+			entry.PFNDRAWRPL = DrawGlob;
+		}
 		break;
 
 		case RP_WorldMap:
-		g_worldMapPrpl[g_worldMapCount] = *prpl;
-		g_worldMapPrpl[g_worldMapCount].PFNDRAWRPL = DrawGlob;
-		g_worldMapCount++;
+		AppendRenderQueue(g_worldMapPrpl, g_worldMapCount, *prpl,
+			"world map").PFNDRAWRPL = DrawGlob;
 		break;
 
 		case RP_Max:
-		g_maxPrpl[g_maxCount] = *prpl;
-		g_maxPrpl[g_maxCount].PFNDRAWRPL = DrawGlob;
-		g_maxCount++;
+		AppendRenderQueue(g_maxPrpl, g_maxCount, *prpl,
+			"max").PFNDRAWRPL = DrawGlob;
 		break;
 	}
 
@@ -533,26 +690,46 @@ void SubmitRpl(RPL* prpl)
 
 void SubmitRplCel(RPLCEL* prplcel)
 {
+	if (prplcel == nullptr)
+		return;
 	switch (prplcel->rp)
 	{
 		case RP_CelBorder:
-		g_celBorderPrpl[g_celBorderCount] = *prplcel;
-		g_celBorderCount++;
+		AppendRenderQueue(g_celBorderPrpl, g_celBorderCount, *prplcel, "cel border");
 		break;
 
 		case RP_CelBorderAfterProjVolume:
-		g_celBorderAfterProjVolumePrpl[g_celBorderAfterProjVolumeCount] = *prplcel;
-		g_celBorderAfterProjVolumeCount++;
+		AppendRenderQueue(g_celBorderAfterProjVolumePrpl,
+			g_celBorderAfterProjVolumeCount, *prplcel,
+			"cel border after projected volume");
 		break;
 
 		case RP_TranslucentCelBorder:
-		g_translucentCelBorderPrpl[g_translucentCelBorderCount] = *prplcel;
-		g_translucentCelBorderCount++;
+		AppendRenderQueue(g_translucentCelBorderPrpl, g_translucentCelBorderCount,
+			*prplcel, "translucent cel border");
 		break;
 	}
 
 	g_cFrameCelGlobs++;
 	//numFrameObjs++;
+}
+
+RPL& QueueTranslucentRpl(const RPL& rpl)
+{
+	return AppendRenderQueue(g_translucentPrpl, g_translucentCount, rpl,
+		"translucent");
+}
+
+RPL& QueueTranslucentAddRpl(const RPL& rpl)
+{
+	return AppendRenderQueue(g_translucentAddPrpl, g_translucentAddCount, rpl,
+		"translucent additive");
+}
+
+RPL& QueueBlotContextRpl(const RPL& rpl)
+{
+	return AppendRenderQueue(g_blotContextPrpl, g_blotContextCount, rpl,
+		"blot context");
 }
 
 void SortRenderRpl()
@@ -686,11 +863,11 @@ void DrawSw(SW* psw, CM* pcm)
 {
 	// Other renderers (notably ImGui) may have changed OpenGL state since the
 	// previous world frame. Re-learn it lazily instead of querying the driver.
-	s_renderState.Invalidate();
+	InvalidateCachedRenderState();
 	/*std::cout << numFrameObjs << "\n";*/
 	//numFrameObjs = 0;
 
-	glGlobShader.Use();
+	UseShader(glGlobShader);
 	glUniform1i(glslProjectedVolumeFinalPass, 0);
 
 	//std::cout << g_cFrameGlobs << "\n";
@@ -718,7 +895,6 @@ void DrawSw(SW* psw, CM* pcm)
 
 	glEnable(GL_CULL_FACE);
 
-
 	if (g_dynamicTextureCount > 0)
 	{
 		// Do not leave the array simultaneously attached and bound for sampling.
@@ -734,7 +910,7 @@ void DrawSw(SW* psw, CM* pcm)
 		glDepthFunc(GL_ALWAYS);
 		glDepthMask(false);
 
-		glDyshadow.Use();
+		UseShader(glDyshadow);
 
 		for (int i = 0; i < g_dynamicTextureCount; i++)
 			g_dynamicTexturePrpl[i].PFNDRAWRPL(&g_dynamicTexturePrpl[i]);
@@ -747,7 +923,7 @@ void DrawSw(SW* psw, CM* pcm)
 		glDepthFunc(GL_LESS);
 		glDepthMask(true);
 
-		glGlobShader.Use();
+		UseShader(glGlobShader);
 
 		g_dynamicTextureCount = 0;
 	}
@@ -794,7 +970,12 @@ void DrawSw(SW* psw, CM* pcm)
 		g_ptvDrawContext = nullptr;
 
 		for (int i = 0; i < g_blotContextCount; i++)
-			g_blotContextPrpl[i].PFNDRAWRPL(&g_blotContextPrpl[i]);
+		{
+			RPL& rpl = g_blotContextPrpl[i];
+			rpl.PFNDRAWRPL(&rpl);
+			if (rpl.PFNDRAWRPL != DrawGlob)
+				InvalidateCachedRenderState();
+		}
 
 		g_ptvDrawContext = nullptr;
 		g_blotContextCount = 0;
@@ -841,7 +1022,7 @@ void DrawSw(SW* psw, CM* pcm)
 
 	if (g_celBorderCount > 0)
 	{
-		glCelBorderShader.Use();
+		UseShader(glCelBorderShader);
 
 		glEnable(GL_BLEND);
 		glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ZERO);
@@ -861,7 +1042,7 @@ void DrawSw(SW* psw, CM* pcm)
 		glDisable(GL_BLEND);
 		glDepthFunc(GL_LESS);
 
-		glGlobShader.Use();
+		UseShader(glGlobShader);
 
 		g_celBorderCount = 0;
 	}
@@ -931,7 +1112,7 @@ void DrawSw(SW* psw, CM* pcm)
 
 	if (g_celBorderAfterProjVolumeCount > 0)
 	{
-		glCelBorderShader.Use();
+		UseShader(glCelBorderShader);
 
 		glEnable(GL_BLEND);
 		glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ZERO);
@@ -944,7 +1125,7 @@ void DrawSw(SW* psw, CM* pcm)
 		glDepthFunc(GL_LESS);
 		glDisable(GL_BLEND);
 
-		glGlobShader.Use();
+		UseShader(glGlobShader);
 
 		g_celBorderAfterProjVolumeCount = 0;
 	}
@@ -1001,7 +1182,10 @@ void DrawSw(SW* psw, CM* pcm)
 		glUniform1f(glslAlphaCutOff, 0.9);
 
 		for (int i = 0; i < g_translucentAddCount; i++)
+		{
 			g_translucentAddPrpl[i].PFNDRAWRPL(&g_translucentAddPrpl[i]);
+			InvalidateCachedRenderState();
+		}
 
 		glDepthMask(true);
 		glDisable(GL_BLEND);
@@ -1026,7 +1210,7 @@ void DrawSw(SW* psw, CM* pcm)
 
 	if (g_translucentCelBorderCount > 0)
 	{
-		glCelBorderShader.Use();
+		UseShader(glCelBorderShader);
 
 		glEnable(GL_BLEND);
 		glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ZERO);
@@ -1039,7 +1223,7 @@ void DrawSw(SW* psw, CM* pcm)
 		glDepthFunc(GL_LESS);
 		glDisable(GL_BLEND);
 
-		glGlobShader.Use();
+		UseShader(glGlobShader);
 
 		g_translucentCelBorderCount = 0;
 	}
@@ -1052,7 +1236,7 @@ void DrawSw(SW* psw, CM* pcm)
 		glDepthMask(false);
 		glDisable(GL_CULL_FACE);
 
-		glBlipShader.Use();
+		UseShader(glBlipShader);
 		glBindBufferBase(GL_UNIFORM_BUFFER, 0, cmUBO);
 		SetActiveTextureUnit(0);
 		BindVertexArray(g_gl.blipVao);
@@ -1080,7 +1264,7 @@ void DrawSw(SW* psw, CM* pcm)
 		glDisable(GL_BLEND);
 		glEnable(GL_CULL_FACE);
 		glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ZERO);
-		glGlobShader.Use();
+		UseShader(glGlobShader);
 
 		g_blipCount = 0;
 	}
@@ -1103,15 +1287,14 @@ void DrawSw(SW* psw, CM* pcm)
 
 	if (g_worldMapCount > 0)
 	{
-		g_worldMapDrawnCount = g_worldMapCount;
 		glEnable(GL_BLEND);
 		glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ZERO);
-		glDepthMask(false);
+		glDepthMask(GL_FALSE);
 		glDepthFunc(GL_ALWAYS);
 
-		// Every world-map presentation uses the original 4:3 frame, including
-		// SELECT and the automatic map shown while entering or leaving a level.
-		// Hide the paused 3D world in the unused widescreen area.
+		// The world map is authored and projected as a 4:3 presentation.  On a
+		// wider framebuffer, cover the unused sides instead of exposing the
+		// paused 3D world behind the map.
 		constexpr float mapAspect = 4.0f / 3.0f;
 		const float screenWidth = static_cast<float>(g_gl.width);
 		const float screenHeight = static_cast<float>(g_gl.height);
@@ -1122,33 +1305,25 @@ void DrawSw(SW* psw, CM* pcm)
 		if (pwm != nullptr)
 		{
 			if (pwm->wms == WMS_Appearing && pwm->pasegOpen != nullptr && pwm->pasegOpen->tMax > 0.0f)
-			{
-				pillarboxOpacity = std::clamp(
-					(g_clock.tReal - pwm->tWms) / pwm->pasegOpen->tMax, 0.0f, 1.0f);
-			}
+				pillarboxOpacity = std::clamp((g_clock.tReal - pwm->tWms) / pwm->pasegOpen->tMax, 0.0f, 1.0f);
 			else if (pwm->wms == WMS_Disappearing && pwm->pasegClose != nullptr && pwm->pasegClose->tMax > 0.0f)
-			{
-				pillarboxOpacity = 1.0f - std::clamp(
-					(g_clock.tReal - pwm->tWms) / pwm->pasegClose->tMax, 0.0f, 1.0f);
-			}
+				pillarboxOpacity = 1.0f - std::clamp((g_clock.tReal - pwm->tWms) / pwm->pasegClose->tMax, 0.0f, 1.0f);
 		}
 
 		if (screenWidth > mapWidth)
 		{
-			const float xMapLeft = (screenWidth - mapWidth) * 0.5f;
-			const float xMapRight = xMapLeft + mapWidth;
+			const float mapLeft = (screenWidth - mapWidth) * 0.5f;
+			const float mapRight = mapLeft + mapWidth;
 			const int pillarboxAlpha = static_cast<int>(pillarboxOpacity * 255.0f);
-			FillScreenRect(0, 0, 0, pillarboxAlpha, 0.0f, 0.0f, xMapLeft, screenHeight);
-			FillScreenRect(0, 0, 0, pillarboxAlpha, xMapRight, 0.0f, screenWidth, screenHeight);
-			glGlobShader.Use();
+			FillScreenRect(0, 0, 0, pillarboxAlpha, 0.0f, 0.0f, mapLeft, screenHeight);
+			FillScreenRect(0, 0, 0, pillarboxAlpha, mapRight, 0.0f, screenWidth, screenHeight);
+			UseShader(glGlobShader);
 		}
 
 		for (int i = 0; i < g_worldMapCount; i++)
-		{
 			g_worldMapPrpl[i].PFNDRAWRPL(&g_worldMapPrpl[i]);
-		}
 
-		glDepthMask(true);
+		glDepthMask(GL_TRUE);
 		glDepthFunc(GL_LESS);
 		glDisable(GL_BLEND);
 
@@ -1185,23 +1360,18 @@ void FillScreenRect(int r, int g, int b, int alpha, float xLeft, float yTop, flo
 
 	const glm::mat4 model = glm::translate(glm::mat4(1.0f), glm::vec3(xLeft, yTop, 0.0f)) * glm::scale(glm::mat4(1.0f), glm::vec3(width, height, 1.0f));
 	const glm::vec4 color(static_cast<float>(r) / 255.0f, static_cast<float>(g) / 255.0f, static_cast<float>(b) / 255.0f, static_cast<float>(alpha) / 255.0f);
-	const GLboolean fCullEnabled = glIsEnabled(GL_CULL_FACE);
-	const GLboolean fDepthEnabled = glIsEnabled(GL_DEPTH_TEST);
-	const GLboolean fBlendEnabled = glIsEnabled(GL_BLEND);
-	GLint blendEquationRgb = GL_FUNC_ADD;
-	GLint blendEquationAlpha = GL_FUNC_ADD;
-	GLint blendSrcRgb = GL_ONE;
-	GLint blendDstRgb = GL_ZERO;
-	GLint blendSrcAlpha = GL_ONE;
-	GLint blendDstAlpha = GL_ZERO;
-	glGetIntegerv(GL_BLEND_EQUATION_RGB, &blendEquationRgb);
-	glGetIntegerv(GL_BLEND_EQUATION_ALPHA, &blendEquationAlpha);
-	glGetIntegerv(GL_BLEND_SRC_RGB, &blendSrcRgb);
-	glGetIntegerv(GL_BLEND_DST_RGB, &blendDstRgb);
-	glGetIntegerv(GL_BLEND_SRC_ALPHA, &blendSrcAlpha);
-	glGetIntegerv(GL_BLEND_DST_ALPHA, &blendDstAlpha);
+	const GLboolean fCullEnabled = GetCapability(GL_CULL_FACE);
+	const GLboolean fDepthEnabled = GetCapability(GL_DEPTH_TEST);
+	const GLboolean fBlendEnabled = GetCapability(GL_BLEND);
+	EnsureBlendStateKnown();
+	const GLenum blendEquationRgb = s_renderState.blendEquationRgb;
+	const GLenum blendEquationAlpha = s_renderState.blendEquationAlpha;
+	const GLenum blendSrcRgb = s_renderState.blendSrcRgb;
+	const GLenum blendDstRgb = s_renderState.blendDstRgb;
+	const GLenum blendSrcAlpha = s_renderState.blendSrcAlpha;
+	const GLenum blendDstAlpha = s_renderState.blendDstAlpha;
 
-	glBlotShader.Use();
+	UseShader(glBlotShader);
 
 	glUniformMatrix4fv(u_modelLoc, 1, GL_FALSE, glm::value_ptr(model));
 	glUniformMatrix4fv(u_projectionLoc, 1, GL_FALSE, glm::value_ptr(g_gl.blotProjection));
@@ -1267,7 +1437,7 @@ void DrawDysh(RPL *prpl)
 		{
 			SUBGLOB& sg = glob.asubglob[a];
 			glUniform1i(glslDyshfSkin, fHasBones && sg.cibnd > 0 ? 1 : 0);
-			glDrawElementsBaseVertex(GL_TRIANGLES, (GLsizei)sg.indexCount, GL_UNSIGNED_INT, (void*)(uintptr_t)(sg.firstIndex * sizeof(uint32_t)), (GLint)sg.baseVertex);
+			glDrawElementsBaseVertex(GL_TRIANGLES, (GLsizei)sg.indexCount, GL_UNSIGNED_SHORT, (void*)(uintptr_t)(sg.firstIndex * sizeof(uint16_t)), (GLint)sg.baseVertex);
 		}
 	}
 
@@ -1297,9 +1467,13 @@ void DrawGlob(RPL* prpl)
 	BindFrameStreamRange(&ropStream, prpl->streamOffset, sizeof(ROGL));
 
 	GLOBSET* pglobset = prpl->palo != nullptr ? &prpl->palo->globset : nullptr;
+	const GLuint poseWeightSSBO = GetGlobsetPoseWeightBuffer(pglobset);
 
 	const bool fHasBones = pglobset != nullptr && pglobset->cbnd > 0 && pglobset->boneMatrixSSBO != 0;
-	const bool fHasPoses = pglobset != nullptr && pglob->poseCount > 0 && pglob->poseDposSSBO != 0 && pglob->poseDnormalSSBO != 0 && !pglobset->agPoses.empty();
+	const bool fHasPoses = pglobset != nullptr && pglob->poseCount > 0 &&
+		pglob->poseDposSSBO != 0 && pglob->poseDnormalSSBO != 0 &&
+		poseWeightSSBO != 0 &&
+		pglobset->agPoses.size() >= static_cast<size_t>(pglob->poseCount);
 
 	glUniform1i(glslfPose, fHasPoses ? 1 : 0);
 
@@ -1308,12 +1482,10 @@ void DrawGlob(RPL* prpl)
 
 	if (fHasPoses)
 	{
-		const int poseCount = pglob->poseCount;
-
 		BindShaderStorageBuffer(10, pglob->poseDposSSBO);
 		BindShaderStorageBuffer(11, pglob->poseDnormalSSBO);
+		BindShaderStorageBuffer(14, poseWeightSSBO);
 		glUniform1i(glslPoseCount, pglob->poseCount);
-		glUniform1fv(glslPoseWeights, poseCount, pglobset->agPoses.data());
 	}
 
 	if (pglob->fThreeWay == 1)
@@ -1324,7 +1496,6 @@ void DrawGlob(RPL* prpl)
 	}
 
 	BindVertexArray(pglob->VAO);
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, pglob->EBO);
 	if (fDebugWireframe)
 	{
 		glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
@@ -1502,26 +1673,25 @@ void DrawCelBorder(RPLCEL* prplcel)
 
 	GLOB* pglob = prplcel->pglob;
 	GLOBSET* pglobset = prplcel->palo != nullptr ? &prplcel->palo->globset : nullptr;
+	const GLuint poseWeightSSBO = GetGlobsetPoseWeightBuffer(pglobset);
 
-	const bool fSkin = pglobset != nullptr && pglobset->cbnd > 0 && pglobset->boneMatrixSSBO != 0 && pglob->edgeBoneIndicesSSBO != 0 && pglob->edgeBoneWeightsSSBO != 0;
-	const bool fPose = pglobset != nullptr && pglob->poseCount > 0 && pglob->edgePoseDposSSBO != 0 && !pglobset->agPoses.empty();
+	const bool fSkin = pglobset != nullptr && pglobset->cbnd > 0 && pglobset->boneMatrixSSBO != 0;
+	const bool fPose = pglobset != nullptr && pglob->poseCount > 0 &&
+		pglob->edgePoseDposSSBO != 0 && poseWeightSSBO != 0 &&
+		pglobset->agPoses.size() >= static_cast<size_t>(pglob->poseCount);
 
 	BindShaderStorageBuffer(8, pglob->edgeSSBO);
 
 	if (fSkin)
 	{
 		BindShaderStorageBuffer(9, pglobset->boneMatrixSSBO);
-		BindShaderStorageBuffer(10, pglob->edgeBoneIndicesSSBO);
-		BindShaderStorageBuffer(11, pglob->edgeBoneWeightsSSBO);
 	}
 
 	if (fPose)
 	{
-		const int cposeUpload = pglobset->agPoses.size();
-
 		BindShaderStorageBuffer(12, pglob->edgePoseDposSSBO);
+		BindShaderStorageBuffer(14, poseWeightSSBO);
 		glUniform1i(glslCelPoseCount, pglob->poseCount);
-		glUniform1fv(glslCelPoseWeights, cposeUpload, pglobset->agPoses.data());
 	}
 
 	glUniform1i(glslCelSkin, fSkin ? 1 : 0);
@@ -1533,15 +1703,15 @@ void DrawCelBorder(RPLCEL* prplcel)
 
 void DrawSubGlob(int baseVertex, int firstIndex, int indexCount)
 {
-	glDrawElementsBaseVertex(GL_TRIANGLES, (GLsizei)indexCount, GL_UNSIGNED_INT, (void*)(uintptr_t)(firstIndex * sizeof(uint32_t)), (GLint)baseVertex);
+	glDrawElementsBaseVertex(GL_TRIANGLES, (GLsizei)indexCount, GL_UNSIGNED_SHORT, (void*)(uintptr_t)(firstIndex * sizeof(uint16_t)), (GLint)baseVertex);
 }
 
 void DrawProjVolume(int baseVertex, int firstIndex, int indexCount)
 {
 	const auto DrawVolumeMesh = [baseVertex, firstIndex, indexCount]()
 	{
-		glDrawElementsBaseVertex(GL_TRIANGLES, (GLsizei)indexCount, GL_UNSIGNED_INT,
-			(void*)(uintptr_t)(firstIndex * sizeof(uint32_t)), (GLint)baseVertex);
+		glDrawElementsBaseVertex(GL_TRIANGLES, (GLsizei)indexCount, GL_UNSIGNED_SHORT,
+			(void*)(uintptr_t)(firstIndex * sizeof(uint16_t)), (GLint)baseVertex);
 	};
 
 	if (g_grfshd == 0)
@@ -1635,39 +1805,31 @@ void DrawMurkClear(int baseVertex, int firstIndex, int indexCount)
 {
 	glBlendFuncSeparate(GL_ZERO, GL_ONE, GL_ONE, GL_ZERO);
 	glFrontFace(GL_CW);
-	glDrawElementsBaseVertex(GL_TRIANGLES, (GLsizei)indexCount, GL_UNSIGNED_INT, (void*)(uintptr_t)(firstIndex * sizeof(uint32_t)), (GLint)baseVertex);
+	glDrawElementsBaseVertex(GL_TRIANGLES, (GLsizei)indexCount, GL_UNSIGNED_SHORT, (void*)(uintptr_t)(firstIndex * sizeof(uint16_t)), (GLint)baseVertex);
 
 	glFrontFace(GL_CCW);
 	glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ZERO);
-	glDrawElementsBaseVertex(GL_TRIANGLES, (GLsizei)indexCount, GL_UNSIGNED_INT, (void*)(uintptr_t)(firstIndex * sizeof(uint32_t)), (GLint)baseVertex);
+	glDrawElementsBaseVertex(GL_TRIANGLES, (GLsizei)indexCount, GL_UNSIGNED_SHORT, (void*)(uintptr_t)(firstIndex * sizeof(uint16_t)), (GLint)baseVertex);
 }
 
 void DrawMurkFill(int baseVertex, int firstIndex, int indexCount)
 {
 	glBlendFuncSeparate(GL_ONE_MINUS_DST_ALPHA, GL_DST_ALPHA, GL_ONE, GL_NONE);
-	glDrawElementsBaseVertex(GL_TRIANGLES, (GLsizei)indexCount, GL_UNSIGNED_INT, (void*)(uintptr_t)(firstIndex * sizeof(uint32_t)), (GLint)baseVertex);
+	glDrawElementsBaseVertex(GL_TRIANGLES, (GLsizei)indexCount, GL_UNSIGNED_SHORT, (void*)(uintptr_t)(firstIndex * sizeof(uint16_t)), (GLint)baseVertex);
 
 	glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ZERO);
-	glDrawElementsBaseVertex(GL_TRIANGLES, (GLsizei)indexCount, GL_UNSIGNED_INT, (void*)(uintptr_t)(firstIndex * sizeof(uint32_t)), (GLint)baseVertex);
+	glDrawElementsBaseVertex(GL_TRIANGLES, (GLsizei)indexCount, GL_UNSIGNED_SHORT, (void*)(uintptr_t)(firstIndex * sizeof(uint16_t)), (GLint)baseVertex);
 }
 
 void DrawTranslucent(int baseVertex, int firstIndex, int indexCount)
 {
-	// Retail's translucent packet performs an alpha-tested depth-writing
-	// pass followed by a blended pass which does not write depth.  The packet
-	// must not leak that second pass's Z-write mask into the next glob.  Sly's
-	// TV model mixes translucent and ordinary globs, so leaking GL_FALSE here
-	// caused every glob after his first translucent piece to stop populating
-	// depth and visually overlap into his face. Every render phase which calls
-	// DrawTranslucent expects depth writes enabled between subglobs, so restore
-	// that known state directly instead of querying the driver for every draw.
 	glUniform1i(glslfAlphaTest, 1);
 	glDepthMask(GL_TRUE);
-	glDrawElementsBaseVertex(GL_TRIANGLES, (GLsizei)indexCount, GL_UNSIGNED_INT, (void*)(uintptr_t)(firstIndex * sizeof(uint32_t)), (GLint)baseVertex);
+	glDrawElementsBaseVertex(GL_TRIANGLES, (GLsizei)indexCount, GL_UNSIGNED_SHORT, (void*)(uintptr_t)(firstIndex * sizeof(uint16_t)), (GLint)baseVertex);
 
 	glUniform1i(glslfAlphaTest, 0);
 	glDepthMask(GL_FALSE);
-	glDrawElementsBaseVertex(GL_TRIANGLES, (GLsizei)indexCount, GL_UNSIGNED_INT, (void*)(uintptr_t)(firstIndex * sizeof(uint32_t)), (GLint)baseVertex);
+	glDrawElementsBaseVertex(GL_TRIANGLES, (GLsizei)indexCount, GL_UNSIGNED_SHORT, (void*)(uintptr_t)(firstIndex * sizeof(uint16_t)), (GLint)baseVertex);
 
 	glDepthMask(GL_TRUE);
 }
@@ -1740,9 +1902,7 @@ void DrawBlip(RPL* prplblip)
 		// The original BLIP texture packet is built with CTK_Ambient. For a
 		// three-way shader that is the ambient/shadow texture, not diffuse.
 		const bool threeWay = pblipg->pshd->shdk == SHDK_ThreeWay;
-		// Non-three-way textures are palette-resolved per TEX/iframe during
-		// LoadShadersFromBrx. The underlying BMP can be shared by TEX records
-		// with different CLUTs, so its GL texture fields are intentionally zero.
+		// PCBRX stores each material role as an already-resolved RGBA image.
 		const GLuint textureId = threeWay
 			? (iframe < static_cast<int>(tex.glShadowMap.size())
 				? tex.glShadowMap[iframe] : 0)
@@ -1868,15 +2028,13 @@ void DrawBlip(RPL* prplblip)
 		{
 			const BLIPBATCH& batch = batches[ibatch];
 			if (!batch.instances.empty())
-				s_blipFrameRanges.push_back({ batch.texture, batch.baseInstance,
-					static_cast<GLsizei>(batch.instances.size()) });
+				s_blipFrameRanges.push_back({ batch.texture, batch.baseInstance, static_cast<GLsizei>(batch.instances.size()) });
 		}
 	}
 	else
 	{
 		for (const BLIPBATCH& batch : orderedBatches)
-			s_blipFrameRanges.push_back({ batch.texture, batch.baseInstance,
-				static_cast<GLsizei>(batch.instances.size()) });
+			s_blipFrameRanges.push_back({ batch.texture, batch.baseInstance, static_cast<GLsizei>(batch.instances.size()) });
 	}
 
 	group.rangeCount = s_blipFrameRanges.size() - group.firstRange;
@@ -1888,7 +2046,7 @@ void DrawBlip(RPL* prplblip)
 void DrawSwCollisionAll(CM* pcm)
 {
 	s_renderState.Invalidate();
-	glGeomShader.Use();
+	UseShader(glGeomShader);
 
 	glBindBufferBase(GL_UNIFORM_BUFFER, 0, cmUBO);
 	glBindBuffer(GL_UNIFORM_BUFFER, cmUBO);
@@ -1933,7 +2091,7 @@ void DrawSwCollisionAll(CM* pcm)
 void DrawSwDialogTriggers(CM* pcm)
 {
 	s_renderState.Invalidate();
-	glGeomShader.Use();
+	UseShader(glGeomShader);
 
 	glBindBufferBase(GL_UNIFORM_BUFFER, 0, cmUBO);
 	glBindBuffer(GL_UNIFORM_BUFFER, cmUBO);
@@ -2073,7 +2231,6 @@ std::vector <RPL> g_foreGroundPrpl;
 
 int g_worldMapCount = 0;
 std::vector <RPL> g_worldMapPrpl;
-int g_worldMapDrawnCount = 0;
 
 int g_maxCount = 0;
 std::vector <RPL> g_maxPrpl;

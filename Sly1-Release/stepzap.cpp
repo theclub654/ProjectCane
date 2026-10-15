@@ -859,8 +859,7 @@ void RenderJtSelfZap(JT* pjt, CM* pcm, RO* pro)
             rpl.ro.darken = 1.0f;
             rpl.ro.warpType = WARP_NONE;
 
-            if (g_translucentAddCount < static_cast<int>(g_translucentAddPrpl.size()))
-                g_translucentAddPrpl[g_translucentAddCount++] = rpl;
+            QueueTranslucentAddRpl(rpl);
         }
         else if (pjt->jtbs == JTBS_Zap_Electric)
         {
@@ -872,8 +871,7 @@ void RenderJtSelfZap(JT* pjt, CM* pcm, RO* pro)
             rpl.ro.warpType = WARP_NONE;
             // SubmitRpl assigns DrawGlob to ordinary translucent entries.
             // This is a procedural halo, so retain its own draw callback.
-            if (g_translucentAddCount < static_cast<int>(g_translucentAddPrpl.size()))
-                g_translucentAddPrpl[g_translucentAddCount++] = rpl;
+            QueueTranslucentAddRpl(rpl);
         }
         else
         {
@@ -884,8 +882,7 @@ void RenderJtSelfZap(JT* pjt, CM* pcm, RO* pro)
             rpl.ro.darken = 1.0f;
             rpl.ro.warpType = WARP_NONE;
 
-            if (g_translucentAddCount < static_cast<int>(g_translucentAddPrpl.size()))
-                g_translucentAddPrpl[g_translucentAddCount++] = rpl;
+            QueueTranslucentAddRpl(rpl);
         }
     }
 

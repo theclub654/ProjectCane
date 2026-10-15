@@ -21,6 +21,7 @@
 #include <cmath>
 #include <cstdio>
 #include <fstream>
+#include <string_view>
 
 static bool s_fInfiniteTimer = false;
 static float s_svtTimerBeforeCheat = -1.0f;
@@ -1218,6 +1219,17 @@ void RenderMenuGui(SW* psw)
                 extensionPosition == std::string::npos
                 ? selectedFileName
                 : selectedFileName.substr(0, extensionPosition);
+
+            // Rebuilt test files live beside the retail BRX. Use the base
+            // level name for g_levelTable lookup while preserving `file` as
+            // the exact path selected by the user.
+            constexpr std::string_view rebuiltSuffix = "_Rebuilt";
+            if (levelName.size() >= rebuiltSuffix.size() &&
+                levelName.compare(levelName.size() - rebuiltSuffix.size(),
+                    rebuiltSuffix.size(), rebuiltSuffix) == 0)
+            {
+                levelName.erase(levelName.size() - rebuiltSuffix.size());
+            }
 
             LEVELINFO* plevel = PlevelinfoFromLevelName(levelName);
 

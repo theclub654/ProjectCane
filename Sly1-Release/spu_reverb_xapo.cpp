@@ -30,6 +30,24 @@ namespace
 	}
 
 	const XAPO_REGISTRATION_PROPERTIES kRegistration = MakeRegistration();
+
+	XAPO_REGISTRATION_PROPERTIES MakeSaturatorRegistration()
+	{
+		XAPO_REGISTRATION_PROPERTIES properties{};
+		properties.clsid = {0x943fa44d, 0xbec9, 0x46c7, {0x87, 0x12, 0x93, 0x3a, 0x15, 0xc6, 0x6d, 0x9e}};
+		wcscpy_s(properties.FriendlyName, L"ProjectCane SPU2 Mix Saturator");
+		wcscpy_s(properties.CopyrightInfo, L"ProjectCane");
+		properties.MajorVersion = 1;
+		properties.MinorVersion = 0;
+		properties.Flags = XAPO_FLAG_CHANNELS_MUST_MATCH |
+			XAPO_FLAG_FRAMERATE_MUST_MATCH | XAPO_FLAG_BITSPERSAMPLE_MUST_MATCH |
+			XAPO_FLAG_BUFFERCOUNT_MUST_MATCH | XAPO_FLAG_INPLACE_SUPPORTED;
+		properties.MinInputBufferCount = properties.MaxInputBufferCount = 1;
+		properties.MinOutputBufferCount = properties.MaxOutputBufferCount = 1;
+		return properties;
+	}
+
+	const XAPO_REGISTRATION_PROPERTIES kSaturatorRegistration = MakeSaturatorRegistration();
 	constexpr GUID kIeeeFloatSubFormat =
 		{WAVE_FORMAT_IEEE_FLOAT, 0x0000, 0x0010,
 			{0x80, 0x00, 0x00, 0xaa, 0x00, 0x38, 0x9b, 0x71}};
@@ -57,9 +75,197 @@ namespace
 	}
 }
 
+HRESULT SpuMixSaturator::QueryInterface(const REFIID interfaceId, void** result)
+{
+	if (!result)
+		return E_POINTER;
+	if (interfaceId == __uuidof(IUnknown) || interfaceId == __uuidof(IXAPO))
+	{
+		*result = static_cast<IXAPO*>(this);
+		AddRef();
+		return S_OK;
+	}
+	*result = nullptr;
+	return E_NOINTERFACE;
+}
+
+ULONG SpuMixSaturator::AddRef() { return ++m_references; }
+
+void SpuMixSaturator::SetTargetGain(const float gain)
+{
+	m_targetGain.store(std::isfinite(gain) ? std::clamp(gain, 0.0f, 1.0f) : 0.0f,
+		std::memory_order_release);
+}
+
+void SpuMixSaturator::BeginDiagnosticCapture()
+{
+	if (!m_finalOutput)
+		return;
+	m_diagnosticCaptureEnabled.store(false, std::memory_order_release);
+	m_diagnosticSampleCount.store(0, std::memory_order_release);
+	m_diagnosticCaptureEnabled.store(true, std::memory_order_release);
+}
+
+SpuMixSaturator::DiagnosticCapture SpuMixSaturator::EndDiagnosticCapture()
+{
+	DiagnosticCapture capture;
+	if (!m_finalOutput)
+		return capture;
+	m_diagnosticCaptureEnabled.store(false, std::memory_order_release);
+	const std::size_t count = (std::min)(m_diagnosticSampleCount.load(std::memory_order_acquire),
+		kDiagnosticSampleCapacity);
+	capture.input.assign(m_diagnosticInput.begin(), m_diagnosticInput.begin() + count);
+	capture.output.assign(m_diagnosticOutput.begin(), m_diagnosticOutput.begin() + count);
+	return capture;
+}
+
+ULONG SpuMixSaturator::Release()
+{
+	const ULONG references = --m_references;
+	if (references == 0)
+		delete this;
+	return references;
+}
+
+HRESULT SpuMixSaturator::GetRegistrationProperties(XAPO_REGISTRATION_PROPERTIES** properties)
+{
+	if (!properties)
+		return E_POINTER;
+	auto* copy = static_cast<XAPO_REGISTRATION_PROPERTIES*>(XAPOAlloc(sizeof(kSaturatorRegistration)));
+	if (!copy)
+		return E_OUTOFMEMORY;
+	*copy = kSaturatorRegistration;
+	*properties = copy;
+	return S_OK;
+}
+
+HRESULT SpuMixSaturator::IsInputFormatSupported(const WAVEFORMATEX* outputFormat,
+	const WAVEFORMATEX* requestedInputFormat, WAVEFORMATEX** supportedInputFormat)
+{
+	if (supportedInputFormat)
+		*supportedInputFormat = nullptr;
+	return IsStereoFloat48k(outputFormat) && IsStereoFloat48k(requestedInputFormat)
+		? S_OK : XAPO_E_FORMAT_UNSUPPORTED;
+}
+
+HRESULT SpuMixSaturator::IsOutputFormatSupported(const WAVEFORMATEX* inputFormat,
+	const WAVEFORMATEX* requestedOutputFormat, WAVEFORMATEX** supportedOutputFormat)
+{
+	if (supportedOutputFormat)
+		*supportedOutputFormat = nullptr;
+	return IsStereoFloat48k(inputFormat) && IsStereoFloat48k(requestedOutputFormat)
+		? S_OK : XAPO_E_FORMAT_UNSUPPORTED;
+}
+
+HRESULT SpuMixSaturator::Initialize(const void*, const UINT32) { return S_OK; }
+void SpuMixSaturator::Reset()
+{
+	m_previousInput = {};
+	m_previousOutput = {};
+	m_currentGain = m_targetGain.load(std::memory_order_acquire);
+}
+
+HRESULT SpuMixSaturator::LockForProcess(const UINT32 inputCount,
+	const XAPO_LOCKFORPROCESS_BUFFER_PARAMETERS* inputs, const UINT32 outputCount,
+	const XAPO_LOCKFORPROCESS_BUFFER_PARAMETERS* outputs)
+{
+	if (m_locked || inputCount != 1 || outputCount != 1 || !inputs || !outputs)
+		return E_INVALIDARG;
+	if (!IsStereoFloat48k(inputs[0].pFormat) || !IsStereoFloat48k(outputs[0].pFormat))
+		return XAPO_E_FORMAT_UNSUPPORTED;
+	m_locked = true;
+	return S_OK;
+}
+
+void SpuMixSaturator::UnlockForProcess() { m_locked = false; }
+UINT32 SpuMixSaturator::CalcInputFrames(const UINT32 outputFrames) { return outputFrames; }
+UINT32 SpuMixSaturator::CalcOutputFrames(const UINT32 inputFrames) { return inputFrames; }
+
+void SpuMixSaturator::Process(UINT32 inputCount,
+	const XAPO_PROCESS_BUFFER_PARAMETERS* inputs, UINT32 outputCount,
+	XAPO_PROCESS_BUFFER_PARAMETERS* outputs, const BOOL enabled)
+{
+	if (inputCount != 1 || outputCount != 1)
+		return;
+	const UINT32 frames = inputs[0].ValidFrameCount;
+	auto* input = static_cast<const float*>(inputs[0].pBuffer);
+	auto* output = static_cast<float*>(outputs[0].pBuffer);
+	outputs[0].ValidFrameCount = frames;
+	outputs[0].BufferFlags = inputs[0].BufferFlags;
+	const bool silent = inputs[0].BufferFlags == XAPO_BUFFER_SILENT;
+	constexpr float kSpuPositiveMaximum = 32767.0f / 32768.0f;
+	if (!m_finalOutput)
+	{
+		for (UINT32 sample = 0; sample < frames * 2; ++sample)
+		{
+			const float value = silent ? 0.0f :
+				(std::isfinite(input[sample]) ? input[sample] : 0.0f);
+			output[sample] = enabled ? std::clamp(value, -1.0f, kSpuPositiveMaximum) : value;
+		}
+	}
+	else
+	{
+		outputs[0].BufferFlags = XAPO_BUFFER_VALID;
+		constexpr float kGainStep = 1.0f / (48000.0f * 0.015f);
+		constexpr float kDcPole = 0.995f;
+		const bool captureDiagnostics =
+			m_diagnosticCaptureEnabled.load(std::memory_order_acquire);
+		const std::size_t requestedSamples = static_cast<std::size_t>(frames) * 2;
+		const std::size_t diagnosticBegin = captureDiagnostics
+			? m_diagnosticSampleCount.fetch_add(requestedSamples, std::memory_order_acq_rel) : 0;
+		const std::size_t diagnosticCount = captureDiagnostics &&
+			diagnosticBegin < kDiagnosticSampleCapacity
+			? (std::min)(requestedSamples, kDiagnosticSampleCapacity - diagnosticBegin) : 0;
+		for (UINT32 frame = 0; frame < frames; ++frame)
+		{
+			const float target = m_targetGain.load(std::memory_order_acquire);
+			if (m_currentGain < target)
+				m_currentGain = (std::min)(target, m_currentGain + kGainStep);
+			else if (m_currentGain > target)
+				m_currentGain = (std::max)(target, m_currentGain - kGainStep);
+			for (UINT32 channel = 0; channel < 2; ++channel)
+			{
+				const UINT32 sample = frame * 2 + channel;
+				const float source = silent ? 0.0f :
+					(std::isfinite(input[sample]) ? input[sample] : 0.0f);
+				if (sample < diagnosticCount)
+					m_diagnosticInput[diagnosticBegin + sample] = source;
+				const float filtered = source - m_previousInput[channel] +
+					kDcPole * m_previousOutput[channel];
+				m_previousInput[channel] = source;
+				m_previousOutput[channel] = std::isfinite(filtered) ? filtered : 0.0f;
+				const float gained = m_previousOutput[channel] * m_currentGain;
+				output[sample] = enabled ? std::clamp(gained, -1.0f, kSpuPositiveMaximum) : gained;
+				if (sample < diagnosticCount)
+					m_diagnosticOutput[diagnosticBegin + sample] = output[sample];
+			}
+		}
+	}
+}
+
 SpuStudioCReverb::SpuStudioCReverb()
 	: m_effectBuffer(kEffectBufferSize, 0)
 {
+}
+
+void SpuStudioCReverb::SetActive(const bool active)
+{
+	if (active)
+	{
+		if (m_active.load(std::memory_order_acquire))
+			return;
+		// Clear every delay/filter element before exposing the processor. Keeping
+		// the gate closed while Reset runs prevents the XAudio thread from seeing
+		// a partially reset Studio C work area.
+		Reset();
+		m_active.store(true, std::memory_order_release);
+		return;
+	}
+
+	if (!m_active.exchange(false, std::memory_order_acq_rel))
+		return;
+	// Close the gate first, then discard the old environment's feedback tail.
+	Reset();
 }
 
 HRESULT SpuStudioCReverb::QueryInterface(const REFIID interfaceId, void** result)
@@ -155,11 +361,32 @@ UINT32 SpuStudioCReverb::CalcOutputFrames(const UINT32 inputFrames)
 void SpuStudioCReverb::Reset()
 {
 	const std::lock_guard<std::mutex> lock(m_processMutex);
+	ClearStateUnlocked();
+}
+
+void SpuStudioCReverb::ClearStateUnlocked()
+{
 	std::fill(m_effectBuffer.begin(), m_effectBuffer.end(), 0);
 	m_down = {};
 	m_up = {};
 	m_ringPosition = 0;
 	m_cycle = 0;
+}
+
+bool SpuStudioCReverb::HasStateUnlocked() const
+{
+	return std::any_of(m_effectBuffer.begin(), m_effectBuffer.end(),
+		[](const short sample) { return sample != 0; }) ||
+		std::any_of(m_down.begin(), m_down.end(), [](const auto& channel)
+		{
+			return std::any_of(channel.begin(), channel.end(),
+				[](const short sample) { return sample != 0; });
+		}) ||
+		std::any_of(m_up.begin(), m_up.end(), [](const auto& channel)
+		{
+			return std::any_of(channel.begin(), channel.end(),
+				[](const short sample) { return sample != 0; });
+		});
 }
 
 int SpuStudioCReverb::Clamp16(const int64_t value)
@@ -269,7 +496,28 @@ void SpuStudioCReverb::Process(UINT32 inputCount,
 	auto* input = static_cast<const float*>(inputs[0].pBuffer);
 	auto* output = static_cast<float*>(outputs[0].pBuffer);
 	outputs[0].ValidFrameCount = frames;
+	if (!m_active.load(std::memory_order_acquire))
+	{
+		// A zero output matrix is a routing control, not a guarantee that XAudio
+		// will label the effect input SILENT. Never let an inactive feedback XAPO
+		// turn a stale VALID work buffer into an audible reverb tail.
+		std::fill_n(output, static_cast<std::size_t>(frames) * 2, 0.0f);
+		outputs[0].BufferFlags = XAPO_BUFFER_SILENT;
+		return;
+	}
+	if (!enabled)
+	{
+		// This processor is a wet-only return. XAPO bypass semantics would copy
+		// the dry input into that return and double the source signal, so an
+		// explicitly disabled Studio C must instead be silent. Discard its delay
+		// state as well so a later enable cannot resurrect an old environment.
+		std::fill_n(output, static_cast<std::size_t>(frames) * 2, 0.0f);
+		ClearStateUnlocked();
+		outputs[0].BufferFlags = XAPO_BUFFER_SILENT;
+		return;
+	}
 	outputs[0].BufferFlags = XAPO_BUFFER_VALID;
+	bool producedOutput = false;
 	for (UINT32 frame = 0; frame < frames; ++frame)
 	{
 		float left = inputs[0].BufferFlags == XAPO_BUFFER_SILENT ? 0.0f : input[frame * 2];
@@ -279,17 +527,18 @@ void SpuStudioCReverb::Process(UINT32 inputCount,
 		// could otherwise turn a rare device-start transient into full-scale noise.
 		left = std::isfinite(left) ? std::clamp(left, -1.0f, 1.0f) : 0.0f;
 		right = std::isfinite(right) ? std::clamp(right, -1.0f, 1.0f) : 0.0f;
-		if (!enabled)
-		{
-			output[frame * 2] = left;
-			output[frame * 2 + 1] = right;
-		}
-		else
-		{
-			const auto wet = ProcessFrame(static_cast<int>(std::lround(left * 32768.0f)),
-				static_cast<int>(std::lround(right * 32768.0f)));
-			output[frame * 2] = std::clamp(wet[0] / 32768.0f, -1.0f, 1.0f);
-			output[frame * 2 + 1] = std::clamp(wet[1] / 32768.0f, -1.0f, 1.0f);
-		}
+		const auto wet = ProcessFrame(static_cast<int>(std::lround(left * 32768.0f)),
+			static_cast<int>(std::lround(right * 32768.0f)));
+		output[frame * 2] = std::clamp(wet[0] / 32768.0f, -1.0f, 1.0f);
+		output[frame * 2 + 1] = std::clamp(wet[1] / 32768.0f, -1.0f, 1.0f);
+		producedOutput = producedOutput || wet[0] != 0 || wet[1] != 0;
+	}
+
+	// Once both the output and every fixed-point delay/filter element are empty,
+	// propagate SILENT so XAudio can stop scheduling an exhausted reverb tail.
+	if (inputs[0].BufferFlags == XAPO_BUFFER_SILENT && !producedOutput &&
+		!HasStateUnlocked())
+	{
+		outputs[0].BufferFlags = XAPO_BUFFER_SILENT;
 	}
 }

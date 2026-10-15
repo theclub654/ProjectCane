@@ -4,6 +4,8 @@
 **/Debug/
 **/Release/
 **/bin/
+!Libraries/bin/
+!Libraries/bin/SDL2.dll
 **/obj/
 !Libraries/lib/Debug/
 !Libraries/lib/Debug/**

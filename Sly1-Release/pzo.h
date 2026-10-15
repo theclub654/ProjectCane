@@ -143,7 +143,6 @@ void UpdateVaultActive(VAULT* pvault, JOY* pjoy, float dt);
 void HandleVaultMessage(VAULT* pvault, MSGID msgid, void* pv);
 void AddVaultGoadDialog(VAULT* pvault, int goadk, OID oidDialog);
 void OpenVault(VAULT* pvault);
-int FCanOpenVault(VAULT* pvault);
 void DeleteVault(VAULT *pvault);
 
 void GetBlueprintInfo(GRFVAULT* pgrfvault, int ipdialog);

@@ -1,5 +1,7 @@
 #include "vis.h"
 
+#include <stdexcept>
+
 VISMAP* NewVismap()
 {
 	return NewWorldObject<VISMAP>();
@@ -21,33 +23,38 @@ void LoadVismapFromBrx(VISMAP* pvismap, CBinaryInputStream* pbis)
 	pvismap->cvbsp = pbis->U16Read();
 	pvismap->avbsp.resize(pvismap->cvbsp);
 
-	for (int i = 0; i < pvismap->cvbsp; i++) {
+	for (int i = 0; i < pvismap->cvbsp; i++)
+	{
 		auto& node = pvismap->avbsp[i];
-		node.normal = pbis->ReadVector();
+		node.normal.x = pbis->F32Read();
+		node.normal.y = pbis->F32Read();
+		node.normal.z = pbis->F32Read();
 		node.gDot = pbis->F32Read();
 
-		// NEGATIVE CHILD
-		uint32_t grfneg = pbis->U32Read();
-		if (grfneg & 0x80000000) {
-			node.bNegIsLeaf = true;
-			node.grfzonNeg = grfneg & 0x7FFFFFFF;
-		}
-		else {
-			node.pvbspNeg = &pvismap->avbsp[grfneg];
-		}
+		// PCBRX v7 stores each child explicitly. A node index of -1 means that
+		// the corresponding zone mask is a leaf; no high-bit tagging remains.
+		const int32_t negNode = pbis->S32Read();
+		node.grfzonNeg = pbis->U32Read();
+		const int32_t posNode = pbis->S32Read();
+		node.grfzonPos = pbis->U32Read();
 
-		// POSITIVE CHILD
-		uint32_t grfpos = pbis->U32Read();
-		if (grfpos & 0x80000000) {
-			node.bPosIsLeaf = true;
-			node.grfzonPos = grfpos & 0x7FFFFFFF;
+		node.bNegIsLeaf = negNode == -1;
+		node.bPosIsLeaf = posNode == -1;
+		if (!node.bNegIsLeaf) {
+			if (negNode < 0 || negNode >= pvismap->cvbsp)
+				throw std::runtime_error("PCBRX vismap negative child index is out of range");
+			node.pvbspNeg = &pvismap->avbsp[negNode];
 		}
-		else {
-			node.pvbspPos = &pvismap->avbsp[grfpos];
+		if (!node.bPosIsLeaf) {
+			if (posNode < 0 || posNode >= pvismap->cvbsp)
+				throw std::runtime_error("PCBRX vismap positive child index is out of range");
+			node.pvbspPos = &pvismap->avbsp[posNode];
 		}
 	}
 
 	pvismap->cgrfzon = pbis->U16Read();
+	if (pvismap->cgrfzon > 32)
+		throw std::runtime_error("PCBRX vismap one-hop zone count exceeds 32-bit masks");
 	pvismap->agrfzonOneHop.resize(pvismap->cgrfzon);
 
 	for (int i = 0; i < pvismap->cgrfzon; i++)

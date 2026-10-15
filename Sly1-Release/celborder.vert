@@ -1,6 +1,5 @@
 #version 430 core
 
-#define MAX_POSES 64
 
 layout(std140, binding = 0) uniform CMGL
 {
@@ -15,9 +14,16 @@ layout(std140, binding = 1) uniform ROCEL
     float uAlphaCelBorder;
 } cbp;
 
+struct CELPOINT
+{
+    vec4 position;
+    uvec4 boneIndices;
+    vec4 boneWeights;
+};
+
 layout(std430, binding = 8) readonly buffer EDGEBUFFER
 {
-    vec4 edges[];
+    CELPOINT edgePoints[];
 };
 
 layout(std430, binding = 9) readonly buffer BONEBLK
@@ -25,25 +31,19 @@ layout(std430, binding = 9) readonly buffer BONEBLK
     mat4 boneMatrices[];
 };
 
-layout(std430, binding = 10) readonly buffer EDGEBONEINDICES
-{
-    uvec4 edgeBoneIndices[];
-};
-
-layout(std430, binding = 11) readonly buffer EDGEBONEWEIGHTS
-{
-    vec4 edgeBoneWeights[];
-};
-
 layout(std430, binding = 12) readonly buffer EDGEPOSEPOSBLK
 {
     vec4 edgePoseDpos[];
 };
 
+layout(std430, binding = 14) readonly buffer POSEWEIGHTBLK
+{
+    float poseWeights[];
+};
+
 uniform int fSkin;
 uniform int fPose;
 uniform int poseCount;
-uniform float poseWeights[MAX_POSES];
 
 void CullVertex();
 float Cross2D(vec2 a, vec2 b);
@@ -55,7 +55,7 @@ void main()
     bool first = (gl_VertexID & 1) == 0;
     int pointBase = edgeID * 4;
 
-    if (pointBase < 0 || pointBase + 3 >= edges.length())
+    if (pointBase < 0 || pointBase + 3 >= edgePoints.length())
     {
         CullVertex();
         return;
@@ -108,11 +108,12 @@ float Cross2D(vec2 a, vec2 b)
 
 vec3 GetEdgePosition(int pointIndex)
 {
-    vec4 position = edges[pointIndex];
+    CELPOINT point = edgePoints[pointIndex];
+    vec4 position = point.position;
 
     if (fPose != 0)
     {
-        int count = clamp(poseCount, 0, MAX_POSES);
+        int count = min(max(poseCount, 0), poseWeights.length());
         int poseBase = pointIndex * poseCount;
 
         for (int ipose = 0; ipose < count; ++ipose)
@@ -129,12 +130,11 @@ vec3 GetEdgePosition(int pointIndex)
     if (fSkin == 0)
         return position.xyz;
 
-    if (pointIndex < 0 || pointIndex >= edgeBoneIndices.length() ||
-        pointIndex >= edgeBoneWeights.length())
+    if (pointIndex < 0 || pointIndex >= edgePoints.length())
         return position.xyz;
 
-    uvec4 indices = edgeBoneIndices[pointIndex];
-    vec4 weights = edgeBoneWeights[pointIndex];
+    uvec4 indices = point.boneIndices;
+    vec4 weights = point.boneWeights;
     vec4 localPosition = vec4(position.xyz, 1.0);
     vec4 skinnedPosition = vec4(0.0);
     float totalWeight = 0.0;

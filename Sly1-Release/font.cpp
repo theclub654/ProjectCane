@@ -733,8 +733,7 @@ void CRichText::Draw(CTextBox* ptbx, CTextBox* ptbxClip,
 
 void CFontBrx::LoadFromBrx(CBinaryInputStream* pbis)
 {
-	const uint16_t ibmp = pbis->U16Read();
-	const int16_t iclut = pbis->S16Read();
+	const int32_t imageIndex = pbis->S32Read();
 
 	m_dxCharUnscaled = pbis->U8Read();
 	m_dxSpaceUnscaled = pbis->U8Read();
@@ -748,10 +747,8 @@ void CFontBrx::LoadFromBrx(CBinaryInputStream* pbis)
 
 	m_cglyff = static_cast<uint16_t>(pbis->U32Read());
 
-	m_pbmp = ibmp < g_abmp.size() ? &g_abmp[ibmp] : nullptr;
-	m_pclut = iclut >= 0 && static_cast<std::size_t>(iclut) < g_aclut.size()
-		? &g_aclut[static_cast<std::size_t>(iclut)]
-		: nullptr;
+	m_pbmp = imageIndex >= 0 && static_cast<std::size_t>(imageIndex) < g_abmp.size()
+		? &g_abmp[static_cast<std::size_t>(imageIndex)] : nullptr;
 
 	m_aglyff.clear();
 	m_aglyff.reserve(m_cglyff);
@@ -832,7 +829,6 @@ std::shared_ptr<CFontBrx> CFontBrx::PfontClone(float rx, float ry)
 	fontclone->m_z = this->m_z;
 
 	fontclone->m_pbmp = this->m_pbmp;
-	fontclone->m_pclut = this->m_pclut;
 	fontclone->m_cglyff = this->m_cglyff;
 	fontclone->m_aglyff = this->m_aglyff;
 	fontclone->m_grffont = this->m_grffont;
@@ -1053,7 +1049,6 @@ void CFontBrx::CopyTo(CFontBrx* pfontDst)
 	pfontDst->m_z = this->m_z;
 
 	pfontDst->m_pbmp = this->m_pbmp;
-	pfontDst->m_pclut = this->m_pclut;
 	pfontDst->m_cglyff = this->m_cglyff;
 	pfontDst->m_aglyff = this->m_aglyff;
 	pfontDst->m_grffont = this->m_grffont;

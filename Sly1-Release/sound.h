@@ -59,6 +59,9 @@ struct EFFECTVOICE
     int envelopeLevel = 0;
     int envelopeTarget = 0;
     bool loop = false;
+    bool noise = false;
+    int priority = 0;
+    uint64_t allocationSerial = 0;
     bool envelopeExponential = false;
     bool envelopeDecreasing = false;
 };
@@ -169,6 +172,7 @@ struct EFFECTBANK
         uint16_t adsr2 = 0;
         uint16_t flags = 0;
         uint32_t sampleOffset = 0;
+        uint32_t sampleEndOffset = 0;
         uint32_t reserved = 0;
     };
 
@@ -224,8 +228,15 @@ struct MusicStreamState
 struct MusicTone
 {
     std::filesystem::path wavePath;
+	// Embedded .mus tones are decoded to the fixed 48 kHz software mix and
+	// still need 989SND's PS1 44.1/48 kHz tuning correction. Extracted WAV
+	// tones already carry that tuning in their native sample rate.
+	bool applyPs1SampleRateCorrection = true;
 	uint32_t sampleOffset = 0;
+	uint32_t sampleEndOffset = 0;
+	uint16_t flags = 0;
     int program = 0;
+    int priority = 0;
     int mapLow = 0;
     int mapHigh = 127;
     int volume = 127;
@@ -296,14 +307,18 @@ struct MusicSegment
 struct MusicVoice
 {
     IXAudio2SourceVoice* voice = nullptr;
+    const MusicTone* tone = nullptr;
     uint32_t segment = 0;
     uint8_t channel = 0;
     uint8_t note = 0;
+	uint8_t velocity = 127;
     float baseVolume = 1.0f;
     float baseFrequencyRatio = 1.0f;
     int pitchBendLow = 0;
     int pitchBendHigh = 0;
     int pan = 0;
+    int priority = 0;
+    uint64_t allocationSerial = 0;
     MusicEnvelope envelope{};
 };
 
@@ -378,8 +393,8 @@ bool IsReadablePath(const char* value);
 bool MatchesInsensitive(const std::filesystem::path& path, const std::wstring& name);
 std::filesystem::path FindExtractedWav(const std::wstring& fileName);
 std::filesystem::path FindCommentaryWav(uint32_t identity, uint32_t sector);
-std::filesystem::path FindEffectBank(int ibnk);
-std::filesystem::path FindMusicBank(MUSID musid);
+std::filesystem::path FindEffectBank(int ibnk, const char* fileName = nullptr);
+std::filesystem::path FindMusicBank(MUSID musid, const char* fileName = nullptr);
 bool LoadPcmWave(const std::filesystem::path& path, SoundWaveFormat& format,
     std::vector<uint8_t>& pcm);
 bool EnsureEffectReverb();
@@ -387,7 +402,7 @@ void ApplyCurrentEffectReverb();
 bool EnsureMusicEngine();
 void RecalculateChannelVolume(int channel);
 void CloseMusicVoice();
-std::filesystem::path ResolveVagWav(const char* descriptorOrPath);
+std::filesystem::path ResolveVagWav(const char* fileName);
 void CloseVagStream();
 uint16_t MusicLe16(const uint8_t* p);
 uint32_t MusicLe32(const uint8_t* p);
@@ -408,11 +423,12 @@ void ReleaseMusicEnvelope(MusicEnvelope& envelope);
 void StepMusicEnvelope(MusicEnvelope& envelope);
 void UpdateMusicEnvelopes();
 void SetMusicVoicePan(IXAudio2SourceVoice* voice, int pan);
-void StartMusicTone(MusicSegment& segment, uint8_t channel, uint8_t note, uint8_t velocity);
+void StartMusicTone(MusicSegment& segment, uint8_t channel, uint8_t note, uint8_t velocity,
+	const MusicTone* onlyTone = nullptr, uint32_t playBegin = 0);
 void StopMusicTone(uint32_t segment, uint8_t channel, uint8_t note);
 void ActivateQueuedMusicSegments();
 void StepMusicSegment(MusicSegment& segment);
-bool DecodeEffectAdpcm(const EFFECTBANK& bank, uint32_t sampleOffset,
+bool DecodeEffectAdpcm(const EFFECTBANK& bank, uint32_t sampleOffset, uint32_t sampleEndOffset,
     DecodedEffectSample& decoded);
 void SetEffectVoicePan(IXAudio2SourceVoice* voice, int pan);
 int EffectSpatialPanDegrees(float pan);
@@ -480,6 +496,7 @@ float GetUserSfxVolume();
 void SetUserDialogueVolume(float volume);
 float GetUserDialogueVolume();
 void StopVag();
+void StopVagAndWaitForFade();
 void SetMvgkRvol(float uVol, int mgvk, int iChannel);
 void ResumeVag();
 void PauseVag();
@@ -493,28 +510,32 @@ void ContinueMusicSequencer(bool continueAmbientSounds = true);
 bool FMusicSequencerPaused();
 void PreloadVag(const char* filename);
 void PreloadVag(const std::filesystem::path& path);
-void PreloadVagDescriptor(const void* descriptor);
+void PreloadVagFileName(const char* fileName);
 void PushSwReverb(SW* psw, REVERBK rvrbk, int depth);
 void PopSwReverb(SW* psw);
 void PlayCommentaryAudio(char* audioFileLocation);
 bool FPlayingCommentaryAudio();
 void ContinueMusic();
 void PauseMusic();
-void PreloadMusidSong(MUSID musid);
-void StartMusidSong(MUSID musid);
+void PreloadMusidSong(MUSID musid, const char* fileName = nullptr);
+void StartMusidSong(MUSID musid, const char* fileName = nullptr);
 void UnloadMusic();
 void KillMusic();
 void KillSounds(int msRampdown);
 void KillExcitement();
 void ResetAMRegisters();
 void KillSoundSystem();
-SoundBankPtr SbpEnsureBank(int ibnk);
+SoundBankPtr SbpEnsureBank(int ibnk, const char* fileName = nullptr);
 void UnloadEffectBank();
 bool FContinuousSound(SFXID sfxid);
 void SetSwDefaultReverb(SW* psw, REVERBK rvrbk, int depth);
 
 void StartupSound();
 void ShutdownSound();
+std::string GetAudioOutputDeviceName();
+std::string GetAudioOutputDeviceId();
+void SetAudioOutputDeviceId(const std::string& deviceId);
+void SelectAudioOutputDevice(int direction);
 void InitializeSoundOptions();
 void SetMasterVolume(float uVol);
 float GetMasterVolume();

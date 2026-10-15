@@ -429,6 +429,30 @@ CBinaryInputStream::~CBinaryInputStream()
     Close();
 }
 
+std::size_t CBinaryInputStream::GetSize()
+{
+    if (m_bisk == BISK_Mem)
+        return m_cb;
+
+    if (m_bisk != BISK_File || !file.is_open())
+        return 0;
+
+    const std::streampos position = file.tellg();
+    file.clear();
+    file.seekg(0, std::ios::end);
+    const std::streampos end = file.tellg();
+    if (position >= 0)
+        file.seekg(position);
+    return end >= 0 ? static_cast<std::size_t>(end) : 0;
+}
+
+std::size_t CBinaryInputStream::Remaining()
+{
+    const std::size_t size = GetSize();
+    const std::size_t offset = GetOffset();
+    return offset <= size ? size - offset : 0;
+}
+
 void CBinaryInputStream::Seek(std::size_t offset)
 {
     switch (m_bisk)

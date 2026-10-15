@@ -6,8 +6,12 @@
 #include "glob.h"
 #include "debug.h"
 #include "sound.h"
+#include "shd.h"
+#include "Input.h"
 #include "../platform/platform.h"
 #include <algorithm>
+#include <cmath>
+#include <cstddef>
 #include <cstdint>
 #include <cstring>
 #include <filesystem>
@@ -19,7 +23,7 @@ namespace
 constexpr char kSaveMagic[8] = { 'P', 'C', 'A', 'N', 'E', 'S', 'A', 'V' };
 constexpr uint32_t kSaveVersion = 3;
 constexpr char kSettingsMagic[8] = { 'P', 'C', 'A', 'N', 'E', 'S', 'Y', 'S' };
-constexpr uint32_t kSettingsVersion = 10;
+constexpr uint32_t kSettingsVersion = 15;
 int s_lastSaveSlot = -1;
 
 struct VideoSaveSettingsV1
@@ -141,6 +145,49 @@ struct VideoSaveSettingsV9
 	int mouseCameraEnabled;
 };
 
+struct VideoSaveSettingsV10
+{
+	VideoSaveSettingsV9 base;
+	int cutsceneSkipControlsEnabled;
+};
+
+struct VideoSaveSettingsV11
+{
+	VideoSaveSettingsV10 base;
+	float mouseCameraSensitivity;
+};
+
+struct VideoSaveSettingsV12
+{
+	VideoSaveSettingsV11 base;
+	int autoIconify;
+};
+
+struct VideoSaveSettingsV13
+{
+	VideoSaveSettingsV11 base;
+	int autoIconify;
+	int anisotropicFiltering;
+};
+
+// Version 14 ended immediately before the stable monitor-name field.
+struct VideoSaveSettingsV14
+{
+	std::byte bytes[offsetof(VIDEOSAVESETTINGS, monitorName)];
+};
+static_assert(sizeof(VideoSaveSettingsV14) == offsetof(VIDEOSAVESETTINGS, monitorName));
+
+void SetDefaultExtendedSettings(VIDEOSAVESETTINGS& settings)
+{
+	settings.outputGamma = 1.0f;
+	settings.textureFiltering = 1;
+	settings.monitorIndex = 0;
+	settings.resolutionScalePercent = 100;
+	settings.controllerDeadzone = 0.35f;
+	settings.audioOutputDeviceId[0] = '\0';
+	settings.monitorName[0] = '\0';
+}
+
 struct SaveFileHeader
 {
     char magic[8];
@@ -174,6 +221,7 @@ VIDEOSAVESETTINGS UpgradeVideoSettings(const VideoSaveSettingsV1& oldSettings)
 	std::copy(g_keyboardBindings.begin(), g_keyboardBindings.end(), settings.keyboardBindings);
 	std::copy(g_gamepadBindings.begin(), g_gamepadBindings.end(), settings.gamepadBindings);
     settings.lastSaveSlot = -1;
+	settings.autoIconify = 1;
 	SetDefaultAudioSettings(settings);
     return settings;
 }
@@ -186,6 +234,7 @@ VIDEOSAVESETTINGS UpgradeVideoSettings(const VideoSaveSettingsV2& oldSettings)
 	std::copy(g_gamepadBindings.begin(), g_gamepadBindings.end(), settings.gamepadBindings);
 	settings.guiStyle = GuiStyle_PS2;
 	settings.lastSaveSlot = -1;
+	settings.autoIconify = 1;
 	SetDefaultAudioSettings(settings);
 	return settings;
 }
@@ -198,6 +247,7 @@ VIDEOSAVESETTINGS UpgradeVideoSettings(const VideoSaveSettingsV3& oldSettings)
 	std::copy(g_gamepadBindings.begin(), g_gamepadBindings.end(), settings.gamepadBindings);
 	settings.guiStyle = GuiStyle_PS2;
 	settings.lastSaveSlot = -1;
+	settings.autoIconify = 1;
 	SetDefaultAudioSettings(settings);
 	return settings;
 }
@@ -221,6 +271,7 @@ VIDEOSAVESETTINGS UpgradeVideoSettings(const VideoSaveSettingsV4& oldSettings)
 	std::copy(std::begin(oldSettings.gamepadBindings), std::end(oldSettings.gamepadBindings),
 		settings.gamepadBindings);
 	settings.lastSaveSlot = -1;
+	settings.autoIconify = 1;
 	SetDefaultAudioSettings(settings);
 	return settings;
 }
@@ -231,6 +282,7 @@ VIDEOSAVESETTINGS UpgradeVideoSettings(const VideoSaveSettingsV5& oldSettings)
 	std::memcpy(&settings, &oldSettings, sizeof(oldSettings));
 	settings.disableControllerInputWhenUnfocused = 0;
 	settings.lastSaveSlot = -1;
+	settings.autoIconify = 1;
 	SetDefaultAudioSettings(settings);
 	return settings;
 }
@@ -240,6 +292,7 @@ VIDEOSAVESETTINGS UpgradeVideoSettings(const VideoSaveSettingsV6& oldSettings)
 	VIDEOSAVESETTINGS settings{};
 	std::memcpy(&settings, &oldSettings, sizeof(oldSettings));
 	settings.lastSaveSlot = -1;
+	settings.autoIconify = 1;
 	SetDefaultAudioSettings(settings);
 	return settings;
 }
@@ -298,6 +351,19 @@ VIDEOSAVESETTINGS CaptureVideoSettings()
 	settings.dialogueVolume = GetUserDialogueVolume();
 	settings.mouseCameraEnabled = g_fMouseCamera ? 1 : 0;
 	settings.cutsceneSkipControlsEnabled = g_fSkipBinocDialogs ? 1 : 0;
+	settings.mouseCameraSensitivity = g_mouseCameraSensitivity;
+	settings.autoIconify = g_fAutoIconify ? 1 : 0;
+	settings.anisotropicFiltering = g_anisotropicFiltering;
+	settings.outputGamma = g_outputGamma;
+	settings.textureFiltering = g_textureFiltering;
+	settings.monitorIndex = g_monitorIndex;
+	settings.resolutionScalePercent = g_resolutionScalePercent;
+	settings.controllerDeadzone = g_controllerDeadzone;
+	const std::string audioDeviceId = GetAudioOutputDeviceId();
+	std::snprintf(settings.audioOutputDeviceId, sizeof(settings.audioOutputDeviceId), "%s",
+		audioDeviceId.c_str());
+	std::snprintf(settings.monitorName, sizeof(settings.monitorName), "%s",
+		VideoMonitorName(g_monitorIndex));
     return settings;
 }
 
@@ -309,15 +375,31 @@ GLFWmonitor* CurrentMonitor()
             return monitor;
     }
 
+	int count = 0;
+	GLFWmonitor** monitors = glfwGetMonitors(&count);
+	if (monitors != nullptr && count > 0)
+		return monitors[std::clamp(g_monitorIndex, 0, count - 1)];
     return glfwGetPrimaryMonitor();
 }
 
 void ValidateVideoSettings(VIDEOSAVESETTINGS& settings)
 {
+	const bool legacyExtendedSettings = !std::isfinite(settings.outputGamma) ||
+		settings.outputGamma <= 0.0f || settings.resolutionScalePercent == 0;
+	if (legacyExtendedSettings)
+	{
+		settings.outputGamma = 1.0f;
+		settings.textureFiltering = 1;
+		settings.resolutionScalePercent = 100;
+		settings.controllerDeadzone = 0.35f;
+		settings.monitorIndex = 0;
+		settings.audioOutputDeviceId[0] = '\0';
+	}
     settings.fogType = std::clamp(settings.fogType, 0, 2);
     settings.msaaEnabled = settings.msaaEnabled != 0;
-    settings.msaaSamples = std::clamp(settings.msaaSamples, 1, 16);
-    settings.frameRate = (std::max)(settings.frameRate, 30);
+	if (settings.frameRate < 30 || settings.frameRate > 1000)
+		settings.frameRate = 60;
+	if (!std::isfinite(settings.drawDistance)) settings.drawDistance = 1.0f;
     settings.drawDistance = std::clamp(settings.drawDistance, 0.75f, 3.0f);
     settings.windowMode = std::clamp(settings.windowMode,
         static_cast<int>(WindowMode_Windowed), static_cast<int>(WindowMode_Fullscreen));
@@ -330,8 +412,32 @@ void ValidateVideoSettings(VIDEOSAVESETTINGS& settings)
         settings.disableControllerInputWhenUnfocused != 0;
 	settings.mouseCameraEnabled = settings.mouseCameraEnabled != 0;
 	settings.cutsceneSkipControlsEnabled = settings.cutsceneSkipControlsEnabled != 0;
+	settings.autoIconify = settings.autoIconify != 0;
+	if (!std::isfinite(settings.outputGamma)) settings.outputGamma = 1.0f;
+	settings.outputGamma = std::clamp(settings.outputGamma, 0.50f, 1.50f);
+	settings.textureFiltering = settings.textureFiltering != 0;
+	settings.monitorIndex = std::clamp(settings.monitorIndex, 0, VideoMonitorCount() - 1);
+	settings.resolutionScalePercent = std::clamp(settings.resolutionScalePercent, 50, 200);
+	if (!std::isfinite(settings.controllerDeadzone)) settings.controllerDeadzone = 0.35f;
+	settings.controllerDeadzone = std::clamp(settings.controllerDeadzone, 0.05f, 0.50f);
+	settings.audioOutputDeviceId[sizeof(settings.audioOutputDeviceId) - 1] = '\0';
+	settings.monitorName[sizeof(settings.monitorName) - 1] = '\0';
+	const int validAnisotropyLevels[] = { 1, 2, 4, 8, 16 };
+	const int maximumAnisotropy = MaxSupportedAnisotropicFiltering();
+	if (std::find(std::begin(validAnisotropyLevels), std::end(validAnisotropyLevels),
+		settings.anisotropicFiltering) == std::end(validAnisotropyLevels) ||
+		settings.anisotropicFiltering > maximumAnisotropy)
+	{
+		settings.anisotropicFiltering = 1;
+	}
+	if (!std::isfinite(settings.mouseCameraSensitivity) || settings.mouseCameraSensitivity <= 0.0f)
+		settings.mouseCameraSensitivity = 1.0f;
+	settings.mouseCameraSensitivity = std::clamp(settings.mouseCameraSensitivity, 0.25f, 2.0f);
     settings.lastSaveSlot = std::clamp(settings.lastSaveSlot, -1, SAVE_SLOT_COUNT - 1);
 	settings.stereoEnabled = settings.stereoEnabled != 0;
+	if (!std::isfinite(settings.musicVolume)) settings.musicVolume = 1.0f;
+	if (!std::isfinite(settings.soundEffectsVolume)) settings.soundEffectsVolume = 1.0f;
+	if (!std::isfinite(settings.dialogueVolume)) settings.dialogueVolume = 1.0f;
 	settings.musicVolume = std::clamp(settings.musicVolume, 0.0f, 1.0f);
 	settings.soundEffectsVolume = std::clamp(settings.soundEffectsVolume, 0.0f, 1.0f);
 	settings.dialogueVolume = std::clamp(settings.dialogueVolume, 0.0f, 1.0f);
@@ -344,7 +450,8 @@ void ValidateVideoSettings(VIDEOSAVESETTINGS& settings)
 	for (int button = 0; button < BTN_MAX; ++button)
 	{
 		const int key = settings.keyboardBindings[button];
-		if (key < GLFW_KEY_SPACE || key > GLFW_KEY_LAST || key == GLFW_KEY_ESCAPE)
+		if (!FMouseBinding(key) &&
+			(key < GLFW_KEY_SPACE || key > GLFW_KEY_LAST || key == GLFW_KEY_ESCAPE))
 			settings.keyboardBindings[button] = g_keyboardBindings[button];
 	}
 	for (int button = 0; button < BTN_MAX; ++button)
@@ -357,46 +464,39 @@ void ValidateVideoSettings(VIDEOSAVESETTINGS& settings)
 		}
 	}
 
-    const int validInternalResolutions[] = { 0, 360, 480, 720, 1080, 1440, 2160 };
+    const int validInternalResolutions[] = { 0, 360, 448, 480, 720, 1080, 1440, 2160 };
     if (std::find(std::begin(validInternalResolutions), std::end(validInternalResolutions),
         settings.internalResolutionHeight) == std::end(validInternalResolutions))
     {
         settings.internalResolutionHeight = 0;
     }
 
-    GLFWmonitor* monitor = CurrentMonitor();
-    const GLFWvidmode* mode = monitor != nullptr ? glfwGetVideoMode(monitor) : nullptr;
-    if (mode != nullptr)
-    {
-        if (settings.frameRate > mode->refreshRate)
-            settings.frameRate = (std::max)(mode->refreshRate, 30);
-
-        if (settings.internalResolutionHeight > mode->height)
-        {
-            settings.internalResolutionHeight = 0;
-            for (int height : validInternalResolutions)
-            {
-                if (height <= mode->height)
-                    settings.internalResolutionHeight = height;
-            }
-        }
-    }
-
     GLint maxSamples = 1;
     glGetIntegerv(GL_MAX_SAMPLES, &maxSamples);
-    settings.msaaSamples = (std::clamp)(
-        settings.msaaSamples, 1, (std::max)(static_cast<int>(maxSamples), 1));
-    if (maxSamples < 2)
+    const int validMsaaSamples[] = { 2, 4, 8, 16 };
+    if (std::find(std::begin(validMsaaSamples), std::end(validMsaaSamples),
+        settings.msaaSamples) == std::end(validMsaaSamples) ||
+        settings.msaaSamples > maxSamples)
+    {
         settings.msaaEnabled = 0;
+        settings.msaaSamples = 1;
+    }
 }
 
 void ApplySavedVideoSettings(VIDEOSAVESETTINGS settings)
 {
     ValidateVideoSettings(settings);
 
-    ApplyWindowModeSettings(static_cast<WindowMode>(settings.windowMode));
+	const int namedMonitor = VideoMonitorIndexByName(settings.monitorName);
+	g_monitorIndex = namedMonitor >= 0 ? namedMonitor : settings.monitorIndex;
+	if (!ApplyWindowModeSettings(static_cast<WindowMode>(settings.windowMode)))
+		ApplyWindowModeSettings(WindowMode_Windowed);
+	if (g_windowMode == WindowMode_Windowed)
+		ApplyMonitorSettings(g_monitorIndex);
     g_targetFrameRate = settings.frameRate;
     g_internalResolutionHeight = settings.internalResolutionHeight;
+	g_resolutionScalePercent = settings.resolutionScalePercent;
+	if (g_internalResolutionHeight != 0) g_resolutionScalePercent = 100;
     g_fVsync = settings.vsyncEnabled != 0;
     g_fMsaa = settings.msaaEnabled != 0;
     g_msaaSamples = settings.msaaSamples;
@@ -412,13 +512,26 @@ void ApplySavedVideoSettings(VIDEOSAVESETTINGS settings)
         settings.disableControllerInputWhenUnfocused != 0;
 	g_fMouseCamera = settings.mouseCameraEnabled != 0;
 	g_fSkipBinocDialogs = settings.cutsceneSkipControlsEnabled != 0;
+	g_mouseCameraSensitivity = settings.mouseCameraSensitivity;
+	ApplyAutoIconifySettings(settings.autoIconify != 0);
+	ApplyAnisotropicFilteringSettings(settings.anisotropicFiltering);
+	ApplyTextureFilteringSettings(settings.textureFiltering);
+	ApplyOutputGammaSettings(settings.outputGamma);
+	g_controllerDeadzone = settings.controllerDeadzone;
+	SetAudioOutputDeviceId(settings.audioOutputDeviceId);
     s_lastSaveSlot = settings.lastSaveSlot;
 	SetUserStereoEnabled(settings.stereoEnabled != 0);
 	SetUserMusicVolume(settings.musicVolume);
 	SetUserSfxVolume(settings.soundEffectsVolume);
 	SetUserDialogueVolume(settings.dialogueVolume);
 
-    ApplyAspectRatioSettings(static_cast<AspectMode>(settings.aspectMode));
+	ApplyAspectRatioSettings(static_cast<AspectMode>(settings.aspectMode));
+	if (!ApplyInternalResolutionSettings())
+	{
+		g_internalResolutionHeight = 0;
+		g_resolutionScalePercent = 100;
+		ApplyInternalResolutionSettings();
+	}
     if (g_gl.renderHeight != g_internalResolutionHeight &&
         g_internalResolutionHeight != 0)
     {
@@ -649,6 +762,7 @@ bool LoadSystemSettings(VIDEOSAVESETTINGS* settings)
 			return false;
 		}
 		std::memcpy(settings, &oldV7, sizeof(oldV7));
+		settings->autoIconify = 1;
 		SetDefaultAudioSettings(*settings);
 		return true;
 	}
@@ -665,6 +779,7 @@ bool LoadSystemSettings(VIDEOSAVESETTINGS* settings)
 
 		std::memcpy(settings, &oldV8, sizeof(oldV8));
 		settings->mouseCameraEnabled = 0;
+		settings->autoIconify = 1;
 		return true;
 	}
 
@@ -680,6 +795,83 @@ bool LoadSystemSettings(VIDEOSAVESETTINGS* settings)
 
 		std::memcpy(settings, &oldV9, sizeof(oldV9));
 		settings->cutsceneSkipControlsEnabled = 0;
+		settings->mouseCameraSensitivity = 1.0f;
+		settings->autoIconify = 1;
+		return true;
+	}
+
+	if (header.version == 10 && header.payloadSize == sizeof(VideoSaveSettingsV10))
+	{
+		VideoSaveSettingsV10 oldV10{};
+		if (!stream.read(reinterpret_cast<char*>(&oldV10), sizeof(oldV10)) ||
+			SaveChecksum(&oldV10, sizeof(oldV10)) != header.checksum)
+		{
+			*settings = {};
+			return false;
+		}
+
+		std::memcpy(settings, &oldV10, sizeof(oldV10));
+		settings->mouseCameraSensitivity = 1.0f;
+		settings->autoIconify = 1;
+		return true;
+	}
+
+	if (header.version == 11 && header.payloadSize == sizeof(VideoSaveSettingsV11))
+	{
+		VideoSaveSettingsV11 oldV11{};
+		if (!stream.read(reinterpret_cast<char*>(&oldV11), sizeof(oldV11)) ||
+			SaveChecksum(&oldV11, sizeof(oldV11)) != header.checksum)
+		{
+			*settings = {};
+			return false;
+		}
+
+		std::memcpy(settings, &oldV11, sizeof(oldV11));
+		settings->autoIconify = 1;
+		return true;
+	}
+
+	if (header.version == 12 && header.payloadSize == sizeof(VideoSaveSettingsV12))
+	{
+		VideoSaveSettingsV12 oldV12{};
+		if (!stream.read(reinterpret_cast<char*>(&oldV12), sizeof(oldV12)) ||
+			SaveChecksum(&oldV12, sizeof(oldV12)) != header.checksum)
+		{
+			*settings = {};
+			return false;
+		}
+
+		std::memcpy(settings, &oldV12, sizeof(oldV12));
+		settings->anisotropicFiltering = 1;
+		SetDefaultExtendedSettings(*settings);
+		return true;
+	}
+
+	if (header.version == 13 && header.payloadSize == sizeof(VideoSaveSettingsV13))
+	{
+		VideoSaveSettingsV13 oldV13{};
+		if (!stream.read(reinterpret_cast<char*>(&oldV13), sizeof(oldV13)) ||
+			SaveChecksum(&oldV13, sizeof(oldV13)) != header.checksum)
+		{
+			*settings = {};
+			return false;
+		}
+		std::memcpy(settings, &oldV13, sizeof(oldV13));
+		SetDefaultExtendedSettings(*settings);
+		return true;
+	}
+
+	if (header.version == 14 && header.payloadSize == sizeof(VideoSaveSettingsV14))
+	{
+		VideoSaveSettingsV14 oldV14{};
+		if (!stream.read(reinterpret_cast<char*>(&oldV14), sizeof(oldV14)) ||
+			SaveChecksum(&oldV14, sizeof(oldV14)) != header.checksum)
+		{
+			*settings = {};
+			return false;
+		}
+		std::memcpy(settings, &oldV14, sizeof(oldV14));
+		settings->monitorName[0] = '\0';
 		return true;
 	}
 

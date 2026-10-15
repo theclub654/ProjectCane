@@ -36,6 +36,7 @@ constexpr auto XAUDIO2_DEFAULT_PROCESSOR = FAUDIO_DEFAULT_PROCESSOR;
 constexpr auto XAUDIO2_END_OF_STREAM = FAUDIO_END_OF_STREAM;
 constexpr auto XAUDIO2_LOOP_INFINITE = FAUDIO_LOOP_INFINITE;
 constexpr auto XAUDIO2_MIN_FREQ_RATIO = FAUDIO_MIN_FREQ_RATIO;
+constexpr auto XAUDIO2_DEFAULT_FREQ_RATIO = FAUDIO_DEFAULT_FREQ_RATIO;
 constexpr uint32_t XAUDIO2_MAX_AUDIO_CHANNELS = 64;
 constexpr uint32_t XAUDIO2_MIN_SAMPLE_RATE = 1000;
 constexpr uint32_t XAUDIO2_MAX_SAMPLE_RATE = 200000;
@@ -79,6 +80,18 @@ struct IXAudio2EngineCallback
     virtual void STDMETHODCALLTYPE OnProcessingPassStart() = 0;
     virtual void STDMETHODCALLTYPE OnProcessingPassEnd() = 0;
     virtual void STDMETHODCALLTYPE OnCriticalError(HRESULT error) = 0;
+};
+
+struct IXAudio2VoiceCallback
+{
+    virtual ~IXAudio2VoiceCallback() = default;
+    virtual void STDMETHODCALLTYPE OnVoiceProcessingPassStart(UINT32 bytesRequired) = 0;
+    virtual void STDMETHODCALLTYPE OnVoiceProcessingPassEnd() = 0;
+    virtual void STDMETHODCALLTYPE OnStreamEnd() = 0;
+    virtual void STDMETHODCALLTYPE OnBufferStart(void* bufferContext) = 0;
+    virtual void STDMETHODCALLTYPE OnBufferEnd(void* bufferContext) = 0;
+    virtual void STDMETHODCALLTYPE OnLoopEnd(void* bufferContext) = 0;
+    virtual void STDMETHODCALLTYPE OnVoiceError(void* bufferContext, HRESULT error) = 0;
 };
 
 struct XAUDIO2_SEND_DESCRIPTOR;
@@ -227,7 +240,8 @@ struct IXAudio2
     }
     HRESULT CreateSourceVoice(IXAudio2SourceVoice** result,
         const WAVEFORMATEX* format, uint32_t flags = 0, float maximum = 2.0f,
-        void* = nullptr, const XAUDIO2_VOICE_SENDS* sends = nullptr, void* = nullptr)
+        IXAudio2VoiceCallback* = nullptr,
+        const XAUDIO2_VOICE_SENDS* sends = nullptr, void* = nullptr)
     {
         auto descriptors = CaneAudioSends(sends);
         FAudioVoiceSends sendList{ static_cast<uint32_t>(descriptors.size()),

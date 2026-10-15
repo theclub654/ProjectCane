@@ -11,8 +11,10 @@
 #include "ctr.h"
 #include "screen.h"
 #include "gl.h"
+#include "shd.h"
 #include "gui_layout.h"
 #include "debug.h"
+#include "Input.h"
 #include <algorithm>
 #include <cmath>
 #include <cstdio>
@@ -88,14 +90,18 @@ int GamepadBindingPressed()
 
 bool FGamepadAvailable()
 {
-    if (g_joy.gamepadConnected)
-        return true;
-    for (int jid = GLFW_JOYSTICK_1; jid <= GLFW_JOYSTICK_LAST; ++jid)
-    {
-        if (glfwJoystickPresent(jid))
-            return true;
-    }
-    return false;
+    return g_joy.gamepadConnected || FControllerInputAvailable();
+}
+
+int KeyboardOrMouseBindingPressed(GLFWwindow* window)
+{
+    const int key = KeyboardKeyPressed(window);
+    if (key != GLFW_KEY_UNKNOWN)
+        return key;
+    for (int button = 0; button <= GLFW_MOUSE_BUTTON_LAST; ++button)
+        if (MOUSE::Button(button))
+            return MouseBindingFromButton(button);
+    return GLFW_KEY_UNKNOWN;
 }
 
 bool FMappingPrompt(PRK prk)
@@ -139,6 +145,15 @@ int CrespkPrompt(PRK prk, const PRD& prd)
 	return FMappingPrompt(prk)
 		? static_cast<int>(std::size(s_arespkKeyboardMapping))
 		: prd.crespk;
+}
+
+int VisiblePromptResponseCount(PRK prk, int responseCount)
+{
+	if (FMappingPrompt(prk))
+		return std::min(responseCount, 9);
+	if (prk == PRK_VideoMenu || prk == PRK_ControlsMenu)
+		return std::min(responseCount, 10);
+	return responseCount;
 }
 
 GLFWmonitor* ActiveMonitor()
@@ -189,18 +204,36 @@ std::vector<int> SupportedFrameRates()
     {
         int modeCount = 0;
         const GLFWvidmode* modes = glfwGetVideoModes(monitor, &modeCount);
+		bool supports50Fps = false;
 
         for (int i = 0; i < modeCount; ++i)
         {
             if (modes[i].refreshRate >= 30)
                 frameRates.push_back(modes[i].refreshRate);
+			if (modes[i].refreshRate >= 50)
+				supports50Fps = true;
         }
+		if (supports50Fps)
+			frameRates.push_back(50);
     }
 
     std::sort(frameRates.begin(), frameRates.end());
     frameRates.erase(std::unique(frameRates.begin(), frameRates.end()), frameRates.end());
 
     return frameRates;
+}
+
+std::vector<int> SupportedMsaaSamples()
+{
+	GLint maximum = 1;
+	glGetIntegerv(GL_MAX_SAMPLES, &maximum);
+	std::vector<int> samples{ 0 };
+	for (int sampleCount : { 2, 4, 8, 16 })
+	{
+		if (sampleCount <= maximum)
+			samples.push_back(sampleCount);
+	}
+	return samples;
 }
 
 void SelectSupportedFrameRate(int direction)
@@ -225,7 +258,7 @@ void SelectSupportedFrameRate(int direction)
 
 void SelectInternalResolution(int direction)
 {
-    constexpr int resolutions[] = { 0, 360, 480, 720, 1080, 1440, 2160 };
+    constexpr int resolutions[] = { 0, 360, 448, 480, 720, 1080, 1440, 2160 };
     auto current = std::find(std::begin(resolutions), std::end(resolutions),
         g_internalResolutionHeight);
     int index = current == std::end(resolutions)
@@ -234,9 +267,16 @@ void SelectInternalResolution(int direction)
     constexpr int count = static_cast<int>(std::size(resolutions));
     index = (index + (direction < 0 ? -1 : 1) + count) % count;
 	const int previousResolution = g_internalResolutionHeight;
+	const int previousScale = g_resolutionScalePercent;
 	g_internalResolutionHeight = resolutions[index];
+	if (g_internalResolutionHeight != 0)
+		g_resolutionScalePercent = 100;
 	if (!ApplyInternalResolutionSettings())
+	{
 		g_internalResolutionHeight = previousResolution;
+		g_resolutionScalePercent = previousScale;
+		ApplyInternalResolutionSettings();
+	}
 }
 
 void SelectGuiScale(int direction)
@@ -605,8 +645,15 @@ void SetPromptPrk(PROMPT* pprompt)
         std::snprintf(g_achzRespk27, sizeof(g_achzRespk27), "MSAA: %dx", g_msaaSamples);
     else
         std::snprintf(g_achzRespk27, sizeof(g_achzRespk27), "MSAA: Off");
-    std::snprintf(g_achzRespk28, sizeof(g_achzRespk28), "Frame Rate: %d FPS", g_targetFrameRate);
-    if (g_internalResolutionHeight == 0)
+    std::snprintf(g_achzRespk28, sizeof(g_achzRespk28),
+		"Frame Rate: %d FPS", g_targetFrameRate);
+    if (g_internalResolutionHeight == 0 && g_resolutionScalePercent != 100)
+	{
+		std::snprintf(g_achzRespk30, sizeof(g_achzRespk30),
+			"Resolution: Scaled %d%% (%d x %d)", g_resolutionScalePercent,
+			g_gl.renderWidth, g_gl.renderHeight);
+	}
+    else if (g_internalResolutionHeight == 0)
     {
         std::snprintf(g_achzRespk30, sizeof(g_achzRespk30),
             "Resolution: Native (%d x %d)", g_gl.renderWidth, g_gl.renderHeight);
@@ -644,6 +691,25 @@ void SetPromptPrk(PROMPT* pprompt)
         windowModeNames[windowModeIndex]);
     std::snprintf(g_achzRespk34, sizeof(g_achzRespk34), "VSync: %s",
         g_fVsync ? "On" : "Off");
+	std::snprintf(g_achzRespk69, sizeof(g_achzRespk69), "Minimize When Unfocused: %s",
+		g_fAutoIconify ? "On" : "Off");
+	if (g_anisotropicFiltering <= 1)
+		std::snprintf(g_achzRespk70, sizeof(g_achzRespk70), "Anisotropic Filtering: Off");
+	else
+		std::snprintf(g_achzRespk70, sizeof(g_achzRespk70), "Anisotropic Filtering: %dx",
+			g_anisotropicFiltering);
+	std::snprintf(g_achzRespk71, sizeof(g_achzRespk71), "Brightness / Gamma: %d%%",
+		static_cast<int>(std::lround(g_outputGamma * 100.0f)));
+	std::snprintf(g_achzRespk72, sizeof(g_achzRespk72), "Texture Filtering: %s",
+		g_textureFiltering != 0 ? "Trilinear" : "Bilinear");
+	std::snprintf(g_achzRespk73, sizeof(g_achzRespk73), "Monitor: %s",
+		VideoMonitorName(g_monitorIndex));
+	std::snprintf(g_achzRespk75, sizeof(g_achzRespk75), "Resolution Scale: %d%%",
+		g_resolutionScalePercent);
+	std::snprintf(g_achzRespk76, sizeof(g_achzRespk76), "Controller Deadzone: %d%%",
+		static_cast<int>(std::lround(g_controllerDeadzone * 100.0f)));
+	std::snprintf(g_achzRespk77, sizeof(g_achzRespk77), "Audio Output: %s",
+		GetAudioOutputDeviceName().c_str());
     const char* aspectRatioName = "Fit to Screen";
     if (g_gl.aspectMode == Fixed_16_9)
         aspectRatioName = "16:9";
@@ -665,6 +731,8 @@ void SetPromptPrk(PROMPT* pprompt)
         g_fDisableControllerInputWhenUnfocused ? "On" : "Off");
 	std::snprintf(g_achzRespk66, sizeof(g_achzRespk66), "Mouse Camera: %s",
 		g_fMouseCamera ? "On" : "Off");
+	std::snprintf(g_achzRespk68, sizeof(g_achzRespk68), "Mouse Sensitivity: %d%%",
+		static_cast<int>(std::lround(g_mouseCameraSensitivity * 100.0f)));
 	std::snprintf(g_achzRespk67, sizeof(g_achzRespk67), "Dialogue Skip Controls: %s",
 		g_fSkipBinocDialogs ? "On" : "Off");
 
@@ -741,8 +809,7 @@ void SetPromptPrk(PROMPT* pprompt)
     pprompt->pfont->PushScaling(prd.rScaleRespk, prd.rScaleRespk);
 
     const float lineHeight = static_cast<float>(pprompt->pfont->m_dyUnscaled) * pprompt->pfont->m_ryScale;
-    const bool isBindingMenu = FMappingPrompt(prk);
-    const int visibleResponseCount = isBindingMenu ? std::min(promptResponseCount, 9) : promptResponseCount;
+    const int visibleResponseCount = VisiblePromptResponseCount(prk, promptResponseCount);
     float responseHeight = prd.fVertical != 0 ? lineHeight * static_cast<float>(visibleResponseCount) : lineHeight;
 
     if (promptResponseCount == 0)
@@ -1009,13 +1076,13 @@ void ExecutePrompt(PROMPT* pprompt, int direction)
         {
             case RESPK_Msaa:
             {
-                constexpr int samples[] = { 0, 2, 4, 8, 16 };
+				const std::vector<int> samples = SupportedMsaaSamples();
                 const int currentSamples = g_fMsaa ? g_msaaSamples : 0;
-                auto current = std::find(std::begin(samples), std::end(samples), currentSamples);
-                int index = current == std::end(samples)
+				auto current = std::find(samples.begin(), samples.end(), currentSamples);
+				int index = current == samples.end()
                     ? 0
-                    : static_cast<int>(current - std::begin(samples));
-                constexpr int count = static_cast<int>(std::size(samples));
+					: static_cast<int>(current - samples.begin());
+				const int count = static_cast<int>(samples.size());
                 index = (index + (direction < 0 ? -1 : 1) + count) % count;
                 g_fMsaa = samples[index] != 0;
                 if (g_fMsaa)
@@ -1063,6 +1130,93 @@ void ExecutePrompt(PROMPT* pprompt, int direction)
             rebuildPromptKeepingSelection();
             return;
 
+			case RESPK_ResolutionScale:
+			{
+				constexpr int scales[] = { 50, 75, 100, 125, 150, 175, 200 };
+				auto current = std::find(std::begin(scales), std::end(scales), g_resolutionScalePercent);
+				int index = current == std::end(scales) ? 2 : static_cast<int>(current - std::begin(scales));
+				index = (index + (direction < 0 ? -1 : 1) + static_cast<int>(std::size(scales))) %
+					static_cast<int>(std::size(scales));
+				const int oldScale = g_resolutionScalePercent;
+				const int oldHeight = g_internalResolutionHeight;
+				g_resolutionScalePercent = scales[index];
+				g_internalResolutionHeight = 0;
+				if (!ApplyInternalResolutionSettings())
+				{
+					g_resolutionScalePercent = oldScale;
+					g_internalResolutionHeight = oldHeight;
+					ApplyInternalResolutionSettings();
+				}
+			}
+			SaveSystemSettings();
+			rebuildPromptKeepingSelection();
+			return;
+
+			case RESPK_OutputGamma:
+			ApplyOutputGammaSettings(g_outputGamma + (direction < 0 ? -0.05f : 0.05f));
+			SaveSystemSettings();
+			rebuildPromptKeepingSelection();
+			return;
+
+			case RESPK_TextureFiltering:
+			ApplyTextureFilteringSettings(g_textureFiltering == 0 ? 1 : 0);
+			SaveSystemSettings();
+			rebuildPromptKeepingSelection();
+			return;
+
+			case RESPK_Monitor:
+			ApplyMonitorSettings((g_monitorIndex + (direction < 0 ? -1 : 1) + VideoMonitorCount()) % VideoMonitorCount());
+			SaveSystemSettings();
+			rebuildPromptKeepingSelection();
+			return;
+
+			case RESPK_ResetVideo:
+			g_fMsaa = false;
+			g_msaaSamples = 1;
+			ApplyAnisotropicFilteringSettings(1);
+			ApplyTextureFilteringSettings(1);
+			ApplyOutputGammaSettings(1.0f);
+			g_targetFrameRate = 60;
+			g_internalResolutionHeight = 0;
+			g_resolutionScalePercent = 100;
+			g_drawDistanceMultiplier = 1.0f;
+			if (g_pcm != nullptr)
+				SetCmMrdRatio(g_pcm, g_drawDistanceMultiplier);
+			g_fVsync = true;
+			g_fogType = 1;
+			g_guiScale = 1.0f;
+			g_guiStyle = GuiStyle_PS2;
+			ApplyMonitorSettings(0);
+			ApplyWindowModeSettings(WindowMode_Windowed);
+			ApplyAspectRatioSettings(FitToScreen);
+			ApplyMsaaSettings();
+			glfwSwapInterval(1);
+			glGlobShader.Use();
+			glUniform1i(glslFogType, g_fogType);
+			SaveSystemSettings();
+			rebuildPromptKeepingSelection();
+			return;
+
+			case RESPK_AnisotropicFiltering:
+			{
+				constexpr int levels[] = { 1, 2, 4, 8, 16 };
+				const int maximum = MaxSupportedAnisotropicFiltering();
+				std::vector<int> supported;
+				for (int level : levels)
+					if (level <= maximum)
+						supported.push_back(level);
+				auto current = std::find(supported.begin(), supported.end(),
+					g_anisotropicFiltering);
+				int index = current == supported.end()
+					? 0 : static_cast<int>(current - supported.begin());
+				index = (index + (direction < 0 ? -1 : 1) +
+					static_cast<int>(supported.size())) % static_cast<int>(supported.size());
+				ApplyAnisotropicFilteringSettings(supported[index]);
+			}
+			SaveSystemSettings();
+			rebuildPromptKeepingSelection();
+			return;
+
             case RESPK_Vsync:
             g_fVsync = !g_fVsync;
             glfwSwapInterval(g_fVsync ? 1 : 0);
@@ -1108,6 +1262,9 @@ void ExecutePrompt(PROMPT* pprompt, int direction)
 		case PRK_SoundMenu:
 		switch (response)
 		{
+			case RESPK_AudioOutputDevice:
+			SelectAudioOutputDevice(direction);
+			break;
 			case RESPK_Speakers:
 			SetUserStereoEnabled(!FUserStereoEnabled());
 			break;
@@ -1409,6 +1566,12 @@ void ExecutePrompt(PROMPT* pprompt, int direction)
                 SetPrompt(pprompt, PRP_Basic, PRK_VideoMenu);
                 return;
 
+				case RESPK_AutoIconify:
+				ApplyAutoIconifySettings(!g_fAutoIconify);
+				SaveSystemSettings();
+				rebuildPromptKeepingSelection();
+				return;
+
                 default:
                 return;
             }
@@ -1436,9 +1599,13 @@ void ExecutePrompt(PROMPT* pprompt, int direction)
 
         return;
 
-        case PRK_ControlsMenu:
+		case PRK_ControlsMenu:
         switch (response)
         {
+			case RESPK_Vibration:
+			ToggleVibration(g_pgsCur);
+			break;
+
 			case RESPK_KeyboardMapping:
 			s_fControllerBindingCapture = false;
 			OpenMappingPrompt(pprompt, PRK_KeyboardMapping);
@@ -1461,6 +1628,19 @@ void ExecutePrompt(PROMPT* pprompt, int direction)
 
 			case RESPK_MouseCamera:
 			g_fMouseCamera = !g_fMouseCamera;
+			SaveSystemSettings();
+			break;
+
+			case RESPK_MouseSensitivity:
+			g_mouseCameraSensitivity = std::clamp(
+				g_mouseCameraSensitivity + (direction < 0 ? -0.25f : 0.25f),
+				0.25f, 2.0f);
+			SaveSystemSettings();
+			break;
+
+			case RESPK_ControllerDeadzone:
+			g_controllerDeadzone = std::clamp(
+				g_controllerDeadzone + (direction < 0 ? -0.05f : 0.05f), 0.05f, 0.50f);
 			SaveSystemSettings();
 			break;
 
@@ -1492,6 +1672,17 @@ void ExecutePrompt(PROMPT* pprompt, int direction)
 			return;
 		}
 
+		if (response == RESPK_ResetMappings)
+		{
+			if (pprompt->prk == PRK_ControllerMapping)
+				ResetControllerBindings();
+			else
+				ResetKeyboardMouseBindings();
+			SaveSystemSettings();
+			rebuildPromptKeepingSelection();
+			return;
+		}
+
 		if (response >= RESPK_KeyUp && response <= RESPK_KeyR3)
 		{
 			s_iKeyboardBindingCapture = static_cast<int>(response) - static_cast<int>(RESPK_KeyUp);
@@ -1499,7 +1690,7 @@ void ExecutePrompt(PROMPT* pprompt, int direction)
 			std::snprintf(g_aachzKeyboardBindings[s_iKeyboardBindingCapture],
 				sizeof(g_aachzKeyboardBindings[s_iKeyboardBindingCapture]),
 				"%s: Press %s", s_apchzKeyboardActions[s_iKeyboardBindingCapture],
-				s_fControllerBindingCapture ? "a button" : "a key");
+				s_fControllerBindingCapture ? "a button" : "a key or mouse button");
 		}
 		return;
 
@@ -1589,7 +1780,6 @@ void OnPromptActive(PROMPT* pprompt, int fActive)
         if (levelId == 0x0308)
         {
             ResumeVag();
-            ContinueMusicSequencer();
         }
 
         if (levelId != 0x0308 &&
@@ -1613,7 +1803,6 @@ void OnPromptActive(PROMPT* pprompt, int fActive)
     if (levelId == 0x0308)
     {
         PauseVag();
-        PauseMusicSequencer();
         SetUiUis(&g_ui, UIS_Paused);
     }
     else if (g_binoc.pdialogPlaying == nullptr)
@@ -1756,7 +1945,7 @@ void UpdatePromptActive(PROMPT* pprompt, JOY* pjoy)
 
 		const int key = s_fControllerBindingCapture
 			? GamepadBindingPressed()
-			: KeyboardKeyPressed(g_gl.window);
+			: KeyboardOrMouseBindingPressed(g_gl.window);
 		const int noBinding = s_fControllerBindingCapture ? -1 : GLFW_KEY_UNKNOWN;
 		if (!s_fKeyboardBindingCaptureArmed)
 		{
@@ -1866,7 +2055,10 @@ void UpdatePromptActive(PROMPT* pprompt, JOY* pjoy)
         if (prk == PRK_ControlsMenu)
         {
             adjustable = selectedResponse == RESPK_CameraInvert ||
+                selectedResponse == RESPK_Vibration ||
                 selectedResponse == RESPK_MouseCamera ||
+                selectedResponse == RESPK_MouseSensitivity ||
+				selectedResponse == RESPK_ControllerDeadzone ||
                 selectedResponse == RESPK_BinocInvert ||
                 selectedResponse == RESPK_TurretInvert ||
                 selectedResponse == RESPK_JetpackInvert ||
@@ -2137,16 +2329,16 @@ void DrawPrompt(PROMPT* pprompt)
     float cursorX = x;
     float cursorY = y;
 
-    // The original prompt was designed for short menus. Keep mapping menus
-    // within that layout and scroll the visible window around the selection.
+    // The original prompt was designed for short menus. Keep long PC settings
+    // and mapping menus within that layout and scroll around the selection.
     int firstResponse = 0;
     int lastResponse = promptResponseCount;
-    if (FMappingPrompt(pprompt->prk))
+    const int visibleResponses = VisiblePromptResponseCount(pprompt->prk, promptResponseCount);
+    if (visibleResponses < promptResponseCount)
     {
-        constexpr int visibleBindings = 9;
-        firstResponse = std::clamp(pprompt->irespk - visibleBindings / 2,
-            0, std::max(0, promptResponseCount - visibleBindings));
-        lastResponse = std::min(promptResponseCount, firstResponse + visibleBindings);
+        firstResponse = std::clamp(pprompt->irespk - visibleResponses / 2,
+            0, std::max(0, promptResponseCount - visibleResponses));
+        lastResponse = std::min(promptResponseCount, firstResponse + visibleResponses);
     }
 
     // Measure the complete horizontal response row.

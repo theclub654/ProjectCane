@@ -22,7 +22,9 @@
 #include "binoc.h"
 #include "thndflash.h"
 #include <algorithm>
+#include <cstdio>
 #include <cstring>
+#include <stdexcept>
 #include "jump.h"
 #include "pipe.h"
 #include "keyhole.h"
@@ -179,12 +181,13 @@ void InitSw(SW* psw)
 	psw->rDarkenSmooth = 1.0;
 	psw->fDprizeEnabled = 1;
 
-	psw->rgbaSky.bRed   = 16 / 255;
-	psw->rgbaSky.bGreen = 16 / 255;
-	psw->rgbaSky.bBlue  = 40 / 255;
-	psw->rgbaSky.bAlpha = 80 * 2;
+	psw->rgbaSky = glm::vec4(16.0f / 255.0f, 16.0f / 255.0f,
+		40.0f / 255.0f, 80.0f / 255.0f);
 
-	psw->lsmDefault.uShadow = 50.0;
+	// Retail authors the default lighting values in the 0..255 range and
+	// normalizes them once during post-load. PCBRX stores resolved lighting
+	// values, so its implicit default must already be normalized as well.
+	psw->lsmDefault.uShadow = 50.0f / 255.0f;
 	psw->musid = MUSID_Nil;
 	psw->ibnk = -1;
 	psw->cisi = 0;
@@ -733,11 +736,28 @@ void LoadSwFromBrx(SW* psw, CBinaryInputStream* pbis)
 	// Setting difficulty for world
 	OnDifficultyWorldPreLoad(&g_difficulty);
 	g_gc.Startup();
-	// Loading unknown debug flag from file
-	pbis->U8Read();
-	// Loading index sound bank from file
-	psw->ibnk = pbis->S16Read();
-	LoadNameTableFromBrx(pbis);
+	// PCBRX stores the extracted effects-bank filename directly.
+	constexpr std::array<const char*, 7> soundBankNames =
+	{
+		"Common.bnk", "Intro.bnk", "Underwater.bnk", "Muggshot.bnk",
+		"Voodoo.bnk", "Snow.bnk", "Clockwerk.bnk"
+	};
+
+	psw->soundBankFileName.fill(0);
+	pbis->ReadBytes(psw->soundBankFileName.data(), psw->soundBankFileName.size());
+	psw->ibnk = -1;
+	if (psw->soundBankFileName[0] != '\0')
+	{
+		const auto bank = std::find_if(soundBankNames.begin(), soundBankNames.end(), [psw](const char* candidate)
+		{
+			return std::strcmp(candidate, psw->soundBankFileName.data()) == 0;
+		});
+
+		if (bank == soundBankNames.end())
+			throw std::runtime_error("invalid PCBRX sound-bank filename");
+
+		psw->ibnk = static_cast<int>(bank - soundBankNames.begin());
+	}
 	// Making new camera object for world
 	g_pcm = (CM*)PloNew(CID_CM, psw, nullptr, (OID)4, -1);
 
@@ -763,17 +783,11 @@ void LoadSwFromBrx(SW* psw, CBinaryInputStream* pbis)
 	LoadSwSpliceFromBrx(psw, pbis);
 	LoadOptionsFromBrx(psw, pbis);
 
-	// Retail stores the optional commentary VAG as an encrypted 32-byte file
-	// descriptor. Preserve the descriptor verbatim: ResolveVagWav decodes its
-	// sector and identity when commentary playback is requested.
+	// PCBRX stores the optional commentary VAG as a null-terminated filename in
+	// a fixed 32-byte field. Keep that storage owned by SW for its full lifetime.
 	psw->commentaryAudioDescriptor.fill(0);
-	pbis->ReadBytes(psw->commentaryAudioDescriptor.data(),
-		psw->commentaryAudioDescriptor.size());
-	uint32_t commentaryWords[8]{};
-	std::memcpy(commentaryWords, psw->commentaryAudioDescriptor.data(),
-		sizeof(commentaryWords));
-	const uint32_t commentarySize = commentaryWords[1] ^ commentaryWords[7];
-	psw->audioLocation = commentarySize != 0
+	pbis->ReadBytes(psw->commentaryAudioDescriptor.data(), psw->commentaryAudioDescriptor.size());
+	psw->audioLocation = psw->commentaryAudioDescriptor[0] != 0
 		? reinterpret_cast<const char*>(psw->commentaryAudioDescriptor.data())
 		: nullptr;
 
@@ -785,13 +799,20 @@ void LoadSwFromBrx(SW* psw, CBinaryInputStream* pbis)
 		? nullptr
 		: psw->commentarySpeakers.c_str();
 
-	// Retail worlds store their music as a 32-byte encrypted file descriptor.
-	// Its identity selects the matching extracted 989SND bank directory.
-	uint32_t musicWords[8]{};
-	pbis->ReadBytes(musicWords, sizeof(musicWords));
-	const uint32_t musicSize = musicWords[1] ^ musicWords[7];
-	const uint32_t musicIdentity = musicWords[2] ^ musicWords[6];
-	psw->musid = musicSize != 0 ? static_cast<MUSID>(musicIdentity) : MUSID_Nil;
+	// PCBRX stores the extractor's .mus filename directly in this fixed field.
+	psw->musicFileName.fill(0);
+	pbis->ReadBytes(psw->musicFileName.data(), psw->musicFileName.size());
+	psw->musid = MUSID_Nil;
+	if (psw->musicFileName[0] != '\0')
+	{
+		unsigned int musicIdentity = 0;
+		int parsedLength = 0;
+		if (std::sscanf(psw->musicFileName.data(), "MUSID_%x.mus%n",&musicIdentity, &parsedLength) != 1 || parsedLength != static_cast<int>(std::strlen(psw->musicFileName.data())))
+		{
+			throw std::runtime_error("invalid PCBRX music filename");
+		}
+		psw->musid = static_cast<MUSID>(musicIdentity);
+	}
 	// Loads all textures and shader data from file
 	LoadShadersFromBrx(pbis);
 	// Loads all the scene world objects from the binary file
@@ -800,10 +821,8 @@ void LoadSwFromBrx(SW* psw, CBinaryInputStream* pbis)
 	if (FIsDlEmpty(&psw->dlLight) == true)
 		CreateSwDefaultLights(psw);
 
-	rgbaSky.r = psw->rgbaSky.bRed / 255.0;
-	rgbaSky.g = psw->rgbaSky.bGreen / 255.0;
-	rgbaSky.b = psw->rgbaSky.bBlue / 255.0;
-	rgbaSky.a = (psw->rgbaSky.bAlpha / 255.0) * 2;
+	rgbaSky = psw->rgbaSky;
+	rgbaSky.a *= 2.0f;
 
 	// Aligns binary stream to texture data
 	pbis->Align(0x10);
@@ -813,11 +832,9 @@ void LoadSwFromBrx(SW* psw, CBinaryInputStream* pbis)
 	// Bind/post-load callbacks can immediately start world ambience, so the
 	// requested effects bank must already be resident at this point.
 	if (psw->ibnk >= 0)
-		SbpEnsureBank(psw->ibnk);
-	psw->lsmDefault.uShadow *= 0.003921569;
-	psw->lsmDefault.uMidtone *= 0.003921569;
-	CreateSwPrizes(psw);
+		SbpEnsureBank(psw->ibnk, psw->soundBankFileName.data());
 
+	CreateSwPrizes(psw);
 	ProcessSwCallbacks(psw);
 
 	if (psw->dlChild.ploFirst != nullptr)
@@ -909,6 +926,7 @@ void LoadSwFromBrx(SW* psw, CBinaryInputStream* pbis)
 		g_foreGroundPrpl.size() +
 		g_worldMapPrpl.size() +
 		g_maxPrpl.size();
+
 	InitFrameStream(&ropStream, static_cast<int>(ropStreamCapacity));
 	InitFrameStream(&blipStream, static_cast<int>(g_blipPrpl.size()));
 
@@ -926,9 +944,8 @@ void LoadSwFromBrx(SW* psw, CBinaryInputStream* pbis)
 	// post-load hook UpdateUi never returns to UIS_Playing, so Start cannot open
 	// the pause menu in the destination level.
 	PostUiLoad(&g_ui);
-	StartMusidSong(psw->musid);
+	StartMusidSong(psw->musid, psw->musicFileName.data());
 	StartSwIntermittentSounds(psw);
-
 	std::cout << "World Loaded Successfully\n";
 }
 
@@ -991,11 +1008,6 @@ void DrawBezierWorld(float dt, glm::vec3* ppos0, glm::vec3* pv0, glm::vec3* ppos
 
 	for (int ipos = 0; ipos < cpos - 1; ++ipos)
 		DrawLineWorld(&apos[ipos], &apos[ipos + 1], prgba, pcm, true);
-}
-
-void LoadNameTableFromBrx(CBinaryInputStream* pbis)
-{
-	pbis->U32Read();
 }
 
 void LoadWorldTableFromBrx(CBinaryInputStream* pbis)
@@ -1108,6 +1120,11 @@ void SetSwIllumShadow(SW *psw, float uShadow)
 {
 	psw->lsmDefault.uShadow = uShadow;
 	g_cframeStaticLightsInvalid = g_cframe;
+}
+
+void SetSwRgbaSkyFloat(SW* psw, const glm::vec4* color)
+{
+	psw->rgbaSky = glm::clamp(*color, 0.0f, 1.0f);
 }
 
 void* GetSwSkyRgba(SW *psw)

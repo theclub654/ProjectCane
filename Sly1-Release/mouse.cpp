@@ -28,9 +28,9 @@ double MOUSE::scrollDy = 0;
 bool MOUSE::firstMouse = true;
 
 // button state array (true for down, false for up)
-bool MOUSE::buttons[GLFW_MOUSE_BUTTON_LAST] = { 0 };
+bool MOUSE::buttons[GLFW_MOUSE_BUTTON_LAST + 1] = { 0 };
 // button changed array (true if changed)
-bool MOUSE::buttonsChanged[GLFW_MOUSE_BUTTON_LAST] = { 0 };
+bool MOUSE::buttonsChanged[GLFW_MOUSE_BUTTON_LAST + 1] = { 0 };
 
 /*
     callbacks
@@ -55,6 +55,8 @@ void MOUSE::CursorPosCallback(GLFWwindow* window, double _x, double _y) {
 
 // mouse button state changed
 void MOUSE::MouseButtonCallback(GLFWwindow* window, int button, int action, int mods) {
+    if (button < 0 || button > GLFW_MOUSE_BUTTON_LAST)
+        return;
     if (action != GLFW_RELEASE) {
         if (!buttons[button]) {
             buttons[button] = true;
@@ -127,11 +129,13 @@ double MOUSE::GetScrollDY() {
 
 // get button state
 bool MOUSE::Button(int button) {
-    return buttons[button];
+    return button >= 0 && button <= GLFW_MOUSE_BUTTON_LAST && buttons[button];
 }
 
 // return if button changed then reset it in the changed array
 bool MOUSE::ButtonChanged(int button) {
+    if (button < 0 || button > GLFW_MOUSE_BUTTON_LAST)
+        return false;
     bool ret = buttonsChanged[button];
     // set to false because change no longer new
     buttonsChanged[button] = false;

@@ -2554,6 +2554,12 @@ void SetAloCelRgba(ALO* palo, RGBA prgba)
 	palo->globset.grfglobset = palo->globset.grfglobset | 2;
 }
 
+void SetAloCelRgbaFloat(ALO* palo, const glm::vec4* rgba)
+{
+	palo->globset.rgbaCel = glm::clamp(*rgba, 0.0f, 1.0f);
+	palo->globset.grfglobset |= 2;
+}
+
 void SetAloOverrideCel(ALO* palo, RGBA rgba)
 {
 	palo->globset.grfglobset |= 0x2;
@@ -2576,13 +2582,16 @@ void SetAloOverrideCel(ALO* palo, RGBA rgba)
 
 void SetAloOverrideCelFloat(ALO* palo, const glm::vec4* rgba)
 {
-	const glm::vec4 color = glm::clamp(*rgba, 0.0f, 1.0f) * 255.0f;
-	RGBA packed{};
-	packed.bRed = static_cast<byte>(color.r);
-	packed.bGreen = static_cast<byte>(color.g);
-	packed.bBlue = static_cast<byte>(color.b);
-	packed.bAlpha = static_cast<byte>(color.a);
-	SetAloOverrideCel(palo, packed);
+	palo->globset.grfglobset |= 0x2;
+	palo->globset.rgbaCel = glm::clamp(*rgba, 0.0f, 1.0f);
+
+	ALO* child = palo->dlChild.paloFirst;
+	while (child != nullptr)
+	{
+		if ((child->pvtlo->grfcid & 0x1) != 0)
+			SetAloOverrideCelFloat(child, rgba);
+		child = child->dleChild.paloNext;
+	}
 }
 
 void UpdateAloThrob(ALO* palo, float dt)
@@ -4373,7 +4382,10 @@ void RenderAloGlobset(ALO* palo, CM* pcm, RO* pro)
 
 		rpl.ro.model = submitModel;
 
-		SubmitRpl(&rpl);
+		// Surface and cel-border packets belong to independent render streams.
+		// A cel-only phase must never enter the ordinary DrawGlob submission path.
+		if (!FIsCelBorderRenderPhase(rpl.rp))
+			SubmitRpl(&rpl);
 
 		if (g_fRenderCelBorders > 0 && glob.csubcel > 0)
 		{
@@ -4441,11 +4453,20 @@ void RenderAloGlobset(ALO* palo, CM* pcm, RO* pro)
 				ACT* pact = palo->apactPose[ipose];
 
 				if (pact == nullptr)
-					palo->globset.agPoses[ipose] = palo->globset.agPosesOrig[ipose];
+				{
+					const float poseOrig = palo->globset.agPosesOrig[ipose];
+					if (palo->globset.agPoses[ipose] != poseOrig)
+					{
+						palo->globset.agPoses[ipose] = poseOrig;
+						MarkGlobsetPoseWeightsDirty(&palo->globset);
+					}
+				}
 				else
 					ProjectActPose(pact, ipose);
 			}
 		}
+
+		UploadGlobsetPoseWeights(&palo->globset);
 	}
 }
 
@@ -4531,6 +4552,7 @@ void DeleteModel(ALO* palo)
 	};
 
 	DeleteBuffer(palo->globset.boneMatrixSSBO);
+	DeleteGlobsetPoseWeightBuffer(&palo->globset);
 
 	for (GLOB& glob : palo->globset.aglob)
 	{
@@ -4541,8 +4563,6 @@ void DeleteModel(ALO* palo)
 		DeleteBuffer(glob.poseDposSSBO);
 		DeleteBuffer(glob.poseDnormalSSBO);
 		DeleteBuffer(glob.edgeSSBO);
-		DeleteBuffer(glob.edgeBoneIndicesSSBO);
-		DeleteBuffer(glob.edgeBoneWeightsSSBO);
 		DeleteBuffer(glob.edgePoseDposSSBO);
 
 		if (glob.pwarpGlob != nullptr)
@@ -4550,9 +4570,6 @@ void DeleteModel(ALO* palo)
 
 		glob.poseDpos.clear();
 		glob.poseDnormal.clear();
-		glob.edgeBoneIndices.clear();
-		glob.edgeBoneWeights.clear();
-		glob.edgePoseDpos.clear();
 
 		glob.poseCount = 0;
 		glob.poseVertexCount = 0;

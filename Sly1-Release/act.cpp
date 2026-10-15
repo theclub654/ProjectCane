@@ -584,6 +584,7 @@ void ProjectActPose(ACT* pact, int ipose)
 {
     float goal = pact->pvtact->pfnGetActPoseGoal(pact, ipose);
     float& pose = pact->palo->globset.agPoses[ipose];
+    const float posePrevious = pose;
 
     switch (pact->ackPose)
     {
@@ -598,9 +599,12 @@ void ProjectActPose(ACT* pact, int ipose)
             break;
         }
 
-        default:
+    default:
         break;
     }
+
+    if (pose != posePrevious)
+        MarkGlobsetPoseWeightsDirty(&pact->palo->globset);
 }
 
 void PredictAloPosition(ALO* palo, float dtOffset, glm::vec3* ppos, glm::vec3* pv)

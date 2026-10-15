@@ -68,7 +68,7 @@ public sealed class Sly1MediaExtractionService
         {
             var span = commentaryBytes.AsSpan(i * 44, 44); var levelId = Le32(span, 0); var duration = BitConverter.Int32BitsToSingle(unchecked((int)Le32(span, 4))); var descriptor = Descriptor(span.Slice(8, 32)); var speakerVa = Le32(span, 40);
             if (descriptor.Sector == 0 || descriptor.Size == 0) { done++; continue; }
-            var name = $"Commentary_{levelId:X4}.wav"; Report($"Sounds / Commentary / {name}");
+            var name = $"VAG_{descriptor.Identity:X4}_{descriptor.Sector:X6}.wav"; Report($"Sounds / Commentary / {name}");
             var vag = await ReadAtAsync(iso, (long)descriptor.Sector * SectorSize, checked((int)descriptor.Size), ct);
             await File.WriteAllBytesAsync(Path.Combine(commentaryDir, name), Sly1AudioCodec.DecodeVag(vag), ct);
             var speakers = await ReadExeStringAsync(iso, exeIsoOffset, speakerVa, ct) ?? "Unknown";
@@ -88,8 +88,7 @@ public sealed class Sly1MediaExtractionService
                 _ => levelNames.GetValueOrDefault(dialog.LevelId, $"Level_{dialog.LevelId}")
             };
             var episode = Episode(dialog.LevelId); var dir = Path.Combine(worlds, episode, levelName, "Dialog"); Directory.CreateDirectory(dir);
-            var collision = dialogs.Count(x => x.LevelId == dialog.LevelId && x.Identity == dialog.Identity) > 1;
-            var name = collision ? $"VAG_{dialog.Identity:X4}_{dialog.Sector:X6}.wav" : $"VAG_{dialog.Identity:X4}.wav"; Report($"Worlds / {episode} / {levelName} / Dialog / {name}");
+            var name = $"VAG_{dialog.Identity:X4}_{dialog.Sector:X6}.wav"; Report($"Worlds / {episode} / {levelName} / Dialog / {name}");
             var size = dialog.Size;
             if (size == 0) { var header = await ReadAtAsync(iso, (long)dialog.Sector * SectorSize, 0x30, ct); size = ReadBe32(header, 0x0C) + 0x30; }
             var vag = await ReadAtAsync(iso, (long)dialog.Sector * SectorSize, checked((int)size), ct);

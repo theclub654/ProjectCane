@@ -170,11 +170,10 @@ void RunGameFrame()
 
     if (g_transition.m_fPending != 0)
     {
-        FlushTransitionFrame();
+		FlushTransitionFrame();
 		g_transition.Execute(file);
-		ResyncClockTick(&g_clock);
-        if (s_framePacer != nullptr)
-            s_framePacer->Resync();
+		if (s_framePacer != nullptr)
+			s_framePacer->Resync();
     }
 
     if (FCutscenePending() && g_wipe.wipes != WIPES_WipingOut)
@@ -220,7 +219,6 @@ void RunGameFrame()
 
         if (g_fRenderModels == true)
         {
-            g_worldMapDrawnCount = 0;
             RenderSw(g_psw, g_pcm);
             RenderUi(&g_ui);
             DrawSw(g_psw, g_pcm);
@@ -576,6 +574,7 @@ int RunApplication(const std::vector<std::string>& arguments)
 			DeleteWorld(g_psw);
 
 		ShutdownSound();
+		ShutdownControllerInput();
 		FreeTvGL();
 		g_gl.TerminateGL();
 		return EXIT_SUCCESS;
@@ -610,6 +609,7 @@ void Startup()
 	// takes effect only after restarting the program.
 	LoadDebugModeSetting();
     g_gl.InitGL();
+    StartupControllerInput();
     glfwSwapInterval(g_fVsync ? 1 : 0);
 
     std::cout << "Sly Cooper 2002 Sony Computer Entertainment America & Sucker Punch Productions\n";

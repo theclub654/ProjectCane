@@ -116,7 +116,6 @@ class CFontBrx : public CFont
 {
     public:
     BMP* m_pbmp = nullptr;
-    CLUT* m_pclut = nullptr;
 
     int m_cglyff = 0;
     std::unordered_map<uint16_t, GLYFF> m_aglyff;

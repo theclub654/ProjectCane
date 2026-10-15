@@ -14,6 +14,9 @@ void RenderSwGlobset(SW* psw, CM* pcm);
 // Adds a object to a render list in a sorted order
 void SubmitRpl(RPL* prpl);
 void SubmitRplCel(RPLCEL* prplcel);
+RPL& QueueTranslucentRpl(const RPL& rpl);
+RPL& QueueTranslucentAddRpl(const RPL& rpl);
+RPL& QueueBlotContextRpl(const RPL& rpl);
 // Sorts the draw list
 void SortRenderRpl();
 inline bool compareZ(const RPL& prpl0, const RPL& prpl1);
@@ -120,10 +123,6 @@ extern std::vector <RPL> g_foreGroundPrpl;
 
 extern int g_worldMapCount;
 extern std::vector <RPL> g_worldMapPrpl;
-// Number of world-map records actually consumed by DrawSw this frame. Unlike
-// g_worldMapCount, this survives the draw pass long enough for presentation
-// readiness checks in the main loop.
-extern int g_worldMapDrawnCount;
 
 extern int g_maxCount;
 extern std::vector <RPL> g_maxPrpl;

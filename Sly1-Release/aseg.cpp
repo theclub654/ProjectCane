@@ -8,8 +8,6 @@
 #include "acrbl.h"
 #include "acrb.h"
 #include "acrc.h"
-#include <array>
-#include <cstring>
 
 ASEG* NewAseg()
 {
@@ -277,13 +275,10 @@ void LoadAsegEventsFromBrx(ASEG* paseg, CBinaryInputStream* pbis, int fFrame, in
                 ea.wipe.ptrans->oidWarpContext = OID_Nil;
                 ea.wipe.ptrans->grftrans = static_cast<GRFTRANS>(0);
 
-                LEVELINFOBRX levelBrx{};
-
-				pbis->ReadBytes(&levelBrx, sizeof(levelBrx));
-
-                const uint32_t searchKey = levelBrx.searchValue ^ levelBrx.searchCipher;
-
-                ea.wipe.ptrans->plevel = PlevelinfoFromSearchKey(searchKey);
+                std::array<char, 32> levelName{};
+				pbis->ReadBytes(levelName.data(), levelName.size());
+				ea.wipe.ptrans->plevel = levelName[0] != '\0'
+					? PlevelinfoFromLevelName(levelName.data()) : nullptr;
 
 
                 break;
@@ -329,27 +324,8 @@ void LoadAsegEventsFromBrx(ASEG* paseg, CBinaryInputStream* pbis, int fFrame, in
 
             case EATYP_PreloadVag:
             case EATYP_ShowMovie:
-            {
-                std::array<uint32_t, 8> descriptor{};
-                bool fDescriptorPresent = false;
-                for (uint32_t& word : descriptor)
-                {
-                    word = pbis->U32Read();
-                    fDescriptorPresent |= word != 0;
-                }
-
-                if (fDescriptorPresent)
-                {
-                    ea.string.pchz = std::shared_ptr<char[]>(new char[33]());
-                    std::memcpy(ea.string.pchz.get(), descriptor.data(), 32);
-                }
-                else
-                {
-                    ea.string.pchz.reset();
-                }
-
-                break;
-            }
+            ea.string.pchz = pbis->ReadFixedString32();
+            break;
 
             case EATYP_SetSmGoal:
             ea.setsm.oidSm = pbis->S16Read();

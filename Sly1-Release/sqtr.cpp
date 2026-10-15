@@ -232,9 +232,9 @@ void RenderSqtrm(SQTRM* psqtrm, CM* pcm)
     // SubmitRpl currently replaces RP_Translucent callbacks with DrawGlob,
     // so retain DrawSqtrm while routing to the equivalent render list.
     if (rpl.fTransluscentSort != 0)
-        g_translucentPrpl[g_translucentCount++] = rpl;
+        QueueTranslucentRpl(rpl);
     else
-        g_translucentAddPrpl[g_translucentAddCount++] = rpl;
+        QueueTranslucentAddRpl(rpl);
 }
 
 void DrawSqtrm(RPL* prpl)

@@ -4,7 +4,6 @@
 class SPEAKER : public ALO
 {
 	public:
-    RGBA rgbaTextPacked;
     glm::vec4 rgbaText;
     float radFov;
     float sDistCm;
@@ -25,6 +24,7 @@ SPEAKER*NewSpeaker();
 void InitSpeaker(SPEAKER* pspeaker);
 void*GetSpeakerRgbaText(SPEAKER* pspeaker);
 void SetSpeakerRgbaText(SPEAKER* pspeaker, RGBA rgbaText);
+void SetSpeakerRgbaTextFloat(SPEAKER* pspeaker, const glm::vec4* rgbaText);
 void*GetSpeakerRadFov(SPEAKER* pspeaker);
 void SetSpeakerRadFov(SPEAKER* pspeaker, float radFov);
 void*GetSpeakerSDistCm(SPEAKER* pspeaker);

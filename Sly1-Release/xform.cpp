@@ -7,6 +7,7 @@
 #include "binoc.h"
 #include "wm.h"
 #include "sw.h"
+#include <array>
 #include <cstdio>
 
 XFM* NewXfm()
@@ -568,18 +569,15 @@ EXIT* PexitDefault()
 
 void LoadExitFromBrx(EXIT* pexit, CBinaryInputStream* pbis)
 {
-	
-	LEVELINFOBRX levelBrx{};
-	LEVELINFOBRX levelAltBrx{};
+	std::array<char, 32> levelName{};
+	std::array<char, 32> alternateLevelName{};
+	pbis->ReadBytes(levelName.data(), levelName.size());
+	pbis->ReadBytes(alternateLevelName.data(), alternateLevelName.size());
 
-	pbis->ReadBytes(&levelBrx, sizeof(levelBrx));
-	pbis->ReadBytes(&levelAltBrx, sizeof(levelAltBrx));
-
-	const uint32_t searchKey = levelBrx.searchValue ^ levelBrx.searchCipher;
-	const uint32_t searchKeyAlt = levelAltBrx.searchValue ^ levelAltBrx.searchCipher;
-
-	pexit->plevel = PlevelinfoFromSearchKey(searchKey);
-	pexit->plevelAlt = PlevelinfoFromSearchKey(searchKeyAlt);
+	pexit->plevel = levelName[0] != '\0'
+		? PlevelinfoFromLevelName(levelName.data()) : nullptr;
+	pexit->plevelAlt = alternateLevelName[0] != '\0'
+		? PlevelinfoFromLevelName(alternateLevelName.data()) : nullptr;
 
 	pexit->xf.mat = pbis->ReadMatrix();
 	pexit->xf.pos = pbis->ReadVector();

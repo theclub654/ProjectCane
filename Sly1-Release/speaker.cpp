@@ -2,23 +2,6 @@
 #include "sm.h"
 #include <algorithm>
 
-namespace
-{
-glm::vec4 NormalizeSpeakerTextColor(const RGBA& rgba)
-{
-    // Speaker text colors are authored for the PS2 GS color range, where
-    // 0x80 is full intensity. Converting them as ordinary 0..255 colors makes
-    // dialogue text approximately half as bright as retail.
-    constexpr float gsColorToFloat = 1.0f / 128.0f;
-    constexpr float alphaToFloat = 1.0f / 255.0f;
-    return glm::vec4(
-        std::min(static_cast<float>(rgba.bRed) * gsColorToFloat, 1.0f),
-        std::min(static_cast<float>(rgba.bGreen) * gsColorToFloat, 1.0f),
-        std::min(static_cast<float>(rgba.bBlue) * gsColorToFloat, 1.0f),
-        static_cast<float>(rgba.bAlpha) * alphaToFloat);
-}
-}
-
 SPEAKER* NewSpeaker()
 {
 	return NewWorldObject<SPEAKER>();
@@ -30,8 +13,7 @@ void InitSpeaker(SPEAKER* pspeaker)
 
     pspeaker->oidSmIdle = OID_Nil;
 
-    pspeaker->rgbaTextPacked = { 255, 255, 255, 255 };
-    pspeaker->rgbaText = NormalizeSpeakerTextColor(pspeaker->rgbaTextPacked);
+    pspeaker->rgbaText = glm::vec4(1.0f);
 
     pspeaker->sDistCm = 400.0f;
 
@@ -54,13 +36,25 @@ void InitSpeaker(SPEAKER* pspeaker)
 
 void* GetSpeakerRgbaText(SPEAKER* pspeaker)
 {
-    return &pspeaker->rgbaTextPacked;
+    return &pspeaker->rgbaText;
 }
 
 void SetSpeakerRgbaText(SPEAKER* pspeaker, RGBA rgbaText)
 {
-    pspeaker->rgbaTextPacked = rgbaText;
-    pspeaker->rgbaText = NormalizeSpeakerTextColor(pspeaker->rgbaTextPacked);
+    // Speaker text RGB is authored in the PS2 GS 0..128 intensity range.
+    // Alpha remains an ordinary 0..255 channel.
+    constexpr float gsColorToFloat = 1.0f / 128.0f;
+    constexpr float alphaToFloat = 1.0f / 255.0f;
+    pspeaker->rgbaText = glm::vec4(
+        std::min(static_cast<float>(rgbaText.bRed) * gsColorToFloat, 1.0f),
+        std::min(static_cast<float>(rgbaText.bGreen) * gsColorToFloat, 1.0f),
+        std::min(static_cast<float>(rgbaText.bBlue) * gsColorToFloat, 1.0f),
+        static_cast<float>(rgbaText.bAlpha) * alphaToFloat);
+}
+
+void SetSpeakerRgbaTextFloat(SPEAKER* pspeaker, const glm::vec4* rgbaText)
+{
+    pspeaker->rgbaText = glm::clamp(*rgbaText, 0.0f, 1.0f);
 }
 
 void* GetSpeakerRadFov(SPEAKER* pspeaker)
@@ -172,7 +166,6 @@ void CloneSpeaker(SPEAKER* pspeaker, SPEAKER* pspeakerBase)
 {
     CloneAlo(pspeaker, pspeakerBase);
 
-    pspeaker->rgbaTextPacked = pspeakerBase->rgbaTextPacked;
     pspeaker->rgbaText = pspeakerBase->rgbaText;
 
     // Copy basic float values
@@ -202,7 +195,6 @@ void CloneSpeaker(SPEAKER* pspeaker, SPEAKER* pspeakerBase)
 void PostSpeakerLoad(SPEAKER* pspeaker)
 {
     PostAloLoad(pspeaker);
-    pspeaker->rgbaText = NormalizeSpeakerTextColor(pspeaker->rgbaTextPacked);
     SetSpeakerSmIdle(pspeaker, (OID)pspeaker->oidSmIdle);
     pspeaker->pvtlo->pfnRemoveLo(pspeaker);
 }

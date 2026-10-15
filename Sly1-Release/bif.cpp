@@ -2,6 +2,7 @@
 #include "so.h"
 #include "aseg.h"
 #include "spliceobj.h"
+#include "Input.h"
 #include <set>
 #include <cstdio>
 #include <cmath>
@@ -3130,7 +3131,7 @@ CRef RefOpStartRumble(int argc, CRef* argv, CFrame* pframe)
     {
         const RUMK rumk = static_cast<RUMK>(RefAsS32(argv[0]));
         const float strength = RefAsF32(argv[1]);
-        //TriggerJoyRumbleRumk(&g_joy, rumk, strength);
+        TriggerJoyRumbleRumk(&g_joy, rumk, strength);
     }
 
     return MakeVoidRef();

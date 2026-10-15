@@ -6,6 +6,7 @@
 #include "mark.h"
 #include "mouse.h"
 #include "gl.h"
+#include "binoc.h"
 namespace
 {
 bool s_fMouseCameraCaptured = false;
@@ -235,6 +236,7 @@ void UpdateCptn(CPTN* pcptn, CPDEFI* pcpdefi, JOY* pjoy, float dt)
 	float radManual = radManualPrev;
 	float mouseOrbit = 0.0f;
 	if (g_fMouseCamera && (grftnd & FTND_Manual) != 0 &&
+		g_binoc.fActive == 0 &&
 		g_gl.window != nullptr && !g_fDisableInput &&
 		glfwGetWindowAttrib(g_gl.window, GLFW_FOCUSED) == GLFW_TRUE)
 	{
@@ -246,11 +248,12 @@ void UpdateCptn(CPTN* pcptn, CPDEFI* pcpdefi, JOY* pjoy, float dt)
 			s_fMouseCameraCaptured = true;
 		}
 		constexpr float mouseRadiansPerPixel = 0.0035f;
-		mouseOrbit = static_cast<float>(MOUSE::GetDX()) * mouseRadiansPerPixel;
+		mouseOrbit = static_cast<float>(MOUSE::GetDX()) * mouseRadiansPerPixel *
+			g_mouseCameraSensitivity;
 		if ((g_pgsCur->grfgs & 0x1000U) != 0)
 			mouseOrbit = -mouseOrbit;
 	}
-	else if (s_fMouseCameraCaptured && g_gl.window != nullptr)
+	else if (s_fMouseCameraCaptured && g_binoc.fActive == 0 && g_gl.window != nullptr)
 	{
 		glfwSetInputMode(g_gl.window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
 		s_fMouseCameraCaptured = false;

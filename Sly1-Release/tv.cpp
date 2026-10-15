@@ -543,19 +543,6 @@ void RenderTv(TV* ptv)
 
     }
 
-    if (g_binoc.binocs != BINOCS_Confront)
-    {
-        // Keep the portrait anchored with the authored 16:9 camera, but undo
-        // the horizontal shape distortion produced when that projection is
-        // displayed on a different framebuffer aspect. Scaling in model-local
-        // X preserves the portrait center and depth inside its TV mask.
-        constexpr float authoredAspect = 1280.0f / 720.0f;
-        const float framebufferAspect = static_cast<float>(g_gl.width) /
-            std::max(1.0f, static_cast<float>(g_gl.height));
-        ro.model = glm::scale(ro.model,
-            glm::vec3(authoredAspect / framebufferAspect, 1.0f, 1.0f));
-    }
-
     // The detached portrait light owns a stable slot in the dedicated TV
     // buffer. Refresh only that slot after RenderTv has resolved its current
     // camera-relative transform.
@@ -567,8 +554,7 @@ void RenderTv(TV* ptv)
         rplPre.PFNDRAWRPL = PreTvContext;
         rplPre.rp = RP_BlotContext;
         rplPre.ptv = ptv;
-        g_blotContextPrpl[g_blotContextCount] = rplPre;
-        g_blotContextCount++;
+        QueueBlotContextRpl(rplPre);
         //rplPre.achzName = "PreTvContext";
         //SubmitRpl(&rplPre);
     }
@@ -590,8 +576,7 @@ void RenderTv(TV* ptv)
         rplPost.rp = RP_BlotContext;
         rplPost.ptv = ptv;
         //rplPost.achzName = "PostTvContext";
-        g_blotContextPrpl[g_blotContextCount] = rplPost;
-        g_blotContextCount++;
+        QueueBlotContextRpl(rplPost);
         //SubmitRpl(&rplPost);
     }
 

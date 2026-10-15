@@ -124,6 +124,7 @@ void SetSwCameraNearFog(SW* psw, float sNearFog);
 void SetSwCameraFarFog(SW* psw, float sFarFog);
 void SetSwCameraUFogMax(SW* psw, float uFogMax);
 void SetSwCameraRgbaFog(SW* psw, RGBA prgbaFog);
+void SetSwCameraRgbaFogFloat(SW* psw, const glm::vec4* rgbaFog);
 void SetSwCameraMrdRatio(SW* psw, float rMRD);
 void*GetCmPos(CM* pcm);
 void SetCmPos(CM* pcm, glm::vec3* ppos);

@@ -93,19 +93,9 @@ void LoadEmitblipColorsFromBrx(EMITBLIP *pemitblip, int crgba, CBinaryInputStrea
 
 	for (int irgba = 0; irgba < crgba; ++irgba) 
 	{
-		uint32_t rgba = pbis->U32Read();
-
+		const glm::vec4 rgba = pbis->ReadVector4();
 		if (irgba < pemitblip->crgba)
-		{
-			float r = static_cast<float>((rgba >> 0) & 0xff) / 255.0f;
-			float g = static_cast<float>((rgba >> 8) & 0xff) / 255.0f;
-			float b = static_cast<float>((rgba >> 16) & 0xff) / 255.0f;
-			// BRX stores little-endian RGBA8. Keep the source channels normalized
-			// here; SetBlipgEmitb handles the PS2-GS/OpenGL representation boundary.
-			float a = static_cast<float>((rgba >> 24) & 0xff) / 255.0f;
-
-			pemitblip->argba[irgba] = glm::vec4(r, g, b, a);
-		}
+			pemitblip->argba[irgba] = rgba;
 	}
 }
 
@@ -262,13 +252,9 @@ void GetEmitterEnabled(EMITTER* pemitter, int* pfEnabled)
 void SetEmitterEnabled(EMITTER* pemitter, int fEnabled)
 {
 	if (fEnabled)
-	{
 		UnpauseEmitter(pemitter);
-	}
 	else
-	{
 		PauseEmitterIndefinite(pemitter);
-	}
 }
 
 void SetEmitterFCountIsDensity(EMITTER* pemitter, int fCountIsDensity)

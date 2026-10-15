@@ -9,6 +9,7 @@
 #include "stepzap.h"
 #include "rwm.h"
 #include "xform.h"
+#include "render.h"
 #include <cmath>
 #include <cstring>
 
@@ -251,9 +252,7 @@ void RenderRubySelf(RUBY* pruby, CM* pcm, RO* pro)
     rpl.ro.warpType = WARP_NONE;
     rpl.z = glm::dot(pruby->xf.posWorld - pcm->pos, pcm->mat[0]);
 
-    g_translucentAddPrpl[g_translucentAddCount] = rpl;
-    g_translucentAddPrpl[g_translucentAddCount].PFNDRAWRPL = DrawRubyHaloFire;
-    ++g_translucentAddCount;
+    QueueTranslucentAddRpl(rpl).PFNDRAWRPL = DrawRubyHaloFire;
 }
 
 void OnRubyExitingSgs(RUBY* pruby, SGS sgsNext)

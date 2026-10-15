@@ -19,6 +19,12 @@
 #include <mmsystem.h>
 #include <xaudio2.h>
 #include <xaudio2fx.h>
+#include <mmdeviceapi.h>
+#include <functiondiscoverykeys_devpkey.h>
+#include <propvarutil.h>
+#pragma comment(lib, "Ole32.lib")
+#pragma comment(lib, "Uuid.lib")
+#pragma comment(lib, "Propsys.lib")
 #else
 #include "../platform/audio_linux.h"
 #endif
@@ -43,7 +49,9 @@
 #include <thread>
 #include <condition_variable>
 #include <string>
+#include <limits>
 #include <unordered_set>
+#include <cctype>
 #include <nlohmann/json.hpp>
 
 extern std::string file;
@@ -61,10 +69,85 @@ static bool s_vagStartWhenReady = false;
 static float s_userMusicVolume = 1.0f;
 static float s_userSfxVolume = 1.0f;
 static float s_userDialogueVolume = 1.0f;
+static std::string s_audioOutputDeviceId;
+
+struct AudioOutputDevice
+{
+	std::string id;
+	std::string name;
+};
+
+#ifdef _WIN32
+static std::string Utf8FromWide(const wchar_t* text)
+{
+	if (text == nullptr || *text == L'\0') return {};
+	const int bytes = WideCharToMultiByte(CP_UTF8, 0, text, -1, nullptr, 0, nullptr, nullptr);
+	std::string result(static_cast<size_t>((std::max)(bytes, 1)), '\0');
+	if (bytes > 1) WideCharToMultiByte(CP_UTF8, 0, text, -1, result.data(), bytes, nullptr, nullptr);
+	if (!result.empty() && result.back() == '\0') result.pop_back();
+	return result;
+}
+
+static std::wstring WideFromUtf8(const std::string& text)
+{
+	if (text.empty()) return {};
+	const int chars = MultiByteToWideChar(CP_UTF8, 0, text.c_str(), -1, nullptr, 0);
+	std::wstring result(static_cast<size_t>((std::max)(chars, 1)), L'\0');
+	if (chars > 1) MultiByteToWideChar(CP_UTF8, 0, text.c_str(), -1, result.data(), chars);
+	if (!result.empty() && result.back() == L'\0') result.pop_back();
+	return result;
+}
+#endif
+
+static std::vector<AudioOutputDevice> AudioOutputDevices()
+{
+	std::vector<AudioOutputDevice> devices{ { {}, "System Default" } };
+#ifdef _WIN32
+	const HRESULT comResult = CoInitializeEx(nullptr, COINIT_MULTITHREADED);
+	IMMDeviceEnumerator* enumerator = nullptr;
+	IMMDeviceCollection* collection = nullptr;
+	if (SUCCEEDED(CoCreateInstance(__uuidof(MMDeviceEnumerator), nullptr, CLSCTX_ALL,
+		IID_PPV_ARGS(&enumerator))) &&
+		SUCCEEDED(enumerator->EnumAudioEndpoints(eRender, DEVICE_STATE_ACTIVE, &collection)))
+	{
+		UINT count = 0;
+		collection->GetCount(&count);
+		for (UINT i = 0; i < count; ++i)
+		{
+			IMMDevice* device = nullptr;
+			LPWSTR id = nullptr;
+			IPropertyStore* properties = nullptr;
+			PROPVARIANT name;
+			PropVariantInit(&name);
+			if (SUCCEEDED(collection->Item(i, &device)) && SUCCEEDED(device->GetId(&id)) &&
+				SUCCEEDED(device->OpenPropertyStore(STGM_READ, &properties)) &&
+				SUCCEEDED(properties->GetValue(PKEY_Device_FriendlyName, &name)))
+			{
+				devices.push_back({ Utf8FromWide(id), Utf8FromWide(name.pwszVal) });
+			}
+			PropVariantClear(&name);
+			if (properties) properties->Release();
+			if (id) CoTaskMemFree(id);
+			if (device) device->Release();
+		}
+	}
+	if (collection) collection->Release();
+	if (enumerator) enumerator->Release();
+	if (SUCCEEDED(comResult)) CoUninitialize();
+#endif
+	return devices;
+}
 static IXAudio2SubmixVoice* s_effectDryVoice = nullptr;
 static IXAudio2SubmixVoice* s_effectWetInputVoice = nullptr;
 static IXAudio2SubmixVoice* s_effectStudioCVoice = nullptr;
+// The SPU2 clamps each core's accumulated voices before that core is routed to
+// the final mixer.  Keep sequenced music on its own equivalent core bus so a
+// dense arrangement cannot overdrive the shared XAudio mastering voice first.
+static IXAudio2SubmixVoice* s_musicCoreVoice = nullptr;
 static SpuStudioCReverb* s_effectStudioCProcessor = nullptr;
+#ifdef _WIN32
+static SpuMixSaturator* s_finalOutputProcessor = nullptr;
+#endif
 static bool s_effectReverbCreationAttempted = false;
 static bool s_effectStudioCCreationAttempted = false;
 static std::atomic<bool> s_audioCriticalError{ false };
@@ -73,6 +156,124 @@ static bool s_audioRecoveryPending = false;
 static bool s_soundStartupComplete = false;
 static std::chrono::steady_clock::time_point s_audioRecoveryRetry{};
 static int s_effectAmbSerial = 0;
+static std::atomic<uint64_t> s_audioVoiceSerial{0};
+static constexpr std::size_t kSpuVoicesPerCore = 24;
+static constexpr auto kVoiceRetirementFade = std::chrono::milliseconds(5);
+
+void ReportXAudioFailureOnce(const char* operation, HRESULT result);
+
+// XAudio2 does not ramp SetVolume calls. Destroying a source voice at an
+// arbitrary sample therefore creates a discontinuity which is heard as a pop
+// (and, when many voices are stolen together, as a short static burst). Keep
+// the submitted PCM alive while a small worker-side fade reaches silence.
+struct RetiredSourceVoice
+{
+	IXAudio2SourceVoice* voice = nullptr;
+	float initialVolume = 0.0f;
+	std::chrono::steady_clock::time_point started{};
+	std::vector<int16_t> pcm16;
+	std::vector<uint8_t> pcm8;
+	// A submitted XAudio buffer retains the exact pointer supplied by its owner.
+	// Keep a retired music bank alive instead of copying its bytes elsewhere.
+	std::shared_ptr<Music989State> musicOwner;
+};
+
+static std::mutex s_retiredVoiceMutex;
+static std::vector<RetiredSourceVoice> s_retiredVoices;
+
+static void UpdateRetiredSourceVoices()
+{
+	std::lock_guard<std::mutex> lock(s_retiredVoiceMutex);
+	const auto now = std::chrono::steady_clock::now();
+	for (RetiredSourceVoice& retired : s_retiredVoices)
+	{
+		if (!retired.voice)
+			continue;
+		const float elapsed = std::chrono::duration<float>(now - retired.started).count();
+		const float fadeSeconds = std::chrono::duration<float>(kVoiceRetirementFade).count();
+		const float gain = std::clamp(1.0f - elapsed / fadeSeconds, 0.0f, 1.0f);
+		ReportXAudioFailureOnce("Fade retiring source voice",
+			retired.voice->SetVolume(retired.initialVolume * gain));
+		if (gain > 0.0f)
+			continue;
+		ReportXAudioFailureOnce("Stop retired source voice", retired.voice->Stop());
+		ReportXAudioFailureOnce("Flush retired source voice", retired.voice->FlushSourceBuffers());
+		retired.voice->DestroyVoice();
+		retired.voice = nullptr;
+	}
+	s_retiredVoices.erase(std::remove_if(s_retiredVoices.begin(), s_retiredVoices.end(),
+		[](const RetiredSourceVoice& retired) { return retired.voice == nullptr; }),
+		s_retiredVoices.end());
+}
+
+static void DestroyRetiredSourceVoicesImmediately()
+{
+	std::lock_guard<std::mutex> lock(s_retiredVoiceMutex);
+	for (RetiredSourceVoice& retired : s_retiredVoices)
+	{
+		if (!retired.voice)
+			continue;
+		retired.voice->Stop();
+		retired.voice->FlushSourceBuffers();
+		retired.voice->DestroyVoice();
+	}
+	s_retiredVoices.clear();
+}
+
+static void RetireSourceVoice(IXAudio2SourceVoice*& voice,
+	std::vector<int16_t>& pcm)
+{
+	if (!voice)
+		return;
+	RetiredSourceVoice retired{};
+	retired.voice = voice;
+	retired.started = std::chrono::steady_clock::now();
+	voice->GetVolume(&retired.initialVolume);
+	retired.pcm16 = std::move(pcm);
+	{
+		std::lock_guard<std::mutex> lock(s_retiredVoiceMutex);
+		s_retiredVoices.emplace_back(std::move(retired));
+	}
+	voice = nullptr;
+}
+
+static void RetireSourceVoice(IXAudio2SourceVoice*& voice,
+	std::vector<uint8_t>& pcm)
+{
+	if (!voice)
+		return;
+	RetiredSourceVoice retired{};
+	retired.voice = voice;
+	retired.started = std::chrono::steady_clock::now();
+	voice->GetVolume(&retired.initialVolume);
+	retired.pcm8 = std::move(pcm);
+	{
+		std::lock_guard<std::mutex> lock(s_retiredVoiceMutex);
+		s_retiredVoices.emplace_back(std::move(retired));
+	}
+	voice = nullptr;
+}
+
+static void RetireMusicVoice(MusicVoice& active,
+	const std::shared_ptr<Music989State>& musicOwner = {})
+{
+	if (!active.voice)
+		return;
+	RetiredSourceVoice retired{};
+	retired.voice = active.voice;
+	retired.started = std::chrono::steady_clock::now();
+	active.voice->GetVolume(&retired.initialVolume);
+	// Copying tone PCM would allocate a different address while XAudio2 keeps
+	// reading the pointer submitted earlier. Ownership of the original bank is
+	// therefore carried through the fade whenever the bank is being replaced.
+	retired.musicOwner = musicOwner;
+	{
+		std::lock_guard<std::mutex> lock(s_retiredVoiceMutex);
+		s_retiredVoices.emplace_back(std::move(retired));
+	}
+	active.voice = nullptr;
+	active.tone = nullptr;
+}
 
 class AudioEngineCallback final : public IXAudio2EngineCallback
 {
@@ -87,6 +288,22 @@ public:
 };
 
 static AudioEngineCallback s_audioEngineCallback;
+class VagVoiceCallback final : public IXAudio2VoiceCallback
+{
+public:
+	void STDMETHODCALLTYPE OnVoiceProcessingPassStart(UINT32) override {}
+	void STDMETHODCALLTYPE OnVoiceProcessingPassEnd() override {}
+	void STDMETHODCALLTYPE OnStreamEnd() override {}
+	void STDMETHODCALLTYPE OnBufferStart(void*) override {}
+	void STDMETHODCALLTYPE OnBufferEnd(void*) override {}
+	void STDMETHODCALLTYPE OnLoopEnd(void*) override {}
+	void STDMETHODCALLTYPE OnVoiceError(void*, HRESULT error) override
+	{
+		ReportXAudioFailureOnce("VAG/dialog source voice callback", error);
+	}
+};
+
+static VagVoiceCallback s_vagVoiceCallback;
 
 void ReportXAudioFailureOnce(const char* operation, HRESULT result)
 {
@@ -108,14 +325,36 @@ void ReportXAudioFailureOnce(const char* operation, HRESULT result)
 
 void SetVoiceVolumeChecked(IXAudio2Voice* voice, float volume, const char* operation)
 {
-	if (voice)
-		ReportXAudioFailureOnce(operation, voice->SetVolume(volume));
+	if (!voice)
+		return;
+	if (!std::isfinite(volume))
+	{
+		ReportRuntimeError("Audio", "%s produced a non-finite volume; muting the voice", operation);
+		volume = 0.0f;
+	}
+	ReportXAudioFailureOnce(operation, voice->SetVolume((std::max)(0.0f, volume)));
+}
+
+HRESULT SetVoiceFrequencyRatioChecked(IXAudio2SourceVoice* voice, float ratio,
+	const char* operation)
+{
+	if (!voice)
+		return E_POINTER;
+	if (!std::isfinite(ratio))
+	{
+		ReportRuntimeError("Audio", "%s produced a non-finite pitch ratio; using unity pitch",
+			operation);
+		ratio = 1.0f;
+	}
+	ratio = std::clamp(ratio, XAUDIO2_MIN_FREQ_RATIO, kSpuMaximumFrequencyRatio);
+	const HRESULT result = voice->SetFrequencyRatio(ratio);
+	ReportXAudioFailureOnce(operation, result);
+	return result;
 }
 
 struct PendingVagLoad
 {
 	uint64_t generation = 0;
-	std::array<char, 33> descriptor{};
 	std::filesystem::path readablePath;
 	std::filesystem::path path;
 	SoundWaveFormat format{};
@@ -136,15 +375,72 @@ static void UpdateMusicSequencer(double logicalElapsed = -1.0);
 static void PrimeMusicSequencerStartup();
 static bool FinishPendingVagLoad();
 static bool RecoverAudioEngine();
+
+std::string GetAudioOutputDeviceId()
+{
+	return s_audioOutputDeviceId;
+}
+
+std::string GetAudioOutputDeviceName()
+{
+	for (const AudioOutputDevice& device : AudioOutputDevices())
+		if (device.id == s_audioOutputDeviceId)
+			return device.name;
+	return "System Default";
+}
+
+void SetAudioOutputDeviceId(const std::string& deviceId)
+{
+	std::string validatedId;
+	for (const AudioOutputDevice& device : AudioOutputDevices())
+	{
+		if (device.id == deviceId)
+		{
+			validatedId = deviceId;
+			break;
+		}
+	}
+	if (s_audioOutputDeviceId == validatedId) return;
+	s_audioOutputDeviceId = validatedId;
+	if (s_xaudio2 != nullptr)
+		RecoverAudioEngine();
+}
+
+void SelectAudioOutputDevice(int direction)
+{
+	const std::vector<AudioOutputDevice> devices = AudioOutputDevices();
+	if (devices.empty()) return;
+	auto current = std::find_if(devices.begin(), devices.end(), [](const AudioOutputDevice& device)
+	{
+		return device.id == s_audioOutputDeviceId;
+	});
+	int index = current == devices.end() ? 0 : static_cast<int>(current - devices.begin());
+	index = (index + (direction < 0 ? -1 : 1) + static_cast<int>(devices.size())) %
+		static_cast<int>(devices.size());
+	const std::string previous = s_audioOutputDeviceId;
+	s_audioOutputDeviceId = devices[index].id;
+	if (s_xaudio2 != nullptr && !RecoverAudioEngine())
+	{
+		s_audioOutputDeviceId = previous;
+		RecoverAudioEngine();
+	}
+}
 static bool CreateVagStreamVoice(VagStreamState& stream, uint64_t playBegin);
 static bool SetVagStreamOutputMatrix(IXAudio2SourceVoice* voice, UINT32 sourceChannels);
 static void ResetMusicSegmentForLoop(MusicSegment& segment);
-
 static void MusicWorkerMain()
 {
 	using namespace std::chrono_literals;
 	while (s_musicWorkerRunning.load(std::memory_order_acquire))
 	{
+		// Voice retirement is independent of the music transport.  It must keep
+		// running while gameplay audio is paused and while the sequencer is idle;
+		// otherwise stopped music, dialogue, and FMV voices remain alive forever.
+		// Besides leaking XAudio voices and their submitted buffers, that lets old
+		// audio continue underneath the next scene.  The retirement list is
+		// internally synchronized, so producers may safely enqueue from either the
+		// game thread or this worker.
+		UpdateRetiredSourceVoices();
 		if (!s_musicUsesGameplayClock.load(std::memory_order_acquire))
 		{
 			std::lock_guard<std::recursive_mutex> lock(s_musicMutex);
@@ -296,6 +592,30 @@ bool Parse989SfxBank(EFFECTBANK& bank)
 			sound.grains.push_back(grain);
 		}
 	}
+
+	// The effect-bank tone record stores only the start of each VAG stream.
+	// Resolve its end from the next distinct stream start, just as the 989SND
+	// loader does when it builds its sample table.  Leaving sampleEndOffset at
+	// its default zero makes DecodeEffectAdpcm reject every ordinary SFX tone,
+	// while music and dialogue continue working because they use other loaders.
+	std::vector<uint32_t> sampleOffsets;
+	for (const EFFECTBANK::SOUND& sound : bank.sounds)
+		for (const EFFECTBANK::GRAIN& grain : sound.grains)
+			if (grain.hasTone && grain.tone.sampleOffset < bank.sampleSize)
+				sampleOffsets.push_back(grain.tone.sampleOffset);
+	std::sort(sampleOffsets.begin(), sampleOffsets.end());
+	sampleOffsets.erase(std::unique(sampleOffsets.begin(), sampleOffsets.end()),
+		sampleOffsets.end());
+	for (EFFECTBANK::SOUND& sound : bank.sounds)
+		for (EFFECTBANK::GRAIN& grain : sound.grains)
+		{
+			if (!grain.hasTone)
+				continue;
+			const auto next = std::upper_bound(sampleOffsets.begin(), sampleOffsets.end(),
+				grain.tone.sampleOffset);
+			grain.tone.sampleEndOffset = next != sampleOffsets.end()
+				? *next : bank.sampleSize;
+		}
 	return true;
 }
 
@@ -440,16 +760,75 @@ std::filesystem::path FindCommentaryWav(uint32_t identity, uint32_t sector)
     return {};
 }
 
-std::filesystem::path FindEffectBank(int ibnk)
+
+std::filesystem::path ResolveNamedVag(const char* value)
+{
+    if (!IsReadablePath(value))
+        return {};
+
+    const std::filesystem::path supplied(value);
+    std::filesystem::path direct = supplied;
+    direct.replace_extension(".wav");
+    std::error_code error;
+    if (std::filesystem::is_regular_file(direct, error))
+        return direct;
+
+    if (std::filesystem::path found = FindExtractedWav(direct.filename().wstring());
+        !found.empty())
+        return found;
+
+    // Older extractor releases omitted the sector when an identity was unique
+    // inside a level. Keep those asset trees usable with PCBRX v17 files.
+    const std::string filename = direct.filename().string();
+    unsigned int identity = 0;
+    unsigned int sector = 0;
+    int parsedLength = 0;
+    if (std::sscanf(filename.c_str(), "VAG_%x_%x.wav%n", &identity, &sector,
+            &parsedLength) == 2 && parsedLength == static_cast<int>(filename.size()))
+    {
+        wchar_t identityName[64]{};
+        std::swprintf(identityName, std::size(identityName), L"VAG_%04X.wav", identity);
+        if (std::filesystem::path found = FindExtractedWav(identityName); !found.empty())
+            return found;
+
+        // Commentary produced by older extractors used descriptive filenames.
+        return FindCommentaryWav(identity, sector);
+    }
+
+    return {};
+}
+
+std::filesystem::path FindEffectBank(int ibnk, const char* fileName)
 {
 	if (ibnk < 0 || ibnk >= static_cast<int>(kEffectBankNames.size()))
 		return {};
+	const std::filesystem::path requestedFile = fileName != nullptr && fileName[0] != '\0'
+		? std::filesystem::path(fileName)
+		: std::filesystem::path(kEffectBankNames[ibnk]);
 	const std::filesystem::path executableDirectory = ExecutableDirectory();
 	const std::filesystem::path repositoryDirectory = std::filesystem::current_path();
 	const std::filesystem::path executableReposDirectory =
 		executableDirectory.parent_path().parent_path().parent_path();
+	std::filesystem::path loadedWorldsDirectory;
+	if (!file.empty())
+	{
+		std::filesystem::path ancestor = std::filesystem::path(file).parent_path();
+		while (!ancestor.empty())
+		{
+			if (MatchesInsensitive(ancestor.filename(), L"Worlds"))
+			{
+				loadedWorldsDirectory = ancestor;
+				break;
+			}
+			const std::filesystem::path parent = ancestor.parent_path();
+			if (parent == ancestor)
+				break;
+			ancestor = parent;
+		}
+	}
 	const std::filesystem::path roots[] =
 	{
+		loadedWorldsDirectory / L"Sound Banks",
 		executableDirectory / L"Worlds" / L"Sound Banks",
 		repositoryDirectory / L"Worlds" / L"Sound Banks",
 		repositoryDirectory / L"Sly1-Release" / L"Worlds" / L"Sound Banks",
@@ -470,7 +849,7 @@ std::filesystem::path FindEffectBank(int ibnk)
 	};
 	for (const std::filesystem::path& root : roots)
 	{
-		const std::filesystem::path candidate = root / kEffectBankNames[ibnk];
+		const std::filesystem::path candidate = root / requestedFile.filename();
 		std::error_code error;
 		if (std::filesystem::is_regular_file(candidate, error))
 			return candidate;
@@ -478,16 +857,37 @@ std::filesystem::path FindEffectBank(int ibnk)
 	return {};
 }
 
-std::filesystem::path FindMusicBank(MUSID musid)
+std::filesystem::path FindMusicBank(MUSID musid, const char* fileName)
 {
 	wchar_t bankName[32]{};
 	std::swprintf(bankName, std::size(bankName), L"MUSID_%02X", static_cast<unsigned>(musid));
+	const std::filesystem::path requestedFile = fileName != nullptr && fileName[0] != '\0'
+		? std::filesystem::path(fileName)
+		: std::filesystem::path(std::wstring(bankName) + L".mus");
 	const std::filesystem::path executableDirectory = ExecutableDirectory();
 	const std::filesystem::path repositoryDirectory = std::filesystem::current_path();
 	const std::filesystem::path executableReposDirectory =
 		executableDirectory.parent_path().parent_path().parent_path();
+	std::filesystem::path loadedWorldsDirectory;
+	if (!file.empty())
+	{
+		std::filesystem::path ancestor = std::filesystem::path(file).parent_path();
+		while (!ancestor.empty())
+		{
+			if (MatchesInsensitive(ancestor.filename(), L"Worlds"))
+			{
+				loadedWorldsDirectory = ancestor;
+				break;
+			}
+			const std::filesystem::path parent = ancestor.parent_path();
+			if (parent == ancestor)
+				break;
+			ancestor = parent;
+		}
+	}
 	const std::filesystem::path roots[] =
 	{
+		loadedWorldsDirectory / L"Music",
 		executableDirectory / L"Worlds" / L"Music",
 		repositoryDirectory / L"Worlds" / L"Music",
 		repositoryDirectory / L"Sly1-Release" / L"Worlds" / L"Music",
@@ -509,7 +909,7 @@ std::filesystem::path FindMusicBank(MUSID musid)
 
 	for (const std::filesystem::path& root : roots)
 	{
-		const std::filesystem::path raw = root / (std::wstring(bankName) + L".mus");
+		const std::filesystem::path raw = root / requestedFile.filename();
 		std::error_code error;
 		if (std::filesystem::is_regular_file(raw, error))
 			return raw;
@@ -740,7 +1140,7 @@ void ApplyCurrentEffectReverb()
 	// path fully wet and apply that depth to the reverb return; mixing dry signal
 	// inside the effect would duplicate the source voice's direct path.
 	const float studioWetLevel = s_effectReverbKind == REVERBK_StudioC
-		? std::clamp(static_cast<float>(s_effectReverbDepth) / 32768.0f, 0.0f, 1.0f)
+		? std::clamp(static_cast<float>(s_effectReverbDepth) / 127.0f, 0.0f, 1.0f)
 		: 0.0f;
 	const float genericWetLevel = s_effectReverbKind == REVERBK_None
 		? 0.0f
@@ -760,6 +1160,10 @@ void ApplyCurrentEffectReverb()
 		s_effectStudioCVoice != nullptr;
 	const bool feedGeneric = s_effectReverbKind != REVERBK_None &&
 		(s_effectReverbKind != REVERBK_StudioC || s_effectStudioCVoice == nullptr);
+	#ifdef _WIN32
+	if (s_effectStudioCProcessor)
+		s_effectStudioCProcessor->SetActive(feedStudio);
+	#endif
 	const float studioInputMatrix[4] =
 	{
 		feedStudio ? 1.0f : 0.0f, 0.0f,
@@ -806,8 +1210,34 @@ bool EnsureMusicEngine()
 	// 48 kHz; asking XAudio/FAudio for the endpoint's native layout made source
 	// channels 0 and 1 mean different things on stereo, surround and virtual
 	// devices. The operating system can perform the final endpoint conversion.
+	#ifdef _WIN32
+	SpuMixSaturator* finalOutput = new SpuMixSaturator(true);
+	finalOutput->SetTargetGain(0.0f);
+	XAUDIO2_EFFECT_DESCRIPTOR finalEffect{finalOutput, TRUE, 2};
+	XAUDIO2_EFFECT_CHAIN finalChain{1, &finalEffect};
+	const std::wstring outputDeviceId = WideFromUtf8(s_audioOutputDeviceId);
+	HRESULT masteringResult = s_xaudio2->CreateMasteringVoice(
+		&s_musicMasterVoice, 2, 48000, 0,
+		outputDeviceId.empty() ? nullptr : outputDeviceId.c_str(), &finalChain,
+		AudioCategory_GameEffects);
+	if (FAILED(masteringResult) && !outputDeviceId.empty())
+	{
+		// A saved endpoint can disappear or reject the requested fixed 48 kHz
+		// graph after settings validation. Fall back to the Windows default so
+		// one stale device ID cannot disable all game audio.
+		s_audioOutputDeviceId.clear();
+		s_musicMasterVoice = nullptr;
+		masteringResult = s_xaudio2->CreateMasteringVoice(
+			&s_musicMasterVoice, 2, 48000, 0, nullptr, &finalChain,
+			AudioCategory_GameEffects);
+	}
+	if (SUCCEEDED(masteringResult))
+		s_finalOutputProcessor = finalOutput;
+	finalOutput->Release();
+	#else
 	const HRESULT masteringResult = s_xaudio2->CreateMasteringVoice(
 		&s_musicMasterVoice, 2, 48000);
+	#endif
 	if (FAILED(masteringResult))
 	{
 		ReportRuntimeError("Audio",
@@ -824,6 +1254,32 @@ bool EnsureMusicEngine()
 	// burst even though no authored sound has started yet.
 	ReportXAudioFailureOnce("Mute mastering voice during initialization",
 		s_musicMasterVoice->SetVolume(0.0f));
+	#ifdef _WIN32
+	SpuMixSaturator* musicCore = new SpuMixSaturator(false);
+	XAUDIO2_EFFECT_DESCRIPTOR musicCoreEffect{musicCore, TRUE, 2};
+	XAUDIO2_EFFECT_CHAIN musicCoreChain{1, &musicCoreEffect};
+	const HRESULT musicCoreResult = s_xaudio2->CreateSubmixVoice(
+		&s_musicCoreVoice, 2, 48000, 0, 0, nullptr, &musicCoreChain);
+	musicCore->Release();
+	#else
+	const HRESULT musicCoreResult = s_xaudio2->CreateSubmixVoice(
+		&s_musicCoreVoice, 2, 48000, 0, 0, nullptr, nullptr);
+	#endif
+	if (FAILED(musicCoreResult) || !s_musicCoreVoice)
+	{
+		ReportRuntimeError("Audio",
+			"Create music core submix failed (HRESULT 0x%08X)",
+			static_cast<unsigned>(musicCoreResult));
+		#ifdef _WIN32
+		s_finalOutputProcessor = nullptr;
+		#endif
+		s_musicMasterVoice->DestroyVoice();
+		s_musicMasterVoice = nullptr;
+		s_xaudio2->UnregisterForCallbacks(&s_audioEngineCallback);
+		s_xaudio2->Release();
+		s_xaudio2 = nullptr;
+		return false;
+	}
 	s_audioCriticalResult.store(S_OK, std::memory_order_release);
 	s_audioCriticalError.store(false, std::memory_order_release);
 	EnsureEffectReverb();
@@ -868,54 +1324,25 @@ void RecalculateChannelVolume(int channel)
 void CloseMusicVoice()
 {
 	std::lock_guard<std::recursive_mutex> lock(s_musicMutex);
-	for (MusicVoice& active : s_music989.voices)
+	// Source buffers point directly into MusicTone::pcm. Move the complete bank
+	// into shared retirement storage before clearing the live sequencer so those
+	// addresses remain valid until every fading XAudio voice has been destroyed.
+	auto retiredMusic = std::make_shared<Music989State>(std::move(s_music989));
+	for (MusicVoice& active : retiredMusic->voices)
 	{
 		if (active.voice)
-		{
-			active.voice->Stop();
-			active.voice->DestroyVoice();
-		}
+			RetireMusicVoice(active, retiredMusic);
 	}
 	s_music989 = {};
 	s_musicStream = {};
 }
 
-std::filesystem::path ResolveVagWav(const char* descriptorOrPath)
+std::filesystem::path ResolveVagWav(const char* fileName)
 {
-    if (!descriptorOrPath)
+    if (!fileName || fileName[0] == '\0')
         return {};
 
-    if (IsReadablePath(descriptorOrPath))
-    {
-        std::filesystem::path path(descriptorOrPath);
-        path.replace_extension(".wav");
-        std::error_code error;
-        if (std::filesystem::is_regular_file(path, error))
-            return path;
-
-        if (std::filesystem::path found = FindExtractedWav(path.filename().wstring()); !found.empty())
-            return found;
-    }
-
-    uint32_t words[8]{};
-    std::memcpy(words, descriptorOrPath, sizeof(words));
-    const uint32_t sector = words[0] ^ words[5];
-    const uint32_t identity = words[2] ^ words[6];
-
-    wchar_t exactName[64]{};
-    std::swprintf(exactName, std::size(exactName), L"VAG_%04X_%06X.wav", identity, sector);
-    if (std::filesystem::path found = FindExtractedWav(exactName); !found.empty())
-        return found;
-
-    wchar_t identityName[64]{};
-    std::swprintf(identityName, std::size(identityName), L"VAG_%04X.wav", identity);
-    if (std::filesystem::path found = FindExtractedWav(identityName); !found.empty())
-        return found;
-
-    // Commentary exports use level-based names instead of the generic VAG
-    // identity name. Resolve the retail descriptor through the extractor's
-    // metadata map so the BRX-provided file location remains authoritative.
-    return FindCommentaryWav(identity, sector);
+    return ResolveNamedVag(fileName);
 }
 
 static void ApplyDialogMusicDuck(float duck)
@@ -935,11 +1362,7 @@ void CloseVagStream()
 	std::lock_guard<std::recursive_mutex> lock(s_musicMutex);
 	const bool wasCommentary = s_vagStream.commentary;
 	if (s_vagStream.voice)
-	{
-		s_vagStream.voice->Stop();
-		s_vagStream.voice->FlushSourceBuffers();
-		s_vagStream.voice->DestroyVoice();
-	}
+		RetireSourceVoice(s_vagStream.voice, s_vagStream.pcm);
     s_vagStream = {};
 	s_hvagAmbient = 0;
 	// A dialogue can contain several separate VAG clips with camera and speaker
@@ -1008,6 +1431,7 @@ bool DecodeMusicAdpcm(const std::vector<uint8_t>& data, std::size_t begin,
 	std::size_t loopBlockStart = 0;
 	std::size_t loopBlockEnd = 0;
 	bool sawLoopStart = false;
+	bool sawEnd = false;
 	for (std::size_t block = begin; block + 16 <= end; block += 16)
 	{
 		const uint8_t predictorShift = data[block];
@@ -1037,6 +1461,7 @@ bool DecodeMusicAdpcm(const std::vector<uint8_t>& data, std::size_t begin,
 		}
 		if ((flags & 1) != 0)
 		{
+			sawEnd = true;
 			loopBlockEnd = block + 16;
 			tone.loop = (flags & 2) != 0 && sawLoopStart;
 			if (tone.loop)
@@ -1047,16 +1472,18 @@ bool DecodeMusicAdpcm(const std::vector<uint8_t>& data, std::size_t begin,
 			break;
 		}
 	}
-	// The SPU2 preserves its ADPCM predictor history when it jumps from a loop
-	// end back to the loop-start block. XAudio loops decoded PCM instead, so a
-	// short loop decoded only with the intro history clicks on every iteration.
-	// Decode the encoded loop repeatedly and retain its converged PCM cycle.
+	// Keep the transient predictor passes and move the fixed PCM loop point
+	// forward once the ending history repeats. Replacing the intro's first loop
+	// pass with a later pass creates a potentially full-scale discontinuity.
 	if (tone.loop && loopBlockStart < loopBlockEnd)
 	{
-		std::vector<int16_t> steadyLoop;
+		const UINT32 encodedLoopLength = tone.loopLength;
+		std::vector<int16_t> decodedLoop;
+		int previousEndHistory1 = history1;
+		int previousEndHistory2 = history2;
 		for (int iteration = 0; iteration < 32; ++iteration)
 		{
-			steadyLoop.clear();
+			decodedLoop.clear();
 			for (std::size_t block = loopBlockStart; block < loopBlockEnd; block += 16)
 			{
 				const uint8_t predictorShift = data[block];
@@ -1073,14 +1500,26 @@ bool DecodeMusicAdpcm(const std::vector<uint8_t>& data, std::size_t begin,
 					value = std::clamp(value, -32768, 32767);
 					history2 = history1;
 					history1 = value;
-					steadyLoop.push_back(static_cast<int16_t>(value));
+					decodedLoop.push_back(static_cast<int16_t>(value));
 				}
 			}
+			if (decodedLoop.size() != encodedLoopLength)
+				break;
+			const UINT32 passBegin = static_cast<UINT32>(pcm.size());
+			pcm.insert(pcm.end(), decodedLoop.begin(), decodedLoop.end());
+			tone.loopBegin = passBegin;
+			tone.loopLength = encodedLoopLength;
+			if (history1 == previousEndHistory1 && history2 == previousEndHistory2)
+				break;
+			previousEndHistory1 = history1;
+			previousEndHistory2 = history2;
 		}
-		if (steadyLoop.size() == tone.loopLength)
-			std::copy(steadyLoop.begin(), steadyLoop.end(), pcm.begin() + loopStart);
+		// SPU2 always honors LOOP/END and carries decoder history across the jump.
+		// XAudio loops fixed PCM, so use the latest predictor pass even when the
+		// history has not reached an exact fixed point. Dropping the loop entirely
+		// makes authored sustained instruments terminate and breaks the arrangement.
 	}
-	if (pcm.empty())
+	if (pcm.empty() || !sawEnd)
 		return false;
 	tone.format = {};
 	tone.format.formatTag = 1;
@@ -1147,8 +1586,10 @@ bool LoadMusic989Mus(const std::filesystem::path& path)
 			if ((flags & 0x80) != 0 || streamOffset >= audioSize)
 				continue;
 			MusicTone tone{};
+			tone.flags = flags;
 			tone.sampleOffset = streamOffset;
 			tone.program = programIndex;
+			tone.priority = data[toneEntry];
 			tone.volume = static_cast<int8_t>(data[toneEntry + 1]);
 			tone.centerNote = static_cast<int8_t>(data[toneEntry + 2]);
 			tone.centerFine = static_cast<int8_t>(data[toneEntry + 3]);
@@ -1159,11 +1600,25 @@ bool LoadMusic989Mus(const std::filesystem::path& path)
 			tone.pitchBendHigh = static_cast<int8_t>(data[toneEntry + 9]);
 			tone.adsr1 = MusicLe16(data.data() + toneEntry + 0x0a);
 			tone.adsr2 = MusicLe16(data.data() + toneEntry + 0x0c);
-			if (!DecodeMusicAdpcm(data, audioOffset + streamOffset,
-				static_cast<std::size_t>(audioOffset) + audioSize, tone))
-				return false;
 			s_music989.tones.push_back(std::move(tone));
 		}
+	}
+	std::vector<uint32_t> musicSampleOffsets;
+	musicSampleOffsets.reserve(s_music989.tones.size());
+	for (const MusicTone& tone : s_music989.tones)
+		musicSampleOffsets.push_back(tone.sampleOffset);
+	std::sort(musicSampleOffsets.begin(), musicSampleOffsets.end());
+	musicSampleOffsets.erase(std::unique(musicSampleOffsets.begin(), musicSampleOffsets.end()),
+		musicSampleOffsets.end());
+	for (MusicTone& tone : s_music989.tones)
+	{
+		const auto next = std::upper_bound(musicSampleOffsets.begin(), musicSampleOffsets.end(),
+			tone.sampleOffset);
+		tone.sampleEndOffset = next != musicSampleOffsets.end() ? *next : audioSize;
+		if (tone.sampleEndOffset <= tone.sampleOffset ||
+			!DecodeMusicAdpcm(data, audioOffset + tone.sampleOffset,
+				static_cast<std::size_t>(audioOffset) + tone.sampleEndOffset, tone))
+			return false;
 	}
 	s_music989.sequence.assign(data.begin() + sequenceOffset,
 		data.begin() + sequenceOffset + sequenceSize);
@@ -1196,6 +1651,29 @@ void LoadMusicAdpcmLoopPoints(const std::filesystem::path& directory)
 	if (programTable >= data.size())
 		return;
 
+	std::vector<uint32_t> sampleOffsets;
+	for (uint16_t program = 0; program < programCount; ++program)
+	{
+		const std::size_t programEntry = programTable + static_cast<std::size_t>(program) * 8;
+		if (programEntry + 8 > data.size())
+			return;
+		const uint8_t toneCount = data[programEntry];
+		const uint32_t toneTable = sblkOffset + MusicLe32(data.data() + programEntry + 4);
+		for (uint8_t toneIndex = 0; toneIndex < toneCount; ++toneIndex)
+		{
+			const std::size_t toneEntry = toneTable + static_cast<std::size_t>(toneIndex) * 0x18;
+			if (toneEntry + 0x18 > data.size())
+				return;
+			const uint16_t toneFlags = MusicLe16(data.data() + toneEntry + 0x0e);
+			const uint32_t streamOffset = MusicLe32(data.data() + toneEntry + 0x10);
+			if ((toneFlags & 0x80) == 0 && streamOffset < audioSize)
+				sampleOffsets.push_back(streamOffset);
+		}
+	}
+	std::sort(sampleOffsets.begin(), sampleOffsets.end());
+	sampleOffsets.erase(std::unique(sampleOffsets.begin(), sampleOffsets.end()),
+		sampleOffsets.end());
+
 	std::size_t extractedTone = 0;
 	for (uint16_t program = 0; program < programCount && extractedTone < s_music989.tones.size(); ++program)
 	{
@@ -1222,7 +1700,10 @@ void LoadMusicAdpcmLoopPoints(const std::filesystem::path& directory)
 			UINT32 loopStart = 0;
 			bool foundStart = false;
 			const std::size_t stream = audioOffset + streamOffset;
-			for (std::size_t frame = 0; stream + frame * 16 + 16 <= audioOffset + audioSize; ++frame)
+			const auto next = std::upper_bound(sampleOffsets.begin(), sampleOffsets.end(), streamOffset);
+			const uint32_t streamEndOffset = next != sampleOffsets.end() ? *next : audioSize;
+			const std::size_t streamEnd = static_cast<std::size_t>(audioOffset) + streamEndOffset;
+			for (std::size_t frame = 0; stream + frame * 16 + 16 <= streamEnd; ++frame)
 			{
 				const uint8_t* block = data.data() + stream + frame * 16;
 				bool terminator = true;
@@ -1284,6 +1765,7 @@ bool LoadMusic989Bank(const std::filesystem::path& directory)
 	{
 		MusicTone tone{};
 		tone.program = toneJson.value("program", 0);
+		tone.priority = toneJson.value("priority", 0);
 		tone.mapLow = toneJson.value("mapLow", 0);
 		tone.mapHigh = toneJson.value("mapHigh", 127);
 		tone.volume = toneJson.value("volume", 127);
@@ -1292,6 +1774,7 @@ bool LoadMusic989Bank(const std::filesystem::path& directory)
 		tone.centerFine = toneJson.value("centerFine", 0);
 		tone.pitchBendLow = toneJson.value("pitchBendLow", 0);
 		tone.pitchBendHigh = toneJson.value("pitchBendHigh", 0);
+		tone.flags = toneJson.value("flags", 0);
 		tone.adsr1 = static_cast<uint16_t>(toneJson.value("adsr1", 0));
 		tone.adsr2 = static_cast<uint16_t>(toneJson.value("adsr2", 0));
 		// Actual looping comes from the PS-ADPCM block flags in the original
@@ -1303,6 +1786,7 @@ bool LoadMusic989Bank(const std::filesystem::path& directory)
 		// The extractor stores the tone's native 989SND tuning in the WAV sample
 		// rate. Preserve it and apply only note-relative pitch during playback.
 		tone.wavePath = wave;
+		tone.applyPs1SampleRateCorrection = false;
 		s_music989.tones.push_back(std::move(tone));
 	}
 	LoadMusicAdpcmLoopPoints(directory);
@@ -1359,29 +1843,6 @@ void QueueMusicSegment(uint32_t id)
 		s_music989.pendingStarts.push_back(id);
 }
 
-static std::filesystem::path ResolveVagDescriptor(const char* descriptor)
-{
-    if (!descriptor)
-        return {};
-
-    uint32_t words[8]{};
-    std::memcpy(words, descriptor, sizeof(words));
-    const uint32_t sector = words[0] ^ words[5];
-    const uint32_t identity = words[2] ^ words[6];
-
-    wchar_t exactName[64]{};
-    std::swprintf(exactName, std::size(exactName), L"VAG_%04X_%06X.wav", identity, sector);
-    if (std::filesystem::path found = FindExtractedWav(exactName); !found.empty())
-        return found;
-
-    wchar_t identityName[64]{};
-    std::swprintf(identityName, std::size(identityName), L"VAG_%04X.wav", identity);
-    if (std::filesystem::path found = FindExtractedWav(identityName); !found.empty())
-        return found;
-
-    return FindCommentaryWav(identity, sector);
-}
-
 void StopMusicSegment(uint32_t id)
 {
 	for (MusicSegment& segment : s_music989.activeSegments)
@@ -1409,9 +1870,7 @@ static void StopMusicVoicesOnChannel(uint32_t segment, uint8_t channel)
 	{
 		if (!voice.voice || voice.segment != segment || voice.channel != channel)
 			continue;
-		voice.voice->Stop();
-		voice.voice->DestroyVoice();
-		voice.voice = nullptr;
+		RetireMusicVoice(voice);
 		voice.envelope.phase = MusicEnvelopePhase::Stopped;
 	}
 }
@@ -1420,6 +1879,11 @@ static void ApplyMusicAmeGroup(MusicAmeGroup& group, MusicSegment& segment)
 {
 	if (!group.active || segment.complete)
 		return;
+	if (group.basis > s_music989.registers.size())
+	{
+		group.active = false;
+		return;
+	}
 
 	const uint8_t value = group.basis == 0
 		? s_globalExcite
@@ -1446,12 +1910,25 @@ static void ReapplyMusicAmeGroups(int basis)
 
 bool RunMusicAme(MusicSegment& midi, const uint8_t*& stream)
 {
+	static thread_local int recursionDepth = 0;
+	if (recursionDepth >= 16)
+		return false;
+	struct RecursionGuard
+	{
+		int& depth;
+		explicit RecursionGuard(int& value) : depth(value) { ++depth; }
+		~RecursionGuard() { --depth; }
+	} recursionGuard(recursionDepth);
 	int skip = 0;
 	for (int safety = 0; safety < 1024 && stream < midi.end; ++safety)
 	{
 		const uint8_t op = *stream++;
 		if (op == 0xf7)
 			return true;
+		auto require = [&](std::size_t count)
+		{
+			return count <= static_cast<std::size_t>(midi.end - stream);
+		};
 		// AME's conditional opcodes skip exactly one ordinary command.  A value
 		// of two means an ELSE block is being skipped until opcode 05.  The old
 		// implementation never cleared skip==1, causing every later segment
@@ -1466,21 +1943,24 @@ bool RunMusicAme(MusicSegment& midi, const uint8_t*& stream)
 		};
 		switch (op)
 		{
-		case 0x03: if (beginCommand()) StopMusicSegment(*stream); ++stream; break;
+		case 0x03: if (!require(1)) return false; if (beginCommand()) StopMusicSegment(*stream); ++stream; break;
 		case 0x04: if (skip == 1) skip = 2; break;
 		case 0x05: if (skip == 2) skip = 0; break;
-		case 0x06: if (beginCommand() && s_music989.registers[stream[0]] > stream[1] - 1) skip = 1; stream += 2; break;
-		case 0x07: if (beginCommand() && s_music989.registers[stream[0]] < stream[1] + 1) skip = 1; stream += 2; break;
+		case 0x06: if (!require(2) || stream[0] >= s_music989.registers.size()) return false; if (beginCommand() && s_music989.registers[stream[0]] > stream[1] - 1) skip = 1; stream += 2; break;
+		case 0x07: if (!require(2) || stream[0] >= s_music989.registers.size()) return false; if (beginCommand() && s_music989.registers[stream[0]] < stream[1] + 1) skip = 1; stream += 2; break;
 		case 0x0b:
 		{
+			if (!require(1)) return false;
 			const uint8_t macroIndex = *stream++;
 			if (macroIndex >= s_music989.macros.size())
 				return false;
 			s_music989.macros[macroIndex] = stream;
 			while (stream < midi.end && *stream++ != 0xf7) {}
+			if (stream == midi.end && midi.end[-1] != 0xf7) return false;
 			break;
 		}
 		case 0x0c:
+			if (!require(1) || *stream >= s_music989.macros.size()) return false;
 			if (beginCommand() && s_music989.macros[*stream])
 			{
 				const uint8_t* macro = s_music989.macros[*stream];
@@ -1491,11 +1971,12 @@ bool RunMusicAme(MusicSegment& midi, const uint8_t*& stream)
 				}
 			}
 			++stream; break;
-		case 0x0d: if (beginCommand()) { QueueMusicSegment(s_music989.registers[stream[0]] - 1); midi.complete = true; } ++stream; break;
-		case 0x0e: if (beginCommand()) QueueMusicSegment(s_music989.registers[stream[0]] - 1); ++stream; break;
-		case 0x11: if (beginCommand()) { QueueMusicSegment(*stream); midi.complete = true; } ++stream; break;
-		case 0x12: if (beginCommand()) QueueMusicSegment(*stream); ++stream; break;
+		case 0x0d: if (!require(1) || stream[0] >= s_music989.registers.size()) return false; if (beginCommand()) { QueueMusicSegment(s_music989.registers[stream[0]] - 1); midi.complete = true; } ++stream; break;
+		case 0x0e: if (!require(1) || stream[0] >= s_music989.registers.size()) return false; if (beginCommand()) QueueMusicSegment(s_music989.registers[stream[0]] - 1); ++stream; break;
+		case 0x11: if (!require(1)) return false; if (beginCommand()) { QueueMusicSegment(*stream); midi.complete = true; } ++stream; break;
+		case 0x12: if (!require(1)) return false; if (beginCommand()) QueueMusicSegment(*stream); ++stream; break;
 		case 0x13:
+			if (!require(2) || stream[0] >= s_music989.registers.size()) return false;
 			if (beginCommand())
 			{
 				const int reg = stream[0];
@@ -1505,6 +1986,7 @@ bool RunMusicAme(MusicSegment& midi, const uint8_t*& stream)
 			stream += 2;
 			break;
 		case 0x14:
+			if (!require(1) || *stream >= s_music989.registers.size()) return false;
 			if (beginCommand())
 			{
 				const int reg = *stream;
@@ -1514,6 +1996,7 @@ bool RunMusicAme(MusicSegment& midi, const uint8_t*& stream)
 			++stream;
 			break;
 		case 0x15:
+			if (!require(1) || *stream >= s_music989.registers.size()) return false;
 			if (beginCommand())
 			{
 				const int reg = *stream;
@@ -1522,24 +2005,27 @@ bool RunMusicAme(MusicSegment& midi, const uint8_t*& stream)
 			}
 			++stream;
 			break;
-		case 0x16: if (beginCommand() && s_music989.registers[stream[0]] != stream[1]) skip = 1; stream += 2; break;
-		case 0x00: if (beginCommand() && s_globalExcite <= static_cast<int>(stream[0]) + 1) skip = 1; ++stream; break;
-		case 0x01: if (beginCommand() && s_globalExcite != static_cast<int>(stream[0]) + 1) skip = 1; ++stream; break;
-		case 0x02: if (beginCommand() && s_globalExcite > static_cast<int>(stream[0]) + 1) skip = 1; ++stream; break;
+		case 0x16: if (!require(2) || stream[0] >= s_music989.registers.size()) return false; if (beginCommand() && s_music989.registers[stream[0]] != stream[1]) skip = 1; stream += 2; break;
+		case 0x00: if (!require(1)) return false; if (beginCommand() && s_globalExcite <= static_cast<int>(stream[0]) + 1) skip = 1; ++stream; break;
+		case 0x01: if (!require(1)) return false; if (beginCommand() && s_globalExcite != static_cast<int>(stream[0]) + 1) skip = 1; ++stream; break;
+		case 0x02: if (!require(1)) return false; if (beginCommand() && s_globalExcite > static_cast<int>(stream[0]) + 1) skip = 1; ++stream; break;
 		case 0x0f:
 			if (skip)
 			{
 				while (stream < midi.end && *stream != 0xf7) ++stream;
-				if (stream < midi.end) ++stream;
+				if (stream >= midi.end) return false;
+				++stream;
 				if (skip == 1) skip = 0;
 			}
 			else
 			{
+				if (!require(2)) return false;
 				const uint8_t groupIndex = *stream++;
 				if (groupIndex >= s_music989.groups.size()) return false;
 				MusicAmeGroup& group = s_music989.groups[groupIndex];
 				group = {};
 				group.basis = *stream++;
+				if (group.basis > s_music989.registers.size()) return false;
 				while (stream < midi.end && *stream != 0xf7)
 				{
 					if (group.channelCount >= 16 || stream + 3 > midi.end) return false;
@@ -1548,10 +2034,12 @@ bool RunMusicAme(MusicSegment& midi, const uint8_t*& stream)
 					group.exciteMin[index] = *stream++;
 					group.exciteMax[index] = *stream++;
 				}
-				if (stream < midi.end) ++stream;
+				if (stream >= midi.end) return false;
+				++stream;
 			}
 			break;
 		case 0x10:
+			if (!require(1)) return false;
 			if (beginCommand())
 			{
 				const uint8_t groupIndex = *stream;
@@ -1641,6 +2129,7 @@ void StepMusicEnvelope(MusicEnvelope& envelope)
 		if (envelope.decreasing)
 			sampleStep = (sampleStep * envelope.level) >> 15;
 	}
+	counterStep = (std::max)(1u, counterStep);
 	envelope.counter += counterStep;
 	if (envelope.counter >= 0x800000)
 	{
@@ -1678,9 +2167,10 @@ void UpdateMusicEnvelopes()
 			StepMusicEnvelope(active.envelope);
 		if (active.envelope.phase == MusicEnvelopePhase::Stopped)
 		{
-			active.voice->Stop();
-			active.voice->DestroyVoice();
-			active.voice = nullptr;
+			// The envelope is logically silent, but XAudio may still be holding the
+			// previous 240 Hz gain. Retire through the short host-side fade instead
+			// of destroying a potentially nonzero waveform at an arbitrary sample.
+			RetireMusicVoice(active);
 		}
 		else
 		{
@@ -1697,12 +2187,12 @@ void UpdateMusicEnvelopes()
 
 void SetMusicVoicePan(IXAudio2SourceVoice* voice, int pan)
 {
-	if (!voice || !s_musicMasterVoice)
+	if (!voice || !s_musicCoreVoice)
 		return;
 	XAUDIO2_VOICE_DETAILS sourceDetails{};
 	XAUDIO2_VOICE_DETAILS destinationDetails{};
 	voice->GetVoiceDetails(&sourceDetails);
-	s_musicMasterVoice->GetVoiceDetails(&destinationDetails);
+	s_musicCoreVoice->GetVoiceDetails(&destinationDetails);
 	if (sourceDetails.InputChannels != 1 || destinationDetails.InputChannels < 2)
 		return;
 	while (pan >= 360) pan -= 360;
@@ -1716,25 +2206,80 @@ void SetMusicVoicePan(IXAudio2SourceVoice* voice, int pan)
 	matrix[0] = s_stereoOutputEnabled ? (1.0f - position) * 0.5f : 0.5f;
 	matrix[1] = s_stereoOutputEnabled ? (1.0f + position) * 0.5f : 0.5f;
 	ReportXAudioFailureOnce("Set music output matrix",
-		voice->SetOutputMatrix(s_musicMasterVoice, 1,
+		voice->SetOutputMatrix(s_musicCoreVoice, 1,
 			destinationDetails.InputChannels, matrix.data()));
 }
 
-void StartMusicTone(MusicSegment& segment, uint8_t channel, uint8_t note, uint8_t velocity)
+static void RefreshMusicVoiceControllerState(MusicVoice& active,
+	const MusicSegment& segment)
 {
-	// On retail, Raleigh's dialogue arrangement leaves programs 0 and 14
-	// effectively silent.  The SPU2 trace has zero (or negligible) voice volume
-	// for their key-ons, while programs 6, 7 and 9 form the audible mix.
-	// Segment 2 remains untouched so the fight arrangement keeps every layer.
-	const bool suppressRaleighDialogueLayer =
-		static_cast<int>(s_musicStream.musid) == 87 && segment.id == 1 &&
-		(channel == 0 || channel == 14);
-	if (segment.muted[channel] || suppressRaleighDialogueLayer)
+	if (!active.voice || !active.tone || active.channel >= segment.volumes.size())
+		return;
+	const int programIndex = active.tone->program;
+	const float programVolume = programIndex >= 0 &&
+		programIndex < static_cast<int>(s_music989.programs.size())
+		? s_music989.programs[programIndex].volume / 127.0f : 1.0f;
+	const int programPan = programIndex >= 0 &&
+		programIndex < static_cast<int>(s_music989.programs.size())
+		? s_music989.programs[programIndex].pan : 0;
+	const float linearVolume = (active.velocity / 127.0f) *
+		(segment.volumes[active.channel] / 127.0f) *
+		(active.tone->volume / 127.0f) * programVolume *
+		(s_music989.cueVolume / 127.0f);
+	active.baseVolume = linearVolume * linearVolume;
+	active.pan = s_music989.cuePan + segment.pans[active.channel] +
+		programPan + active.tone->pan;
+	SetMusicVoicePan(active.voice, active.pan);
+	const int musicChannel = std::clamp(s_music989.cueVolumeGroup, 0,
+		static_cast<int>(s_channelVolumes.size()) - 1);
+	SetVoiceVolumeChecked(active.voice,
+		active.baseVolume * (active.envelope.level / 32767.0f) *
+		s_channelVolumes[musicChannel] * s_musicVolume * s_dialogMusicDuck *
+		s_userMusicVolume, "Update music controller state");
+}
+
+static bool ReserveMusicHardwareVoice(int incomingPriority)
+{
+	std::size_t activeCount = 0;
+	auto victim = s_music989.voices.end();
+	for (auto it = s_music989.voices.begin(); it != s_music989.voices.end(); ++it)
+	{
+		if (!it->voice)
+			continue;
+		++activeCount;
+		if (victim == s_music989.voices.end() || it->priority < victim->priority ||
+			(it->priority == victim->priority &&
+				it->allocationSerial < victim->allocationSerial))
+		{
+			victim = it;
+		}
+	}
+	if (activeCount < kSpuVoicesPerCore)
+		return true;
+	if (victim == s_music989.voices.end() || incomingPriority < victim->priority)
+		return false;
+
+	// XAudio2 cannot switch a hardware-style voice slot at a sample boundary.
+	// Retire the old waveform over the short anti-pop window so stealing a busy
+	// music voice cannot inject a full-band discontinuity into the output.
+	RetireMusicVoice(*victim);
+	s_music989.voices.erase(victim);
+	return true;
+}
+
+void StartMusicTone(MusicSegment& segment, uint8_t channel, uint8_t note, uint8_t velocity,
+	const MusicTone* onlyTone, uint32_t playBegin)
+{
+	if (segment.muted[channel])
 		return;
 	const int programIndex = segment.programs[channel];
 	for (MusicTone& tone : s_music989.tones)
 	{
+		if (onlyTone && &tone != onlyTone)
+			continue;
 		if (tone.program != programIndex || note < tone.mapLow || note > tone.mapHigh)
+			continue;
+		if (!ReserveMusicHardwareVoice(tone.priority))
 			continue;
 		IXAudio2SourceVoice* voice = nullptr;
 		WAVEFORMATEX format{};
@@ -1747,8 +2292,12 @@ void StartMusicTone(MusicSegment& segment, uint8_t channel, uint8_t note, uint8_
 		// 989SND can transpose an instrument by considerably more than one octave.
 		// XAudio2's default MaxFrequencyRatio is only 2.0, which made higher notes
 		// reject SetFrequencyRatio and silently play at the sample's base pitch.
+		XAUDIO2_SEND_DESCRIPTOR musicSend{};
+		musicSend.Flags = 0;
+		musicSend.pOutputVoice = s_musicCoreVoice;
+		XAUDIO2_VOICE_SENDS musicSends{1, &musicSend};
 		const HRESULT createResult = s_xaudio2->CreateSourceVoice(
-			&voice, &format, 0, kSpuMaximumFrequencyRatio);
+			&voice, &format, 0, kSpuMaximumFrequencyRatio, nullptr, &musicSends);
 		if (FAILED(createResult) || !voice)
 		{
 			ReportXAudioFailureOnce("Create music source voice",
@@ -1759,6 +2308,14 @@ void StartMusicTone(MusicSegment& segment, uint8_t channel, uint8_t note, uint8_
 		buffer.AudioBytes = static_cast<UINT32>(tone.pcm.size());
 		buffer.pAudioData = tone.pcm.data();
 		buffer.Flags = XAUDIO2_END_OF_STREAM;
+		const uint32_t sampleCount = tone.format.blockAlign != 0
+			? static_cast<uint32_t>(tone.pcm.size() / tone.format.blockAlign) : 0;
+		if (sampleCount != 0)
+		{
+			if (tone.loop && tone.loopLength != 0 && playBegin >= tone.loopBegin)
+				playBegin = tone.loopBegin + (playBegin - tone.loopBegin) % tone.loopLength;
+			buffer.PlayBegin = (std::min)(playBegin, sampleCount - 1);
+		}
 		if (tone.loop)
 		{
 			buffer.LoopBegin = tone.loopBegin;
@@ -1783,22 +2340,25 @@ void StartMusicTone(MusicSegment& segment, uint8_t channel, uint8_t note, uint8_
 		const int centerNote = ps1Pitch ? tone.centerNote : -tone.centerNote;
 		const double baseSemitones = static_cast<double>(note) - centerNote +
 			static_cast<double>(tone.centerFine) / 128.0;
+		const bool applyPs1RateCorrection = ps1Pitch && tone.applyPs1SampleRateCorrection;
 		const float baseFrequencyRatio = static_cast<float>(std::pow(2.0,
-			baseSemitones / 12.0) * (ps1Pitch ? 44100.0 / 48000.0 : 1.0));
+			baseSemitones / 12.0) * (applyPs1RateCorrection ? 44100.0 / 48000.0 : 1.0));
 		const int currentPitchBend = segment.pitchBends[channel];
 		const double bendSemitones = currentPitchBend >= 0
 			? tone.pitchBendHigh * static_cast<double>(currentPitchBend) / 32767.0
 			: tone.pitchBendLow * static_cast<double>(currentPitchBend) / 32768.0;
+		const float safeBaseFrequencyRatio = std::isfinite(baseFrequencyRatio)
+			? baseFrequencyRatio : 1.0f;
 		const float frequencyRatio = std::clamp(
-			baseFrequencyRatio * static_cast<float>(std::pow(2.0, bendSemitones / 12.0)),
+			safeBaseFrequencyRatio * static_cast<float>(std::pow(2.0, bendSemitones / 12.0)),
 			XAUDIO2_MIN_FREQ_RATIO, kSpuMaximumFrequencyRatio);
 		const int finalPan = s_music989.cuePan + segment.pans[channel] + programPan + tone.pan;
-		voice->SetVolume(0.0f);
+		SetVoiceVolumeChecked(voice, 0.0f, "Mute new music source voice");
 		SetMusicVoicePan(voice, finalPan);
-		const HRESULT pitchResult = voice->SetFrequencyRatio(frequencyRatio);
+		const HRESULT pitchResult = SetVoiceFrequencyRatioChecked(voice, frequencyRatio,
+			"Set music source pitch");
 		if (FAILED(pitchResult))
 		{
-			ReportXAudioFailureOnce("Set music source pitch", pitchResult);
 			voice->DestroyVoice();
 			continue;
 		}
@@ -1808,14 +2368,18 @@ void StartMusicTone(MusicSegment& segment, uint8_t channel, uint8_t note, uint8_
 		{
 			MusicVoice active{};
 			active.voice = voice;
+			active.tone = &tone;
 			active.segment = segment.id;
 			active.channel = channel;
 			active.note = note;
+			active.velocity = velocity;
 			active.baseVolume = baseVolume;
-			active.baseFrequencyRatio = baseFrequencyRatio;
+			active.baseFrequencyRatio = safeBaseFrequencyRatio;
 			active.pitchBendLow = tone.pitchBendLow;
 			active.pitchBendHigh = tone.pitchBendHigh;
 			active.pan = finalPan;
+			active.priority = tone.priority;
+			active.allocationSerial = ++s_audioVoiceSerial;
 			StartMusicEnvelope(active.envelope, tone.adsr1, tone.adsr2);
 			s_music989.voices.push_back(std::move(active));
 		}
@@ -1893,31 +2457,63 @@ void StepMusicSegment(MusicSegment& segment)
 		}
 		if (segment.cursor >= segment.end) { segment.complete = true; break; }
 		if ((*segment.cursor & 0x80) != 0) segment.status = *segment.cursor++;
+		if (segment.status == 0)
+		{
+			segment.complete = true;
+			break;
+		}
 		const uint8_t channel = segment.status & 0x0f;
+		auto require = [&](std::size_t count)
+		{
+			if (count <= static_cast<std::size_t>(segment.end - segment.cursor))
+				return true;
+			segment.complete = true;
+			return false;
+		};
 		switch (segment.status >> 4)
 		{
-		case 0x8: StopMusicTone(segment.id, channel, segment.cursor[0]); segment.cursor += 2; break;
+		case 0x8: if (!require(2)) break; StopMusicTone(segment.id, channel, segment.cursor[0]); segment.cursor += 2; break;
 		case 0x9:
+			if (!require(2)) break;
 			if (segment.cursor[1] == 0) StopMusicTone(segment.id, channel, segment.cursor[0]);
 			else StartMusicTone(segment, channel, segment.cursor[0], segment.cursor[1]);
 			segment.cursor += 2; break;
+		case 0xa:
+			// Polyphonic key pressure is a valid two-byte MIDI channel event. 989SND
+			// does not use it to alter SPU voices, but it must still be consumed so an
+			// otherwise valid track is not terminated or parsed out of alignment.
+			if (!require(2)) break;
+			segment.cursor += 2;
+			break;
 		case 0xb:
-			if (segment.cursor[0] == 7) segment.volumes[channel] = segment.cursor[1];
+			if (!require(2)) break;
+			if (segment.cursor[0] == 7)
+			{
+				segment.volumes[channel] = segment.cursor[1];
+				for (MusicVoice& active : s_music989.voices)
+					if (active.segment == segment.id && active.channel == channel)
+						RefreshMusicVoiceControllerState(active, segment);
+			}
 			else if (segment.cursor[0] == 10)
 			{
 				const uint8_t pan = segment.cursor[1];
 				segment.pans[channel] = pan >= 64
 					? static_cast<int16_t>(90 * (pan - 64) / 63)
 					: static_cast<int16_t>(90 * pan / 64 + 270);
+				for (MusicVoice& active : s_music989.voices)
+					if (active.segment == segment.id && active.channel == channel)
+						RefreshMusicVoiceControllerState(active, segment);
 			}
 			segment.cursor += 2; break;
-		case 0xc: segment.programs[channel] = *segment.cursor++; break;
+		case 0xc: if (!require(1)) break; segment.programs[channel] = *segment.cursor++; break;
 		case 0xd:
+			if (!require(1)) break;
 			// 989SND uses channel pressure's byte as a note and keys off matching voices.
 			StopMusicTone(segment.id, channel, *segment.cursor++);
 			break;
 		case 0xe:
 		{
+			if (!require(2)) break;
 			const uint16_t rawPitch = static_cast<uint16_t>((segment.cursor[0] & 0x7f) |
 				((segment.cursor[1] & 0x7f) << 7));
 			const int scaledPitch = 0xffff * static_cast<int>(rawPitch) / 0x3fff;
@@ -1930,11 +2526,11 @@ void StepMusicSegment(MusicSegment& segment)
 				const double semitones = bend >= 0
 					? active.pitchBendHigh * static_cast<double>(bend) / 32767.0
 					: active.pitchBendLow * static_cast<double>(bend) / 32768.0;
-				ReportXAudioFailureOnce("Update music pitch bend",
-					active.voice->SetFrequencyRatio(std::clamp(
+				SetVoiceFrequencyRatioChecked(active.voice, std::clamp(
 					active.baseFrequencyRatio *
 					static_cast<float>(std::pow(2.0, semitones / 12.0)),
-					XAUDIO2_MIN_FREQ_RATIO, kSpuMaximumFrequencyRatio)));
+					XAUDIO2_MIN_FREQ_RATIO, kSpuMaximumFrequencyRatio),
+					"Update music pitch bend");
 			}
 			segment.cursor += 2;
 			break;
@@ -1942,8 +2538,10 @@ void StepMusicSegment(MusicSegment& segment)
 		case 0xf:
 			if (segment.status == 0xff)
 			{
+				if (!require(1)) break;
 				const uint8_t type = *segment.cursor++;
 				uint32_t length = 0; if (!ReadMusicVlq(segment, length)) { segment.complete = true; break; }
+				if (!require(length)) break;
 				if (type == 0x2f)
 				{
 					// A repeat count of zero is the 989SND convention for an infinite
@@ -1957,7 +2555,7 @@ void StepMusicSegment(MusicSegment& segment)
 				}
 				else { if (type == 0x51 && length >= 3) segment.tempo = (segment.cursor[0] << 16) | (segment.cursor[1] << 8) | segment.cursor[2]; segment.cursor += length; }
 			}
-			else if (segment.status == 0xf0 && segment.cursor < segment.end && *segment.cursor++ == 0x75)
+			else if (segment.status == 0xf0 && require(1) && *segment.cursor++ == 0x75)
 			{
 				const uint8_t* script = segment.cursor;
 				if (!RunMusicAme(segment, script)) segment.complete = true;
@@ -1971,10 +2569,14 @@ void StepMusicSegment(MusicSegment& segment)
 	}
 }
 
-bool DecodeEffectAdpcm(const EFFECTBANK& bank, uint32_t sampleOffset, DecodedEffectSample& decoded)
+bool DecodeEffectAdpcm(const EFFECTBANK& bank, uint32_t sampleOffset,
+	uint32_t sampleEndOffset, DecodedEffectSample& decoded)
 {
-	if (sampleOffset >= bank.sampleSize)
+	if (sampleOffset >= bank.sampleSize || sampleEndOffset <= sampleOffset ||
+		sampleEndOffset > bank.sampleSize)
+	{
 		return false;
+	}
 	// Match SPU2's complete ADPCM header handling. Reserved predictor IDs have
 	// zero coefficients instead of aliasing to IDs 0..7 or rejecting the tone.
 	static constexpr int coefficients[16][2] =
@@ -1982,13 +2584,14 @@ bool DecodeEffectAdpcm(const EFFECTBANK& bank, uint32_t sampleOffset, DecodedEff
 		{ 0, 0 }, { 60, 0 }, { 115, -52 }, { 98, -55 }, { 122, -60 }
 	};
 	const std::size_t begin = static_cast<std::size_t>(bank.sampleOffset) + sampleOffset;
-	const std::size_t end = static_cast<std::size_t>(bank.sampleOffset) + bank.sampleSize;
+	const std::size_t end = static_cast<std::size_t>(bank.sampleOffset) + sampleEndOffset;
 	int history1 = 0;
 	int history2 = 0;
 	UINT32 loopStart = 0;
 	std::size_t loopBlockStart = 0;
 	std::size_t loopBlockEnd = 0;
 	bool sawLoopStart = false;
+	bool sawEnd = false;
 	for (std::size_t block = begin; block + 16 <= end; block += 16)
 	{
 		const uint8_t predictorShift = bank.bytes[block];
@@ -2018,6 +2621,7 @@ bool DecodeEffectAdpcm(const EFFECTBANK& bank, uint32_t sampleOffset, DecodedEff
 		}
 		if ((flags & 1) != 0)
 		{
+			sawEnd = true;
 			loopBlockEnd = block + 16;
 			decoded.loop = (flags & 2) != 0 && sawLoopStart;
 			if (decoded.loop)
@@ -2028,6 +2632,11 @@ bool DecodeEffectAdpcm(const EFFECTBANK& bank, uint32_t sampleOffset, DecodedEff
 			break;
 		}
 	}
+	if (!sawEnd)
+	{
+		return false;
+	}
+
 	// The SPU2 carries the ADPCM predictor history across every loop jump.
 	// XAudio2 loops fixed PCM, so preserve the predictor's transient loop passes
 	// in the submitted buffer and begin the fixed PCM loop only when the ending
@@ -2036,10 +2645,12 @@ bool DecodeEffectAdpcm(const EFFECTBANK& bank, uint32_t sampleOffset, DecodedEff
 	// produced a nearly full-scale discontinuity during world startup.
 	if (decoded.loop && loopBlockStart < loopBlockEnd)
 	{
+		const std::size_t originalPcmSize = decoded.pcm.size();
 		const UINT32 encodedLoopLength = decoded.loopLength;
 		std::vector<int16_t> decodedLoop;
 		int previousEndHistory1 = history1;
 		int previousEndHistory2 = history2;
+		bool loopConverged = false;
 		for (int iteration = 0; iteration < 32; ++iteration)
 		{
 			decodedLoop.clear();
@@ -2073,9 +2684,19 @@ bool DecodeEffectAdpcm(const EFFECTBANK& bank, uint32_t sampleOffset, DecodedEff
 			// An identical end state means this pass starts and ends with the same
 			// predictor history as the preceding pass and can repeat seamlessly.
 			if (history1 == previousEndHistory1 && history2 == previousEndHistory2)
+			{
+				loopConverged = true;
 				break;
+			}
 			previousEndHistory1 = history1;
 			previousEndHistory2 = history2;
+		}
+		if (!loopConverged)
+		{
+			decoded.pcm.resize(originalPcmSize);
+			decoded.loop = false;
+			decoded.loopBegin = 0;
+			decoded.loopLength = 0;
 		}
 	}
 	return !decoded.pcm.empty();
@@ -2223,6 +2844,7 @@ void StepEffectEnvelope(EFFECTVOICE& active)
 			sampleStep = (sampleStep * active.envelopeLevel) >> 15;
 		}
 	}
+	counterStep = (std::max)(1u, counterStep);
 	active.envelopeCounter += counterStep;
 	if (active.envelopeCounter >= 0x800000)
 	{
@@ -2249,18 +2871,70 @@ void StepEffectEnvelope(EFFECTVOICE& active)
 	}
 }
 
+static bool ReserveEffectHardwareVoice(int incomingPriority)
+{
+	if (!g_psw)
+		return false;
+	std::size_t activeCount = 0;
+	AMB* victimOwner = nullptr;
+	std::size_t victimIndex = 0;
+	for (const std::unique_ptr<AMB>& ownerSlot : g_psw->ambOwners)
+	{
+		if (!ownerSlot)
+			continue;
+		AMB& owner = *ownerSlot;
+		for (std::size_t index = 0; index < owner.voices.size(); ++index)
+		{
+			const EFFECTVOICE& candidate = owner.voices[index];
+			if (!candidate.voice)
+				continue;
+			++activeCount;
+			if (!victimOwner)
+			{
+				victimOwner = &owner;
+				victimIndex = index;
+				continue;
+			}
+			const EFFECTVOICE& victim = victimOwner->voices[victimIndex];
+			if (candidate.priority < victim.priority ||
+				(candidate.priority == victim.priority &&
+					candidate.allocationSerial < victim.allocationSerial))
+			{
+				victimOwner = &owner;
+				victimIndex = index;
+			}
+		}
+	}
+	if (activeCount < kSpuVoicesPerCore)
+		return true;
+	if (!victimOwner || incomingPriority < victimOwner->voices[victimIndex].priority)
+		return false;
+
+	EFFECTVOICE& victim = victimOwner->voices[victimIndex];
+	RetireSourceVoice(victim.voice, victim.pcm);
+	victimOwner->voices.erase(victimOwner->voices.begin() + victimIndex);
+	victimOwner->voice = victimOwner->voices.empty() ? nullptr : victimOwner->voices.front().voice;
+	return true;
+}
+
 bool PlayEffectTone(AMB& amb, const EFFECTBANK& bank, const EFFECTBANK::SOUND& sound,
 	const EFFECTBANK::TONE& tone, float applicationVolume, float pitchMod)
 {
 	if (!EnsureMusicEngine())
 		return false;
+	const int hardwarePriority = static_cast<uint8_t>(tone.priority);
+	if (!ReserveEffectHardwareVoice(hardwarePriority))
+	{
+		return false;
+	}
 
 	DecodedEffectSample decoded;
 	if ((tone.flags & 8) != 0) // SPU noise tone
 	{
 		// Noise voices do not read ADPCM data on SPU2. Generate one complete
-		// deterministic LFSR period and loop it; pitch and ADSR are still handled
-		// by the normal voice path below. This uses the same feedback table as
+		// deterministic LFSR period and loop it; ADSR is handled by the normal
+		// voice path while pitch controls are ignored like an SPU noise voice.
+		// This uses the same feedback table as
 		// PCSX2's SPU2 noise generator at the default (fastest) noise clock.
 		static constexpr uint8_t noiseAdd[64] =
 		{
@@ -2269,25 +2943,42 @@ bool PlayEffectTone(AMB& amb, const EFFECTBANK& bank, const EFFECTBANK::SOUND& s
 			0, 1, 1, 0, 1, 0, 0, 1, 0, 1, 1, 0, 1, 0, 0, 1,
 			0, 1, 1, 0, 1, 0, 0, 1, 0, 1, 1, 0, 1, 0, 0, 1
 		};
-		uint16_t noise = 1;
-		decoded.pcm.resize(32767);
-		for (int16_t& sample : decoded.pcm)
+		static const std::vector<int16_t> noiseCycle = []
 		{
-			noise = static_cast<uint16_t>((noise << 1) |
-				noiseAdd[(noise >> 10) & 63]);
-			sample = static_cast<int16_t>(noise);
-		}
+			std::vector<int16_t> cycle(32767);
+			uint16_t noise = 1;
+			for (int16_t& sample : cycle)
+			{
+				noise = static_cast<uint16_t>((noise << 1) |
+					noiseAdd[(noise >> 10) & 63]);
+				sample = static_cast<int16_t>(noise);
+			}
+			return cycle;
+		}();
+		// SPU2 cores expose one continuously-running noise source to every noise
+		// voice. Rotate the common cycle from a shared 48 kHz clock so newly keyed
+		// voices no longer restart from the same seed and create a coherent spike.
+		const auto noiseNow = std::chrono::steady_clock::now().time_since_epoch();
+		const uint64_t noiseSamples = static_cast<uint64_t>(
+			std::chrono::duration<double>(noiseNow).count() * 48000.0);
+		const std::size_t noisePhase = static_cast<std::size_t>(noiseSamples % noiseCycle.size());
+		decoded.pcm.resize(noiseCycle.size());
+		for (std::size_t sample = 0; sample < noiseCycle.size(); ++sample)
+			decoded.pcm[sample] = noiseCycle[(noisePhase + sample) % noiseCycle.size()];
 		decoded.loop = true;
 		decoded.loopBegin = 0;
 		decoded.loopLength = static_cast<uint32_t>(decoded.pcm.size());
 	}
-	else if (!DecodeEffectAdpcm(bank, tone.sampleOffset, decoded))
+	else if (!DecodeEffectAdpcm(bank, tone.sampleOffset, tone.sampleEndOffset, decoded))
 	{
 		return false;
 	}
 	EFFECTVOICE active;
 	active.pcm = std::move(decoded.pcm);
 	active.loop = decoded.loop;
+	active.noise = (tone.flags & 8) != 0;
+	active.priority = hardwarePriority;
+	active.allocationSerial = ++s_audioVoiceSerial;
 	WAVEFORMATEX format{};
 	format.wFormatTag = WAVE_FORMAT_PCM;
 	format.nChannels = 1;
@@ -2377,7 +3068,10 @@ bool PlayEffectTone(AMB& amb, const EFFECTBANK& bank, const EFFECTBANK::SOUND& s
 	// The decoded effect voice is also declared as 48 kHz, so applying the
 	// PS1-era 44.1/48 kHz correction here lowered ordinary PS2 effects by about
 	// 8 percent.  Tone center-note/fine tuning is the only base adjustment.
-	active.baseFrequencyRatio = static_cast<float>(std::pow(2.0, semitones / 12.0));
+	active.baseFrequencyRatio = active.noise ? 1.0f :
+		static_cast<float>(std::pow(2.0, semitones / 12.0));
+	if (!std::isfinite(active.baseFrequencyRatio))
+		active.baseFrequencyRatio = 1.0f;
 	active.baseFrequencyRatio = std::clamp(active.baseFrequencyRatio,
 		XAUDIO2_MIN_FREQ_RATIO, kSpuMaximumFrequencyRatio);
 	// 989SND treats an unspecified tone bend range as the standard two
@@ -2390,12 +3084,16 @@ bool PlayEffectTone(AMB& amb, const EFFECTBANK& bank, const EFFECTBANK::SOUND& s
 	StartEffectEnvelope(active, tone.adsr1, tone.adsr2);
 	SetVoiceVolumeChecked(active.voice, EffectVoiceVolume(active, applicationVolume),
 		"Set gameplay-effect envelope volume");
-	const HRESULT pitchResult = active.voice->SetFrequencyRatio(active.baseFrequencyRatio);
+	const HRESULT pitchResult = SetVoiceFrequencyRatioChecked(active.voice,
+		active.baseFrequencyRatio, "Set gameplay-effect pitch");
 	const HRESULT submitResult = active.voice->SubmitSourceBuffer(&buffer);
 	const HRESULT startResult = SUCCEEDED(submitResult) ? active.voice->Start() : E_FAIL;
+	const int16_t sample0 = active.pcm.size() > 0 ? active.pcm[0] : 0;
+	const int16_t sample1 = active.pcm.size() > 1 ? active.pcm[1] : 0;
+	const int16_t sample2 = active.pcm.size() > 2 ? active.pcm[2] : 0;
+	const int16_t sample3 = active.pcm.size() > 3 ? active.pcm[3] : 0;
 	if (FAILED(pitchResult) || FAILED(submitResult) || FAILED(startResult))
 	{
-		ReportXAudioFailureOnce("Set gameplay-effect pitch", pitchResult);
 		ReportXAudioFailureOnce("Submit gameplay-effect buffer", submitResult);
 		ReportXAudioFailureOnce("Start gameplay-effect voice", startResult);
 		active.voice->DestroyVoice();
@@ -2426,7 +3124,7 @@ void ApplyEffectPitchBend(AMB& amb, int bend)
 	amb.currentPitchBend = std::clamp(bend, -32768, 32767);
 	for (EFFECTVOICE& active : amb.voices)
 	{
-		if (!active.voice)
+		if (!active.voice || active.noise)
 			continue;
 		// 989SND uses the conventional signed bend axis. The SPU2 trace for the
 		// owl strike starts at one octave below its base pitch and rises to base:
@@ -2438,12 +3136,30 @@ void ApplyEffectPitchBend(AMB& amb, int bend)
 		// snd_GetDopplerPitchMod returns the same 128-steps-per-semitone pitch
 		// modifier used by the rest of 989SND's effect pitch path.
 		const double dopplerSemitones = static_cast<double>(amb.dnDoppler) / 128.0;
-		const float ratio = std::clamp(active.baseFrequencyRatio *
-			static_cast<float>(std::pow(2.0,
-				(bendSemitones + pitchModSemitones + dopplerSemitones) / 12.0)),
-			XAUDIO2_MIN_FREQ_RATIO, kSpuMaximumFrequencyRatio);
-		ReportXAudioFailureOnce("Update gameplay-effect pitch",
-			active.voice->SetFrequencyRatio(ratio));
+		const double rawRatio = static_cast<double>(active.baseFrequencyRatio) *
+			std::pow(2.0,
+				(bendSemitones + pitchModSemitones + dopplerSemitones) / 12.0);
+		if (!std::isfinite(rawRatio) || rawRatio < XAUDIO2_MIN_FREQ_RATIO ||
+			rawRatio > kSpuMaximumFrequencyRatio)
+		{
+			static std::mutex extremePitchMutex;
+			static std::unordered_set<int> reportedSfx;
+			const int sfxid = static_cast<int>(amb.sfxid);
+			std::lock_guard<std::mutex> reportLock(extremePitchMutex);
+			if (reportedSfx.emplace(sfxid).second)
+			{
+				ReportRuntimeError("Audio",
+					"SFXID %d requested extreme pitch %.4f (base %.4f bend %.3f LFO %.3f doppler %.3f); clamping",
+					sfxid, rawRatio, active.baseFrequencyRatio, bendSemitones,
+					pitchModSemitones, dopplerSemitones);
+			}
+		}
+		const float ratio = std::isfinite(rawRatio)
+			? std::clamp(static_cast<float>(rawRatio),
+				XAUDIO2_MIN_FREQ_RATIO, kSpuMaximumFrequencyRatio)
+			: 1.0f;
+		SetVoiceFrequencyRatioChecked(active.voice, ratio,
+			"Update gameplay-effect pitch");
 		active.appliedPitchBend = amb.currentPitchBend;
 		active.hasAppliedPitchBend = true;
 	}
@@ -2451,10 +3167,11 @@ void ApplyEffectPitchBend(AMB& amb, int bend)
 
 int EffectLfoValue(EFFECTLFO& lfo)
 {
-	const int step = lfo.nextStep >> 16;
-	lfo.nextStep += static_cast<int32_t>(2u * lfo.stepSize);
-	if (lfo.nextStep > 0x07ffffff)
-		lfo.nextStep -= 0x08000000;
+	constexpr uint64_t kPhasePeriod = 0x08000000ull;
+	const uint64_t phase = static_cast<uint32_t>(lfo.nextStep) % kPhasePeriod;
+	const int step = static_cast<int>(phase >> 16);
+	const uint64_t advance = static_cast<uint64_t>(lfo.stepSize) * 2ull;
+	lfo.nextStep = static_cast<int32_t>((phase + advance) % kPhasePeriod);
 	int value = 0;
 	switch (lfo.type)
 	{
@@ -2490,8 +3207,16 @@ void TickEffectLfos(AMB& amb)
 		{
 		case 1: amb.lfoVolume = (lfo.range * (value - 0x7fff)) >> 16; break;
 		case 2: amb.lfoPan = (lfo.range * value) >> 15; break;
-		case 3: amb.lfoPitchMod = (lfo.range * value) >> 15; break;
-		case 4: amb.lfoPitchBend = (lfo.range * value) >> 15; break;
+		case 3:
+			amb.lfoPitchMod = static_cast<int>(std::clamp<int64_t>(
+				(static_cast<int64_t>(lfo.range) * value) >> 15,
+				std::numeric_limits<int>::min(), std::numeric_limits<int>::max()));
+			break;
+		case 4:
+			amb.lfoPitchBend = static_cast<int>(std::clamp<int64_t>(
+				(static_cast<int64_t>(lfo.range) * value) >> 15,
+				-32768, 32767));
+			break;
 		default: break;
 		}
 	}
@@ -2613,10 +3338,7 @@ void UpdateEffectEnvelopes(AMB& amb)
 			StepEffectEnvelope(active);
 		if (active.envelopePhase == EffectEnvelope_Stopped)
 		{
-			active.voice->Stop();
-			active.voice->DestroyVoice();
-			active.voice = nullptr;
-			active.pcm.clear();
+			RetireSourceVoice(active.voice, active.pcm);
 		}
 		else
 		{
@@ -2704,7 +3426,9 @@ void ExecuteEffectGrain(AMB& amb)
 	{
 		const int amount = EffectControlParam(grain, 0);
 		const int randomSigned = (0xffff * (std::rand() % 0x7fff)) / 0x7fff - 0x8000;
-		ApplyEffectPitchBend(amb, amount * randomSigned / 100);
+		const int64_t randomBend = static_cast<int64_t>(amount) * randomSigned / 100;
+		ApplyEffectPitchBend(amb, static_cast<int>(std::clamp<int64_t>(
+			randomBend, -32768, 32767)));
 		break;
 	}
 	case 29: // ADD_PB
@@ -2737,10 +3461,7 @@ void ExecuteEffectGrain(AMB& amb)
 		{
 			if (!active.voice)
 				continue;
-			active.voice->Stop();
-			active.voice->DestroyVoice();
-			active.voice = nullptr;
-			active.pcm.clear();
+			RetireSourceVoice(active.voice, active.pcm);
 			active.envelopePhase = EffectEnvelope_Stopped;
 		}
 		break;
@@ -2784,6 +3505,11 @@ void StartSound(SFXID sfxid, AMB** ppamb, ALO* palo, glm::vec3* ppos, float sSta
 	{
 		return;
 	}
+	// A caller-provided handle is exclusive ownership of one logical sound.
+	// Replacing it without first stopping the old AMB loses the only handle to
+	// a looping voice and lets that voice stack indefinitely beneath the new one.
+	if (ppamb != nullptr && *ppamb != nullptr)
+		StopSound(*ppamb, 0);
 	if ((sound.flags & 8u) != 0 && sound.instanceLimit > 0)
 	{
 		std::vector<AMB*> instances;
@@ -2959,18 +3685,14 @@ void RemoveAmb(AMB* pamb)
 		for (EFFECTVOICE& active : pamb->voices)
 		{
 			if (!active.voice) continue;
-			active.voice->Stop();
-			active.voice->DestroyVoice();
-			active.voice = nullptr;
+			RetireSourceVoice(active.voice, active.pcm);
 		}
 		pamb->voices.clear();
 		pamb->voice = nullptr;
 	}
 	else if (pamb->voice != nullptr)
 	{
-		pamb->voice->Stop();
-		pamb->voice->DestroyVoice();
-		pamb->voice = nullptr;
+		RetireSourceVoice(pamb->voice, pamb->pcm);
 	}
 
 	pamb->iSerial = -1;
@@ -3053,9 +3775,7 @@ static void StopAllMusicVoicesForSegment(uint32_t segment)
 	{
 		if (!voice.voice || voice.segment != segment)
 			continue;
-		ReportXAudioFailureOnce("Stop music voice at segment loop", voice.voice->Stop());
-		voice.voice->DestroyVoice();
-		voice.voice = nullptr;
+		RetireMusicVoice(voice);
 		voice.envelope.phase = MusicEnvelopePhase::Stopped;
 	}
 }
@@ -3094,6 +3814,7 @@ static void ResetMusicSegmentForLoop(MusicSegment& segment)
 	segment.tempo = segment.initialTempo;
 	segment.status = 0;
 	segment.ticksLeft = 0;
+	segment.tickError = 0.0;
 	segment.needDelta = true;
 	segment.programs.fill(0);
 	segment.volumes.fill(127);
@@ -3301,7 +4022,7 @@ void SetPambVol(AMB* pamb, float uVolAtSource)
 
 static void SetPambFrqTree(AMB* pamb, float frq, int depth)
 {
-	if (pamb == nullptr)
+	if (pamb == nullptr || !std::isfinite(frq))
 		return;
 
 	// 989SND's application pitch modifier is expressed in units of 1524
@@ -3313,6 +4034,8 @@ static void SetPambFrqTree(AMB* pamb, float frq, int depth)
 		fineDelta / (128.0 * 12.0)));
 	for (EFFECTVOICE& active : pamb->voices)
 	{
+		if (active.noise)
+			continue;
 		active.baseFrequencyRatio = std::clamp(active.baseFrequencyRatio * pitchRatio,
 			XAUDIO2_MIN_FREQ_RATIO, kSpuMaximumFrequencyRatio);
 	}
@@ -3695,6 +4418,9 @@ bool FUserStereoEnabled() { return s_stereoOutputEnabled; }
 
 void SetUserMusicVolume(float volume)
 {
+	std::lock_guard<std::recursive_mutex> lock(s_musicMutex);
+	if (!std::isfinite(volume))
+		volume = 0.0f;
 	s_userMusicVolume = std::clamp(volume, 0.0f, 1.0f);
 	RecalculateChannelVolume(std::clamp(s_music989.cueVolumeGroup, 0, 3));
 }
@@ -3703,6 +4429,9 @@ float GetUserMusicVolume() { return s_userMusicVolume; }
 
 void SetUserSfxVolume(float volume)
 {
+	std::lock_guard<std::recursive_mutex> lock(s_musicMutex);
+	if (!std::isfinite(volume))
+		volume = 0.0f;
 	s_userSfxVolume = std::clamp(volume, 0.0f, 1.0f);
 	if (g_psw)
 		for (const std::unique_ptr<AMB>& slot : g_psw->ambOwners)
@@ -3713,6 +4442,9 @@ float GetUserSfxVolume() { return s_userSfxVolume; }
 
 void SetUserDialogueVolume(float volume)
 {
+	std::lock_guard<std::recursive_mutex> lock(s_musicMutex);
+	if (!std::isfinite(volume))
+		volume = 0.0f;
 	s_userDialogueVolume = std::clamp(volume, 0.0f, 1.0f);
 	RecalculateChannelVolume(2);
 }
@@ -3737,6 +4469,34 @@ void StopVag()
 		return;
 
 	CloseVagStream();
+}
+
+void StopVagAndWaitForFade()
+{
+	StopVag();
+
+	// FMV playback must finish its short anti-pop fade before gameplay voices
+	// and reverb returns are restored. Other retired source voices are unrelated
+	// to this handoff; an owned byte buffer identifies the retiring VAG voice.
+	const auto deadline = std::chrono::steady_clock::now() +
+		kVoiceRetirementFade + std::chrono::milliseconds(5);
+	for (;;)
+	{
+		UpdateRetiredSourceVoices();
+		bool vagStillRetiring = false;
+		{
+			std::lock_guard<std::mutex> lock(s_retiredVoiceMutex);
+			vagStillRetiring = std::any_of(s_retiredVoices.begin(), s_retiredVoices.end(),
+				[](const RetiredSourceVoice& retired)
+				{
+					return retired.voice != nullptr && !retired.pcm8.empty();
+				});
+		}
+		if (!vagStillRetiring || std::chrono::steady_clock::now() >= deadline)
+			break;
+		std::this_thread::sleep_for(std::chrono::milliseconds(1));
+	}
+	UpdateRetiredSourceVoices();
 }
 
 void SetMvgkRvol(float uVol, int mgvk, int iChannel)
@@ -3865,11 +4625,6 @@ void ContinueAmbientSounds()
 void PauseMusicSequencer()
 {
 	std::lock_guard<std::recursive_mutex> lock(s_musicMutex);
-	const bool pauseRubyEffects = g_pgsCur != nullptr &&
-		g_pgsCur->gameWorldCur == GAMEWORLD_Voodoo &&
-		static_cast<int>(g_pgsCur->worldLevelCur) == 8;
-	if (pauseRubyEffects)
-		PauseAmbientSounds();
 	if (s_musicStream.state == MusicState::Playing && !s_musicStream.paused)
 	{
 		// Mark the sequencer paused before touching its voices so no worker tick
@@ -3897,13 +4652,14 @@ void ContinueMusicSequencer(bool continueAmbientSounds)
 		for (MusicVoice& active : s_music989.voices)
 			if (active.voice)
 			{
-				const HRESULT volumeResult = active.voice->SetVolume(active.baseVolume *
+				const float resumedVolume = active.baseVolume *
 					(active.envelope.level / 32767.0f) * s_channelVolumes[musicChannel] *
-					s_musicVolume * s_dialogMusicDuck * s_userMusicVolume);
+					s_musicVolume * s_dialogMusicDuck * s_userMusicVolume;
+				SetVoiceVolumeChecked(active.voice, resumedVolume,
+					"Restore music volume after pause");
 				const HRESULT startResult = active.voice->Start();
-				ReportXAudioFailureOnce("Restore music volume after pause", volumeResult);
 				ReportXAudioFailureOnce("Resume music voice", startResult);
-				resumed = resumed && SUCCEEDED(volumeResult) && SUCCEEDED(startResult);
+				resumed = resumed && SUCCEEDED(startResult);
 			}
 		if (resumed)
 		{
@@ -3927,18 +4683,11 @@ static void VagLoadWorkerMain()
 			if (!s_vagLoadWorkerRunning)
 				return;
 			request.generation = s_vagLoad.generation;
-			request.descriptor = s_vagLoad.descriptor;
 			request.readablePath = s_vagLoad.readablePath;
 			s_vagLoad.requested = false;
 		}
 
-		if (request.readablePath.empty())
-		{
-			request.path = ResolveVagDescriptor(request.descriptor.data());
-			if (!request.path.empty())
-				request.path.replace_extension(L".wav");
-		}
-		else
+		if (!request.readablePath.empty())
 		{
 			request.path = request.readablePath;
 			request.path.replace_extension(L".wav");
@@ -4068,7 +4817,9 @@ static void BalanceFmvStereoPcm(VagStreamState& stream)
 static bool CreateVagStreamVoice(VagStreamState& stream, uint64_t playBegin)
 {
 	if (!EnsureMusicEngine() || stream.pcm.empty() || stream.format.blockAlign == 0)
+	{
 		return false;
+	}
 	WAVEFORMATEX format{};
 	format.wFormatTag = stream.format.formatTag;
 	format.nChannels = stream.format.channels;
@@ -4076,7 +4827,8 @@ static bool CreateVagStreamVoice(VagStreamState& stream, uint64_t playBegin)
 	format.nAvgBytesPerSec = stream.format.avgBytesPerSec;
 	format.nBlockAlign = stream.format.blockAlign;
 	format.wBitsPerSample = stream.format.bitsPerSample;
-	const HRESULT createResult = s_xaudio2->CreateSourceVoice(&stream.voice, &format);
+	const HRESULT createResult = s_xaudio2->CreateSourceVoice(
+		&stream.voice, &format, 0, XAUDIO2_DEFAULT_FREQ_RATIO, &s_vagVoiceCallback);
 	if (FAILED(createResult) || !stream.voice)
 	{
 		ReportRuntimeError("Audio",
@@ -4129,7 +4881,9 @@ static bool FinishPendingVagLoad()
 		s_vagLoad.ready = false;
 	}
 	if (loaded.path.empty() || loaded.pcm.empty() || !EnsureMusicEngine())
+	{
 		return true;
+	}
 
 	VagStreamState replacement{};
 	replacement.format = loaded.format;
@@ -4155,7 +4909,6 @@ void PreloadVag(const char* descriptorOrPath)
 		std::lock_guard<std::mutex> lock(s_vagLoadMutex);
 		request.generation = ++s_vagLoadGeneration;
 		s_vagLoad.generation = request.generation;
-		s_vagLoad.descriptor = request.descriptor;
 		s_vagLoad.readablePath = std::move(request.readablePath);
 		s_vagLoad.path.clear();
 		s_vagLoad.pcm.clear();
@@ -4166,27 +4919,9 @@ void PreloadVag(const char* descriptorOrPath)
 	s_vagLoadCondition.notify_one();
 }
 
-void PreloadVagDescriptor(const void* descriptor)
+void PreloadVagFileName(const char* fileName)
 {
-	StopVag();
-	if (!descriptor)
-		return;
-
-	PendingVagLoad request{};
-	std::memcpy(request.descriptor.data(), descriptor, 32);
-	{
-		std::lock_guard<std::mutex> lock(s_vagLoadMutex);
-		request.generation = ++s_vagLoadGeneration;
-		s_vagLoad.generation = request.generation;
-		s_vagLoad.descriptor = request.descriptor;
-		s_vagLoad.readablePath.clear();
-		s_vagLoad.path.clear();
-		s_vagLoad.pcm.clear();
-		s_vagLoad.ready = false;
-		s_vagLoad.loading = true;
-		s_vagLoad.requested = true;
-	}
-	s_vagLoadCondition.notify_one();
+	PreloadVag(fileName);
 }
 
 void PreloadVag(const std::filesystem::path& path)
@@ -4201,7 +4936,6 @@ void PreloadVag(const std::filesystem::path& path)
 		std::lock_guard<std::mutex> lock(s_vagLoadMutex);
 		request.generation = ++s_vagLoadGeneration;
 		s_vagLoad.generation = request.generation;
-		s_vagLoad.descriptor = request.descriptor;
 		s_vagLoad.readablePath = std::move(request.readablePath);
 		s_vagLoad.path.clear();
 		s_vagLoad.pcm.clear();
@@ -4362,6 +5096,10 @@ void KillSoundSystem()
 			s_effectWetInputVoice->SetVolume(0.0f));
 	KillMusic();
 	KillSounds(0);
+	// KillSounds normally retires voices through a short anti-pop fade. A full
+	// world teardown cannot leave those voices connected while their destination
+	// wet submixes are destroyed, so finish their destruction synchronously.
+	DestroyRetiredSourceVoicesImmediately();
 	// All source voices are gone and every wet return is silent, so rebuilding
 	// the downstream graph cannot create a routing discontinuity. This clears
 	// both Studio C and the otherwise opaque XAudio generic-reverb history.
@@ -4381,31 +5119,29 @@ void KillSoundSystem()
 	s_effectLastUpdate = {};
 	s_effectGlobalRegisters.fill(0);
 	s_fPauseAmbients = 0;
-	// Bank 0 is permanent in the original. The current world bank is released
-	// by SbpEnsureBank when the next world requests a different IBNK.
+	// Bank 0 is permanent in the original. Other successfully loaded banks stay
+	// resident as well because live AMBs retain pointers into their parsed data.
+	// ShutdownSound/StartupSound remains the explicit lifetime boundary.
 }
 
-SoundBankPtr SbpEnsureBank(int ibnk)
+SoundBankPtr SbpEnsureBank(int ibnk, const char* fileName)
 {
+	const auto bankLoadBegin = std::chrono::steady_clock::now();
 	if (ibnk < 0 || ibnk >= static_cast<int>(kEffectBankCount))
 		return nullptr;
-	if (ibnk == s_ibnkWorldCur && s_effectBanks[ibnk])
-		return s_effectBanks[ibnk].get();
-	if (ibnk == 0 && s_effectBanks[0])
-		return s_effectBanks[0].get();
-
-	if (ibnk != 0)
+	// AMBs retain a direct pointer to the parsed bank for their entire lifetime.
+	// Keep every successfully loaded bank resident instead of replacing the
+	// previous world bank underneath active handlers. This also allows sounds
+	// which legitimately reference another world's bank without disturbing the
+	// currently playing music.
+	if (s_effectBanks[ibnk])
 	{
-		UnloadMusic();
-		if (s_ibnkWorldCur > 0 && s_ibnkWorldCur < static_cast<int>(kEffectBankCount))
-			s_effectBanks[s_ibnkWorldCur].reset();
+		if (ibnk != 0)
+			s_ibnkWorldCur = ibnk;
+		return s_effectBanks[ibnk].get();
 	}
-	// Bank zero is the permanent common bank and must not replace the tracked
-	// world-bank index. This matches the retail bank-zero special case.
-	if (ibnk != 0)
-		s_ibnkWorldCur = ibnk;
 
-	const std::filesystem::path path = FindEffectBank(ibnk);
+	const std::filesystem::path path = FindEffectBank(ibnk, fileName);
 	if (path.empty())
 	{
 		std::printf("[SOUND BANK] Could not find extracted IBNK %d.\n", ibnk);
@@ -4430,6 +5166,11 @@ SoundBankPtr SbpEnsureBank(int ibnk)
 		return nullptr;
 	}
 	s_effectBanks[ibnk] = std::move(replacement);
+	// Bank zero is the permanent common bank and must not replace the tracked
+	// world-bank index. Only publish a new current world bank after loading and
+	// parsing it successfully.
+	if (ibnk != 0)
+		s_ibnkWorldCur = ibnk;
 	if (!s_mpibnkfEverLoaded[ibnk])
 	{
 		s_mpibnkfEverLoaded[ibnk] = true;
@@ -4454,9 +5195,10 @@ void UnloadEffectBank()
 	s_mpsfxidcont.fill(false);
 }
 
-void PreloadMusidSong(MUSID musid)
+void PreloadMusidSong(MUSID musid, const char* fileName)
 {
 	std::lock_guard<std::recursive_mutex> lock(s_musicMutex);
+	const auto musicLoadBegin = std::chrono::steady_clock::now();
 	if (musid == MUSID_Nil)
 	{
 		KillMusic();
@@ -4466,7 +5208,7 @@ void PreloadMusidSong(MUSID musid)
 		return;
 
 	UnloadMusic();
-	const std::filesystem::path bankPath = FindMusicBank(musid);
+	const std::filesystem::path bankPath = FindMusicBank(musid, fileName);
 	if (bankPath.empty())
 	{
 		ReportRuntimeError("Music", "Bank was not found for MUSID 0x%X",
@@ -4494,10 +5236,10 @@ void PreloadMusidSong(MUSID musid)
 	s_musicStream.state = MusicState::Loaded;
 }
 
-void StartMusidSong(MUSID musid)
+void StartMusidSong(MUSID musid, const char* fileName)
 {
 	std::lock_guard<std::recursive_mutex> lock(s_musicMutex);
-	PreloadMusidSong(musid);
+	PreloadMusidSong(musid, fileName);
 	if (s_musicStream.state == MusicState::None)
 		return;
 	if (s_musicStream.state == MusicState::Playing)
@@ -4602,6 +5344,14 @@ static void ReleaseAudioEngineGraph(bool restartPersistentSounds)
 	DiscardAmbientEngineVoices(restartPersistentSounds);
 	CloseMusicVoice();
 	CloseVagStream();
+	// Recovery/shutdown is about to invalidate the entire graph, so deferred
+	// voices cannot safely outlive their destination submixes here.
+	DestroyRetiredSourceVoicesImmediately();
+	if (s_musicCoreVoice)
+	{
+		s_musicCoreVoice->DestroyVoice();
+		s_musicCoreVoice = nullptr;
+	}
 	if (s_effectWetInputVoice)
 	{
 		s_effectWetInputVoice->DestroyVoice();
@@ -4627,6 +5377,9 @@ static void ReleaseAudioEngineGraph(bool restartPersistentSounds)
 	s_effectStudioCCreationAttempted = false;
 	if (s_musicMasterVoice)
 	{
+		#ifdef _WIN32
+		s_finalOutputProcessor = nullptr;
+		#endif
 		s_musicMasterVoice->DestroyVoice();
 		s_musicMasterVoice = nullptr;
 	}
@@ -4641,12 +5394,21 @@ static void ReleaseAudioEngineGraph(bool restartPersistentSounds)
 static bool CompleteSoundStartup()
 {
 	if (!EnsureMusicEngine())
+	{
 		return false;
+	}
 	if (!s_soundStartupComplete)
 	{
 		SbpEnsureBank(0);
 		s_globalExcite = 20;
 		InitializeSoundOptions();
+		// StartupSound runs before the initial world transition.  Do not expose
+		// the newly-created XAudio graph while its banks, submixes, and first
+		// source buffers are still being populated; doing so can put a short
+		// uninitialized/reverb transient on the device.  CTransition::Execute
+		// calls InitializeSoundOptions again after the world is completely loaded,
+		// which is the first safe point to ramp the final output up to unity.
+		SetMasterVolume(0.0f);
 		s_effectReverbKind = REVERBK_None;
 		s_effectReverbDepth = 0;
 		s_soundStartupComplete = true;
@@ -4656,8 +5418,17 @@ static bool CompleteSoundStartup()
 	// Every destination and effect is valid now, so it is safe to expose the
 	// graph at the requested volume.
 	if (s_musicMasterVoice)
+	{
+		#ifdef _WIN32
+		ReportXAudioFailureOnce("Enable initialized mastering voice",
+			s_musicMasterVoice->SetVolume(1.0f));
+		if (s_finalOutputProcessor)
+			s_finalOutputProcessor->SetTargetGain(s_masterVolume);
+		#else
 		ReportXAudioFailureOnce("Enable initialized mastering voice",
 			s_musicMasterVoice->SetVolume(s_masterVolume));
+		#endif
+	}
 	if (!s_musicWorkerRunning.exchange(true, std::memory_order_acq_rel))
 		s_musicWorker = std::thread(MusicWorkerMain);
 	s_audioRecoveryPending = false;
@@ -4666,10 +5437,35 @@ static bool CompleteSoundStartup()
 
 static bool RecoverAudioEngine()
 {
+	struct SavedMusicSegment
+	{
+		MusicSegment segment{};
+		std::size_t beginOffset = 0;
+		std::size_t cursorOffset = 0;
+		std::size_t endOffset = 0;
+	};
+	struct SavedMusicVoice
+	{
+		uint32_t segment = 0;
+		uint8_t channel = 0;
+		uint8_t note = 0;
+		uint8_t velocity = 127;
+		std::size_t toneIndex = 0;
+		uint64_t samplePosition = 0;
+		float baseVolume = 1.0f;
+		MusicEnvelope envelope{};
+	};
 	MUSID previousMusic = MUSID_Nil;
 	bool musicWasLoaded = false;
 	bool musicWasPlaying = false;
 	bool musicWasPaused = false;
+	std::vector<SavedMusicSegment> previousSegments;
+	std::vector<SavedMusicVoice> previousMusicVoices;
+	std::vector<uint32_t> previousPendingStarts;
+	std::array<uint8_t, 16> previousRegisters{};
+	std::array<MusicAmeGroup, 16> previousGroups{};
+	std::array<std::size_t, 16> previousMacroOffsets{};
+	double previousTickAccumulator = 0.0;
 	VagStreamState previousVag{};
 	uint64_t previousVagSample = 0;
 	if (s_musicWorkerRunning.exchange(false, std::memory_order_acq_rel) &&
@@ -4681,6 +5477,46 @@ static bool RecoverAudioEngine()
 		musicWasLoaded = s_musicStream.state != MusicState::None;
 		musicWasPlaying = s_musicStream.state == MusicState::Playing;
 		musicWasPaused = s_musicStream.paused;
+		if (musicWasPlaying && !s_music989.sequence.empty())
+		{
+			const uint8_t* sequenceBegin = s_music989.sequence.data();
+			const uint8_t* sequenceEnd = sequenceBegin + s_music989.sequence.size();
+			for (const MusicSegment& segment : s_music989.activeSegments)
+			{
+				if (!segment.begin || !segment.cursor || !segment.end ||
+					segment.begin < sequenceBegin || segment.begin > sequenceEnd ||
+					segment.cursor < sequenceBegin || segment.cursor > sequenceEnd ||
+					segment.end < sequenceBegin || segment.end > sequenceEnd)
+					continue;
+				SavedMusicSegment saved{};
+				saved.segment = segment;
+				saved.beginOffset = static_cast<std::size_t>(segment.begin - sequenceBegin);
+				saved.cursorOffset = static_cast<std::size_t>(segment.cursor - sequenceBegin);
+				saved.endOffset = static_cast<std::size_t>(segment.end - sequenceBegin);
+				previousSegments.push_back(saved);
+			}
+			for (const MusicVoice& voice : s_music989.voices)
+			{
+				if (!voice.voice || !voice.tone || voice.tone < s_music989.tones.data() ||
+					voice.tone >= s_music989.tones.data() + s_music989.tones.size())
+					continue;
+				XAUDIO2_VOICE_STATE state{};
+				voice.voice->GetState(&state);
+				previousMusicVoices.push_back({ voice.segment, voice.channel, voice.note,
+					voice.velocity,
+					static_cast<std::size_t>(voice.tone - s_music989.tones.data()),
+					state.SamplesPlayed, voice.baseVolume, voice.envelope });
+			}
+			previousPendingStarts = s_music989.pendingStarts;
+			previousRegisters = s_music989.registers;
+			previousGroups = s_music989.groups;
+			previousTickAccumulator = s_music989.tickAccumulator;
+			previousMacroOffsets.fill(static_cast<std::size_t>(-1));
+			for (std::size_t i = 0; i < s_music989.macros.size(); ++i)
+				if (s_music989.macros[i] && s_music989.macros[i] >= sequenceBegin &&
+					s_music989.macros[i] <= sequenceEnd)
+					previousMacroOffsets[i] = static_cast<std::size_t>(s_music989.macros[i] - sequenceBegin);
+		}
 		if (s_vagStream.loaded && s_vagStream.voice && !s_vagStream.pcm.empty())
 		{
 			previousVag.loaded = true;
@@ -4707,7 +5543,71 @@ static bool RecoverAudioEngine()
 		PreloadMusidSong(previousMusic);
 		if (musicWasPlaying)
 		{
-			StartMusidSong(previousMusic);
+			bool restored = !previousSegments.empty() &&
+				s_musicStream.state == MusicState::Loaded && !s_music989.sequence.empty();
+			if (restored)
+			{
+				const std::size_t sequenceSize = s_music989.sequence.size();
+				const uint8_t* sequenceBegin = s_music989.sequence.data();
+				s_music989.activeSegments.clear();
+				for (const SavedMusicSegment& saved : previousSegments)
+				{
+					if (saved.beginOffset > saved.cursorOffset || saved.cursorOffset > saved.endOffset ||
+						saved.endOffset > sequenceSize)
+					{
+						restored = false;
+						break;
+					}
+					MusicSegment segment = saved.segment;
+					segment.begin = sequenceBegin + saved.beginOffset;
+					segment.cursor = sequenceBegin + saved.cursorOffset;
+					segment.end = sequenceBegin + saved.endOffset;
+					s_music989.activeSegments.push_back(segment);
+				}
+				if (restored)
+				{
+					s_music989.pendingStarts = previousPendingStarts;
+					s_music989.registers = previousRegisters;
+					s_music989.groups = previousGroups;
+					s_music989.tickAccumulator = previousTickAccumulator;
+					for (std::size_t i = 0; i < previousMacroOffsets.size(); ++i)
+						s_music989.macros[i] = previousMacroOffsets[i] <= sequenceSize
+							? sequenceBegin + previousMacroOffsets[i] : nullptr;
+
+					// Restore every held layer at its current decoded-sample position.
+					// The sequencer cursor and envelope continue from the same instant.
+					for (const SavedMusicVoice& savedVoice : previousMusicVoices)
+					{
+						if (savedVoice.toneIndex >= s_music989.tones.size())
+							continue;
+						auto segment = std::find_if(s_music989.activeSegments.begin(),
+							s_music989.activeSegments.end(), [&](const MusicSegment& active)
+							{ return active.id == savedVoice.segment; });
+						if (segment == s_music989.activeSegments.end())
+							continue;
+						StartMusicTone(*segment, savedVoice.channel, savedVoice.note,
+							savedVoice.velocity, &s_music989.tones[savedVoice.toneIndex],
+							static_cast<uint32_t>((std::min<uint64_t>)(savedVoice.samplePosition,
+								std::numeric_limits<uint32_t>::max())));
+						for (MusicVoice& voice : s_music989.voices)
+							if (voice.segment == savedVoice.segment && voice.channel == savedVoice.channel &&
+								voice.note == savedVoice.note && voice.tone == &s_music989.tones[savedVoice.toneIndex])
+							{
+								voice.baseVolume = savedVoice.baseVolume;
+								voice.envelope = savedVoice.envelope;
+							}
+					}
+					s_music989.lastUpdate = std::chrono::steady_clock::now();
+					s_musicStream.state = MusicState::Playing;
+					s_musicStream.paused = false;
+				}
+			}
+			if (!restored)
+			{
+				s_music989.activeSegments.clear();
+				s_music989.pendingStarts.clear();
+				StartMusidSong(previousMusic);
+			}
 			if (musicWasPaused)
 				PauseMusicSequencer();
 		}
@@ -4825,10 +5725,22 @@ void SetMasterVolume(float uVol)
 {
 	// Retail sends group 8 a 0..1024 fixed-point gain. XAudio2 uses the
 	// equivalent normalized float directly on the mastering voice.
+	if (!std::isfinite(uVol))
+		uVol = 0.0f;
 	s_masterVolume = std::clamp(uVol, 0.0f, 1.0f);
-	if (EnsureMusicEngine() && s_musicMasterVoice)
+	if (!EnsureMusicEngine())
+		return;
+	#ifdef _WIN32
+	if (s_finalOutputProcessor)
+		s_finalOutputProcessor->SetTargetGain(s_masterVolume);
+	else if (s_musicMasterVoice)
+		ReportXAudioFailureOnce("Set mastering volume fallback",
+			s_musicMasterVoice->SetVolume(s_masterVolume));
+	#else
+	if (s_musicMasterVoice)
 		ReportXAudioFailureOnce("Set mastering volume",
 			s_musicMasterVoice->SetVolume(s_masterVolume));
+	#endif
 }
 
 float GetMasterVolume()
@@ -4844,6 +5756,41 @@ void SetFmvAudioMode(bool enabled)
 	if (enabled && s_pambVagAmbient != nullptr)
 		RemoveAmb(s_pambVagAmbient);
 	s_fFmvAudioMode = enabled;
+
+	// Retail pauses every gameplay sound group before initializing movie audio.
+	// Muting source voices alone is insufficient in XAudio2: the reverb submixes
+	// retain their delay history and can keep producing (or feeding back) after
+	// all of their inputs have stopped.  Isolate FMV audio from those wet returns
+	// and clear Studio C's history before the movie voice is exposed.
+	if (enabled)
+	{
+		if (s_effectWetInputVoice)
+			ReportXAudioFailureOnce("Mute gameplay wet-input bus for FMV",
+				s_effectWetInputVoice->SetVolume(0.0f));
+		if (s_effectStudioCVoice)
+			ReportXAudioFailureOnce("Mute Studio C return for FMV",
+				s_effectStudioCVoice->SetVolume(0.0f));
+		if (s_effectReverbVoice)
+			ReportXAudioFailureOnce("Mute generic reverb return for FMV",
+				s_effectReverbVoice->SetVolume(0.0f));
+		#ifdef _WIN32
+		if (s_effectStudioCProcessor)
+		{
+			s_effectStudioCProcessor->SetActive(false);
+			s_effectStudioCProcessor->Reset();
+		}
+		#endif
+	}
+	else
+	{
+		// Restore the existing authored kind/depth; FMV mode never changes the
+		// world's reverb selection itself.
+		EnsureEffectReverb();
+		ApplyCurrentEffectReverb();
+		if (s_effectWetInputVoice)
+			ReportXAudioFailureOnce("Restore gameplay wet-input bus after FMV",
+				s_effectWetInputVoice->SetVolume(1.0f));
+	}
 	if (s_vagStream.loaded)
 		RecalculateChannelVolume(2);
 }
@@ -5000,12 +5947,10 @@ void UpdateSounds()
 		s_effectLastUpdate = effectNow;
 	const double effectElapsed = std::chrono::duration<double>(effectNow - s_effectLastUpdate).count();
 	s_effectLastUpdate = effectNow;
-	// Do not batch an arbitrarily long loading pause into one XAudio quantum.
-	// The SPU2 advances these changes over real time; applying hundreds of
-	// envelope, LFO, and grain updates at once can expose a one-buffer gain
-	// transient when a new world's graph begins processing. Preserve ordinary
-	// frame stalls while bounding transition-time catch-up.
-	s_effectTickAccumulator += (std::min)(effectElapsed, 0.25) * 240.0;
+	// Match the game-clock cap and discard excess wall time after a loading or
+	// debugger stall. Catching up a quarter-second used to execute as many as 60
+	// authored grains in one host frame, stacking overdue voices into a burst.
+	s_effectTickAccumulator += (std::min)(effectElapsed, 1.0 / 30.0) * 240.0;
 	const int effectTicks = static_cast<int>(s_effectTickAccumulator);
 	s_effectTickAccumulator -= effectTicks;
 
@@ -5071,10 +6016,7 @@ void UpdateSounds()
 				{
 					if (!active.voice)
 						continue;
-					active.voice->Stop();
-					active.voice->DestroyVoice();
-					active.voice = nullptr;
-					active.pcm.clear();
+					RetireSourceVoice(active.voice, active.pcm);
 				}
 				amb.voices.clear();
 				amb.voice = nullptr;
@@ -5123,10 +6065,7 @@ void UpdateSounds()
 					{
 						if (!active.voice)
 							continue;
-						active.voice->Stop();
-						active.voice->DestroyVoice();
-						active.voice = nullptr;
-						active.pcm.clear();
+						RetireSourceVoice(active.voice, active.pcm);
 					}
 					break;
 				}
@@ -5218,6 +6157,17 @@ static void UpdateMusicSequencer(double logicalElapsed)
 		std::remove_if(s_music989.voices.begin(), s_music989.voices.end(),
 			[](const MusicVoice& active) { return active.voice == nullptr; }),
 		s_music989.voices.end());
+	// Do not leave a completed or rejected sequence advertised as Playing.
+	// StartMusidSong deliberately ignores an already-playing MUSID, so stale
+	// state here otherwise turns a recoverable sequence end into permanent
+	// silence for every later request for the same song.
+	if (s_music989.activeSegments.empty() && s_music989.pendingStarts.empty() &&
+		s_music989.voices.empty())
+	{
+		s_musicStream.state = MusicState::Loaded;
+		s_musicStream.paused = false;
+		s_music989.tickAccumulator = 0.0;
+	}
 }
 
 const std::array<SND, kSfxCount> g_mpsfxidsndbnk = []

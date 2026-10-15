@@ -5,6 +5,7 @@
 #include "po.h"
 #include "credit.h"
 #include "acs.h"
+#include "Input.h"
 
 CHKPNT* NewChkpnt()
 {
@@ -256,8 +257,8 @@ int FAbsorbChkpntWkr(CHKPNT* pchkpnt, WKR* pwkr)
 	if (pwkr->ploSource != ppoCurrent)
 		return FAbsorbSoWkr(pchkpnt, pwkr);
 
-	/*if ((pwkr->grftak & 0x10) == 0) 
-		TriggerJoyRumbleRumk(&g_joy, RUMK_MediumThrob, 0.2);*/
+	if ((pwkr->grftak & 0x10) == 0)
+		TriggerJoyRumbleRumk(&g_joy, RUMK_MediumThrob, 0.2f);
 
 	TriggerChkpnt(pchkpnt);
 	return 1;
