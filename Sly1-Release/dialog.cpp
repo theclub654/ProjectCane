@@ -15,6 +15,23 @@
 #include "sw.h"
 #include "pzo.h"
 #include <cstdio>
+#include <stdexcept>
+
+namespace
+{
+std::size_t Utf8CharacterCount(const char* text)
+{
+	std::size_t count = 0;
+	for (const unsigned char* cursor = reinterpret_cast<const unsigned char*>(text);
+		*cursor != '\0'; ++cursor)
+	{
+		// UTF-8 continuation bytes do not begin a displayed code point.
+		if ((*cursor & 0xc0) != 0x80)
+			++count;
+	}
+	return count;
+}
+}
 
 DIALOG* NewDialog()
 {
@@ -129,11 +146,16 @@ void CloneDialog(DIALOG* pdialog, DIALOG* pdialogBase)
 
     pdialog->fDefault = pdialogBase->fDefault;
     pdialog->fCrucial = pdialogBase->fCrucial;
+    pdialog->oidPntAnchorDefault = pdialogBase->oidPntAnchorDefault;
+    pdialog->fNoSkip = pdialogBase->fNoSkip;
+    pdialog->fConfrontAudio = pdialogBase->fConfrontAudio;
 }
 
 void LoadDialogEventsFromBrx(DIALOG* pdialog, CBinaryInputStream* pbis, int* pcde, std::vector<DE>& ade)
 {
 	*pcde = pbis->S8Read();
+	if (*pcde < 0 || *pcde > 127)
+		throw std::runtime_error("invalid PCBRX dialog event count");
 
 	ade.clear();
 	ade.resize(*pcde);
@@ -176,6 +198,9 @@ void LoadDialogEventsFromBrx(DIALOG* pdialog, CBinaryInputStream* pbis, int* pcd
 			case DEK_ShowLetterbox:
 			case DEK_HideLetterbox:
 			break;
+
+			default:
+			throw std::runtime_error("unsupported PCBRX dialog event type");
 		}
 	}
 }
@@ -731,6 +756,7 @@ void UpdateDialog(DIALOG* pdialog, float dt)
 
 			if (g_fSkipBinocDialogs &&
 				g_binoc.pdialogPlaying == pdialog &&
+				pdialog->fNoSkip == 0 &&
 				!FDialogSkipProtected(pdialog) &&
 				fSkipPressed)
 			{
@@ -911,7 +937,9 @@ void HandleDialogEvent(DIALOG* pdialog, DE* pde)
 				if (dp.pasegaLipsync && talk.oidLipsAseg != OID_Nil)
 					dtText = dp.pasegaLipsync->paseg->tMax;
 
-				g_binoc.svch = dtText > 0.0f ? static_cast<float>(std::strlen(pchzText) + 10) / dtText : 15.0f;
+				g_binoc.svch = dtText > 0.0f
+					? static_cast<float>(Utf8CharacterCount(pchzText) + 10) / dtText
+					: 15.0f;
 				dp.grfdp |= GRFDP_Text;
 			}
 

@@ -1,9 +1,23 @@
 #include "credit.h"
+#include "content.h"
 #include "gui_layout.h"
 #include "timer.h"
 #include "coin.h"
 #include <cstdio>
 #include <cstring>
+
+namespace
+{
+const char* BonusCommentaryPrompt()
+{
+    if (FLocalizedContent())
+    {
+        if (const char* localized = ContentLocalizedText(170))
+            return localized;
+    }
+    return FJapaneseContent() ? "&2L&.でボーナス解説" : s_pchzBonusCommentaryPrompt;
+}
+}
 
 COMMENTARY* PcommentaryFromLevelId(int levelId)
 {
@@ -85,7 +99,8 @@ void PostNoteLoad(NOTE* pnote)
     if (pnote == &g_note &&
         (g_plsCur->grfls & FLS_Tertiary) != 0 && fHasCommentaryAudio)
     {
-        pnote->pvtblot->pfnSetBlotAchzDraw(pnote, (char*)s_pchzBonusCommentaryPrompt);
+        pnote->pvtblot->pfnSetBlotAchzDraw(pnote,
+            const_cast<char*>(BonusCommentaryPrompt()));
         SetBlotDtVisible(pnote, 5.0f);
         pnote->pvtblot->pfnShowBlot(pnote);
         pnote->fCommentaryPromptActive = 1;
@@ -198,16 +213,25 @@ void SetNoteMtsState(NOTE* pnote, MTSSTATE mtsState)
         if ((g_plsCur->grfls & FLS_Tertiary) == 0)
         {
             SetBlotDtVisible(pnote, 5.0f);
-            pnote->pvtblot->pfnSetBlotAchzDraw(pnote, (char*)s_pchzCommentaryTimer);
+            const char* sprintText = FLocalizedContent() ? ContentLocalizedText(169) : nullptr;
+            const char* fallbackSprint = FJapaneseContent()
+                ? "マスターシーフ・スプリント開始！" : s_pchzCommentaryTimer;
+            pnote->pvtblot->pfnSetBlotAchzDraw(pnote,
+                const_cast<char*>(sprintText != nullptr ? sprintText : fallbackSprint));
         }
         else
         {
             const float dtBest = g_plsCur->dtTimedBest;
+            const char* bestTime = FLocalizedContent() ? ContentLocalizedText(171) : nullptr;
+            if (bestTime == nullptr)
+                bestTime = FJapaneseContent() ? "ベストタイム:" : "Best time:";
 
             if (dtBest < 1.0f)
-                std::snprintf(s_achzCommentaryTime, sizeof(s_achzCommentaryTime), s_achzCommentaryTimeTenths, static_cast<int>(dtBest * 10.0f));
+                std::snprintf(s_achzCommentaryTime, sizeof(s_achzCommentaryTime), "%s &10.%d",
+                    bestTime, static_cast<int>(dtBest * 10.0f));
             else
-                std::snprintf(s_achzCommentaryTime, sizeof(s_achzCommentaryTime), s_achzCommentaryTimeMinutes, static_cast<int>(dtBest) / 60, static_cast<int>(dtBest) % 60);
+                std::snprintf(s_achzCommentaryTime, sizeof(s_achzCommentaryTime), "%s &1%d:%02d",
+                    bestTime, static_cast<int>(dtBest) / 60, static_cast<int>(dtBest) % 60);
 
             SetBlotDtVisible(pnote, 0.0f);
             pnote->pvtblot->pfnSetBlotAchzDraw(pnote, s_achzCommentaryTime);
@@ -337,7 +361,7 @@ void DrawNote(NOTE* pnote)
     CTextBox edgeBox = tbx;
     const bool fDrawingCommentaryPrompt =
         pnote->blotk == BLOTK_Note &&
-        std::strcmp(pnote->achzDraw, s_pchzBonusCommentaryPrompt) == 0;
+        std::strcmp(pnote->achzDraw, BonusCommentaryPrompt()) == 0;
     if (fDrawingCommentaryPrompt)
     {
         pnote->pfont->PushScaling(pnote->rFontScale * scaleX,

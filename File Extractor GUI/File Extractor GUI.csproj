@@ -27,21 +27,26 @@
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
   </ItemGroup>
 
-  <Target Name="CopyBrxRebuilderAfterBuild" AfterTargets="Build">
-    <PropertyGroup>
-      <BrxRebuilderPath>$(MSBuildThisFileDirectory)..\Tools\BrxRebuilder\x64\$(Configuration)\Sly1BrxRebuilder.exe</BrxRebuilderPath>
-    </PropertyGroup>
-    <Copy SourceFiles="$(BrxRebuilderPath)"
-          DestinationFolder="$(TargetDir)"
-          Condition="Exists('$(BrxRebuilderPath)')" />
-  </Target>
+  <ItemGroup Condition="'$(RuntimeIdentifier)' == 'win-x64' Or ('$(RuntimeIdentifier)' == '' And '$(OS)' == 'Windows_NT')">
+    <ProjectReference Include="NativeTools\BrxRebuilder\Sly1BrxRebuilder.vcxproj"
+                      ReferenceOutputAssembly="false"
+                      AdditionalProperties="Platform=x64" />
+    <ProjectReference Include="NativeTools\PalExtractor\Sly1PalExtractor.vcxproj"
+                      ReferenceOutputAssembly="false"
+                      AdditionalProperties="Platform=x64" />
+    <EmbeddedResource Include="NativeTools\BrxRebuilder\x64\$(Configuration)\Sly1BrxRebuilder.exe"
+                      LogicalName="ProjectCane.FileExtractor.Tools.Sly1BrxRebuilder.exe" />
+    <EmbeddedResource Include="NativeTools\PalExtractor\x64\$(Configuration)\Sly1PalExtractor.exe"
+                      LogicalName="ProjectCane.FileExtractor.Tools.Sly1PalExtractor.exe" />
+  </ItemGroup>
 
-  <Target Name="CopyBrxRebuilderAfterPublish" AfterTargets="Publish">
-    <PropertyGroup>
-      <BrxRebuilderPath>$(MSBuildThisFileDirectory)..\Tools\BrxRebuilder\x64\$(Configuration)\Sly1BrxRebuilder.exe</BrxRebuilderPath>
-    </PropertyGroup>
-    <Copy SourceFiles="$(BrxRebuilderPath)"
-          DestinationFolder="$(PublishDir)"
-          Condition="Exists('$(BrxRebuilderPath)')" />
-  </Target>
+  <ItemGroup Condition="'$(RuntimeIdentifier)' == 'linux-x64'">
+    <EmbeddedResource Include="..\dist\linux-tools\Sly1BrxRebuilder"
+                      LogicalName="ProjectCane.FileExtractor.Tools.Sly1BrxRebuilder"
+                      Condition="Exists('..\dist\linux-tools\Sly1BrxRebuilder')" />
+    <EmbeddedResource Include="..\dist\linux-tools\Sly1PalExtractor"
+                      LogicalName="ProjectCane.FileExtractor.Tools.Sly1PalExtractor"
+                      Condition="Exists('..\dist\linux-tools\Sly1PalExtractor')" />
+  </ItemGroup>
+
 </Project>

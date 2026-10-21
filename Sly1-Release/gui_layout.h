@@ -11,16 +11,18 @@ struct GuiScale
 
 inline GuiScale GetGuiScale(float scaleSetting)
 {
-    constexpr float kPs2CanvasHeight = 492.80002f;
-
     if (g_guiStyle == GuiStyle_PS2)
     {
-        // Preserve the proportions of artwork authored for the PS2 canvas.
-        // Screen-edge anchoring still uses the framebuffer bounds, but a
-        // widescreen output must not stretch fonts and icons horizontally.
-        const float uniformScale = (g_gl.height / kPs2CanvasHeight) *
-            scaleSetting;
-        return { uniformScale, uniformScale };
+        // Keep the PS2 canvas uniformly fitted when the presentation aspect
+        // changes. The retail raster applies a fixed 4:3 horizontal pixel-
+        // aspect correction to this UI; it is part of the artwork's displayed
+        // shape, not a scale derived from the host window width.
+        constexpr float kPs2HorizontalPixelAspect = 4.0f / 3.0f;
+        const float canvasScale = g_gl.uiScale * scaleSetting;
+        return {
+            canvasScale * kPs2HorizontalPixelAspect,
+            canvasScale
+        };
     }
 
     // Modern UI keeps the original assets and authored layout relationships,

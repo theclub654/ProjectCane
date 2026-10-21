@@ -1,4 +1,5 @@
 #include "Input.h"
+#include "content.h"
 float g_controllerDeadzone = 0.35f;
 #include "clock.h"
 #include "credit.h"
@@ -133,7 +134,9 @@ void CodeShowPassword(uint32_t)
         return;
 
     char message[64]{};
-    std::snprintf(message, sizeof(message), "The password is: %s", "chetkido");
+    std::snprintf(message, sizeof(message), ContentUiText(
+        "The password is: %s", "Le mot de passe est : %s", "Das Passwort lautet: %s",
+        "La contraseña es: %s", "La password è: %s"), "chetkido");
     g_pnote.pvtblot->pfnSetBlotAchzDraw(&g_pnote, message);
     SetBlotDtVisible(&g_pnote, 10.0f);
     g_pnote.pvtblot->pfnShowBlot(&g_pnote);
@@ -438,25 +441,25 @@ const char* PchzKeyboardKeyNameInternal(int key)
 {
     switch (key)
     {
-    case GLFW_KEY_UNKNOWN: return "Unbound";
-    case GLFW_KEY_SPACE: return "Space";
-    case GLFW_KEY_ENTER: return "Enter";
+    case GLFW_KEY_UNKNOWN: return ContentUiText("Unbound", "Non assigné", "Nicht belegt", "Sin asignar", "Non assegnato");
+    case GLFW_KEY_SPACE: return ContentUiText("Space", "Espace", "Leertaste", "Espacio", "Spazio");
+    case GLFW_KEY_ENTER: return ContentUiText("Enter", "Entrée", "Eingabe", "Intro", "Invio");
     case GLFW_KEY_TAB: return "Tab";
-    case GLFW_KEY_BACKSPACE: return "Backspace";
-    case GLFW_KEY_LEFT_SHIFT: return "Left Shift";
-    case GLFW_KEY_RIGHT_SHIFT: return "Right Shift";
-    case GLFW_KEY_LEFT_CONTROL: return "Left Ctrl";
-    case GLFW_KEY_RIGHT_CONTROL: return "Right Ctrl";
-    case GLFW_KEY_LEFT_ALT: return "Left Alt";
-    case GLFW_KEY_RIGHT_ALT: return "Right Alt";
-    case GLFW_KEY_UP: return "Up Arrow";
-    case GLFW_KEY_DOWN: return "Down Arrow";
-    case GLFW_KEY_LEFT: return "Left Arrow";
-    case GLFW_KEY_RIGHT: return "Right Arrow";
+    case GLFW_KEY_BACKSPACE: return ContentUiText("Backspace", "Retour arrière", "Rücktaste", "Retroceso", "Backspace");
+    case GLFW_KEY_LEFT_SHIFT: return ContentUiText("Left Shift", "Maj gauche", "Umschalt links", "Mayús izquierdo", "Maiusc sinistro");
+    case GLFW_KEY_RIGHT_SHIFT: return ContentUiText("Right Shift", "Maj droite", "Umschalt rechts", "Mayús derecho", "Maiusc destro");
+    case GLFW_KEY_LEFT_CONTROL: return ContentUiText("Left Ctrl", "Ctrl gauche", "Strg links", "Ctrl izquierdo", "Ctrl sinistro");
+    case GLFW_KEY_RIGHT_CONTROL: return ContentUiText("Right Ctrl", "Ctrl droite", "Strg rechts", "Ctrl derecho", "Ctrl destro");
+    case GLFW_KEY_LEFT_ALT: return ContentUiText("Left Alt", "Alt gauche", "Alt links", "Alt izquierdo", "Alt sinistro");
+    case GLFW_KEY_RIGHT_ALT: return ContentUiText("Right Alt", "Alt droite", "Alt rechts", "Alt derecho", "Alt destro");
+    case GLFW_KEY_UP: return ContentUiText("Up Arrow", "Flèche haut", "Pfeil oben", "Flecha arriba", "Freccia su");
+    case GLFW_KEY_DOWN: return ContentUiText("Down Arrow", "Flèche bas", "Pfeil unten", "Flecha abajo", "Freccia giù");
+    case GLFW_KEY_LEFT: return ContentUiText("Left Arrow", "Flèche gauche", "Pfeil links", "Flecha izquierda", "Freccia sinistra");
+    case GLFW_KEY_RIGHT: return ContentUiText("Right Arrow", "Flèche droite", "Pfeil rechts", "Flecha derecha", "Freccia destra");
     default:
         if (const char* name = glfwGetKeyName(key, 0))
             return name;
-        return "Key";
+        return ContentUiText("Key", "Touche", "Taste", "Tecla", "Tasto");
     }
 }
 }
@@ -500,15 +503,15 @@ const char* PchzKeyboardKeyName(int key)
     {
         switch (MouseButtonFromBinding(key))
         {
-        case GLFW_MOUSE_BUTTON_LEFT: return "Mouse Left";
-        case GLFW_MOUSE_BUTTON_RIGHT: return "Mouse Right";
-        case GLFW_MOUSE_BUTTON_MIDDLE: return "Mouse Middle";
-        case GLFW_MOUSE_BUTTON_4: return "Mouse 4";
-        case GLFW_MOUSE_BUTTON_5: return "Mouse 5";
-        case GLFW_MOUSE_BUTTON_6: return "Mouse 6";
-        case GLFW_MOUSE_BUTTON_7: return "Mouse 7";
-        case GLFW_MOUSE_BUTTON_8: return "Mouse 8";
-        default: return "Mouse Button";
+        case GLFW_MOUSE_BUTTON_LEFT: return ContentUiText("Mouse Left", "Souris gauche", "Maus links", "Ratón izquierdo", "Mouse sinistro");
+        case GLFW_MOUSE_BUTTON_RIGHT: return ContentUiText("Mouse Right", "Souris droite", "Maus rechts", "Ratón derecho", "Mouse destro");
+        case GLFW_MOUSE_BUTTON_MIDDLE: return ContentUiText("Mouse Middle", "Souris milieu", "Maus Mitte", "Ratón central", "Mouse centrale");
+        case GLFW_MOUSE_BUTTON_4: return ContentUiText("Mouse 4", "Souris 4", "Maus 4", "Ratón 4", "Mouse 4");
+        case GLFW_MOUSE_BUTTON_5: return ContentUiText("Mouse 5", "Souris 5", "Maus 5", "Ratón 5", "Mouse 5");
+        case GLFW_MOUSE_BUTTON_6: return ContentUiText("Mouse 6", "Souris 6", "Maus 6", "Ratón 6", "Mouse 6");
+        case GLFW_MOUSE_BUTTON_7: return ContentUiText("Mouse 7", "Souris 7", "Maus 7", "Ratón 7", "Mouse 7");
+        case GLFW_MOUSE_BUTTON_8: return ContentUiText("Mouse 8", "Souris 8", "Maus 8", "Ratón 8", "Mouse 8");
+        default: return ContentUiText("Mouse Button", "Bouton de souris", "Maustaste", "Botón del ratón", "Pulsante mouse");
         }
     }
     return PchzKeyboardKeyNameInternal(key);
@@ -518,24 +521,24 @@ const char* PchzGamepadBindingName(int binding)
 {
     switch (binding)
     {
-    case GLFW_GAMEPAD_BUTTON_A: return "A / Cross";
-    case GLFW_GAMEPAD_BUTTON_B: return "B / Circle";
-    case GLFW_GAMEPAD_BUTTON_X: return "X / Square";
-    case GLFW_GAMEPAD_BUTTON_Y: return "Y / Triangle";
-    case GLFW_GAMEPAD_BUTTON_LEFT_BUMPER: return "Left Bumper";
-    case GLFW_GAMEPAD_BUTTON_RIGHT_BUMPER: return "Right Bumper";
-    case GLFW_GAMEPAD_BUTTON_BACK: return "Back / Select";
+    case GLFW_GAMEPAD_BUTTON_A: return ContentUiText("A / Cross", "A / Croix", "A / Kreuz", "A / Cruz", "A / Croce");
+    case GLFW_GAMEPAD_BUTTON_B: return ContentUiText("B / Circle", "B / Cercle", "B / Kreis", "B / Círculo", "B / Cerchio");
+    case GLFW_GAMEPAD_BUTTON_X: return ContentUiText("X / Square", "X / Carré", "X / Quadrat", "X / Cuadrado", "X / Quadrato");
+    case GLFW_GAMEPAD_BUTTON_Y: return ContentUiText("Y / Triangle", "Y / Triangle", "Y / Dreieck", "Y / Triángulo", "Y / Triangolo");
+    case GLFW_GAMEPAD_BUTTON_LEFT_BUMPER: return ContentUiText("Left Bumper", "Bouton supérieur gauche", "Linke Schultertaste", "Botón superior izquierdo", "Dorsale sinistro");
+    case GLFW_GAMEPAD_BUTTON_RIGHT_BUMPER: return ContentUiText("Right Bumper", "Bouton supérieur droit", "Rechte Schultertaste", "Botón superior derecho", "Dorsale destro");
+    case GLFW_GAMEPAD_BUTTON_BACK: return ContentUiText("Back / Select", "Retour / Select", "Zurück / Select", "Atrás / Select", "Indietro / Select");
     case GLFW_GAMEPAD_BUTTON_START: return "Start";
-    case GLFW_GAMEPAD_BUTTON_GUIDE: return "Guide";
-    case GLFW_GAMEPAD_BUTTON_LEFT_THUMB: return "Left Stick";
-    case GLFW_GAMEPAD_BUTTON_RIGHT_THUMB: return "Right Stick";
-    case GLFW_GAMEPAD_BUTTON_DPAD_UP: return "D-Pad Up";
-    case GLFW_GAMEPAD_BUTTON_DPAD_RIGHT: return "D-Pad Right";
-    case GLFW_GAMEPAD_BUTTON_DPAD_DOWN: return "D-Pad Down";
-    case GLFW_GAMEPAD_BUTTON_DPAD_LEFT: return "D-Pad Left";
-    case GAMEPAD_BINDING_LEFT_TRIGGER: return "Left Trigger";
-    case GAMEPAD_BINDING_RIGHT_TRIGGER: return "Right Trigger";
-    default: return "Unbound";
+    case GLFW_GAMEPAD_BUTTON_GUIDE: return ContentUiText("Guide", "Guide", "Guide", "Guía", "Guida");
+    case GLFW_GAMEPAD_BUTTON_LEFT_THUMB: return ContentUiText("Left Stick", "Stick gauche", "Linker Stick", "Stick izquierdo", "Levetta sinistra");
+    case GLFW_GAMEPAD_BUTTON_RIGHT_THUMB: return ContentUiText("Right Stick", "Stick droit", "Rechter Stick", "Stick derecho", "Levetta destra");
+    case GLFW_GAMEPAD_BUTTON_DPAD_UP: return ContentUiText("D-Pad Up", "Croix haut", "Steuerkreuz oben", "Cruceta arriba", "Croce direzionale su");
+    case GLFW_GAMEPAD_BUTTON_DPAD_RIGHT: return ContentUiText("D-Pad Right", "Croix droite", "Steuerkreuz rechts", "Cruceta derecha", "Croce direzionale destra");
+    case GLFW_GAMEPAD_BUTTON_DPAD_DOWN: return ContentUiText("D-Pad Down", "Croix bas", "Steuerkreuz unten", "Cruceta abajo", "Croce direzionale giù");
+    case GLFW_GAMEPAD_BUTTON_DPAD_LEFT: return ContentUiText("D-Pad Left", "Croix gauche", "Steuerkreuz links", "Cruceta izquierda", "Croce direzionale sinistra");
+    case GAMEPAD_BINDING_LEFT_TRIGGER: return ContentUiText("Left Trigger", "Gâchette gauche", "Linker Trigger", "Gatillo izquierdo", "Grilletto sinistro");
+    case GAMEPAD_BINDING_RIGHT_TRIGGER: return ContentUiText("Right Trigger", "Gâchette droite", "Rechter Trigger", "Gatillo derecho", "Grilletto destro");
+    default: return ContentUiText("Unbound", "Non assigné", "Nicht belegt", "Sin asignar", "Non assegnato");
     }
 }
 

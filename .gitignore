@@ -36,6 +36,8 @@ CMakeFiles/
 CMakeCache.txt
 cmake_install.cmake
 compile_commands.json
+.tools/
+.codex-tmp/
 Sly1-Release/*.csv
 Sly1-Release/*.dll
 

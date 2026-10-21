@@ -1,4 +1,5 @@
 #include "wm.h"
+#include "content.h"
 #include "gui_layout.h"
 #include "wipe.h"
 #include "totals.h"
@@ -842,7 +843,17 @@ void PostWmcLoad(WMC* pwmc)
 
     // Set default draw string via virtual call
     if (pwmc->pvtblot && pwmc->pvtblot->pfnSetBlotAchzDraw)
-        pwmc->pvtblot->pfnSetBlotAchzDraw(pwmc, (char*)"&2T&.: Exit\n&2(&.: Move\n&2X&.: Warp"); // replace with real string if needed
+    {
+        const char* controls = FJapaneseContent()
+            ? "&2X&.: 戻る\n&2(&.: 移動\n&2O&.: スタート"
+            : ContentUiText(
+            "&2T&.: Exit\n&2(&.: Move\n&2X&.: Warp",
+            "&2T&.: Quitter\n&2(&.: Déplacer\n&2X&.: Voyager",
+            "&2T&.: Verlassen\n&2(&.: Bewegen\n&2X&.: Reisen",
+            "&2T&.: Salir\n&2(&.: Mover\n&2X&.: Viajar",
+            "&2T&.: Esci\n&2(&.: Muovi\n&2X&.: Viaggia");
+        pwmc->pvtblot->pfnSetBlotAchzDraw(pwmc, const_cast<char*>(controls));
+    }
 
     // Null out WM pointer
     pwmc->pwmCurrent = nullptr;
@@ -897,6 +908,7 @@ void OnWmcActive(WMC* pwmc, int fActive)
             if ((g_pgsCur->gameWorldCur << 8 | g_pgsCur->worldLevelCur) == 776)
             {
                 ResumeVag();
+                ContinueMusicSequencer(false);
             }
 
             // ForceHideBlots hides the aiming reticle when the map opens, but
@@ -937,6 +949,7 @@ void OnWmcActive(WMC* pwmc, int fActive)
     if ((g_pgsCur->gameWorldCur << 8 | g_pgsCur->worldLevelCur) == 776)
     {
         PauseVag();
+        PauseMusicSequencer();
     }
 
     pwmc->pvtblot->pfnShowBlot(pwmc);
@@ -956,13 +969,15 @@ void UpdateWmcActive(WMC* pwmc, JOY* pjoy)
         return;
 
     // Release mask 2320 maps to the menu-exit controls in the PC JOY layer.
-    const bool fExitPressed = pjoy->IsPressed(BTN_TRIANGLE) ||
+    const JOY_BUTTON confirmButton = FJapaneseContent() ? BTN_CIRCLE : BTN_CROSS;
+    const JOY_BUTTON cancelButton = FJapaneseContent() ? BTN_CROSS : BTN_TRIANGLE;
+    const bool fExitPressed = pjoy->IsPressed(cancelButton) ||
                               pjoy->IsPressed(BTN_SELECT) ||
                               pjoy->IsPressed(BTN_START);
     if (fExitPressed || pjoy->joys == JOYS_Searching)
     {
         PopUiActiveBlot(&g_ui);
-        pjoy->SetHandled(BTN_TRIANGLE);
+        pjoy->SetHandled(cancelButton);
         pjoy->SetHandled(BTN_SELECT);
         pjoy->SetHandled(BTN_START);
         return;
@@ -991,9 +1006,9 @@ void UpdateWmcActive(WMC* pwmc, JOY* pjoy)
         MoveWm(pwm, WMD_Left);
     else if (dx > 0)
         MoveWm(pwm, WMD_Right);
-    else if (pjoy->IsPressed(BTN_CROSS))
+    else if (pjoy->IsPressed(confirmButton))
     {
-        pjoy->SetHandled(BTN_CROSS);
+        pjoy->SetHandled(confirmButton);
 
         if (pwm->worldlevelGoal == WorldLevelForWmDisplay())
             PopUiActiveBlot(&g_ui);

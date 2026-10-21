@@ -90,10 +90,22 @@ void LoadOptionsFromBrx(LO* pvObject, CBinaryInputStream* pbis)
 {
 	while (true)
 	{
+		const std::size_t optionOffset = pbis->GetOffset();
 		// Reading eopid from binary file
 		int16_t eopid = pbis->S16Read();
         
 		if (eopid < 0) break;
+		if (eopid >= static_cast<int16_t>(std::size(g_aeopid)))
+		{
+			throw std::runtime_error(
+				"Invalid EOPID " + std::to_string(eopid) +
+				" at PCBRX offset 0x" + [&]
+				{
+					char offset[32]{};
+					std::snprintf(offset, sizeof(offset), "%zX", optionOffset);
+					return std::string(offset);
+				}());
+		}
 
 		LoadOptionFromBrx(pvObject, &g_aeopid[eopid], pbis);
 	}

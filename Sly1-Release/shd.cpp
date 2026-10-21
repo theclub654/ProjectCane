@@ -1,6 +1,7 @@
 #include "shd.h"
 #include "upscale.h"
 #include "sensor.h"
+#include "runtime_error.h"
 #include <algorithm>
 #include <cstdio>
 #include <cstring>
@@ -37,6 +38,23 @@ void ApplyAnisotropyToBoundTexture()
 	const float level = static_cast<float>((std::clamp)(
 		g_anisotropicFiltering, 1, MaxSupportedAnisotropicFiltering()));
 	glTexParameterf(GL_TEXTURE_2D, kTextureMaxAnisotropy, level);
+}
+
+bool ReportTextureGlErrors(const char* operation, std::size_t imageIndex,
+	const BMP& image, int mipLevel = -1)
+{
+	bool succeeded = true;
+	for (GLenum error = glGetError(); error != GL_NO_ERROR; error = glGetError())
+	{
+		succeeded = false;
+		ReportRuntimeError("Graphics",
+			"OpenGL error 0x%X during PCBRX texture %s: image=%zu, GL texture=%u, "
+			"format=%u, size=%ux%u, mip=%d/%u, bytes=%zu.",
+			error, operation, imageIndex, image.glDiffuseMap, image.textureFormat,
+			image.bmpWidth, image.bmpHeight, mipLevel,
+			image.mipCount, static_cast<std::size_t>(image.cbPixels));
+	}
+	return succeeded;
 }
 }
 
@@ -376,8 +394,18 @@ void LoadTexturesFromBrx(CBinaryInputStream* pbis)
     const size_t dataSize = pbis->Remaining();
     size_t dataEnd = dataStart;
 
-    for (BMP& image : g_abmp)
+    // Attribute any old error to work performed before this loader. Every GL
+    // operation below is then checked immediately, so a later framebuffer
+    // resize cannot accidentally receive and mislabel the texture error.
+    for (GLenum error = glGetError(); error != GL_NO_ERROR; error = glGetError())
     {
+        ReportRuntimeError("Graphics",
+            "OpenGL error 0x%X was pending before PCBRX texture loading began.", error);
+    }
+
+    for (std::size_t imageIndex = 0; imageIndex < g_abmp.size(); ++imageIndex)
+    {
+        BMP& image = g_abmp[imageIndex];
         if (image.bmpWidth == 0 || image.bmpHeight == 0 ||
             image.bmpWidth > 32768 || image.bmpHeight > 32768 ||
             image.mipCount == 0 || image.mipCount > 32 ||
@@ -437,12 +465,14 @@ void LoadTexturesFromBrx(CBinaryInputStream* pbis)
 				: GL_LINEAR);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
         ApplyAnisotropyToBoundTexture();
+        ReportTextureGlErrors("setup", imageIndex, image);
         constexpr GLenum kGlBc1 = 0x83F0; // GL_COMPRESSED_RGB_S3TC_DXT1_EXT
         constexpr GLenum kGlBc3 = 0x83F3; // GL_COMPRESSED_RGBA_S3TC_DXT5_EXT
         const GLenum internalFormat = image.textureFormat == kTextureBc1
             ? kGlBc1 : image.textureFormat == kTextureBc3 ? kGlBc3 : GL_RGBA8;
         glTexStorage2D(GL_TEXTURE_2D, storageMipCount, internalFormat,
             image.bmpWidth, image.bmpHeight);
+        ReportTextureGlErrors("glTexStorage2D", imageIndex, image);
 
         size_t levelOffset = 0;
         uint32_t width = image.bmpWidth;
@@ -462,6 +492,9 @@ void LoadTexturesFromBrx(CBinaryInputStream* pbis)
                 glCompressedTexSubImage2D(GL_TEXTURE_2D, level, 0, 0, width, height,
                     internalFormat, static_cast<GLsizei>(levelBytes),
                     image.diffuseTexture.data() + levelOffset);
+            ReportTextureGlErrors(image.textureFormat == kTextureRgba8
+                ? "glTexSubImage2D" : "glCompressedTexSubImage2D",
+                imageIndex, image, static_cast<int>(level));
             levelOffset += levelBytes;
             width = std::max(1u, width >> 1);
             height = std::max(1u, height >> 1);
@@ -475,6 +508,7 @@ void LoadTexturesFromBrx(CBinaryInputStream* pbis)
             if (image.mipCount != 1)
                 throw std::runtime_error("runtime mip generation requires one source level");
             glGenerateMipmap(GL_TEXTURE_2D);
+            ReportTextureGlErrors("glGenerateMipmap", imageIndex, image);
         }
 
         if (!g_fDeveloperDebugMode)

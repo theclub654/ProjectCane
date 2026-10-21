@@ -239,6 +239,7 @@
     <ClCompile Include="cm.cpp" />
     <ClCompile Include="cnvo.cpp" />
     <ClCompile Include="coin.cpp" />
+    <ClCompile Include="content.cpp" />
     <ClCompile Include="cpalign.cpp" />
     <ClCompile Include="cpaseg.cpp" />
     <ClCompile Include="cplcy.cpp" />
@@ -724,6 +725,7 @@
     <ClInclude Include="totals.h" />
     <ClInclude Include="trail.h" />
     <ClInclude Include="transition.h" />
+    <ClInclude Include="content.h" />
     <ClInclude Include="trunk.h" />
     <ClInclude Include="turret.h" />
     <ClInclude Include="tv.h" />

@@ -205,7 +205,6 @@ void LoadGlobsetFromBrx(GLOBSET* pglobset, ALO* palo, CBinaryInputStream* pbis)
                 wrbg.weki.dmat   = pbis->ReadMatrix4();
             }
 
-            // preserve original (char) cast behavior:
             wrbg.cmat  = (int8_t)pbis->U8Read();
             wrbg.fDpos = (int8_t)pbis->U8Read();
             wrbg.fDuv  = (int8_t)pbis->U8Read();
@@ -327,6 +326,7 @@ void LoadGlobsetFromBrx(GLOBSET* pglobset, ALO* palo, CBinaryInputStream* pbis)
                     sai = glob.psaa->pvtsaa->pfnPsaiFromSaaShd(glob.psaa, shd);
                 if (!sai && shd->psaa)
                     sai = shd->psaa->pvtsaa->pfnPsaiFromSaaShd(shd->psaa, shd);
+
                 subglob.uvSai = sai;
                 subglob.usesUvAnim = (sai && (sai->grfsai & 0x2));
             }
@@ -471,8 +471,8 @@ void LoadGlobsetFromBrx(GLOBSET* pglobset, ALO* palo, CBinaryInputStream* pbis)
             }
 
             pglobset->aglob[i].csubcel = pbis->U16Read();
-            std::vector<CELPOINT> mergedEdgePoints;
-            std::vector<glm::vec4> mergedEdgePoseDpos;
+            std::vector <CELPOINT> mergedEdgePoints;
+            std::vector <glm::vec4> mergedEdgePoseDpos;
 
             for (int k = 0; k < pglobset->aglob[i].csubcel; k++)
             {
@@ -509,6 +509,9 @@ void LoadGlobsetFromBrx(GLOBSET* pglobset, ALO* palo, CBinaryInputStream* pbis)
                 assert(mergedEdgePoints.size() == expectedEdgePointCount);
                 assert(mergedEdgePoseDpos.size() == expectedEdgePoseCount);
 
+				glob.edgePoints = mergedEdgePoints;
+				glob.edgePoseDpos = mergedEdgePoseDpos;
+
                 glGenBuffers(1, &glob.edgeSSBO);
                 glBindBuffer(GL_SHADER_STORAGE_BUFFER, glob.edgeSSBO);
                 glBufferData(GL_SHADER_STORAGE_BUFFER, static_cast<GLsizeiptr>(mergedEdgePoints.size() * sizeof(CELPOINT)), mergedEdgePoints.data(), GL_STATIC_DRAW);
@@ -539,6 +542,8 @@ void LoadGlobsetFromBrx(GLOBSET* pglobset, ALO* palo, CBinaryInputStream* pbis)
             inst.edgeSSBO  = base.edgeSSBO;
             inst.edgeCount = base.edgeCount;
             inst.edgePoseDposSSBO = base.edgePoseDposSSBO;
+			inst.edgePoints = base.edgePoints;
+			inst.edgePoseDpos = base.edgePoseDpos;
 
             inst.poseDposSSBO = base.poseDposSSBO;
             inst.poseDnormalSSBO = base.poseDnormalSSBO;

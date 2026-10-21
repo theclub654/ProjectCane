@@ -3,6 +3,7 @@
 #include "logo.h"
 #include "save.h"
 #include "ui.h"
+#include "content.h"
 
 void StartupAttract(ATTRACT* pattract)
 {
@@ -37,16 +38,51 @@ void PostAttractLoad(ATTRACT* pattract)
 
 void UpdateAttractText(ATTRACT* pattract)
 {
+    const char* localizedPlay = ContentLocalizedText(pattract->fReshow ? 1 : 0);
+    const char* localizedMenu = ContentLocalizedText(3);
+    const char* localizedNoController = ContentLocalizedText(4);
+    const char* localizedLanguage = ContentLocalizedText(5);
+
     if (!pattract->fJoyValid)
     {
         pattract->rgba = glm::vec4(111.0f / 128.0f, 31.0f / 128.0f, 31.0f / 128.0f, 1.0f);
-        std::strcpy(pattract->achzDraw, "No Controller");
+        const char* noControllerFallback = FJapaneseContent()
+            ? "コントローラーがありません"
+            : ContentUiText(
+                "No Controller", "Aucune manette", "Kein Controller", "No hay mando", "Nessun controller");
+        std::snprintf(pattract->achzDraw, sizeof(pattract->achzDraw), "%s",
+            localizedNoController != nullptr ? localizedNoController : noControllerFallback);
     }
     else
     {
         pattract->rgba = glm::vec4(111.0f / 128.0f, 111.0f / 128.0f, 111.0f / 128.0f, 1.0f);
-        const int ichz = pattract->fReshow ? 1 : 0;
-        std::snprintf(pattract->achzDraw, sizeof(pattract->achzDraw), g_aachzAttract[ichz], "Press SELECT button for Menu");
+        if (FLocalizedContent() && localizedPlay != nullptr && localizedMenu != nullptr &&
+            localizedLanguage != nullptr)
+        {
+            std::snprintf(pattract->achzDraw, sizeof(pattract->achzDraw), "%s\n%s\n%s",
+                localizedPlay, localizedMenu, localizedLanguage);
+        }
+        else
+        {
+            const char* menuText = FJapaneseContent()
+                ? "SELECTボタン：メニュー\n&2T&.：ゲーム中セリフ音声"
+                : FLocalizedContent()
+                ? ContentUiText(
+                    "Press SELECT button for Menu\n&2T&. : Language",
+                    "Appuyez sur SELECT pour le menu\n&2T&. : Langue",
+                    "SELECT drücken für Menü\n&2T&. : Sprache",
+                    "Pulsa SELECT para el menú\n&2T&. : Idioma",
+                    "Premi SELECT per il menu\n&2T&. : Lingua")
+                : "Press SELECT button for Menu";
+            const char* playText = FJapaneseContent()
+                ? (pattract->fReshow ? "STARTボタン：ゲームを続ける" : "STARTボタン：新しく始める")
+                : pattract->fReshow
+                ? ContentUiText("Press START button to Resume Game", "Appuyez sur START pour reprendre",
+                    "START drücken zum Fortsetzen", "Pulsa START para continuar", "Premi START per continuare")
+                : ContentUiText("Press START button to Play", "Appuyez sur START pour jouer",
+                    "START drücken zum Spielen", "Pulsa START para jugar", "Premi START per giocare");
+            std::snprintf(pattract->achzDraw, sizeof(pattract->achzDraw), "%s\n%s", playText, menuText);
+        }
     }
 
     pattract->pfont->PushScaling(pattract->rFontScale, pattract->rFontScale);
@@ -115,7 +151,11 @@ void DrawAttract(ATTRACT* pattract)
     const float u = std::min(pattract->uOn, g_logo.uOn);
 
     const GuiScale guiScale = GetGuiScale();
-    const float scaleX = guiScale.x;
+    // SCPS renders the attract text with the same font scale on both axes.
+    // Do not apply the western PS2 horizontal pixel-aspect correction here;
+    // doing so makes the Japanese prompt and its backing blot 4/3 too wide.
+    const float scaleX =
+        (FJapaneseContent() && g_guiStyle == GuiStyle_PS2) ? guiScale.y : guiScale.x;
     const float scaleY = guiScale.y;
     const float dx = pattract->dx * scaleX;
     const float dy = pattract->dy * scaleY;

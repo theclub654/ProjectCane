@@ -1,47 +1,10 @@
 #include "BrxWalker.h"
-#include "TriangleList.h"
 
-#include <algorithm>
-#include <cstring>
 #include <sstream>
 #include <stdexcept>
 #include <string_view>
 
 namespace {
-void AppendF32(std::vector<std::uint8_t>& bytes, float value) {
-    std::uint32_t bits = 0;
-    static_assert(sizeof(bits) == sizeof(value), "unexpected float size");
-    std::memcpy(&bits, &value, sizeof(bits));
-    bytes.push_back(static_cast<std::uint8_t>(bits & 0xffu));
-    bytes.push_back(static_cast<std::uint8_t>((bits >> 8) & 0xffu));
-    bytes.push_back(static_cast<std::uint8_t>((bits >> 16) & 0xffu));
-    bytes.push_back(static_cast<std::uint8_t>((bits >> 24) & 0xffu));
-}
-
-void AppendU16(std::vector<std::uint8_t>& bytes, std::uint16_t value) {
-    bytes.push_back(static_cast<std::uint8_t>(value & 0xffu));
-    bytes.push_back(static_cast<std::uint8_t>(value >> 8));
-}
-
-void AppendU32(std::vector<std::uint8_t>& bytes, std::uint32_t value) {
-    bytes.push_back(static_cast<std::uint8_t>(value & 0xffu));
-    bytes.push_back(static_cast<std::uint8_t>((value >> 8) & 0xffu));
-    bytes.push_back(static_cast<std::uint8_t>((value >> 16) & 0xffu));
-    bytes.push_back(static_cast<std::uint8_t>((value >> 24) & 0xffu));
-}
-
-void AppendVec2(std::vector<std::uint8_t>& bytes, const Vec2& value) {
-    AppendF32(bytes, value.x); AppendF32(bytes, value.y);
-}
-
-void AppendVec3(std::vector<std::uint8_t>& bytes, const Vec3& value) {
-    AppendF32(bytes, value.x); AppendF32(bytes, value.y); AppendF32(bytes, value.z);
-}
-
-void AppendVec4(std::vector<std::uint8_t>& bytes, const std::array<float, 4>& value) {
-    for (float component : value) AppendF32(bytes, component);
-}
-
 struct CidLoader { int cid; const char* cidName; const char* loader; };
 constexpr CidLoader kCidLoaders[] = {
 #define BRX_CID(value, cid, loader, vtable) {value, #cid, #loader},
@@ -119,19 +82,16 @@ void ReadAsegEvents(CBinaryInputStream& s, BrxWalker& walker, bool framed) {
         case 16: s.S16Read(); s.S8Read(); s.S8Read(); break;
         case 19: case 20: s.S16Read(); s.U8Read(); break;
         case 21: case 23: s.S16Read(); s.F32Read(); s.F32Read(); break;
-        case 25: case 26:
-            s.S16Read(); s.S16Read(); walker.ConvertLevelDescriptor(s); break;
+        case 25: case 26: s.S16Read(); s.S16Read(); s.Skip(32); break;
         case 27: s.U8Read(); s.S16Read(); break;
         case 28: s.S16Read(); s.S16Read(); s.F32Read(); s.F32Read(); break;
         case 37: case 38: case 45: case 47: s.S16Read(); s.S16Read(); break;
         case 40: s.U16Read(); break;
-        case 44: walker.ConvertAudioDescriptor(s); break;
-        case 51: walker.ConvertCutsceneDescriptor(s); break;
+        case 44: walker.ReadAudioDescriptor(s); break;
+        case 51: s.Skip(32); break;
         case 46: case 52: s.S16Read(); s.S16Read(); s.S16Read(); break;
         case 48: s.S16Read(); s.S16Read(); s.S16Read(); s.F32Read(); break;
-        // EATYP_SetCredit stores line, visible duration, then a normal
-        // length-prefixed NTSC string. It is not a third S16 field.
-        case 54: s.S16Read(); s.S16Read(); s.ReadStringSw(); break;
+        case 54: s.S16Read(); s.S16Read(); s.S16Read(); break;
         case 1: case 2: case 3: case 8: case 11: case 14: case 15: case 34:
         case 42: case 43: case 49: case 50: case 53: case 55: case 56: break;
         default: {
@@ -168,30 +128,16 @@ void ReadAseg(CBinaryInputStream& s, BrxWalker& walker) {
             }
         }
     }
-    ReadAsegEvents(s,walker,false); ReadAsegEvents(s,walker,true);
-    ReadAsegEvents(s,walker,false);
+    ReadAsegEvents(s,walker,false); ReadAsegEvents(s,walker,true); ReadAsegEvents(s,walker,false);
     walker.LoadOptionsFromBrx(s);
 }
 void ReadEmitMesh(CBinaryInputStream& s) {
     const auto points=s.U16Read(); s.Skip(std::size_t(points)*12);
     const auto triangles=s.U16Read(); s.Skip(std::size_t(triangles)*10); s.ReadVector();
 }
+void ReadEmitColors(CBinaryInputStream& s, std::uint16_t count) {
+    s.U8Read(); s.Skip(std::size_t(count)*4);
 }
-
-void BrxWalker::ReadEmitColors(CBinaryInputStream& s, std::uint16_t count) {
-    // fColorRanges remains a byte. Only the packed RGBA8 array changes in v3.
-    s.U8Read();
-    const auto colorsBegin = s.GetOffset();
-    std::vector<std::uint8_t> floatColors;
-    floatColors.reserve(std::size_t(count) * 16);
-    for (std::uint16_t i = 0; i < count; ++i) {
-        const auto rgba = s.U32Read();
-        AppendF32(floatColors, static_cast<float>((rgba >> 0) & 0xff) / 255.0f);
-        AppendF32(floatColors, static_cast<float>((rgba >> 8) & 0xff) / 255.0f);
-        AppendF32(floatColors, static_cast<float>((rgba >> 16) & 0xff) / 255.0f);
-        AppendF32(floatColors, static_cast<float>((rgba >> 24) & 0xff) / 255.0f);
-    }
-    RecordReplacement(colorsBegin, s.GetOffset(), std::move(floatColors));
 }
 
 void BrxWalker::LoadSwObjectsFromBrx(CBinaryInputStream& s, unsigned depth) {
@@ -308,46 +254,9 @@ void BrxWalker::DispatchObject(CBinaryInputStream& s, std::int16_t cid,
         s.Skip(std::size_t(nodes)*6); s.F32Read(); LoadOptionsFromBrx(s); return;
     }
     if (loader == "LoadVismapFromBrx") {
-        const auto vismapBegin = s.GetOffset();
-        const auto nodes = s.U16Read();
-        std::vector<std::uint8_t> replacement;
-        replacement.reserve(2u + std::size_t(nodes) * 32u);
-        AppendU16(replacement, nodes);
-
-        for (std::uint16_t i = 0; i < nodes; ++i) {
-            const Vec3 normal = s.ReadVector();
-            const float planeDistance = s.F32Read();
-            const std::uint32_t oldNegative = s.U32Read();
-            const std::uint32_t oldPositive = s.U32Read();
-
-            const auto appendChild = [&](std::uint32_t oldChild) {
-                if ((oldChild & 0x80000000u) != 0) {
-                    AppendU32(replacement, 0xffffffffu); // -1: leaf
-                    AppendU32(replacement, oldChild & 0x7fffffffu);
-                } else {
-                    if (oldChild >= nodes)
-                        throw std::runtime_error("vismap child index is out of range");
-                    AppendU32(replacement, oldChild);
-                    AppendU32(replacement, 0u);
-                }
-            };
-
-            AppendVec3(replacement, normal);
-            AppendF32(replacement, planeDistance);
-            appendChild(oldNegative);
-            appendChild(oldPositive);
-        }
-
-        const auto zones = s.U16Read();
-        if (zones > 32)
-            throw std::runtime_error("vismap one-hop zone count exceeds 32-bit masks");
-        AppendU16(replacement, zones);
-        for (std::uint16_t i = 0; i < zones; ++i)
-            AppendU32(replacement, s.U32Read());
-
-        RecordReplacement(vismapBegin, s.GetOffset(), std::move(replacement));
-        LoadOptionsFromBrx(s);
-        return;
+        const auto nodes=s.U16Read();
+        for (std::uint16_t i=0;i<nodes;++i) { s.ReadVector(); s.F32Read(); s.U32Read(); s.U32Read(); }
+        const auto zones=s.U16Read(); s.Skip(std::size_t(zones)*4); LoadOptionsFromBrx(s); return;
     }
     if (loader == "LoadShapeFromBrx") {
         const auto kind=s.U8Read(); ReadCurve(s,kind); LoadOptionsFromBrx(s); return;
@@ -408,11 +317,14 @@ void BrxWalker::DispatchObject(CBinaryInputStream& s, std::int16_t cid,
         if (count<0) throw std::runtime_error("negative dialog event count");
         for (int i=0;i<count;++i) {
             switch(s.S8Read()) {
-            case 0: ConvertAudioDescriptor(s); break;
-            case 7: ConvertCutsceneDescriptor(s); break;
+            case 0: ReadAudioDescriptor(s); break;
+            case 7: s.Skip(32); break;
             case 1: case 2: s.S16Read(); s.S16Read(); break;
             case 3: s.F32Read(); s.F32Read(); s.U8Read(); s.U8Read();
-                s.S16Read(); s.S16Read(); s.S16Read(); s.S16Read(); s.ReadStringSw(); break;
+                s.S16Read(); s.S16Read(); s.S16Read(); s.S16Read();
+                if (region_ == BrxRegion::Japanese) s.ReadUtf16StringSw();
+                else s.ReadStringSw();
+                break;
             case 4: s.S16Read(); break;
             case 5: case 6: break;
             default: throw std::runtime_error("unknown DEK value");
@@ -429,8 +341,7 @@ void BrxWalker::DispatchObject(CBinaryInputStream& s, std::int16_t cid,
         s.Skip(std::size_t(hidden)*2); return;
     }
     if (loader == "LoadExitFromBrx") {
-        ConvertLevelDescriptor(s); ConvertLevelDescriptor(s);
-        s.ReadMatrix3(); s.ReadVector(); ReadTbsp(s); LoadOptionsFromBrx(s);
+        s.Skip(64); s.ReadMatrix3(); s.ReadVector(); ReadTbsp(s); LoadOptionsFromBrx(s);
         const auto count=s.S16Read(); if(count<0) throw std::runtime_error("negative EXIT ASEG count");
         for(int i=0;i<count;++i) { s.S16Read(); s.S16Read(); s.U16Read(); ReadAseg(s,*this); }
         return;
@@ -561,226 +472,26 @@ std::uint8_t BrxWalker::LoadGlobset(CBinaryInputStream& s) {
         const auto subglobCount = s.U16Read();
         for (std::uint16_t sub = 0; sub < subglobCount; ++sub) {
             s.ReadVector(); s.F32Read();
-            const auto pcBlockBegin = s.GetOffset();
             const auto vc=s.U8Read(), nc=s.U8Read(), cc=s.U8Read(), tc=s.U8Read(), ic=s.U8Read();
-            s.Align(4);
-            std::vector<Vec3> positions(vc);
-            std::vector<Vec3> normals(nc);
-            std::vector<std::array<float, 4>> colors(cc);
-            std::vector<Vec2> texcoords(tc);
-            for (Vec3& value : positions) value = s.ReadVector();
-            for (Vec3& value : normals) value = s.ReadVector();
-            for (auto& value : colors)
-                for (float& component : value)
-                    component = static_cast<float>(s.U8Read()) / 255.0f;
-            for (Vec2& value : texcoords) value = s.ReadVector2();
-
-            std::vector<StripVertex> strip(ic);
-            for (StripVertex& vertex : strip) {
-                vertex.position = s.U8Read();
-                vertex.normal = s.U8Read();
-                vertex.texcoord = s.U8Read();
-                vertex.misc = s.U8Read();
-            }
-
-            const std::vector<Triangle> triangles = ConvertTriangleStrip(strip);
-            stats_.stripVertices += strip.size();
-            stats_.triangles += triangles.size();
-
-            const auto shaderId = s.U16Read();
-            const auto selfIllumByte = s.U8Read();
-            const auto bi=s.U8Read();
-            std::vector<std::uint8_t> boneMap(bi);
-            for (auto& bone : boneMap) bone = s.U8Read();
-            std::vector<float> weights(static_cast<std::size_t>(vc) * bi);
-            for (float& weight : weights) weight = s.F32Read();
-
-            std::vector<Vec3> posePositions;
-            std::vector<Vec3> poseNormals;
-            std::vector<std::uint16_t> posePositionIndices;
-            std::vector<std::uint16_t> poseNormalIndices;
+            s.Align(4); s.Skip(std::size_t(vc)*12); s.Skip(std::size_t(nc)*12);
+            s.Skip(std::size_t(cc)*4); s.Skip(std::size_t(tc)*8); s.Skip(std::size_t(ic)*4);
+            s.U16Read(); s.U8Read(); const auto bi=s.U8Read(); s.Skip(bi);
+            s.Skip(std::size_t(vc)*bi*4);
             if (poseCount) {
-                const auto pp=s.U16Read(); posePositions.resize(pp);
-                for (Vec3& value : posePositions) value = s.ReadVector();
-                const auto pn=s.U16Read(); poseNormals.resize(pn);
-                for (Vec3& value : poseNormals) value = s.ReadVector();
-                posePositionIndices.resize(static_cast<std::size_t>(poseCount) * ic);
-                poseNormalIndices.resize(static_cast<std::size_t>(poseCount) * ic);
-                for (std::uint8_t pose = 0; pose < poseCount; ++pose) {
-                    for (std::uint8_t vertex = 0; vertex < ic; ++vertex)
-                        posePositionIndices[static_cast<std::size_t>(pose) * ic + vertex] = s.U16Read();
-                    for (std::uint8_t vertex = 0; vertex < ic; ++vertex)
-                        poseNormalIndices[static_cast<std::size_t>(pose) * ic + vertex] = s.U16Read();
-                }
+                const auto pp=s.U16Read(); s.Skip(std::size_t(pp)*12);
+                const auto pn=s.U16Read(); s.Skip(std::size_t(pn)*12);
+                s.Skip(std::size_t(poseCount)*ic*4);
             }
-
-            if (shaderId >= shaderColors_.size())
-                throw std::runtime_error("subglob shader index is out of range");
-
-            std::vector<std::uint8_t> replacement;
-            if (triangles.size() > UINT16_MAX)
-                throw std::runtime_error("subglob triangle count exceeds PCBRX uint16 range");
-            replacement.reserve(12u + static_cast<std::size_t>(ic) * 72u +
-                triangles.size() * 6u + static_cast<std::size_t>(ic) * poseCount * 32u);
-            AppendU16(replacement, static_cast<std::uint16_t>(ic));
-            AppendU16(replacement, static_cast<std::uint16_t>(triangles.size()));
-            AppendU16(replacement, shaderId);
-            AppendU16(replacement, static_cast<std::uint16_t>(std::min<std::uint8_t>(bi, 4)));
-            AppendF32(replacement, static_cast<float>((selfIllumByte * 0x7FA6u) / 0xFFu));
-
-            const auto& shaderColor = shaderColors_[shaderId];
-            for (const StripVertex& vertex : strip) {
-                if (vertex.position >= positions.size())
-                    throw std::runtime_error("subglob position index is out of range");
-                AppendVec3(replacement, positions[vertex.position]);
-
-                if (vertex.normal == 0xffu) AppendVec3(replacement, {});
-                else {
-                    if (vertex.normal >= normals.size())
-                        throw std::runtime_error("subglob normal index is out of range");
-                    AppendVec3(replacement, normals[vertex.normal]);
-                }
-
-                std::array<float, 4> finalColor = shaderColor;
-                const auto colorIndex = static_cast<std::uint8_t>(vertex.misc & 0x7fu);
-                if (colorIndex != 0x7fu) {
-                    if (colorIndex >= colors.size())
-                        throw std::runtime_error("subglob color index is out of range");
-                    for (int component = 0; component < 4; ++component)
-                        finalColor[component] *= colors[colorIndex][component];
-                }
-                AppendVec4(replacement, finalColor);
-
-                if (vertex.texcoord == 0xffu) AppendVec2(replacement, {});
-                else {
-                    if (vertex.texcoord >= texcoords.size())
-                        throw std::runtime_error("subglob texcoord index is out of range");
-                    AppendVec2(replacement, texcoords[vertex.texcoord]);
-                }
-
-                for (std::uint32_t influence = 0; influence < 4; ++influence)
-                    AppendU16(replacement, static_cast<std::uint16_t>(
-                        influence < boneMap.size() ? boneMap[influence] : 0u));
-                for (std::uint32_t influence = 0; influence < 4; ++influence) {
-                    const auto weightIndex = static_cast<std::size_t>(vertex.position) * bi + influence;
-                    AppendF32(replacement, influence < bi && weightIndex < weights.size()
-                        ? weights[weightIndex] : 0.0f);
-                }
-            }
-
-            for (const Triangle& triangle : triangles) {
-                if (triangle.v0 > UINT16_MAX || triangle.v1 > UINT16_MAX ||
-                    triangle.v2 > UINT16_MAX)
-                    throw std::runtime_error("subglob triangle index exceeds PCBRX uint16 range");
-                AppendU16(replacement, static_cast<std::uint16_t>(triangle.v0));
-                AppendU16(replacement, static_cast<std::uint16_t>(triangle.v1));
-                AppendU16(replacement, static_cast<std::uint16_t>(triangle.v2));
-            }
-
-            for (std::size_t vertexIndex = 0; vertexIndex < strip.size(); ++vertexIndex) {
-                const StripVertex& vertex = strip[vertexIndex];
-                for (std::uint8_t pose = 0; pose < poseCount; ++pose) {
-                    const auto lookup = static_cast<std::size_t>(pose) * ic + vertexIndex;
-                    const auto posePosition = posePositionIndices[lookup];
-                    const Vec3& basePosition = positions[vertex.position];
-                    const Vec3 posedPosition = posePosition < posePositions.size()
-                        ? posePositions[posePosition] : basePosition;
-                    AppendF32(replacement, posedPosition.x - basePosition.x);
-                    AppendF32(replacement, posedPosition.y - basePosition.y);
-                    AppendF32(replacement, posedPosition.z - basePosition.z);
-                    AppendF32(replacement, 0.0f);
-
-                    if (vertex.normal == 0xffu) {
-                        AppendVec4(replacement, {0.0f, 0.0f, 0.0f, 0.0f});
-                    } else {
-                        const auto poseNormal = poseNormalIndices[lookup];
-                        const Vec3& baseNormal = normals[vertex.normal];
-                        const Vec3 posedNormal = poseNormal < poseNormals.size()
-                            ? poseNormals[poseNormal] : baseNormal;
-                        AppendF32(replacement, posedNormal.x - baseNormal.x);
-                        AppendF32(replacement, posedNormal.y - baseNormal.y);
-                        AppendF32(replacement, posedNormal.z - baseNormal.z);
-                        AppendF32(replacement, 0.0f);
-                    }
-                }
-            }
-            RecordReplacement(pcBlockBegin, s.GetOffset(), std::move(replacement));
         }
         const auto subcelCount=s.U16Read();
         for (std::uint16_t sub=0; sub<subcelCount; ++sub) {
-            const auto pcBlockBegin = s.GetOffset();
-            const auto pc=s.U8Read();
-            std::vector<Vec3> positions(pc);
-            for (Vec3& position : positions) position = s.ReadVector();
-
-            const auto ec=s.U8Read();
-            std::vector<std::array<std::uint8_t, 4>> edges(ec);
-            for (auto& edge : edges)
-                for (auto& index : edge)
-                    index = s.U8Read();
-
-            const auto bi=s.U8Read();
-            std::vector<std::uint8_t> boneMap(bi);
-            for (auto& bone : boneMap) bone = s.U8Read();
-            std::vector<float> weights(static_cast<std::size_t>(bi) * pc);
-            for (float& weight : weights) weight = s.F32Read();
-
-            std::vector<Vec3> posePositions;
-            std::vector<std::uint16_t> posePositionIndices;
+            const auto pc=s.U8Read(); s.Skip(std::size_t(pc)*12);
+            const auto ec=s.U8Read(); s.Skip(std::size_t(ec)*4);
+            const auto bi=s.U8Read(); s.Skip(bi); s.Skip(std::size_t(bi)*pc*4);
             if (poseCount) {
-                const auto pp=s.U16Read();
-                posePositions.resize(pp);
-                for (Vec3& position : posePositions) position = s.ReadVector();
-                posePositionIndices.resize(static_cast<std::size_t>(poseCount) * pc);
-                for (auto& index : posePositionIndices) index = s.U16Read();
+                const auto pp=s.U16Read(); s.Skip(std::size_t(pp)*12);
+                s.Skip(std::size_t(poseCount)*pc*2);
             }
-
-            std::vector<std::uint8_t> replacement;
-            replacement.reserve(4u + static_cast<std::size_t>(ec) * 4u * 40u +
-                static_cast<std::size_t>(ec) * 4u * poseCount * 16u);
-            AppendU32(replacement, ec);
-
-            std::vector<std::uint8_t> pointPositionIndices;
-            pointPositionIndices.reserve(static_cast<std::size_t>(ec) * 4u);
-            for (const auto& edge : edges) {
-                // Runtime cel-border orientation expects E0, E1, OA, OB.
-                pointPositionIndices.push_back(edge[1]);
-                pointPositionIndices.push_back(edge[2]);
-                pointPositionIndices.push_back(edge[0]);
-                pointPositionIndices.push_back(edge[3]);
-            }
-
-            for (const auto positionIndex : pointPositionIndices) {
-                if (positionIndex >= positions.size())
-                    throw std::runtime_error("cel-border position index is out of range");
-                AppendVec3(replacement, positions[positionIndex]);
-                AppendF32(replacement, 1.0f);
-
-                for (std::uint32_t influence = 0; influence < 4; ++influence)
-                    AppendU16(replacement, static_cast<std::uint16_t>(
-                        influence < boneMap.size() ? boneMap[influence] : 0u));
-                for (std::uint32_t influence = 0; influence < 4; ++influence) {
-                    const auto weightIndex = static_cast<std::size_t>(positionIndex) * bi + influence;
-                    AppendF32(replacement, influence < bi && weightIndex < weights.size()
-                        ? weights[weightIndex] : 0.0f);
-                }
-            }
-
-            for (const auto positionIndex : pointPositionIndices) {
-                for (std::uint8_t pose = 0; pose < poseCount; ++pose) {
-                    const auto lookup = static_cast<std::size_t>(pose) * pc + positionIndex;
-                    const auto posePosition = posePositionIndices[lookup];
-                    const Vec3& base = positions[positionIndex];
-                    const Vec3 posed = posePosition < posePositions.size()
-                        ? posePositions[posePosition] : base;
-                    AppendF32(replacement, posed.x - base.x);
-                    AppendF32(replacement, posed.y - base.y);
-                    AppendF32(replacement, posed.z - base.z);
-                    AppendF32(replacement, 0.0f);
-                }
-            }
-
-            RecordReplacement(pcBlockBegin, s.GetOffset(), std::move(replacement));
         }
     }
     return poseCount;

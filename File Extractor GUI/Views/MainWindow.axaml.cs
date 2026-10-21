@@ -44,7 +44,7 @@ public partial class MainWindow : Window
     {
         var files = await StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
         {
-            Title = "Select Sly 1 NTSC ISO",
+            Title = "Select Sly 1 ISO",
             AllowMultiple = false,
             FileTypeFilter =
             [
@@ -65,7 +65,7 @@ public partial class MainWindow : Window
         SelectedIsoPathText.Text = localPath;
         DetectionBadge.IsVisible = true;
         DropPromptText.Text = "Checking selected ISO...";
-        DropSubtext.Text = "Looking for the Sly 1 NTSC executable";
+        DropSubtext.Text = "Looking for a supported Sly 1 executable";
 
         var detection = await Sly1IsoDetector.DetectAsync(localPath);
         ShowDetectionResult(detection);
@@ -106,8 +106,14 @@ public partial class MainWindow : Window
             DetectionIconText.Text = "✓";
             DetectedGameText.Foreground = new SolidColorBrush(Color.Parse("#57DDBA"));
             DetectedGameText.Text = "Sly 1 detected";
-            DetectedSerialText.Text = $"NTSC • {detection.Serial}";
-            DropPromptText.Text = "Sly 1 NTSC ISO ready";
+            var region = detection.Region switch
+            {
+                Sly1DiscRegion.Pal => "PAL",
+                Sly1DiscRegion.Japanese => "NTSC-J",
+                _ => "NTSC-U"
+            };
+            DetectedSerialText.Text = $"{region} • {detection.Serial}";
+            DropPromptText.Text = $"Sly 1 {region} ISO ready";
             DropSubtext.Text = "Choose an output folder to continue";
             UpdateWorkflowState();
             return;
@@ -123,7 +129,7 @@ public partial class MainWindow : Window
         DetectedGameText.Text = "Unsupported ISO";
         DetectedSerialText.Text = detection.Message;
         DropPromptText.Text = "That ISO is not supported";
-        DropSubtext.Text = "Select the NTSC Sly 1 disc image";
+        DropSubtext.Text = "Select a supported NTSC-U or PAL Sly 1 disc image";
         UpdateWorkflowState();
     }
 
@@ -150,33 +156,52 @@ public partial class MainWindow : Window
         ExtractionProgressBar.Value = 0;
         ProgressPercentText.Text = "0%";
         CurrentItemText.Text = "Current item: Reading level table";
-        FileCountText.Text = "0 / 46 files";
+        FileCountText.Text = _isoDetection.Region switch
+        {
+            Sly1DiscRegion.Pal => "0 / 276 tasks",
+            Sly1DiscRegion.Japanese => "0 / 138 tasks",
+            _ => "0 / 46 files"
+        };
         ByteCountText.Text = "0 MB / 0 MB";
         SetStepComplete(Step1Circle, Step1Number, Step1Title, Step1Description);
         SetStepComplete(Step2Circle, Step2Number, Step2Title, Step2Description);
         SetStepActive(Step3Circle, Step3Number, Step3Title, Step3Description, "3");
 
         var progress = new Progress<Sly1ExtractionProgress>(UpdateExtractionProgress);
-        var levelService = new Sly1ExtractionService();
-        var mediaService = new Sly1MediaExtractionService();
-
         try
         {
             await Task.Run(
                 async () =>
                 {
-                    await levelService.ExtractLevelsAsync(
-                        _selectedIsoPath,
-                        _outputFolderPath,
-                        _isoDetection.ExecutableOffset,
-                        progress,
-                        cancellationToken);
+                    if (_isoDetection.Region is Sly1DiscRegion.Pal or Sly1DiscRegion.Japanese)
+                    {
+                        await new Sly1PalExtractionService().ExtractAsync(
+                            _selectedIsoPath,
+                            _outputFolderPath,
+                            _isoDetection.Region,
+                            progress,
+                            cancellationToken);
+                    }
+                    else
+                    {
+                        await new Sly1ExtractionService().ExtractLevelsAsync(
+                            _selectedIsoPath,
+                            _outputFolderPath,
+                            _isoDetection.ExecutableOffset,
+                            progress,
+                            cancellationToken);
 
-                    await mediaService.ExtractAsync(
-                        _selectedIsoPath,
+                        await new Sly1MediaExtractionService().ExtractAsync(
+                            _selectedIsoPath,
+                            _outputFolderPath,
+                            _isoDetection.ExecutableOffset,
+                            progress,
+                            cancellationToken);
+                    }
+
+                    await ExtractionManifestService.WriteAsync(
                         _outputFolderPath,
-                        _isoDetection.ExecutableOffset,
-                        progress,
+                        _isoDetection.Region,
                         cancellationToken);
                 },
                 cancellationToken);
@@ -184,7 +209,12 @@ public partial class MainWindow : Window
             ExtractionProgressBar.Value = 100;
             ProgressPercentText.Text = "100%";
             ProgressStatusText.Text = "Extraction complete";
-            CurrentItemText.Text = "Extracted Sly 1 levels, audio, and cutscenes";
+            CurrentItemText.Text = _isoDetection.Region switch
+            {
+                Sly1DiscRegion.Pal => "Extracted all five PAL languages, audio, and cutscenes",
+                Sly1DiscRegion.Japanese => "Extracted Japanese text, both voice tracks, audio, and cutscenes",
+                _ => "Extracted Sly 1 levels, audio, and cutscenes"
+            };
             ExtractButtonText.Text = "Extraction Complete";
             SetStepComplete(Step3Circle, Step3Number, Step3Title, Step3Description);
         }

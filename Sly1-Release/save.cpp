@@ -8,6 +8,7 @@
 #include "sound.h"
 #include "shd.h"
 #include "Input.h"
+#include "content.h"
 #include "../platform/platform.h"
 #include <algorithm>
 #include <cmath>
@@ -221,7 +222,7 @@ VIDEOSAVESETTINGS UpgradeVideoSettings(const VideoSaveSettingsV1& oldSettings)
 	std::copy(g_keyboardBindings.begin(), g_keyboardBindings.end(), settings.keyboardBindings);
 	std::copy(g_gamepadBindings.begin(), g_gamepadBindings.end(), settings.gamepadBindings);
     settings.lastSaveSlot = -1;
-	settings.autoIconify = 1;
+	settings.autoIconify = 0;
 	SetDefaultAudioSettings(settings);
     return settings;
 }
@@ -234,7 +235,7 @@ VIDEOSAVESETTINGS UpgradeVideoSettings(const VideoSaveSettingsV2& oldSettings)
 	std::copy(g_gamepadBindings.begin(), g_gamepadBindings.end(), settings.gamepadBindings);
 	settings.guiStyle = GuiStyle_PS2;
 	settings.lastSaveSlot = -1;
-	settings.autoIconify = 1;
+	settings.autoIconify = 0;
 	SetDefaultAudioSettings(settings);
 	return settings;
 }
@@ -247,7 +248,7 @@ VIDEOSAVESETTINGS UpgradeVideoSettings(const VideoSaveSettingsV3& oldSettings)
 	std::copy(g_gamepadBindings.begin(), g_gamepadBindings.end(), settings.gamepadBindings);
 	settings.guiStyle = GuiStyle_PS2;
 	settings.lastSaveSlot = -1;
-	settings.autoIconify = 1;
+	settings.autoIconify = 0;
 	SetDefaultAudioSettings(settings);
 	return settings;
 }
@@ -271,7 +272,7 @@ VIDEOSAVESETTINGS UpgradeVideoSettings(const VideoSaveSettingsV4& oldSettings)
 	std::copy(std::begin(oldSettings.gamepadBindings), std::end(oldSettings.gamepadBindings),
 		settings.gamepadBindings);
 	settings.lastSaveSlot = -1;
-	settings.autoIconify = 1;
+	settings.autoIconify = 0;
 	SetDefaultAudioSettings(settings);
 	return settings;
 }
@@ -282,7 +283,7 @@ VIDEOSAVESETTINGS UpgradeVideoSettings(const VideoSaveSettingsV5& oldSettings)
 	std::memcpy(&settings, &oldSettings, sizeof(oldSettings));
 	settings.disableControllerInputWhenUnfocused = 0;
 	settings.lastSaveSlot = -1;
-	settings.autoIconify = 1;
+	settings.autoIconify = 0;
 	SetDefaultAudioSettings(settings);
 	return settings;
 }
@@ -292,7 +293,7 @@ VIDEOSAVESETTINGS UpgradeVideoSettings(const VideoSaveSettingsV6& oldSettings)
 	VIDEOSAVESETTINGS settings{};
 	std::memcpy(&settings, &oldSettings, sizeof(oldSettings));
 	settings.lastSaveSlot = -1;
-	settings.autoIconify = 1;
+	settings.autoIconify = 0;
 	SetDefaultAudioSettings(settings);
 	return settings;
 }
@@ -762,7 +763,7 @@ bool LoadSystemSettings(VIDEOSAVESETTINGS* settings)
 			return false;
 		}
 		std::memcpy(settings, &oldV7, sizeof(oldV7));
-		settings->autoIconify = 1;
+		settings->autoIconify = 0;
 		SetDefaultAudioSettings(*settings);
 		return true;
 	}
@@ -779,7 +780,7 @@ bool LoadSystemSettings(VIDEOSAVESETTINGS* settings)
 
 		std::memcpy(settings, &oldV8, sizeof(oldV8));
 		settings->mouseCameraEnabled = 0;
-		settings->autoIconify = 1;
+		settings->autoIconify = 0;
 		return true;
 	}
 
@@ -796,7 +797,7 @@ bool LoadSystemSettings(VIDEOSAVESETTINGS* settings)
 		std::memcpy(settings, &oldV9, sizeof(oldV9));
 		settings->cutsceneSkipControlsEnabled = 0;
 		settings->mouseCameraSensitivity = 1.0f;
-		settings->autoIconify = 1;
+		settings->autoIconify = 0;
 		return true;
 	}
 
@@ -812,7 +813,7 @@ bool LoadSystemSettings(VIDEOSAVESETTINGS* settings)
 
 		std::memcpy(settings, &oldV10, sizeof(oldV10));
 		settings->mouseCameraSensitivity = 1.0f;
-		settings->autoIconify = 1;
+		settings->autoIconify = 0;
 		return true;
 	}
 
@@ -827,7 +828,7 @@ bool LoadSystemSettings(VIDEOSAVESETTINGS* settings)
 		}
 
 		std::memcpy(settings, &oldV11, sizeof(oldV11));
-		settings->autoIconify = 1;
+		settings->autoIconify = 0;
 		return true;
 	}
 
@@ -1001,8 +1002,8 @@ void DrawAutoSave(SAVEBLOT* psaveblot)
         : 0;
 
     char achz[32];
-    // Exact retail format: switch to the percentage font, apply its 0.7
-    // rich-text scale and yellow color, then restore the base font.
+    // Exact retail format: switch to the percentage font, apply its authored
+    // 0.7 rich-text scale and yellow color, then restore the base font.
     std::snprintf(achz, sizeof(achz), "%c&1^07~b2a83d%d%%&.", chPrompt, percent);
 
     psaveblot->pfont->PushScaling(psaveblot->rFontScale, psaveblot->rFontScale);
@@ -1056,6 +1057,8 @@ void StartupSaveData(SAVEDATA* psaveData)
 	else
 	{
 		settings = CaptureVideoSettings();
+		settings.frameRate = FPalVideoStandard() ? 50 : 60;
+		settings.autoIconify = 0;
 		SetDefaultAudioSettings(settings);
 		ApplySavedVideoSettings(settings);
 		SaveSystemSettings();

@@ -11,9 +11,15 @@
 #include "sound.h"
 #include "jt.h"
 #include "actseg.h"
+#include "aseg.h"
+#include "acp.h"
+#include "acr.h"
+#include "acs.h"
+#include "acg.h"
 #include "save.h"
 #include "fmv.h"
 #include "pzo.h"
+#include "cm.h"
 #include "cptn.h"
 #include "runtime_error.h"
 #include <algorithm>
@@ -558,6 +564,18 @@ void RenderMenuGui(SW* psw)
             if (ImGui::IsItemHovered())
                 g_fDisableInput = true;
 
+			bool traceMusicDropout = FMusicDropoutTraceEnabled();
+			if (ImGui::MenuItem("Trace Random Music Dropout", nullptr,
+				&traceMusicDropout))
+			{
+				SetMusicDropoutTraceEnabled(traceMusicDropout);
+			}
+			if (ImGui::IsItemHovered())
+			{
+				ImGui::SetTooltip("Writes MusicDiagnostics/music_dropout_trace.log beside the executable");
+				g_fDisableInput = true;
+			}
+
             ImGui::Separator();
             if (ImGui::BeginMenu("Audition Loaded SFX"))
             {
@@ -627,6 +645,21 @@ void RenderMenuGui(SW* psw)
         if (ImGui::BeginMenu("Misc."))
         {
             if (ImGui::IsItemHovered()) g_fDisableInput = true;
+
+            bool traceCameraBlackScreen = FCameraBlackScreenTraceEnabled();
+            if (ImGui::MenuItem("Trace Camera Black Screen Bug", nullptr,
+                &traceCameraBlackScreen))
+            {
+                SetCameraBlackScreenTraceEnabled(traceCameraBlackScreen);
+            }
+
+            if (ImGui::IsItemHovered())
+            {
+                ImGui::SetTooltip("Writes CameraDiagnostics/camera_black_screen_trace.log beside the executable");
+                g_fDisableInput = true;
+            }
+
+            ImGui::Separator();
 
             if (psw != nullptr)
             {
@@ -1424,6 +1457,36 @@ static bool FValidExportIndices(const SUBGLOB& sub)
         });
 }
 
+static bool FValidExportVertices(const SUBGLOB& sub)
+{
+    return std::all_of(sub.vertices.begin(), sub.vertices.end(),
+        [](const VERTICE& vertex)
+        {
+            const auto finite3 = [](const glm::vec3& value)
+            {
+                return std::isfinite(value.x) && std::isfinite(value.y) &&
+                    std::isfinite(value.z);
+            };
+            const auto finite4 = [](const glm::vec4& value)
+            {
+                return std::isfinite(value.x) && std::isfinite(value.y) &&
+                    std::isfinite(value.z) && std::isfinite(value.w);
+            };
+            return finite3(vertex.pos) && finite3(vertex.normal) &&
+                finite4(vertex.color) && finite4(vertex.boneWeights) &&
+                std::isfinite(vertex.uv.x) && std::isfinite(vertex.uv.y);
+        });
+}
+
+static bool FFiniteExportMatrix(const glm::mat4& matrix)
+{
+    const float* values = glm::value_ptr(matrix);
+    for (int i = 0; i < 16; ++i)
+        if (!std::isfinite(values[i]))
+            return false;
+    return true;
+}
+
 static glm::vec3 TransformExportNormal(const glm::mat3& normalMatrix,
                                        const glm::vec3& normal)
 {
@@ -1466,6 +1529,641 @@ glm::quat RotationBetweenVectors(const glm::vec3& from, const glm::vec3& to)
     return glm::normalize(q);
 }
 
+static json ExportMatrix(const glm::mat4& matrix)
+{
+    json result = json::array();
+    const float* values = glm::value_ptr(matrix);
+    for (int i = 0; i < 16; ++i)
+        result.push_back(values[i]);
+    return result;
+}
+
+static bool SetExportNodeTrs(json& node, const glm::mat4& matrix)
+{
+    if (!FFiniteExportMatrix(matrix))
+        return false;
+
+    const glm::vec3 translation(matrix[3]);
+    glm::vec3 scale(glm::length(glm::vec3(matrix[0])),
+        glm::length(glm::vec3(matrix[1])), glm::length(glm::vec3(matrix[2])));
+    if (scale.x <= 1.0e-8f || scale.y <= 1.0e-8f || scale.z <= 1.0e-8f)
+        return false;
+
+    glm::mat3 rotation;
+    rotation[0] = glm::vec3(matrix[0]) / scale.x;
+    rotation[1] = glm::vec3(matrix[1]) / scale.y;
+    rotation[2] = glm::vec3(matrix[2]) / scale.z;
+    if (glm::determinant(rotation) < 0.0f)
+    {
+        scale.x = -scale.x;
+        rotation[0] = -rotation[0];
+    }
+
+    const glm::quat quaternion = glm::normalize(glm::quat_cast(rotation));
+    if (!std::isfinite(quaternion.x) || !std::isfinite(quaternion.y) ||
+        !std::isfinite(quaternion.z) || !std::isfinite(quaternion.w))
+        return false;
+
+    node["translation"] = {translation.x, translation.y, translation.z};
+    node["rotation"] = {quaternion.x, quaternion.y, quaternion.z, quaternion.w};
+    node["scale"] = {scale.x, scale.y, scale.z};
+    return true;
+}
+
+static glm::mat4 OriginalAloWorldMatrix(const ALO* alo)
+{
+    if (alo == nullptr)
+        return glm::mat4(1.0f);
+
+    glm::mat4 local(alo->matOrig);
+    local[3] = glm::vec4(alo->posOrig, 1.0f);
+    return OriginalAloWorldMatrix(alo->paloParent) * local;
+}
+
+static json BuildCelBorderPrimitive(const GLOB& glob, const glm::mat4& transform,
+    bool skinned, int boneCount, int materialIndex,
+    std::vector<uint8_t>& binaryBuffer, std::vector<json>& bufferViews,
+    std::vector<json>& accessors)
+{
+    if (glob.edgeCount <= 0 ||
+        glob.edgePoints.size() < static_cast<size_t>(glob.edgeCount) * 4 ||
+        !FFiniteExportMatrix(transform))
+        return json();
+
+    std::vector<CELPOINT> endpoints;
+    endpoints.reserve(static_cast<size_t>(glob.edgeCount) * 2);
+    for (int edge = 0; edge < glob.edgeCount; ++edge)
+    {
+        endpoints.push_back(glob.edgePoints[static_cast<size_t>(edge) * 4]);
+        endpoints.push_back(glob.edgePoints[static_cast<size_t>(edge) * 4 + 1]);
+    }
+
+    glm::vec3 positionMin((std::numeric_limits<float>::max)());
+    glm::vec3 positionMax((std::numeric_limits<float>::lowest)());
+    AlignTo4(binaryBuffer);
+    const size_t positionOffset = binaryBuffer.size();
+    for (const CELPOINT& point : endpoints)
+    {
+        const glm::vec3 position = glm::vec3(transform * glm::vec4(glm::vec3(point.position), 1.0f));
+        if (!std::isfinite(position.x) || !std::isfinite(position.y) ||
+            !std::isfinite(position.z))
+            return json();
+        positionMin = glm::min(positionMin, position);
+        positionMax = glm::max(positionMax, position);
+        AppendFloat(binaryBuffer, position.x);
+        AppendFloat(binaryBuffer, position.y);
+        AppendFloat(binaryBuffer, position.z);
+    }
+    const int positionView = static_cast<int>(bufferViews.size());
+    bufferViews.push_back({{"buffer", 0}, {"byteOffset", positionOffset},
+        {"byteLength", binaryBuffer.size() - positionOffset}, {"target", 34962}});
+    const int positionAccessor = static_cast<int>(accessors.size());
+    accessors.push_back({{"bufferView", positionView}, {"componentType", 5126},
+        {"count", endpoints.size()}, {"type", "VEC3"},
+        {"min", {positionMin.x, positionMin.y, positionMin.z}},
+        {"max", {positionMax.x, positionMax.y, positionMax.z}}});
+
+    json attributes = {{"POSITION", positionAccessor}};
+    if (skinned)
+    {
+        AlignTo4(binaryBuffer);
+        const size_t jointOffset = binaryBuffer.size();
+        for (const CELPOINT& point : endpoints)
+            for (int influence = 0; influence < 4; ++influence)
+            {
+                const uint16_t joint = point.boneIndices[influence] <
+                    static_cast<uint32_t>(boneCount)
+                    ? static_cast<uint16_t>(point.boneIndices[influence]) : 0;
+                binaryBuffer.push_back(static_cast<uint8_t>(joint & 0xff));
+                binaryBuffer.push_back(static_cast<uint8_t>(joint >> 8));
+            }
+        const int jointView = static_cast<int>(bufferViews.size());
+        bufferViews.push_back({{"buffer", 0}, {"byteOffset", jointOffset},
+            {"byteLength", binaryBuffer.size() - jointOffset}, {"target", 34962}});
+        const int jointAccessor = static_cast<int>(accessors.size());
+        accessors.push_back({{"bufferView", jointView}, {"componentType", 5123},
+            {"count", endpoints.size()}, {"type", "VEC4"}});
+
+        AlignTo4(binaryBuffer);
+        const size_t weightOffset = binaryBuffer.size();
+        for (const CELPOINT& point : endpoints)
+        {
+            glm::vec4 weights = point.boneWeights;
+            const float total = weights.x + weights.y + weights.z + weights.w;
+            if (total > 0.000001f)
+                weights /= total;
+            for (int influence = 0; influence < 4; ++influence)
+                AppendFloat(binaryBuffer, weights[influence]);
+        }
+        const int weightView = static_cast<int>(bufferViews.size());
+        bufferViews.push_back({{"buffer", 0}, {"byteOffset", weightOffset},
+            {"byteLength", binaryBuffer.size() - weightOffset}, {"target", 34962}});
+        const int weightAccessor = static_cast<int>(accessors.size());
+        accessors.push_back({{"bufferView", weightView}, {"componentType", 5126},
+            {"count", endpoints.size()}, {"type", "VEC4"}});
+        attributes["JOINTS_0"] = jointAccessor;
+        attributes["WEIGHTS_0"] = weightAccessor;
+    }
+
+    return {{"attributes", attributes}, {"material", materialIndex}, {"mode", 1}};
+}
+
+static int AppendStaticCelBorders(std::vector<uint8_t>& binaryBuffer,
+    std::vector<json>& bufferViews, std::vector<json>& accessors,
+    std::vector<json>& meshes, std::vector<json>& nodes,
+    std::vector<int>& sceneNodes, int materialIndex)
+{
+    const glm::mat4 zUpToYUp = glm::rotate(glm::mat4(1.0f),
+        glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+    int count = 0;
+    for (size_t aloIndex = 0; aloIndex < allSWAloObjs.size(); ++aloIndex)
+    {
+        ALO* alo = allSWAloObjs[aloIndex];
+        if (alo == nullptr || alo->globset.cbnd > 0)
+            continue;
+        for (size_t globIndex = 0; globIndex < alo->globset.aglob.size(); ++globIndex)
+        {
+            const GLOB& glob = alo->globset.aglob[globIndex];
+            glm::mat4 model = alo->xf.matWorld;
+            model[3] = glm::vec4(alo->xf.posWorld, 1.0f);
+            if (glob.pdmat != nullptr)
+                model *= *glob.pdmat;
+            json primitive = BuildCelBorderPrimitive(glob, zUpToYUp * model, false,
+                0, materialIndex, binaryBuffer, bufferViews, accessors);
+            if (primitive.is_null())
+                continue;
+            const int mesh = static_cast<int>(meshes.size());
+            meshes.push_back({{"name", "CelBorder_" + std::to_string(aloIndex) + "_" +
+                std::to_string(globIndex)}, {"primitives", json::array({primitive})}});
+            const int node = static_cast<int>(nodes.size());
+            nodes.push_back({{"name", "CelBorder_" + std::to_string(aloIndex) + "_" +
+                std::to_string(globIndex)}, {"mesh", mesh}});
+            sceneNodes.push_back(node);
+            ++count;
+        }
+    }
+    return count;
+}
+
+static bool EnsureExportLevelName()
+{
+    if (!levelName.empty())
+        return true;
+
+    if (g_pgsCur != nullptr)
+    {
+        const int levelId = (static_cast<int>(g_pgsCur->gameWorldCur) << 8) |
+            static_cast<int>(g_pgsCur->worldLevelCur);
+        const LEVELINFO* levelInfo = GetLevelInfo(levelId);
+        if (levelInfo != nullptr && !levelInfo->levelName.empty())
+            levelName = std::filesystem::path(levelInfo->levelName).stem().string();
+
+        if (levelName.empty())
+            levelName = "World_" + std::to_string(static_cast<int>(g_pgsCur->gameWorldCur)) +
+                "_" + std::to_string(static_cast<int>(g_pgsCur->worldLevelCur));
+    }
+
+    if (levelName.empty() && g_psw != nullptr && g_psw->pchzName != nullptr &&
+        g_psw->pchzName[0] != '\0')
+        levelName = std::filesystem::path(g_psw->pchzName).stem().string();
+
+    if (levelName.empty())
+    {
+        ReportRuntimeError("Export", "Could not determine a name for the loaded world");
+        return false;
+    }
+    return true;
+}
+
+static int AppendSkeletalMeshes(std::vector<uint8_t>& binaryBuffer,
+    std::vector<json>& bufferViews, std::vector<json>& accessors,
+    std::vector<json>& meshes, std::vector<json>& nodes,
+    std::vector<json>& skins, std::vector<json>& animations,
+    std::vector<int>& sceneNodes,
+    const std::unordered_map<uint64_t, int>& materialIndices, int celBorderMaterialIndex)
+{
+    if (g_psw == nullptr)
+        return 0;
+
+        const glm::mat4 zUpToYUp = glm::rotate(glm::mat4(1.0f),
+            glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+        const int basisNode = static_cast<int>(nodes.size());
+        nodes.push_back({{"name", "ProjectCane_Z_Up"}, {"matrix", ExportMatrix(zUpToYUp)},
+            {"children", json::array()}});
+        sceneNodes.push_back(basisNode);
+
+        int exportedModels = 0;
+        for (size_t aloIndex = 0; aloIndex < allSWAloObjs.size(); ++aloIndex)
+        {
+            ALO* alo = allSWAloObjs[aloIndex];
+            GLOBSET& globset = alo->globset;
+            if (globset.cbnd <= 0 || globset.abnd.size() < static_cast<size_t>(globset.cbnd))
+                continue;
+
+            bool hasSkinnedGeometry = false;
+            for (const GLOB& glob : globset.aglob)
+                for (const SUBGLOB& sub : glob.asubglob)
+                    hasSkinnedGeometry |= sub.cibnd > 0 && !sub.vertices.empty() && !sub.indices.empty();
+            if (!hasSkinnedGeometry)
+                continue;
+
+            const glm::mat4 meshBind = OriginalAloWorldMatrix(alo);
+            if (!FFiniteExportMatrix(meshBind))
+            {
+                ReportRuntimeError("Export",
+                    "Skipping skeletal model %zu because its bind transform is non-finite",
+                    aloIndex);
+                continue;
+            }
+
+            std::vector<glm::mat4> jointWorld(globset.cbnd, glm::mat4(1.0f));
+            std::unordered_map<ALO*, int> boneLookup;
+            for (int bone = 0; bone < globset.cbnd; ++bone)
+            {
+                const BND& binding = globset.abnd[bone];
+                jointWorld[bone] = meshBind * glm::inverse(binding.dmatOrig);
+                if (!FFiniteExportMatrix(binding.dmatOrig) ||
+                    !FFiniteExportMatrix(jointWorld[bone]))
+                {
+                    boneLookup.clear();
+                    break;
+                }
+                if (binding.palo != nullptr)
+                    boneLookup[binding.palo] = bone;
+            }
+            if (boneLookup.empty())
+            {
+                ReportRuntimeError("Export",
+                    "Skipping skeletal model %zu because its bind matrices are non-finite",
+                    aloIndex);
+                continue;
+            }
+
+            std::vector<int> jointNodes(globset.cbnd, -1);
+            for (int bone = 0; bone < globset.cbnd; ++bone)
+            {
+                ALO* boneAlo = globset.abnd[bone].palo;
+                glm::mat4 local = jointWorld[bone];
+                if (boneAlo != nullptr && boneAlo->paloParent != nullptr)
+                {
+                    auto parent = boneLookup.find(boneAlo->paloParent);
+                    if (parent != boneLookup.end())
+                        local = glm::inverse(jointWorld[parent->second]) * jointWorld[bone];
+                }
+
+                const std::string boneName = boneAlo != nullptr && boneAlo->pchzName != nullptr
+                    ? boneAlo->pchzName : "Bone_" + std::to_string(bone);
+                jointNodes[bone] = static_cast<int>(nodes.size());
+                json jointNode = {{"name", boneName}, {"children", json::array()}};
+                if (!SetExportNodeTrs(jointNode, local))
+                {
+                    ReportRuntimeError("Export",
+                        "Skipping skeletal model %zu because joint %d cannot be decomposed",
+                        aloIndex, bone);
+                    jointNodes.clear();
+                    break;
+                }
+                nodes.push_back(std::move(jointNode));
+            }
+            if (jointNodes.empty())
+                continue;
+
+            const int rigRootNode = static_cast<int>(nodes.size());
+            nodes.push_back({{"name", "Rig_" + std::to_string(aloIndex)},
+                {"children", json::array()}});
+            nodes[basisNode]["children"].push_back(rigRootNode);
+
+            for (int bone = 0; bone < globset.cbnd; ++bone)
+            {
+                ALO* boneAlo = globset.abnd[bone].palo;
+                auto parent = boneAlo != nullptr ? boneLookup.find(boneAlo->paloParent) : boneLookup.end();
+                if (parent != boneLookup.end())
+                    nodes[jointNodes[parent->second]]["children"].push_back(jointNodes[bone]);
+                else
+                    nodes[rigRootNode]["children"].push_back(jointNodes[bone]);
+            }
+
+            AlignTo4(binaryBuffer);
+            const size_t inverseBindOffset = binaryBuffer.size();
+            for (int bone = 0; bone < globset.cbnd; ++bone)
+            {
+                const BND& binding = globset.abnd[bone];
+                const float* matrix = glm::value_ptr(binding.dmatOrig);
+                for (int component = 0; component < 16; ++component)
+                    AppendFloat(binaryBuffer, matrix[component]);
+            }
+            const int inverseBindView = static_cast<int>(bufferViews.size());
+            bufferViews.push_back({{"buffer", 0}, {"byteOffset", inverseBindOffset},
+                {"byteLength", globset.cbnd * sizeof(glm::mat4)}});
+            const int inverseBindAccessor = static_cast<int>(accessors.size());
+            accessors.push_back({{"bufferView", inverseBindView}, {"componentType", 5126},
+                {"count", globset.cbnd}, {"type", "MAT4"}});
+
+            json primitives = json::array();
+            for (const GLOB& glob : globset.aglob)
+            {
+                for (const SUBGLOB& sub : glob.asubglob)
+                {
+                    if (sub.cibnd <= 0 || sub.vertices.empty() || sub.indices.empty() ||
+                        !FValidExportIndices(sub) || !FValidExportVertices(sub))
+                        continue;
+
+                    bool validSkin = true;
+                    for (const VERTICE& vertex : sub.vertices)
+                        for (int influence = 0; influence < 4; ++influence)
+                            if (vertex.boneWeights[influence] != 0.0f &&
+                                vertex.boneIndices[influence] >= static_cast<uint32_t>(globset.cbnd))
+                                validSkin = false;
+                    if (!validSkin)
+                    {
+                        ReportRuntimeError("Export",
+                            "Skipping skeletal submesh because a weighted bone index is out of range");
+                        continue;
+                    }
+
+                    auto AddFloatAttribute = [&](const char* type,
+                        auto writeVertex) -> int
+                    {
+                        AlignTo4(binaryBuffer);
+                        const size_t offset = binaryBuffer.size();
+                        for (const VERTICE& vertex : sub.vertices)
+                            writeVertex(vertex);
+                        const int view = static_cast<int>(bufferViews.size());
+                        bufferViews.push_back({{"buffer", 0}, {"byteOffset", offset},
+                            {"byteLength", binaryBuffer.size() - offset}, {"target", 34962}});
+                        const int accessor = static_cast<int>(accessors.size());
+                        accessors.push_back({{"bufferView", view}, {"componentType", 5126},
+                            {"count", sub.vertices.size()}, {"type", type}});
+                        return accessor;
+                    };
+
+                    glm::vec3 minPosition((std::numeric_limits<float>::max)());
+                    glm::vec3 maxPosition((std::numeric_limits<float>::lowest)());
+                    const int positionAccessor = AddFloatAttribute("VEC3", [&](const VERTICE& v)
+                    {
+                        minPosition = glm::min(minPosition, v.pos);
+                        maxPosition = glm::max(maxPosition, v.pos);
+                        AppendFloat(binaryBuffer, v.pos.x); AppendFloat(binaryBuffer, v.pos.y);
+                        AppendFloat(binaryBuffer, v.pos.z);
+                    });
+                    accessors[positionAccessor]["min"] = {minPosition.x, minPosition.y, minPosition.z};
+                    accessors[positionAccessor]["max"] = {maxPosition.x, maxPosition.y, maxPosition.z};
+
+                    const int normalAccessor = AddFloatAttribute("VEC3", [&](const VERTICE& v)
+                    {
+                        AppendFloat(binaryBuffer, v.normal.x); AppendFloat(binaryBuffer, v.normal.y);
+                        AppendFloat(binaryBuffer, v.normal.z);
+                    });
+                    const int uvAccessor = AddFloatAttribute("VEC2", [&](const VERTICE& v)
+                    {
+                        AppendFloat(binaryBuffer, v.uv.x); AppendFloat(binaryBuffer, v.uv.y);
+                    });
+                    const int weightAccessor = AddFloatAttribute("VEC4", [&](const VERTICE& v)
+                    {
+                        glm::vec4 weights = v.boneWeights;
+                        const float total = weights.x + weights.y + weights.z + weights.w;
+                        if (total > 0.000001f)
+                            weights /= total;
+                        AppendFloat(binaryBuffer, weights.x); AppendFloat(binaryBuffer, weights.y);
+                        AppendFloat(binaryBuffer, weights.z); AppendFloat(binaryBuffer, weights.w);
+                    });
+
+                    AlignTo4(binaryBuffer);
+                    const size_t jointOffset = binaryBuffer.size();
+                    for (const VERTICE& vertex : sub.vertices)
+                        for (int influence = 0; influence < 4; ++influence)
+                        {
+                            const uint16_t joint = vertex.boneIndices[influence] <
+                                static_cast<uint32_t>(globset.cbnd)
+                                ? static_cast<uint16_t>(vertex.boneIndices[influence]) : 0;
+                            binaryBuffer.push_back(static_cast<uint8_t>(joint & 0xff));
+                            binaryBuffer.push_back(static_cast<uint8_t>(joint >> 8));
+                        }
+                    const int jointView = static_cast<int>(bufferViews.size());
+                    bufferViews.push_back({{"buffer", 0}, {"byteOffset", jointOffset},
+                        {"byteLength", binaryBuffer.size() - jointOffset}, {"target", 34962}});
+                    const int jointAccessor = static_cast<int>(accessors.size());
+                    accessors.push_back({{"bufferView", jointView}, {"componentType", 5123},
+                        {"count", sub.vertices.size()}, {"type", "VEC4"}});
+
+                    AlignTo4(binaryBuffer);
+                    const size_t indexOffset = binaryBuffer.size();
+                    for (const INDICE& triangle : sub.indices)
+                    {
+                        AppendUInt32(binaryBuffer, triangle.v1);
+                        AppendUInt32(binaryBuffer, triangle.v2);
+                        AppendUInt32(binaryBuffer, triangle.v3);
+                    }
+                    const int indexView = static_cast<int>(bufferViews.size());
+                    bufferViews.push_back({{"buffer", 0}, {"byteOffset", indexOffset},
+                        {"byteLength", binaryBuffer.size() - indexOffset}, {"target", 34963}});
+                    const int indexAccessor = static_cast<int>(accessors.size());
+                    accessors.push_back({{"bufferView", indexView}, {"componentType", 5125},
+                        {"count", sub.indices.size() * 3}, {"type", "SCALAR"}});
+
+                    int materialIndex = 0;
+                    if (sub.shdID >= 0 && sub.shdID < static_cast<int>(g_ashd.size()))
+                    {
+                        SHD& shd = g_ashd[sub.shdID];
+                        const uint64_t materialKey = ExportMaterialKey(
+                            sub.shdID, ExportTextureFrame(sub, shd));
+                        const auto material = materialIndices.find(materialKey);
+                        if (material != materialIndices.end())
+                            materialIndex = material->second;
+                    }
+
+                    primitives.push_back({{"attributes", {{"POSITION", positionAccessor},
+                        {"NORMAL", normalAccessor}, {"TEXCOORD_0", uvAccessor},
+                        {"JOINTS_0", jointAccessor}, {"WEIGHTS_0", weightAccessor}}},
+                        {"indices", indexAccessor}, {"material", materialIndex}, {"mode", 4}});
+                }
+            }
+
+            for (const GLOB& glob : globset.aglob)
+            {
+                json celPrimitive = BuildCelBorderPrimitive(glob, glm::mat4(1.0f), true,
+                    globset.cbnd, celBorderMaterialIndex, binaryBuffer, bufferViews, accessors);
+                if (!celPrimitive.is_null())
+                    primitives.push_back(std::move(celPrimitive));
+            }
+
+            if (primitives.empty())
+                continue;
+
+            const int skinIndex = static_cast<int>(skins.size());
+            skins.push_back({{"name", "Skin_" + std::to_string(aloIndex)},
+                {"joints", jointNodes}, {"skeleton", rigRootNode},
+                {"inverseBindMatrices", inverseBindAccessor}});
+            const int meshIndex = static_cast<int>(meshes.size());
+            meshes.push_back({{"name", alo->pchzName != nullptr ? alo->pchzName :
+                "SkeletalMesh_" + std::to_string(aloIndex)}, {"primitives", primitives}});
+
+            const int meshNode = static_cast<int>(nodes.size());
+            nodes.push_back({{"name", "Skinned_" + std::to_string(aloIndex)},
+                {"mesh", meshIndex}, {"skin", skinIndex}, {"matrix", ExportMatrix(meshBind)}});
+            nodes[rigRootNode]["children"].push_back(meshNode);
+
+            struct AnimatedBoneTarget
+            {
+                ALO* alo = nullptr;
+                int node = -1;
+            };
+            std::unordered_map<int, AnimatedBoneTarget> animatedBones;
+            for (int bone = 0; bone < globset.cbnd; ++bone)
+            {
+                ALO* boneAlo = globset.abnd[bone].palo;
+                if (boneAlo != nullptr)
+                    animatedBones[static_cast<int>(boneAlo->oid)] =
+                        AnimatedBoneTarget{boneAlo, jointNodes[bone]};
+            }
+
+            for (const std::shared_ptr<LO>& object : allWorldObjs)
+            {
+                if (!object || object->pvtlo == nullptr || object->pvtlo->cid != CID_ASEG)
+                    continue;
+
+                ASEG* aseg = static_cast<ASEG*>(object.get());
+                if (!(aseg->tMax > 0.0f) || !std::isfinite(aseg->tMax))
+                    continue;
+
+                bool hasMatchingChannel = false;
+                for (const CHN& channel : aseg->achn)
+                    if (animatedBones.find(static_cast<int>(channel.oid)) != animatedBones.end() &&
+                        (channel.pacp || channel.pacr || channel.pacs))
+                        hasMatchingChannel = true;
+                if (!hasMatchingChannel)
+                    continue;
+
+                const int frameCount = std::max(2,
+                    static_cast<int>(std::ceil(aseg->tMax * 60.0f)) + 1);
+                std::vector<float> times(frameCount);
+                for (int frame = 0; frame < frameCount; ++frame)
+                    times[frame] = std::min(frame / 60.0f, aseg->tMax);
+
+                AlignTo4(binaryBuffer);
+                const size_t timeOffset = binaryBuffer.size();
+                for (float time : times)
+                    AppendFloat(binaryBuffer, time);
+                const int timeView = static_cast<int>(bufferViews.size());
+                bufferViews.push_back({{"buffer", 0}, {"byteOffset", timeOffset},
+                    {"byteLength", binaryBuffer.size() - timeOffset}});
+                const int timeAccessor = static_cast<int>(accessors.size());
+                accessors.push_back({{"bufferView", timeView}, {"componentType", 5126},
+                    {"count", times.size()}, {"type", "SCALAR"},
+                    {"min", {0.0f}}, {"max", {aseg->tMax}}});
+
+                json samplers = json::array();
+                json channels = json::array();
+                auto AddAnimationOutput = [&](const char* path, int node,
+                    int components, const char* type, const std::vector<float>& values)
+                {
+                    AlignTo4(binaryBuffer);
+                    const size_t valueOffset = binaryBuffer.size();
+                    for (float value : values)
+                        AppendFloat(binaryBuffer, value);
+                    const int valueView = static_cast<int>(bufferViews.size());
+                    bufferViews.push_back({{"buffer", 0}, {"byteOffset", valueOffset},
+                        {"byteLength", binaryBuffer.size() - valueOffset}});
+                    const int valueAccessor = static_cast<int>(accessors.size());
+                    accessors.push_back({{"bufferView", valueView}, {"componentType", 5126},
+                        {"count", values.size() / components}, {"type", type}});
+                    const int sampler = static_cast<int>(samplers.size());
+                    samplers.push_back({{"input", timeAccessor}, {"output", valueAccessor},
+                        {"interpolation", "LINEAR"}});
+                    channels.push_back({{"sampler", sampler},
+                        {"target", {{"node", node}, {"path", path}}}});
+                };
+
+                for (const CHN& channel : aseg->achn)
+                {
+                    const auto target = animatedBones.find(static_cast<int>(channel.oid));
+                    if (target == animatedBones.end())
+                        continue;
+                    ALO* targetAlo = target->second.alo;
+                    const int targetNode = target->second.node;
+
+                    if (channel.pacp && channel.pacp->pvtacp != nullptr &&
+                        channel.pacp->pvtacp->pfnEvaluateAcp != nullptr)
+                    {
+                        std::vector<float> values;
+                        values.reserve(times.size() * 3);
+                        bool valid = true;
+                        for (float time : times)
+                        {
+                            glm::vec3 position(0.0f);
+                            channel.pacp->pvtacp->pfnEvaluateAcp(channel.pacp.get(),
+                                targetAlo, time, 1.0f, static_cast<GRFEVAL>(0), &position, nullptr);
+                            valid &= std::isfinite(position.x) && std::isfinite(position.y) &&
+                                std::isfinite(position.z);
+                            values.insert(values.end(), {position.x, position.y, position.z});
+                        }
+                        if (valid)
+                            AddAnimationOutput("translation", targetNode, 3, "VEC3", values);
+                    }
+
+                    if (channel.pacr && channel.pacr->pvtacr != nullptr &&
+                        channel.pacr->pvtacr->pfnEvaluateAcr != nullptr)
+                    {
+                        std::vector<float> values;
+                        values.reserve(times.size() * 4);
+                        bool valid = true;
+                        glm::quat previous(1.0f, 0.0f, 0.0f, 0.0f);
+                        for (size_t frame = 0; frame < times.size(); ++frame)
+                        {
+                            glm::mat3 rotation(1.0f);
+                            channel.pacr->pvtacr->pfnEvaluateAcr(channel.pacr.get(),
+                                targetAlo, times[frame], 1.0f, static_cast<GRFEVAL>(0),
+                                &rotation, nullptr);
+                            glm::quat value = glm::normalize(glm::quat_cast(rotation));
+                            if (frame != 0 && glm::dot(previous, value) < 0.0f)
+                                value = -value;
+                            previous = value;
+                            valid &= std::isfinite(value.x) && std::isfinite(value.y) &&
+                                std::isfinite(value.z) && std::isfinite(value.w);
+                            values.insert(values.end(), {value.x, value.y, value.z, value.w});
+                        }
+                        if (valid)
+                            AddAnimationOutput("rotation", targetNode, 4, "VEC4", values);
+                    }
+
+                    if (channel.pacs && channel.pacs->pvtacs != nullptr &&
+                        channel.pacs->pvtacs->pfnEvaluateAcs != nullptr)
+                    {
+                        std::vector<float> values;
+                        values.reserve(times.size() * 3);
+                        bool valid = true;
+                        for (float time : times)
+                        {
+                            glm::mat3 scaleMatrix(1.0f);
+                            channel.pacs->pvtacs->pfnEvaluateAcs(channel.pacs.get(),
+                                targetAlo, time, static_cast<GRFEVAL>(0), &scaleMatrix);
+                            const glm::vec3 scale(scaleMatrix[0][0], scaleMatrix[1][1],
+                                scaleMatrix[2][2]);
+                            valid &= std::isfinite(scale.x) && std::isfinite(scale.y) &&
+                                std::isfinite(scale.z);
+                            values.insert(values.end(), {scale.x, scale.y, scale.z});
+                        }
+                        if (valid)
+                            AddAnimationOutput("scale", targetNode, 3, "VEC3", values);
+                    }
+                }
+
+                if (!channels.empty())
+                {
+                    std::string animationName = aseg->pchzName != nullptr
+                        ? aseg->pchzName : "Animation_" + std::to_string(aseg->oid);
+                    animationName += "_Rig_" + std::to_string(aloIndex);
+                    animations.push_back({{"name", animationName}, {"samplers", samplers},
+                        {"channels", channels},
+                        {"extras", {{"repeatMode", static_cast<int>(aseg->segrpt)}}}});
+                }
+            }
+            ++exportedModels;
+        }
+
+        return exportedModels;
+}
+
 bool ExportSw()
 {
     if (g_psw == nullptr)
@@ -1473,6 +2171,8 @@ bool ExportSw()
         ReportRuntimeError("Export", "Cannot export a map without a loaded world");
         return false;
     }
+    if (!EnsureExportLevelName())
+        return false;
     try
     {
     std::error_code directoryError;
@@ -1496,6 +2196,8 @@ bool ExportSw()
     std::vector<json> textures;
     std::vector<json> meshes;
     std::vector<json> nodes;
+    std::vector<json> skins;
+    std::vector<json> animations;
     std::vector<int>  sceneNodes;
 
     // Asset header
@@ -1585,6 +2287,12 @@ bool ExportSw()
             }
 
             glm::mat4 finalModel = zUpToYUp * model;
+            if (!FFiniteExportMatrix(finalModel))
+            {
+                ReportRuntimeError("Export",
+                    "Skipping map glob %d/%d because its transform is non-finite", i, a);
+                continue;
+            }
             const glm::mat3 linearModel(finalModel);
             const float modelDeterminant = glm::determinant(linearModel);
             const glm::mat3 normalMat = std::fabs(modelDeterminant) > 1.0e-12f
@@ -1604,6 +2312,8 @@ bool ExportSw()
             for (int b = 0; b < (int)glob.asubglob.size(); ++b)
             {
                 auto& sub = glob.asubglob[b];
+                if (sub.cibnd > 0)
+                    continue;
                 const size_t vertCount = sub.vertices.size();
                 const size_t triCount = sub.indices.size();
 
@@ -1617,6 +2327,14 @@ bool ExportSw()
                     ReportRuntimeError("Export",
                         "Skipping map mesh %d/%d/%d because an index exceeds its %zu vertices",
                         i, a, b, vertCount);
+                    ++modelNum;
+                    continue;
+                }
+                if (!FValidExportVertices(sub))
+                {
+                    ReportRuntimeError("Export",
+                        "Skipping map mesh %d/%d/%d because it contains non-finite vertex data",
+                        i, a, b);
                     ++modelNum;
                     continue;
                 }
@@ -1936,6 +2654,20 @@ bool ExportSw()
         }
     }
 
+    const int celBorderMaterialIndex = static_cast<int>(materials.size());
+    materials.push_back({{"name", "ProjectCane_CelBorder"},
+        {"pbrMetallicRoughness", {{"baseColorFactor", {0.0, 0.0, 0.0, 1.0}},
+            {"metallicFactor", 0.0}, {"roughnessFactor", 1.0}}}});
+    const int staticCelBorderCount = AppendStaticCelBorders(binaryBuffer, bufferViews,
+        accessors, meshes, nodes, sceneNodes, celBorderMaterialIndex);
+    const int skeletalModelCount = AppendSkeletalMeshes(binaryBuffer, bufferViews,
+        accessors, meshes, nodes, skins, animations, sceneNodes, shdToMaterialIndex,
+        celBorderMaterialIndex);
+    if (skeletalModelCount > 0)
+        std::cout << "Included " << skeletalModelCount << " skeletal model(s) in the map GLB\n";
+    if (staticCelBorderCount > 0)
+        std::cout << "Included " << staticCelBorderCount << " static cel-border set(s)\n";
+
     // ===================== Build BIN chunk (padded) =====================
     std::vector<uint8_t> binChunk = binaryBuffer;
     while (binChunk.size() % 4 != 0)
@@ -1959,6 +2691,8 @@ bool ExportSw()
     if (!images.empty())   gltf["images"] = images;
     if (!textures.empty()) gltf["textures"] = textures;
     gltf["meshes"] = meshes;
+    if (!skins.empty()) gltf["skins"] = skins;
+    if (!animations.empty()) gltf["animations"] = animations;
 
     // Add lights (may modify nodes + sceneNodes + gltf.extensions)
     ExportLights(gltf, nodes, sceneNodes, zUpToYUp);
@@ -2368,6 +3102,8 @@ bool ExportSwLightsBaked()
         ReportRuntimeError("Export", "Cannot export a baked map without a loaded world");
         return false;
     }
+    if (!EnsureExportLevelName())
+        return false;
     try
     {
     std::error_code directoryError;
@@ -2389,6 +3125,8 @@ bool ExportSwLightsBaked()
     std::vector<json> textures;
     std::vector<json> meshes;
     std::vector<json> nodes;
+    std::vector<json> skins;
+    std::vector<json> animations;
     std::vector<int>  sceneNodes;
 
     gltf["asset"] = {
@@ -2580,6 +3318,14 @@ bool ExportSwLightsBaked()
                 modelZ = modelZ * *glob.pdmat;
 
             glm::mat4 modelY = zUpToYUp * modelZ;
+            if (!FFiniteExportMatrix(modelZ) || !FFiniteExportMatrix(modelY))
+            {
+                ReportRuntimeError("Export",
+                    "Skipping baked map glob %u/%u because its transform is non-finite",
+                    aloIndex, globIndex);
+                globIndex++;
+                continue;
+            }
 
             const glm::mat3 linearModelZ(modelZ);
             const glm::mat3 linearModelY(modelY);
@@ -2603,6 +3349,11 @@ bool ExportSwLightsBaked()
 
             for (auto& sub : glob.asubglob)
             {
+                if (sub.cibnd > 0)
+                {
+                    subIndex++;
+                    continue;
+                }
                 size_t vc = sub.vertices.size();
                 size_t tc = sub.indices.size();
                 if (vc == 0 || tc == 0)
@@ -2615,6 +3366,14 @@ bool ExportSwLightsBaked()
                     ReportRuntimeError("Export",
                         "Skipping baked-map mesh %u/%u/%u because an index exceeds its %zu vertices",
                         aloIndex, globIndex, subIndex, vc);
+                    subIndex++;
+                    continue;
+                }
+                if (!FValidExportVertices(sub))
+                {
+                    ReportRuntimeError("Export",
+                        "Skipping baked map mesh %u/%u/%u because it contains non-finite vertex data",
+                        aloIndex, globIndex, subIndex);
                     subIndex++;
                     continue;
                 }
@@ -2847,6 +3606,22 @@ bool ExportSwLightsBaked()
         aloIndex++;
     }
 
+    json celBorderMaterial = {{"name", "ProjectCane_CelBorder"},
+        {"pbrMetallicRoughness", {{"baseColorFactor", {0.0, 0.0, 0.0, 1.0}},
+            {"metallicFactor", 0.0}, {"roughnessFactor", 1.0}}}};
+    EnsureUnlitExtension(celBorderMaterial);
+    const int celBorderMaterialIndex = static_cast<int>(materials.size());
+    materials.push_back(std::move(celBorderMaterial));
+    const int staticCelBorderCount = AppendStaticCelBorders(binaryBuffer, bufferViews,
+        accessors, meshes, nodes, sceneNodes, celBorderMaterialIndex);
+    const int skeletalModelCount = AppendSkeletalMeshes(binaryBuffer, bufferViews,
+        accessors, meshes, nodes, skins, animations, sceneNodes, shdToMaterialIndex,
+        celBorderMaterialIndex);
+    if (skeletalModelCount > 0)
+        std::cout << "Included " << skeletalModelCount << " skeletal model(s) in the baked map GLB\n";
+    if (staticCelBorderCount > 0)
+        std::cout << "Included " << staticCelBorderCount << " static cel-border set(s)\n";
+
     // Build GLB
     std::vector<uint8_t> binChunk = binaryBuffer;
     while (binChunk.size() % 4 != 0) binChunk.push_back(0);
@@ -2866,6 +3641,8 @@ bool ExportSwLightsBaked()
     if (!images.empty()) gltf["images"] = images;
     if (!textures.empty()) gltf["textures"] = textures;
     gltf["meshes"] = meshes;
+    if (!skins.empty()) gltf["skins"] = skins;
+    if (!animations.empty()) gltf["animations"] = animations;
     gltf["nodes"] = nodes;
 
     gltf["scenes"] = json::array({

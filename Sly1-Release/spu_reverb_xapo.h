@@ -19,6 +19,17 @@ public:
 		std::vector<float> input;
 		std::vector<float> output;
 	};
+	struct DiagnosticStats
+	{
+		std::uint64_t samples = 0;
+		std::uint64_t invalidInputSamples = 0;
+		std::uint64_t clippedInputSamples = 0;
+		std::uint64_t clippedOutputSamples = 0;
+		float inputPeak = 0.0f;
+		float outputPeak = 0.0f;
+		float inputMaxJump = 0.0f;
+		float outputMaxJump = 0.0f;
+	};
 	explicit SpuMixSaturator(bool finalOutput = false)
 		: m_targetGain(finalOutput ? 0.0f : 1.0f),
 		  m_currentGain(finalOutput ? 0.0f : 1.0f),
@@ -30,6 +41,7 @@ public:
 	void SetTargetGain(float gain);
 	void BeginDiagnosticCapture();
 	DiagnosticCapture EndDiagnosticCapture();
+	DiagnosticStats GetDiagnosticStats() const;
 	STDMETHOD(QueryInterface)(REFIID interfaceId, void** result) override;
 	STDMETHOD_(ULONG, AddRef)() override;
 	STDMETHOD_(ULONG, Release)() override;
@@ -63,6 +75,15 @@ private:
 	std::vector<float> m_diagnosticOutput;
 	std::atomic<std::size_t> m_diagnosticSampleCount{0};
 	std::atomic<bool> m_diagnosticCaptureEnabled{false};
+	std::atomic<std::uint64_t> m_diagnosticInvalidInputSamples{0};
+	std::atomic<std::uint64_t> m_diagnosticClippedInputSamples{0};
+	std::atomic<std::uint64_t> m_diagnosticClippedOutputSamples{0};
+	std::atomic<float> m_diagnosticInputPeak{0.0f};
+	std::atomic<float> m_diagnosticOutputPeak{0.0f};
+	std::atomic<float> m_diagnosticInputMaxJump{0.0f};
+	std::atomic<float> m_diagnosticOutputMaxJump{0.0f};
+	std::array<float, 2> m_diagnosticPreviousInput{};
+	std::array<float, 2> m_diagnosticPreviousOutput{};
 };
 
 class SpuStudioCReverb final : public IXAPO

@@ -4,9 +4,44 @@ namespace
 {
 	using GlyphVertices = std::vector<BLOTLINEVERTEX>;
 
-	// Fonts 1, 3, and 4 are image atlases (controller prompts, HUD icons,
-	// frames, and preview pictures). Fonts 0 and 2 contain readable text and
-	// intentionally retain their existing linear filtering.
+	std::string GameFontTextFromUtf8(const char* text)
+	{
+		return text != nullptr ? std::string(text) : std::string();
+	}
+
+	uint32_t DecodeUtf8(const char*& cursor)
+	{
+		const auto* bytes = reinterpret_cast<const unsigned char*>(cursor);
+		if (bytes[0] < 0x80) { ++cursor; return bytes[0]; }
+
+		const auto isContinuation = [](unsigned char value) {
+			return (value & 0xc0) == 0x80;
+		};
+
+		// PAL text uses the retail single-byte Western glyph IDs, while newer
+		// ProjectCane-authored strings may be UTF-8. Only consume a multibyte
+		// sequence when every continuation byte is valid. Without this check a
+		// PAL byte such as 0xe4 ('ä') consumed the following two ASCII letters,
+		// and 0xdf ('ß') consumed the following letter.
+		if ((bytes[0] & 0xe0) == 0xc0 && isContinuation(bytes[1])) {
+			cursor += 2; return ((bytes[0] & 0x1f) << 6) | (bytes[1] & 0x3f);
+		}
+		if ((bytes[0] & 0xf0) == 0xe0 && isContinuation(bytes[1]) &&
+			isContinuation(bytes[2])) {
+			cursor += 3; return ((bytes[0] & 0x0f) << 12) |
+				((bytes[1] & 0x3f) << 6) | (bytes[2] & 0x3f);
+		}
+
+		// Invalid UTF-8 lead bytes are intentional one-byte font codes in the
+		// original PAL data. Preserve their unsigned value for atlas lookup.
+		++cursor;
+		return bytes[0];
+	}
+
+	// The PS2 GUI draws every game font atlas with point sampling.  This is
+	// important because HUD portraits, counters and text can be mixed from
+	// several atlases in one rich-text draw.  Modern GUI keeps the previous
+	// policy: sprite-oriented fonts use nearest while text fonts remain linear.
 	constexpr uint32_t kGuiSpriteFontMask =
 		(1U << 1) |
 		(1U << 3) |
@@ -14,8 +49,13 @@ namespace
 
 	bool FGuiSpriteFont(const CFontBrx* font)
 	{
-		return font != nullptr &&
-			(static_cast<uint32_t>(font->m_grffont) & kGuiSpriteFontMask) != 0;
+		if (font == nullptr)
+			return false;
+
+		if (g_guiStyle == GuiStyle_PS2)
+			return true;
+
+		return (static_cast<uint32_t>(font->m_grffont) & kGuiSpriteFontMask) != 0;
 	}
 
 	GLuint GuiNearestSampler()
@@ -57,14 +97,17 @@ namespace
 		add(left,  bottom, u0, v1);
 	}
 
-	void AppendGlyph(GlyphVertices& vertices, CFontBrx* font, char ch,
+	void AppendGlyph(GlyphVertices& vertices, CFontBrx* font, uint32_t codepoint,
 		float x, float y, const glm::vec4& color)
 	{
-		GLYFF* glyph = font->PglyffFromCh(ch);
+		GLYFF* glyph = font->PglyffFromCodepoint(codepoint);
 		if (glyph == nullptr || font->m_pbmp == nullptr)
 			return;
 
-		const float width = static_cast<float>(glyph->dx + 1) * font->m_rxScale;
+		// Retail draws the glyph's authored pixel width, then advances by one
+		// additional scaled pixel. Keeping that extra pixel out of the quad is
+		// what produces the PS2 font's visible inter-character spacing.
+		const float width = static_cast<float>(glyph->dx) * font->m_rxScale;
 		const float height = static_cast<float>(font->m_dyUnscaled) * font->m_ryScale;
 		const float left = x;
 		const float top = y;
@@ -183,7 +226,7 @@ CRichText::CRichText(const char* achz, CFontBrx* pfont)
 {
 	// Rich-text wrapping and trimming are destructive. Keep a writable copy so
 	// callers may safely pass string literals and other read-only text.
-	m_text = achz != nullptr ? achz : "";
+	m_text = GameFontTextFromUtf8(achz);
 	m_achz = m_text.data();
 	m_pfontBase = pfont;
 	m_pfontCur = pfont;
@@ -217,7 +260,7 @@ int CRichText::ClineWrap(float dx)
 	float currentLineWidth = 0.0f;
 
 	while (true) {
-		char ch = ChNext();  // Advance and get next character
+		uint32_t ch = ChNext();  // Advance and get next character
 		if (ch == '\0') {
 			return numLines;  // End of text
 		}
@@ -229,7 +272,7 @@ int CRichText::ClineWrap(float dx)
 		}
 
 		// Measure width of current character with current font
-		float charWidth = m_pfontCur->DxFromCh(ch);
+		float charWidth = m_pfontCur->DxFromCodepoint(ch);
 		currentLineWidth += charWidth;
 
 		// Line wrapping
@@ -271,14 +314,14 @@ float CRichText::DxMaxLine()
 
 	Reset();
 
-	while (char ch = ChNext()) {
+	while (uint32_t ch = ChNext()) {
 		if (ch == '\n') {
 			// Commit current line width and reset
 			maxLineWidth = std::max(maxLineWidth, currentLineWidth);
 			currentLineWidth = 0.0f;
 		}
 		else if (m_pfontCur) {
-			float charWidth = m_pfontCur->DxFromCh(ch);
+			float charWidth = m_pfontCur->DxFromCodepoint(ch);
 			currentLineWidth += charWidth;
 		}
 	}
@@ -287,7 +330,7 @@ float CRichText::DxMaxLine()
 	return std::max(maxLineWidth, currentLineWidth);
 }
 
-char CRichText::ChNext()
+uint32_t CRichText::ChNext()
 {
 	while (m_pchCur != nullptr && *m_pchCur != '\0')
 	{
@@ -484,8 +527,10 @@ char CRichText::ChNext()
 		// Ordinary printable character
 		// ------------------------------------------------------------
 
-		++m_pchCur;
-		return ch;
+		const char* utf8 = m_pchCur;
+		const uint32_t codepoint = DecodeUtf8(utf8);
+		m_pchCur = const_cast<char*>(utf8);
+		return codepoint;
 	}
 
 	return '\0';
@@ -500,7 +545,7 @@ int CRichText::Cch()
 	int count = 0;
 	Reset();
 
-	char ch;
+	uint32_t ch;
 	while ((ch = ChNext()) != '\0') {
 		++count;
 	}
@@ -512,7 +557,7 @@ void CRichText::Trim(int cch)
 {
 	Reset();
 
-	char ch = '\0';
+	uint32_t ch = '\0';
 	while (cch-- > 0) {
 		ch = ChNext();
 		if (ch == '\0') {
@@ -532,12 +577,12 @@ float CRichText::Dx()
 
 	while (true)
 	{
-		const char ch = ChNext();
+		const uint32_t ch = ChNext();
 
 		if (ch == '\0')
 			break;
 
-		dx += m_pfontCur->DxFromCh(ch);
+		dx += m_pfontCur->DxFromCodepoint(ch);
 	}
 
 	return dx;
@@ -567,7 +612,7 @@ void CRichText::Draw(CTextBox* ptbx, CTextBox* ptbxClip,
 
 	while (true)
 	{
-		const char ch = ChNext();
+		const uint32_t ch = ChNext();
 
 		if (ch == '\0')
 			break;
@@ -581,7 +626,7 @@ void CRichText::Draw(CTextBox* ptbx, CTextBox* ptbxClip,
 		}
 
 		if (m_pfontCur != nullptr)
-			lineWidths[lineCount] += m_pfontCur->DxFromCh(ch) * outputScaleX;
+			lineWidths[lineCount] += m_pfontCur->DxFromCodepoint(ch) * outputScaleX;
 	}
 
 	const float lineHeight = static_cast<float>(m_pfontBase->m_dyUnscaled) *
@@ -660,7 +705,7 @@ void CRichText::Draw(CTextBox* ptbx, CTextBox* ptbxClip,
 
 	while (true)
 	{
-		const char ch = ChNext();
+		const uint32_t ch = ChNext();
 
 		if (ch == '\0')
 			break;
@@ -709,7 +754,7 @@ void CRichText::Draw(CTextBox* ptbx, CTextBox* ptbxClip,
 		currentFont->m_rxScale *= outputScaleX;
 		currentFont->m_ryScale *= outputScaleY;
 		AppendGlyph(glyphs, currentFont, ch, xCursor, yCursor, m_rgbaCur);
-		xCursor += currentFont->DxFromCh(ch);
+		xCursor += currentFont->DxFromCodepoint(ch);
 		currentFont->m_rxScale = rxScale;
 		currentFont->m_ryScale = ryScale;
 	}
@@ -773,12 +818,22 @@ void CFontBrx::PostLoad()
 
 GLYFF* CFontBrx::PglyffFromCh(char ch)
 {
-	auto it = m_aglyff.find(static_cast<uint16_t>(ch));
+	// char is signed on MSVC. Convert through unsigned char so PAL glyph IDs
+	// such as 0xfc (u-umlaut) are looked up as 252 instead of 65532.
+	auto it = m_aglyff.find(static_cast<uint16_t>(static_cast<unsigned char>(ch)));
 
 	if (it != m_aglyff.end())
 		return &it->second;
 
 	return nullptr;
+}
+
+GLYFF* CFontBrx::PglyffFromCodepoint(uint32_t codepoint)
+{
+	if (codepoint > 0xffff)
+		return nullptr;
+	auto it = m_aglyff.find(static_cast<uint16_t>(codepoint));
+	return it != m_aglyff.end() ? &it->second : nullptr;
 }
 
 float CFontBrx::DxFromPchz(char* pchz)
@@ -789,12 +844,9 @@ float CFontBrx::DxFromPchz(char* pchz)
 
 	float totalWidth = 0.0f;
 
-	while (*pchz != '\0') {
-		char ch = *pchz++;
-
-		float charWidth = this->DxFromCh(ch);
-		totalWidth += charWidth;
-	}
+	const char* cursor = pchz;
+	while (*cursor != '\0')
+		totalWidth += DxFromCodepoint(DecodeUtf8(cursor));
 
 	return totalWidth;
 }
@@ -811,6 +863,14 @@ float CFontBrx::DxFromCh(char ch)
 
 	// If the glyph is found, return its width, scaled.
 	return static_cast<float>(pGlyph->dx + 1) * m_rxScale;
+}
+
+float CFontBrx::DxFromCodepoint(uint32_t codepoint)
+{
+	GLYFF* glyph = PglyffFromCodepoint(codepoint);
+	return glyph != nullptr
+		? static_cast<float>(glyph->dx + 1) * m_rxScale
+		: static_cast<float>(m_dxSpaceUnscaled) * m_rxScale;
 }
 
 std::shared_ptr<CFontBrx> CFontBrx::PfontClone(float rx, float ry)
@@ -866,7 +926,8 @@ float CFontBrx::DxDrawCh(char ch, float xChar, float yChar, glm::vec4& rgba)
 	if (!glyph)
 		return static_cast<float>(m_dxSpaceUnscaled) * m_rxScale;
 
-	float glyphW = (glyph->dx + 1) * m_rxScale;
+	const float glyphW = glyph->dx * m_rxScale;
+	const float glyphAdvance = (glyph->dx + 1) * m_rxScale;
 	float glyphH = m_dyUnscaled * m_ryScale;
 
 
@@ -883,7 +944,7 @@ float CFontBrx::DxDrawCh(char ch, float xChar, float yChar, glm::vec4& rgba)
 
 	glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_SHORT, 0);
 
-	return glyphW;
+	return glyphAdvance;
 }
 
 float CFontBrx::DxDrawChRotated90(char ch, float xChar, float yChar, glm::vec4& rgba)
@@ -893,7 +954,8 @@ float CFontBrx::DxDrawChRotated90(char ch, float xChar, float yChar, glm::vec4& 
 	if (!glyph)
 		return static_cast<float>(m_dxSpaceUnscaled) * m_rxScale;
 
-	const float glyphW = (glyph->dx + 1) * m_rxScale;
+	const float glyphW = glyph->dx * m_rxScale;
+	const float glyphAdvance = (glyph->dx + 1) * m_rxScale;
 	const float glyphH = m_dyUnscaled * m_ryScale;
 	const float s0 = glyph->x / static_cast<float>(m_pbmp->bmpWidth);
 	const float t0 = (glyph->y + m_dyUnscaled) / static_cast<float>(m_pbmp->bmpHeight);
@@ -913,7 +975,7 @@ float CFontBrx::DxDrawChRotated90(char ch, float xChar, float yChar, glm::vec4& 
 	glUniform4fv(blotColorLoc, 1, glm::value_ptr(rgba));
 	glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_SHORT, nullptr);
 
-	return glyphW;
+	return glyphAdvance;
 }
 
 void CFontBrx::EdgeRect(CTextEdge* pte, CTextBox* ptbx)
@@ -1007,29 +1069,16 @@ void CFontBrx::PushScaling(float rx, float ry)
 {
 	if (m_csfr >= static_cast<int>(sizeof(m_asfr) / sizeof(m_asfr[0])))
 		return;
-	// Pointer to the previous scale on the stack
-	SFR* previousScale;
 
-	// Determine the previous scale: use identity (1.0, 1.0) if stack is empty
-	if (this->m_csfr < 1) 
-		previousScale = &g_sfrOne;  // g_sfrOne is likely {1.0f, 1.0f}
-	else
-		previousScale = &this->m_asfr[this->m_csfr - 1];  // top of the stack
-
-	// Get index where the new scale will be stored
-	int newStackIndex = this->m_csfr;
-
-	// Increment stack counter
-	this->m_csfr = newStackIndex + 1;
-
-	// Store the new scale at the next available position
-	SFR* newScale = &this->m_asfr[newStackIndex];
-	newScale->rx = rx;
-	newScale->ry = ry;
-
-	// Update effective cumulative scale based on ratio to previous scale
-	this->m_rxScale *= (rx / previousScale->rx);
-	this->m_ryScale *= (ry / previousScale->ry);
+	// Release stores the effective scale for restoration, then evaluates every
+	// pushed value against the scale that was active at the outermost push.
+	// The prototype instead stored the requested values and applied ratios;
+	// that is not the behavior used by the retail executable.
+	SFR& savedScale = m_asfr[m_csfr++];
+	savedScale.rx = m_rxScale;
+	savedScale.ry = m_ryScale;
+	m_rxScale = m_asfr[0].rx * rx;
+	m_ryScale = m_asfr[0].ry * ry;
 }
 
 void CFontBrx::CopyTo(CFontBrx* pfontDst)
@@ -1080,15 +1129,10 @@ void CFontBrx::PopScaling()
 {
 	if (m_csfr <= 0)
 		return;
-	int topIndex = this->m_csfr;
-	this->m_csfr = topIndex - 1;
 
-	// If there's only one or no scale on the stack, fall back to global identity scale
-	SFR* prevScale = (topIndex - 1 < 1) ? &g_sfrOne : &this->m_asfr[topIndex - 2];
-
-	// Adjust current scaling by dividing out the top scale and multiplying in the previous one
-	this->m_rxScale *= (prevScale->rx / this->m_asfr[topIndex - 1].rx);
-	this->m_ryScale *= (prevScale->ry / this->m_asfr[topIndex - 1].ry);
+	const SFR& savedScale = m_asfr[--m_csfr];
+	m_rxScale = savedScale.rx;
+	m_ryScale = savedScale.ry;
 }
 
 int CFontBrx::ClineWrapPchz(char* pchz, float dx)
@@ -1240,8 +1284,9 @@ void CFontBrx::DrawPchz(char* pchz, CTextBox* ptbx)
 			}
 			else {
 				float lineWidth = 0.0f;
-				for (char* p = pchz; *p != '\0' && *p != '\n'; ++p) {
-					lineWidth += DxFromCh(*p);
+				const char* p = pchz;
+				while (*p != '\0' && *p != '\n') {
+					lineWidth += DxFromCodepoint(DecodeUtf8(p));
 				}
 
 				if (ptbx->m_jh == JH_Right) {
@@ -1254,10 +1299,12 @@ void CFontBrx::DrawPchz(char* pchz, CTextBox* ptbx)
 			newLine = false;
 		}
 
-		AppendGlyph(glyphs, this, *pchz, x, y, ptbx->m_rgba);
-		float charWidth = DxFromCh(*pchz);
+		const char* next = pchz;
+		const uint32_t codepoint = DecodeUtf8(next);
+		AppendGlyph(glyphs, this, codepoint, x, y, ptbx->m_rgba);
+		float charWidth = DxFromCodepoint(codepoint);
 		x += charWidth;
-		pchz++;
+		pchz = const_cast<char*>(next);
 	}
 
 	FlushGlyphs(glyphs, m_pbmp != nullptr ? m_pbmp->glDiffuseMap : 0,

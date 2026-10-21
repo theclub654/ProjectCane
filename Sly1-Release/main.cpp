@@ -13,6 +13,7 @@
 #include "runtime_error.h"
 #include "emitter.h"
 #include "blip.h"
+#include "content.h"
 #include "../platform/platform.h"
 #include <atomic>
 #include <chrono>
@@ -548,6 +549,7 @@ int RunApplication(const std::vector<std::string>& arguments)
     try
     {
 		cane::ConfigureRuntime(arguments);
+        RefreshContentPackage(cane::DataDirectory());
         Startup();
 		#ifdef _WIN32
 		SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_ABOVE_NORMAL);

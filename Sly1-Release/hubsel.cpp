@@ -3,6 +3,7 @@
 #include "dialog.h"
 #include "sm.h"
 #include "totals.h"
+#include "content.h"
 
 namespace
 {
@@ -51,7 +52,8 @@ void UpdateHubselUi(HUBSEL* phubsel)
         const GAMEWORLD gameWorld = phubsel->gameWorldSelected;
 
         if (gameWorld == GAMEWORLD_Intro)
-            achzTotals = "Bentley";
+            achzTotals = FLocalizedContent() && ContentLocalizedText(22) != nullptr
+                ? ContentLocalizedText(22) : "Bentley";
         else if ((g_pgsCur->aws[gameWorld].fws & FWS_Visited) != 0)
             SetTotalsWorldText(&g_totals, gameWorld);
         else if (gameWorld != phubsel->gameWorldDisplay)
@@ -60,7 +62,8 @@ void UpdateHubselUi(HUBSEL* phubsel)
             achzTotals = "";
         }
         else
-            achzTotals = "Murray";
+            achzTotals = FLocalizedContent() && ContentLocalizedText(24) != nullptr
+                ? ContentLocalizedText(24) : "Murray";
     }
     else
         achzTotals = "";
@@ -74,7 +77,9 @@ void UpdateHubselUi(HUBSEL* phubsel)
 
     if (fShowUnavailableHint)
     {
-        g_hubblot.pvtblot->pfnSetBlotAchzDraw(&g_hubblot, (char*)"Press &2X&. to Start Mission!");
+        const char* missionText = FLocalizedContent() ? ContentLocalizedText(23) : nullptr;
+        g_hubblot.pvtblot->pfnSetBlotAchzDraw(&g_hubblot,
+            const_cast<char*>(missionText != nullptr ? missionText : "Press &2X&. to Start Mission!"));
         g_hubblot.pvtblot->pfnShowBlot(&g_hubblot);
     }
     else
@@ -201,7 +206,11 @@ void SetupHubsel(HUBSEL* phubsel)
     // Preserve the original progression calculation when the override is off.
     if (!g_fUnlockAllHubWorlds)
     {
-        while (phubsel->gameWorldMax > GAMEWORLD_Muggshot)
+        const GAMEWORLD gameWorldMinimum = FPalContent()
+            ? GAMEWORLD_Underwater
+            : GAMEWORLD_Muggshot;
+
+        while (phubsel->gameWorldMax > gameWorldMinimum)
         {
             const GAMEWORLD previousWorld = static_cast<GAMEWORLD>(phubsel->gameWorldMax - 1);
             const GAMEWORLD worldBeforePrevious = static_cast<GAMEWORLD>(phubsel->gameWorldMax - 2);
@@ -269,15 +278,24 @@ void SetupHubsel(HUBSEL* phubsel)
 
     if (phubsel->psmaDisplay0 != nullptr || phubsel->psmaDisplay1 != nullptr)
     {
-        phubsel->gameWorldDisplay = phubsel->gameWorldMax;
-
-        if (phubsel->gameWorldMax == GAMEWORLD_Clockwerk)
+        if (FPalContent())
         {
-            const bool clockwerkPrerequisiteComplete = (g_pgsCur->aws[GAMEWORLD_Snow].fws & 32U) != 0;
-            const bool clockwerkStarted = (g_pgsCur->aws[GAMEWORLD_Clockwerk].fws & 1U) != 0;
+            // Retail PAL always initializes both hub display state machines to
+            // the Intro state (OID 0x4ff), independently of gameWorldMax.
+            phubsel->gameWorldDisplay = GAMEWORLD_Intro;
+        }
+        else
+        {
+            phubsel->gameWorldDisplay = phubsel->gameWorldMax;
 
-            if (g_fUnlockAllHubWorlds || clockwerkPrerequisiteComplete || clockwerkStarted)
-                phubsel->gameWorldDisplay = GAMEWORLD_Intro;
+            if (phubsel->gameWorldMax == GAMEWORLD_Clockwerk)
+            {
+                const bool clockwerkPrerequisiteComplete = (g_pgsCur->aws[GAMEWORLD_Snow].fws & 32U) != 0;
+                const bool clockwerkStarted = (g_pgsCur->aws[GAMEWORLD_Clockwerk].fws & 1U) != 0;
+
+                if (g_fUnlockAllHubWorlds || clockwerkPrerequisiteComplete || clockwerkStarted)
+                    phubsel->gameWorldDisplay = GAMEWORLD_Intro;
+            }
         }
 
         if (phubsel->psmaDisplay0 != nullptr)

@@ -6,17 +6,6 @@ void UpdateJtActivePowerUp(JT* pjt, JOY* pjoy);
 int  IRotatePowerUp(JOY* pjoy, int iCur, int iMax, GRFVAULT* mpigrfvault);
 void SetJtStun(JT* pjt, int fStun);
 
-static const char* s_mpfspszPowerUp[7] =
-{
-    "&2T&.: Dive",
-    "&2T&.: Roll",
-    "&2T&.: Slow",
-    "&2T&.: Mine",
-    "&2T&.: Fast",
-    "&2T&.: Decoy",
-    "&2T&.: Stun"
-};
-
 static GRFVAULT s_agrfvaultFsp[FSP_Max] =
 {
     static_cast<GRFVAULT>(0x0012), // FSP_Dive

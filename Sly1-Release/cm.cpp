@@ -5,9 +5,248 @@
 #include "cpaseg.h"
 #include "cptn.h"
 #include "dzg.h"
+#include "find.h"
+#include "game.h"
+#include "gl.h"
 #include "jt.h"
+#include "letterbox.h"
+#include "ui.h"
+#include "wipe.h"
+#include "sound.h"
+#include "../platform/platform.h"
+
+// Windows headers pulled in by platform.h define legacy near/far macros,
+// which collide with the existing projection helper parameter names below.
+#ifdef near
+#undef near
+#endif
+#ifdef far
+#undef far
+#endif
+
 #include <algorithm>
 #include <cmath>
+#include <filesystem>
+#include <fstream>
+#include <iomanip>
+
+namespace
+{
+	std::ofstream s_raleighCameraTrace;
+	bool s_cameraBlackScreenTraceEnabled = false;
+	bool s_raleighTraceOpenAttempted = false;
+	int s_raleighTraceJts = -999;
+	int s_raleighTraceJtbs = -999;
+	int s_raleighTracePolicyCount = -999;
+
+	std::ofstream* RaleighCameraTrace()
+	{
+		if (!s_cameraBlackScreenTraceEnabled)
+			return nullptr;
+
+		if (!s_raleighTraceOpenAttempted)
+		{
+			s_raleighTraceOpenAttempted = true;
+			std::error_code error;
+			const std::filesystem::path directory =
+				cane::ExecutableDirectory() / "CameraDiagnostics";
+			std::filesystem::create_directories(directory, error);
+				s_raleighCameraTrace.open(directory / "camera_black_screen_trace.log",
+				std::ios::out | std::ios::trunc);
+
+			if (s_raleighCameraTrace)
+			{
+				s_raleighCameraTrace << "ProjectCane camera black-screen trace v2\n"
+					<< "One FRAME record is emitted after every camera update. "
+					<< "EVENT records mark damage calls and state/policy changes.\n";
+			}
+		}
+
+		return s_raleighCameraTrace ? &s_raleighCameraTrace : nullptr;
+	}
+
+	bool FiniteVec3(const glm::vec3& value)
+	{
+		return std::isfinite(value.x) && std::isfinite(value.y) &&
+			std::isfinite(value.z);
+	}
+
+	template<glm::length_t Columns, glm::length_t Rows>
+	bool FiniteMatrix(const glm::mat<Columns, Rows, float>& value)
+	{
+		for (glm::length_t column = 0; column < Columns; ++column)
+			for (glm::length_t row = 0; row < Rows; ++row)
+				if (!std::isfinite(value[column][row]))
+					return false;
+		return true;
+	}
+
+	template<typename Matrix>
+	void WriteMatrix(std::ofstream& trace, const Matrix& value)
+	{
+		trace << '[';
+		for (glm::length_t column = 0; column < value.length(); ++column)
+		{
+			if (column != 0)
+				trace << '|';
+			for (glm::length_t row = 0; row < value[column].length(); ++row)
+			{
+				if (row != 0)
+					trace << ',';
+				trace << value[column][row];
+			}
+		}
+		trace << ']';
+	}
+
+	void TraceRaleighCameraFrame(CM* pcm)
+	{
+		std::ofstream* trace = RaleighCameraTrace();
+		if (trace == nullptr || pcm == nullptr)
+			return;
+
+		JT* pjt = g_pjt;
+		const bool cameraFinite = FiniteVec3(pcm->pos) && FiniteMatrix(pcm->mat) &&
+			FiniteMatrix(pcm->matProj) && FiniteMatrix(pcm->matWorldToClip) &&
+			FiniteMatrix(pcm->matClipToWorld) && std::isfinite(pcm->radFOV) &&
+			std::isfinite(pcm->sNearClip) && std::isfinite(pcm->sFarClip);
+		const bool slyFinite = pjt == nullptr ||
+			(FiniteVec3(pjt->xf.pos) && FiniteVec3(pjt->xf.posWorld) &&
+			 FiniteVec3(pjt->xf.v) && FiniteVec3(pjt->xf.w) &&
+			 FiniteVec3(pjt->xf.dv) && FiniteVec3(pjt->xf.dw) &&
+			 FiniteMatrix(pjt->xf.mat) && FiniteMatrix(pjt->xf.matWorld));
+
+		LO* ploTongue = g_psw != nullptr
+			? PloFindSwObject(g_psw, static_cast<GRFFSO>(0x104), static_cast<OID>(659), nullptr)
+			: nullptr;
+		ALO* paloTongue = ploTongue != nullptr && FIsBasicDerivedFrom(ploTongue, CID_ALO)
+			? static_cast<ALO*>(ploTongue) : nullptr;
+
+		*trace << std::fixed << std::setprecision(6)
+			<< "FRAME tick=" << g_clock.tickFrame
+			<< " t=" << g_clock.t << " dt=" << g_clock.dt
+			<< " treal=" << g_clock.tReal << " dtreal=" << g_clock.dtReal
+			<< " finite=" << (cameraFinite && slyFinite ? 1 : 0)
+			<< " cameraFinite=" << (cameraFinite ? 1 : 0)
+			<< " slyFinite=" << (slyFinite ? 1 : 0)
+			<< " cmPos=" << pcm->pos.x << ',' << pcm->pos.y << ',' << pcm->pos.z
+			<< " fov=" << pcm->radFOV << " fovTarget=" << pcm->radFOVTarget
+			<< " near=" << pcm->sNearClip << " far=" << pcm->sFarClip
+			<< " cut=" << pcm->fCut << " cutNext=" << pcm->fCutNext
+			<< " displaced=" << pcm->fDisplaced << " policies=" << pcm->ccpr
+			<< " focus=" << pcm->psoFocusPrev
+			<< " overlay={wipe:" << static_cast<int>(g_wipe.wipes)
+			<< ",wipeKind:" << static_cast<int>(g_wipe.wipek)
+			<< ",black:" << g_wipe.uBlack << ",wipeTime:" << g_wipe.tWipes
+			<< ",transition:" << g_wipe.trans.fSet
+			<< ",buttonTransition:" << g_wipe.transButton.fSet
+			<< ",letterboxState:" << static_cast<int>(g_letterbox.blots)
+			<< ",letterboxOn:" << g_letterbox.uOn
+			<< ",uiState:" << static_cast<int>(g_ui.uis) << '}'
+			<< " framebuffer={window:" << g_gl.width << 'x' << g_gl.height
+			<< ",render:" << g_gl.renderWidth << 'x' << g_gl.renderHeight
+			<< ",output:" << g_gl.outputWidth << 'x' << g_gl.outputHeight
+			<< ",present:" << g_gl.presentX << ',' << g_gl.presentY << ','
+			<< g_gl.presentWidth << ',' << g_gl.presentHeight
+			<< ",fbo:" << g_gl.fbo << ",color:" << g_gl.fbc << ",depth:" << g_gl.rbo << '}'
+			<< " centerPrev=" << pcm->posCenterPrev.x << ',' << pcm->posCenterPrev.y << ',' << pcm->posCenterPrev.z
+			<< " centerV=" << pcm->vCenter.x << ',' << pcm->vCenter.y << ',' << pcm->vCenter.z
+			<< " adjust=" << pcm->dposAdjust.x << ',' << pcm->dposAdjust.y << ',' << pcm->dposAdjust.z
+			<< " adjustV=" << pcm->vAdjust.x << ',' << pcm->vAdjust.y << ',' << pcm->vAdjust.z
+			<< " focusOffset=" << pcm->dposFocus.x << ',' << pcm->dposFocus.y << ',' << pcm->dposFocus.z
+			<< " focusV=" << pcm->vFocus.x << ',' << pcm->vFocus.y << ',' << pcm->vFocus.z
+			<< " eyePrev=" << pcm->cptn.posEyePrev.x << ',' << pcm->cptn.posEyePrev.y << ',' << pcm->cptn.posEyePrev.z
+			<< " cptn={home:" << pcm->cptn.fHome << ",rad:" << pcm->cptn.radCur
+			<< ",manual:" << pcm->cptn.radManual << ',' << pcm->cptn.xyManual << ',' << pcm->cptn.zManual
+			<< ",follow:" << pcm->cptn.uFollowCur << "}"
+			<< " look={kind:" << static_cast<int>(LookkCurCm(pcm))
+			<< ",pan:" << pcm->cplook.radPan << ",tilt:" << pcm->cplook.radTilt
+			<< ",zoom:" << pcm->cplook.uZoom << "}";
+
+		if (pjt != nullptr)
+		{
+			*trace << " sly={ptr:" << pjt << ",jts:" << static_cast<int>(pjt->jts)
+				<< ",jtbs:" << static_cast<int>(pjt->jtbs)
+				<< ",jtcs:" << static_cast<int>(pjt->jtcs)
+				<< ",stun:" << pjt->fStun << ",flash:" << pjt->fFlash
+				<< ",pos:" << pjt->xf.pos.x << ',' << pjt->xf.pos.y << ',' << pjt->xf.pos.z
+				<< ",world:" << pjt->xf.posWorld.x << ',' << pjt->xf.posWorld.y << ',' << pjt->xf.posWorld.z
+				<< ",prev:" << pjt->posWorldPrev.x << ',' << pjt->posWorldPrev.y << ',' << pjt->posWorldPrev.z
+				<< ",v:" << pjt->xf.v.x << ',' << pjt->xf.v.y << ',' << pjt->xf.v.z
+				<< ",w:" << pjt->xf.w.x << ',' << pjt->xf.w.y << ',' << pjt->xf.w.z
+				<< ",dv:" << pjt->xf.dv.x << ',' << pjt->xf.dv.y << ',' << pjt->xf.dv.z
+				<< ",dw:" << pjt->xf.dw.x << ',' << pjt->xf.dw.y << ',' << pjt->xf.dw.z << '}';
+		}
+
+		if (paloTongue != nullptr)
+		{
+			*trace << " tongue={ptr:" << paloTongue << ",oid:" << paloTongue->oid
+				<< ",name:" << (paloTongue->pchzName != nullptr ? paloTongue->pchzName : "(null)")
+				<< ",busy:" << paloTongue->fBusy << ",hidden:" << paloTongue->fHidden
+				<< ",pos:" << paloTongue->xf.pos.x << ',' << paloTongue->xf.pos.y << ',' << paloTongue->xf.pos.z
+				<< ",world:" << paloTongue->xf.posWorld.x << ',' << paloTongue->xf.posWorld.y << ',' << paloTongue->xf.posWorld.z
+				<< ",v:" << paloTongue->xf.v.x << ',' << paloTongue->xf.v.y << ',' << paloTongue->xf.v.z
+				<< ",w:" << paloTongue->xf.w.x << ',' << paloTongue->xf.w.y << ',' << paloTongue->xf.w.z << '}';
+		}
+		else
+			*trace << " tongue=(not_found)";
+
+		*trace << " policyStack=[";
+		for (int i = 0; i < std::min(pcm->ccpr, 8); ++i)
+		{
+			const CPR& policy = pcm->acpr[i];
+			if (i != 0)
+				*trace << '|';
+			*trace << "{index:" << i << ",priority:" << static_cast<int>(policy.cpp)
+				<< ",policy:" << policy.pcplcy << ",focus:" << policy.psoFocus
+				<< ",context:" << policy.pv;
+			if (policy.psoFocus != nullptr)
+			{
+				*trace << ",focusOid:" << policy.psoFocus->oid
+					<< ",focusName:" << (policy.psoFocus->pchzName != nullptr
+						? policy.psoFocus->pchzName : "(null)")
+					<< ",focusPos:" << policy.psoFocus->xf.posWorld.x << ','
+					<< policy.psoFocus->xf.posWorld.y << ',' << policy.psoFocus->xf.posWorld.z;
+			}
+			*trace << '}';
+		}
+		*trace << ']';
+
+		*trace << " cmMat=";
+		WriteMatrix(*trace, pcm->mat);
+		*trace << " proj=";
+		WriteMatrix(*trace, pcm->matProj);
+		*trace << " worldToClip=";
+		WriteMatrix(*trace, pcm->matWorldToClip);
+		*trace << " clipToWorld=";
+		WriteMatrix(*trace, pcm->matClipToWorld);
+		if (pjt != nullptr)
+		{
+			*trace << " slyMat=";
+			WriteMatrix(*trace, pjt->xf.matWorld);
+			*trace << " slyLocalMat=";
+			WriteMatrix(*trace, pjt->xf.mat);
+		}
+		*trace << '\n';
+
+		const int jts = pjt != nullptr ? static_cast<int>(pjt->jts) : -1;
+		const int jtbs = pjt != nullptr ? static_cast<int>(pjt->jtbs) : -1;
+		if (jts != s_raleighTraceJts || jtbs != s_raleighTraceJtbs ||
+			pcm->ccpr != s_raleighTracePolicyCount)
+		{
+			*trace << "EVENT state_change tick=" << g_clock.tickFrame
+				<< " jts=" << jts << " jtbs=" << jtbs
+				<< " policies=" << pcm->ccpr << '\n';
+			s_raleighTraceJts = jts;
+			s_raleighTraceJtbs = jtbs;
+			s_raleighTracePolicyCount = pcm->ccpr;
+		}
+
+		if (!cameraFinite || !slyFinite)
+			*trace << "EVENT NON_FINITE_DETECTED tick=" << g_clock.tickFrame << '\n';
+		trace->flush();
+	}
+}
 
 void CalcCmAdjust(CM* pcm, SO* psoFocus, CPDEFI* pcpdefi, glm::vec3* pdpos)
 {
@@ -651,11 +890,92 @@ void UpdateCmLast(CM* pcm, int fClearCut, float dt)
 		RecalcCm(pcm);
 	}
 
+	TraceRaleighCameraFrame(pcm);
+
 	if (fClearCut)
 	{
 		pcm->fCut = 0;
 		pcm->fRadCut = 0;
 	}
+}
+
+bool FCameraBlackScreenTraceEnabled()
+{
+	return s_cameraBlackScreenTraceEnabled;
+}
+
+void SetCameraBlackScreenTraceEnabled(bool enabled)
+{
+	if (enabled == s_cameraBlackScreenTraceEnabled)
+		return;
+
+	if (!enabled && s_raleighCameraTrace.is_open())
+	{
+		s_raleighCameraTrace << "EVENT trace_disabled tick=" << g_clock.tickFrame
+			<< " t=" << std::fixed << std::setprecision(6) << g_clock.t << '\n';
+		s_raleighCameraTrace.flush();
+	}
+
+	if (s_raleighCameraTrace.is_open())
+		s_raleighCameraTrace.close();
+
+	s_cameraBlackScreenTraceEnabled = enabled;
+	SetEerieAudioTraceEnabled(enabled);
+	s_raleighTraceOpenAttempted = false;
+	s_raleighTraceJts = -999;
+	s_raleighTraceJtbs = -999;
+	s_raleighTracePolicyCount = -999;
+
+	if (enabled)
+	{
+		if (std::ofstream* trace = RaleighCameraTrace())
+		{
+			*trace << "EVENT trace_enabled tick=" << g_clock.tickFrame
+				<< " t=" << std::fixed << std::setprecision(6) << g_clock.t << '\n';
+			trace->flush();
+		}
+	}
+}
+
+void TraceRaleighCameraDamageEvent(int damageKind, LO* ploSource, const char* result)
+{
+	std::ofstream* trace = RaleighCameraTrace();
+	if (trace == nullptr)
+		return;
+
+	ALO* paloSource = ploSource != nullptr && FIsBasicDerivedFrom(ploSource, CID_ALO)
+		? static_cast<ALO*>(ploSource) : nullptr;
+
+	*trace << "EVENT damage tick=" << g_clock.tickFrame
+		<< " t=" << std::fixed << std::setprecision(6) << g_clock.t
+		<< " kind=" << damageKind
+		<< " source=" << ploSource
+		<< " sourceOid=" << (ploSource != nullptr ? ploSource->oid : -1)
+		<< " sourceName=" << (ploSource != nullptr && ploSource->pchzName != nullptr
+			? ploSource->pchzName : "(null)")
+		<< " result=" << (result != nullptr ? result : "unknown");
+	if (paloSource != nullptr)
+	{
+		*trace << " sourceWorld=" << paloSource->xf.posWorld.x << ','
+			<< paloSource->xf.posWorld.y << ',' << paloSource->xf.posWorld.z
+			<< " sourceV=" << paloSource->xf.v.x << ',' << paloSource->xf.v.y << ','
+			<< paloSource->xf.v.z;
+	}
+	if (g_pjt != nullptr)
+	{
+		*trace << " slyWorld=" << g_pjt->xf.posWorld.x << ',' << g_pjt->xf.posWorld.y
+			<< ',' << g_pjt->xf.posWorld.z
+			<< " delta=";
+		if (paloSource != nullptr)
+		{
+			const glm::vec3 delta = g_pjt->xf.posWorld - paloSource->xf.posWorld;
+			*trace << delta.x << ',' << delta.y << ',' << delta.z;
+		}
+		else
+			*trace << "unknown";
+	}
+	*trace << '\n';
+	trace->flush();
 }
 
 void SetupCmRotateToCam(CM* pcm)

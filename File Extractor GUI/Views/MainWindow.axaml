@@ -76,7 +76,7 @@
           <Border Grid.Row="0" Padding="8" CornerRadius="10" Background="#081522" BorderBrush="#294B63" BorderThickness="1">
             <Border Height="190" CornerRadius="8" Background="#07111C" BorderBrush="#537793" BorderThickness="1">
               <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="8">
-                <TextBlock x:Name="DropPromptText" FontSize="23" FontWeight="Bold" Text="Choose your Sly 1 NTSC ISO"/>
+                <TextBlock x:Name="DropPromptText" FontSize="23" FontWeight="Bold" Text="Choose your Sly 1 ISO"/>
                 <TextBlock x:Name="DropSubtext" FontSize="14" Foreground="#7695AE" Text="The game will be detected automatically"/>
                 <Button x:Name="BrowseIsoButton" Width="220" Margin="0,3,0,0" Content="Browse ISO" Click="BrowseIso_Click"/>
               </StackPanel>
@@ -89,7 +89,7 @@
               <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
                 <StackPanel VerticalAlignment="Center" Spacing="2"><TextBlock x:Name="SelectedIsoNameText" FontSize="16" FontWeight="SemiBold" Text="No ISO selected"/><TextBlock x:Name="SelectedIsoPathText" FontSize="12" Foreground="#70899F" Text="Choose an ISO to continue"/></StackPanel>
                 <Border x:Name="DetectionBadge" Grid.Column="1" Margin="0,7" Padding="13,0" CornerRadius="6" Background="#10202D" BorderBrush="#345169" BorderThickness="1" IsVisible="False">
-                  <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Spacing="9"><Border x:Name="DetectionIcon" Width="22" Height="22" CornerRadius="11" Background="#42D9AF"><TextBlock x:Name="DetectionIconText" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="15" FontWeight="Bold" Foreground="#062018" Text="✓"/></Border><StackPanel VerticalAlignment="Center"><TextBlock x:Name="DetectedGameText" FontSize="13" FontWeight="SemiBold" Foreground="#57DDBA" Text="Sly 1 detected"/><TextBlock x:Name="DetectedSerialText" FontSize="10" Foreground="#7FA99D" Text="NTSC • SCUS-97198"/></StackPanel></StackPanel>
+                  <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Spacing="9"><Border x:Name="DetectionIcon" Width="22" Height="22" CornerRadius="11" Background="#42D9AF"><TextBlock x:Name="DetectionIconText" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="15" FontWeight="Bold" Foreground="#062018" Text="✓"/></Border><StackPanel VerticalAlignment="Center"><TextBlock x:Name="DetectedGameText" FontSize="13" FontWeight="SemiBold" Foreground="#57DDBA" Text="Sly 1 detected"/><TextBlock x:Name="DetectedSerialText" FontSize="10" Foreground="#7FA99D" Text="NTSC-U or PAL"/></StackPanel></StackPanel>
                 </Border>
               </Grid>
             </Border>

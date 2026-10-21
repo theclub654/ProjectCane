@@ -55,11 +55,19 @@ void BrxWalker::LoadTexturesFromBrx(CBinaryInputStream& s){
  // mipmaps through OpenGL after upload; bit 2 requests that same runtime path.
  // Fonts keep their original single-level behavior.
  constexpr uint32_t GenerateMipmaps=1u<<2;
- auto add=[&](uint16_t bi,uint16_t ci,uint32_t flags,bool font){
+ // Only ordinary world geometry is eligible for lossy block compression.
+ // Keep UI-like, generated and effect textures lossless: those categories
+ // contain sharp artwork, masks and gradients which expose BC artifacts.
+ constexpr uint8_t ShdkThreeWay=0;
+ constexpr uint8_t ShdkPrelit=1;
+ auto bcEligibleShader=[](uint8_t shaderKind){
+  return shaderKind==ShdkThreeWay||shaderKind==ShdkPrelit;
+ };
+ auto add=[&](uint16_t bi,uint16_t ci,uint32_t flags,bool font,bool allowBc){
   if(bi==0xffff||ci==0xffff||bi>=sourceBitmaps_.size()||ci>=sourceCluts_.size())return int32_t(-1);
   auto& b=sourceBitmaps_[bi];PcImage im;im.w=b.width;im.h=b.height;im.zone=b.grfzon;im.flags=flags|(font?0u:GenerateMipmaps);im.mips=1;
   auto rgba=decode(bi,ci,font);
-  if(font){im.format=TextureRgba8;im.data=std::move(rgba);}
+  if(font||!allowBc){im.format=TextureRgba8;im.data=std::move(rgba);}
   else{
    bool opaque=true;
    for(size_t alpha=3;alpha<rgba.size();alpha+=4)if(rgba[alpha]!=255){opaque=false;break;}
@@ -69,8 +77,8 @@ void BrxWalker::LoadTexturesFromBrx(CBinaryInputStream& s){
   for(size_t i=0;i<images.size();++i)if(images[i].w==im.w&&images[i].h==im.h&&images[i].zone==im.zone&&images[i].flags==im.flags&&images[i].format==im.format&&images[i].data==im.data)return int32_t(i);
   images.push_back(std::move(im));return int32_t(images.size()-1);
  };
- for(auto& t:pendingTextures_){std::vector<uint8_t> out;U16(out,uint16_t(t.oid));U16(out,uint16_t(t.flags));U16(out,uint16_t(t.bitmaps.size()));for(size_t f=0;f<t.bitmaps.size();++f){int32_t a=-1,d=-1,z=-1;if(t.shaderKind==0){size_t b=f*3;if(b+2>=t.cluts.size())throw std::runtime_error("Three-way texture lacks three CLUTs per frame");a=add(t.bitmaps[f],t.cluts[b],t.flags,false);d=add(t.bitmaps[f],t.cluts[b+1],t.flags,false);z=add(t.bitmaps[f],t.cluts[b+2],t.flags,false);}else{if(f>=t.cluts.size())throw std::runtime_error("Texture lacks a CLUT for one frame");d=add(t.bitmaps[f],t.cluts[f],t.flags,false);}S32(out,a);S32(out,d);S32(out,z);}RecordReplacement(t.begin,t.end,std::move(out));}
- for(auto& f:pendingFonts_){std::vector<uint8_t> out;S32(out,add(f.bitmap,uint16_t(f.clut),0,true));RecordReplacement(f.referenceBegin,f.referenceBegin+4,std::move(out));}
+ for(auto& t:pendingTextures_){const bool allowBc=bcEligibleShader(t.shaderKind);std::vector<uint8_t> out;U16(out,uint16_t(t.oid));U16(out,uint16_t(t.flags));U16(out,uint16_t(t.bitmaps.size()));for(size_t f=0;f<t.bitmaps.size();++f){int32_t a=-1,d=-1,z=-1;if(t.shaderKind==ShdkThreeWay){size_t b=f*3;if(b+2>=t.cluts.size())throw std::runtime_error("Three-way texture lacks three CLUTs per frame");a=add(t.bitmaps[f],t.cluts[b],t.flags,false,allowBc);d=add(t.bitmaps[f],t.cluts[b+1],t.flags,false,allowBc);z=add(t.bitmaps[f],t.cluts[b+2],t.flags,false,allowBc);}else{if(f>=t.cluts.size())throw std::runtime_error("Texture lacks a CLUT for one frame");d=add(t.bitmaps[f],t.cluts[f],t.flags,false,allowBc);}S32(out,a);S32(out,d);S32(out,z);}RecordReplacement(t.begin,t.end,std::move(out));}
+ for(auto& f:pendingFonts_){std::vector<uint8_t> out;S32(out,add(f.bitmap,uint16_t(f.clut),0,true,false));RecordReplacement(f.referenceBegin,f.referenceBegin+4,std::move(out));}
  std::vector<uint8_t> payload;for(auto& im:images){im.offset=uint32_t(payload.size());payload.insert(payload.end(),im.data.begin(),im.data.end());}
- std::vector<uint8_t> table;U32(table,uint32_t(images.size()));for(auto& im:images){U32(table,im.w);U32(table,im.h);U32(table,im.zone);U32(table,im.mips);U32(table,uint32_t(im.data.size()));U32(table,im.offset);U32(table,im.flags);U32(table,im.format);}RecordReplacement(textureTablesBegin_,textureTablesEnd_,std::move(table));RecordReplacement(start,s.GetSize(),std::move(payload));s.Seek(s.GetSize());Trace("LoadTexturesFromBrx (BC1/BC3)",start,s.GetOffset());
+ std::vector<uint8_t> table;U32(table,uint32_t(images.size()));for(auto& im:images){U32(table,im.w);U32(table,im.h);U32(table,im.zone);U32(table,im.mips);U32(table,uint32_t(im.data.size()));U32(table,im.offset);U32(table,im.flags);U32(table,im.format);}RecordReplacement(textureTablesBegin_,textureTablesEnd_,std::move(table));RecordReplacement(start,s.GetSize(),std::move(payload));s.Seek(s.GetSize());Trace("LoadTexturesFromBrx (SHDK-selected RGBA8/BC1/BC3)",start,s.GetOffset());
 }

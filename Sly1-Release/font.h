@@ -127,9 +127,11 @@ class CFontBrx : public CFont
     void PostLoad();
     // Returns a glyff from glyff buffer
     GLYFF* PglyffFromCh(char ch);
+    GLYFF* PglyffFromCodepoint(uint32_t codepoint);
     // Calculates and returns the total width of a string
     float DxFromPchz(char* pchz);
     float DxFromCh(char ch);
+    float DxFromCodepoint(uint32_t codepoint);
     std::shared_ptr<CFontBrx> PfontClone(float rx, float ry);
     bool FValid(char ch);
     void SetupDraw();
@@ -176,7 +178,7 @@ class CRichText
     float DyWrap(float dxWrap);
 
     float DxMaxLine();
-    char  ChNext();
+    uint32_t ChNext();
     void  SetBaseColor(glm::vec4* rgba);
     int   Cch();
     void  Trim(int cch);

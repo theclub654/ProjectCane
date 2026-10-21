@@ -6,6 +6,32 @@
 #include "binoc.h"
 #include "mine.h"
 #include "credit.h"
+#include "content.h"
+
+namespace
+{
+const char* PowerUpName(FSP fsp)
+{
+    static constexpr const char* english[FSP_Max] =
+    {
+        "&2T&.: Dive", "&2T&.: Roll", "&2T&.: Slow", "&2T&.: Mine",
+        "&2T&.: Fast", "&2T&.: Decoy", "&2T&.: Stun"
+    };
+    static constexpr const char* japanese[FSP_Max] =
+    {
+        "&2T&.: ダイブ", "&2T&.: ロール", "&2T&.: スロー", "&2T&.: 地雷",
+        "&2T&.: 高速", "&2T&.: デコイ", "&2T&.: スタン"
+    };
+    if (fsp < FSP_Dive || fsp >= FSP_Max)
+        return "";
+    if (FLocalizedContent())
+    {
+        if (const char* localized = ContentLocalizedText(162 + static_cast<std::size_t>(fsp)))
+            return localized;
+    }
+    return FJapaneseContent() ? japanese[fsp] : english[fsp];
+}
+}
 
 void SetFsp(FSP fsp)
 {
@@ -45,7 +71,7 @@ void SetFsp(FSP fsp)
     SetBlotDtVisible(&g_pnote, dtVisible);
     SetBlotFontScale(&g_pnote, 0.6f);
 
-    g_pnote.pvtnote->pfnSetBlotAchzDraw(&g_pnote, (char*)s_mpfspszPowerUp[fsp]);
+    g_pnote.pvtnote->pfnSetBlotAchzDraw(&g_pnote, const_cast<char*>(PowerUpName(fsp)));
     g_pnote.pvtblot->pfnShowBlot(&g_pnote);
 
     g_pgsCur->nPowerupLast = fsp;

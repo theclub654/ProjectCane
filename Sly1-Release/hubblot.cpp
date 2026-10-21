@@ -7,6 +7,7 @@
 #include "fmv.h"
 #include "totals.h"
 #include "gl.h"
+#include "content.h"
 
 void StartupHubBlot(HUBBLOT* phublot)
 {
@@ -120,17 +121,28 @@ void UpdateHubBlotActive(HUBBLOT* phubblot, JOY* pjoy)
     if (psmaWorld->ismsCur != psmaWorld->ismsGoal)
         return;
 
-    if (pjoy->IsPressed(BTN_START) || (pjoy->joys == JOYS_Searching && g_clock.t >= 5.0f))
-        SetPrompt(&g_prompt, PRP_Basic, PRK_OptionsMenu);
-    else if (pjoy->IsPressed(BTN_CROSS) || pjoy->IsPressed(BTN_SELECT))
+    const bool fOptionsPressed = pjoy->IsPressed(BTN_START) || pjoy->IsPressed(BTN_SELECT);
+    if (fOptionsPressed || (pjoy->joys == JOYS_Searching && g_clock.t >= 5.0f))
     {
-        pjoy->SetHandled(BTN_CROSS);
-        pjoy->SetHandled(BTN_SELECT);
-        ConfirmHubselSelection(phubsel);
+        if (fOptionsPressed)
+        {
+            pjoy->SetHandled(BTN_START);
+            pjoy->SetHandled(BTN_SELECT);
+        }
+        SetPrompt(&g_prompt, PRP_Basic, PRK_OptionsMenu);
     }
     else
     {
-        UpdateHubselSelection(phubsel, pjoy);
+        const JOY_BUTTON confirmButton = FJapaneseContent() ? BTN_CIRCLE : BTN_CROSS;
+        if (pjoy->IsPressed(confirmButton))
+        {
+            pjoy->SetHandled(confirmButton);
+            ConfirmHubselSelection(phubsel);
+        }
+        else
+        {
+            UpdateHubselSelection(phubsel, pjoy);
+        }
     }
 }
 

@@ -1,5 +1,6 @@
 #include "stepzap.h"
 #include <cstdio>
+#include "cm.h"
 #include "jt.h"
 #include "stephide.h"
 #include "actval.h"
@@ -139,10 +140,14 @@ void FinishJtZap (JT* pjt)
 
 int FTakeJtDamage(JT* pjt, ZPR* pzpr)
 {
+    TraceRaleighCameraDamageEvent(static_cast<int>(pzpr->zpk), pzpr->ploSource, "received");
     const bool fInvulnerable = FInvulnerableJt(pjt, pzpr->zpk);
 
     if (fInvulnerable)
+    {
+        TraceRaleighCameraDamageEvent(static_cast<int>(pzpr->zpk), pzpr->ploSource, "invulnerable");
         return 0;
+    }
 
     // Damage while hiding in a basket knocks JT back into the jump state.
     if (pjt->jts == 6 && pjt->jthk == 2)
@@ -151,6 +156,7 @@ int FTakeJtDamage(JT* pjt, ZPR* pzpr)
 
         HandleLoSpliceEvent(pjt->phbsk, 19, 1, (void**)apzpr);
         SetJtJts(pjt, 2, 5);
+        TraceRaleighCameraDamageEvent(static_cast<int>(pzpr->zpk), pzpr->ploSource, "basket_knockback");
         return 0;
     }
 
@@ -163,6 +169,9 @@ int FTakeJtDamage(JT* pjt, ZPR* pzpr)
         pjt->fFlash == 0 &&
         (g_grfcht & 1) == 0 &&
         !FSwHandsOff(pjt->psw);
+
+    TraceRaleighCameraDamageEvent(static_cast<int>(pzpr->zpk), pzpr->ploSource,
+        fCanStartDamage ? "accepted" : "blocked_by_state");
 
     if (fCanStartDamage)
     {

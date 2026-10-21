@@ -1,4 +1,5 @@
 #include "binoc.h"
+#include "content.h"
 #include "aseg.h"
 #include "totals.h"
 #include "pzo.h"
@@ -889,14 +890,15 @@ void SetBinocAchzDraw(BINOC* pbinoc, char* pchz)
     pbinoc->cichLR = 0;  // Reset line break counter
 
     if (pchz && *pchz != '\0') {
-        strcpy(pbinoc->achzDraw, pchz);
-
         // Choose scaling based on Binoc mode
         float scale = (pbinoc->binocs == BINOCS_Confront) ? 0.8f : 1.0f;
         pbinoc->pfont->PushScaling(scale, scale);
 
-        // Wrap rich text for this string
-        CRichText rt(pbinoc->achzDraw, pbinoc->pfont);
+        // CRichText converts UTF-8 localization text to the game's compact
+        // font encoding. Do that before touching BLOT::achzDraw: Japanese
+        // UTF-8 can exceed the 512-byte draw buffer even though the converted
+        // glyph stream comfortably fits it.
+        CRichText rt(pchz, pbinoc->pfont);
 
         // Choose wrap width based on Binoc mode
         float wrapWidth = (pbinoc->binocs == BINOCS_Confront) ? 380.0f : 280.0f;
@@ -906,7 +908,7 @@ void SetBinocAchzDraw(BINOC* pbinoc, char* pchz)
         // CRichText owns a writable copy so that wrapping string literals is
         // safe. Binocular dialog, however, intentionally keeps the wrapped
         // text in its BLOT buffer for type-on and later drawing.
-        std::strcpy(pbinoc->achzDraw, rt.m_achz);
+        std::snprintf(pbinoc->achzDraw, sizeof(pbinoc->achzDraw), "%s", rt.m_achz);
 
         // Reset parser and extract line break indices
         rt.Reset();
@@ -1813,10 +1815,14 @@ void DrawBinocZoom(BINOC* pbinoc)
 
                 tbx.m_x = originX + 215.0f * sx;
                 tbx.m_y = originY + 390.80002f * sy;
-                labelFont->DrawPchz((char*)"Move", &tbx);
+                const char* moveText = FLocalizedContent() ? ContentLocalizedText(79) : nullptr;
+                const char* moveFallback = FJapaneseContent() ? "移動" : "Move";
+                labelFont->DrawPchz(const_cast<char*>(moveText != nullptr ? moveText : moveFallback), &tbx);
 
                 tbx.m_x = originX + 425.0f * sx;
-                labelFont->DrawPchz((char*)"Zoom", &tbx);
+                const char* zoomText = FLocalizedContent() ? ContentLocalizedText(80) : nullptr;
+                const char* zoomFallback = FJapaneseContent() ? "ズーム" : "Zoom";
+                labelFont->DrawPchz(const_cast<char*>(zoomText != nullptr ? zoomText : zoomFallback), &tbx);
 
                 labelFont->PopScaling();
             }

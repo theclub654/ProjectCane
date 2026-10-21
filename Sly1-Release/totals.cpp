@@ -1,4 +1,5 @@
 #include "totals.h"
+#include "content.h"
 #include "gui_layout.h"
 #include "binoc.h"
 #include "wm.h"
@@ -104,7 +105,8 @@ void FormatTotalsTasks(char* pchzText, LS* pls, uint32_t grfTasks)
 void SetTotalsDestinationText(TOTALS* ptotals, int levelId)
 {
     if (levelId == -1)
-        ptotals->pvtblot->pfnSetBlotAchzDraw(ptotals, (char*)"< unknown > ");
+        ptotals->pvtblot->pfnSetBlotAchzDraw(ptotals, const_cast<char*>(ContentUiText(
+            "< unknown > ", "< inconnu > ", "< unbekannt > ", "< desconocido > ", "< sconosciuto > ")));
     else
         SetTotalsLevelText(ptotals, levelId >> 8, levelId & 0xFF);
 }
@@ -120,7 +122,16 @@ void SetTotalsLevelText(TOTALS* ptotals, int worldId, int levelIndex)
 
     FormatTotalsTasks(achzTasks, pls, tasks);
 
+    const LEVELINFO* levelInfo = PlevelInfoFromId(levelId);
     const char* pchzLevelName = PchzFriendlyFromLevelId(levelId);
+    if (FLocalizedContent() && levelInfo != nullptr)
+    {
+        const std::ptrdiff_t levelIndexInTable = levelInfo - g_levelTable;
+        const char* localized = levelIndexInTable >= 0 && levelIndexInTable < 46
+            ? ContentLocalizedText(25 + static_cast<std::size_t>(levelIndexInTable)) : nullptr;
+        if (localized != nullptr)
+            pchzLevelName = localized;
+    }
 
     if (achzTasks[0] == '\0')
         std::strcpy(achzText, pchzLevelName);
@@ -140,7 +151,14 @@ void SetTotalsWorldText(TOTALS* ptotals, int worldId)
 
     char achzText[512]{};
 
-    std::snprintf(achzText, sizeof(achzText), "%s", s_apchzWorldNames[worldId]);
+    static constexpr std::size_t s_aiWorldLocalization[] = { 0, 177, 179, 181, 183, 185 };
+    const char* worldName = s_apchzWorldNames[worldId];
+    if (FLocalizedContent() && worldId > GAMEWORLD_Intro && worldId < GAMEWORLD_Max)
+    {
+        if (const char* localized = ContentLocalizedText(s_aiWorldLocalization[worldId]))
+            worldName = localized;
+    }
+    std::snprintf(achzText, sizeof(achzText), "%s", worldName);
 
     char* pchzWrite = achzText + std::strlen(achzText);
     const WS& ws = g_pgsCur->aws[worldId];

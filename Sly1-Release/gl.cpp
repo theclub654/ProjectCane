@@ -61,6 +61,18 @@ void WindowFocusCallback(GLFWwindow* window, int focused)
 		// the same way when the game loses focus.
 		glfwIconifyWindow(window);
 	}
+	else if (focused == GLFW_TRUE)
+	{
+		// A minimized GLFW window can report a zero-sized drawable. Windows does
+		// not consistently follow focus restoration with another framebuffer-size
+		// callback for borderless windows, so explicitly restore the render targets
+		// from the current drawable dimensions.
+		int framebufferWidth = 0;
+		int framebufferHeight = 0;
+		glfwGetFramebufferSize(window, &framebufferWidth, &framebufferHeight);
+		if (framebufferWidth > 0 && framebufferHeight > 0)
+			FrameBufferSizeCallBack(window, framebufferWidth, framebufferHeight);
+	}
 }
 
 GLFWmonitor* MonitorForWindow(GLFWwindow* window)
@@ -1205,6 +1217,12 @@ bool ApplyAspectRatioSettings(AspectMode mode)
 
 void FrameBufferSizeCallBack(GLFWwindow* window, int width, int height)
 {
+	// GLFW reports a 0x0 framebuffer while a window is minimized. Rebuilding
+	// every render target as 1x1 here can leave borderless mode black after an
+	// Alt+Tab when the platform omits a matching restore-size notification.
+	if (width <= 0 || height <= 0)
+		return;
+
 	constexpr float kVirtualUiWidth = 640.0f;
 	constexpr float kVirtualUiHeight = 492.80002f;
 
@@ -1357,7 +1375,7 @@ float g_outputGamma = 1.0f;
 float g_guiScale = 1.0f;
 GuiStyle g_guiStyle = GuiStyle_PS2;
 WindowMode g_windowMode = WindowMode_Windowed;
-bool g_fAutoIconify = true;
+bool g_fAutoIconify = false;
 float g_drawDistanceMultiplier = 1.0f;
 int g_frames = 3;
 float s_dxDisplay;

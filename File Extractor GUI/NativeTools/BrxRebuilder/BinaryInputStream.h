@@ -41,6 +41,7 @@ public:
     void ReadMatrix4();
 
     std::string ReadStringSw();
+    std::string ReadUtf16StringSw();
     std::string ReadFixedString32();
     void SetStringEncoding(StringEncoding encoding) { encoding_ = encoding; }
     [[nodiscard]] StringEncoding GetStringEncoding() const { return encoding_; }

@@ -1,4 +1,5 @@
 #include "ui.h"
+#include "content.h"
 #include "mb.h"
 #include "binoc.h"
 #include "wm.h"
@@ -277,7 +278,13 @@ void UpdateUi(UI* pui)
 
     case UIS_Attract:
     {
-        if (pjoy->IsPressed(BTN_START))
+        if (FLocalizedContent() && pjoy->IsPressed(BTN_TRIANGLE))
+        {
+            pjoy->SetHandled(BTN_TRIANGLE);
+            SetPrompt(&g_prompt, PRP_Basic, PRK_LanguageMenu);
+            uis = pui->uis;
+        }
+        else if (pjoy->IsPressed(BTN_START))
         {
             pjoy->SetHandled(BTN_START);
             g_saveData.pgsCurrentSave = g_saveData.pgsAttractSave;
@@ -392,7 +399,9 @@ void DrawUiSplash(UI* pui)
 
     BLOT* ptitle = (BLOT*)&g_title;
     if ((timeSinceSplash >= 6.0f) && (timeSinceSplash - g_clock.dtReal < 6.0f)) {
-        ptitle->pvtblot->pfnSetBlotAchzDraw(ptitle, (char*)suckerPunchProd);
+        const char* productionText = FLocalizedContent() ? ContentLocalizedText(10) : nullptr;
+        ptitle->pvtblot->pfnSetBlotAchzDraw(ptitle,
+            const_cast<char*>(productionText != nullptr ? productionText : suckerPunchProd));
         SetBlotDtAppear(ptitle, 1.0f);
         SetBlotDtVisible(ptitle, 0.0f);
         ptitle->pvtblot->pfnShowBlot(ptitle);
@@ -421,7 +430,11 @@ void DrawUiSplash(UI* pui)
             float legalStartY = 22.0f * scaleY;
 
             for (int i = 0; i < 2; ++i) {
-                const char* textLine = g_aachzLegal[i];
+                const char* textLine = i == 0
+                    ? ContentUiText(g_aachzLegal[i], "Développé par Sucker Punch Productions, LLC.",
+                        "Entwickelt von Sucker Punch Productions, LLC.", "Desarrollado por Sucker Punch Productions, LLC.",
+                        "Sviluppato da Sucker Punch Productions, LLC.")
+                    : g_aachzLegal[i];
 
                 tbx.SetPos(0.0f, legalStartY);
                 tbx.SetSize(g_gl.width, lineHeight);
@@ -444,7 +457,9 @@ void DrawUiSplash(UI* pui)
             float presentsStartY = (g_gl.height - totalTextHeight) * 0.5f + 22.0f * scaleY;
 
             for (int i = 0; i < 2; ++i) {
-                const char* textLine = g_aachzPresents[i];
+                const char* textLine = FLocalizedContent() ? ContentLocalizedText(8 + i) : nullptr;
+                if (textLine == nullptr)
+                    textLine = g_aachzPresents[i];
 
                 tbx.SetPos(0.0f, presentsStartY);
                 tbx.SetSize(g_gl.width, presentsLineHeight);

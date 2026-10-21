@@ -123,6 +123,10 @@ std::string CBinaryInputStream::ReadStringSw() {
     return ReadNarrowString(length);
 }
 
+std::string CBinaryInputStream::ReadUtf16StringSw() {
+    return ReadUtf16String(U16Read());
+}
+
 std::string CBinaryInputStream::ReadFixedString32() {
     char text[32]{};
     ReadBytes(text, sizeof(text));

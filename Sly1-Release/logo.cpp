@@ -1,5 +1,6 @@
 #include "logo.h"
 #include "gui_layout.h"
+#include "content.h"
 
 void StartupLogo(LOGO* plogo)
 {
@@ -35,7 +36,11 @@ void PostLogoLoad(LOGO* plogo)
     {
         // Fallback: set a default draw string if no shader was found
         if (plogo->pvtblot && plogo->pvtblot->pfnSetBlotAchzDraw)
-            plogo->pvtblot->pfnSetBlotAchzDraw(plogo, (char*)logoPchz);
+        {
+            const char* logoText = FLocalizedContent() ? ContentLocalizedText(11) : nullptr;
+            plogo->pvtblot->pfnSetBlotAchzDraw(plogo,
+                const_cast<char*>(logoText != nullptr ? logoText : logoPchz));
+        }
     }
     else
     {
@@ -69,8 +74,9 @@ void DrawLogo(LOGO* plogo)
     const GuiScale guiScale = GetGuiScale();
     const float scaleX = guiScale.x;
     const float scaleY = guiScale.y;
-    float width = plogo->dx * scaleX;
-    float height = plogo->dy * scaleY;
+    const float width = plogo->dx * scaleX;
+    const float height = plogo->dy * scaleY;
+
     float x = plogo->x;
     float y = plogo->y;
 

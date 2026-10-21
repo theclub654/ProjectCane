@@ -2,6 +2,11 @@
 #include "cm.h"
 #include "clock.h"
 
+namespace
+{
+bool s_fManualMouseCaptured = false;
+}
+
 void SetCpmanCpmt(CPMAN* pcpman, CPMT cpmt)
 {
 	pcpman->cpmt = cpmt;
@@ -29,7 +34,14 @@ void UpdateCpman(CPMAN* pcpman, CPDEFI* pcpdefi, JOY* pjoy, float dt)
 
     if (!g_fDisableInput && glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS)
     {
-        glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+        const bool captureStarted = !s_fManualMouseCaptured ||
+            glfwGetInputMode(window, GLFW_CURSOR) != GLFW_CURSOR_DISABLED;
+        if (captureStarted)
+        {
+            glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+            MOUSE::ResetDelta();
+            s_fManualMouseCaptured = true;
+        }
 
         const float dx = static_cast<float>(MOUSE::GetDX());
         const float dy = static_cast<float>(MOUSE::GetDY());
@@ -59,9 +71,11 @@ void UpdateCpman(CPMAN* pcpman, CPDEFI* pcpdefi, JOY* pjoy, float dt)
 
         pcm->mat = ConvertGlCameraBasisToGame(glBasis);
     }
-    else
+    else if (s_fManualMouseCaptured)
     {
         glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+        MOUSE::ResetDelta();
+        s_fManualMouseCaptured = false;
     }
 
 	// Keyboard and controller input belong exclusively to the free camera while

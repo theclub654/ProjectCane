@@ -73,6 +73,15 @@ namespace
 		return extensible->Samples.wValidBitsPerSample == 32 &&
 			IsEqualGUID(extensible->SubFormat, kIeeeFloatSubFormat);
 	}
+
+	void AtomicMax(std::atomic<float>& destination, const float value)
+	{
+		float current = destination.load(std::memory_order_relaxed);
+		while (current < value && !destination.compare_exchange_weak(current, value,
+			std::memory_order_relaxed, std::memory_order_relaxed))
+		{
+		}
+	}
 }
 
 HRESULT SpuMixSaturator::QueryInterface(const REFIID interfaceId, void** result)
@@ -103,7 +112,30 @@ void SpuMixSaturator::BeginDiagnosticCapture()
 		return;
 	m_diagnosticCaptureEnabled.store(false, std::memory_order_release);
 	m_diagnosticSampleCount.store(0, std::memory_order_release);
+	m_diagnosticInvalidInputSamples.store(0, std::memory_order_release);
+	m_diagnosticClippedInputSamples.store(0, std::memory_order_release);
+	m_diagnosticClippedOutputSamples.store(0, std::memory_order_release);
+	m_diagnosticInputPeak.store(0.0f, std::memory_order_release);
+	m_diagnosticOutputPeak.store(0.0f, std::memory_order_release);
+	m_diagnosticInputMaxJump.store(0.0f, std::memory_order_release);
+	m_diagnosticOutputMaxJump.store(0.0f, std::memory_order_release);
+	m_diagnosticPreviousInput = {};
+	m_diagnosticPreviousOutput = {};
 	m_diagnosticCaptureEnabled.store(true, std::memory_order_release);
+}
+
+SpuMixSaturator::DiagnosticStats SpuMixSaturator::GetDiagnosticStats() const
+{
+	DiagnosticStats stats;
+	stats.samples = m_diagnosticSampleCount.load(std::memory_order_acquire);
+	stats.invalidInputSamples = m_diagnosticInvalidInputSamples.load(std::memory_order_acquire);
+	stats.clippedInputSamples = m_diagnosticClippedInputSamples.load(std::memory_order_acquire);
+	stats.clippedOutputSamples = m_diagnosticClippedOutputSamples.load(std::memory_order_acquire);
+	stats.inputPeak = m_diagnosticInputPeak.load(std::memory_order_acquire);
+	stats.outputPeak = m_diagnosticOutputPeak.load(std::memory_order_acquire);
+	stats.inputMaxJump = m_diagnosticInputMaxJump.load(std::memory_order_acquire);
+	stats.outputMaxJump = m_diagnosticOutputMaxJump.load(std::memory_order_acquire);
+	return stats;
 }
 
 SpuMixSaturator::DiagnosticCapture SpuMixSaturator::EndDiagnosticCapture()
@@ -226,6 +258,14 @@ void SpuMixSaturator::Process(UINT32 inputCount,
 			for (UINT32 channel = 0; channel < 2; ++channel)
 			{
 				const UINT32 sample = frame * 2 + channel;
+				const float rawSource = silent ? 0.0f : input[sample];
+				if (captureDiagnostics)
+				{
+					if (!std::isfinite(rawSource))
+						m_diagnosticInvalidInputSamples.fetch_add(1, std::memory_order_relaxed);
+					else if (std::abs(rawSource) > 1.0f)
+						m_diagnosticClippedInputSamples.fetch_add(1, std::memory_order_relaxed);
+				}
 				const float source = silent ? 0.0f :
 					(std::isfinite(input[sample]) ? input[sample] : 0.0f);
 				if (sample < diagnosticCount)
@@ -236,6 +276,21 @@ void SpuMixSaturator::Process(UINT32 inputCount,
 				m_previousOutput[channel] = std::isfinite(filtered) ? filtered : 0.0f;
 				const float gained = m_previousOutput[channel] * m_currentGain;
 				output[sample] = enabled ? std::clamp(gained, -1.0f, kSpuPositiveMaximum) : gained;
+				if (captureDiagnostics)
+				{
+					const float inputMagnitude = std::abs(source);
+					const float outputMagnitude = std::abs(output[sample]);
+					AtomicMax(m_diagnosticInputPeak, inputMagnitude);
+					AtomicMax(m_diagnosticOutputPeak, outputMagnitude);
+					AtomicMax(m_diagnosticInputMaxJump,
+						std::abs(source - m_diagnosticPreviousInput[channel]));
+					AtomicMax(m_diagnosticOutputMaxJump,
+						std::abs(output[sample] - m_diagnosticPreviousOutput[channel]));
+					m_diagnosticPreviousInput[channel] = source;
+					m_diagnosticPreviousOutput[channel] = output[sample];
+					if (std::abs(gained) > 1.0f)
+						m_diagnosticClippedOutputSamples.fetch_add(1, std::memory_order_relaxed);
+				}
 				if (sample < diagnosticCount)
 					m_diagnosticOutput[diagnosticBegin + sample] = output[sample];
 			}

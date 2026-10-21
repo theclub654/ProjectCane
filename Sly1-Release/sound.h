@@ -416,7 +416,8 @@ bool ReadMusicVlq(MusicSegment& segment, uint32_t& value);
 void QueueMusicSegment(uint32_t id);
 void StopMusicSegment(uint32_t id);
 void SetGlobalExciteValue(int excite);
-bool RunMusicAme(MusicSegment& midi, const uint8_t*& stream);
+bool RunMusicAme(MusicSegment& midi, const uint8_t*& stream,
+	bool* transferredSegment = nullptr);
 void ConfigureMusicEnvelope(MusicEnvelope& envelope);
 void StartMusicEnvelope(MusicEnvelope& envelope, uint16_t adsr1, uint16_t adsr2);
 void ReleaseMusicEnvelope(MusicEnvelope& envelope);
@@ -546,6 +547,10 @@ void SetSwIntermittentRepeat(SW* psw, const LM* plmRepeat);
 void StartSwIntermittentSounds(SW* psw);
 void UpdateSounds();
 void ServiceAudioDevice();
+void SetEerieAudioTraceEnabled(bool enabled);
+bool FEerieAudioTraceEnabled();
+void SetMusicDropoutTraceEnabled(bool enabled);
+bool FMusicDropoutTraceEnabled();
 
 // Sound globals
 extern int s_hvagAmbient;

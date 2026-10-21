@@ -21,6 +21,7 @@
 #include "mb.h"
 #include "binoc.h"
 #include "thndflash.h"
+#include "runtime_error.h"
 #include <algorithm>
 #include <cstdio>
 #include <cstring>
@@ -732,6 +733,16 @@ void CreateSwPrizes(SW* psw)
 
 void LoadSwFromBrx(SW* psw, CBinaryInputStream* pbis)
 {
+	auto reportPendingGlErrors = [](const char* stage)
+	{
+		for (GLenum error = glGetError(); error != GL_NO_ERROR; error = glGetError())
+		{
+			ReportRuntimeError("Graphics",
+				"OpenGL error 0x%X immediately after %s during PCBRX world loading.",
+				error, stage);
+		}
+	};
+
 	std::cout << "\nLoading World...\n";
 	// Setting difficulty for world
 	OnDifficultyWorldPreLoad(&g_difficulty);
@@ -815,11 +826,14 @@ void LoadSwFromBrx(SW* psw, CBinaryInputStream* pbis)
 	}
 	// Loads all textures and shader data from file
 	LoadShadersFromBrx(pbis);
+	reportPendingGlErrors("LoadShadersFromBrx");
 	// Loads all the scene world objects from the binary file
 	LoadSwObjectsFromBrx(psw, nullptr, pbis);
+	reportPendingGlErrors("LoadSwObjectsFromBrx");
 
 	if (FIsDlEmpty(&psw->dlLight) == true)
 		CreateSwDefaultLights(psw);
+	reportPendingGlErrors("CreateSwDefaultLights");
 
 	rgbaSky = psw->rgbaSky;
 	rgbaSky.a *= 2.0f;

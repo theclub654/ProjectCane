@@ -1,4 +1,5 @@
 #include "fmv.h"
+#include "content.h"
 #include "gui_layout.h"
 #include "game.h"
 #include "screen.h"
@@ -11,6 +12,7 @@
 
 #include <atomic>
 #include <chrono>
+#include <cmath>
 #include <cstring>
 #include <filesystem>
 #include <iostream>
@@ -65,6 +67,52 @@ namespace
         "Startup Splash"
     };
 
+    const char* PchzLocalizedFmvTitle(int index)
+    {
+        if (FLocalizedContent() && index >= 0 && index < 16)
+        {
+            if (const char* localized = ContentLocalizedText(173 + static_cast<std::size_t>(index)))
+                return localized;
+        }
+
+        static constexpr const char* french[] =
+        {
+            "Le dossier secret de la police", "Le dossier de la police de Tokyo", "Les coulisses de Sly Cooper",
+            "Publicités et scènes coupées", "La marée de la terreur", "Raleigh prend l'eau",
+            "Le crépuscule du serpent", "Muggshot arrêté", "Vaudou maléfique", "Mz Ruby contrariée",
+            "Le feu dans le ciel", "Le Roi Panda sur la glace", "Le cœur glacé de la haine",
+            "Dix secondes", "Le Volus Ratonus", "Générique", "Cinématique supplémentaire", "Écran de démarrage"
+        };
+        static constexpr const char* german[] =
+        {
+            "Die geheime Polizeiakte", "Die Polizeiakte von Tokio", "Die Entstehung von Sly Cooper",
+            "Werbespots und Pannen", "Flut des Schreckens", "Raleigh auf dem Trockenen",
+            "Sonnenuntergang für Snake Eyes", "Muggshot geschnappt", "Bösartiger Voodoo", "Mz Ruby verärgert",
+            "Feuer am Himmel", "Der Panda-König auf Eis", "Das kalte Herz des Hasses",
+            "Zehn Sekunden", "Der Thievius Raccoonus", "Abspann", "Zusätzliche Filmsequenz", "Startbild"
+        };
+        static constexpr const char* spanish[] =
+        {
+            "El archivo secreto de la policía", "El archivo de la policía de Tokio", "Cómo se hizo Sly Cooper",
+            "Anuncios y tomas falsas", "La marea del terror", "Raleigh queda seco",
+            "Ocaso de Snake Eyes", "Muggshot capturado", "Vudú despiadado", "Mz Ruby contrariada",
+            "Fuego en el cielo", "El Rey Panda sobre hielo", "El frío corazón del odio",
+            "Diez segundos", "El Latronius Mapáchibus", "Créditos", "Escena adicional", "Pantalla de inicio"
+        };
+        static constexpr const char* italian[] =
+        {
+            "Il dossier segreto della polizia", "Il dossier della polizia di Tokyo", "La creazione di Sly Cooper",
+            "Pubblicità e scene tagliate", "La marea del terrore", "Raleigh all'asciutto",
+            "Il tramonto di Snake Eyes", "Muggshot catturato", "Voodoo feroce", "Mz Ruby contrariata",
+            "Fuoco nel cielo", "Il Re Panda sul ghiaccio", "Il gelido cuore dell'odio",
+            "Dieci secondi", "Il Thievius Raccoonus", "Titoli di coda", "Filmato aggiuntivo", "Schermata iniziale"
+        };
+
+        if (index < 0 || index >= static_cast<int>(std::size(s_achzFmvTitle)))
+            return ContentUiText("(unknown)", "(inconnu)", "(unbekannt)", "(desconocido)", "(sconosciuto)");
+        return ContentUiText(s_achzFmvTitle[index], french[index], german[index], spanish[index], italian[index]);
+    }
+
     int Mod4(int value)
     {
         value %= 4;
@@ -108,8 +156,59 @@ namespace
         return partialMatch;
     }
 
-    std::filesystem::path CutsceneDirectory(const std::string& videoFileName,
+    bool EnsureFmvMenuSize(FMVMENU* pfmvmenu, CFontBrx* pfontIcons)
+    {
+        if (pfmvmenu == nullptr || pfmvmenu->pfont == nullptr || pfontIcons == nullptr)
+            return false;
+
+        GLYFF* placeholderGlyph = pfontIcons->PglyffFromCh('_');
+        if (placeholderGlyph == nullptr)
+            return false;
+
+        constexpr float previewScale = 1.3f;
+        const float previewWidth = static_cast<float>(placeholderGlyph->dx + 1)
+            * pfontIcons->m_rxScale * previewScale;
+        const float previewHeight = static_cast<float>(pfontIcons->m_dyUnscaled)
+            * pfontIcons->m_ryScale * previewScale;
+        const float menuWidth = 90.0f + previewWidth * 4.0f;
+        const float menuHeight = static_cast<float>(pfmvmenu->pfont->m_dyUnscaled)
+            * pfmvmenu->pfont->m_ryScale + 60.0f + previewHeight * 4.0f;
+
+        if (std::abs(pfmvmenu->dx - menuWidth) > 0.01f ||
+            std::abs(pfmvmenu->dy - menuHeight) > 0.01f)
+        {
+            ResizeBlot(pfmvmenu, menuWidth, menuHeight);
+        }
+
+        return true;
+    }
+
+    struct CutscenePaths
+    {
+        std::filesystem::path video;
+        std::filesystem::path audio;
+    };
+
+    bool HasLocalizedAudioVariant(const std::filesystem::path& directory,
         const std::string& audioFileName)
+    {
+        static constexpr const char* languageDirectories[] =
+        {
+            "English", "French", "German", "Spanish", "Italian", "Japanese"
+        };
+        std::error_code error;
+        for (const char* languageDirectory : languageDirectories)
+        {
+            if (std::filesystem::is_regular_file(
+                directory / languageDirectory / audioFileName, error))
+                return true;
+            error.clear();
+        }
+        return false;
+    }
+
+    CutscenePaths FindCutscenePaths(const std::string& videoFileName,
+        const std::string& audioFileName, bool allowSharedAudio)
     {
         std::vector<std::filesystem::path> candidates;
         const std::filesystem::path executableDirectory = cane::DataDirectory();
@@ -154,9 +253,34 @@ namespace
         std::error_code error;
         for (const std::filesystem::path& candidate : candidates)
         {
-            if (std::filesystem::is_regular_file(candidate / videoFileName, error) &&
-                std::filesystem::is_regular_file(candidate / audioFileName, error))
-                return candidate;
+            const std::filesystem::path video = candidate / videoFileName;
+			if (!std::filesystem::is_regular_file(video, error))
+			{
+				error.clear();
+				continue;
+			}
+
+			if (FLocalizedContent())
+			{
+				const std::filesystem::path localizedAudio =
+					candidate / ContentAudioLanguageDirectory() / audioFileName;
+				if (std::filesystem::is_regular_file(localizedAudio, error))
+					return { video, localizedAudio };
+				error.clear();
+			}
+
+			// Voiced localized cutscenes must never substitute root audio for a
+			// missing language track. A root WAV is shared when no language
+			// directory contains a variant of that filename. This covers the
+			// startup splash and PAL/SCPS movies authored with one common track.
+			const bool sharedAudio = allowSharedAudio ||
+				!HasLocalizedAudioVariant(candidate, audioFileName);
+			if (!FLocalizedContent() || sharedAudio)
+			{
+				const std::filesystem::path sharedAudioPath = candidate / audioFileName;
+				if (std::filesystem::is_regular_file(sharedAudioPath, error))
+					return { video, sharedAudioPath };
+			}
             error.clear();
         }
 
@@ -164,12 +288,32 @@ namespace
         // but do not let an incomplete directory shadow a complete pair above.
         for (const std::filesystem::path& candidate : candidates)
         {
-            if (std::filesystem::is_regular_file(candidate / videoFileName, error))
-                return candidate;
+            const std::filesystem::path video = candidate / videoFileName;
+            if (std::filesystem::is_regular_file(video, error))
+            {
+				const bool sharedAudio = allowSharedAudio ||
+					!HasLocalizedAudioVariant(candidate, audioFileName);
+				std::filesystem::path audio = FLocalizedContent() && !sharedAudio
+					? candidate / ContentAudioLanguageDirectory() / audioFileName
+					: candidate / audioFileName;
+				if (FLocalizedContent() && !sharedAudio)
+				{
+					const std::filesystem::path localizedAudio =
+						candidate / ContentAudioLanguageDirectory() / audioFileName;
+					if (std::filesystem::is_regular_file(localizedAudio, error))
+						audio = localizedAudio;
+					error.clear();
+				}
+                return { video, audio };
+            }
             error.clear();
         }
 
-        return workingDirectory / L"Cutscenes";
+        const std::filesystem::path fallback = workingDirectory / L"Cutscenes";
+        return {
+            fallback / videoFileName,
+			fallback / audioFileName
+        };
     }
 
     std::string AvError(int error)
@@ -203,7 +347,7 @@ namespace
         return false;
     }
 
-    bool PresentCutsceneFrame(GLuint texture, int videoWidth, int videoHeight)
+    bool PresentCutsceneFrame(GLuint texture, float videoAspect)
     {
         int framebufferWidth = 0;
         int framebufferHeight = 0;
@@ -211,21 +355,39 @@ namespace
         if (framebufferWidth <= 0 || framebufferHeight <= 0)
             return false;
 
-        const float videoAspect = static_cast<float>(videoWidth) / static_cast<float>(videoHeight);
+        if (!(videoAspect > 0.0f) || !std::isfinite(videoAspect))
+            return false;
         const float windowAspect = static_cast<float>(framebufferWidth) / static_cast<float>(framebufferHeight);
         int width = framebufferWidth;
         int height = framebufferHeight;
         int x = 0;
         int y = 0;
-        if (windowAspect > videoAspect)
+        const bool preserveFourByThree =
+            g_gl.aspectMode == Fixed_4_3 || g_gl.aspectMode == PS2_4_3;
+        if (preserveFourByThree && windowAspect > videoAspect)
         {
             width = static_cast<int>(framebufferHeight * videoAspect);
             x = (framebufferWidth - width) / 2;
         }
-        else
+        else if (preserveFourByThree)
         {
             height = static_cast<int>(framebufferWidth / videoAspect);
             y = (framebufferHeight - height) / 2;
+        }
+        else if (windowAspect > videoAspect)
+        {
+            // The PS2 movies contain their cinematic bars inside a 4:3 MPEG.
+            // On a widescreen output, scale that complete frame to the window
+            // width and clip equal amounts from its top and bottom. This is the
+            // PCSX2-style zoom that removes the extra outer pillarboxing while
+            // preserving the authored image proportions.
+            height = static_cast<int>(std::ceil(framebufferWidth / videoAspect));
+            y = (framebufferHeight - height) / 2;
+        }
+        else
+        {
+            width = static_cast<int>(std::ceil(framebufferHeight * videoAspect));
+            x = (framebufferWidth - width) / 2;
         }
 
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -247,11 +409,11 @@ namespace
     bool PlayCutscene(const CUTSCENEINFO& info, bool skippable)
     {
         const ScopedCutscenePlaying playing;
-        const std::filesystem::path directory =
-            CutsceneDirectory(info.videoFileName, info.audioFileName);
-        const std::filesystem::path videoPath = directory / info.videoFileName;
-        const std::filesystem::path audioPath = directory / info.audioFileName;
         const bool isStartupSplash = info.identityId == STARTUP_SPLASH_QUEUE_ID;
+        const CutscenePaths paths =
+            FindCutscenePaths(info.videoFileName, info.audioFileName, isStartupSplash);
+        const std::filesystem::path& videoPath = paths.video;
+        const std::filesystem::path& audioPath = paths.audio;
 
         AVFormatContext* format = nullptr;
         const std::string videoPathUtf8 = Utf8Path(videoPath);
@@ -323,6 +485,22 @@ namespace
                 (result = avcodec_open2(decoder, codec, nullptr)) < 0)
                 break;
 
+            // PS2 MPEGs are commonly stored with non-square pixels. Their
+            // coded width/height is not the intended display shape; PCSX2 uses
+            // the MPEG sample-aspect metadata to present the authored widescreen
+            // image. Start with the stream/decoder metadata and refine it from
+            // each decoded frame below when FFmpeg provides a better value.
+            AVRational sampleAspect = stream->sample_aspect_ratio;
+            if (sampleAspect.num <= 0 || sampleAspect.den <= 0)
+                sampleAspect = decoder->sample_aspect_ratio;
+            float displayAspect = static_cast<float>(decoder->width) /
+                static_cast<float>(decoder->height);
+            if (sampleAspect.num > 0 && sampleAspect.den > 0)
+            {
+                displayAspect *= static_cast<float>(sampleAspect.num) /
+                    static_cast<float>(sampleAspect.den);
+            }
+
             frame = av_frame_alloc();
             packet = av_packet_alloc();
             if (frame == nullptr || packet == nullptr)
@@ -360,6 +538,7 @@ namespace
             int64_t firstPts = AV_NOPTS_VALUE;
             bool quit = false;
             bool audioStarted = false;
+			bool audioAttempted = false;
             const double frameDuration = 1.0 / fps;
 			auto waitForVisibleWindow = [&]()
             {
@@ -413,8 +592,19 @@ namespace
                     sws_scale(scaler, frame->data, frame->linesize, 0, decoder->height,
                         destination, destinationStride);
 
-                    if (!audioStarted)
+                    const AVRational frameSampleAspect =
+                        av_guess_sample_aspect_ratio(format, stream, frame);
+                    if (frameSampleAspect.num > 0 && frameSampleAspect.den > 0)
                     {
+                        displayAspect = static_cast<float>(decoder->width) /
+                            static_cast<float>(decoder->height) *
+                            static_cast<float>(frameSampleAspect.num) /
+                            static_cast<float>(frameSampleAspect.den);
+                    }
+
+                    if (!audioAttempted)
+                    {
+						audioAttempted = true;
                         PreloadVag(audioPath);
                         const auto audioLoadDeadline =
                             std::chrono::steady_clock::now() + std::chrono::seconds(30);
@@ -505,7 +695,7 @@ namespace
                     glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
                     glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, decoder->width, decoder->height,
                         GL_RGBA, GL_UNSIGNED_BYTE, pixels.data());
-                    PresentCutsceneFrame(texture, decoder->width, decoder->height);
+                    PresentCutsceneFrame(texture, displayAspect);
                     glfwPollEvents();
                     g_joy.Update(g_gl.window);
                     ServiceAudioDevice();
@@ -738,13 +928,7 @@ void PostFmvMenuLoad(FMVMENU* pfmvmenu)
     if (pfmvmenu->pfont == nullptr || pfontIcons == nullptr)
         return;
 
-    pfontIcons->PushScaling(1.3f, 1.3f);
-    const float dx = 90.0f + pfontIcons->DxFromCh('_') * 4.0f;
-    const float dy = static_cast<float>(pfmvmenu->pfont->m_dyUnscaled) * pfmvmenu->pfont->m_ryScale
-                   + 60.0f
-                   + static_cast<float>(pfontIcons->m_dyUnscaled) * pfontIcons->m_ryScale * 4.0f;
-    pfontIcons->PopScaling();
-    ResizeBlot(pfmvmenu, dx, dy);
+    EnsureFmvMenuSize(pfmvmenu, pfontIcons);
 }
 
 uint32_t FFmvUnlocked(int iCutscene)
@@ -757,8 +941,10 @@ uint32_t FFmvUnlocked(int iCutscene)
 const char* PchzFriendlyFromCid(int iCutscene)
 {
     if (iCutscene >= 0 && iCutscene < CUTSCENE_COUNT)
-        return s_achzFmvTitle[iCutscene];
-    return iCutscene == -1 ? "Nil" : "(unknown)";
+        return PchzLocalizedFmvTitle(iCutscene);
+    return iCutscene == -1
+        ? ContentUiText("Nil", "Aucun", "Keine", "Ninguno", "Nessuno")
+        : ContentUiText("(unknown)", "(inconnu)", "(unbekannt)", "(desconocido)", "(sconosciuto)");
 }
 
 const CUTSCENEINFO* PcutsceneinfoFromId(int cutsceneId)
@@ -811,21 +997,23 @@ void UpdateFmvMenuActive(FMVMENU* pfmvmenu, JOY* pjoy)
     if (pjoy == nullptr)
         return;
 
-    const bool exit = pjoy->IsPressed(BTN_TRIANGLE) || pjoy->IsPressed(BTN_SELECT) ||
+    const JOY_BUTTON confirmButton = FJapaneseContent() ? BTN_CIRCLE : BTN_CROSS;
+    const JOY_BUTTON cancelButton = FJapaneseContent() ? BTN_CROSS : BTN_TRIANGLE;
+    const bool exit = pjoy->IsPressed(cancelButton) || pjoy->IsPressed(BTN_SELECT) ||
                       pjoy->IsPressed(BTN_START) ||
                       (pjoy->joys == JOYS_Searching && g_clock.t >= 5.0f);
     if (exit)
     {
-        pjoy->SetHandled(BTN_TRIANGLE);
+        pjoy->SetHandled(cancelButton);
         pjoy->SetHandled(BTN_SELECT);
         pjoy->SetHandled(BTN_START);
         PopUiActiveBlot(&g_ui);
         return;
     }
 
-    if (pjoy->IsPressed(BTN_CROSS))
+    if (pjoy->IsPressed(confirmButton))
     {
-        pjoy->SetHandled(BTN_CROSS);
+        pjoy->SetHandled(confirmButton);
         if (FFmvUnlocked(pfmvmenu->iCutscene) == 0)
             StartSound(static_cast<SFXID>(123), nullptr, nullptr, nullptr,
                        3000.0f, 300.0f, 1.0f, 0.0f, 0.0f, nullptr, nullptr);
@@ -862,26 +1050,17 @@ void DrawFmvMenu(FMVMENU* pfmvmenu)
     if (pfmvmenu == nullptr || pfmvmenu->pfont == nullptr)
         return;
 
+    CFontBrx* pfontIcons = FmvPreviewFont();
+    EnsureFmvMenuSize(pfmvmenu, pfontIcons);
+
     glm::vec4 color = pfmvmenu->rgba;
     color.a *= pfmvmenu->uOn;
 
     const GuiScale guiScale = GetGuiScale();
     const float scaleX = guiScale.x;
     const float scaleY = guiScale.y;
-    const float dx = pfmvmenu->dx * scaleX;
-    const float dy = pfmvmenu->dy * scaleY;
-    float x = pfmvmenu->x;
-    float y = pfmvmenu->y;
-
-    if (pfmvmenu->pbloti != nullptr)
-    {
-        if (pfmvmenu->pbloti->x < 0.0f) x -= dx - pfmvmenu->dx;
-        else if (pfmvmenu->pbloti->x == 0.0f) x -= (dx - pfmvmenu->dx) * 0.5f;
-        if (pfmvmenu->pbloti->y < 0.0f) y -= dy - pfmvmenu->dy;
-        else if (pfmvmenu->pbloti->y == 0.0f) y -= (dy - pfmvmenu->dy) * 0.5f;
-        x += pfmvmenu->pbloti->x * (scaleX - 1.0f);
-        y += pfmvmenu->pbloti->y * (scaleY - 1.0f);
-    }
+    float x, y, dx, dy;
+    GetGuiScaledBlotRect(pfmvmenu, &x, &y, &dx, &dy);
 
     CTextBox textBox;
     textBox.SetPos(x, y);
@@ -904,14 +1083,16 @@ void DrawFmvMenu(FMVMENU* pfmvmenu)
         pfmvmenu->pte->m_rgba = edgeColor;
     }
 
+    const char* lockedTitle = FJapaneseContent()
+        ? "未解除"
+        : ContentUiText("Locked", "Verrouillé", "Gesperrt", "Bloqueado", "Bloccato");
     char* title = const_cast<char*>(FFmvUnlocked(pfmvmenu->iCutscene)
         ? PchzFriendlyFromCid(pfmvmenu->iCutscene)
-        : "Locked");
+        : lockedTitle);
     pfmvmenu->pfont->PushScaling(scaleX, scaleY);
     pfmvmenu->pfont->DrawPchz(title, &textBox);
     pfmvmenu->pfont->PopScaling();
 
-    CFontBrx* pfontIcons = FmvPreviewFont();
     if (pfontIcons == nullptr)
         return;
 

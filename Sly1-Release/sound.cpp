@@ -13,6 +13,7 @@
 #include "util.h"
 #include "spu_reverb_xapo.h"
 #include "runtime_error.h"
+#include "content.h"
 #include "../platform/platform.h"
 #ifdef _WIN32
 #include <Windows.h>
@@ -52,6 +53,9 @@
 #include <limits>
 #include <unordered_set>
 #include <cctype>
+#include <iomanip>
+#include <deque>
+#include <sstream>
 #include <nlohmann/json.hpp>
 
 extern std::string file;
@@ -62,6 +66,9 @@ static std::atomic<bool> s_musicUsesGameplayClock{ false };
 static std::thread s_musicWorker;
 static int s_musicGameplayClockFrame = -1;
 static constexpr float kVagDriverGain = 0x3ffc / 32767.0f;
+// 989's cue volume-group byte is an internal sound-bank routing value.  It is
+// not one of ProjectCane's four MVGK output channels; retail music is channel 1.
+static constexpr int kMusicMixerChannel = 1;
 static bool s_fFmvAudioMode = false;
 static bool s_dialogAudioDuckHeld = false;
 static bool s_commentaryStartPending = false;
@@ -70,6 +77,55 @@ static float s_userMusicVolume = 1.0f;
 static float s_userSfxVolume = 1.0f;
 static float s_userDialogueVolume = 1.0f;
 static std::string s_audioOutputDeviceId;
+static std::ofstream s_musicDropoutTrace;
+static bool s_musicDropoutTraceEnabled = false;
+static bool s_musicTraceHadVoices = false;
+static std::deque<std::string> s_musicTraceHistory;
+static constexpr std::size_t kMusicTraceHistoryLimit = 512;
+
+static void TraceMusicEvent(const char* event, int value0 = -1, int value1 = -1)
+{
+	std::ostringstream line;
+	line << "EVENT " << event
+		<< " tick=" << g_clock.tickFrame
+		<< " t=" << std::fixed << std::setprecision(6) << g_clock.t
+		<< " value0=" << value0 << " value1=" << value1
+		<< " state=" << static_cast<int>(s_musicStream.state)
+		<< " musid=" << static_cast<int>(s_musicStream.musid)
+		<< " paused=" << s_musicStream.paused
+		<< " volume=" << s_musicVolume
+		<< " duck=" << s_dialogMusicDuck
+		<< " excite=" << static_cast<unsigned>(s_globalExcite)
+		<< " segments=" << s_music989.activeSegments.size()
+		<< " pending=" << s_music989.pendingStarts.size()
+		<< " voices=" << s_music989.voices.size()
+		<< " regs=";
+	for (std::size_t i = 0; i < s_music989.registers.size(); ++i)
+	{
+		if (i != 0) line << ',';
+		line << static_cast<unsigned>(s_music989.registers[i]);
+	}
+	for (const MusicSegment& segment : s_music989.activeSegments)
+	{
+		unsigned mutedMask = 0;
+		for (std::size_t channel = 0; channel < segment.muted.size(); ++channel)
+			if (segment.muted[channel]) mutedMask |= 1u << channel;
+		line << " segment[" << segment.id
+			<< ":complete=" << segment.complete
+			<< ":ticks=" << segment.ticksLeft
+			<< ":muted=0x" << std::hex << mutedMask << std::dec << ']';
+	}
+	line << '\n';
+	const std::string entry = line.str();
+	s_musicTraceHistory.push_back(entry);
+	if (s_musicTraceHistory.size() > kMusicTraceHistoryLimit)
+		s_musicTraceHistory.pop_front();
+	if (s_musicDropoutTraceEnabled && s_musicDropoutTrace.is_open())
+	{
+		s_musicDropoutTrace << entry;
+		s_musicDropoutTrace.flush();
+	}
+}
 
 struct AudioOutputDevice
 {
@@ -159,6 +215,7 @@ static int s_effectAmbSerial = 0;
 static std::atomic<uint64_t> s_audioVoiceSerial{0};
 static constexpr std::size_t kSpuVoicesPerCore = 24;
 static constexpr auto kVoiceRetirementFade = std::chrono::milliseconds(5);
+std::filesystem::path ExecutableDirectory();
 
 void ReportXAudioFailureOnce(const char* operation, HRESULT result);
 
@@ -664,12 +721,47 @@ std::filesystem::path FindExtractedWav(const std::wstring& fileName)
     // levels cannot resolve to the wrong voice line.
     if (!file.empty())
     {
-        const std::filesystem::path levelDialogDirectory =
-            std::filesystem::path(file).parent_path() / L"Dialog";
-        const std::filesystem::path levelDialogFile = levelDialogDirectory / fileName;
+        const std::filesystem::path levelDirectory =
+            std::filesystem::path(file).parent_path();
+        if (FLocalizedContent())
+        {
+            // v19 keeps the unified BRX in the level root, while legacy PAL
+            // v17 keeps each BRX inside its language directory. Accept both
+            // without accidentally constructing French/French/Dialogs.
+            std::filesystem::path languageDirectory = levelDirectory;
+            if (_stricmp(levelDirectory.filename().string().c_str(),
+                    ContentAudioLanguageDirectory()) != 0)
+                languageDirectory /= ContentAudioLanguageDirectory();
+            const std::filesystem::path localizedFile = languageDirectory /
+                L"Dialogs" / fileName;
+            std::error_code localizedError;
+            if (std::filesystem::is_regular_file(localizedFile, localizedError))
+                return localizedFile;
+            const std::filesystem::path localizedCommentary = languageDirectory /
+                L"Commentary" / fileName;
+            if (std::filesystem::is_regular_file(localizedCommentary, localizedError))
+                return localizedCommentary;
+
+            // PAL dialogue and commentary are language-specific. Never fall
+            // through into another language, level, or extraction tree.
+            return {};
+        }
+        std::filesystem::path levelDialogDirectory = levelDirectory / L"Dialogs";
+        std::filesystem::path levelDialogFile = levelDialogDirectory / fileName;
         std::error_code error;
         if (std::filesystem::is_regular_file(levelDialogFile, error))
             return levelDialogFile;
+
+		const std::filesystem::path commentaryFile =
+			levelDirectory / L"Commentary" / fileName;
+		if (std::filesystem::is_regular_file(commentaryFile, error))
+			return commentaryFile;
+
+		// Backward compatibility with older NTSC extractor layouts.
+		levelDialogDirectory = std::filesystem::path(file).parent_path() / L"Dialog";
+		levelDialogFile = levelDialogDirectory / fileName;
+		if (std::filesystem::is_regular_file(levelDialogFile, error))
+			return levelDialogFile;
     }
 
     const std::filesystem::path executableDirectory = ExecutableDirectory();
@@ -798,12 +890,8 @@ std::filesystem::path ResolveNamedVag(const char* value)
     std::filesystem::path direct = supplied;
     direct.replace_extension(".wav");
     std::error_code error;
-    if (std::filesystem::is_regular_file(direct, error))
+    if (!FLocalizedContent() && std::filesystem::is_regular_file(direct, error))
         return direct;
-
-    if (std::filesystem::path found = FindExtractedWav(direct.filename().wstring());
-        !found.empty())
-        return found;
 
     // The commentary UI uses descriptive names such as Commentary_0202.vag,
     // while the current extractor stores descriptor-stable VAG names. Resolve
@@ -826,6 +914,15 @@ std::filesystem::path ResolveNamedVag(const char* value)
     if (std::sscanf(filename.c_str(), "VAG_%x_%x.wav%n", &identity, &sector,
             &parsedLength) == 2 && parsedLength == static_cast<int>(filename.size()))
     {
+        if (std::filesystem::path found = FindExtractedWav(direct.filename().wstring());
+            !found.empty())
+            return found;
+
+        // Current PAL extractions include both identity and sector. Do not
+        // weaken the match and risk playing another localized dialogue line.
+        if (FLocalizedContent())
+            return {};
+
         wchar_t identityName[64]{};
         std::swprintf(identityName, std::size(identityName), L"VAG_%04X.wav", identity);
         if (std::filesystem::path found = FindExtractedWav(identityName); !found.empty())
@@ -834,6 +931,10 @@ std::filesystem::path ResolveNamedVag(const char* value)
         // Commentary produced by older extractors used descriptive filenames.
         return FindCommentaryWav(identity, sector);
     }
+
+    if (std::filesystem::path found = FindExtractedWav(direct.filename().wstring());
+        !found.empty())
+        return found;
 
     return {};
 }
@@ -1176,17 +1277,18 @@ void ApplyCurrentEffectReverb()
 	const int preset = std::clamp(static_cast<int>(s_effectReverbKind),
 		static_cast<int>(REVERBK_None), static_cast<int>(REVERBK_Max) - 1);
 	XAUDIO2FX_REVERB_I3DL2_PARAMETERS i3dl2 = presets[preset];
-	// The game's authored reverb depth is a 0..127 value. Keep this auxiliary
-	// path fully wet and apply that depth to the reverb return; mixing dry signal
-	// inside the effect would duplicate the source voice's direct path.
+	// Retail passes the authored depth directly to the SPU2 effect-volume
+	// registers, which are signed Q15 values. Keep this auxiliary path fully wet
+	// and scale only the return; mixing dry signal inside the effect would
+	// duplicate the source voice's direct path.
 	const float studioWetLevel = s_effectReverbKind == REVERBK_StudioC
-		? std::clamp(static_cast<float>(s_effectReverbDepth) / 127.0f, 0.0f, 1.0f)
+		? std::clamp(static_cast<float>(s_effectReverbDepth) / 32767.0f, -1.0f, 1.0f)
 		: 0.0f;
 	const float genericWetLevel = s_effectReverbKind == REVERBK_None
 		? 0.0f
 		: s_effectReverbKind == REVERBK_StudioC
 			? (s_effectStudioCVoice ? 0.0f : studioWetLevel)
-			: std::clamp(static_cast<float>(s_effectReverbDepth) / 127.0f, 0.0f, 1.0f);
+			: std::clamp(static_cast<float>(s_effectReverbDepth) / 32767.0f, -1.0f, 1.0f);
 	i3dl2.WetDryMix = 100.0f;
 	XAUDIO2FX_REVERB_PARAMETERS native{};
 	ReverbConvertI3DL2ToNative(&i3dl2, &native, FALSE);
@@ -1338,8 +1440,7 @@ void RecalculateChannelVolume(int channel)
 		volume *= group[channel];
 	s_channelVolumes[channel] = (std::max)(0.0f, (std::min)(1.0f, volume));
 
-	const int musicChannel = std::clamp(s_music989.cueVolumeGroup, 0,
-		static_cast<int>(s_channelVolumes.size()) - 1);
+	const int musicChannel = kMusicMixerChannel;
 	if (channel == musicChannel)
 	{
 		for (MusicVoice& active : s_music989.voices)
@@ -1388,8 +1489,7 @@ std::filesystem::path ResolveVagWav(const char* fileName)
 static void ApplyDialogMusicDuck(float duck)
 {
 	s_dialogMusicDuck = duck;
-	const int musicChannel = std::clamp(s_music989.cueVolumeGroup, 0,
-		static_cast<int>(s_channelVolumes.size()) - 1);
+	const int musicChannel = kMusicMixerChannel;
 	for (MusicVoice& active : s_music989.voices)
 		if (active.voice) SetVoiceVolumeChecked(active.voice,
 			active.baseVolume * (active.envelope.level / 32767.0f) *
@@ -1877,14 +1977,21 @@ bool ReadMusicVlq(MusicSegment& segment, uint32_t& value)
 void QueueMusicSegment(uint32_t id)
 {
 	if (id >= s_music989.segmentOffsets.size())
+	{
+		TraceMusicEvent("queue_segment_rejected", static_cast<int>(id));
 		return;
+	}
 	if (std::find(s_music989.pendingStarts.begin(), s_music989.pendingStarts.end(), id) ==
 		s_music989.pendingStarts.end())
+	{
 		s_music989.pendingStarts.push_back(id);
+		TraceMusicEvent("queue_segment", static_cast<int>(id));
+	}
 }
 
 void StopMusicSegment(uint32_t id)
 {
+	TraceMusicEvent("stop_segment", static_cast<int>(id));
 	for (MusicSegment& segment : s_music989.activeSegments)
 		if (segment.id == id)
 			segment.complete = true;
@@ -1900,7 +2007,10 @@ static void ReapplyMusicAmeGroups(int basis);
 void SetGlobalExciteValue(int excite)
 {
 	std::lock_guard<std::recursive_mutex> lock(s_musicMutex);
+	const int previous = s_globalExcite;
 	s_globalExcite = static_cast<uint8_t>(std::clamp(excite, 0, 127));
+	if (previous != s_globalExcite)
+		TraceMusicEvent("set_excite", previous, s_globalExcite);
 	ReapplyMusicAmeGroups(0);
 }
 
@@ -1934,9 +2044,13 @@ static void ApplyMusicAmeGroup(MusicAmeGroup& group, MusicSegment& segment)
 		if (channel >= segment.muted.size())
 			continue;
 		const bool mute = value < group.exciteMin[i] || value > group.exciteMax[i];
+		const bool wasMuted = segment.muted[channel];
 		if (mute && !segment.muted[channel])
 			StopMusicVoicesOnChannel(segment.id, channel);
 		segment.muted[channel] = mute;
+		if (mute != wasMuted)
+			TraceMusicEvent(mute ? "mute_channel" : "unmute_channel",
+				static_cast<int>(segment.id), static_cast<int>(channel));
 	}
 }
 
@@ -1948,7 +2062,8 @@ static void ReapplyMusicAmeGroups(int basis)
 				ApplyMusicAmeGroup(group, segment);
 }
 
-bool RunMusicAme(MusicSegment& midi, const uint8_t*& stream)
+bool RunMusicAme(MusicSegment& midi, const uint8_t*& stream,
+	bool* transferredSegment)
 {
 	static thread_local int recursionDepth = 0;
 	if (recursionDepth >= 16)
@@ -2004,16 +2119,29 @@ bool RunMusicAme(MusicSegment& midi, const uint8_t*& stream)
 			if (beginCommand() && s_music989.macros[*stream])
 			{
 				const uint8_t* macro = s_music989.macros[*stream];
-				if (!RunMusicAme(midi, macro))
+				bool macroTransferredSegment = false;
+				if (!RunMusicAme(midi, macro, &macroTransferredSegment))
 				{
 					midi.complete = true;
 					return false;
 				}
+				// A branch/start inside a called macro transfers control and must
+				// unwind immediately. A macro is also allowed to stop its caller,
+				// then return so the caller can queue the replacement segment. Using
+				// midi.complete for both cases swallowed that replacement and left
+				// the level music permanently exhausted.
+				if (macroTransferredSegment)
+				{
+					if (transferredSegment)
+						*transferredSegment = true;
+					++stream;
+					return true;
+				}
 			}
 			++stream; break;
-		case 0x0d: if (!require(1) || stream[0] >= s_music989.registers.size()) return false; if (beginCommand()) { QueueMusicSegment(s_music989.registers[stream[0]] - 1); midi.complete = true; } ++stream; break;
+		case 0x0d: if (!require(1) || stream[0] >= s_music989.registers.size()) return false; if (beginCommand()) { QueueMusicSegment(s_music989.registers[stream[0]] - 1); midi.complete = true; if (transferredSegment) *transferredSegment = true; } ++stream; break;
 		case 0x0e: if (!require(1) || stream[0] >= s_music989.registers.size()) return false; if (beginCommand()) QueueMusicSegment(s_music989.registers[stream[0]] - 1); ++stream; break;
-		case 0x11: if (!require(1)) return false; if (beginCommand()) { QueueMusicSegment(*stream); midi.complete = true; } ++stream; break;
+		case 0x11: if (!require(1)) return false; if (beginCommand()) { QueueMusicSegment(*stream); midi.complete = true; if (transferredSegment) *transferredSegment = true; } ++stream; break;
 		case 0x12: if (!require(1)) return false; if (beginCommand()) QueueMusicSegment(*stream); ++stream; break;
 		case 0x13:
 			if (!require(2) || stream[0] >= s_music989.registers.size()) return false;
@@ -2046,9 +2174,12 @@ bool RunMusicAme(MusicSegment& midi, const uint8_t*& stream)
 			++stream;
 			break;
 		case 0x16: if (!require(2) || stream[0] >= s_music989.registers.size()) return false; if (beginCommand() && s_music989.registers[stream[0]] != stream[1]) skip = 1; stream += 2; break;
-		case 0x00: if (!require(1)) return false; if (beginCommand() && s_globalExcite <= static_cast<int>(stream[0]) + 1) skip = 1; ++stream; break;
+		// Retail performs these comparisons after adjusting the encoded threshold:
+		// opcode 00 tests excite < operand + 1 and opcode 02 tests
+		// operand - 1 < excite, equivalent to the boundary checks below.
+		case 0x00: if (!require(1)) return false; if (beginCommand() && s_globalExcite <= static_cast<int>(stream[0])) skip = 1; ++stream; break;
 		case 0x01: if (!require(1)) return false; if (beginCommand() && s_globalExcite != static_cast<int>(stream[0]) + 1) skip = 1; ++stream; break;
-		case 0x02: if (!require(1)) return false; if (beginCommand() && s_globalExcite > static_cast<int>(stream[0]) + 1) skip = 1; ++stream; break;
+		case 0x02: if (!require(1)) return false; if (beginCommand() && s_globalExcite >= static_cast<int>(stream[0])) skip = 1; ++stream; break;
 		case 0x0f:
 			if (skip)
 			{
@@ -2215,8 +2346,7 @@ void UpdateMusicEnvelopes()
 		else
 		{
 			const float envelopeVolume = active.envelope.level / 32767.0f;
-			const int musicChannel = std::clamp(s_music989.cueVolumeGroup, 0,
-				static_cast<int>(s_channelVolumes.size()) - 1);
+			const int musicChannel = kMusicMixerChannel;
 			const float finalVolume = active.baseVolume * envelopeVolume *
 				s_channelVolumes[musicChannel] * s_musicVolume * s_dialogMusicDuck *
 				s_userMusicVolume;
@@ -2270,8 +2400,7 @@ static void RefreshMusicVoiceControllerState(MusicVoice& active,
 	active.pan = s_music989.cuePan + segment.pans[active.channel] +
 		programPan + active.tone->pan;
 	SetMusicVoicePan(active.voice, active.pan);
-	const int musicChannel = std::clamp(s_music989.cueVolumeGroup, 0,
-		static_cast<int>(s_channelVolumes.size()) - 1);
+	const int musicChannel = kMusicMixerChannel;
 	SetVoiceVolumeChecked(active.voice,
 		active.baseVolume * (active.envelope.level / 32767.0f) *
 		s_channelVolumes[musicChannel] * s_musicVolume * s_dialogMusicDuck *
@@ -2449,9 +2578,7 @@ void ActivateQueuedMusicSegments()
 		for (const MusicSegment& active : s_music989.activeSegments)
 			exists = exists || (!active.complete && active.id == id);
 		if (exists || id >= s_music989.segmentOffsets.size())
-		{
 			continue;
-		}
 		const uint8_t* base = s_music989.sequence.data() + s_music989.segmentOffsets[id];
 		const uint32_t dataStart = MusicLe32(base + 24);
 		MusicSegment segment{};
@@ -2470,6 +2597,7 @@ void ActivateQueuedMusicSegments()
 		segment.repeatsRemaining = s_music989.cueRepeats;
 		segment.volumes.fill(127);
 		s_music989.activeSegments.push_back(segment);
+		TraceMusicEvent("activate_segment", static_cast<int>(id));
 	}
 	s_music989.pendingStarts.clear();
 }
@@ -2593,7 +2721,15 @@ void StepMusicSegment(MusicSegment& segment)
 						ResetMusicSegmentForLoop(segment);
 					}
 				}
-				else { if (type == 0x51 && length >= 3) segment.tempo = (segment.cursor[0] << 16) | (segment.cursor[1] << 8) | segment.cursor[2]; segment.cursor += length; }
+				else
+				{
+					if (type == 0x51 && length >= 3)
+					{
+						segment.tempo = (segment.cursor[0] << 16) |
+							(segment.cursor[1] << 8) | segment.cursor[2];
+					}
+					segment.cursor += length;
+				}
 			}
 			else if (segment.status == 0xf0 && require(1) && *segment.cursor++ == 0x75)
 			{
@@ -3896,8 +4032,10 @@ void SetAMRegister(int ireg, byte bVal)
 	const uint8_t value = static_cast<uint8_t>(bVal) & 0x7f;
 	if (s_amRegisters[ireg] == value)
 		return;
+	const int previous = s_amRegisters[ireg];
 	s_amRegisters[ireg] = value;
 	s_music989.registers[ireg] = value;
+	TraceMusicEvent("set_register", ireg, (previous << 8) | value);
 	ReapplyMusicAmeGroups(ireg + 1);
 }
 
@@ -4462,7 +4600,7 @@ void SetUserMusicVolume(float volume)
 	if (!std::isfinite(volume))
 		volume = 0.0f;
 	s_userMusicVolume = std::clamp(volume, 0.0f, 1.0f);
-	RecalculateChannelVolume(std::clamp(s_music989.cueVolumeGroup, 0, 3));
+	RecalculateChannelVolume(kMusicMixerChannel);
 }
 
 float GetUserMusicVolume() { return s_userMusicVolume; }
@@ -4665,6 +4803,7 @@ void ContinueAmbientSounds()
 void PauseMusicSequencer()
 {
 	std::lock_guard<std::recursive_mutex> lock(s_musicMutex);
+	TraceMusicEvent("pause_sequencer_request");
 	if (s_musicStream.state == MusicState::Playing && !s_musicStream.paused)
 	{
 		// Mark the sequencer paused before touching its voices so no worker tick
@@ -4682,13 +4821,13 @@ void PauseMusicSequencer()
 void ContinueMusicSequencer(bool continueAmbientSounds)
 {
 	std::lock_guard<std::recursive_mutex> lock(s_musicMutex);
+	TraceMusicEvent("continue_sequencer_request", continueAmbientSounds ? 1 : 0);
 	if (continueAmbientSounds && s_fPauseAmbients != 0)
 		ContinueAmbientSounds();
 	if (s_musicStream.state == MusicState::Playing && s_musicStream.paused)
 	{
 		bool resumed = true;
-		const int musicChannel = std::clamp(s_music989.cueVolumeGroup, 0,
-			static_cast<int>(s_channelVolumes.size()) - 1);
+		const int musicChannel = kMusicMixerChannel;
 		for (MusicVoice& active : s_music989.voices)
 			if (active.voice)
 			{
@@ -4736,6 +4875,11 @@ static void VagLoadWorkerMain()
 			// Resolve those through the same Worlds search used by descriptor-backed
 			// dialogue instead of assuming the process working directory owns them.
 			std::error_code pathError;
+			// Explicit paths (FMV audio, prompts, ambient streams, and other
+			// package media) are already fully resolved.  Only bare/missing VAG
+			// names should enter the per-level dialogue resolver; forcing every
+			// path through it for multilingual content discards valid files such
+			// as Cutscenes/Cutscene_16.wav.
 			if (!std::filesystem::is_regular_file(request.path, pathError))
 			{
 				const std::string namedVag = request.readablePath.filename().string();
@@ -4743,6 +4887,10 @@ static void VagLoadWorkerMain()
 					!found.empty())
 				{
 					request.path = std::move(found);
+				}
+				else if (FLocalizedContent())
+				{
+					request.path.clear();
 				}
 			}
 		}
@@ -5030,19 +5178,20 @@ bool FPlayingCommentaryAudio()
 void ContinueMusic()
 {
 	std::lock_guard<std::recursive_mutex> lock(s_musicMutex);
+	TraceMusicEvent("continue_music_volume");
 	s_musicVolume = 1.0f;
 	s_music989.lastUpdate = std::chrono::steady_clock::now();
 	for (MusicVoice& active : s_music989.voices)
 		if (active.voice) SetVoiceVolumeChecked(active.voice,
 			active.baseVolume * (active.envelope.level / 32767.0f) *
-			s_channelVolumes[std::clamp(s_music989.cueVolumeGroup, 0,
-				static_cast<int>(s_channelVolumes.size()) - 1)] * s_dialogMusicDuck *
+			s_channelVolumes[kMusicMixerChannel] * s_dialogMusicDuck *
 			s_userMusicVolume, "Continue music volume");
 }
 
 void PauseMusic()
 {
 	std::lock_guard<std::recursive_mutex> lock(s_musicMutex);
+	TraceMusicEvent("pause_music_volume");
 	s_musicVolume = 0.0f;
 	for (MusicVoice& active : s_music989.voices)
 		if (active.voice) SetVoiceVolumeChecked(active.voice, 0.0f, "Pause music volume");
@@ -5050,6 +5199,7 @@ void PauseMusic()
 
 void UnloadMusic()
 {
+	TraceMusicEvent("unload_music");
 	if (s_musicStream.state != MusicState::None)
 	{
 		std::printf("[MUSIC LOAD] unload musid=0x%X state=%d\n",
@@ -5280,6 +5430,7 @@ void PreloadMusidSong(MUSID musid, const char* fileName)
 void StartMusidSong(MUSID musid, const char* fileName)
 {
 	std::lock_guard<std::recursive_mutex> lock(s_musicMutex);
+	TraceMusicEvent("start_song_request", static_cast<int>(musid));
 	PreloadMusidSong(musid, fileName);
 	if (s_musicStream.state == MusicState::None)
 		return;
@@ -5304,6 +5455,8 @@ void StartMusidSong(MUSID musid, const char* fileName)
 	s_music989.lastUpdate = std::chrono::steady_clock::now();
 	s_musicStream.state = MusicState::Playing;
 	s_musicStream.paused = false;
+	s_musicTraceHadVoices = !s_music989.voices.empty();
+	TraceMusicEvent("start_song_complete", static_cast<int>(musid));
 }
 
 bool FContinuousSound(SFXID sfxid)
@@ -5909,9 +6062,230 @@ void ServiceAudioDevice()
 	}
 }
 
+namespace
+{
+	std::ofstream s_eerieAudioTrace;
+	bool s_eerieAudioTraceEnabled = false;
+#ifdef _WIN32
+	SpuMixSaturator* s_eerieAudioCaptureProcessor = nullptr;
+	SpuMixSaturator::DiagnosticStats s_eerieAudioPreviousStats{};
+
+	void WriteDiagnosticWave(const std::filesystem::path& path, const std::vector<float>& samples)
+	{
+		std::ofstream output(path, std::ios::binary | std::ios::trunc);
+		if (!output)
+			return;
+
+		const std::uint32_t sampleRate = 48000;
+		const std::uint16_t channels = 2;
+		const std::uint16_t bitsPerSample = 16;
+		const std::uint32_t dataBytes = static_cast<std::uint32_t>(
+			(std::min)(samples.size(), static_cast<std::size_t>(UINT32_MAX / 2))) * 2u;
+		const std::uint32_t riffBytes = 36u + dataBytes;
+		const std::uint32_t byteRate = sampleRate * channels * bitsPerSample / 8u;
+		const std::uint16_t blockAlign = channels * bitsPerSample / 8u;
+		const std::uint32_t fmtSize = 16;
+		const std::uint16_t pcmFormat = 1;
+		output.write("RIFF", 4);
+		output.write(reinterpret_cast<const char*>(&riffBytes), sizeof(riffBytes));
+		output.write("WAVEfmt ", 8);
+		output.write(reinterpret_cast<const char*>(&fmtSize), sizeof(fmtSize));
+		output.write(reinterpret_cast<const char*>(&pcmFormat), sizeof(pcmFormat));
+		output.write(reinterpret_cast<const char*>(&channels), sizeof(channels));
+		output.write(reinterpret_cast<const char*>(&sampleRate), sizeof(sampleRate));
+		output.write(reinterpret_cast<const char*>(&byteRate), sizeof(byteRate));
+		output.write(reinterpret_cast<const char*>(&blockAlign), sizeof(blockAlign));
+		output.write(reinterpret_cast<const char*>(&bitsPerSample), sizeof(bitsPerSample));
+		output.write("data", 4);
+		output.write(reinterpret_cast<const char*>(&dataBytes), sizeof(dataBytes));
+		for (std::size_t i = 0; i < dataBytes / 2u; ++i)
+		{
+			const float value = std::isfinite(samples[i])
+				? std::clamp(samples[i], -1.0f, 32767.0f / 32768.0f) : 0.0f;
+			const std::int16_t pcm = static_cast<std::int16_t>(std::lrint(value * 32768.0f));
+			output.write(reinterpret_cast<const char*>(&pcm), sizeof(pcm));
+		}
+	}
+#endif
+
+	void UpdateEerieAudioTrace()
+	{
+		if (!s_eerieAudioTraceEnabled || !s_eerieAudioTrace.is_open())
+			return;
+
+#ifdef _WIN32
+		if (s_eerieAudioCaptureProcessor != s_finalOutputProcessor)
+		{
+			s_eerieAudioCaptureProcessor = s_finalOutputProcessor;
+			s_eerieAudioPreviousStats = {};
+			if (s_eerieAudioCaptureProcessor != nullptr)
+			{
+				s_eerieAudioCaptureProcessor->BeginDiagnosticCapture();
+				s_eerieAudioTrace << "EVENT final_output_capture_started tick=" << g_clock.tickFrame << '\n';
+			}
+			else
+				s_eerieAudioTrace << "EVENT final_output_capture_lost tick=" << g_clock.tickFrame << '\n';
+		}
+
+		SpuMixSaturator::DiagnosticStats stats{};
+		if (s_eerieAudioCaptureProcessor != nullptr)
+			stats = s_eerieAudioCaptureProcessor->GetDiagnosticStats();
+		XAUDIO2_VOICE_STATE vagState{};
+		if (s_vagStream.voice != nullptr)
+			s_vagStream.voice->GetState(&vagState, XAUDIO2_VOICE_NOSAMPLESPLAYED);
+#endif
+
+		std::size_t retiredVoices = 0;
+		{
+			std::lock_guard<std::mutex> lock(s_retiredVoiceMutex);
+			retiredVoices = s_retiredVoices.size();
+		}
+
+		std::lock_guard<std::recursive_mutex> musicLock(s_musicMutex);
+		s_eerieAudioTrace << "FRAME tick=" << g_clock.tickFrame
+			<< " t=" << std::fixed << std::setprecision(6) << g_clock.t
+			<< " treal=" << g_clock.tReal
+			<< " fmv=" << s_fFmvAudioMode
+			<< " recovery=" << s_audioRecoveryPending
+			<< " master=" << s_masterVolume
+			<< " userMusic=" << s_userMusicVolume
+			<< " userSfx=" << s_userSfxVolume
+			<< " userDialog=" << s_userDialogueVolume
+			<< " musicState=" << static_cast<int>(s_musicStream.state)
+			<< " musid=" << static_cast<int>(s_musicStream.musid)
+			<< " musicPaused=" << s_musicStream.paused
+			<< " musicVoices=" << s_music989.voices.size()
+			<< " musicSegments=" << s_music989.activeSegments.size()
+			<< " musicPending=" << s_music989.pendingStarts.size()
+			<< " vagLoaded=" << s_vagStream.loaded
+			<< " vagStarted=" << s_vagStream.started
+			<< " vagPaused=" << s_vagStream.paused
+			<< " vagCommentary=" << s_vagStream.commentary
+			<< " vagChannels=" << s_vagStream.format.channels
+			<< " vagRate=" << s_vagStream.format.samplesPerSec
+			<< " vagBits=" << s_vagStream.format.bitsPerSample
+			<< " vagBytes=" << s_vagStream.pcm.size()
+			<< " vagPath=\"" << s_vagStream.path.string() << '"'
+			<< " retiredVoices=" << retiredVoices
+			<< " reverbKind=" << static_cast<int>(s_effectReverbKind)
+			<< " reverbDepth=" << s_effectReverbDepth
+			<< " duck=" << s_dialogMusicDuck
+			<< " ambientsPaused=" << s_fPauseAmbients;
+#ifdef _WIN32
+		s_eerieAudioTrace << " vagQueued=" << vagState.BuffersQueued
+			<< " samples=" << stats.samples
+			<< " inPeak=" << stats.inputPeak
+			<< " outPeak=" << stats.outputPeak
+			<< " inJump=" << stats.inputMaxJump
+			<< " outJump=" << stats.outputMaxJump
+			<< " invalid=" << stats.invalidInputSamples
+			<< " inClip=" << stats.clippedInputSamples
+			<< " outClip=" << stats.clippedOutputSamples;
+
+		if (stats.invalidInputSamples != s_eerieAudioPreviousStats.invalidInputSamples ||
+			stats.clippedInputSamples != s_eerieAudioPreviousStats.clippedInputSamples ||
+			stats.clippedOutputSamples != s_eerieAudioPreviousStats.clippedOutputSamples)
+		{
+			s_eerieAudioTrace << " EVENT_AUDIO_ANOMALY"
+				<< " invalidDelta=" << stats.invalidInputSamples - s_eerieAudioPreviousStats.invalidInputSamples
+				<< " inClipDelta=" << stats.clippedInputSamples - s_eerieAudioPreviousStats.clippedInputSamples
+				<< " outClipDelta=" << stats.clippedOutputSamples - s_eerieAudioPreviousStats.clippedOutputSamples;
+		}
+		s_eerieAudioPreviousStats = stats;
+#endif
+		s_eerieAudioTrace << '\n';
+		s_eerieAudioTrace.flush();
+	}
+}
+
+bool FEerieAudioTraceEnabled()
+{
+	return s_eerieAudioTraceEnabled;
+}
+
+bool FMusicDropoutTraceEnabled()
+{
+	std::lock_guard<std::recursive_mutex> lock(s_musicMutex);
+	return s_musicDropoutTraceEnabled;
+}
+
+void SetMusicDropoutTraceEnabled(bool enabled)
+{
+	std::lock_guard<std::recursive_mutex> lock(s_musicMutex);
+	if (enabled == s_musicDropoutTraceEnabled)
+		return;
+
+	if (s_musicDropoutTrace.is_open())
+	{
+		TraceMusicEvent("trace_disabled");
+		s_musicDropoutTrace.close();
+	}
+	s_musicDropoutTraceEnabled = false;
+	s_musicTraceHadVoices = false;
+	if (!enabled)
+		return;
+
+	const std::filesystem::path directory =
+		ExecutableDirectory() / "MusicDiagnostics";
+	std::error_code error;
+	std::filesystem::create_directories(directory, error);
+	s_musicDropoutTrace.open(directory / "music_dropout_trace.log", std::ios::trunc);
+	s_musicDropoutTraceEnabled = s_musicDropoutTrace.is_open();
+	s_musicTraceHadVoices = !s_music989.voices.empty();
+	if (s_musicDropoutTraceEnabled)
+	{
+		s_musicDropoutTrace << "ProjectCane music dropout trace\n";
+		s_musicDropoutTrace << "BEGIN rolling history (oldest first)\n";
+		for (const std::string& entry : s_musicTraceHistory)
+			s_musicDropoutTrace << entry;
+		s_musicDropoutTrace << "END rolling history\n";
+		TraceMusicEvent("trace_enabled");
+	}
+}
+
+void SetEerieAudioTraceEnabled(const bool enabled)
+{
+	if (enabled == s_eerieAudioTraceEnabled)
+		return;
+
+	if (!enabled)
+	{
+		if (s_eerieAudioTrace.is_open())
+			s_eerieAudioTrace << "EVENT trace_disabled tick=" << g_clock.tickFrame << '\n';
+#ifdef _WIN32
+		if (s_eerieAudioCaptureProcessor != nullptr)
+		{
+			auto capture = s_eerieAudioCaptureProcessor->EndDiagnosticCapture();
+			const std::filesystem::path directory = ExecutableDirectory() / "CameraDiagnostics";
+			WriteDiagnosticWave(directory / "eerie_audio_before_saturator.wav", capture.input);
+			WriteDiagnosticWave(directory / "eerie_audio_after_saturator.wav", capture.output);
+		}
+		s_eerieAudioCaptureProcessor = nullptr;
+		s_eerieAudioPreviousStats = {};
+#endif
+		if (s_eerieAudioTrace.is_open())
+			s_eerieAudioTrace.close();
+		s_eerieAudioTraceEnabled = false;
+		return;
+	}
+
+	const std::filesystem::path directory = ExecutableDirectory() / "CameraDiagnostics";
+	std::error_code error;
+	std::filesystem::create_directories(directory, error);
+	s_eerieAudioTrace.open(directory / "eerie_audio_trace.log", std::ios::trunc);
+	s_eerieAudioTraceEnabled = s_eerieAudioTrace.is_open();
+	if (s_eerieAudioTraceEnabled)
+	{
+		s_eerieAudioTrace << "ProjectCane eerie audio trace\n"
+			<< "EVENT trace_enabled tick=" << g_clock.tickFrame << '\n';
+		s_eerieAudioTrace.flush();
+	}
+}
+
 void UpdateSounds()
 {
 	ServiceAudioDevice();
+	UpdateEerieAudioTrace();
 	if (s_audioRecoveryPending)
 		return;
 
@@ -6160,7 +6534,10 @@ static void UpdateMusicSequencer(double logicalElapsed)
 	{
 		for (MusicSegment& segment : s_music989.activeSegments)
 		{
+			const bool wasComplete = segment.complete;
 			StepMusicSegment(segment);
+			if (!wasComplete && segment.complete)
+				TraceMusicEvent("segment_completed", static_cast<int>(segment.id));
 		}
 		// AME branch/start commands can complete a segment directly instead of
 		// going through StopMusicSegment(). Retail 989SND keys off every voice
@@ -6198,6 +6575,13 @@ static void UpdateMusicSequencer(double logicalElapsed)
 		std::remove_if(s_music989.voices.begin(), s_music989.voices.end(),
 			[](const MusicVoice& active) { return active.voice == nullptr; }),
 		s_music989.voices.end());
+	const bool hasMusicVoices = !s_music989.voices.empty();
+	if (s_musicTraceHadVoices && !hasMusicVoices &&
+		s_musicStream.state == MusicState::Playing)
+	{
+		TraceMusicEvent("voices_dropped_to_zero");
+	}
+	s_musicTraceHadVoices = hasMusicVoices;
 	// Do not leave a completed or rejected sequence advertised as Playing.
 	// StartMusidSong deliberately ignores an already-playing MUSID, so stale
 	// state here otherwise turns a recoverable sequence end into permanent
@@ -6205,6 +6589,7 @@ static void UpdateMusicSequencer(double logicalElapsed)
 	if (s_music989.activeSegments.empty() && s_music989.pendingStarts.empty() &&
 		s_music989.voices.empty())
 	{
+		TraceMusicEvent("sequence_exhausted");
 		s_musicStream.state = MusicState::Loaded;
 		s_musicStream.paused = false;
 		s_music989.tickAccumulator = 0.0;

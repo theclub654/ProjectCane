@@ -15,14 +15,27 @@ public sealed record Sly1IsoDetectionResult(
     string Message,
     string? Serial = null,
     long ExecutableOffset = 0,
-    long ExecutableLength = 0);
+    long ExecutableLength = 0,
+    Sly1DiscRegion Region = Sly1DiscRegion.Unknown);
+
+public enum Sly1DiscRegion
+{
+    Unknown,
+    NtscU,
+    Pal,
+    Japanese
+}
 
 public static partial class Sly1IsoDetector
 {
     private const int SectorSize = 2048;
     private const int PrimaryVolumeDescriptorSector = 16;
-    private const string ExpectedSerial = "SCUS-97198";
-    private const string ExpectedExecutable = "SCUS_971.98";
+    private const string NtscSerial = "SCUS-97198";
+    private const string NtscExecutable = "SCUS_971.98";
+    private const string PalSerial = "SCES-50917";
+    private const string PalExecutable = "SCES_509.17";
+    private const string JapaneseSerial = "SCPS-15036";
+    private const string JapaneseExecutable = "SCPS_150.36";
 
     public static async Task<Sly1IsoDetectionResult> DetectAsync(
         string isoPath,
@@ -96,14 +109,21 @@ public static partial class Sly1IsoDetector
                 return Invalid("SYSTEM.CNF does not contain a valid BOOT2 entry.");
 
             var bootExecutable = NormalizeIsoName(bootMatch.Groups[1].Value);
-            if (!string.Equals(bootExecutable, ExpectedExecutable, StringComparison.OrdinalIgnoreCase))
+            var region = bootExecutable.ToUpperInvariant() switch
+            {
+                NtscExecutable => Sly1DiscRegion.NtscU,
+                PalExecutable => Sly1DiscRegion.Pal,
+                JapaneseExecutable => Sly1DiscRegion.Japanese,
+                _ => Sly1DiscRegion.Unknown
+            };
+            if (region == Sly1DiscRegion.Unknown)
             {
                 return Invalid($"Unsupported PlayStation 2 build ({bootExecutable}).");
             }
 
-            var executable = FindFile(entries, ExpectedExecutable);
+            var executable = FindFile(entries, bootExecutable);
             if (executable is null)
-                return Invalid($"{ExpectedExecutable} was not found in the ISO root.");
+                return Invalid($"{bootExecutable} was not found in the ISO root.");
 
             var executableOffset = (long)executable.Value.ExtentSector * SectorSize;
             var elfMagic = new byte[4];
@@ -113,15 +133,22 @@ public static partial class Sly1IsoDetector
                 elfMagic[2] != (byte)'L' ||
                 elfMagic[3] != (byte)'F')
             {
-                return Invalid($"{ExpectedExecutable} is not a valid ELF executable.");
+                return Invalid($"{bootExecutable} is not a valid ELF executable.");
             }
 
+            var (message, serial) = region switch
+            {
+                Sly1DiscRegion.Pal => ("Sly 1 PAL detected.", PalSerial),
+                Sly1DiscRegion.Japanese => ("Kaitou Sly Cooper Japanese release detected.", JapaneseSerial),
+                _ => ("Sly 1 NTSC-U detected.", NtscSerial)
+            };
             return new Sly1IsoDetectionResult(
                 true,
-                "Sly 1 NTSC detected.",
-                ExpectedSerial,
+                message,
+                serial,
                 executableOffset,
-                executable.Value.DataLength);
+                executable.Value.DataLength,
+                region);
         }
         catch (OperationCanceledException)
         {
