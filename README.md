@@ -4,13 +4,13 @@
 
 # ProjectCane
 
-ProjectCane is a native PC port of the NTSC release of *Sly Cooper and the
+ProjectCane is a native PC port of the release of *Sly Cooper and the
 Thievius Raccoonus*. It began as a map viewer and has grown into a complete,
 playable port for Windows and Linux.
 
 > [!IMPORTANT]
 > ProjectCane does not include the original game's copyrighted data. You must
-> provide a legally obtained NTSC copy of the game and extract its data with
+> provide a legally obtained copy of the game and extract its data with
 > the included File Extractor GUI.
 
 ## Download
@@ -28,7 +28,7 @@ modern Linux distributions.
 
 1. Download and extract the Windows release into a normal writable folder.
 2. Run the included **File Extractor GUI**.
-3. Select your legally obtained NTSC ISO.
+3. Select your legally obtained ISO.
 4. Choose the same folder that contains ProjectCane as the installation
    destination.
 5. Wait for extraction to finish, then launch
@@ -49,7 +49,7 @@ Keep these directories beside the game executable.
    bash "Run File Extractor.sh"
    ```
 
-4. Select your NTSC ISO and extract the game data into the same folder as
+4. Select your ISO and extract the game data into the same folder as
    `ProjectCane-x86_64.AppImage`.
 5. Start the game:
 
