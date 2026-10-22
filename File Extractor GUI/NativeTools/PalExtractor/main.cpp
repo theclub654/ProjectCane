@@ -13,7 +13,7 @@ int wmain(int argc, wchar_t** argv) {
             return 2;
         }
 
-        PalIsoExtractor{}.ExtractDetectedRegion(
+        cane::pal::PalIsoExtractor{}.ExtractDetectedRegion(
             std::filesystem::path(argv[2]),
             std::filesystem::path(argv[3]));
         std::cout << "Extraction completed successfully.\n";
@@ -31,7 +31,7 @@ int main(int argc, char** argv) {
             return 2;
         }
 
-        PalIsoExtractor{}.ExtractDetectedRegion(
+        cane::pal::PalIsoExtractor{}.ExtractDetectedRegion(
             std::filesystem::path(argv[2]),
             std::filesystem::path(argv[3]));
         std::cout << "Extraction completed successfully.\n";

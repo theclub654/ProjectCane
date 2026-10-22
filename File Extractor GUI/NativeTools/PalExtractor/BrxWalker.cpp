@@ -5,8 +5,10 @@
 #include <iostream>
 #include <stdexcept>
 
-BrxWalker::BrxWalker(StringEncoding encoding, BrxRegion region)
-    : encoding_(encoding), region_(region) {}
+namespace cane::pal
+{
+BrxWalker::BrxWalker(StringEncoding encoding, BrxRegion region, bool verbose)
+    : verbose_(verbose), encoding_(encoding), region_(region) {}
 
 void BrxWalker::WalkFile(const std::filesystem::path& path) {
     pal_ = false;
@@ -138,6 +140,9 @@ void BrxWalker::LoadJapaneseLocalizationTable(CBinaryInputStream& stream) {
 }
 
 void BrxWalker::Trace(const char* name,std::size_t begin,std::size_t end) const {
+    if (!verbose_) return;
     std::cout<<std::left<<std::setw(36)<<name<<"  0x"<<std::hex<<begin
         <<"..0x"<<end<<std::dec<<" ("<<(end-begin)<<" bytes)\n";
+}
+
 }

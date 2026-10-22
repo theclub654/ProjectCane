@@ -9,6 +9,9 @@
 #include "shd.h"
 #include "Input.h"
 #include "content.h"
+#ifdef __SWITCH__
+#include "io_worker.h"
+#endif
 #include "../platform/platform.h"
 #include <algorithm>
 #include <cmath>
@@ -26,6 +29,15 @@ constexpr uint32_t kSaveVersion = 3;
 constexpr char kSettingsMagic[8] = { 'P', 'C', 'A', 'N', 'E', 'S', 'Y', 'S' };
 constexpr uint32_t kSettingsVersion = 15;
 int s_lastSaveSlot = -1;
+
+std::filesystem::path RecoverWrittenFile(const std::filesystem::path& path)
+{
+#ifdef __SWITCH__
+    return CaneIo::RecoverFile(path);
+#else
+    return path;
+#endif
+}
 
 struct VideoSaveSettingsV1
 {
@@ -468,9 +480,7 @@ void ValidateVideoSettings(VIDEOSAVESETTINGS& settings)
     const int validInternalResolutions[] = { 0, 360, 448, 480, 720, 1080, 1440, 2160 };
     if (std::find(std::begin(validInternalResolutions), std::end(validInternalResolutions),
         settings.internalResolutionHeight) == std::end(validInternalResolutions))
-    {
         settings.internalResolutionHeight = 0;
-    }
 
     GLint maxSamples = 1;
     glGetIntegerv(GL_MAX_SAMPLES, &maxSamples);
@@ -599,7 +609,7 @@ bool ReadSaveSlot(int slot, GS* save, VIDEOSAVESETTINGS* legacyVideo, bool* hasL
     if (save == nullptr || legacyVideo == nullptr || hasLegacyVideo == nullptr)
         return false;
 
-    std::ifstream stream(SaveSlotPath(slot), std::ios::binary);
+    std::ifstream stream(RecoverWrittenFile(SaveSlotPath(slot)), std::ios::binary);
     SaveFileHeader header{};
     if (!stream.read(reinterpret_cast<char*>(&header), sizeof(header)) ||
         std::memcmp(header.magic, kSaveMagic, sizeof(kSaveMagic)) != 0)
@@ -659,8 +669,11 @@ bool LoadSystemSettings(VIDEOSAVESETTINGS* settings)
 {
     if (settings == nullptr)
         return false;
+#ifdef __SWITCH__
+    CaneIo::Drain();
+#endif
 
-    std::ifstream stream(SystemSettingsPath(), std::ios::binary);
+    std::ifstream stream(RecoverWrittenFile(SystemSettingsPath()), std::ios::binary);
     SettingsFileHeader header{};
     if (!stream.read(reinterpret_cast<char*>(&header), sizeof(header)) ||
         std::memcmp(header.magic, kSettingsMagic, sizeof(kSettingsMagic)) != 0)
@@ -888,18 +901,16 @@ bool LoadSystemSettings(VIDEOSAVESETTINGS* settings)
 }
 }
 
-bool SaveSystemSettings()
+namespace
+{
+bool WriteSystemSettings(const std::filesystem::path& path,
+    const SettingsFileHeader& header, const VIDEOSAVESETTINGS& settings)
 {
     std::error_code ec;
-    std::filesystem::create_directories(SaveDirectory(), ec);
+    std::filesystem::create_directories(path.parent_path(), ec);
     if (ec)
         return false;
 
-    const VIDEOSAVESETTINGS settings = CaptureVideoSettings();
-    const SettingsFileHeader header{ { 'P', 'C', 'A', 'N', 'E', 'S', 'Y', 'S' },
-        kSettingsVersion, static_cast<uint32_t>(sizeof(settings)),
-        SaveChecksum(&settings, sizeof(settings)) };
-    const std::filesystem::path path = SystemSettingsPath();
     std::filesystem::path temporary = path;
     temporary += ".tmp";
     std::ofstream stream(temporary, std::ios::binary | std::ios::trunc);
@@ -914,6 +925,24 @@ bool SaveSystemSettings()
     stream.close();
 
     return cane::AtomicReplace(temporary, path);
+}
+}
+
+bool SaveSystemSettings()
+{
+
+    const VIDEOSAVESETTINGS settings = CaptureVideoSettings();
+    const SettingsFileHeader header{ { 'P', 'C', 'A', 'N', 'E', 'S', 'Y', 'S' },
+        kSettingsVersion, static_cast<uint32_t>(sizeof(settings)),
+        SaveChecksum(&settings, sizeof(settings)) };
+    const std::filesystem::path path = SystemSettingsPath();
+#ifdef __SWITCH__
+    return CaneIo::QueueSettings([path,header,settings] {
+        return WriteSystemSettings(path,header,settings);
+    });
+#else
+    return WriteSystemSettings(path,header,settings);
+#endif
 }
 
 void StartupSaveBlot(SAVEBLOT* psaveblot)
@@ -946,7 +975,7 @@ void PostAutoSaveLoad(SAVEBLOT* psaveblot)
 
 void SetSaveBlots(SAVEBLOT* psaveblot, BLOTS blots)
 {
-    if (blots == BLOTS_Hidden) 
+    if (blots == BLOTS_Hidden)
         psaveblot->fSaveComplete = 0;
 
     SetBlotBlots(psaveblot, blots);

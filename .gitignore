@@ -45,3 +45,10 @@ Sly1-Release/*.dll
 Sly1-Release/Worlds/
 Sly1-Release/Cutscenes/
 *.iso
+
+# Switch build products
+.switch-sdk/
+build-switch*/
+dist-switch*/
+__pycache__/
+*.pyc

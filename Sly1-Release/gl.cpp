@@ -6,6 +6,18 @@
 #include "game.h"
 #include "debug.h"
 #include "runtime_error.h"
+#ifdef CANE_DEKO3D
+#include "deko/backend.h"
+#endif
+#ifdef __SWITCH__
+#include "graphics.h"
+namespace CaneGraphics
+{
+GLFWwindow* Window() { return g_gl.window; }
+void Initialize() { g_gl.InitGL(); }
+void Shutdown() { g_gl.TerminateGL(); }
+}
+#endif
 #include <cmath>
 #include <cstdlib>
 #include <cstring>
@@ -159,12 +171,14 @@ void GL::InitGL()
 	glfwSetMouseButtonCallback(window, MOUSE::MouseButtonCallback);
 	glfwSetScrollCallback(window, MOUSE::MouseWheelCallback);
 
+#ifndef CANE_DEKO3D
 	if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
 	{
 		ReportRuntimeError("Graphics",
 			"GLAD could not load the required OpenGL functions. Update the graphics driver and verify OpenGL 4.3 support.");
 		throw std::runtime_error("OpenGL function loading failed.");
 	}
+#endif
 
 	// GLFW window dimensions are logical screen coordinates and can differ
 	// from the drawable pixel dimensions on a DPI-scaled display. Initialize
@@ -187,6 +201,7 @@ void GL::InitGL()
 	presentHeight = framebufferHeight;
 	aspectRatio = width / height;
 
+#ifndef CANE_DEKO3D
 	const char* glVendor = reinterpret_cast<const char*>(glGetString(GL_VENDOR));
 	const char* glRenderer = reinterpret_cast<const char*>(glGetString(GL_RENDERER));
 	const char* glVersion = reinterpret_cast<const char*>(glGetString(GL_VERSION));
@@ -228,10 +243,15 @@ void GL::InitGL()
 		throw std::runtime_error("GPU shader resource limits are insufficient.");
 	}
 
+#endif
+
 	// ========== ImGui Setup ==========
 	IMGUI_CHECKVERSION();
 	ImGui::CreateContext();
 	ImGuiIO& io = ImGui::GetIO();
+#ifdef __SWITCH__
+    io.IniFilename = nullptr;
+#endif
 	ImGui_ImplGlfw_InitForOpenGL(window, true);
 	ImGui_ImplOpenGL3_Init("#version 430");
 	ImGui::StyleColorsDark();

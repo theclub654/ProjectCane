@@ -4,6 +4,7 @@
 #include "totals.h"
 #include "pzo.h"
 #include "tv.h"
+#include "binoc_mask_layout.h"
 #include "cplook.h"
 #include "mouse.h"
 
@@ -120,43 +121,11 @@ namespace
 
     void DrawBinocMaskGeometry(GLuint vao, GLsizei indexCount)
     {
-        constexpr float virtualWidth = 640.0f;
-        constexpr float centreLeft = 240.0f;
-        constexpr float centreRight = 400.0f;
-
         const float scale = g_gl.uiScale;
-        const float screenWidth = static_cast<float>(g_gl.width);
-        const float screenCentre = screenWidth * 0.5f;
-        const float centreOrigin = screenCentre - virtualWidth * 0.5f * scale;
-        const float leftJoin = centreOrigin + centreLeft * scale;
-        const float rightJoin = centreOrigin + centreRight * scale;
+        const auto layout = CaneBinoc::LayoutMask(g_gl.width, scale,
+            g_gl.renderWidth, g_gl.renderHeight);
 
-        struct Region
-        {
-            GLint clipLeft;
-            GLint clipRight;
-            float scaleX;
-            float translateX;
-        };
 
-        // Very narrow windows can place the joins outside the framebuffer.
-        // Clamp them so a region never receives a negative scale or scissor.
-        const float clampedLeftJoin = glm::clamp(leftJoin, 0.0f, screenWidth);
-        const float clampedRightJoin = glm::clamp(rightJoin, clampedLeftJoin, screenWidth);
-        const float rasterScaleX = static_cast<float>(g_gl.renderWidth) / screenWidth;
-        const GLint clampedLeftCut = static_cast<GLint>(std::lround(clampedLeftJoin * rasterScaleX));
-        const GLint clampedRightCut = static_cast<GLint>(std::lround(clampedRightJoin * rasterScaleX));
-        const GLint rasterWidth = g_gl.renderWidth;
-        const GLint rasterHeight = g_gl.renderHeight;
-        const float leftScale = clampedLeftJoin / centreLeft;
-        const float rightScale = (screenWidth - clampedRightJoin) / (virtualWidth - centreRight);
-        const Region regions[] =
-        {
-            { 0, clampedLeftCut, leftScale, 0.0f },
-            { clampedLeftCut, clampedRightCut, scale, centreOrigin },
-            { clampedRightCut, rasterWidth, rightScale,
-                clampedRightJoin - centreRight * rightScale }
-        };
 
         const GLboolean scissorWasEnabled = glIsEnabled(GL_SCISSOR_TEST);
         GLint oldScissor[4];
@@ -164,10 +133,10 @@ namespace
         glEnable(GL_SCISSOR_TEST);
         glBindVertexArray(vao);
 
-        for (const Region& region : regions)
+        for (const auto& region : layout.regions)
         {
             glScissor(region.clipLeft, 0,
-                std::max(region.clipRight - region.clipLeft, 0), rasterHeight);
+                region.clipRight - region.clipLeft, layout.clipHeight);
 
             glm::mat4 model(1.0f);
             model = glm::translate(model,
