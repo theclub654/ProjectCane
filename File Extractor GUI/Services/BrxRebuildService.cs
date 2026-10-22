@@ -17,7 +17,8 @@ internal static class BrxRebuildService
         IReadOnlyList<string> languagePaths,
         string outputPath,
         Sly1DiscRegion region,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        string? levelIdentityMapPath = null)
     {
         var expectedCount = region == Sly1DiscRegion.Japanese ? 2 : 5;
         if (languagePaths.Count != expectedCount)
@@ -46,7 +47,8 @@ internal static class BrxRebuildService
                 var rebuiltPath = Path.Combine(outputDirectory,
                     Path.GetFileNameWithoutExtension(temporaryPath) + "_Rebuilt.brx");
                 await RunRebuilderAsync(new[] { temporaryPath }, rebuiltPath, cancellationToken,
-                    region == Sly1DiscRegion.Japanese ? "japanese" : "pal");
+                    region == Sly1DiscRegion.Japanese ? "japanese" : "pal",
+                    levelIdentityMapPath);
                 await ValidatePcBrxAsync(rebuiltPath, requirePalLocalization: true,
                     expectedVersion: 17, cancellationToken: cancellationToken);
                 rebuiltPaths.Add(rebuiltPath);
@@ -470,7 +472,8 @@ internal static class BrxRebuildService
         IReadOnlyList<string> inputs,
         string rebuiltPath,
         CancellationToken cancellationToken,
-        string? region = null)
+        string? region = null,
+        string? levelIdentityMapPath = null)
     {
         var startInfo = new ProcessStartInfo
         {
@@ -484,6 +487,8 @@ internal static class BrxRebuildService
             startInfo.ArgumentList.Add(input);
         if (region is not null)
             startInfo.ArgumentList.Add(region);
+        if (levelIdentityMapPath is not null)
+            startInfo.ArgumentList.Add(levelIdentityMapPath);
 
         using var process = new Process { StartInfo = startInfo };
         var output = new StringBuilder();

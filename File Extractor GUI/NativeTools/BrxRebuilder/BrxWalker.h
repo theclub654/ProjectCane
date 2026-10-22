@@ -6,6 +6,7 @@
 #include <cstdint>
 #include <array>
 #include <filesystem>
+#include <unordered_map>
 #include <string>
 #include <vector>
 
@@ -24,6 +25,7 @@ enum class BrxSourceRegion { Auto, NtscU, Pal, Japanese };
 class BrxWalker {
 public:
     explicit BrxWalker(StringEncoding encoding, BrxSourceRegion region = BrxSourceRegion::Auto);
+    void LoadLevelIdentityMap(const std::filesystem::path& path);
     void WalkFile(const std::filesystem::path& path);
     [[nodiscard]] const WalkStats& Stats() const { return stats_; }
     GeometrySummary ReadGeom(CBinaryInputStream& stream);
@@ -81,6 +83,7 @@ private:
     StringEncoding encoding_;
     BrxSourceRegion region_;
     bool pal_{};
+    std::unordered_map<std::uint32_t, std::string> levelIdentityMap_;
     std::vector<std::string> palLocalizationStrings_;
     std::vector<std::string> referenceLocalizationStrings_;
     WalkStats stats_{};

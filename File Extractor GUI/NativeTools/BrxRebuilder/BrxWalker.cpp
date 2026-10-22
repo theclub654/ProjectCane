@@ -18,6 +18,20 @@ void BrxWalker::WalkFile(const std::filesystem::path& path) {
     WalkFileInternal(path);
 }
 
+void BrxWalker::LoadLevelIdentityMap(const std::filesystem::path& path) {
+    std::ifstream input(path);
+    if (!input) throw std::runtime_error("could not open PAL level identity map " + path.string());
+    std::uint32_t identity = 0;
+    std::string filename;
+    while (input >> identity >> std::quoted(filename)) {
+        const auto [iterator, inserted] = levelIdentityMap_.emplace(identity, filename);
+        if (!inserted && iterator->second != filename)
+            throw std::runtime_error("conflicting PAL level identity " + std::to_string(identity));
+    }
+    if (!input.eof()) throw std::runtime_error("invalid PAL level identity map " + path.string());
+    if (levelIdentityMap_.empty()) throw std::runtime_error("PAL level identity map is empty");
+}
+
 void BrxWalker::WalkFileInternal(const std::filesystem::path& path) {
     stats_ = {};
     pal_ = false;
@@ -380,10 +394,13 @@ void BrxWalker::ConvertLevelDescriptor(CBinaryInputStream& stream) {
                     break;
                 }
             }
+        } else if (pal_ && !levelIdentityMap_.empty()) {
+            const auto match = levelIdentityMap_.find(searchKey);
+            if (match != levelIdentityMap_.end()) selectedFilename = match->second.c_str();
         } else if (pal_ && searchKey >= 27 && searchKey < 27 + palLevels.size() * 5) {
-            // PAL assigns five consecutive search keys to each level (English,
-            // French, German, Spanish, Italian). All five variants rebuild to
-            // the same language-directory-local BRX filename.
+            // Compatibility fallback for direct/manual use without an ISO
+            // identity map. The extractor always supplies the authoritative
+            // mapping because PAL descriptor identities are not level-order.
             selectedFilename = palLevels[(searchKey - 27) / 5];
         } else {
             const auto match = std::find_if(std::begin(levels), std::end(levels),

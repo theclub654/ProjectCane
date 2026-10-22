@@ -88,6 +88,9 @@ public sealed partial class Sly1PalExtractionService
             throw new InvalidDataException($"{regionName} extraction failed: {errors.ToString().Trim()}");
 
         var worldsDirectory = Path.Combine(outputFolder, "Worlds");
+        var levelIdentityMapPath = Path.Combine(outputFolder, ".pal-level-identities.txt");
+        if (region == Sly1DiscRegion.Pal && !File.Exists(levelIdentityMapPath))
+            throw new InvalidDataException("The PAL extractor did not produce its level identity map.");
         var levels = Directory.EnumerateFiles(worldsDirectory, "*.brx", SearchOption.AllDirectories)
             .Where(path => IsLanguageLevel(path, languages))
             .OrderBy(path => path, StringComparer.OrdinalIgnoreCase)
@@ -121,7 +124,8 @@ public sealed partial class Sly1PalExtractionService
                 extractedLevelCount + index,
                 totalWorkItems));
             await BrxRebuildService.RebuildLocalizedCombinedAsync(
-                languagePaths, outputPath, region, cancellationToken);
+                languagePaths, outputPath, region, cancellationToken,
+                region == Sly1DiscRegion.Pal ? levelIdentityMapPath : null);
         }
 
         progress?.Report(new Sly1ExtractionProgress(

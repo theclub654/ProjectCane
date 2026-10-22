@@ -611,6 +611,28 @@ std::filesystem::path LevelDirectory(const std::filesystem::path& worldsDirector
     return worldsDirectory / "The Cold Heart of Hate" / levelName;
 }
 
+void WritePalLevelIdentityMap(std::span<const std::byte> iso, std::size_t table,
+    const std::filesystem::path& outputDirectory) {
+    std::filesystem::create_directories(outputDirectory);
+    const auto path = outputDirectory / ".pal-level-identities.txt";
+    std::ofstream output(path, std::ios::trunc);
+    if (!output) throw std::runtime_error("Could not write " + path.string());
+    std::unordered_set<std::uint32_t> identities;
+    for (std::size_t level = 0; level < kLevelCount; ++level) {
+        const auto record = table + level * kRecordSize;
+        const std::string filename = std::string(kLevelNames[level]) + ".brx";
+        for (std::size_t slot = 0; slot < kLanguageCount; ++slot) {
+            const auto descriptor = record + slot * kDescriptorSize;
+            const auto identity = U32(iso, descriptor + 8) ^ U32(iso, descriptor + 24);
+            if (!identities.insert(identity).second)
+                throw std::runtime_error("Duplicate PAL level descriptor identity " +
+                    std::to_string(identity));
+            output << identity << ' ' << std::quoted(filename) << '\n';
+        }
+    }
+    if (!output) throw std::runtime_error("Could not finish " + path.string());
+}
+
 void ExtractSlot(std::span<const std::byte> iso, const IsoFile& elf, std::size_t table,
     const std::filesystem::path& outputDirectory, std::size_t slot) {
     if (slot >= kLanguageCount) throw std::runtime_error("PAL language slot must be 0 through 4");
@@ -710,6 +732,7 @@ void PalIsoExtractor::Extract(const std::filesystem::path& isoPath,
     const auto table = VaToIsoOffset(iso, elf, kPalLevelTableVa);
     const auto slot = static_cast<std::size_t>(language);
     if (table + kLevelCount * kRecordSize > iso.size()) throw std::runtime_error("PAL level table lies outside the executable");
+    WritePalLevelIdentityMap(iso, table, outputDirectory);
     ExtractSoundBanks(iso, outputDirectory / "Worlds" / "Sound Banks", kPalSoundBanks, "PAL");
     ExtractPalCutscenes(iso, elf, outputDirectory / "Cutscenes");
     ExtractSlot(iso, elf, table, outputDirectory, slot);
@@ -724,6 +747,7 @@ void PalIsoExtractor::ExtractAllLanguages(const std::filesystem::path& isoPath,
         throw std::runtime_error("Use automatic extraction for a Japanese SCPS ISO");
     const auto table = VaToIsoOffset(iso, elf, kPalLevelTableVa);
     if (table + kLevelCount * kRecordSize > iso.size()) throw std::runtime_error("PAL level table lies outside the executable");
+    WritePalLevelIdentityMap(iso, table, outputDirectory);
     ExtractSoundBanks(iso, outputDirectory / "Worlds" / "Sound Banks", kPalSoundBanks, "PAL");
     ExtractPalCutscenes(iso, elf, outputDirectory / "Cutscenes");
     for (std::size_t slot = 0; slot < kLanguageCount; ++slot)
