@@ -62,6 +62,54 @@ The AppImage includes the non-system runtime libraries needed by ProjectCane;
 graphics drivers and normal operating-system libraries are supplied by the
 host system.
 
+### Nixos
+1. Download and extract the complete Linux package into a normal writable
+   folder. Do not run it from inside the archive.
+2. Make a shell.nix file inside the ProjectCane-Linux-x64 folder. This file will make nixos be FHS compliant and will install dependencies that are required to run both the file extractor and the actual project. Dont worry as it works the same as a normal nix-shell -p command. Make sure to look through it though. Everything you should put inside the file is below this step by step guide.
+4. Navigate to the ProjectCane-Linux-x64 folder inside a terminal
+5. Type  nix-shell here and wait until you can type commands again.
+6. After its done you will notice that everything looks exactly the same as it did before you typed the command. Dont worry youre inside the nix-shell its just not obvious. After that type ```"/home/user/Downloads/ProjectCane-Linux-x64/Run File Extractor.sh" ```
+7. Select your ISO and extract the game data into the ProjectCane-Linux-x64 folder
+8. Once its done open a new terminal instance that is inside the ProjectCane-Linux-x64 folder and type these two commands. ```nix-shell``` and ```EGL_VENDOR_LIBRARY_FILENAMES=/run/opengl-driver/share/glvnd/egl_vendor.d/10_nvidia.json __EGL_EXTERNAL_PLATFORM_CONFIG_DIRS=/run/opengl-driver/share/egl/egl_external_platform.d "./Run ProjectCane.sh"```
+
+```{
+  pkgs ? import <nixpkgs-unstable> { },
+}:
+
+(pkgs.buildFHSEnv {
+  name = "simple-x11-env";
+
+  targetPkgs = pkgs: with pkgs; [
+    udev
+    alsa-lib
+    libx11
+    libxcursor
+    libxrandr
+    icu
+    fontconfig
+    freetype
+    xorg.libICE
+    xorg.libSM
+    openssl
+    ffmpeg_8
+    SDL2
+    libglvnd
+    mesa-demos
+  ];
+
+  profile = ''
+    export LD_LIBRARY_PATH="/run/opengl-driver/lib:${pkgs.libglvnd}/lib''${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+  '';
+
+  multiPkgs = pkgs: with pkgs; [
+    udev
+    alsa-lib
+  ];
+
+  runScript = "bash";
+}).env
+```
+
 ## Save Data and Settings
 
 On Windows, writable game data is stored beside the executable, including the
