@@ -4,6 +4,7 @@
 #include "game.h"
 #include "screen.h"
 #include "sound.h"
+#include "sw.h"
 #include "transition.h"
 #include "ui.h"
 #include "gl.h"
@@ -787,10 +788,17 @@ namespace
             ReportRuntimeError("FMV", "Decode failed for '%s': %s (FFmpeg code %d)",
                 videoPathUtf8.c_str(), AvError(result).c_str(), result);
         SetMasterVolume(masterVolumeBeforeMovie);
-        // Startup playback permanently discarded splash.brx's sequencer above;
-        // the destination world starts a fresh song after loading. Other
-        // movies restore the song they interrupted when no transition follows.
-        if (!musicWasPaused && !isStartupSplash && g_transition.m_fPending == 0)
+        // Startup playback permanently discarded the current sequencer above.
+        // The movie can be deferred until after the wipe completes, by which
+        // point the destination world (Paris) has already loaded and started
+        // its song, so restart the current world's song rather than relying on
+        // a later load. Splash.brx has no song, so this is a no-op when the
+        // movie plays before the transition. Other movies restore the song
+        // they interrupted when no transition follows.
+        if (isStartupSplash && g_transition.m_fPending == 0 &&
+            g_psw != nullptr && g_psw->musid != MUSID_Nil)
+            StartMusidSong(g_psw->musid, g_psw->musicFileName.data());
+        else if (!musicWasPaused && !isStartupSplash && g_transition.m_fPending == 0)
             ContinueMusicSequencer(!ambientSoundsWerePaused);
         if (ambientSoundsWerePaused)
             PauseAmbientSounds();
