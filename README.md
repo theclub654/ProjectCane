@@ -70,7 +70,11 @@ host system.
 5. Type  nix-shell here and wait until you can type commands again.
 6. After its done you will notice that everything looks exactly the same as it did before you typed the command. Dont worry youre inside the nix-shell its just not obvious. After that type ```"/home/user/Downloads/ProjectCane-Linux-x64/Run File Extractor.sh" ```
 7. Select your ISO and extract the game data into the ProjectCane-Linux-x64 folder
-8. Once its done open a new terminal instance that is inside the ProjectCane-Linux-x64 folder and type these two commands. ```nix-shell``` and ```EGL_VENDOR_LIBRARY_FILENAMES=/run/opengl-driver/share/glvnd/egl_vendor.d/10_nvidia.json __EGL_EXTERNAL_PLATFORM_CONFIG_DIRS=/run/opengl-driver/share/egl/egl_external_platform.d "./Run ProjectCane.sh"```
+8. Once its done open a new terminal instance that is inside the ProjectCane-Linux-x64 folder and enter the nix shell by typing ```nix-shell```
+9.Then type the copy and paste the following commands ``` __EGL_VENDOR_LIBRARY_FILENAMES=/run/opengl-driver/share/glvnd/egl_vendor.d/10_nvidia.json \
+__EGL_EXTERNAL_PLATFORM_CONFIG_DIRS=/run/opengl-driver/share/egl/egl_external_platform.d \
+./RunProjectCane.sh```
+
 
 ```{
   pkgs ? import <nixpkgs-unstable> { },
