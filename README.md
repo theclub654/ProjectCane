@@ -73,7 +73,7 @@ host system.
 8. Once its done open a new terminal instance that is inside the ProjectCane-Linux-x64 folder and enter the nix shell by typing ```nix-shell```
 9.Then type the copy and paste the following commands ``` __EGL_VENDOR_LIBRARY_FILENAMES=/run/opengl-driver/share/glvnd/egl_vendor.d/10_nvidia.json \
 __EGL_EXTERNAL_PLATFORM_CONFIG_DIRS=/run/opengl-driver/share/egl/egl_external_platform.d \
-./RunProjectCane.sh```
+"./Run ProjectCane.sh"```
 
 
 ```{
