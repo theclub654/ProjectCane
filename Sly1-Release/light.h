@@ -32,6 +32,9 @@ struct alignas(16) LightSSBOHeader
 	int numLights;
 	int pad[3];
 };
+#ifdef CANE_GL41
+static_assert(sizeof(LightSSBOHeader) == 16, "the header is lightTex texel 0");
+#endif
 
 struct LIGHTBLK
 {
@@ -53,6 +56,28 @@ struct LIGHTBLK
 	glm::vec4 falloffBias;
 };
 
+#ifdef CANE_GL41
+// LIGHTBLK is uploaded as-is and read by glob.vert's FetchLightAt as 13
+// RGBA32UI texels (kLightTextureFormat); these pin the texel each field lands in.
+static_assert(sizeof(LIGHTBLK) == 208, "LIGHTBLK is 13 RGBA32UI texels");
+static_assert(offsetof(LIGHTBLK, lightk) == 0, "texel 0.x");
+static_assert(offsetof(LIGHTBLK, fExcludeDynamicObjects) == 4, "texel 0.y");
+static_assert(offsetof(LIGHTBLK, fActive) == 8, "texel 0.z");
+static_assert(offsetof(LIGHTBLK, fDynamic) == 12, "texel 0.w");
+static_assert(offsetof(LIGHTBLK, pos) == 16, "texel 1");
+static_assert(offsetof(LIGHTBLK, dir) == 32, "texel 2");
+static_assert(offsetof(LIGHTBLK, color) == 48, "texel 3");
+static_assert(offsetof(LIGHTBLK, constant) == 64, "texel 4.x");
+static_assert(offsetof(LIGHTBLK, invDst) == 68, "texel 4.y");
+static_assert(offsetof(LIGHTBLK, pad4) == 72, "texel 4.z");
+static_assert(offsetof(LIGHTBLK, dst) == 76, "texel 4.w");
+static_assert(offsetof(LIGHTBLK, ru) == 80, "texel 5");
+static_assert(offsetof(LIGHTBLK, du) == 96, "texel 6");
+static_assert(offsetof(LIGHTBLK, matFrustrum) == 112, "texels 7-10");
+static_assert(offsetof(LIGHTBLK, falloffScale) == 176, "texel 11");
+static_assert(offsetof(LIGHTBLK, falloffBias) == 192, "texel 12");
+
+#endif
 struct ACTIVELIGHTS
 {
 	int numStaticLights;
@@ -60,6 +85,13 @@ struct ACTIVELIGHTS
 	int numDynamicLights;
 	int dynamicLightIndices[MAX_LIGHTS];
 };
+#ifdef CANE_GL41
+// Read by glob.vert as activeLightTex, one R32I texel per int.
+static_assert(sizeof(ACTIVELIGHTS) == 2056, "ACTIVELIGHTS is 514 R32I texels");
+static_assert(offsetof(ACTIVELIGHTS, staticLightIndices) == 4, "texels 1-256");
+static_assert(offsetof(ACTIVELIGHTS, numDynamicLights) == 1028, "texel 257");
+static_assert(offsetof(ACTIVELIGHTS, dynamicLightIndices) == 1032, "texels 258-513");
+#endif
 
 class LIGHT : public ALO
 {
@@ -148,6 +180,9 @@ void AllocateLightBlkList();
 bool FindSwDynamicLights(glm::vec3* pposCenter, float sRadius);
 void PrepareSwLights(SW* psw, CM* pcm);
 void UpdateTvLightGpu(LIGHT* plight, int iTvLight);
+#ifdef CANE_GL41
+void BindSwLightTextures();
+#endif
 void DeallocateLightBlkList();
 void DeleteLight(LIGHT* plight);
 void DeallocateLightVector();

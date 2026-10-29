@@ -10,6 +10,9 @@
 #include "button.h"
 #include "wm.h"
 #include <algorithm>
+#ifdef CANE_GL41
+#include <cassert>
+#endif
 #include <cmath>
 #include <cstring>
 #include <iterator>
@@ -26,7 +29,9 @@ namespace
 		GLenum activeTexture = (std::numeric_limits<GLenum>::max)();
 		GLuint textures2D[32]{};
 		GLuint textures2DArray[32]{};
+#ifndef CANE_GL41
 		GLuint ssboBindings[16]{};
+#endif
 		GLint blendEnabled = -1;
 		GLint depthEnabled = -1;
 		GLint cullEnabled = -1;
@@ -47,8 +52,10 @@ namespace
 				(std::numeric_limits<GLuint>::max)());
 			std::fill(std::begin(textures2DArray), std::end(textures2DArray),
 				(std::numeric_limits<GLuint>::max)());
+#ifndef CANE_GL41
 			std::fill(std::begin(ssboBindings), std::end(ssboBindings),
 				(std::numeric_limits<GLuint>::max)());
+#endif
 			blendEnabled = depthEnabled = cullEnabled = depthMask = -1;
 			depthFunc = blendEquationRgb = blendEquationAlpha =
 				blendSrcRgb = blendDstRgb = blendSrcAlpha = blendDstAlpha =
@@ -252,6 +259,22 @@ namespace
 		}
 	}
 
+#ifdef CANE_GL41
+	// Leaves `unit` active; draws switch back to unit 0 when done. Texture 0
+	// binds the unit's placeholder (glshaders.h) so no buffer sampler's unit
+	// is ever empty.
+	void BindBufferTexture(GLuint unit, GLuint texture)
+	{
+		SetActiveTextureUnit(unit);
+		glBindTexture(GL_TEXTURE_BUFFER, BufferTextureOrPlaceholder(static_cast<GLint>(unit), texture));
+	}
+
+	// dysh.vert, celborder.vert and glob.vert read bones from this buffer texture.
+	void BindBoneMatrixTexture(const GLOBSET* pglobset)
+	{
+		BindBufferTexture(kBoneMatrixTextureUnit, pglobset->boneMatrixTexture);
+	}
+#else
 	void BindShaderStorageBuffer(GLuint index, GLuint buffer)
 	{
 		if (index >= std::size(s_renderState.ssboBindings) ||
@@ -262,6 +285,7 @@ namespace
 				s_renderState.ssboBindings[index] = buffer;
 		}
 	}
+#endif
 
 	struct alignas(16) BLIPGPU
 	{
@@ -329,8 +353,13 @@ namespace
 				{
 					const BLIPDRAWRANGE& range = s_blipFrameRanges[group.firstRange + i];
 					BindTexture2D(0, range.texture);
+#ifdef CANE_GL41
+					DrawBlipInstances(static_cast<GLsizei>(sizeof(BLIPGPU)), range.baseInstance,
+						range.instanceCount);
+#else
 					glDrawElementsInstancedBaseInstance(GL_TRIANGLES, 6, GL_UNSIGNED_SHORT,
 						nullptr, range.instanceCount, range.baseInstance);
+#endif
 				}
 			};
 
@@ -351,6 +380,11 @@ namespace
 				drawRanges();
 			}
 		}
+#ifdef CANE_GL41
+
+		// Put the instance attributes back at instance 0, as gl.cpp set them up.
+		PointBlipInstanceAttributes(static_cast<GLsizei>(sizeof(BLIPGPU)), 0);
+#endif
 	}
 }
 
@@ -864,6 +898,19 @@ void DrawSw(SW* psw, CM* pcm)
 	// Other renderers (notably ImGui) may have changed OpenGL state since the
 	// previous world frame. Re-learn it lazily instead of querying the driver.
 	InvalidateCachedRenderState();
+#ifdef CANE_GL41
+	// Every buffer-sampler unit starts the frame with its placeholder; the
+	// draws below bind the textures they use over it. A unit can also lose
+	// its texture between frames when a world is deleted.
+	for (const BufferSamplerFormat& entry : kBufferSamplerFormats)
+		BindBufferTexture(static_cast<GLuint>(entry.unit), 0);
+	// The same for glob's material samplers (units 0-2): one-way draws only
+	// bind unit 1, and the driver flags any empty unit a program's samplers
+	// name. whiteTex is what BindGlobThreeWayTextures binds for a missing map.
+	for (GLuint unit = 0; unit < 3; ++unit)
+		BindTexture2D(unit, whiteTex);
+	SetActiveTextureUnit(0);
+#endif
 	/*std::cout << numFrameObjs << "\n";*/
 	//numFrameObjs = 0;
 
@@ -891,7 +938,18 @@ void DrawSw(SW* psw, CM* pcm)
 	// authored cel-border width with the internal resolution so resolving the
 	// scene back to the window does not make outlines appear thinner.
 	const float celBorderRasterScale = static_cast<float>(g_gl.renderHeight) / static_cast<float>((std::max)(g_gl.presentHeight, 1));
+#ifdef CANE_GL41
+	// GL 4.1 core rejects widths above 1 (GL_INVALID_VALUE); celborder's
+	// geometry stage widens the outlines in the scene target instead.
+	SetCelBorderLineWidth(glCelBorderShader.ID, glslCelLineWidthPx, glslCelViewportPx,
+		4.125f * celBorderRasterScale, g_gl.renderWidth, g_gl.renderHeight);
+	// Wide lines take another shape with MSAA. Set every frame, after any
+	// ApplyMsaaSettings this frame, from the target the outlines draw into.
+	glProgramUniform1i(glCelBorderShader.ID, glslCelMultisampled,
+		g_gl.fboMSAA != 0 && g_sceneFbo == g_gl.fboMSAA);
+#else
 	glLineWidth(4.125f * celBorderRasterScale);
+#endif
 
 	glEnable(GL_CULL_FACE);
 
@@ -931,6 +989,9 @@ void DrawSw(SW* psw, CM* pcm)
 	// Dynamic maps have now been rendered. Bind the shared projected-shadow
 	// array once before regular geometry is submitted.
 	BindSwShadowTextures(psw);
+#ifdef CANE_GL41
+	BindSwLightTextures();
+#endif
 
 	if (g_backGroundCount > 0)
 	{
@@ -1259,7 +1320,15 @@ void DrawSw(SW* psw, CM* pcm)
 		EndFrameStream(&blipStream);
 		BindVertexArray(0);
 		glBindBuffer(GL_ARRAY_BUFFER, 0);
+#ifdef CANE_GL41
+		// One-way globs drawn after this pass (the hub tour saw the foreground
+		// TV speaker) only bind unit 1, and glob's ambientMap reads unit 0:
+		// the 4.1 driver flags an empty unit ("unit 3 GLD_TEXTURE_INDEX_2D is
+		// unloadable"). whiteTex is what DrawSw starts units 0-2 with.
+		BindTexture2D(0, whiteTex);
+#else
 		BindTexture2D(0, 0);
+#endif
 		glDepthMask(true);
 		glDisable(GL_BLEND);
 		glEnable(GL_CULL_FACE);
@@ -1423,10 +1492,23 @@ void DrawDysh(RPL *prpl)
 	glUniformMatrix4fv(glslDyshModel, 1, GL_FALSE, glm::value_ptr(prpl->ro.model));
 
 	GLOBSET* pglobset = &pdysh->globset;
+#ifdef CANE_GL41
+	const bool fHasBones = pglobset->cbnd > 0 && pglobset->boneMatrixSSBO != 0 &&
+		pglobset->boneMatrixTexture != 0;
+
+	// dysh.vert reads bones from a buffer texture (no SSBOs on GL 4.1). Material
+	// rendering expects unit 0 to be active, so switch back afterwards.
+	if (fHasBones)
+	{
+		BindBoneMatrixTexture(pglobset);
+		SetActiveTextureUnit(0);
+	}
+#else
 	const bool fHasBones = pglobset->cbnd > 0 && pglobset->boneMatrixSSBO != 0;
 
 	if (fHasBones)
 		BindShaderStorageBuffer(9, pglobset->boneMatrixSSBO);
+#endif
 
 	for (int i = 0; i < pglobset->aglob.size(); i++)
 	{
@@ -1467,6 +1549,63 @@ void DrawGlob(RPL* prpl)
 	BindFrameStreamRange(&ropStream, prpl->streamOffset, sizeof(ROGL));
 
 	GLOBSET* pglobset = prpl->palo != nullptr ? &prpl->palo->globset : nullptr;
+#ifdef CANE_GL41
+	// glob.vert reads bones, pose deltas, pose weights and warp state through
+	// buffer textures (no SSBOs on GL 4.1).
+	const GLuint poseDposTexture = GetBufferTexture(pglob->poseDposSSBO);
+	const GLuint poseDnormalTexture = GetBufferTexture(pglob->poseDnormalSSBO);
+	const GLuint poseWeightTexture = GetBufferTexture(GetGlobsetPoseWeightBuffer(pglobset));
+
+	const bool fHasBones = pglobset != nullptr && pglobset->cbnd > 0 && pglobset->boneMatrixSSBO != 0 &&
+		pglobset->boneMatrixTexture != 0;
+	const bool fHasPoses = pglobset != nullptr && pglob->poseCount > 0 &&
+		poseDposTexture != 0 && poseDnormalTexture != 0 &&
+		poseWeightTexture != 0 &&
+		pglobset->agPoses.size() >= static_cast<size_t>(pglob->poseCount);
+
+	glUniform1i(glslfPose, fHasPoses ? 1 : 0);
+
+	if (fHasBones)
+		BindBoneMatrixTexture(pglobset);
+
+	if (fHasPoses)
+	{
+		BindBufferTexture(kPoseDposTextureUnit, poseDposTexture);
+		BindBufferTexture(kPoseDnormalTextureUnit, poseDnormalTexture);
+		BindBufferTexture(kPoseWeightTextureUnit, poseWeightTexture);
+		glUniform1i(glslPoseCount, pglob->poseCount);
+	}
+
+	if (prpl->ro.warpType != WARP_NONE)
+		BindBufferTexture(kWarpStateTextureUnit, GetBufferTexture(pglob->pwarpGlob->ssboState));
+
+	// A relight draw bakes the glob's static three-way lighting into its
+	// cache by transform feedback, subglob by subglob; a baked draw reads the
+	// cache through its buffer texture. The cache is never bound as a texture
+	// while it is being baked; the unit holds its placeholder instead.
+	const bool fBakeCache = pglob->fThreeWay == 1 && prpl->ro.trlk == TRLK_Relight &&
+		pglob->ssboCachedMaterial != 0;
+	if (pglob->fThreeWay == 1)
+	{
+		if (prpl->ro.trlk == TRLK_Relight)
+			BindBufferTexture(kCachedMaterialTextureUnit, 0);
+		else if (prpl->ro.trlk == TRLK_Baked && prpl->ro.fDynamic == 0)
+			BindBufferTexture(kCachedMaterialTextureUnit, GetBufferTexture(pglob->ssboCachedMaterial));
+	}
+
+	// glob.cpp packs the subglobs back to back from vertex 0 and sizes the
+	// cache to their total, one record per vertex.
+	GLint cacheVertices = 0;
+	GLint bakedEnd = 0;
+	if (fBakeCache)
+	{
+		for (const SUBGLOB& sub : pglob->asubglob)
+			cacheVertices += static_cast<GLint>(sub.vertices.size());
+	}
+
+	// Material rendering expects unit 0 to be active.
+	SetActiveTextureUnit(0);
+#else
 	const GLuint poseWeightSSBO = GetGlobsetPoseWeightBuffer(pglobset);
 
 	const bool fHasBones = pglobset != nullptr && pglobset->cbnd > 0 && pglobset->boneMatrixSSBO != 0;
@@ -1494,17 +1633,24 @@ void DrawGlob(RPL* prpl)
 			(prpl->ro.trlk == TRLK_Baked && prpl->ro.fDynamic == 0))
 			BindShaderStorageBuffer(7, pglob->ssboCachedMaterial);
 	}
+#endif
 
 	BindVertexArray(pglob->VAO);
 	if (fDebugWireframe)
 	{
 		glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+#ifdef CANE_GL41
+		// GL 4.1 core only allows 1 px lines: the debug wireframe stays 1 px there.
+#else
 		glLineWidth(2.0f);
+#endif
 	}
 
+#ifndef CANE_GL41
 	if (prpl->ro.warpType != WARP_NONE)
 		BindShaderStorageBuffer(6, pglob->pwarpGlob->ssboState);
 
+#endif
 	for (int i = 0; i < static_cast<int>(pglob->asubglob.size()); ++i)
 	{
 		SUBGLOB& sub = pglob->asubglob[i];
@@ -1637,6 +1783,21 @@ void DrawGlob(RPL* prpl)
 		}
 
 		glUniform1f(glslUnSelfIllum, sub.unSelfIllum);
+#ifdef CANE_GL41
+
+		// Bake with this subglob's uniforms, before its draw. The draw
+		// itself still lights live, dynamic lights included.
+		if (fBakeCache)
+		{
+			const GLint count = static_cast<GLint>(sub.vertices.size());
+			const bool fInside = sub.baseVertex >= bakedEnd && sub.baseVertex + count <= cacheVertices;
+			assert(fInside && "subglob cache ranges must lie inside the cache and not overlap");
+			if (fInside && count > 0)
+				BakeCachedMaterial(pglob->ssboCachedMaterial, sub.baseVertex, count, glslfCacheBake);
+			bakedEnd = (std::max)(bakedEnd, sub.baseVertex + count);
+		}
+
+#endif
 		pglob->PFNDRAW(sub.baseVertex, sub.firstIndex, sub.indexCount);
 	}
 
@@ -1651,6 +1812,13 @@ void DrawGlob(RPL* prpl)
 
 	if (prpl->ro.trlk == TRLK_Relight)
 	{
+#ifdef CANE_GL41
+		// The subglob loop baked the cache. Transform feedback writes are
+		// visible to later texel fetches without a barrier (glMemoryBarrier
+		// is GL 4.2; the 4.1 driver doesn't export it).
+		if (pglob->trlk == TRLK_BakePending)
+			pglob->trlk = TRLK_Baked;
+#else
 		// Make vertex-shader SSBO writes visible before any later packet reads
 		// this glob's cached three-way material.
 		glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
@@ -1658,6 +1826,7 @@ void DrawGlob(RPL* prpl)
 		if (pglob->trlk == TRLK_BakePending)
 			pglob->trlk = TRLK_Baked;
 
+#endif
 	}
 	else if (fQueuedCacheWrite && pglob->trlk == TRLK_BakePending)
 	{
@@ -1673,6 +1842,34 @@ void DrawCelBorder(RPLCEL* prplcel)
 
 	GLOB* pglob = prplcel->pglob;
 	GLOBSET* pglobset = prplcel->palo != nullptr ? &prplcel->palo->globset : nullptr;
+#ifdef CANE_GL41
+	// celborder.vert reads buffer textures (no SSBOs on GL 4.1).
+	const GLuint edgePoseDposTexture = GetBufferTexture(pglob->edgePoseDposSSBO);
+	const GLuint poseWeightTexture = GetBufferTexture(GetGlobsetPoseWeightBuffer(pglobset));
+
+	const bool fSkin = pglobset != nullptr && pglobset->cbnd > 0 && pglobset->boneMatrixSSBO != 0 &&
+		pglobset->boneMatrixTexture != 0;
+	const bool fPose = pglobset != nullptr && pglob->poseCount > 0 &&
+		edgePoseDposTexture != 0 && poseWeightTexture != 0 &&
+		pglobset->agPoses.size() >= static_cast<size_t>(pglob->poseCount);
+
+	BindBufferTexture(kEdgeTextureUnit, GetBufferTexture(pglob->edgeSSBO));
+
+	if (fSkin)
+	{
+		BindBoneMatrixTexture(pglobset);
+	}
+
+	if (fPose)
+	{
+		BindBufferTexture(kEdgePoseDposTextureUnit, edgePoseDposTexture);
+		BindBufferTexture(kPoseWeightTextureUnit, poseWeightTexture);
+		glUniform1i(glslCelPoseCount, pglob->poseCount);
+	}
+
+	// Material rendering expects unit 0 to be active.
+	SetActiveTextureUnit(0);
+#else
 	const GLuint poseWeightSSBO = GetGlobsetPoseWeightBuffer(pglobset);
 
 	const bool fSkin = pglobset != nullptr && pglobset->cbnd > 0 && pglobset->boneMatrixSSBO != 0;
@@ -1693,10 +1890,35 @@ void DrawCelBorder(RPLCEL* prplcel)
 		BindShaderStorageBuffer(14, poseWeightSSBO);
 		glUniform1i(glslCelPoseCount, pglob->poseCount);
 	}
+#endif
 
 	glUniform1i(glslCelSkin, fSkin ? 1 : 0);
 	glUniform1i(glslCelPose, fPose ? 1 : 0);
+#ifdef CANE_GL41
+	// The 4.1 core driver rejects draws with no vertex array bound
+	// (GL_INVALID_OPERATION), and DrawSqtr ends with a raw
+	// glBindVertexArray(0) the cache does not see. celborder.vert reads no
+	// attributes, so any vertex array will do; bind it raw so a stale cache
+	// entry cannot skip the bind, and keep the cache in step.
+	glBindVertexArray(g_gl.gao);
+	s_renderState.vao = g_gl.gao;
+
+	// celborder.geom's quads are counter-clockwise on screen, which
+	// GL_CULL_FACE keeps only with back faces culled and CCW front faces
+	// (the shared build's GL_LINES are never culled). Draw with that state
+	// whatever the caller left, then give the caller its own back.
+	GLint frontFace = GL_CCW;
+	GLint cullFace = GL_BACK;
+	glGetIntegerv(GL_FRONT_FACE, &frontFace);
+	glGetIntegerv(GL_CULL_FACE_MODE, &cullFace);
+	glFrontFace(GL_CCW);
+	glCullFace(GL_BACK);
+#endif
 	glDrawArrays(GL_LINES, 0, pglob->edgeCount * 2);
+#ifdef CANE_GL41
+	glFrontFace(static_cast<GLenum>(frontFace));
+	glCullFace(static_cast<GLenum>(cullFace));
+#endif
 	glUniform1i(glslCelSkin, 0);
 	glUniform1i(glslCelPose, 0);
 }
@@ -2055,7 +2277,11 @@ void DrawSwCollisionAll(CM* pcm)
 	glBindBufferBase(GL_UNIFORM_BUFFER, 1, geomUBO);
 	glBindBuffer(GL_UNIFORM_BUFFER, geomUBO);
 
+#ifdef CANE_GL41
+	// GL 4.1 core only allows 1 px lines: the debug view stays 1 px there.
+#else
 	glLineWidth(2.0);
+#endif
 	glUniform4f(glslGeomDebugColor, 0.76f, 0.76f, 0.76f, 1.0f);
 
 	glm::mat4 model{};
@@ -2099,7 +2325,11 @@ void DrawSwDialogTriggers(CM* pcm)
 
 	glBindBufferBase(GL_UNIFORM_BUFFER, 1, geomUBO);
 	glBindBuffer(GL_UNIFORM_BUFFER, geomUBO);
+#ifdef CANE_GL41
+	// GL 4.1 core only allows 1 px lines: the debug view stays 1 px there.
+#else
 	glLineWidth(4.0f);
+#endif
 
 	glm::mat4 model{};
 	for (SO* pso : allSWSoObjs)

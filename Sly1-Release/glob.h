@@ -156,6 +156,15 @@ struct alignas(16) MATERIAL
 	glm::vec4 midtone;
 	glm::vec4 light;
 };
+#ifdef CANE_GL41
+// One GLOB::ssboCachedMaterial record: glob.vert's transform feedback writes
+// ambient, skips 12 bytes, then midtone and light (kGlobFeedbackVaryings), and
+// reads them back as three RGBA32F texels.
+static_assert(sizeof(MATERIAL) == 48, "MATERIAL is kCachedMaterialStride bytes");
+static_assert(offsetof(MATERIAL, ambient) == 0, "texel 3 * id + 0, .x");
+static_assert(offsetof(MATERIAL, midtone) == 16, "texel 3 * id + 1");
+static_assert(offsetof(MATERIAL, light) == 32, "texel 3 * id + 2");
+#endif
 
 struct RPLCEL
 {
@@ -347,6 +356,10 @@ struct GLOBSET
 	std::vector <BND> abnd;
 	std::vector <OID> mpibndoid;
 	GLuint boneMatrixSSBO;
+#ifdef CANE_GL41
+	// GL_TEXTURE_BUFFER view of boneMatrixSSBO (RGBA32F, a column per texel) for dysh.vert.
+	GLuint boneMatrixTexture;
+#endif
 	std::vector<glm::mat4> boneMatrices;
 	uint64_t cglob;
 	std::vector <GLOB>  aglob;

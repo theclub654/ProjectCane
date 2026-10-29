@@ -30,8 +30,15 @@ void EnsureBasicSidebag(BASIC* pbasic)
 
     CSidebag* const psidebag = pbasic->psidebag.get();
     const std::uintptr_t sidebagAddress = reinterpret_cast<std::uintptr_t>(psidebag);
+#if defined(__APPLE__)
+    // libc++'s make_shared (PsidebagNew) puts the object 8 bytes past a
+    // 16-byte boundary, so a valid sidebag is only aligned to CSidebag itself.
+    const bool fCorrupt = psidebag != nullptr &&
+        (sidebagAddress < 0x10000u || (sidebagAddress & (alignof(CSidebag) - 1u)) != 0u);
+#else
     const bool fCorrupt = psidebag != nullptr &&
         (sidebagAddress < 0x10000u || (sidebagAddress & 0x0fu) != 0u);
+#endif
 
     if (fCorrupt)
     {

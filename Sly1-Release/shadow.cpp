@@ -1,5 +1,8 @@
 #include "shadow.h"
 #include "dysh.h"
+#ifdef CANE_GL41
+#include "glshaders.h"
+#endif
 #include <algorithm>
 #include <cmath>
 #include <iostream>
@@ -559,6 +562,37 @@ void AllocateShadows(SW* psw)
 			<< ignoredCount << " shadow(s).\n";
 	}
 
+#ifdef CANE_GL41
+	// ------------------------------------------------------------
+	// Main shadows buffer (glob reads it as shadowTex)
+	// ------------------------------------------------------------
+	glGenBuffers(1, &shadowSsbo);
+	glBindBuffer(GL_TEXTURE_BUFFER, shadowSsbo);
+
+	const GLsizeiptr headerSize = sizeof(SHADOWSSBOHEADER);
+	const GLsizeiptr shadowSize = sizeof(SHADOWBLK) * shadowBlk.size();
+	const GLsizeiptr totalSize = headerSize + shadowSize;
+
+	glBufferData(GL_TEXTURE_BUFFER, totalSize, nullptr, GL_DYNAMIC_DRAW);
+	CreateBufferTexture(shadowSsbo, kShadowTextureFormat);
+
+	SHADOWSSBOHEADER header = {};
+	header.numShadows = (int)shadowBlk.size();
+
+	glBufferSubData(GL_TEXTURE_BUFFER, 0, headerSize, &header);
+	glBufferSubData(GL_TEXTURE_BUFFER, headerSize, shadowSize, shadowBlk.data());
+
+	// ------------------------------------------------------------
+	// Active-shadows buffer (glob reads it as activeShadowTex)
+	// ------------------------------------------------------------
+	glGenBuffers(1, &activeShadowsSsbo);
+	glBindBuffer(GL_TEXTURE_BUFFER, activeShadowsSsbo);
+
+	glBufferData(GL_TEXTURE_BUFFER, sizeof(ACTIVESHADOWS), &activeShadows, GL_DYNAMIC_DRAW);
+	CreateBufferTexture(activeShadowsSsbo, kActiveShadowTextureFormat);
+
+	glBindBuffer(GL_TEXTURE_BUFFER, 0);
+#else
 	// ------------------------------------------------------------
 	// Main shadows SSBO
 	// ------------------------------------------------------------
@@ -588,6 +622,7 @@ void AllocateShadows(SW* psw)
 	glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(ACTIVESHADOWS), &activeShadows, GL_DYNAMIC_DRAW);
 
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+#endif
 }
 
 void PrepareSwShadows(SW *psw, CM *pcm)
@@ -598,7 +633,11 @@ void PrepareSwShadows(SW *psw, CM *pcm)
 
 	const GLsizeiptr headerSize = sizeof(SHADOWSSBOHEADER);
 
+#ifdef CANE_GL41
+	glBindBuffer(GL_TEXTURE_BUFFER, shadowSsbo);
+#else
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, shadowSsbo);
+#endif
 
 	for (SHADOW* pshadow = psw->dlShadow.pshadowFirst; pshadow; pshadow = pshadow->dle.pshadowNext)
 	{
@@ -665,18 +704,30 @@ void PrepareSwShadows(SW *psw, CM *pcm)
 		if (shadowTextureArray == 0 || pshadow->glTexture == 0)
 			continue;
 
+#ifdef CANE_GL41
+		// Update only this shadow's slot in the main shadow buffer
+		GLsizeiptr offset = headerSize + GLsizeiptr(pshadow->ssboIndex) * sizeof(SHADOWBLK);
+		glBufferSubData(GL_TEXTURE_BUFFER, offset,  sizeof(SHADOWBLK), &pshadow->rsh);
+#else
 		// Update only this shadow's slot in the main shadow SSBO
 		GLsizeiptr offset = headerSize + GLsizeiptr(pshadow->ssboIndex) * sizeof(SHADOWBLK);
 		glBufferSubData(GL_SHADER_STORAGE_BUFFER, offset,  sizeof(SHADOWBLK), &pshadow->rsh);
+#endif
 
 		// Store original global shadow index
 		activeShadows.shadowsIndices[activeShadows.numShadows++] = pshadow->ssboIndex;
 	}
 
 	// Update active shadow list
+#ifdef CANE_GL41
+	glBindBuffer(GL_TEXTURE_BUFFER, activeShadowsSsbo);
+	glBufferSubData(GL_TEXTURE_BUFFER, 0, sizeof(ACTIVESHADOWS), &activeShadows);
+	glBindBuffer(GL_TEXTURE_BUFFER, 0);
+#else
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, activeShadowsSsbo);
 	glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, sizeof(ACTIVESHADOWS), &activeShadows);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+#endif
 }
 
 void BindSwShadowTextures(SW* psw)
@@ -685,6 +736,21 @@ void BindSwShadowTextures(SW* psw)
 	glActiveTexture(GL_TEXTURE0 + SHADOW_TEXTURE_UNIT);
 	glBindTexture(GL_TEXTURE_2D_ARRAY, shadowTextureArray);
 
+#ifdef CANE_GL41
+	// Before a level has a shadow map the unit would be empty, which the 4.1
+	// driver flags for glob's shadowTextureArray sampler (glshaders.h).
+	if (shadowTextureArray == 0)
+		glBindTexture(GL_TEXTURE_2D_ARRAY, PlaceholderTexture2DArray());
+
+	// glob reads the shadow records and the active list as buffer textures;
+	// without the buffers (no level yet) the units keep their placeholders.
+	glActiveTexture(GL_TEXTURE0 + kShadowTextureUnit);
+	glBindTexture(GL_TEXTURE_BUFFER, BufferTextureOrPlaceholder(kShadowTextureUnit, GetBufferTexture(shadowSsbo)));
+	glActiveTexture(GL_TEXTURE0 + kActiveShadowTextureUnit);
+	glBindTexture(GL_TEXTURE_BUFFER,
+		BufferTextureOrPlaceholder(kActiveShadowTextureUnit, GetBufferTexture(activeShadowsSsbo)));
+
+#endif
 	// Material rendering expects texture unit zero to be active.
 	glActiveTexture(GL_TEXTURE0);
 
@@ -718,12 +784,18 @@ void DeallocateSwShadows()
 
 	if (shadowSsbo != 0)
 	{
+#ifdef CANE_GL41
+		DeleteBufferTexture(shadowSsbo);
+#endif
 		glDeleteBuffers(1, &shadowSsbo);
 		shadowSsbo = 0;
 	}
 
 	if (activeShadowsSsbo != 0)
 	{
+#ifdef CANE_GL41
+		DeleteBufferTexture(activeShadowsSsbo);
+#endif
 		glDeleteBuffers(1, &activeShadowsSsbo);
 		activeShadowsSsbo = 0;
 	}

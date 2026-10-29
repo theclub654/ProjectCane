@@ -1447,9 +1447,15 @@ void UpdateAloInfluences(ALO* palo, RO* pro)
 
 	if (globset.boneMatrixSSBO != 0 && !globset.boneMatrices.empty())
 	{
+#ifdef CANE_GL41
+		glBindBuffer(GL_TEXTURE_BUFFER, globset.boneMatrixSSBO);
+		glBufferSubData(GL_TEXTURE_BUFFER, 0, static_cast<GLsizeiptr>(globset.boneMatrices.size() * sizeof(glm::mat4)), globset.boneMatrices.data());
+		glBindBuffer(GL_TEXTURE_BUFFER, 0);
+#else
 		glBindBuffer(GL_SHADER_STORAGE_BUFFER, globset.boneMatrixSSBO);
 		glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, static_cast<GLsizeiptr>(globset.boneMatrices.size() * sizeof(glm::mat4)), globset.boneMatrices.data());
 		glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+#endif
 	}
 }
 
@@ -4537,8 +4543,17 @@ void DeleteModel(ALO* palo)
 
 	auto DeleteBuffer = [&](GLuint& buffer)
 	{
+#ifdef CANE_GL41
+		if (buffer != 0 && deletedBuffers.insert(buffer).second)
+		{
+			// GL reuses buffer names, so drop the buffer's texture view first.
+			DeleteBufferTexture(buffer);
+			glDeleteBuffers(1, &buffer);
+		}
+#else
 		if (buffer != 0 && deletedBuffers.insert(buffer).second)
 			glDeleteBuffers(1, &buffer);
+#endif
 
 		buffer = 0;
 	};
@@ -4551,6 +4566,11 @@ void DeleteModel(ALO* palo)
 		vertexArray = 0;
 	};
 
+#ifdef CANE_GL41
+	if (palo->globset.boneMatrixTexture != 0)
+		glDeleteTextures(1, &palo->globset.boneMatrixTexture);
+	palo->globset.boneMatrixTexture = 0;
+#endif
 	DeleteBuffer(palo->globset.boneMatrixSSBO);
 	DeleteGlobsetPoseWeightBuffer(&palo->globset);
 

@@ -1,0 +1,7 @@
+# AddressSanitizer suppressions for the macos-asan build (CMakePresets.json).
+# Only third-party or system code goes here (ASan can only suppress reports
+# raised inside an interceptor: interceptor_via_fun / interceptor_via_lib).
+# Every entry has its reason above it.
+#
+# No entries: the full suite with the game data produced no AddressSanitizer
+# reports.

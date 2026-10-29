@@ -1,0 +1,1193 @@
+#version 430 core
+
+#define RKO_OneWay   0
+#define RKO_ThreeWay 1
+
+#define WARP_NONE 0
+#define WARP_POS  1
+#define WARP_UV   2
+#define WARP_BOTH 3
+
+#define LIGHTK_Direction 0
+#define LIGHTK_Position  1
+#define LIGHTK_Frustrum  2
+#define LIGHTK_Spot      3
+
+#define MAX_LIGHTS 256
+#define MAX_SHADOWS 255
+#define MAX_OBJECT_SHADOWS 12
+
+#define TRLK_Relight 0
+#define TRLK_Baked   1
+#define TRLK_Dynamic 2
+#define TRLK_Quick   3
+
+#define FOG_NONE 0
+#define FOG_PS2  1
+#define FOG_PS3  2
+
+
+layout (location = 0) in vec3  vertex;
+layout (location = 1) in vec3  normal;
+layout (location = 2) in vec4  color;
+layout (location = 3) in vec2  uv;
+layout (location = 4) in uvec4 boneIndices;
+layout (location = 5) in vec4  boneWeights;
+
+struct SWP // Scene world properties
+{
+    float uShadow;
+    float uMidtone;
+    int   fogType;
+    float fogNear;
+    float fogFar;
+    float fogMax;
+    vec4  fogColor;
+}; uniform SWP swp;
+
+// probe:begin LIGHT
+struct LIGHT
+{
+    int   lightk;
+    int   fExcludeDynamicObjects;
+    int   fActive;
+    int   fDynamic;
+    vec4  pos;
+    vec4  dir;
+    vec4  color;
+    float constant;
+    float invDst;
+    float pad4;
+    float dst;
+    vec4  ru;
+    vec4  du;
+    mat4  matFrustrum;
+    vec4  falloffScale;
+    vec4  falloffBias;
+};
+// probe:end LIGHT
+
+// probe:begin SHADOW
+struct SHADOW
+{
+    mat4  matWorldToUv;
+    mat4  matClipToUv;
+    vec4  rgba;
+    float wMin;
+    float wMax;
+    float gReserved;
+    float wFadeMin;
+    int   textureSlot;
+    int   clampS;
+    int   clampT;
+    int   padTexture2;
+    vec4  posEffect;
+    float sRadiusEffect;
+    int   fDynamic;
+    int   shdk;
+    int   _pad1;
+    vec4  normalCast;
+};
+// probe:end SHADOW
+
+struct MATERIAL
+{
+    float ambient;
+    vec4  midtone;
+    vec4  light;
+};
+
+layout(std140) uniform CMGL
+{
+    mat4 matWorldToClip;
+    vec4 cameraPos;
+} cm;
+
+layout(std140) uniform RO
+{
+    mat4  model; 
+    float uAlpha;
+    float uFog;
+    float darken;
+    int   grfglob;
+    int   blotTvLight;
+    int   warpType;
+    int   warpCmat;
+    int   warpCvtx;
+    mat4  amatDpos[4];
+    mat4  amatDuv[4];
+    int   fDynamic;
+    float sRadius;
+    int   fDynamicLight;
+    int   trlk;
+    vec4  posCenter;
+} op;
+
+// Lights come from light.cpp's g_lightSsbo as a buffer texture: texel 0 is
+// the header (numLights in .x), then 13 RGBA32UI texels per LIGHTBLK. The TV
+// portrait lights (g_tvLightSsbo) are the same records with no header. Float
+// fields come back through uintBitsToFloat.
+uniform usamplerBuffer lightTex;
+uniform usamplerBuffer tvLightTex;
+
+// probe:begin FetchLightAt
+LIGHT FetchLightAt(usamplerBuffer records, int texel)
+{
+    LIGHT lt;
+    ivec4 flags = ivec4(texelFetch(records, texel));
+    lt.lightk = flags.x;
+    lt.fExcludeDynamicObjects = flags.y;
+    lt.fActive = flags.z;
+    lt.fDynamic = flags.w;
+    lt.pos = uintBitsToFloat(texelFetch(records, texel + 1));
+    lt.dir = uintBitsToFloat(texelFetch(records, texel + 2));
+    lt.color = uintBitsToFloat(texelFetch(records, texel + 3));
+    vec4 falloff = uintBitsToFloat(texelFetch(records, texel + 4));
+    lt.constant = falloff.x;
+    lt.invDst = falloff.y;
+    lt.pad4 = falloff.z;
+    lt.dst = falloff.w;
+    lt.ru = uintBitsToFloat(texelFetch(records, texel + 5));
+    lt.du = uintBitsToFloat(texelFetch(records, texel + 6));
+    lt.matFrustrum = mat4(uintBitsToFloat(texelFetch(records, texel + 7)),
+                          uintBitsToFloat(texelFetch(records, texel + 8)),
+                          uintBitsToFloat(texelFetch(records, texel + 9)),
+                          uintBitsToFloat(texelFetch(records, texel + 10)));
+    lt.falloffScale = uintBitsToFloat(texelFetch(records, texel + 11));
+    lt.falloffBias = uintBitsToFloat(texelFetch(records, texel + 12));
+    return lt;
+}
+// probe:end FetchLightAt
+
+// probe:begin FetchLight
+LIGHT FetchLight(int i)
+{
+    return FetchLightAt(lightTex, 1 + 13 * i);
+}
+// probe:end FetchLight
+
+// probe:begin FetchTvLight
+LIGHT FetchTvLight(int i)
+{
+    return FetchLightAt(tvLightTex, 13 * i);
+}
+// probe:end FetchTvLight
+
+// probe:begin LightHeaderCount
+int LightHeaderCount()
+{
+    return int(texelFetch(lightTex, 0).x);
+}
+// probe:end LightHeaderCount
+
+// probe:begin AvailableLightCount
+int AvailableLightCount()
+{
+    return min(clamp(LightHeaderCount(), 0, MAX_LIGHTS), max(textureSize(lightTex) - 1, 0) / 13);
+}
+// probe:end AvailableLightCount
+
+// probe:begin TvLightCount
+int TvLightCount()
+{
+    return textureSize(tvLightTex) / 13;
+}
+// probe:end TvLightCount
+
+// light.cpp's g_activeLightsSsbo (ACTIVELIGHTS) as a buffer texture, one int
+// per texel: numStaticLights at texel 0, staticLightIndices at 1-256,
+// numDynamicLights at 257, dynamicLightIndices at 258-513.
+uniform isamplerBuffer activeLightTex;
+
+// probe:begin StaticLightCount
+int StaticLightCount()
+{
+    return texelFetch(activeLightTex, 0).x;
+}
+// probe:end StaticLightCount
+
+// probe:begin StaticLightIndex
+int StaticLightIndex(int i)
+{
+    return texelFetch(activeLightTex, 1 + i).x;
+}
+// probe:end StaticLightIndex
+
+// probe:begin DynamicLightCount
+int DynamicLightCount()
+{
+    return texelFetch(activeLightTex, 1 + MAX_LIGHTS).x;
+}
+// probe:end DynamicLightCount
+
+// probe:begin DynamicLightIndex
+int DynamicLightIndex(int i)
+{
+    return texelFetch(activeLightTex, 2 + MAX_LIGHTS + i).x;
+}
+// probe:end DynamicLightIndex
+
+// Shadow records come from shadow.cpp's shadowSsbo as a buffer texture: texel
+// 0 is the header (numLevelShadows in .x), then 14 RGBA32UI texels per
+// SHADOWBLK. Float fields come back through uintBitsToFloat.
+uniform usamplerBuffer shadowTex;
+
+// probe:begin ShadowCount
+int ShadowCount()
+{
+    int numLevelShadows = int(texelFetch(shadowTex, 0).x);
+    int wholeRecords = max(textureSize(shadowTex) - 1, 0) / 14;
+    return min(max(numLevelShadows, 0), wholeRecords);
+}
+// probe:end ShadowCount
+
+// probe:begin FetchShadow
+SHADOW FetchShadow(int i)
+{
+    int texel = 1 + 14 * i;
+    SHADOW shadow;
+    shadow.matWorldToUv = mat4(uintBitsToFloat(texelFetch(shadowTex, texel)),
+                               uintBitsToFloat(texelFetch(shadowTex, texel + 1)),
+                               uintBitsToFloat(texelFetch(shadowTex, texel + 2)),
+                               uintBitsToFloat(texelFetch(shadowTex, texel + 3)));
+    shadow.matClipToUv = mat4(uintBitsToFloat(texelFetch(shadowTex, texel + 4)),
+                              uintBitsToFloat(texelFetch(shadowTex, texel + 5)),
+                              uintBitsToFloat(texelFetch(shadowTex, texel + 6)),
+                              uintBitsToFloat(texelFetch(shadowTex, texel + 7)));
+    shadow.rgba = uintBitsToFloat(texelFetch(shadowTex, texel + 8));
+    vec4 depths = uintBitsToFloat(texelFetch(shadowTex, texel + 9));
+    shadow.wMin = depths.x;
+    shadow.wMax = depths.y;
+    shadow.gReserved = depths.z;
+    shadow.wFadeMin = depths.w;
+    ivec4 sampling = ivec4(texelFetch(shadowTex, texel + 10));
+    shadow.textureSlot = sampling.x;
+    shadow.clampS = sampling.y;
+    shadow.clampT = sampling.z;
+    shadow.padTexture2 = sampling.w;
+    shadow.posEffect = uintBitsToFloat(texelFetch(shadowTex, texel + 11));
+    uvec4 effect = texelFetch(shadowTex, texel + 12);
+    shadow.sRadiusEffect = uintBitsToFloat(effect.x);
+    shadow.fDynamic = int(effect.y);
+    shadow.shdk = int(effect.z);
+    shadow._pad1 = int(effect.w);
+    shadow.normalCast = uintBitsToFloat(texelFetch(shadowTex, texel + 13));
+    return shadow;
+}
+// probe:end FetchShadow
+
+// shadow.cpp's activeShadowsSsbo (ACTIVESHADOWS) as a buffer texture: texel 0
+// is the count, then one level-shadow index per texel.
+uniform isamplerBuffer activeShadowTex;
+
+// probe:begin ActiveShadowCount
+int ActiveShadowCount()
+{
+    return texelFetch(activeShadowTex, 0).x;
+}
+// probe:end ActiveShadowCount
+
+// probe:begin ActiveShadowIndex
+int ActiveShadowIndex(int i)
+{
+    return texelFetch(activeShadowTex, 1 + i).x;
+}
+// probe:end ActiveShadowIndex
+
+// wr.cpp's WRBGLOB_GL::ssboState as a buffer texture: one RGBA32F texel per
+// warp state vec4, laid out [imat * warpCvtx + vertex].
+uniform samplerBuffer warpStateTex;
+
+// GLOB::ssboCachedMaterial as a buffer texture: one 48-byte MATERIAL per
+// vertex, three RGBA32F texels (ambient in .x of the first, then midtone and
+// light). render.cpp's DrawGlob fills it by transform feedback with
+// fCacheBake set, which keeps the dynamic lights out of the bake.
+uniform samplerBuffer cachedMaterialTex;
+uniform int fCacheBake;
+
+// Bone matrices as a buffer texture over GLOBSET::boneMatrixSSBO: one
+// column-major mat4 per bone, one column per RGBA32F texel. dysh.vert and
+// celborder.vert read the same texture.
+uniform samplerBuffer boneMatrixTex;
+
+// probe:begin BoneMatrix
+mat4 BoneMatrix(uint bone)
+{
+    int texel = int(bone) * 4;
+    return mat4(texelFetch(boneMatrixTex, texel),
+                texelFetch(boneMatrixTex, texel + 1),
+                texelFetch(boneMatrixTex, texel + 2),
+                texelFetch(boneMatrixTex, texel + 3));
+}
+// probe:end BoneMatrix
+
+// GLOB's pose deltas (poseDposSSBO, poseDnormalSSBO) as RGBA32F buffer
+// textures, laid out [vertex * poseCount + pose], and the globset's pose
+// weights (glob.cpp's pose-weight sidecar) as R32F, one weight per texel.
+uniform samplerBuffer poseDposTex;
+uniform samplerBuffer poseDnormalTex;
+uniform samplerBuffer poseWeightTex;
+
+uniform int fPose;
+uniform int poseCount;
+
+uniform int   rko;
+uniform int   fAnimateUv;
+uniform vec2  uvOffsets;
+uniform float unSelfIllum;
+
+uniform int fSkin;
+uniform vec3  subGlobPosCenter;
+uniform float subGlobRadius;
+
+vec3 normalLocal;
+vec3 normalWorld;
+vec2 uvLocal;
+
+float objectShadow;
+float objectMidtone;
+vec3  light;
+
+MATERIAL baseMaterial;
+
+layout(location = 0) out vec4 worldPos;
+layout(location = 1) out vec3 worldNormal;
+layout(location = 2) out vec4 vertexColor;
+layout(location = 3) out vec2 texcoord;
+
+layout(location = 4) out MATERIAL material;
+layout(location = 7) flat out int vShadowCount;
+layout(location = 8) flat out ivec4 vShadowIndices[3];
+layout(location = 11) out float fogIntensity;
+
+void ApplyWarp(inout vec4 vLocal, inout vec2 uvLocal);
+void ApplyPoses(inout vec4 positionLocal, inout vec3 normalLocal);
+void StartThreeWay();
+void InitGlobLighting();
+void ApplyStaticLightsRelight();
+void ApplyStaticLights();
+void ApplyQuickLights();
+void ApplyDynamicLights();
+void AddDynamicMaterial();
+vec4 AddDirectionLight(LIGHT dirlight);
+vec4 AddDynamicLight(vec4 dir, vec4 color, vec4 ru, vec4 du);
+bool SphereIntersectsPositionLight(LIGHT L, vec3 center, float radius);
+vec4 AddPositionLight(LIGHT pointlight);
+vec4 AddPositionLightDynamic(LIGHT pointlight);
+bool SphereIntersectsFrustum(LIGHT L, vec3 center, float radius);
+vec4 AddFrustrumLight(LIGHT frustumlight);
+vec4 AddFrustrumLightDynamic(LIGHT frustumlight);
+bool FShadowValid(SHADOW shadow, int grfglob);
+bool ShadowIntersectsSphere(SHADOW shadow, vec3 objectCenter, float objectRadius);
+void CacheReadMaterial();
+void ProcessGlobLighting();
+void CalculateFog();
+void CalculateFogPS2();
+void CalculateFogPS3();
+
+void SetObjectShadowIndex(int slot, int value)
+{
+    vShadowIndices[slot >> 2][slot & 3] = value;
+}
+
+vec3 SafeNormalize(vec3 value)
+{
+    float length2 = dot(value, value);
+    return length2 > 1e-12 ? value * inversesqrt(length2) : vec3(0.0);
+}
+
+void main()
+{
+    worldPos = vec4(0.0);
+    worldNormal = vec3(0.0);
+    vertexColor = vec4(0.0);
+    texcoord = vec2(0.0);
+    material.ambient = 0.0;
+    material.midtone = vec4(0.0);
+    material.light = vec4(0.0);
+    vShadowCount = 0;
+
+    for (int i = 0; i < 3; ++i)
+        vShadowIndices[i] = ivec4(-1);
+    fogIntensity = 0.0;
+
+    vec4 positionLocal = vec4(vertex, 1.0);
+    normalLocal = normal;
+
+    if (fPose != 0)
+        ApplyPoses(positionLocal, normalLocal);
+
+    if (fSkin != 0)
+    {
+        mat4 matSkin = mat4(0.0);
+        float totalWeight = 0.0;
+
+        int boneCount = textureSize(boneMatrixTex) / 4;
+
+        if (boneWeights.x != 0.0 && boneIndices.x < uint(boneCount))
+        {
+            matSkin += BoneMatrix(boneIndices.x) * boneWeights.x;
+            totalWeight += boneWeights.x;
+        }
+
+        if (boneWeights.y != 0.0 && boneIndices.y < uint(boneCount))
+        {
+            matSkin += BoneMatrix(boneIndices.y) * boneWeights.y;
+            totalWeight += boneWeights.y;
+        }
+
+        if (boneWeights.z != 0.0 && boneIndices.z < uint(boneCount))
+        {
+            matSkin += BoneMatrix(boneIndices.z) * boneWeights.z;
+            totalWeight += boneWeights.z;
+        }
+
+        if (boneWeights.w != 0.0 && boneIndices.w < uint(boneCount))
+        {
+            matSkin += BoneMatrix(boneIndices.w) * boneWeights.w;
+            totalWeight += boneWeights.w;
+        }
+
+        if (totalWeight > 0.0)
+        {
+            positionLocal = matSkin * positionLocal;
+
+            vec3 skinnedNormal = mat3(matSkin) * normalLocal;
+            float normalLength2 = dot(skinnedNormal, skinnedNormal);
+
+            normalLocal = normalLength2 > 1e-8 ? skinnedNormal * inversesqrt(normalLength2) : vec3(0.0);
+        }
+    }
+
+    worldPos = op.model * positionLocal;
+    worldNormal = SafeNormalize(mat3(op.model) * normalLocal);
+    uvLocal = uv;
+
+    if (fAnimateUv > 0)
+        uvLocal += uvOffsets;
+
+    if (op.warpType != WARP_NONE)
+        ApplyWarp(worldPos, uvLocal);
+
+    vertexColor = color;
+    texcoord = uvLocal;
+
+    if (rko == RKO_ThreeWay)
+        StartThreeWay();
+
+    int activeShadowCount = ActiveShadowCount();
+    if (activeShadowCount > 0)
+    {
+        int shadowCount = clamp(activeShadowCount, 0, MAX_SHADOWS);
+        int levelShadowCount = ShadowCount();
+
+        for (int i = 0; i < shadowCount; ++i)
+        {
+            int shIdx = ActiveShadowIndex(i);
+            if (shIdx < 0 || shIdx >= levelShadowCount)
+                continue;
+            SHADOW shadow = FetchShadow(shIdx);
+
+            if (!FShadowValid(shadow, op.grfglob))
+                continue;
+
+            if (!ShadowIntersectsSphere(shadow, subGlobPosCenter, subGlobRadius))
+                continue;
+
+            if (vShadowCount < MAX_OBJECT_SHADOWS)
+            {
+                SetObjectShadowIndex(vShadowCount, shIdx);
+                vShadowCount++;
+            }
+        }
+    }
+
+    if (swp.fogType != FOG_NONE)
+        CalculateFog();
+
+    gl_Position = cm.matWorldToClip * worldPos;
+}
+
+void ApplyWarp(inout vec4 vLocal, inout vec2 uvLocal)
+{
+    int matrixCount = clamp(op.warpCmat, 0, 4);
+    if (op.warpCvtx <= 0)
+        return;
+
+    switch(op.warpType)
+    {
+        case WARP_POS:
+        vec4 sumPos0 = vec4(0.0);
+
+        for (int imat = 0; imat < matrixCount; ++imat)
+        {
+            int stateIndex = imat * op.warpCvtx + gl_VertexID;
+            if (stateIndex < 0 || stateIndex >= textureSize(warpStateTex))
+                continue;
+            vec4 st  = texelFetch(warpStateTex, stateIndex);
+            sumPos0 += op.amatDpos[imat] * st;
+        }
+
+        vLocal.xyz += sumPos0.xyz;
+        break;
+
+        case WARP_UV:
+        vec2 sumUv0 = vec2(0.0);
+
+        for (int imat = 0; imat < matrixCount; ++imat)
+        {
+             int stateIndex = imat * op.warpCvtx + gl_VertexID;
+             if (stateIndex < 0 || stateIndex >= textureSize(warpStateTex))
+                 continue;
+             vec4 st = texelFetch(warpStateTex, stateIndex);
+             sumUv0 += (op.amatDuv[imat] * st).xy;
+        }
+
+        uvLocal += sumUv0;
+        break;
+
+        case WARP_BOTH:
+        vec4 sumPos1 = vec4(0.0);
+        vec2 sumUv1  = vec2(0.0);
+
+        for (int imat = 0; imat < matrixCount; ++imat)
+        {
+             int stateIndex = imat * op.warpCvtx + gl_VertexID;
+             if (stateIndex < 0 || stateIndex >= textureSize(warpStateTex))
+                 continue;
+             vec4 st  = texelFetch(warpStateTex, stateIndex);
+             sumPos1 += op.amatDpos[imat] * st;
+             sumUv1  += (op.amatDuv[imat] * st).xy;
+        }
+
+        vLocal.xyz += sumPos1.xyz;
+        uvLocal    += sumUv1;
+        break;
+    }
+}
+
+void ApplyPoses(inout vec4 positionLocal, inout vec3 normalLocal)
+{
+    vec3 dpos = vec3(0.0);
+    vec3 dnormal = vec3(0.0);
+    int count = min(max(poseCount, 0), textureSize(poseWeightTex));
+    int poseBase = gl_VertexID * poseCount;
+
+    for (int ipose = 0; ipose < count; ++ipose)
+    {
+        float weight = texelFetch(poseWeightTex, ipose).r;
+
+        if (weight == 0.0)
+            continue;
+
+        int poseIndex = poseBase + ipose;
+        if (poseIndex < 0 || poseIndex >= textureSize(poseDposTex) ||
+            poseIndex >= textureSize(poseDnormalTex))
+            continue;
+
+        dpos += texelFetch(poseDposTex, poseIndex).xyz * weight;
+        dnormal += texelFetch(poseDnormalTex, poseIndex).xyz * weight;
+    }
+
+    positionLocal.xyz += dpos;
+    normalLocal += dnormal;
+
+    float normalLength2 = dot(normalLocal, normalLocal);
+
+    if (normalLength2 > 1e-8)
+        normalLocal *= inversesqrt(normalLength2);
+}
+
+void StartThreeWay()
+{
+    switch(op.trlk)
+    {
+        // TV portraits use the retail pglob->pblot Quick-light path.  The
+        // sole detached TV light is evaluated after pose/skin transforms and
+        // the resulting three-way material is baked per vertex for this draw.
+        case TRLK_Quick:
+        InitGlobLighting();
+        ApplyQuickLights();
+        ProcessGlobLighting();
+        break;
+
+        // Static bake
+        case TRLK_Relight:
+        InitGlobLighting();
+        ApplyStaticLightsRelight();
+        ProcessGlobLighting();
+        // The bake pass captures material here, static lights only; the
+        // normal draw shows dynamic lights this frame.
+        if (op.fDynamicLight == 1 && fCacheBake == 0)
+            AddDynamicMaterial();
+        break;
+
+        case TRLK_Baked:
+        // Read cached static
+        CacheReadMaterial();
+        // Dynamic on top (PS2 DownloadRelight idea)
+        if (op.fDynamicLight == 1)
+            AddDynamicMaterial();
+        break;
+
+        case TRLK_Dynamic:
+        default:
+        // Full relight (no cache)
+        InitGlobLighting();
+        ApplyStaticLights();
+        ApplyDynamicLights();
+        ProcessGlobLighting();
+        break;
+    };
+}
+
+void ApplyQuickLights()
+{
+    // Retail sends TRLK_Quick through the same VU lighting path as
+    // TRLK_Relight. The TV glob uses its one directly indexed detached light.
+    int idx = op.blotTvLight - 1;
+    if (idx < 0 || idx >= TvLightCount())
+        return;
+
+    LIGHT tvLight = FetchTvLight(idx);
+    switch (tvLight.lightk)
+    {
+        case LIGHTK_Direction:
+        light.rgb += AddDirectionLight(tvLight).rgb;
+        break;
+
+        case LIGHTK_Position:
+        light.rgb += AddPositionLight(tvLight).rgb;
+        break;
+
+        case LIGHTK_Frustrum:
+        case LIGHTK_Spot:
+        light.rgb += AddFrustrumLight(tvLight).rgb;
+        break;
+    }
+}
+
+void InitGlobLighting()
+{
+    objectShadow = swp.uShadow;
+    objectMidtone = swp.uMidtone + unSelfIllum * 0.000031;
+    light = vec3(0.0);
+    normalWorld = worldNormal;
+}
+
+void ApplyStaticLightsRelight()
+{
+    // A relight result is cached on the glob and can outlive the camera's
+    // current BSP zone.  Build that persistent cache from the complete GPU
+    // light table instead of the camera-zone-filtered active-light list.
+    int lightCount = AvailableLightCount();
+    for (int i = 0; i < lightCount; ++i)
+    {
+        LIGHT lt = FetchLight(i);
+        if (lt.fActive == 0 || lt.fDynamic != 0)
+            continue;
+
+        switch (lt.lightk)
+        {
+            case LIGHTK_Direction:
+            light.rgb += AddDirectionLight(lt).rgb;
+            break;
+
+            case LIGHTK_Position:
+            // break, not continue: Apple's GL 4.1 driver fails to link a
+            // continue inside a switch inside a loop. Each of these switches
+            // ends its loop body, so break skips the light the same way.
+            if (!SphereIntersectsPositionLight(lt, op.posCenter.xyz, op.sRadius))
+                break;
+
+            light.rgb += AddPositionLight(lt).rgb;
+            break;
+
+            case LIGHTK_Frustrum:
+            case LIGHTK_Spot:
+            if (!SphereIntersectsFrustum(lt, op.posCenter.xyz, op.sRadius))
+                break;
+
+            light.rgb += AddFrustrumLight(lt).rgb;
+            break;
+        }
+    }
+}
+
+void ApplyStaticLights()
+{
+    if (StaticLightCount() == 0)
+        return;
+
+    if (op.fDynamic != 1)
+    {
+        int count = clamp(StaticLightCount(), 0, MAX_LIGHTS);
+        for (int i = 0; i < count; ++i)
+        {
+            int idx = StaticLightIndex(i);
+            if (idx < 0 || idx >= AvailableLightCount())
+                continue;
+            LIGHT lt = FetchLight(idx);
+
+            switch (lt.lightk)
+            {
+                case LIGHTK_Direction:
+                light.rgb += AddDirectionLight(lt).rgb;
+                break;
+
+                case LIGHTK_Position:
+                if (!SphereIntersectsPositionLight(lt, op.posCenter.xyz, op.sRadius))
+                    break;
+
+                light.rgb += AddPositionLight(lt).rgb;
+                break;
+
+                case LIGHTK_Frustrum:
+                case LIGHTK_Spot:
+                if (!SphereIntersectsFrustum(lt, op.posCenter.xyz, op.sRadius))
+                    break;
+
+                light.rgb += AddFrustrumLight(lt).rgb;
+                break;
+            }
+        }
+    }
+    else
+    {
+        int count = clamp(StaticLightCount(), 0, MAX_LIGHTS);
+        for (int i = 0; i < count; ++i)
+        {
+            int idx = StaticLightIndex(i);
+            if (idx < 0 || idx >= AvailableLightCount())
+                continue;
+            LIGHT lt = FetchLight(idx);
+
+            if (lt.fExcludeDynamicObjects != 0)
+                continue;
+
+            switch (lt.lightk)
+            {
+                case LIGHTK_Direction:
+                light.rgb += AddDynamicLight(lt.dir, lt.color, lt.ru, lt.du).rgb;
+                break;
+
+                case LIGHTK_Position:
+                if (!SphereIntersectsPositionLight(lt, op.posCenter.xyz, op.sRadius))
+                    break;
+
+                light.rgb += AddPositionLightDynamic(lt).rgb;
+                break;
+
+                case LIGHTK_Frustrum:
+                case LIGHTK_Spot:
+                if (!SphereIntersectsFrustum(lt, op.posCenter.xyz, op.sRadius))
+                    break;
+
+                light.rgb += AddFrustrumLightDynamic(lt).rgb;
+                break;
+            }
+        }
+    }
+}
+
+void ApplyDynamicLights()
+{
+    if (DynamicLightCount() == 0)
+        return;
+
+    if (op.fDynamic != 1)
+    {
+        int count = clamp(DynamicLightCount(), 0, MAX_LIGHTS);
+        for (int i = 0; i < count; ++i)
+        {
+            int idx = DynamicLightIndex(i);
+            if (idx < 0 || idx >= AvailableLightCount())
+                continue;
+            LIGHT lt = FetchLight(idx);
+
+            switch (lt.lightk)
+            {
+                case LIGHTK_Direction:
+                light.rgb += AddDirectionLight(lt).rgb;
+                break;
+
+                case LIGHTK_Position:
+                if (!SphereIntersectsPositionLight(lt, op.posCenter.xyz, op.sRadius))
+                    break;
+
+                light.rgb += AddPositionLight(lt).rgb;
+                break;
+
+                case LIGHTK_Frustrum:
+                case LIGHTK_Spot:
+                if (!SphereIntersectsFrustum(lt, op.posCenter.xyz, op.sRadius))
+                    break;
+
+                light.rgb += AddFrustrumLight(lt).rgb;
+                break;
+            }
+        }
+    }
+    else
+    {
+        int count = clamp(DynamicLightCount(), 0, MAX_LIGHTS);
+        for (int i = 0; i < count; ++i)
+        {
+            int idx = DynamicLightIndex(i);
+            if (idx < 0 || idx >= AvailableLightCount())
+                continue;
+            LIGHT lt = FetchLight(idx);
+
+            if (lt.fExcludeDynamicObjects != 0)
+                continue;
+
+            switch (lt.lightk)
+            {
+                case LIGHTK_Direction:
+                light.rgb += AddDynamicLight(lt.dir, lt.color, lt.ru, lt.du).rgb;
+                break;
+
+                case LIGHTK_Position:
+                if (!SphereIntersectsPositionLight(lt, op.posCenter.xyz, op.sRadius))
+                    break;
+
+                light.rgb += AddPositionLightDynamic(lt).rgb;
+                break;
+
+                case LIGHTK_Frustrum:
+                case LIGHTK_Spot:
+                if (!SphereIntersectsFrustum(lt, op.posCenter.xyz, op.sRadius))
+                    break;
+
+                light.rgb += AddFrustrumLightDynamic(lt).rgb;
+                break;
+            }
+        }
+    }
+}
+
+void AddDynamicMaterial()
+{
+    baseMaterial = material;
+
+    objectShadow = 0.0;
+    objectMidtone = 0.0;
+    light = vec3(0.0);
+    normalWorld = worldNormal;
+
+    ApplyDynamicLights();
+    ProcessGlobLighting();
+
+    material.ambient = baseMaterial.ambient + material.ambient;
+    material.midtone = baseMaterial.midtone + material.midtone;
+    material.light = baseMaterial.light + material.light;
+}
+
+vec4 AddDirectionLight(LIGHT dirlight)
+{
+    vec3 L = SafeNormalize(dirlight.dir.xyz);
+
+    float f = dot(normalWorld, L);
+
+    // PS2 curve: dot + dot^3
+    f = f + f * f * f;
+
+    float shadow    = max(f * dirlight.ru.x + dirlight.du.x, 0.0);
+    float midtone   = max(f * dirlight.ru.y + dirlight.du.y, 0.0);
+    float highlight = max(f * dirlight.ru.z + dirlight.du.z, 0.0);
+
+    objectShadow  += shadow;
+    objectMidtone += midtone;
+
+    return vec4(dirlight.color * highlight);
+}
+
+vec4 AddDynamicLight(vec4 dir, vec4 color, vec4 ru, vec4 du)
+{
+    vec3 lightDir = SafeNormalize(mat3(transpose(op.model)) * vec3(dir));
+    float diffuse = dot(lightDir, normalLocal);
+    diffuse += diffuse * diffuse * diffuse;
+
+    float shadow    = diffuse * ru.x + du.x;
+    float midtone   = diffuse * ru.y + du.y;
+    float highlight = diffuse * ru.z + du.z;
+
+    objectShadow  += max(shadow,  0.0);
+    objectMidtone += max(midtone, 0.0);
+    highlight      = max(highlight, 0.0);
+
+    return color * highlight;
+}
+
+bool SphereIntersectsPositionLight(LIGHT L, vec3 center, float radius)
+{
+    // Vector from light to object center
+    vec3 toLight = L.pos.xyz - center;
+
+    // Squared distance between centers
+    float distSq = dot(toLight, toLight);
+
+    // Position-light influence radius:
+    // L.dst = light falloff (gMax), same as PS2 lmFallOffS.gMax
+    float maxDist = L.dst + radius;   // linear units
+
+    // Compare using squared distance
+    return distSq <= maxDist * maxDist;
+}
+
+vec4 AddPositionLight(LIGHT pointlight)
+{
+    vec3 toLight = pointlight.pos.xyz - worldPos.xyz;
+
+    float distance2 = dot(toLight, toLight);
+    if (distance2 <= 1e-12)
+        return vec4(0.0);
+
+    float invLen = inversesqrt(distance2);
+    vec3 L = toLight * invLen;
+
+    vec3 N = normalWorld;
+    float n2 = dot(N, N);
+
+    if (n2 >= 0.00000001)
+        N *= inversesqrt(n2);
+    else
+        N = vec3(0.0);
+
+    float ndotl = dot(N, L);
+
+    float diffuse = ndotl + ndotl * ndotl * ndotl;
+
+    float attenuation = clamp(pointlight.constant + pointlight.invDst * invLen, 0.0, 1.0);
+
+    float shadow    = max(diffuse * pointlight.ru.x + pointlight.du.x, 0.0) * attenuation;
+    float midtone   = max(diffuse * pointlight.ru.y + pointlight.du.y, 0.0) * attenuation;
+    float highlight = max(diffuse * pointlight.ru.z + pointlight.du.z, 0.0) * attenuation;
+
+    objectShadow  += shadow;
+    objectMidtone += midtone;
+
+    return vec4(pointlight.color * highlight);
+}
+
+vec4 AddPositionLightDynamic(LIGHT pointlight)
+{
+    vec3 direction = pointlight.pos.xyz - op.posCenter.xyz;
+    float distanceSquared = dot(direction, direction);
+
+    if (distanceSquared <= 0.00000001)
+        return vec4(0.0);
+
+    float inverseDistance = inversesqrt(distanceSquared);
+    float attenuation =
+        clamp(pointlight.constant + pointlight.invDst * inverseDistance, 0.0, 1.0);
+
+    return AddDynamicLight(
+        vec4(direction, 0.0),
+        pointlight.color,
+        pointlight.ru * attenuation,
+        pointlight.du * attenuation);
+}
+
+bool SphereIntersectsFrustum(LIGHT L, vec3 center, float radius)
+{
+    mat4 M = L.matFrustrum;
+
+    // GLSL indexes matrices by column.  Frustum planes are combinations of
+    // matrix rows, so construct the rows explicitly. PS2 VU CLIP uses
+    // symmetric -w..w clipping for Z as well as X and Y.
+    vec4 row0 = vec4(M[0][0], M[1][0], M[2][0], M[3][0]);
+    vec4 row1 = vec4(M[0][1], M[1][1], M[2][1], M[3][1]);
+    vec4 row2 = vec4(M[0][2], M[1][2], M[2][2], M[3][2]);
+    vec4 row3 = vec4(M[0][3], M[1][3], M[2][3], M[3][3]);
+
+    vec4 planes[6];
+    planes[0] = row3 + row0;
+    planes[1] = row3 - row0;
+    planes[2] = row3 + row1;
+    planes[3] = row3 - row1;
+    planes[4] = row3 + row2;
+    planes[5] = row3 - row2;
+
+    for (int i = 0; i < 6; ++i)
+    {
+        vec3 n = planes[i].xyz;
+        float len = length(n);
+
+        if (len < 1e-6) continue;
+
+        n /= len;
+        float d = planes[i].w / len;
+
+        float dist = dot(n, center) + d;
+        if (dist < -radius)
+            return false;
+    }
+
+    return true;
+}
+
+vec4 AddFrustrumLight(LIGHT frustumlight)
+{
+    vec4 clipL = frustumlight.matFrustrum * vec4(worldPos.xyz, 1.0);
+
+    if (clipL.w <= 0.0) return vec4(0.0);
+    if (abs(clipL.x) > clipL.w) return vec4(0.0);
+    if (abs(clipL.y) > clipL.w) return vec4(0.0);
+    if (abs(clipL.z) > clipL.w) return vec4(0.0);
+
+    float invW = 1.0 / clipL.w;
+
+    float u  = abs(clipL.x * invW);
+    float v  = abs(clipL.y * invW);
+    float r2 = u * u + v * v;
+    float wv = clipL.w;
+
+    float fx = clamp(frustumlight.falloffScale.x * u  + frustumlight.falloffBias.x, 0.0, 1.0);
+    float fy = clamp(frustumlight.falloffScale.y * v  + frustumlight.falloffBias.y, 0.0, 1.0);
+    float fr = clamp(frustumlight.falloffScale.z * r2 + frustumlight.falloffBias.z, 0.0, 1.0);
+    float fw = clamp(frustumlight.falloffScale.w * wv + frustumlight.falloffBias.w, 0.0, 1.0);
+
+    float mask = fx * fy * fr * fw;
+    if (mask <= 0.0) return vec4(0.0);
+
+    return AddDynamicLight(frustumlight.dir, frustumlight.color, frustumlight.ru * mask, frustumlight.du * mask);
+}
+
+vec4 AddFrustrumLightDynamic(LIGHT frustumlight)
+{
+    vec4 clipL = frustumlight.matFrustrum * vec4(op.posCenter.xyz, 1.0);
+
+    if (clipL.w <= 0.0) return vec4(0.0);
+    if (abs(clipL.x) > clipL.w) return vec4(0.0);
+    if (abs(clipL.y) > clipL.w) return vec4(0.0);
+    if (abs(clipL.z) > clipL.w) return vec4(0.0);
+
+    float invW = 1.0 / clipL.w;
+
+    float u  = abs(clipL.x * invW);
+    float v  = abs(clipL.y * invW);
+    float r2 = u * u + v * v;
+    float wv = clipL.w;
+
+    float fx = clamp(frustumlight.falloffScale.x * u  + frustumlight.falloffBias.x, 0.0, 1.0);
+    float fy = clamp(frustumlight.falloffScale.y * v  + frustumlight.falloffBias.y, 0.0, 1.0);
+    float fr = clamp(frustumlight.falloffScale.z * r2 + frustumlight.falloffBias.z, 0.0, 1.0);
+    float fw = clamp(frustumlight.falloffScale.w * wv + frustumlight.falloffBias.w, 0.0, 1.0);
+
+    float mask = fx * fy * fr * fw;
+    if (mask <= 0.0) return vec4(0.0);
+
+    vec4 ruScaled = frustumlight.ru * mask;
+    vec4 duScaled = frustumlight.du * mask;
+
+    return AddDynamicLight(frustumlight.dir, frustumlight.color, ruScaled, duScaled);
+}
+
+bool FShadowValid(SHADOW shadow, int grfglob)
+{
+    if ((grfglob & 1) != 0 && shadow.shdk == 2)
+        return true;
+
+    if ((grfglob & 2) != 0 && shadow.shdk == 3)
+        return true;
+
+    return false;
+}
+
+bool ShadowIntersectsSphere(SHADOW shadow, vec3 objectCenter, float objectRadius)
+{
+    if (shadow.fDynamic == 1)
+    {
+        vec3 N = SafeNormalize(worldNormal);
+        vec3 castDir = SafeNormalize(shadow.normalCast.xyz);
+
+        if (dot(N, -castDir) <= -0.5)
+            return false;
+    }
+
+    vec3  d = objectCenter - vec3(shadow.posEffect);
+    float r = objectRadius + shadow.sRadiusEffect;
+
+    return dot(d, d) <= r * r;
+}
+
+// probe:begin CacheReadMaterial
+void CacheReadMaterial()
+{
+    if (gl_VertexID < 0 || gl_VertexID >= textureSize(cachedMaterialTex) / 3)
+    {
+        material.ambient = 0.0;
+        material.midtone = vec4(0.0);
+        material.light = vec4(0.0);
+        return;
+    }
+
+    int texel = 3 * gl_VertexID;
+    material.ambient = texelFetch(cachedMaterialTex, texel).x;
+    material.midtone = texelFetch(cachedMaterialTex, texel + 1);
+    material.light   = texelFetch(cachedMaterialTex, texel + 2);
+}
+// probe:end CacheReadMaterial
+
+void ProcessGlobLighting()
+{
+    // Find the brightest channel in the light color (used to gauge overall intensity)
+    float dominantLight = max(max(light.r, light.g), light.b);
+    // Invert brightness to get potential shadow strength (brighter light = less shadow)
+    float shadowModifier = 1.0 - dominantLight;
+    // Clamp the object's midtone value so it doesn't exceed remaining shadow range
+    float clampedMidtone = clamp(objectMidtone, 0.0, shadowModifier);
+    // Determine how much of the remaining light can go toward shadows (bounded by objectShadow)
+    float shadowContribution = max(min(shadowModifier - clampedMidtone, objectShadow), 0.0);
+    // Approximate base light intensity from average of vertex color (grayscale luminance)
+    float baseIntensity = dot(vertexColor.rgb, vec3(0.3333333));
+
+    // Assign lighting output
+    material.ambient   = shadowContribution * baseIntensity;
+    material.midtone = vec4(clampedMidtone * vertexColor.rgb, 0.0);
+    material.light = vec4(min(light.rgb, vec3(1.0)) * baseIntensity, 0.0);
+}
+
+void CalculateFog()
+{
+    switch(swp.fogType)
+    {
+        case FOG_PS2:
+        CalculateFogPS2();
+        break;
+
+        case FOG_PS3:
+        CalculateFogPS3();
+        break;
+    }
+}
+
+void CalculateFogPS2()
+{
+    float z = length(cm.cameraPos.xyz - worldPos.xyz);
+    float recipZ = 1.0 / max(z, 1e-4);
+
+    float recipNear = 1.0 / max(abs(swp.fogNear), 1e-6);
+    float recipFar  = 1.0 / max(abs(swp.fogFar), 1e-6);
+
+    float denom = max(recipNear - recipFar, 1e-6);
+    float fog   = clamp((recipNear - recipZ) * (1.0 / denom), 0.0, 1.0);
+
+    float fogMult = mix(swp.fogMax, swp.fogMax * op.uFog, step(0.001, op.uFog));
+    fogIntensity  = clamp((fog * fogMult) * swp.fogColor.a, 0.0, 1.0);
+}
+
+void CalculateFogPS3()
+{
+    vec3 offset = cm.cameraPos.xyz - worldPos.xyz;
+
+    float distance2 = dot(offset, offset);
+    float distanceToCamera = sqrt(distance2);
+
+    float invFogRange = 1.0 / max(swp.fogFar - swp.fogNear, 1e-6);
+    float fog = clamp((distanceToCamera - swp.fogNear) * invFogRange, 0.0, 1.0);
+
+    float fogMult = mix(swp.fogMax, swp.fogMax * op.uFog, step(0.001, op.uFog));
+    fogIntensity  = clamp((fog * fogMult) * swp.fogColor.a, 0.0, 1.0);
+}

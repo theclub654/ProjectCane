@@ -1,0 +1,55 @@
+# UndefinedBehaviorSanitizer suppressions for the macos-asan build
+# (CMakePresets.json, tests/README.md): the known findings that are not fixed
+# in the macOS port. Only third-party or system code, and findings in the
+# game's shared code that are filed upstream, go here; Mac-only code
+# (CANE_GL41 blocks, Sly1-Release/gl41, platform/ __APPLE__ paths, tests/) is
+# fixed, never suppressed. Every entry names the check and the narrowest
+# function, with the reason above it. Format: <check>:<function or file pattern>
+# (a pattern matches any part of the name; * is a wildcard, ^ and $ anchor
+# it to the start and end of the name). Each entry was
+# checked by re-running the suite: without the file the report appears, with it
+# not. None of the suppressed functions contains a CANE_GL41 block (sw.cpp,
+# sound.cpp, spaprops.cpp, lo.cpp, find.cpp and brx.cpp have none; alo.cpp has
+# some, but none inside PostAloLoad), so these entries cannot hide a report
+# from Mac-only code. A pattern is matched against the symbolized name, which
+# carries the parameter list ("PostAloLoad(ALO*)"), so "^Name(" matches that
+# function only and not every function whose name starts with it.
+#
+# --- Third-party and system code: none so far (GLFW, imgui, glad and FAudio are
+# --- instrumented; SDL2, FFmpeg and the Apple GL driver are not, and ASan's
+# --- interceptors reported nothing through them).
+#
+# --- Known findings in the game's shared code (not Mac-only; not fixed in the
+# --- macOS port). Each is filed upstream as the issue given; remove the entry
+# --- when the upstream fix lands. Matched by function name.
+#
+# theclub654/ProjectCane#66: enum MUSID (spaprops.h) has no fixed underlying
+# type and ends at MUSID_Max = 16, so its valid range is -32..31, but the
+# retail music ids parsed from the world's "MUSID_xx.mus" name (sw.cpp,
+# LoadSwFromBrx) are MUSID_34..MUSID_68 (0x34..0x68). Every load of such a
+# MUSID is undefined behaviour.
+enum:LoadSwFromBrx
+enum:StartMusidSong
+enum:PreloadMusidSong
+enum:FindMusicBank
+enum:TraceMusicEvent
+enum:UnloadMusic
+# theclub654/ProjectCane#67: enum OPTID (spaprops.h) declares only
+# OPTID_Nil = -1 (valid range -1..0), but the CUSTOM_*_PROPERTY option thunks
+# carry option ids around 1176..1186 from the level data through it.
+enum:RefThunkLoCUSTOM_*_PROPERTY
+enum:EnsureLoSidebag*
+# theclub654/ProjectCane#68: PdlFromSwOid (find.cpp) hashes with a signed int
+# multiply, oid * 0x95675, which overflows for most object ids.
+signed-integer-overflow:PdlFromSwOid
+# theclub654/ProjectCane#69: PostAloLoad (alo.cpp) advances the child-list
+# iterator past the null end of the list ((uint8_t*)nullptr + m_ibDle) before
+# the loop test. Anchored so it does not also hide PostAloLoadCallback.
+pointer-overflow:^PostAloLoad(
+# theclub654/ProjectCane#58: LoadOptionFromBrx (brx.cpp) stores
+# OTYP_Oid/Cid/... options as a 4-byte int32 into fields declared short
+# (CAMERA::oidTarget, EXPLS::oidRender/oidNextRender/oidTouch,
+# RCHM::oidHost/oidTouch), misaligned for some and overwriting the next field:
+# another short, or the low two bytes of CAMERA::ppntTarget (data corruption,
+# see the issue).
+alignment:LoadOptionFromBrx

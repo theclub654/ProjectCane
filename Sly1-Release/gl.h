@@ -225,6 +225,9 @@ extern GLuint glsluvOffsets;
 extern GLuint glslUnSelfIllum;
 extern GLuint glslSubGlobPosCenter;
 extern GLuint glslSubGlobRadius;
+#ifdef CANE_GL41
+extern GLuint glslfCacheBake;
+#endif
 extern GLuint glslDyshMatWorldClip;
 extern GLuint glslDyshModel;
 extern GLuint glslDyshfSkin;
@@ -263,5 +266,10 @@ extern GLuint glslfPose;
 extern GLuint glslPoseCount;
 extern GLuint glslCelPose;
 extern GLuint glslCelPoseCount;
+#ifdef CANE_GL41
+extern GLint  glslCelLineWidthPx;
+extern GLint  glslCelViewportPx;
+extern GLint  glslCelMultisampled;
+#endif
 
 #endif

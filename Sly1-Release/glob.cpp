@@ -9,6 +9,10 @@
 #include "scroller.h"
 #include "circler.h"
 #include "looker.h"
+#ifdef CANE_GL41
+#include "runtime_error.h"
+#include "glshaders.h"
+#endif
 #include <unordered_map>
 
 namespace
@@ -54,6 +58,9 @@ void LoadGlobsetFromBrx(GLOBSET* pglobset, ALO* palo, CBinaryInputStream* pbis)
 {
     pglobset->cpsaa = 0;
     pglobset->boneMatrixSSBO = 0;
+#ifdef CANE_GL41
+    pglobset->boneMatrixTexture = 0;
+#endif
 
     byte fRelight = pbis->U8Read();
     pbis->U8Read();
@@ -423,6 +430,21 @@ void LoadGlobsetFromBrx(GLOBSET* pglobset, ALO* palo, CBinaryInputStream* pbis)
 
                 if (expectedPoseDeltaCount > 0)
                 {
+#ifdef CANE_GL41
+                    // glob.vert reads these through RGBA32F buffer textures (no
+                    // SSBOs on GL 4.1); instances share the names and the views.
+                    glGenBuffers(1, &glob.poseDposSSBO);
+                    glBindBuffer(GL_TEXTURE_BUFFER, glob.poseDposSSBO);
+                    glBufferData(GL_TEXTURE_BUFFER, static_cast<GLsizeiptr>(glob.poseDpos.size() * sizeof(glm::vec4)), glob.poseDpos.data(), GL_STATIC_DRAW);
+                    CreateBufferTexture(glob.poseDposSSBO, kPoseDposTextureFormat);
+
+                    glGenBuffers(1, &glob.poseDnormalSSBO);
+                    glBindBuffer(GL_TEXTURE_BUFFER, glob.poseDnormalSSBO);
+                    glBufferData(GL_TEXTURE_BUFFER, static_cast<GLsizeiptr>(glob.poseDnormal.size() * sizeof(glm::vec4)), glob.poseDnormal.data(), GL_STATIC_DRAW);
+                    CreateBufferTexture(glob.poseDnormalSSBO, kPoseDnormalTextureFormat);
+
+                    glBindBuffer(GL_TEXTURE_BUFFER, 0);
+#else
                     glGenBuffers(1, &glob.poseDposSSBO);
                     glBindBuffer(GL_SHADER_STORAGE_BUFFER, glob.poseDposSSBO);
                     glBufferData(GL_SHADER_STORAGE_BUFFER, static_cast<GLsizeiptr>(glob.poseDpos.size() * sizeof(glm::vec4)), glob.poseDpos.data(), GL_STATIC_DRAW);
@@ -432,6 +454,7 @@ void LoadGlobsetFromBrx(GLOBSET* pglobset, ALO* palo, CBinaryInputStream* pbis)
                     glBufferData(GL_SHADER_STORAGE_BUFFER, static_cast<GLsizeiptr>(glob.poseDnormal.size() * sizeof(glm::vec4)), glob.poseDnormal.data(), GL_STATIC_DRAW);
 
                     glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+#endif
                 }
 
                 if (glob.pwrbg && glob.pwrbg->cmat > 0)
@@ -459,10 +482,19 @@ void LoadGlobsetFromBrx(GLOBSET* pglobset, ALO* palo, CBinaryInputStream* pbis)
                     {
                         glob.trlk = TRLK_Relight;
 
+#ifdef CANE_GL41
+                        // Baked by transform feedback, read through a buffer texture.
+                        glGenBuffers(1, &glob.ssboCachedMaterial);
+                        glBindBuffer(GL_TEXTURE_BUFFER, glob.ssboCachedMaterial);
+                        glBufferData(GL_TEXTURE_BUFFER, (GLsizeiptr)(totalVerts * sizeof(MATERIAL)), nullptr, GL_STATIC_DRAW);
+                        CreateBufferTexture(glob.ssboCachedMaterial, kCachedMaterialTextureFormat);
+                        glBindBuffer(GL_TEXTURE_BUFFER, 0);
+#else
                         glGenBuffers(1, &glob.ssboCachedMaterial);
                         glBindBuffer(GL_SHADER_STORAGE_BUFFER, glob.ssboCachedMaterial);
                         glBufferData(GL_SHADER_STORAGE_BUFFER, (GLsizeiptr)(totalVerts * sizeof(MATERIAL)), nullptr, GL_STATIC_DRAW);
                         glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+#endif
                     }
                 }
 
@@ -512,6 +544,27 @@ void LoadGlobsetFromBrx(GLOBSET* pglobset, ALO* palo, CBinaryInputStream* pbis)
 				glob.edgePoints = mergedEdgePoints;
 				glob.edgePoseDpos = mergedEdgePoseDpos;
 
+#ifdef CANE_GL41
+                // celborder.vert reads these through buffer textures (no SSBOs on
+                // GL 4.1): a CELPOINT is three RGBA32UI texels, a pose delta one
+                // RGBA32F texel.
+                static_assert(sizeof(CELPOINT) == 48, "celborder.vert reads a CELPOINT as three 16-byte texels");
+
+                glGenBuffers(1, &glob.edgeSSBO);
+                glBindBuffer(GL_TEXTURE_BUFFER, glob.edgeSSBO);
+                glBufferData(GL_TEXTURE_BUFFER, static_cast<GLsizeiptr>(mergedEdgePoints.size() * sizeof(CELPOINT)), mergedEdgePoints.data(), GL_STATIC_DRAW);
+                CreateBufferTexture(glob.edgeSSBO, kEdgeTextureFormat);
+
+                if (!mergedEdgePoseDpos.empty())
+                {
+                    glGenBuffers(1, &glob.edgePoseDposSSBO);
+                    glBindBuffer(GL_TEXTURE_BUFFER, glob.edgePoseDposSSBO);
+                    glBufferData(GL_TEXTURE_BUFFER, static_cast<GLsizeiptr>(mergedEdgePoseDpos.size() * sizeof(glm::vec4)), mergedEdgePoseDpos.data(), GL_STATIC_DRAW);
+                    CreateBufferTexture(glob.edgePoseDposSSBO, kEdgePoseDposTextureFormat);
+                }
+
+                glBindBuffer(GL_TEXTURE_BUFFER, 0);
+#else
                 glGenBuffers(1, &glob.edgeSSBO);
                 glBindBuffer(GL_SHADER_STORAGE_BUFFER, glob.edgeSSBO);
                 glBufferData(GL_SHADER_STORAGE_BUFFER, static_cast<GLsizeiptr>(mergedEdgePoints.size() * sizeof(CELPOINT)), mergedEdgePoints.data(), GL_STATIC_DRAW);
@@ -524,6 +577,7 @@ void LoadGlobsetFromBrx(GLOBSET* pglobset, ALO* palo, CBinaryInputStream* pbis)
                 }
 
                 glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+#endif
 
                 numRoCel++;
             }
@@ -644,9 +698,16 @@ void CloneGlob(GLOBSET* pglobset, GLOB* pglob, GLOBI* pglobi)
         pglob->trlk = TRLK_Relight;
 
         glGenBuffers(1, &pglob->ssboCachedMaterial);
+#ifdef CANE_GL41
+        glBindBuffer(GL_TEXTURE_BUFFER, pglob->ssboCachedMaterial);
+        glBufferData(GL_TEXTURE_BUFFER, totalVerts * sizeof(MATERIAL), nullptr, GL_STATIC_DRAW);
+        CreateBufferTexture(pglob->ssboCachedMaterial, kCachedMaterialTextureFormat);
+        glBindBuffer(GL_TEXTURE_BUFFER, 0);
+#else
         glBindBuffer(GL_SHADER_STORAGE_BUFFER, pglob->ssboCachedMaterial);
         glBufferData(GL_SHADER_STORAGE_BUFFER, totalVerts * sizeof(MATERIAL), nullptr, GL_STATIC_DRAW);
         glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+#endif
     }
 
     if (!pglob->asubglob.empty())
@@ -668,6 +729,9 @@ void CloneGlobset(GLOBSET* pglobset, ALO* palo, GLOBSET* pglobsetBase)
     // used by all of the others before the deferred render lists are drawn.
     // PostGlobsetLoad allocates and initializes a private buffer for the clone.
     pglobset->boneMatrixSSBO = 0;
+#ifdef CANE_GL41
+    pglobset->boneMatrixTexture = 0;
+#endif
     // Pose-weight GPU state is kept in an external sidecar so cloning does
     // not copy an OpenGL handle or alter the reconstructed object layout.
     s_poseWeightGpu.erase(pglobset);
@@ -736,9 +800,16 @@ void CloneGlobset(GLOBSET* pglobset, ALO* palo, GLOBSET* pglobsetBase)
             glob.trlk = TRLK_Relight;
 
             glGenBuffers(1, &glob.ssboCachedMaterial);
+#ifdef CANE_GL41
+            glBindBuffer(GL_TEXTURE_BUFFER, glob.ssboCachedMaterial);
+            glBufferData(GL_TEXTURE_BUFFER, static_cast<GLsizeiptr>(totalVerts * sizeof(MATERIAL)), nullptr, GL_STATIC_DRAW);
+            CreateBufferTexture(glob.ssboCachedMaterial, kCachedMaterialTextureFormat);
+            glBindBuffer(GL_TEXTURE_BUFFER, 0);
+#else
             glBindBuffer(GL_SHADER_STORAGE_BUFFER, glob.ssboCachedMaterial);
             glBufferData(GL_SHADER_STORAGE_BUFFER, static_cast<GLsizeiptr>(totalVerts * sizeof(MATERIAL)), nullptr, GL_STATIC_DRAW);
             glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+#endif
         }
 
         if (!glob.asubglob.empty())
@@ -783,12 +854,42 @@ void PostGlobsetLoad(GLOBSET* pglobset, ALO* palo)
     if (pglobset->boneMatrices.size() != static_cast<size_t>(pglobset->cbnd))
         pglobset->boneMatrices.resize(pglobset->cbnd, glm::mat4(1.0f));
 
+#ifdef CANE_GL41
+    // Each bone is four RGBA32F texels in the buffer texture dysh.vert,
+    // celborder.vert and glob.vert read.
+    static GLint s_maxTextureBufferTexels = -1;
+    if (s_maxTextureBufferTexels < 0)
+        glGetIntegerv(GL_MAX_TEXTURE_BUFFER_SIZE, &s_maxTextureBufferTexels);
+    if (pglobset->cbnd * 4 > s_maxTextureBufferTexels)
+    {
+        ReportRuntimeError("Graphics", "Globset has %d bones (%d texels), above GL_MAX_TEXTURE_BUFFER_SIZE %d; dynamic shadows will skip the extra bones.",
+            pglobset->cbnd, pglobset->cbnd * 4, s_maxTextureBufferTexels);
+    }
+
+    if (pglobset->boneMatrixSSBO == 0)
+        glGenBuffers(1, &pglobset->boneMatrixSSBO);
+
+    // Uploaded through GL_TEXTURE_BUFFER, which exists on GL 4.1 as well.
+    glBindBuffer(GL_TEXTURE_BUFFER, pglobset->boneMatrixSSBO);
+    glBufferData(GL_TEXTURE_BUFFER, pglobset->boneMatrices.size() * sizeof(glm::mat4), pglobset->boneMatrices.data(), GL_DYNAMIC_DRAW);
+
+    if (pglobset->boneMatrixTexture == 0)
+    {
+        glGenTextures(1, &pglobset->boneMatrixTexture);
+        glBindTexture(GL_TEXTURE_BUFFER, pglobset->boneMatrixTexture);
+        glTexBuffer(GL_TEXTURE_BUFFER, kBoneMatrixTextureFormat, pglobset->boneMatrixSSBO);
+        glBindTexture(GL_TEXTURE_BUFFER, 0);
+    }
+
+    glBindBuffer(GL_TEXTURE_BUFFER, 0);
+#else
     if (pglobset->boneMatrixSSBO == 0)
         glGenBuffers(1, &pglobset->boneMatrixSSBO);
 
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, pglobset->boneMatrixSSBO);
     glBufferData(GL_SHADER_STORAGE_BUFFER, pglobset->boneMatrices.size() * sizeof(glm::mat4), pglobset->boneMatrices.data(), GL_DYNAMIC_DRAW);
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+#endif
 }
 
 void UploadGlobsetPoseWeights(GLOBSET* pglobset)
@@ -802,11 +903,23 @@ void UploadGlobsetPoseWeights(GLOBSET* pglobset)
     {
         if (gpu.buffer == 0)
             glGenBuffers(1, &gpu.buffer);
+#ifdef CANE_GL41
+        // Uploaded through GL_TEXTURE_BUFFER (GL 4.1 has no SSBOs). celborder
+        // and glob read it as an R32F buffer texture, kept in the
+        // buffer-texture sidecar.
+        glBindBuffer(GL_TEXTURE_BUFFER, gpu.buffer);
+        glBufferData(GL_TEXTURE_BUFFER,
+            static_cast<GLsizeiptr>(pglobset->agPoses.size() * sizeof(float)),
+            pglobset->agPoses.data(), GL_DYNAMIC_DRAW);
+        CreateBufferTexture(gpu.buffer, kPoseWeightTextureFormat);
+        glBindBuffer(GL_TEXTURE_BUFFER, 0);
+#else
         glBindBuffer(GL_SHADER_STORAGE_BUFFER, gpu.buffer);
         glBufferData(GL_SHADER_STORAGE_BUFFER,
             static_cast<GLsizeiptr>(pglobset->agPoses.size() * sizeof(float)),
             pglobset->agPoses.data(), GL_DYNAMIC_DRAW);
         glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+#endif
         gpu.count = pglobset->agPoses.size();
         gpu.dirty = false;
         return;
@@ -815,11 +928,19 @@ void UploadGlobsetPoseWeights(GLOBSET* pglobset)
     if (!gpu.dirty)
         return;
 
+#ifdef CANE_GL41
+    glBindBuffer(GL_TEXTURE_BUFFER, gpu.buffer);
+    glBufferSubData(GL_TEXTURE_BUFFER, 0,
+        static_cast<GLsizeiptr>(pglobset->agPoses.size() * sizeof(float)),
+        pglobset->agPoses.data());
+    glBindBuffer(GL_TEXTURE_BUFFER, 0);
+#else
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, gpu.buffer);
     glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0,
         static_cast<GLsizeiptr>(pglobset->agPoses.size() * sizeof(float)),
         pglobset->agPoses.data());
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+#endif
     gpu.dirty = false;
 }
 
@@ -841,8 +962,16 @@ void DeleteGlobsetPoseWeightBuffer(GLOBSET* pglobset)
     if (it == s_poseWeightGpu.end())
         return;
 
+#ifdef CANE_GL41
+    if (it->second.buffer != 0)
+    {
+        DeleteBufferTexture(it->second.buffer);
+        glDeleteBuffers(1, &it->second.buffer);
+    }
+#else
     if (it->second.buffer != 0)
         glDeleteBuffers(1, &it->second.buffer);
+#endif
     s_poseWeightGpu.erase(it);
 }
 

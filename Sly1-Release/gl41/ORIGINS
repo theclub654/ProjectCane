@@ -1,0 +1,13 @@
+# SHA-256 of the shared Sly1-Release shader each GL 4.1 copy was derived from.
+# cane_shader_source_tests fails when a shared shader no longer matches: port
+# the change into gl41/<name>, then record the shared file's new hash here.
+# "mac-only  <name>" marks a gl41 file with no shared counterpart (a Mac
+# addition); the test fails if a shared file of that name exists.
+eee8fc99cade44d087db3bcf2ef938e208f116360b67ad83b0ab0aa3dddbcbab  blip.vert
+47de53e0c975b882d00709e2355c926a2810598869ca049966ac763e7ddc2208  celborder.frag
+46190fba669250cd92e864743f635f789a5db0b70ea03ed410ec8b54de2e4c18  celborder.vert
+367ab31a8402082cb0d8879dec44cca11a1527dcd0e225167385c4172b2fede2  dysh.vert
+84c61cd32cd1beab759a581586089ec558a2c10fea8df30ec0a5bbc4b7bd6d39  geom.vert
+3359e283d5bc33238b85d3fb6b69fd2782c2c1957b98853cafd5e86dbee24156  glob.frag
+4b7d7bff9682c62a85554680733390dc3f5d433114bb69ad1d03cf95ea16bf29  glob.vert
+mac-only  celborder.geom

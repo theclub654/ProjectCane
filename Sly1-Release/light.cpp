@@ -2,6 +2,9 @@
 #include "tv.h"
 #include <algorithm>
 #include "render.h"
+#ifdef CANE_GL41
+#include "glshaders.h"
+#endif
 
 // Stable correspondence between a LIGHT object and its slot in lightBlk/the
 // GPU SSBO. SW::dlLight is mutable, so its traversal index cannot be used as
@@ -682,9 +685,15 @@ static void UpdateLightGpuSlot(LIGHT* plight)
 
 	const GLsizeiptr offset = sizeof(LightSSBOHeader) +
 		static_cast<GLsizeiptr>(sizeof(LIGHTBLK)) * idx;
+#ifdef CANE_GL41
+	glBindBuffer(GL_TEXTURE_BUFFER, g_lightSsbo);
+	glBufferSubData(GL_TEXTURE_BUFFER, offset, sizeof(LIGHTBLK), &lightBlk[idx]);
+	glBindBuffer(GL_TEXTURE_BUFFER, 0);
+#else
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, g_lightSsbo);
 	glBufferSubData(GL_SHADER_STORAGE_BUFFER, offset, sizeof(LIGHTBLK), &lightBlk[idx]);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+#endif
 }
 
 void AllocateLightBlkList()
@@ -709,6 +718,46 @@ void AllocateLightBlkList()
 		++idx;
 	}
 
+#ifdef CANE_GL41
+	// ------------------------------------------------------------
+	// Main light buffer (glob reads it as lightTex)
+	// ------------------------------------------------------------
+	glGenBuffers(1, &g_lightSsbo);
+	glBindBuffer(GL_TEXTURE_BUFFER, g_lightSsbo);
+
+	const GLsizeiptr headerSize = sizeof(LightSSBOHeader);
+	const GLsizeiptr lightsSize = sizeof(LIGHTBLK) * lightBlk.size();
+	const GLsizeiptr totalSize = headerSize + lightsSize;
+
+	glBufferData(GL_TEXTURE_BUFFER, totalSize, nullptr, GL_DYNAMIC_DRAW);
+	CreateBufferTexture(g_lightSsbo, kLightTextureFormat);
+
+	LightSSBOHeader header = {};
+	header.numLights = (int)lightBlk.size();
+
+	glBufferSubData(GL_TEXTURE_BUFFER, 0, headerSize, &header);
+	glBufferSubData(GL_TEXTURE_BUFFER, headerSize, lightsSize, lightBlk.data());
+
+	// ------------------------------------------------------------
+	// Active-lights buffer (glob reads it as activeLightTex)
+	// ------------------------------------------------------------
+	glGenBuffers(1, &g_activeLightsSsbo);
+	glBindBuffer(GL_TEXTURE_BUFFER, g_activeLightsSsbo);
+
+	glBufferData(GL_TEXTURE_BUFFER, sizeof(ACTIVELIGHTS), &activeLights, GL_DYNAMIC_DRAW);
+	CreateBufferTexture(g_activeLightsSsbo, kActiveLightTextureFormat);
+
+	// TV portraits have their own isolated light domain. Both persistent TV
+	// lights are addressed directly by the portrait glob, so no active-index
+	// buffer is required for them. glob reads them as tvLightTex, on its own
+	// texture unit.
+	glGenBuffers(1, &g_tvLightSsbo);
+	glBindBuffer(GL_TEXTURE_BUFFER, g_tvLightSsbo);
+	glBufferData(GL_TEXTURE_BUFFER, sizeof(LIGHTBLK) * 2, nullptr, GL_DYNAMIC_DRAW);
+	CreateBufferTexture(g_tvLightSsbo, kTvLightTextureFormat);
+
+	glBindBuffer(GL_TEXTURE_BUFFER, 0);
+#else
 	// ------------------------------------------------------------
 	// Main light SSBO
 	// ------------------------------------------------------------
@@ -748,6 +797,7 @@ void AllocateLightBlkList()
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 13, g_tvLightSsbo);
 
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+#endif
 
 	// PostTvLoad has already created both detached lights by the time world GL
 	// storage is allocated. Seed their stable slots now; RenderTv refreshes the
@@ -847,7 +897,11 @@ void PrepareSwLights(SW *psw, CM *pcm)
 	activeLights.numStaticLights  = 0;
 	activeLights.numDynamicLights = 0;
 
+#ifdef CANE_GL41
+	glBindBuffer(GL_TEXTURE_BUFFER, g_lightSsbo);
+#else
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, g_lightSsbo);
+#endif
 
 	for (LIGHT* plight = psw->dlLight.plightFirst; plight; plight = plight->dleLight.plightNext)
 	{
@@ -872,7 +926,11 @@ void PrepareSwLights(SW *psw, CM *pcm)
 				// from the live LIGHT instead of uploading its load-time snapshot.
 				BuildLightBlk(plight, &lightBlk[idx]);
 				activeLights.dynamicLightIndices[activeLights.numDynamicLights++] = idx;
+#ifdef CANE_GL41
+				glBufferSubData(GL_TEXTURE_BUFFER, headerSize + (GLintptr)(sizeof(LIGHTBLK) * idx), sizeof(LIGHTBLK), &lightBlk[idx]);
+#else
 				glBufferSubData(GL_SHADER_STORAGE_BUFFER, headerSize + (GLintptr)(sizeof(LIGHTBLK) * idx), sizeof(LIGHTBLK), &lightBlk[idx]);
+#endif
 			}
 		}
 		else
@@ -883,10 +941,17 @@ void PrepareSwLights(SW *psw, CM *pcm)
 
 	}
 
+#ifdef CANE_GL41
+	glBindBuffer(GL_TEXTURE_BUFFER, g_activeLightsSsbo);
+	glBufferSubData(GL_TEXTURE_BUFFER, 0, sizeof(ACTIVELIGHTS), &activeLights);
+
+	glBindBuffer(GL_TEXTURE_BUFFER, 0);
+#else
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, g_activeLightsSsbo);
 	glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, sizeof(ACTIVELIGHTS), &activeLights);
 
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+#endif
 }
 
 void UpdateTvLightGpu(LIGHT* plight, int iTvLight)
@@ -900,12 +965,36 @@ void UpdateTvLightGpu(LIGHT* plight, int iTvLight)
 	// static light; movement is reflected by refreshing this dedicated slot.
 	blk.fDynamic = 0;
 
+#ifdef CANE_GL41
+	glBindBuffer(GL_TEXTURE_BUFFER, g_tvLightSsbo);
+	glBufferSubData(GL_TEXTURE_BUFFER, static_cast<GLintptr>(sizeof(LIGHTBLK) * iTvLight), sizeof(LIGHTBLK), &blk);
+
+	glBindBuffer(GL_TEXTURE_BUFFER, 0);
+#else
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, g_tvLightSsbo);
 	glBufferSubData(GL_SHADER_STORAGE_BUFFER, static_cast<GLintptr>(sizeof(LIGHTBLK) * iTvLight), sizeof(LIGHTBLK), &blk);
 
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+#endif
 }
 
+#ifdef CANE_GL41
+void BindSwLightTextures()
+{
+	// glob.vert reads the light records, the active lists and the TV lights
+	// as buffer textures.
+	glActiveTexture(GL_TEXTURE0 + kLightTextureUnit);
+	glBindTexture(GL_TEXTURE_BUFFER, GetBufferTexture(g_lightSsbo));
+	glActiveTexture(GL_TEXTURE0 + kActiveLightTextureUnit);
+	glBindTexture(GL_TEXTURE_BUFFER, GetBufferTexture(g_activeLightsSsbo));
+	glActiveTexture(GL_TEXTURE0 + kTvLightTextureUnit);
+	glBindTexture(GL_TEXTURE_BUFFER, GetBufferTexture(g_tvLightSsbo));
+
+	// Material rendering expects texture unit zero to be active.
+	glActiveTexture(GL_TEXTURE0);
+}
+
+#endif
 void DeallocateLightBlkList()
 {
 	lightBlk.clear();
@@ -921,9 +1010,18 @@ void DeallocateLightBlkList()
 	s_lightSlotOwners.shrink_to_fit();
 	numSwLights = 0;
 
+#ifdef CANE_GL41
+	DeleteBufferTexture(g_lightSsbo);
+	glDeleteBuffers(1, &g_lightSsbo);
+	DeleteBufferTexture(g_activeLightsSsbo);
+	glDeleteBuffers(1, &g_activeLightsSsbo);
+	DeleteBufferTexture(g_tvLightSsbo);
+	glDeleteBuffers(1, &g_tvLightSsbo);
+#else
 	glDeleteBuffers(1, &g_lightSsbo);
 	glDeleteBuffers(1, &g_activeLightsSsbo);
 	glDeleteBuffers(1, &g_tvLightSsbo);
+#endif
 	g_lightSsbo = 0;
 	g_activeLightsSsbo = 0;
 	g_tvLightSsbo = 0;

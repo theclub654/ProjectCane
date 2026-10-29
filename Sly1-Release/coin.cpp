@@ -224,6 +224,11 @@ void ProjectDprizeTransform(DPRIZE* pdprize, float dt, int fParentDirty)
 			glm::vec3 posTarget;
 			glm::mat3 matTarget;
 
+			// With no player (PpziCur() is then the default PZI, which has no
+			// charms) there is nothing to stick to; UpdateDprize drops the prize.
+			if (ppzi->mpccharmpaloCharm[0] == nullptr)
+				break;
+
 			// Release uses charm index 0.
 			PredictAloTransform(ppzi->mpccharmpaloCharm[0], nullptr, dtRemaining, &posTarget, &matTarget, nullptr, nullptr);
 
@@ -253,6 +258,11 @@ void ProjectDprizeTransform(DPRIZE* pdprize, float dt, int fParentDirty)
 			glm::vec3 posTarget = s_posTarget;
 
 			ALO* paloCharmGold = ppzi->mpccharmpaloCharm[3];
+			// No player (default PZI, no charms): UpdateDprize drops the prize
+			// next, since the default PZI does not collect.
+			if (paloCharmGold == nullptr)
+				break;
+
 			float radTarget = std::atan2(paloCharmGold->xf.matWorld[0].y, paloCharmGold->xf.matWorld[0].x);
 			radTarget = RadNormalize(radTarget);
 			radTarget += 15.707964f;
@@ -714,9 +724,13 @@ void UpdateDprize(DPRIZE* pdprize, float dt)
 			}
 
 			ALO* paloCharmGold = ppzi->mpccharmpaloCharm[3];
-			glm::vec3 vReject = paloCharmGold->xf.mat * s_vReject + paloCharmGold->xf.v;
+			// The default PZI (no player) has no charms to reject from.
+			if (paloCharmGold != nullptr)
+			{
+				glm::vec3 vReject = paloCharmGold->xf.mat * s_vReject + paloCharmGold->xf.v;
 
-			pdprize->pvtalo->pfnSetAloVelocityVec(pdprize, &vReject);
+				pdprize->pvtalo->pfnSetAloVelocityVec(pdprize, &vReject);
+			}
 			pdprize->pvtdprize->pfnSetDprizeDprizes(pdprize, DPRIZES_Fall);
 			break;
 		}

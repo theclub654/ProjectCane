@@ -1,0 +1,31 @@
+{
+  "comment": [
+    "Events the behaviour check (cane_world_sweep behaviour) requires in a level's trace; a missing one fails the level.",
+    "Keys are object, state and segment ids (no game data): kind is one of sm, sma+, sma-, aseg+, aseg-, lo+, lo-, opt, ficg, state, transition;",
+    "key uses the trace's format (sm: 'sm@root:from>to', aseg+: 'aseg@root', lo+: 'oid:cid') and may hold '*';",
+    "by_frame (60 per second, counted from the first frame after the load) bounds when it must have happened, -1 for any time in the run."
+  ],
+  "events": [
+    {
+      "level": "A Stealthy Approach",
+      "kind": "lo+",
+      "key": "1860:41",
+      "by_frame": 900,
+      "why": "the van door's volume button (VOLBTN 1860) comes back when the intro ends; it did not while the van's options were wiped"
+    },
+    {
+      "level": "A Stealthy Approach",
+      "kind": "aseg+",
+      "key": "*@1862",
+      "by_frame": 900,
+      "why": "an opening animation plays on the van door (the state machine picks one of its segments, 1872 or 1874, at random)"
+    },
+    {
+      "level": "A Stealthy Approach",
+      "kind": "sm",
+      "key": "1863@1862:1871>911",
+      "by_frame": 900,
+      "why": "the van door opens (state machine 1863 from closed 1871 to open 911)"
+    }
+  ]
+}

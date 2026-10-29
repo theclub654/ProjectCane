@@ -29,6 +29,10 @@
 #define GLFW_EXPOSE_NATIVE_WIN32
 #include <GLFW/glfw3native.h>
 #endif
+#ifdef __APPLE__
+#include <SDL_messagebox.h>
+#include <string>
+#endif
 
 bool g_fDeveloperDebugMode = false;
 
@@ -38,6 +42,29 @@ void LoadDebugModeSetting()
 {
 	g_fDeveloperDebugMode = cane::DebugMode();
 }
+#ifdef __APPLE__
+
+// Started from ProjectCane.app (Finder, Dock) there is no terminal to print
+// to, and without data the game would sit on an empty window. Say where the
+// data goes instead. SDL's message box needs no SDL_Init or window: on macOS
+// it runs a modal NSAlert and returns when the user clicks OK.
+void ShowMissingGameDataAlert(const cane::fs::path& bundle)
+{
+	const std::string message =
+		"ProjectCane could not find the game data: the Worlds and Cutscenes folders and "
+		"extraction_manifest.json.\n\n"
+		"Put them in one of these folders:\n\n" +
+		cane::Utf8(cane::DefaultUserDirectory()) + "\n\n" +
+		cane::Utf8(bundle.parent_path()) + " (the folder that contains " +
+		cane::Utf8(bundle.filename()) + ")\n\n"
+		"The ProjectCane File Extractor app creates them from your Sly Cooper disc image "
+		"and saves them in the first folder by default.";
+	ReportRuntimeError("Data", "No game data found. %s", message.c_str());
+	if (SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "ProjectCane - Game Data Not Found",
+		message.c_str(), nullptr) != 0)
+		ReportRuntimeError("Data", "Could not show the message box: %s", SDL_GetError());
+}
+#endif
 
 class FramePacer
 {
@@ -549,6 +576,16 @@ int RunApplication(const std::vector<std::string>& arguments)
     try
     {
 		cane::ConfigureRuntime(arguments);
+#ifdef __APPLE__
+		// Only for runs from an .app bundle; development builds and tests
+		// keep failing later as before. Checked before any window exists.
+		if (const cane::fs::path bundle = cane::AppBundleDirectory(cane::ExecutableDirectory());
+			!bundle.empty() && !cane::HasGameData(cane::DataDirectory()))
+		{
+			ShowMissingGameDataAlert(bundle);
+			return EXIT_FAILURE;
+		}
+#endif
         RefreshContentPackage(cane::DataDirectory());
         Startup();
 		#ifdef _WIN32

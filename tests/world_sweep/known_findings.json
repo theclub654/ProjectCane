@@ -1,0 +1,47 @@
+{
+  "comment": [
+    "Failures of the behaviour checks (cane_world_sweep behaviour, unlock, fuse) found in the game's shared code and written up for upstream;",
+    "like tests/sanitizers/*.supp they are reported as known instead of failing the run. Mac-only problems are never listed here.",
+    "An entry matches one failure exactly: a live/reload difference by its whole key ('oid:cid', plus ' 'name'' for a named object), field,",
+    "and live and reload values (so its direction too); any other failure by its whole reason. Fuse failures count as level 'Prowling the Grounds'.",
+    "Entries for levels that ran but matched nothing are reported as stale (advisory). writeup: the upstream issue (or why there is none yet) and what it is about."
+  ],
+  "findings": [
+    {
+      "check": "unlock",
+      "level": "Muggshot's Turf",
+      "key": "1719:40",
+      "field": "response",
+      "live": "1",
+      "reload": "5",
+      "writeup": "theclub654/ProjectCane#63: BUTTON 1719 keeps response 5 after a save and reload; LOCKG 1706's live unlock set it to 1"
+    },
+    {
+      "check": "unlock",
+      "level": "Muggshot's Turf",
+      "key": "1979:40",
+      "field": "response",
+      "live": "1",
+      "reload": "5",
+      "writeup": "theclub654/ProjectCane#63: BUTTON 1979 keeps response 5 after a save and reload; LOCKG 1992's live unlock set it to 1"
+    },
+    {
+      "check": "unlock",
+      "level": "Paris, France",
+      "key": "1397:23",
+      "field": "presence",
+      "live": "not in world",
+      "reload": "in world, response 3 (bounce)",
+      "writeup": "theclub654/ProjectCane#64: Paris's vault leaves the world at VOLBTN 1396 without any saved trace, so a reload brings it back"
+    },
+    {
+      "check": "unlock",
+      "level": "Inside the Stronghold",
+      "key": "1445:40",
+      "field": "presence",
+      "live": "in world, response 1",
+      "reload": "not in world",
+      "writeup": "Not filed upstream (unconfirmed: not yet seen in play or on another platform, and may be the opened door's end state): BUTTON 1445 stays in the world (response 1) after LOCKG 1444's live unlock; the load path with the group's flag removes it"
+    }
+  ]
+}

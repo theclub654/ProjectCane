@@ -97,7 +97,13 @@ void DrawLetterBox(LETTERBOX* pletterbox)
     glDisable(GL_BLEND);
     glDisable(GL_DEPTH_TEST);
     glDepthMask(GL_FALSE);
+#ifdef CANE_GL41
+    // blot.frag samples u_fontTex; the 4.1 driver flags an empty unit. The
+    // bars are blotColor (black) either way.
+    glBindTexture(GL_TEXTURE_2D, whiteTex);
+#else
     glBindTexture(GL_TEXTURE_2D, 0);
+#endif
     glBindVertexArray(g_gl.gao);
 
     {

@@ -121,7 +121,12 @@ namespace
 	}
 }
 
+#ifdef CANE_GL41
+void GLSHADER::Init(const char* vertexFile, const char* geometryFile, const char* fragmentFile,
+	const char* const* feedbackVaryings, GLsizei feedbackVaryingCount)
+#else
 void GLSHADER::Init(const char* vertexFile, const char* geometryFile, const char* fragmentFile)
+#endif
 {
 	std::string vertexCode{};
 	std::string geometryCode{};
@@ -136,6 +141,13 @@ void GLSHADER::Init(const char* vertexFile, const char* geometryFile, const char
 	if (fragmentFile != NULL)
 		fragmentCode = GetEmbeddedShaderSource(fragmentFile);
 
+	#ifdef CANE_GL41
+	// The shader files target GLSL 4.30; the 4.1 core context only accepts up to 4.10.
+	vertexCode = RewriteShaderVersion(vertexCode, kShaderVersionGL41);
+	geometryCode = RewriteShaderVersion(geometryCode, kShaderVersionGL41);
+	fragmentCode = RewriteShaderVersion(fragmentCode, kShaderVersionGL41);
+
+	#endif
 	const char* vertexSource   = NULL;
 	const char* geometrySource = NULL;
 	const char* fragmentSource = NULL;
@@ -218,6 +230,11 @@ void GLSHADER::Init(const char* vertexFile, const char* geometryFile, const char
 	if (fragmentFile != NULL)
 		glAttachShader(ID, fragmentShader);
 
+#ifdef CANE_GL41
+	if (feedbackVaryings != nullptr && feedbackVaryingCount > 0)
+		glTransformFeedbackVaryings(ID, feedbackVaryingCount, feedbackVaryings, GL_INTERLEAVED_ATTRIBS);
+
+#endif
 	glLinkProgram(ID);
 	if (!compileErrors(ID, "PROGRAM", vertexFile, geometryFile, fragmentFile))
 	{
@@ -229,6 +246,10 @@ void GLSHADER::Init(const char* vertexFile, const char* geometryFile, const char
 		throw std::runtime_error("Shader program linking failed");
 	}
 
+#ifdef CANE_GL41
+	ApplyUniformBlockBindings(ID);
+
+#endif
 	if (vertexFile != NULL)
 		glDeleteShader(vertexShader);
 

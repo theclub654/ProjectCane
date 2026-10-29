@@ -1,5 +1,8 @@
 #include "wr.h"
 #include "glob.h"
+#ifdef CANE_GL41
+#include "glshaders.h"
+#endif
 
 WR* NewWr()
 {
@@ -299,9 +302,18 @@ void ApplyWrGlob(WR* pwr, ALO* palo, GLOB* pglob)
 
 	w.state.assign(totalVec4, glm::vec4(0.0f));
 
+#ifdef CANE_GL41
+	// glob.vert reads the state through an RGBA32F buffer texture (no SSBOs on
+	// GL 4.1). Respecifying keeps the buffer's texture; DeleteModel drops it.
+	glBindBuffer(GL_TEXTURE_BUFFER, w.ssboState);
+	glBufferData(GL_TEXTURE_BUFFER, bytes, nullptr, GL_DYNAMIC_DRAW);
+	CreateBufferTexture(w.ssboState, kWarpStateTextureFormat);
+	glBindBuffer(GL_TEXTURE_BUFFER, 0);
+#else
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, w.ssboState);
 	glBufferData(GL_SHADER_STORAGE_BUFFER, bytes, nullptr, GL_DYNAMIC_DRAW);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+#endif
 }
 
 float GFromOnz(ONZ* ponz)
@@ -647,9 +659,15 @@ void UpdateWrStateVectors(WR* pwr)
 		// --------------------------------------------------------
 		if (w.ssboState != 0)
 		{
+#ifdef CANE_GL41
+			glBindBuffer(GL_TEXTURE_BUFFER, w.ssboState);
+			glBufferSubData(GL_TEXTURE_BUFFER, 0, (GLsizeiptr)(w.state.size() * sizeof(glm::vec4)), w.state.data());
+			glBindBuffer(GL_TEXTURE_BUFFER, 0);
+#else
 			glBindBuffer(GL_SHADER_STORAGE_BUFFER, w.ssboState);
 			glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, (GLsizeiptr)(w.state.size() * sizeof(glm::vec4)), w.state.data());
 			glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+#endif
 		}
 
 		pwrbg = pwrbg->pwrbgNextWr;

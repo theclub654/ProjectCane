@@ -23,6 +23,18 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
+
+        if (System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(System.Runtime.InteropServices.OSPlatform.OSX))
+        {
+            // The game looks for extracted data in Application Support first.
+            var home = Environment.GetEnvironmentVariable("HOME");
+            if (string.IsNullOrEmpty(home))
+                home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+            _outputFolderPath = Path.Combine(home, "Library", "Application Support", "ProjectCane");
+            OutputFolderPathText.Text = _outputFolderPath;
+            OutputFolderPathText.Foreground = new SolidColorBrush(Color.Parse("#D5E2EE"));
+            ChangeFolderButton.Content = "Change Folder";
+        }
     }
 
     private void TitleBar_PointerPressed(object? sender, PointerPressedEventArgs e)
