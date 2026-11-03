@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.22)
-project(ProjectCane VERSION 0.4.0 LANGUAGES C CXX)
+project(ProjectCane VERSION 0.5.0 LANGUAGES C CXX)
 
 if(CMAKE_CXX_COMPILER MATCHES "aarch64-none-elf")
     include(cmake/Switch.cmake)

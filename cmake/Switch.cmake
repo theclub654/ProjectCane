@@ -13,7 +13,7 @@ endforeach()
 list(FILTER cane_sources EXCLUDE REGEX "imgui_impl_opengl3\\.cpp$")
 list(FILTER cane_sources EXCLUDE REGEX "spu_reverb_xapo\\.cpp$")
 set(platform_sources
-    platform/switch/runtime.cpp platform/switch/glfw_libnx.cpp
+    platform/switch/runtime.cpp platform/switch/saltynx.cpp platform/switch/glfw_libnx.cpp
     platform/switch/audio.cpp platform/switch/audio_device_libnx.cpp platform/switch/audio_prefetch.cpp
     platform/switch/vtables.cpp platform/switch/threading.cpp
     platform/switch/io_worker.cpp platform/switch/deko/backend.cpp
@@ -91,9 +91,9 @@ target_include_directories(ProjectCane PRIVATE Libraries/include Sly1-Release
     "${CMAKE_CURRENT_BINARY_DIR}/generated" "${PORTLIBS}/include")
 target_compile_definitions(ProjectCane PRIVATE CANE_DEKO3D GLFW_INCLUDE_NONE GLFW_STATIC
     IMGUI_DEFINE_MATH_OPERATORS GLM_ENABLE_EXPERIMENTAL USE_STD_FILESYSTEM IMGUI_IMPL_OPENGL_LOADER_CUSTOM)
-set(game_headers "${CMAKE_CURRENT_SOURCE_DIR}/platform/switch/compat.h")
+set(game_headers "\"compat.h\"")
 foreach(header sw.h save.h freeze.h act.h wr.h shadow.h fader.h splicemap.h gc.h)
-    list(APPEND game_headers "${CMAKE_CURRENT_SOURCE_DIR}/Sly1-Release/${header}")
+    list(APPEND game_headers "\"${header}\"")
 endforeach()
 target_precompile_headers(ProjectCane PRIVATE "$<$<COMPILE_LANGUAGE:CXX>:${game_headers}>")
 foreach(source IN LISTS cane_sources)

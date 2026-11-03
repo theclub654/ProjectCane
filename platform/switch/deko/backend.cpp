@@ -1,4 +1,5 @@
 #include "backend.h"
+#include "../saltynx.h"
 #include "allocator.h"
 #include "dksh.h"
 #include "texture_decode.h"
@@ -30,6 +31,7 @@ DkSwapchain swapchain{};
 DkMemBlock swapMemory{};
 std::array<DkImage, FrameCount> swapImages{};
 unsigned outputWidth{}, outputHeight{}, frameIndex{};
+unsigned frameResolutionWidth{}, frameResolutionHeight{};
 uint64_t nextSerial = 1;
 bool recording = false;
 int swapInterval = 1;
@@ -1512,6 +1514,11 @@ void SetSwapInterval(int interval)
     swapInterval=std::clamp(interval,0,1);
     if (swapchain) dkSwapchainSetSwapInterval(swapchain,swapInterval);
 }
+void SetFrameResolution(unsigned width,unsigned height)
+{
+    frameResolutionWidth=width && height ? width : 0;
+    frameResolutionHeight=width && height ? height : 0;
+}
 void Present()
 {
     EnsureFrame();
@@ -1521,6 +1528,10 @@ void Present()
     f.submitted=true;
     dkQueuePresentImage(queue,swapchain,f.imageSlot);
     if (dkQueueIsInErrorState(queue)) Fail("GPU queue reported an error");
+    saltynx_set_resolution(frameResolutionWidth ? frameResolutionWidth : outputWidth,
+        frameResolutionHeight ? frameResolutionHeight : outputHeight);
+    saltynx_frame(1);
+    frameResolutionWidth=frameResolutionHeight=0;
 
     recording=false;frameIndex=(frameIndex+1)%FrameCount;
 }

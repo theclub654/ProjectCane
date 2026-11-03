@@ -1,4 +1,6 @@
 #include "runtime.h"
+#include "saltynx.h"
+#include <cstdlib>
 #include "core_policy.h"
 #include "io_worker.h"
 #include "installer.h"
@@ -32,6 +34,8 @@ void CaneSwitchError(const char* message)
 
 bool CaneSwitchStartup(int argc, char** argv)
 {
+    saltynx_start();
+    std::atexit(saltynx_stop);
     std::filesystem::path base("sdmc:/switch/ProjectCane");
     if (argc > 0 && argv[0] && *argv[0])
     {
@@ -78,5 +82,6 @@ bool CaneSwitchStartup(int argc, char** argv)
 
 void CaneSwitchShutdown()
 {
+    saltynx_stop();
     CaneIo::Shutdown();
 }

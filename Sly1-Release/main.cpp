@@ -15,6 +15,9 @@
 #include "blip.h"
 #include "content.h"
 #include "../platform/platform.h"
+#ifdef CANE_DEKO3D
+#include "deko/backend.h"
+#endif
 #ifdef __SWITCH__
 #include "runtime.h"
 #endif
@@ -273,6 +276,11 @@ void RunGameFrame()
         ImGui::Render();
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
     }
+#ifdef CANE_DEKO3D
+    // The scene can render above or below the Switch output resolution.
+    // Use the allocated target size, after any settings change or resize.
+    CaneDeko::SetFrameResolution(g_gl.renderWidth, g_gl.renderHeight);
+#endif
     glfwSwapBuffers(g_gl.window);
     if (s_framePacer != nullptr)
         s_framePacer->Wait();

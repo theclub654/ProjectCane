@@ -154,3 +154,8 @@ ProjectCane is an unofficial fan project and is not affiliated with or
 endorsed by Sony Interactive Entertainment or Sucker Punch Productions.
 *Sly Cooper* and related names and assets belong to their respective owners.
 No original game data is distributed with this repository or its releases.
+
+### SaltyNX telemetry
+
+FPS and render resolution are published to SaltyNX shared memory for compatible overlays. The port continues normally when SaltyNX is not running. This reports presentation timing and resolution; it does not change the game's frame cap.
+Game frames report the allocated internal scene resolution, including the video menu's resolution and scaling settings. The installer and movie player report the output resolution.
