@@ -7,7 +7,7 @@
 #include "expl.h"
 #include "find.h"
 #include "game.h"
-#include "input.h"
+#include "Input.h"
 #include "pnt.h"
 #include "sm.h"
 #include "stepzap.h"

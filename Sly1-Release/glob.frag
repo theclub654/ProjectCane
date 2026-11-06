@@ -93,7 +93,13 @@ layout(location = 3) in vec2 texcoord;
 
 layout(location = 4) in MATERIAL material;
 layout(location = 7) flat in int vShadowCount;
+#ifdef DEKO3D
+layout(location = 8) flat in ivec4 vShadowIndices0;
+layout(location = 9) flat in ivec4 vShadowIndices1;
+layout(location = 10) flat in ivec4 vShadowIndices2;
+#else
 layout(location = 8) flat in ivec4 vShadowIndices[3];
+#endif
 layout(location = 11) in float fogIntensity;
 
 layout(location = 0) out vec4 FragColor;
@@ -105,11 +111,8 @@ bool ShadowIntersectsSphere(vec3 objectCenter, float objectRadius, vec3 shadowCe
 vec3 ApplyProjectedShadow(SHADOW shadow);
 float SampleShadowTexture(SHADOW shadow, vec2 uv);
 void ApplyFog();
+int ShadowIndex(int index);
 
-int ObjectShadowIndex(int slot)
-{
-    return vShadowIndices[slot >> 2][slot & 3];
-}
 
 int AvailableShadowCount()
 {
@@ -177,7 +180,7 @@ void DrawOneWay()
         int shadowCount = clamp(vShadowCount, 0, MAX_OBJECT_SHADOWS);
         for (int i = 0; i < shadowCount; ++i)
         {
-            int idx = ObjectShadowIndex(i);
+            int idx = ShadowIndex(i);
             if (idx < 0 || idx >= AvailableShadowCount())
                 continue;
             FragColor.rgb *= ApplyProjectedShadow(shadows[idx]);
@@ -201,7 +204,7 @@ void DrawThreeWay()
         int shadowCount = clamp(vShadowCount, 0, MAX_OBJECT_SHADOWS);
         for (int i = 0; i < shadowCount; ++i)
         {
-            int idx = ObjectShadowIndex(i);
+            int idx = ShadowIndex(i);
             if (idx < 0 || idx >= AvailableShadowCount())
                 continue;
             lit.rgb *= ApplyProjectedShadow(shadows[idx]);
@@ -210,6 +213,30 @@ void DrawThreeWay()
 
     FragColor.rgb = lit * op.darken;
     FragColor.a = clamp(alpha * op.uAlpha, 0.0, 1.0);
+}
+
+int ShadowIndex(int index)
+{
+#ifdef DEKO3D
+    switch (index)
+    {
+        case 0: return vShadowIndices0.x;
+        case 1: return vShadowIndices0.y;
+        case 2: return vShadowIndices0.z;
+        case 3: return vShadowIndices0.w;
+        case 4: return vShadowIndices1.x;
+        case 5: return vShadowIndices1.y;
+        case 6: return vShadowIndices1.z;
+        case 7: return vShadowIndices1.w;
+        case 8: return vShadowIndices2.x;
+        case 9: return vShadowIndices2.y;
+        case 10: return vShadowIndices2.z;
+        case 11: return vShadowIndices2.w;
+        default: return -1;
+    }
+#else
+    return vShadowIndices[index >> 2][index & 3];
+#endif
 }
 
 bool ShadowIntersectsSphere(vec3 objectCenter, float objectRadius, vec3 shadowCenter, float shadowRadius)
@@ -266,7 +293,7 @@ vec3 ApplyProjectedShadow(SHADOW shadow)
 
     if (any(isnan(uv)) || any(isinf(uv)))
         return vec3(1.0);
-    
+
     float mask = SampleShadowTexture(shadow, uv);
     float As = mask * rgba.a;
 
@@ -275,8 +302,8 @@ vec3 ApplyProjectedShadow(SHADOW shadow)
 
 float SampleShadowTexture(SHADOW shadow, vec2 uv)
 {
-    int layerCount = textureSize(shadowTextureArray, 0).z;
-    if (shadow.textureSlot < 0 || shadow.textureSlot >= layerCount)
+    ivec3 shadowSize = textureSize(shadowTextureArray, 0);
+    if (shadow.textureSlot < 0 || shadow.textureSlot >= shadowSize.z)
         return 0.0;
 
     // A dynamic layer is a single frame-local silhouette render target. It
@@ -289,14 +316,17 @@ float SampleShadowTexture(SHADOW shadow, vec2 uv)
     // Bindless textures carried independent GL_REPEAT/GL_CLAMP_TO_EDGE state.
     // The array itself repeats. Clamp exceptional layers to texel centers so
     // linear filtering cannot wrap across the opposite edge.
-    vec2 halfTexel = 0.5 / vec2(textureSize(shadowTextureArray, 0).xy);
+    vec2 halfTexel = 0.5 / vec2(shadowSize.xy);
     if (shadow.fDynamic != 0 || shadow.clampS != 0)
         uv.x = clamp(uv.x, halfTexel.x, 1.0 - halfTexel.x);
     if (shadow.fDynamic != 0 || shadow.clampT != 0)
         uv.y = clamp(uv.y, halfTexel.y, 1.0 - halfTexel.y);
 
-    return texture(shadowTextureArray,
-        vec3(uv, float(shadow.textureSlot))).a;
+#ifdef DEKO3D
+    return textureLod(shadowTextureArray, vec3(uv, float(shadow.textureSlot)), 0.0).a;
+#else
+    return texture(shadowTextureArray, vec3(uv, float(shadow.textureSlot))).a;
+#endif
 }
 
 void ApplyFog()

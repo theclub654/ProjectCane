@@ -1,3 +1,6 @@
+#ifdef __SWITCH__
+#include "stdio_avio.h"
+#endif
 #include "fmv.h"
 #include "content.h"
 #include "gui_layout.h"
@@ -417,7 +420,12 @@ namespace
 
         AVFormatContext* format = nullptr;
         const std::string videoPathUtf8 = Utf8Path(videoPath);
+#ifdef __SWITCH__
+        CaneFileIO::Input input;
+        int result = input.Open(&format, videoPathUtf8.c_str());
+#else
         int result = avformat_open_input(&format, videoPathUtf8.c_str(), nullptr, nullptr);
+#endif
         if (result < 0)
         {
             ReportRuntimeError("FMV", "Could not open video '%s': %s (FFmpeg code %d)",

@@ -4,9 +4,12 @@
 #include <cstdint>
 #include <filesystem>
 #include <fstream>
+#include <span>
 #include <string>
 #include <vector>
 
+namespace cane::pal
+{
 enum class StringEncoding { Narrow, Utf16Le, Auto };
 
 struct Vec2 { float x{}, y{}; };
@@ -17,6 +20,12 @@ class CBinaryInputStream {
 public:
     explicit CBinaryInputStream(const std::filesystem::path& path,
         StringEncoding encoding = StringEncoding::Auto);
+    explicit CBinaryInputStream(std::span<const std::uint8_t> data,
+        StringEncoding encoding = StringEncoding::Auto);
+    CBinaryInputStream(const CBinaryInputStream&) = delete;
+    CBinaryInputStream& operator=(const CBinaryInputStream&) = delete;
+    CBinaryInputStream(CBinaryInputStream&&) = default;
+    CBinaryInputStream& operator=(CBinaryInputStream&&) = default;
 
     void ReadBytes(void* destination, std::size_t size);
     void Skip(std::size_t size);
@@ -24,7 +33,7 @@ public:
     void Seek(std::size_t offset);
 
     [[nodiscard]] std::size_t GetOffset() const;
-    [[nodiscard]] std::size_t GetSize() const { return size_; }
+    [[nodiscard]] std::size_t GetSize() const { return data_.size(); }
     [[nodiscard]] std::size_t Remaining() const;
 
     std::uint8_t U8Read();
@@ -51,7 +60,10 @@ private:
     std::string ReadUtf16String(std::uint16_t length);
     bool LooksLikeUtf16(std::uint16_t length);
 
-    mutable std::ifstream file_;
-    std::size_t size_{};
+    std::vector<std::uint8_t> storage_;
+    std::span<const std::uint8_t> data_;
+    std::size_t offset_{};
     StringEncoding encoding_{};
 };
+
+}

@@ -11,8 +11,12 @@ float g_controllerDeadzone = 0.35f;
 #endif
 #include "ui.h"
 #include "mb.h"
+#ifdef __SWITCH__
+#include "runtime.h"
+#else
 #define SDL_MAIN_HANDLED
 #include <SDL.h>
+#endif
 #include <cstdio>
 #include <iterator>
 #include <vector>
@@ -229,6 +233,7 @@ void InitializeGamepadState(GLFWgamepadstate* state)
     state->axes[GLFW_GAMEPAD_AXIS_RIGHT_TRIGGER] = -1.0f;
 }
 
+#ifndef __SWITCH__
 struct SdlControllerDevice
 {
     SDL_GameController* controller = nullptr;
@@ -237,6 +242,7 @@ struct SdlControllerDevice
 
 std::vector<SdlControllerDevice> s_sdlControllers;
 double s_nextControllerScan = 0.0;
+#endif
 
 // The PS2 used a binary high-speed motor and an 8-bit low-speed motor. These
 // patterns retain that representation so the retail rumble scheduler can be
@@ -298,6 +304,7 @@ constexpr RUMPAT s_arumpat[RUMK_Max] =
     { s_ruminsBomb,        static_cast<int>(std::size(s_ruminsBomb)) }
 };
 
+#ifndef __SWITCH__
 float NormalizeSdlAxis(Sint16 value)
 {
     return value < 0
@@ -332,11 +339,16 @@ SDL_GameController* PcontrollerFromInstanceId(int instanceId)
     return it != s_sdlControllers.end() ? it->controller : nullptr;
 }
 
+#endif
+
 void SetSdlRumble(const JOY* pjoy, uint8_t highSpeedMotor, uint8_t lowSpeedMotor)
 {
     if (pjoy == nullptr || !pjoy->gamepadConnected)
         return;
 
+#ifdef __SWITCH__
+    CaneSwitchRumble(lowSpeedMotor / 255.0f, highSpeedMotor != 0 ? 1.0f : 0.0f);
+#else
     SDL_GameController* controller = PcontrollerFromInstanceId(pjoy->joystickId);
     if (controller == nullptr || SDL_GameControllerHasRumble(controller) != SDL_TRUE)
         return;
@@ -346,8 +358,10 @@ void SetSdlRumble(const JOY* pjoy, uint8_t highSpeedMotor, uint8_t lowSpeedMotor
     // Each pattern transition refreshes this timeout. It is deliberately
     // finite so vibration cannot remain stuck if the game stops updating.
     SDL_GameControllerRumble(controller, lowFrequency, highFrequency, 1000);
+#endif
 }
 
+#ifndef __SWITCH__
 void RefreshSdlControllers(bool forceScan)
 {
     SDL_PumpEvents();
@@ -437,6 +451,8 @@ bool GetSdlControllerState(SDL_GameController* controller, GLFWgamepadstate* sta
     return true;
 }
 
+#endif
+
 const char* PchzKeyboardKeyNameInternal(int key)
 {
     switch (key)
@@ -466,6 +482,7 @@ const char* PchzKeyboardKeyNameInternal(int key)
 
 bool StartupControllerInput()
 {
+#ifndef __SWITCH__
     SDL_SetMainReady();
     SDL_SetHint(SDL_HINT_NO_SIGNAL_HANDLERS, "1");
     SDL_SetHint(SDL_HINT_JOYSTICK_ALLOW_BACKGROUND_EVENTS, "1");
@@ -477,24 +494,31 @@ bool StartupControllerInput()
 
     SDL_GameControllerEventState(SDL_ENABLE);
     RefreshSdlControllers(true);
+#endif
     return true;
 }
 
 void ShutdownControllerInput()
 {
     StopJoyRumble(&g_joy);
+#ifndef __SWITCH__
     for (SdlControllerDevice& device : s_sdlControllers)
         CloseSdlController(device);
     s_sdlControllers.clear();
     SDL_QuitSubSystem(SDL_INIT_GAMECONTROLLER | SDL_INIT_JOYSTICK | SDL_INIT_HAPTIC);
+#endif
 }
 
 bool FControllerInputAvailable()
 {
+#ifdef __SWITCH__
+    return glfwJoystickIsGamepad(GLFW_JOYSTICK_1);
+#else
     if ((SDL_WasInit(SDL_INIT_GAMECONTROLLER) & SDL_INIT_GAMECONTROLLER) == 0)
         return false;
     RefreshSdlControllers(false);
     return !s_sdlControllers.empty();
+#endif
 }
 
 const char* PchzKeyboardKeyName(int key)
@@ -519,6 +543,22 @@ const char* PchzKeyboardKeyName(int key)
 
 const char* PchzGamepadBindingName(int binding)
 {
+#ifdef __SWITCH__
+    switch (binding)
+    {
+    case GLFW_GAMEPAD_BUTTON_A: return "B / Cross";
+    case GLFW_GAMEPAD_BUTTON_B: return "A / Circle";
+    case GLFW_GAMEPAD_BUTTON_X: return "Y / Square";
+    case GLFW_GAMEPAD_BUTTON_Y: return "X / Triangle";
+    case GLFW_GAMEPAD_BUTTON_LEFT_BUMPER: return "L";
+    case GLFW_GAMEPAD_BUTTON_RIGHT_BUMPER: return "R";
+    case GLFW_GAMEPAD_BUTTON_BACK: return "Minus / Select";
+    case GLFW_GAMEPAD_BUTTON_START: return "Plus / Start";
+    case GAMEPAD_BINDING_LEFT_TRIGGER: return "ZL";
+    case GAMEPAD_BINDING_RIGHT_TRIGGER: return "ZR";
+    default: break;
+    }
+#endif
     switch (binding)
     {
     case GLFW_GAMEPAD_BUTTON_A: return ContentUiText("A / Cross", "A / Croix", "A / Kreuz", "A / Cruz", "A / Croce");
@@ -576,6 +616,13 @@ void JOY::Update(GLFWwindow* window)
     const bool allowControllerInput = !g_fDisableControllerInputWhenUnfocused ||
         glfwGetWindowAttrib(window, GLFW_FOCUSED) == GLFW_TRUE;
 
+#ifdef __SWITCH__
+    if (allowControllerInput && glfwGetGamepadState(GLFW_JOYSTICK_1, &state))
+    {
+        haveGamepadState = true;
+        activeJoystickId = GLFW_JOYSTICK_1;
+    }
+#else
     if (allowControllerInput &&
         (SDL_WasInit(SDL_INIT_GAMECONTROLLER) & SDL_INIT_GAMECONTROLLER) != 0)
     {
@@ -599,6 +646,8 @@ void JOY::Update(GLFWwindow* window)
             }
         }
     }
+
+#endif
 
     if (haveGamepadState)
     {
@@ -642,8 +691,12 @@ void JOY::Update(GLFWwindow* window)
 
     if (previousJoystickId != JOYID_Nil && previousJoystickId != joystickId)
     {
+#ifdef __SWITCH__
+        CaneSwitchRumble(0.0f, 0.0f);
+#else
         if (SDL_GameController* previousController = PcontrollerFromInstanceId(previousJoystickId))
             SDL_GameControllerRumble(previousController, 0, 0, 0);
+#endif
     }
 
     // Keyboard movement emulates the left analog stick.  The base CPMAN

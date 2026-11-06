@@ -11,11 +11,20 @@
 #include <stdexcept>
 #include <utility>
 
-BrxWalker::BrxWalker(StringEncoding encoding, BrxSourceRegion region)
-    : encoding_(encoding), region_(region) {}
+BrxWalker::BrxWalker(StringEncoding encoding, BrxSourceRegion region, bool verbose)
+    : verbose_(verbose), encoding_(encoding), region_(region) {}
 
 void BrxWalker::WalkFile(const std::filesystem::path& path) {
-    WalkFileInternal(path);
+    const auto rebuilt = RebuildFile(path);
+    auto outputPath = path;
+    outputPath.replace_filename(path.stem().wstring() + L"_Rebuilt.brx");
+    std::ofstream output(outputPath, std::ios::binary | std::ios::trunc);
+    if (!output) throw std::runtime_error("could not create rebuilt BRX output");
+    if (!rebuilt.empty())
+        output.write(reinterpret_cast<const char*>(rebuilt.data()), rebuilt.size());
+    output.close();
+    if (!output) throw std::runtime_error("failed while writing rebuilt BRX output");
+    if (verbose_) std::wcout << L"Rebuilt file: " << outputPath.wstring() << L'\n';
 }
 
 void BrxWalker::LoadLevelIdentityMap(const std::filesystem::path& path) {
@@ -32,7 +41,7 @@ void BrxWalker::LoadLevelIdentityMap(const std::filesystem::path& path) {
     if (levelIdentityMap_.empty()) throw std::runtime_error("PAL level identity map is empty");
 }
 
-void BrxWalker::WalkFileInternal(const std::filesystem::path& path) {
+std::vector<std::uint8_t> BrxWalker::RebuildFile(const std::filesystem::path& path) {
     stats_ = {};
     pal_ = false;
     palLocalizationStrings_.clear();
@@ -49,8 +58,7 @@ void BrxWalker::WalkFileInternal(const std::filesystem::path& path) {
     if(stream.GetOffset()!=stream.GetSize())
         throw std::runtime_error("BRX walk ended before EOF at offset "+
             std::to_string(stream.GetOffset())+" of "+std::to_string(stream.GetSize()));
-    const auto outputPath = WriteRebuiltFile(path);
-    std::wcout << L"Rebuilt file: " << outputPath.wstring() << L'\n';
+    return RebuildData(stream.Data());
 }
 
 void BrxWalker::LoadSwFromBrx(CBinaryInputStream& stream) {
@@ -477,20 +485,7 @@ void BrxWalker::RecordReplacement(std::size_t begin, std::size_t end,
     rebuildOperations_.push_back({begin, end, 0, std::move(replacement)});
 }
 
-std::filesystem::path BrxWalker::WriteRebuiltFile(
-    const std::filesystem::path& sourcePath) {
-    std::ifstream input(sourcePath, std::ios::binary);
-    if (!input)
-        throw std::runtime_error("could not reopen source BRX for rebuilding");
-    input.seekg(0, std::ios::end);
-    const auto fileSize = static_cast<std::size_t>(input.tellg());
-    input.seekg(0, std::ios::beg);
-    std::vector<std::uint8_t> source(fileSize);
-    if (fileSize != 0)
-        input.read(reinterpret_cast<char*>(source.data()), static_cast<std::streamsize>(fileSize));
-    if (!input && fileSize != 0)
-        throw std::runtime_error("could not read complete source BRX for rebuilding");
-
+std::vector<std::uint8_t> BrxWalker::RebuildData(std::span<const std::uint8_t> source) {
     std::sort(rebuildOperations_.begin(), rebuildOperations_.end(),
         [](const RebuildOperation& left, const RebuildOperation& right) {
             return left.begin < right.begin;
@@ -539,20 +534,11 @@ std::filesystem::path BrxWalker::WriteRebuiltFile(
         appendRebuiltU32(static_cast<std::uint32_t>(localization.size()));
     }
 
-    auto outputPath = sourcePath;
-    outputPath.replace_filename(sourcePath.stem().wstring() + L"_Rebuilt.brx");
-    std::ofstream output(outputPath, std::ios::binary | std::ios::trunc);
-    if (!output)
-        throw std::runtime_error("could not create rebuilt BRX output");
-    if (!rebuilt.empty())
-        output.write(reinterpret_cast<const char*>(rebuilt.data()),
-            static_cast<std::streamsize>(rebuilt.size()));
-    if (!output)
-        throw std::runtime_error("failed while writing rebuilt BRX output");
-    return outputPath;
+    return rebuilt;
 }
 
 void BrxWalker::Trace(const char* name,std::size_t begin,std::size_t end) const {
+    if (!verbose_) return;
     std::cout<<std::left<<std::setw(36)<<name<<"  0x"<<std::hex<<begin
         <<"..0x"<<end<<std::dec<<" ("<<(end-begin)<<" bytes)\n";
 }

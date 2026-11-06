@@ -1,5 +1,7 @@
 #include "render.h"
-#include "emitter.h"
+#ifdef CANE_DEKO3D
+#include "shadow_projection.h"
+#endif
 #include "main.h"
 #include "blip.h"
 #include "emitter.h"
@@ -449,7 +451,7 @@ void AllocateRpl()
 	g_foreGroundPrpl.resize(2048);
 	g_worldMapPrpl.resize(2048);
 	g_maxPrpl.resize(2048);
-	
+
 	g_dynamicTextureCount = 0;
 	g_backGroundCount = 0;
 	g_backGroundBlendCount = 0;
@@ -877,7 +879,7 @@ void DrawSw(SW* psw, CM* pcm)
 
 	if (anyCel == true)
 		BeginFrameStream(&rcbStream);
-	
+
 	SortRenderRpl();
 	StageDrawStreams();
 
@@ -904,8 +906,22 @@ void DrawSw(SW* psw, CM* pcm)
 		glBindFramebuffer(GL_FRAMEBUFFER, g_gl.dyshFbo);
 		glViewport(0, 0, g_gl.dyshWidth, g_gl.dyshHeight);
 
-		/*glEnable(GL_BLEND);
-		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);*/
+#ifdef CANE_DEKO3D
+		const bool oldBlend = glIsEnabled(GL_BLEND);
+		const bool oldStencil = glIsEnabled(GL_STENCIL_TEST);
+		const bool oldScissor = glIsEnabled(GL_SCISSOR_TEST);
+		const bool oldCull = glIsEnabled(GL_CULL_FACE);
+		const bool oldDepthTest = glIsEnabled(GL_DEPTH_TEST);
+		GLboolean oldColorMask[4];
+		glGetBooleanv(GL_COLOR_WRITEMASK, oldColorMask);
+		glDisable(GL_BLEND);
+		glDisable(GL_STENCIL_TEST);
+		glDisable(GL_SCISSOR_TEST);
+
+		glDisable(GL_CULL_FACE);
+		glDisable(GL_DEPTH_TEST);
+		glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+#endif
 
 		glDepthFunc(GL_ALWAYS);
 		glDepthMask(false);
@@ -918,7 +934,19 @@ void DrawSw(SW* psw, CM* pcm)
 		glBindFramebuffer(GL_FRAMEBUFFER, g_sceneFbo);
 		glViewport(0, 0, g_gl.renderWidth, g_gl.renderHeight);
 
-		//glDisable(GL_BLEND);
+#ifdef CANE_DEKO3D
+		if (oldBlend) glEnable(GL_BLEND);
+		else glDisable(GL_BLEND);
+		if (oldStencil) glEnable(GL_STENCIL_TEST);
+		else glDisable(GL_STENCIL_TEST);
+		if (oldScissor) glEnable(GL_SCISSOR_TEST);
+		else glDisable(GL_SCISSOR_TEST);
+		if (oldCull) glEnable(GL_CULL_FACE);
+		else glDisable(GL_CULL_FACE);
+		if (oldDepthTest) glEnable(GL_DEPTH_TEST);
+		else glDisable(GL_DEPTH_TEST);
+		glColorMask(oldColorMask[0], oldColorMask[1], oldColorMask[2], oldColorMask[3]);
+#endif
 
 		glDepthFunc(GL_LESS);
 		glDepthMask(true);
@@ -1405,43 +1433,47 @@ void FillScreenRect(int r, int g, int b, int alpha, float xLeft, float yTop, flo
 
 void DrawDysh(RPL *prpl)
 {
-	DYSH *pdysh = prpl->pdysh;
+    DYSH *pdysh = prpl->pdysh;
+    if (pdysh == nullptr || pdysh->pshadowGen == nullptr || pdysh->shadowTex == 0 || pdysh->shadowLayer < 0)
+        return;
 
-	if (pdysh == nullptr || pdysh->shadowTex == 0 || pdysh->shadowLayer < 0)
-		return;
+    glFramebufferTextureLayer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0,
+        pdysh->shadowTex, 0, pdysh->shadowLayer);
+    glDrawBuffer(GL_COLOR_ATTACHMENT0);
+    glClearColor(0.f, 0.f, 0.f, 0.f);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+#ifdef CANE_DEKO3D
+    const glm::mat4 matWorldToClip = CaneShadow::ClipFromUv(pdysh->pshadowGen->matWorldToUv);
+#else
+    const glm::mat4 matWorldToClip = g_uvToClip * pdysh->pshadowGen->matWorldToUv;
+#endif
+    glUniformMatrix4fv(glslDyshMatWorldClip, 1, GL_FALSE, glm::value_ptr(matWorldToClip));
+    glUniformMatrix4fv(glslDyshModel, 1, GL_FALSE, glm::value_ptr(prpl->ro.model));
 
-	glFramebufferTextureLayer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0,
-		pdysh->shadowTex, 0, pdysh->shadowLayer);
-	glDrawBuffer(GL_COLOR_ATTACHMENT0);
-
-	glClearColor(0.f, 0.f, 0.f, 0.f);
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-	glm::mat4 matWorldToClip = g_uvToClip * pdysh->pshadowGen->matWorldToUv;
-
-	glUniformMatrix4fv(glslDyshMatWorldClip, 1, GL_FALSE, glm::value_ptr(matWorldToClip));
-	glUniformMatrix4fv(glslDyshModel, 1, GL_FALSE, glm::value_ptr(prpl->ro.model));
-
-	GLOBSET* pglobset = &pdysh->globset;
-	const bool fHasBones = pglobset->cbnd > 0 && pglobset->boneMatrixSSBO != 0;
-
-	if (fHasBones)
-		BindShaderStorageBuffer(9, pglobset->boneMatrixSSBO);
-
-	for (int i = 0; i < pglobset->aglob.size(); i++)
-	{
-		GLOB& glob = pglobset->aglob[i];
-		BindVertexArray(glob.VAO);
-
-		for (int a = 0; a < glob.asubglob.size(); a++)
-		{
-			SUBGLOB& sg = glob.asubglob[a];
-			glUniform1i(glslDyshfSkin, fHasBones && sg.cibnd > 0 ? 1 : 0);
-			glDrawElementsBaseVertex(GL_TRIANGLES, (GLsizei)sg.indexCount, GL_UNSIGNED_SHORT, (void*)(uintptr_t)(sg.firstIndex * sizeof(uint16_t)), (GLint)sg.baseVertex);
-		}
-	}
-
-	glUniform1i(glslDyshfSkin, 0);
+    GLOBSET* pglobset = &pdysh->globset;
+    const bool fHasBones = pglobset->cbnd > 0 && pglobset->boneMatrixSSBO != 0;
+    if (fHasBones)
+        BindShaderStorageBuffer(9, pglobset->boneMatrixSSBO);
+#ifdef CANE_DEKO3D
+    const GLint alphaLocation = glGetUniformLocation(glDyshadow.ID, "constantAlpha");
+#endif
+    for (auto& glob : pglobset->aglob)
+    {
+        BindVertexArray(glob.VAO);
+        for (auto& sg : glob.asubglob)
+        {
+            glUniform1i(glslDyshfSkin, fHasBones && sg.cibnd > 0 ? 1 : 0);
+#ifdef CANE_DEKO3D
+            const float alpha = sg.vertices.empty() ? 0.0f : sg.vertices.front().color.a;
+            const bool constant = !sg.vertices.empty() && std::all_of(sg.vertices.begin(), sg.vertices.end(),
+                [alpha](const auto& vertex) { return vertex.color.a == alpha; });
+            glUniform1i(alphaLocation, constant);
+#endif
+            glDrawElementsBaseVertex(GL_TRIANGLES, (GLsizei)sg.indexCount, GL_UNSIGNED_SHORT,
+                (void*)(uintptr_t)(sg.firstIndex * sizeof(uint16_t)), (GLint)sg.baseVertex);
+        }
+    }
+    glUniform1i(glslDyshfSkin, 0);
 }
 
 void BindGlobOneWayTexture(GLuint diffuseTexture)
@@ -2072,13 +2104,13 @@ void DrawSwCollisionAll(CM* pcm)
 		glm::mat4 modelToClip = pcm->matWorldToClip * model;
 		glUniformMatrix4fv(glslGeomModelToClip, 1, GL_FALSE, glm::value_ptr(modelToClip));
 
-		if (pso->geomLocal.VAO != 0) 
+		if (pso->geomLocal.VAO != 0)
 		{
 			BindVertexArray(pso->geomLocal.VAO);
 			glDrawElements(GL_LINES, (GLsizei)pso->geomLocal.indices.size(), GL_UNSIGNED_SHORT, 0);
 		}
 
-		if (pso->geomCameraLocal.VAO != 0) 
+		if (pso->geomCameraLocal.VAO != 0)
 		{
 			BindVertexArray(pso->geomCameraLocal.VAO);
 			glDrawElements(GL_LINES, (GLsizei)pso->geomCameraLocal.indices.size(), GL_UNSIGNED_SHORT, 0);
@@ -2188,7 +2220,6 @@ std::vector <RPL> g_cutOutBlendAddPrpl;
 
 int g_celBorderCount = 0;
 std::vector <RPLCEL> g_celBorderPrpl;
-
 
 int g_projVolumeCount = 0;
 std::vector <RPL> g_projVolumePrpl;

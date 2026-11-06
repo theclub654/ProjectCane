@@ -5,6 +5,8 @@
 #include <sstream>
 #include <stdexcept>
 
+namespace cane::pal
+{
 const std::vector<OptionSchema>& GetOptionSchema() {
     static const std::vector<OptionSchema> schema = [] {
         std::vector<OptionSchema> result(1184);
@@ -99,4 +101,6 @@ void BrxWalker::LoadOptionsFromBrx(CBinaryInputStream& s) {
         lastOptionListEnd_ = s.GetOffset();
         haveLastOption_ = true;
     }
+}
+
 }

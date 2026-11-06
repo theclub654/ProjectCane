@@ -28,39 +28,42 @@ std::string Utf8FromCodePoint(std::uint32_t cp) {
 
 CBinaryInputStream::CBinaryInputStream(const std::filesystem::path& path,
     StringEncoding encoding) : encoding_(encoding) {
-    file_.open(path, std::ios::binary);
-    if (!file_) throw std::runtime_error("Could not open: " + path.string());
-    file_.seekg(0, std::ios::end);
-    const auto end = file_.tellg();
-    if (end < 0) throw std::runtime_error("Could not determine file size");
-    size_ = static_cast<std::size_t>(end);
-    file_.seekg(0, std::ios::beg);
+    std::ifstream file(path, std::ios::binary | std::ios::ate);
+    if (!file) throw std::runtime_error("Could not open: " + path.string());
+    const auto end = file.tellg();
+    if (end < 0 || static_cast<std::uintmax_t>(end) > std::numeric_limits<std::size_t>::max())
+        throw std::runtime_error("Could not determine file size");
+    storage_.resize(static_cast<std::size_t>(end));
+    file.seekg(0);
+    if (!storage_.empty() && !file.read(reinterpret_cast<char*>(storage_.data()), storage_.size()))
+        throw std::runtime_error("Read failed");
+    data_ = storage_;
 }
+
+CBinaryInputStream::CBinaryInputStream(std::span<const std::uint8_t> data,
+    StringEncoding encoding) : data_(data), encoding_(encoding) {}
 
 void CBinaryInputStream::ReadBytes(void* destination, std::size_t size) {
     if (size > Remaining()) throw std::runtime_error("Unexpected EOF at 0x" + std::to_string(GetOffset()));
-    file_.read(static_cast<char*>(destination), static_cast<std::streamsize>(size));
-    if (!file_) throw std::runtime_error("Read failed");
+    if (size) std::memcpy(destination, data_.data() + offset_, size);
+    offset_ += size;
 }
 
-void CBinaryInputStream::Skip(std::size_t size) { Seek(GetOffset() + size); }
+void CBinaryInputStream::Skip(std::size_t size) {
+    if (size > Remaining()) throw std::runtime_error("Seek past EOF");
+    offset_ += size;
+}
 void CBinaryInputStream::Align(std::size_t alignment) {
     if (alignment < 2) return;
-    const auto p = GetOffset();
-    Seek((p + alignment - 1) / alignment * alignment);
+    const auto padding = (alignment - offset_ % alignment) % alignment;
+    Skip(padding);
 }
 void CBinaryInputStream::Seek(std::size_t offset) {
-    if (offset > size_) throw std::runtime_error("Seek past EOF");
-    file_.clear();
-    file_.seekg(static_cast<std::streamoff>(offset), std::ios::beg);
-    if (!file_) throw std::runtime_error("Seek failed");
+    if (offset > data_.size()) throw std::runtime_error("Seek past EOF");
+    offset_ = offset;
 }
-std::size_t CBinaryInputStream::GetOffset() const {
-    const auto p = file_.tellg();
-    if (p < 0) throw std::runtime_error("tellg failed");
-    return static_cast<std::size_t>(p);
-}
-std::size_t CBinaryInputStream::Remaining() const { return size_ - GetOffset(); }
+std::size_t CBinaryInputStream::GetOffset() const { return offset_; }
+std::size_t CBinaryInputStream::Remaining() const { return data_.size() - offset_; }
 
 #define READ_SCALAR(name, type) type CBinaryInputStream::name() { type v{}; ReadBytes(&v, sizeof(v)); return v; }
 READ_SCALAR(U8Read, std::uint8_t)

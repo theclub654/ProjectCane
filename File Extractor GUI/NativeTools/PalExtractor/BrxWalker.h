@@ -8,6 +8,8 @@
 #include <string>
 #include <vector>
 
+namespace cane::pal
+{
 struct GeometrySummary { std::uint16_t positions{}, surfaces{}, edges{}; };
 struct WalkStats { std::uint64_t objects{}, options{}, geometries{}, bspNodes{}; };
 struct AudioDescriptor {
@@ -18,8 +20,9 @@ enum class BrxRegion { Auto, Pal, Japanese };
 
 class BrxWalker {
 public:
-    explicit BrxWalker(StringEncoding encoding, BrxRegion region = BrxRegion::Auto);
+    explicit BrxWalker(StringEncoding encoding, BrxRegion region = BrxRegion::Auto, bool verbose = true);
     void WalkFile(const std::filesystem::path& path);
+    void WalkData(std::span<const std::uint8_t> data);
     [[nodiscard]] const WalkStats& Stats() const { return stats_; }
     GeometrySummary ReadGeom(CBinaryInputStream& stream);
     void ReadBspc(CBinaryInputStream& stream, const GeometrySummary& geometry);
@@ -35,6 +38,7 @@ public:
     [[nodiscard]] const std::vector<AudioDescriptor>& MusicDescriptors() const { return musicDescriptors_; }
 
 private:
+    void Walk(CBinaryInputStream& stream);
     std::size_t lastOptionListStart_{};
     std::size_t lastOptionListEnd_{};
     std::size_t lastOptionTerminator_{};
@@ -55,6 +59,7 @@ private:
     std::uint8_t LoadGlobset(CBinaryInputStream& stream);
     void LoadAlox(CBinaryInputStream& stream);
     void Trace(const char* name, std::size_t begin, std::size_t end) const;
+    bool verbose_;
     StringEncoding encoding_;
     BrxRegion region_{};
     bool pal_{};
@@ -69,3 +74,5 @@ private:
     bool emitOriginCaptured_{};
     std::int16_t emitOriginKind_{};
 };
+
+}

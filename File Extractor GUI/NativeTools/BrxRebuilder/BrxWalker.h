@@ -24,9 +24,10 @@ enum class BrxSourceRegion { Auto, NtscU, Pal, Japanese };
 
 class BrxWalker {
 public:
-    explicit BrxWalker(StringEncoding encoding, BrxSourceRegion region = BrxSourceRegion::Auto);
+    explicit BrxWalker(StringEncoding encoding, BrxSourceRegion region = BrxSourceRegion::Auto, bool verbose = true);
     void LoadLevelIdentityMap(const std::filesystem::path& path);
     void WalkFile(const std::filesystem::path& path);
+    std::vector<std::uint8_t> RebuildFile(const std::filesystem::path& path);
     [[nodiscard]] const WalkStats& Stats() const { return stats_; }
     GeometrySummary ReadGeom(CBinaryInputStream& stream);
     void ReadBspc(CBinaryInputStream& stream, const GeometrySummary& geometry);
@@ -48,7 +49,6 @@ public:
     [[nodiscard]] bool IsJapanese() const { return region_ == BrxSourceRegion::Japanese; }
 
 private:
-    void WalkFileInternal(const std::filesystem::path& path);
     struct RebuildOperation {
         std::size_t begin{};
         std::size_t end{};
@@ -58,7 +58,7 @@ private:
     void RecordAlignment(std::size_t begin, std::size_t end, std::size_t alignment);
     void RecordReplacement(std::size_t begin, std::size_t end,
         std::vector<std::uint8_t> replacement);
-    std::filesystem::path WriteRebuiltFile(const std::filesystem::path& sourcePath);
+    std::vector<std::uint8_t> RebuildData(std::span<const std::uint8_t> source);
     std::size_t lastOptionListStart_{};
     std::size_t lastOptionListEnd_{};
     std::size_t lastOptionTerminator_{};
@@ -80,6 +80,7 @@ private:
     std::uint8_t LoadGlobset(CBinaryInputStream& stream);
     void LoadAlox(CBinaryInputStream& stream);
     void Trace(const char* name, std::size_t begin, std::size_t end) const;
+    bool verbose_;
     StringEncoding encoding_;
     BrxSourceRegion region_;
     bool pal_{};

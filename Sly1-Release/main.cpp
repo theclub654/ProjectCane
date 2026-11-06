@@ -15,6 +15,12 @@
 #include "blip.h"
 #include "content.h"
 #include "../platform/platform.h"
+#ifdef CANE_DEKO3D
+#include "deko/backend.h"
+#endif
+#ifdef __SWITCH__
+#include "runtime.h"
+#endif
 #include <atomic>
 #include <chrono>
 #include <cstdio>
@@ -270,6 +276,11 @@ void RunGameFrame()
         ImGui::Render();
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
     }
+#ifdef CANE_DEKO3D
+    // The scene can render above or below the Switch output resolution.
+    // Use the allocated target size, after any settings change or resize.
+    CaneDeko::SetFrameResolution(g_gl.renderWidth, g_gl.renderHeight);
+#endif
     glfwSwapBuffers(g_gl.window);
     if (s_framePacer != nullptr)
         s_framePacer->Wait();
@@ -584,11 +595,21 @@ int RunApplication(const std::vector<std::string>& arguments)
 	catch (const std::exception& exception)
 	{
 		ReportFatalRuntimeError(exception.what());
+#ifdef __SWITCH__
+        ShutdownSound();
+        if (g_gl.window) g_gl.TerminateGL();
+        CaneSwitchError(exception.what());
+#endif
 		return EXIT_FAILURE;
 	}
 	catch (...)
 	{
 		ReportFatalRuntimeError("Unknown C++ exception");
+#ifdef __SWITCH__
+        ShutdownSound();
+        if (g_gl.window) g_gl.TerminateGL();
+        CaneSwitchError("Unknown C++ exception");
+#endif
 		return EXIT_FAILURE;
 	}
 }
@@ -601,7 +622,14 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int)
 #else
 int main(int argc, char* argv[])
 {
+#ifdef __SWITCH__
+    if (!CaneSwitchStartup(argc, argv)) return EXIT_FAILURE;
+    const int result = RunApplication({});
+    CaneSwitchShutdown();
+    return result;
+#else
 	return RunApplication(cane::Arguments(argc, argv));
+#endif
 }
 #endif
 
@@ -610,11 +638,14 @@ void Startup()
 	// Debug mode is intentionally sampled once. Editing the INI while running
 	// takes effect only after restarting the program.
 	LoadDebugModeSetting();
-    g_gl.InitGL();
+    if (g_gl.window == nullptr)
+        g_gl.InitGL();
     StartupControllerInput();
     glfwSwapInterval(g_fVsync ? 1 : 0);
 
+#ifndef __SWITCH__
     std::cout << "Sly Cooper 2002 Sony Computer Entertainment America & Sucker Punch Productions\n";
+#endif
     SetPhase(PHASE_Startup);
 
     StartupClock();

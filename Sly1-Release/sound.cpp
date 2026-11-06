@@ -15,7 +15,11 @@
 #include "runtime_error.h"
 #include "content.h"
 #include "../platform/platform.h"
-#ifdef _WIN32
+#ifdef __SWITCH__
+#include "audio.h"
+#include "audio_prefetch.h"
+#include "vag_file.h"
+#elif defined(_WIN32)
 #include <Windows.h>
 #include <mmsystem.h>
 #include <xaudio2.h>
@@ -1063,8 +1067,11 @@ std::filesystem::path FindMusicBank(MUSID musid, const char* fileName)
 }
 
 bool LoadPcmWave(const std::filesystem::path& path, SoundWaveFormat& format,
-	std::vector<uint8_t>& pcm)
+    std::vector<uint8_t>& pcm)
 {
+#ifdef __SWITCH__
+    return CaneWave::Load(path, format, pcm);
+#else
 	std::ifstream input(path, std::ios::binary);
 	if (!input.is_open())
 		return false;
@@ -1145,7 +1152,143 @@ bool LoadPcmWave(const std::filesystem::path& path, SoundWaveFormat& format,
 		pcm.clear();
 	}
 	return valid;
+#endif
 }
+
+#ifdef __SWITCH__
+static std::filesystem::path FindExtractedWav(const std::wstring& fileName, const CaneVag::Request& request)
+{
+    const auto& executableDirectory = request.executableDirectory;
+    const auto& repositoryDirectory = request.workingDirectory;
+    const std::filesystem::path roots[] =
+    {
+        executableDirectory / "Worlds", repositoryDirectory / "Worlds"
+    };
+
+    std::vector<std::filesystem::path> visited;
+    for (const std::filesystem::path& root : roots)
+    {
+        const auto normalized = root.lexically_normal();
+        if (std::find(visited.begin(), visited.end(), normalized) != visited.end()) continue;
+        visited.push_back(normalized);
+        std::error_code error;
+        if (!std::filesystem::is_directory(root, error))
+            continue;
+
+        for (std::filesystem::recursive_directory_iterator iter(
+                 root, std::filesystem::directory_options::skip_permission_denied, error), end;
+             iter != end; iter.increment(error))
+        {
+            if (error)
+            {
+                error.clear();
+                continue;
+            }
+            if (MatchesInsensitive(iter->path(), fileName) && iter->is_regular_file(error))
+                return iter->path();
+        }
+    }
+
+    return {};
+}
+
+static std::filesystem::path FindCommentaryWav(uint32_t identity, uint32_t sector, const CaneVag::Request& request, uint32_t level)
+{
+    const std::filesystem::path mapPath = FindExtractedWav(L"CommentaryMap.txt", request);
+    if (mapPath.empty())
+        return {};
+
+    std::ifstream map(mapPath);
+    std::string line;
+    while (std::getline(map, line))
+    {
+        char fileName[260]{};
+        unsigned int mapLevel = 0;
+        unsigned int mapIdentity = 0;
+        unsigned int mapSector = 0;
+        if (std::sscanf(line.c_str(),
+                "%259s | levelId 0x%x | duration %*f | identity 0x%x | sector 0x%x",
+                fileName, &mapLevel, &mapIdentity, &mapSector) != 4)
+        {
+            continue;
+        }
+
+        if (level != UINT32_MAX ? mapLevel != level : (mapIdentity != identity || mapSector != sector))
+            continue;
+
+        const std::filesystem::path commentaryPath = mapPath.parent_path() / fileName;
+        std::error_code error;
+        if (std::filesystem::is_regular_file(commentaryPath, error))
+            return commentaryPath;
+
+        return FindExtractedWav(commentaryPath.filename().wstring(), request);
+    }
+
+    return {};
+}
+
+static CaneVag::Request MakeVagRequest(const char* filename)
+{
+    CaneVag::Request request;
+    if (!filename || !*filename) return request;
+    request.valid = true;
+    request.levelDirectory = std::filesystem::path(file).parent_path();
+    request.executableDirectory = ExecutableDirectory();
+    request.workingDirectory = std::filesystem::current_path();
+    request.localized = FLocalizedContent();
+    if (request.localized) request.language = ContentAudioLanguageDirectory();
+    request.direct = filename;
+    request.direct.replace_extension(".wav");
+    return request;
+}
+
+static std::filesystem::path ResolveVagRequest(const CaneVag::Request& request)
+{
+    return CaneVag::Resolve(request,
+        [&request](const std::wstring& name) { return FindExtractedWav(name, request); },
+        [&request](uint32_t identity, uint32_t sector, uint32_t level) { return FindCommentaryWav(identity, sector, request, level); });
+}
+
+static bool RequestVag(const char* descriptorOrPath, bool urgent)
+{
+    if (!CaneAudio::PrefetchEnabled() || !descriptorOrPath) return true;
+    const auto request = MakeVagRequest(descriptorOrPath);
+    return CaneAudio::RequestWave(request.Key(), [request]
+    {
+        CaneAudio::WaveAsset wave;
+        wave.path = ResolveVagRequest(request);
+        if (wave.path.empty() || !LoadPcmWave(wave.path, wave.format, wave.pcm)) return CaneAudio::WaveAsset{};
+        return wave;
+    }, urgent);
+}
+void PrefetchVag(const char* descriptorOrPath) { RequestVag(descriptorOrPath, false); }
+bool FReadyVag(const char* descriptorOrPath) { return RequestVag(descriptorOrPath, true); }
+void ClearVagPrefetch() { CaneAudio::ClearPrefetch(); }
+static std::string s_nativeVagKey;
+static void QueueNativeVag(const CaneVag::Request& request)
+{
+    s_nativeVagKey = request.Key();
+    s_vagLoad.loading = true;
+    s_vagLoad.ready = false;
+    if (!CaneAudio::PrefetchEnabled())
+    {
+        s_vagLoad.path = ResolveVagRequest(request);
+        LoadPcmWave(s_vagLoad.path, s_vagLoad.format, s_vagLoad.pcm);
+        s_vagLoad.loading = false;
+        s_vagLoad.ready = true;
+    }
+    else
+        CaneAudio::RequestWave(s_nativeVagKey, [request]
+        {
+            CaneAudio::WaveAsset wave;
+            wave.path = ResolveVagRequest(request);
+            if (!wave.path.empty()) LoadPcmWave(wave.path, wave.format, wave.pcm);
+            return wave;
+        }, true);
+    FinishPendingVagLoad();
+}
+
+#endif
 
 bool EnsureEffectReverb()
 {
@@ -4848,6 +4991,7 @@ void ContinueMusicSequencer(bool continueAmbientSounds)
 	}
 }
 
+#ifndef __SWITCH__
 static void VagLoadWorkerMain()
 {
 	for (;;)
@@ -4912,6 +5056,8 @@ static void VagLoadWorkerMain()
 		}
 	}
 }
+
+#endif
 
 static bool SetVagStreamOutputMatrix(IXAudio2SourceVoice* voice, UINT32 sourceChannels)
 {
@@ -5059,6 +5205,17 @@ static bool CreateVagStreamVoice(VagStreamState& stream, uint64_t playBegin)
 
 static bool FinishPendingVagLoad()
 {
+#ifdef __SWITCH__
+    if (s_vagLoad.loading)
+        if (auto wave = CaneAudio::ConsumeWave(s_nativeVagKey))
+        {
+            s_vagLoad.path = std::move(wave->path);
+            s_vagLoad.format = wave->format;
+            s_vagLoad.pcm = std::move(wave->pcm);
+            s_vagLoad.loading = false;
+            s_vagLoad.ready = true;
+        }
+#endif
 	PendingVagLoad loaded{};
 	{
 		std::lock_guard<std::mutex> lock(s_vagLoadMutex);
@@ -5088,6 +5245,10 @@ static bool FinishPendingVagLoad()
 
 void PreloadVag(const char* descriptorOrPath)
 {
+#ifdef __SWITCH__
+    StopVag();
+    if (descriptorOrPath) QueueNativeVag(MakeVagRequest(descriptorOrPath));
+#else
 	StopVag();
 	if (!descriptorOrPath)
 		return;
@@ -5106,6 +5267,7 @@ void PreloadVag(const char* descriptorOrPath)
 		s_vagLoad.requested = true;
 	}
 	s_vagLoadCondition.notify_one();
+#endif
 }
 
 void PreloadVagFileName(const char* fileName)
@@ -5115,6 +5277,10 @@ void PreloadVagFileName(const char* fileName)
 
 void PreloadVag(const std::filesystem::path& path)
 {
+#ifdef __SWITCH__
+    StopVag();
+    if (!path.empty()) QueueNativeVag(MakeVagRequest(path.string().c_str()));
+#else
 	StopVag();
 	if (path.empty())
 		return;
@@ -5133,6 +5299,7 @@ void PreloadVag(const std::filesystem::path& path)
 		s_vagLoad.requested = true;
 	}
 	s_vagLoadCondition.notify_one();
+#endif
 }
 
 void PushSwReverb(SW* psw, REVERBK rvrbk, int depth)
@@ -5202,9 +5369,11 @@ void UnloadMusic()
 	TraceMusicEvent("unload_music");
 	if (s_musicStream.state != MusicState::None)
 	{
-		std::printf("[MUSIC LOAD] unload musid=0x%X state=%d\n",
+	#ifndef __SWITCH__
+	std::printf("[MUSIC LOAD] unload musid=0x%X state=%d\n",
 			static_cast<unsigned>(s_musicStream.musid),
 			static_cast<int>(s_musicStream.state));
+#endif
 	}
 	CloseMusicVoice();
 }
@@ -5216,6 +5385,9 @@ void KillMusic()
 
 void KillSounds(int msRampdown)
 {
+#ifdef __SWITCH__
+    ClearVagPrefetch();
+#endif
 	(void)msRampdown;
 	// Positional AMB playback is not backed by live PC voices yet. The active
 	// streamed VAG/dialog is, so stop and close it during world teardown.
@@ -5418,9 +5590,11 @@ void PreloadMusidSong(MUSID musid, const char* fileName)
 		CloseMusicVoice();
 		return;
 	}
+#ifndef __SWITCH__
 	std::printf("[MUSIC LOAD] ready musid=0x%X path=%s segments=%zu tones=%zu\n",
 		static_cast<unsigned>(musid), bankPath.string().c_str(),
 		s_music989.segmentOffsets.size(), s_music989.tones.size());
+#endif
 	s_music989.registers = s_amRegisters;
 	s_musicStream.musid = musid;
 	s_musicStream.path = bankPath;
@@ -5840,7 +6014,9 @@ static bool RecoverAudioEngine()
 	}
 	s_effectLastUpdate = std::chrono::steady_clock::now();
 	s_effectTickAccumulator = 0.0;
+#ifndef __SWITCH__
 	std::printf("[AUDIO] Windows audio engine rebuilt successfully.\n");
+#endif
 	return true;
 }
 
@@ -5850,6 +6026,9 @@ void StartupSound()
 	// equivalent PC-side state, initialize XAudio2, and keep bank 0 resident as
 	// the common effects bank.
 	UnloadEffectBank();
+#ifdef __SWITCH__
+    CaneAudio::InitializePrefetch();
+#else
 	// Keep file loading independent from XAudio2 initialization.  Movie playback
 	// can then detect an unavailable output device and continue silently instead
 	// of waiting forever for a loader thread that was never started.
@@ -5859,6 +6038,7 @@ void StartupSound()
 	}
 	if (!s_vagLoadWorker.joinable())
 		s_vagLoadWorker = std::thread(VagLoadWorkerMain);
+#endif
 
 	if (!CompleteSoundStartup())
 	{
@@ -5872,6 +6052,9 @@ void StartupSound()
 
 void ShutdownSound()
 {
+#ifdef __SWITCH__
+    CaneAudio::ShutdownPrefetch();
+#endif
 	{
 		std::lock_guard<std::mutex> lock(s_vagLoadMutex);
 		s_vagLoadWorkerRunning = false;

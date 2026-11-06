@@ -4,6 +4,8 @@
 #include <algorithm>
 #include <array>
 #include <cstdint>
+#include <chrono>
+#include <cstring>
 #include <fstream>
 #include <iomanip>
 #include <iostream>
@@ -15,6 +17,8 @@
 #include <unordered_set>
 #include <vector>
 
+namespace cane::pal
+{
 namespace {
 constexpr std::uint32_t kSectorSize = 0x800;
 constexpr std::uint32_t kPalLevelTableVa = 0x002490F0;
@@ -29,6 +33,7 @@ constexpr std::size_t kRecordSize = 172;
 constexpr std::size_t kJapaneseRecordSize = 76;
 constexpr std::size_t kJapaneseSlotCount = 2;
 constexpr std::size_t kMaximumCompressedSize = 256u * 1024u * 1024u;
+constexpr std::size_t kIoBufferSize = 1024 * 1024;
 
 struct SoundBankLocation {
     std::string_view name;
@@ -69,16 +74,92 @@ std::uint32_t U32(std::span<const std::byte> data, std::size_t at) {
         (static_cast<std::uint32_t>(std::to_integer<unsigned>(data[at + 3])) << 24);
 }
 
-std::vector<std::byte> ReadFile(const std::filesystem::path& path) {
-    std::ifstream file(path, std::ios::binary | std::ios::ate);
-    if (!file) throw std::runtime_error("Could not open ISO");
-    const auto end = file.tellg();
-    if (end < 0) throw std::runtime_error("Could not determine ISO size");
-    std::vector<std::byte> bytes(static_cast<std::size_t>(end));
-    file.seekg(0);
-    if (!bytes.empty() && !file.read(reinterpret_cast<char*>(bytes.data()), end))
-        throw std::runtime_error("Could not read ISO");
-    return bytes;
+class IsoReader {
+public:
+    IsoReader(const std::filesystem::path& path, PalIsoExtractor::ProgressCallback progress = {})
+        : file_(path, std::ios::binary | std::ios::ate), callback_(std::move(progress)) {
+        if (!file_) throw std::runtime_error("Could not open ISO");
+        const auto end = file_.tellg();
+        if (end < 0) throw std::runtime_error("Could not determine ISO size");
+        size_ = static_cast<std::size_t>(end);
+    }
+    std::size_t size() const { return size_; }
+    bool HasCallback() const { return bool(callback_); }
+    void SetTotal(std::size_t total) const { progress_.total = total; }
+    void Report(const char* stage, const std::filesystem::path& file) const {
+        progress_.stage = stage;
+        progress_.file = file;
+        Poll(true);
+    }
+    void Advance() const { ++progress_.completed; Poll(true); }
+    void Poll(bool force = false) const {
+        if (!callback_) return;
+        const auto now = std::chrono::steady_clock::now();
+        if (force || now - last_ >= std::chrono::milliseconds(50)) {
+            last_ = now;
+            callback_(progress_);
+        }
+    }
+    std::byte operator[](std::size_t at) const {
+        if (at >= size_) throw std::runtime_error("Unexpected end of ISO");
+        if (at < cacheAt_ || at - cacheAt_ >= cached_) {
+            cacheAt_ = at - at % cache_.size();
+            cached_ = (std::min)(cache_.size(), size_ - cacheAt_);
+            ReadInto(cacheAt_, cache_.data(), cached_);
+        }
+        return cache_[at - cacheAt_];
+    }
+    std::vector<std::byte> Read(std::size_t at, std::size_t size) const {
+        CheckRange(at, size);
+        if (size > 512u * 1024u * 1024u) throw std::runtime_error("ISO asset is too large");
+        std::vector<std::byte> bytes(size);
+        for (std::size_t done = 0; done < size;) {
+            const auto count = (std::min)(kIoBufferSize, size - done);
+            ReadInto(at + done, bytes.data() + done, count);
+            done += count;
+            Poll();
+        }
+        return bytes;
+    }
+    void CopyTo(std::ofstream& output, std::size_t at, std::size_t size) const {
+        CheckRange(at, size);
+        std::vector<std::byte> bytes(kIoBufferSize);
+        while (size != 0) {
+            const auto count = (std::min)(bytes.size(), size);
+            ReadInto(at, bytes.data(), count);
+            output.write(reinterpret_cast<const char*>(bytes.data()), count);
+            if (!output) throw std::runtime_error("Could not write extracted file");
+            at += count; size -= count;
+            Poll();
+        }
+    }
+private:
+    void CheckRange(std::size_t at, std::size_t size) const {
+        if (at > size_ || size > size_ - at) throw std::runtime_error("The ISO is incomplete or damaged");
+    }
+    void ReadInto(std::size_t at, std::byte* output, std::size_t size) const {
+        CheckRange(at, size);
+        file_.clear(); file_.seekg(static_cast<std::streamoff>(at));
+        if (!file_.read(reinterpret_cast<char*>(output), static_cast<std::streamsize>(size)))
+            throw std::runtime_error("Could not read ISO");
+    }
+    mutable std::ifstream file_;
+    std::size_t size_ = 0;
+    mutable std::vector<std::byte> cache_ = std::vector<std::byte>(64 * 1024);
+    mutable std::size_t cacheAt_ = 0, cached_ = 0;
+    PalIsoExtractor::ProgressCallback callback_;
+    mutable ExtractionProgress progress_;
+    mutable std::chrono::steady_clock::time_point last_{};
+};
+
+std::uint16_t U16(const IsoReader& iso, std::size_t at) {
+    return static_cast<std::uint16_t>(std::to_integer<unsigned>(iso[at]) |
+        (std::to_integer<unsigned>(iso[at + 1]) << 8));
+}
+std::uint32_t U32(const IsoReader& iso, std::size_t at) {
+    std::uint32_t value = 0;
+    for (unsigned i = 0; i < 4; ++i) value |= std::to_integer<std::uint32_t>(iso[at + i]) << (i * 8);
+    return value;
 }
 
 std::string IsoName(std::span<const std::byte> bytes) {
@@ -90,24 +171,27 @@ std::string IsoName(std::span<const std::byte> bytes) {
 
 struct IsoFile { std::string name; std::uint32_t sector{}, size{}; };
 
-std::vector<IsoFile> RootFiles(std::span<const std::byte> iso) {
+std::vector<IsoFile> RootFiles(const IsoReader& iso) {
     const std::size_t pvd = 16u * kSectorSize;
-    if (pvd + kSectorSize > iso.size() || U32(iso, pvd + 1) != 0x30304443u)
+    if (pvd + kSectorSize > iso.size() || iso[pvd] != std::byte{1} ||
+        U32(iso, pvd + 1) != 0x30304443u || iso[pvd + 5] != std::byte{0x31} ||
+        iso[pvd + 6] != std::byte{1} || U16(iso, pvd + 128) != kSectorSize)
         throw std::runtime_error("Not an ISO9660 image");
     const auto rootSector = U32(iso, pvd + 156 + 2);
     const auto rootSize = U32(iso, pvd + 156 + 10);
     const std::size_t rootOffset = static_cast<std::size_t>(rootSector) * kSectorSize;
-    if (rootOffset + rootSize > iso.size()) throw std::runtime_error("Invalid ISO root directory");
+    if (rootSize < 34 || rootSize > 1024 * 1024 || rootOffset > iso.size() || rootSize > iso.size() - rootOffset) throw std::runtime_error("Invalid ISO root directory");
     std::vector<IsoFile> files;
     std::size_t pos = rootOffset;
     const std::size_t end = rootOffset + rootSize;
     while (pos < end) {
         const auto length = std::to_integer<unsigned>(iso[pos]);
         if (length == 0) { pos = ((pos / kSectorSize) + 1) * kSectorSize; continue; }
-        if (pos + length > end || length < 34) break;
+        if (length < 34 || length > end - pos) throw std::runtime_error("Invalid ISO directory record");
         const auto nameLength = std::to_integer<unsigned>(iso[pos + 32]);
+        if (nameLength > length - 33) throw std::runtime_error("Invalid ISO filename");
         if (pos + 33 + nameLength <= end && (std::to_integer<unsigned>(iso[pos + 25]) & 2u) == 0)
-            files.push_back({IsoName(iso.subspan(pos + 33, nameLength)), U32(iso, pos + 2), U32(iso, pos + 10)});
+            files.push_back({IsoName(iso.Read(pos + 33, nameLength)), U32(iso, pos + 2), U32(iso, pos + 10)});
         pos += length;
     }
     return files;
@@ -128,24 +212,30 @@ bool IsJapaneseElf(const IsoFile& elf) {
     return elf.name.starts_with("SCPS_") || elf.name.starts_with("SCPS-");
 }
 
-std::size_t VaToIsoOffset(std::span<const std::byte> iso, const IsoFile& elf, std::uint32_t va) {
+std::size_t VaToIsoOffset(const IsoReader& iso, const IsoFile& elf, std::uint32_t va) {
     const std::size_t base = static_cast<std::size_t>(elf.sector) * kSectorSize;
     if (base + 52 > iso.size() || U32(iso, base) != 0x464C457Fu)
         throw std::runtime_error("PAL executable is not a 32-bit little-endian ELF");
     const auto phoff = U32(iso, base + 28);
     const auto phentsize = U16(iso, base + 42);
     const auto phnum = U16(iso, base + 44);
+    if (phentsize < 32 || phoff > elf.size || phnum > (elf.size - phoff) / phentsize)
+        throw std::runtime_error("Invalid ELF program headers");
     for (std::size_t i = 0; i < phnum; ++i) {
         const std::size_t ph = base + phoff + i * phentsize;
         const auto fileOffset = U32(iso, ph + 4);
         const auto vaddr = U32(iso, ph + 8);
         const auto fileSize = U32(iso, ph + 16);
-        if (va >= vaddr && va - vaddr < fileSize) return base + fileOffset + (va - vaddr);
+        if (U32(iso, ph) == 1 && va >= vaddr && va - vaddr < fileSize) {
+            if (fileOffset > elf.size || fileSize > elf.size - fileOffset)
+                throw std::runtime_error("ELF segment lies outside the executable");
+            return base + fileOffset + (va - vaddr);
+        }
     }
     throw std::runtime_error("Virtual address is not backed by an ELF segment");
 }
 
-std::string ReadName(std::span<const std::byte> iso, const IsoFile& elf, std::uint32_t pointer) {
+std::string ReadName(const IsoReader& iso, const IsoFile& elf, std::uint32_t pointer) {
     const auto at = VaToIsoOffset(iso, elf, pointer);
     if (at + 4 < iso.size() && iso[at + 1] == std::byte{} && iso[at + 3] == std::byte{}) {
         std::string utf8;
@@ -184,7 +274,7 @@ std::string LevelFileName(std::uint32_t levelId) {
     return name.str();
 }
 
-std::vector<std::byte> Decompress(std::span<const std::byte> input) {
+std::vector<std::byte> Decompress(std::span<const std::byte> input, const IsoReader& iso) {
     constexpr std::size_t chunk = 0x2000;
     std::array<std::byte, chunk + 10> work{};
     std::vector<std::byte> output;
@@ -205,7 +295,9 @@ std::vector<std::byte> Decompress(std::span<const std::byte> input) {
             for (unsigned i = 0; i < count; ++i) work[out++] = work[source++ & 0x1FFF];
         }
         if (out >= chunk) {
+            if (output.size() > kMaximumCompressedSize - chunk) throw std::runtime_error("Decompressed level is too large");
             output.insert(output.end(), work.begin(), work.begin() + chunk);
+            iso.Poll();
             const auto spill = out - chunk;
             std::move(work.begin() + chunk, work.begin() + out, work.begin());
             out = spill;
@@ -294,14 +386,18 @@ std::vector<std::int16_t> DecodeVag(std::span<const std::byte> source, std::uint
 
 void WriteWave(const std::filesystem::path& path, std::span<const std::int16_t> pcm,
     std::uint32_t sampleRate) {
-    std::ofstream output(path, std::ios::binary);
-    if (!output) throw std::runtime_error("Could not create " + path.string());
     const auto dataSize = static_cast<std::uint32_t>(pcm.size() * sizeof(std::int16_t));
+    std::vector<char> buffer(std::size_t(dataSize) + 64);
+    std::ofstream output;
+    output.rdbuf()->pubsetbuf(buffer.data(), buffer.size());
+    output.open(path, std::ios::binary);
+    if (!output) throw std::runtime_error("Could not create " + path.string());
     output.write("RIFF", 4); Write32(output, 36 + dataSize); output.write("WAVE", 4);
     output.write("fmt ", 4); Write32(output, 16); Write16(output, 1); Write16(output, 1);
     Write32(output, sampleRate); Write32(output, sampleRate * 2); Write16(output, 2); Write16(output, 16);
     output.write("data", 4); Write32(output, dataSize);
     if (!pcm.empty()) output.write(reinterpret_cast<const char*>(pcm.data()), dataSize);
+    output.close();
     if (!output) throw std::runtime_error("Could not write " + path.string());
 }
 
@@ -310,18 +406,28 @@ void WriteWave(const std::filesystem::path& path, std::span<const std::int16_t> 
     const auto frames = channels == 2 ? std::min(left.size(), right.size()) : left.size();
     if (frames == 0 || channels < 1 || channels > 2)
         throw std::runtime_error("Audio decoder produced no samples");
-    std::ofstream output(path, std::ios::binary);
-    if (!output) throw std::runtime_error("Could not create " + path.string());
     const auto dataSize = static_cast<std::uint32_t>(frames * channels * sizeof(std::int16_t));
+    std::vector<char> buffer(std::size_t(dataSize) + 64);
+    std::ofstream output;
+    output.rdbuf()->pubsetbuf(buffer.data(), buffer.size());
+    output.open(path, std::ios::binary);
+    if (!output) throw std::runtime_error("Could not create " + path.string());
     output.write("RIFF", 4); Write32(output, 36 + dataSize); output.write("WAVE", 4);
     output.write("fmt ", 4); Write32(output, 16); Write16(output, 1); Write16(output, channels);
     Write32(output, sampleRate); Write32(output, sampleRate * channels * 2);
     Write16(output, channels * 2); Write16(output, 16);
     output.write("data", 4); Write32(output, dataSize);
-    for (std::size_t i = 0; i < frames; ++i) {
-        Write16(output, static_cast<std::uint16_t>(left[i]));
-        if (channels == 2) Write16(output, static_cast<std::uint16_t>(right[i]));
+    std::vector<std::int16_t> interleaved;
+    if (channels == 2) {
+        interleaved.resize(frames * 2);
+        for (std::size_t i = 0; i < frames; ++i) {
+            interleaved[i * 2] = left[i];
+            interleaved[i * 2 + 1] = right[i];
+        }
+        left = interleaved;
     }
+    output.write(reinterpret_cast<const char*>(left.data()), dataSize);
+    output.close();
     if (!output) throw std::runtime_error("Could not write " + path.string());
 }
 
@@ -332,7 +438,7 @@ std::string AudioFileName(const AudioDescriptor& descriptor) {
     return name.str();
 }
 
-void ExtractAudio(std::span<const std::byte> iso, const std::filesystem::path& dialogDirectory,
+void ExtractAudio(const IsoReader& iso, const std::filesystem::path& dialogDirectory,
     std::span<const AudioDescriptor> descriptors) {
     std::unordered_set<std::uint64_t> extracted;
     for (const auto& descriptor : descriptors) {
@@ -342,15 +448,16 @@ void ExtractAudio(std::span<const std::byte> iso, const std::filesystem::path& d
         if (offset > iso.size() || descriptor.size > iso.size() - offset)
             throw std::runtime_error("Audio descriptor points outside the PAL ISO");
         std::filesystem::create_directories(dialogDirectory);
+        iso.Report("Extracting dialogue", dialogDirectory / AudioFileName(descriptor));
         std::uint32_t sampleRate{};
-        const auto pcm = DecodeVag(iso.subspan(offset, descriptor.size), sampleRate);
+        const auto pcm = DecodeVag(iso.Read(offset, descriptor.size), sampleRate);
         const auto path = dialogDirectory / AudioFileName(descriptor);
         WriteWave(path, pcm, sampleRate);
-        std::cout << "    audio: " << path.string() << " (" << sampleRate << " Hz)\n";
+        if (!iso.HasCallback()) std::cout << "    audio: " << path.string() << " (" << sampleRate << " Hz)\n";
     }
 }
 
-void ExtractMusic(std::span<const std::byte> iso, const std::filesystem::path& musicDirectory,
+void ExtractMusic(const IsoReader& iso, const std::filesystem::path& musicDirectory,
     std::span<const AudioDescriptor> descriptors) {
     for (const auto& descriptor : descriptors) {
         const auto offset = static_cast<std::size_t>(descriptor.sector) * kSectorSize;
@@ -361,15 +468,16 @@ void ExtractMusic(std::span<const std::byte> iso, const std::filesystem::path& m
              << std::setw(2) << descriptor.identity << ".mus";
         std::filesystem::create_directories(musicDirectory);
         const auto path = musicDirectory / name.str();
+        iso.Report("Extracting music", path);
         if (std::filesystem::exists(path)) continue;
         std::ofstream output(path, std::ios::binary);
-        if (!output || !output.write(reinterpret_cast<const char*>(iso.data() + offset), descriptor.size))
-            throw std::runtime_error("Could not write " + path.string());
-        std::cout << "    music: " << path.string() << '\n';
+        if (!output) throw std::runtime_error("Could not create " + path.string());
+        iso.CopyTo(output, offset, descriptor.size);
+        if (!iso.HasCallback()) std::cout << "    music: " << path.string() << '\n';
     }
 }
 
-void ExtractSoundBanks(std::span<const std::byte> iso,
+void ExtractSoundBanks(const IsoReader& iso,
     const std::filesystem::path& soundBankDirectory,
     std::span<const SoundBankLocation> banks, std::string_view regionName) {
     std::filesystem::create_directories(soundBankDirectory);
@@ -389,11 +497,12 @@ void ExtractSoundBanks(std::span<const std::byte> iso,
         if (size < 0x20 || size > iso.size() - offset)
             throw std::runtime_error("Invalid sound bank size for " + std::string(bank.name));
         const auto path = soundBankDirectory / bank.name;
+        iso.Report("Extracting sound banks", path);
         std::ofstream output(path, std::ios::binary);
-        if (!output || !output.write(reinterpret_cast<const char*>(iso.data() + offset),
-                static_cast<std::streamsize>(size)))
-            throw std::runtime_error("Could not write " + path.string());
-        std::cout << "Sound bank: " << path.string() << " (" << size << " bytes)\n";
+        if (!output) throw std::runtime_error("Could not create " + path.string());
+        iso.CopyTo(output, offset, size);
+        iso.Advance();
+        if (!iso.HasCallback()) std::cout << "Sound bank: " << path.string() << " (" << size << " bytes)\n";
     }
 }
 
@@ -420,7 +529,7 @@ std::size_t FindBytes(std::span<const std::byte> data, std::string_view pattern,
     return std::string_view::npos;
 }
 
-PssStreams DemuxPss(std::span<const std::byte> programStream) {
+PssStreams DemuxPss(std::span<const std::byte> programStream, const IsoReader& iso) {
     constexpr std::uint32_t end = 0x000001B9, pack = 0x000001BA, system = 0x000001BB;
     constexpr std::uint32_t privateStream = 0x000001BD, padding = 0x000001BE, videoStream = 0x000001E0;
     PssStreams streams;
@@ -428,6 +537,7 @@ PssStreams DemuxPss(std::span<const std::byte> programStream) {
     std::array<std::vector<std::byte>, 256> sonyAds;
     std::size_t at = 0;
     while (at + 4 <= programStream.size()) {
+        iso.Poll();
         const auto id = Be32(programStream, at);
         if (id == end) break;
         if (id == pack) {
@@ -511,7 +621,7 @@ PssStreams DemuxPss(std::span<const std::byte> programStream) {
     return streams;
 }
 
-void ExtractCutscenes(std::span<const std::byte> iso, const IsoFile& elf,
+void ExtractCutscenes(const IsoReader& iso, const IsoFile& elf,
     const std::filesystem::path& cutsceneDirectory, std::uint32_t tableVa,
     std::span<const std::string_view> languageNames, std::string_view regionName,
     std::size_t precedingSpecialDescriptorCount) {
@@ -523,6 +633,7 @@ void ExtractCutscenes(std::span<const std::byte> iso, const IsoFile& elf,
     std::filesystem::create_directories(cutsceneDirectory);
     const auto descriptorCount = kCutsceneCount + precedingSpecialDescriptorCount;
     for (std::size_t index = 0; index < descriptorCount; ++index) {
+        iso.Report("Extracting cutscenes", "Cutscene " + std::to_string(index));
         // Number the ordinary table as 0..15, followed by special descriptors
         // working backward from the table. PAL has one such entry. SCPS has
         // identity 0x12 at table-0x20 (movie 16) and its play-once startup
@@ -537,7 +648,7 @@ void ExtractCutscenes(std::span<const std::byte> iso, const IsoFile& elf,
         if (size == 0 || offset > iso.size() || size > iso.size() - offset)
             throw std::runtime_error("Invalid " + std::string(regionName) +
                 " cutscene descriptor " + std::to_string(index));
-        const auto streams = DemuxPss(iso.subspan(offset, size));
+        const auto streams = DemuxPss(iso.Read(offset, size), iso);
         std::ostringstream baseName;
         baseName << "Cutscene_" << std::setfill('0') << std::setw(2) << index;
         const auto videoPath = cutsceneDirectory / (baseName.str() + ".m2v");
@@ -555,13 +666,14 @@ void ExtractCutscenes(std::span<const std::byte> iso, const IsoFile& elf,
             const auto audioPath = audioDirectory / (baseName.str() + ".wav");
             WriteWave(audioPath, audio.left, audio.right, audio.channels, audio.sampleRate);
         }
-        std::cout << "Cutscene " << index << ": identity=0x" << std::hex << identity
+        iso.Advance();
+        if (!iso.HasCallback()) std::cout << "Cutscene " << index << ": identity=0x" << std::hex << identity
                   << std::dec << ' ' << videoPath.string() << " (" << streams.video.size()
                   << " bytes), " << streams.audio.size() << " language audio stream(s)\n";
     }
 }
 
-void ExtractPalCutscenes(std::span<const std::byte> iso, const IsoFile& elf,
+void ExtractPalCutscenes(const IsoReader& iso, const IsoFile& elf,
     const std::filesystem::path& cutsceneDirectory) {
     static constexpr std::array<std::string_view, 5> languages = {
         "English", "French", "German", "Spanish", "Italian"
@@ -570,7 +682,7 @@ void ExtractPalCutscenes(std::span<const std::byte> iso, const IsoFile& elf,
         languages, "PAL", 1);
 }
 
-void ExtractJapaneseCutscenes(std::span<const std::byte> iso, const IsoFile& elf,
+void ExtractJapaneseCutscenes(const IsoReader& iso, const IsoFile& elf,
     const std::filesystem::path& cutsceneDirectory) {
     static constexpr std::array<std::string_view, 2> languages = {
         "Japanese", "English"
@@ -611,7 +723,7 @@ std::filesystem::path LevelDirectory(const std::filesystem::path& worldsDirector
     return worldsDirectory / "The Cold Heart of Hate" / levelName;
 }
 
-void WritePalLevelIdentityMap(std::span<const std::byte> iso, std::size_t table,
+void WritePalLevelIdentityMap(const IsoReader& iso, std::size_t table,
     const std::filesystem::path& outputDirectory) {
     std::filesystem::create_directories(outputDirectory);
     const auto path = outputDirectory / ".pal-level-identities.txt";
@@ -633,11 +745,13 @@ void WritePalLevelIdentityMap(std::span<const std::byte> iso, std::size_t table,
     if (!output) throw std::runtime_error("Could not finish " + path.string());
 }
 
-void ExtractSlot(std::span<const std::byte> iso, const IsoFile& elf, std::size_t table,
+
+void ExtractSlot(const IsoReader& iso, const IsoFile& elf, std::size_t table,
     const std::filesystem::path& outputDirectory, std::size_t slot) {
     if (slot >= kLanguageCount) throw std::runtime_error("PAL language slot must be 0 through 4");
     const auto worldsDirectory = outputDirectory / "Worlds";
     for (std::size_t i = 0; i < kLevelCount; ++i) {
+        iso.Report("Extracting worlds", std::string(kLevelNames[i]));
         const auto record = table + i * kRecordSize;
         const auto descriptor = record + slot * kDescriptorSize;
         const auto sector = U32(iso, descriptor) ^ U32(iso, descriptor + 20);
@@ -650,7 +764,7 @@ void ExtractSlot(std::span<const std::byte> iso, const IsoFile& elf, std::size_t
             source > iso.size() || compressedSize > iso.size() - source)
             throw std::runtime_error("Invalid PAL descriptor at table index " + std::to_string(i) +
                 ", language " + std::string(kLanguageNames[slot]));
-        const auto decoded = Decompress(iso.subspan(source, compressedSize));
+        const auto decoded = Decompress(iso.Read(source, compressedSize), iso);
         const auto levelLanguageDirectory = LevelDirectory(worldsDirectory, i) /
             std::string(kLanguageNames[slot]);
         std::filesystem::create_directories(levelLanguageDirectory);
@@ -659,20 +773,21 @@ void ExtractSlot(std::span<const std::byte> iso, const IsoFile& elf, std::size_t
         if (!output || !output.write(reinterpret_cast<const char*>(decoded.data()), static_cast<std::streamsize>(decoded.size())))
             throw std::runtime_error("Could not write " + path.string());
         output.close();
-        BrxWalker walker(StringEncoding::Auto, BrxRegion::Pal);
-        walker.WalkFile(path);
+        BrxWalker walker(StringEncoding::Auto, BrxRegion::Pal, !iso.HasCallback());
+        walker.WalkData({reinterpret_cast<const std::uint8_t*>(decoded.data()), decoded.size()});
         const auto dialogDirectory = levelLanguageDirectory / "Dialogs";
         ExtractAudio(iso, dialogDirectory, walker.AudioDescriptors());
         const auto commentaryDirectory = levelLanguageDirectory / "Commentary";
         ExtractAudio(iso, commentaryDirectory, walker.CommentaryDescriptors());
         ExtractMusic(iso, worldsDirectory / "Music", walker.MusicDescriptors());
-        std::cout << '[' << kLanguageNames[slot] << ' ' << (i + 1) << '/' << kLevelCount
+        iso.Advance();
+        if (!iso.HasCallback()) std::cout << '[' << kLanguageNames[slot] << ' ' << (i + 1) << '/' << kLevelCount
                   << "] id=0x" << std::hex << levelId << " search=0x" << searchKey
                   << " task=0x" << task << std::dec << ' ' << path.string() << '\n';
     }
 }
 
-void ExtractJapaneseSlot(std::span<const std::byte> iso, std::size_t table,
+void ExtractJapaneseSlot(const IsoReader& iso, std::size_t table,
     const std::filesystem::path& outputDirectory, std::size_t slot) {
     if (slot >= kJapaneseSlotCount)
         throw std::runtime_error("Japanese descriptor slot must be 0 or 1");
@@ -683,6 +798,7 @@ void ExtractJapaneseSlot(std::span<const std::byte> iso, std::size_t table,
     const auto slotName = slotNames[slot];
     const auto worldsDirectory = outputDirectory / "Worlds";
     for (std::size_t i = 0; i < kLevelCount; ++i) {
+        iso.Report("Extracting worlds", std::string(kLevelNames[i]));
         const auto record = table + i * kJapaneseRecordSize;
         const auto descriptor = record + slot * kDescriptorSize;
         const auto sector = U32(iso, descriptor) ^ U32(iso, descriptor + 20);
@@ -698,7 +814,7 @@ void ExtractJapaneseSlot(std::span<const std::byte> iso, std::size_t table,
                 std::to_string(i) + ", slot " + std::to_string(slot));
         }
 
-        const auto decoded = Decompress(iso.subspan(source, compressedSize));
+        const auto decoded = Decompress(iso.Read(source, compressedSize), iso);
         const auto levelDirectory = LevelDirectory(worldsDirectory, i) / slotName;
         std::filesystem::create_directories(levelDirectory);
         const auto path = levelDirectory / (std::string(kLevelNames[i]) + ".brx");
@@ -709,12 +825,13 @@ void ExtractJapaneseSlot(std::span<const std::byte> iso, std::size_t table,
         }
         output.close();
 
-        BrxWalker walker(StringEncoding::Auto, BrxRegion::Japanese);
-        walker.WalkFile(path);
+        BrxWalker walker(StringEncoding::Auto, BrxRegion::Japanese, !iso.HasCallback());
+        walker.WalkData({reinterpret_cast<const std::uint8_t*>(decoded.data()), decoded.size()});
         ExtractAudio(iso, levelDirectory / "Dialogs", walker.AudioDescriptors());
         ExtractAudio(iso, levelDirectory / "Commentary", walker.CommentaryDescriptors());
         ExtractMusic(iso, worldsDirectory / "Music", walker.MusicDescriptors());
-        std::cout << '[' << slotName << ' ' << (i + 1) << '/' << kLevelCount
+        iso.Advance();
+        if (!iso.HasCallback()) std::cout << '[' << slotName << ' ' << (i + 1) << '/' << kLevelCount
                   << "] id=0x" << std::hex << levelId << " search=0x" << searchKey
                   << " flags=0x" << flags << " file=0x" << identity << std::dec
                   << ' ' << path.string() << '\n';
@@ -722,9 +839,27 @@ void ExtractJapaneseSlot(std::span<const std::byte> iso, std::size_t table,
 }
 } // namespace
 
+DiscRegion PalIsoExtractor::DetectRegion(const std::filesystem::path& isoPath) {
+    const IsoReader iso(isoPath);
+    for (const auto& entry : RootFiles(iso)) {
+        DiscRegion region;
+        if (entry.name == "SCUS_971.98") region = DiscRegion::NtscU;
+        else if (entry.name == "SCES_509.17") region = DiscRegion::Pal;
+        else if (entry.name == "SCPS_150.36") region = DiscRegion::Japanese;
+        else continue;
+        const auto base = static_cast<std::size_t>(entry.sector) * kSectorSize;
+        if (entry.size < 52 || base > iso.size() || entry.size > iso.size() - base ||
+            U32(iso, base) != 0x464C457F || iso[base + 4] != std::byte{1} ||
+            iso[base + 5] != std::byte{1} || U16(iso, base + 16) != 2 || U16(iso, base + 18) != 8)
+            throw std::runtime_error("Invalid game executable");
+        return region;
+    }
+    throw std::runtime_error("Select a USA, European or Japanese Sly Cooper ISO");
+}
+
 void PalIsoExtractor::Extract(const std::filesystem::path& isoPath,
     const std::filesystem::path& outputDirectory, PalLanguageSlot language) const {
-    const auto iso = ReadFile(isoPath);
+    const IsoReader iso(isoPath, progress_);
     const auto rootFiles = RootFiles(iso);
     const auto& elf = FindGameElf(rootFiles);
     if (IsJapaneseElf(elf))
@@ -733,6 +868,7 @@ void PalIsoExtractor::Extract(const std::filesystem::path& isoPath,
     const auto slot = static_cast<std::size_t>(language);
     if (table + kLevelCount * kRecordSize > iso.size()) throw std::runtime_error("PAL level table lies outside the executable");
     WritePalLevelIdentityMap(iso, table, outputDirectory);
+    iso.SetTotal(7 + 17 + kLevelCount);
     ExtractSoundBanks(iso, outputDirectory / "Worlds" / "Sound Banks", kPalSoundBanks, "PAL");
     ExtractPalCutscenes(iso, elf, outputDirectory / "Cutscenes");
     ExtractSlot(iso, elf, table, outputDirectory, slot);
@@ -740,7 +876,7 @@ void PalIsoExtractor::Extract(const std::filesystem::path& isoPath,
 
 void PalIsoExtractor::ExtractAllLanguages(const std::filesystem::path& isoPath,
     const std::filesystem::path& outputDirectory) const {
-    const auto iso = ReadFile(isoPath);
+    const IsoReader iso(isoPath, progress_);
     const auto rootFiles = RootFiles(iso);
     const auto& elf = FindGameElf(rootFiles);
     if (IsJapaneseElf(elf))
@@ -748,6 +884,7 @@ void PalIsoExtractor::ExtractAllLanguages(const std::filesystem::path& isoPath,
     const auto table = VaToIsoOffset(iso, elf, kPalLevelTableVa);
     if (table + kLevelCount * kRecordSize > iso.size()) throw std::runtime_error("PAL level table lies outside the executable");
     WritePalLevelIdentityMap(iso, table, outputDirectory);
+    iso.SetTotal(7 + 17 + kLevelCount * kLanguageCount);
     ExtractSoundBanks(iso, outputDirectory / "Worlds" / "Sound Banks", kPalSoundBanks, "PAL");
     ExtractPalCutscenes(iso, elf, outputDirectory / "Cutscenes");
     for (std::size_t slot = 0; slot < kLanguageCount; ++slot)
@@ -756,7 +893,7 @@ void PalIsoExtractor::ExtractAllLanguages(const std::filesystem::path& isoPath,
 
 void PalIsoExtractor::ExtractDetectedRegion(const std::filesystem::path& isoPath,
     const std::filesystem::path& outputDirectory) const {
-    const auto iso = ReadFile(isoPath);
+    const IsoReader iso(isoPath, progress_);
     const auto rootFiles = RootFiles(iso);
     const auto& elf = FindGameElf(rootFiles);
 
@@ -769,10 +906,13 @@ void PalIsoExtractor::ExtractDetectedRegion(const std::filesystem::path& isoPath
     if (table + kLevelCount * kJapaneseRecordSize > iso.size())
         throw std::runtime_error("Japanese level table lies outside the executable");
 
-    std::cout << "Detected Japanese SCPS release; extracting both voice slots.\n";
+    iso.SetTotal(7 + 18 + kLevelCount * kJapaneseSlotCount);
+    if (!iso.HasCallback()) std::cout << "Detected Japanese SCPS release; extracting both voice slots.\n";
     ExtractSoundBanks(iso, outputDirectory / "Worlds" / "Sound Banks",
         kJapaneseSoundBanks, "Japanese");
     ExtractJapaneseCutscenes(iso, elf, outputDirectory / "Cutscenes");
     for (std::size_t slot = 0; slot < kJapaneseSlotCount; ++slot)
         ExtractJapaneseSlot(iso, table, outputDirectory, slot);
+}
+
 }

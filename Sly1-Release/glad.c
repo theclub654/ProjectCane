@@ -25,6 +25,7 @@
 #include <string.h>
 #include <glad/glad.h>
 
+#ifndef __SWITCH__
 static void* get_proc(const char *namez);
 
 #if defined(_WIN32) || defined(__CYGWIN__)
@@ -156,6 +157,8 @@ int gladLoadGL(void) {
 
     return status;
 }
+
+#endif
 
 struct gladGLversionStruct GLVersion = { 0, 0 };
 
