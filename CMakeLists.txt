@@ -180,6 +180,7 @@ else()
 endif()
 
 if(MSVC)
+    target_compile_options(ProjectCane PRIVATE /utf-8)
     set_property(TARGET ProjectCane cane_ui glfw PROPERTY
         MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 endif()

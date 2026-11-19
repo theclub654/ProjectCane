@@ -121,7 +121,7 @@
       <AdditionalIncludeDirectories>$(SolutionDir)Libraries\include;$(SolutionDir)Libraries\include\SDL2;$(SolutionDir)Libraries\ffmpeg\ffmpeg-master-latest-win64-lgpl-shared\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
-      <AdditionalOptions>/FS /MP8 %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>/FS /MP8 /utf-8 %(AdditionalOptions)</AdditionalOptions>
       <MultiProcessorCompilation>false</MultiProcessorCompilation>
       <ForcedIncludeFiles>$(ProjectDir)sw.h;$(ProjectDir)save.h;$(ProjectDir)freeze.h;$(ProjectDir)act.h;$(ProjectDir)wr.h;$(ProjectDir)shadow.h;$(ProjectDir)fader.h;$(ProjectDir)splicemap.h;$(ProjectDir)gc.h;%(ForcedIncludeFiles)</ForcedIncludeFiles>
     </ClCompile>
@@ -147,7 +147,7 @@
       <AdditionalIncludeDirectories>$(SolutionDir)Libraries\include;$(SolutionDir)Libraries\include\SDL2;$(SolutionDir)Libraries\ffmpeg\ffmpeg-master-latest-win64-lgpl-shared\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
-      <AdditionalOptions>/FS /MP8 %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>/FS /MP8 /utf-8 %(AdditionalOptions)</AdditionalOptions>
       <MultiProcessorCompilation>false</MultiProcessorCompilation>
       <ForcedIncludeFiles>$(ProjectDir)sw.h;$(ProjectDir)save.h;$(ProjectDir)freeze.h;$(ProjectDir)act.h;$(ProjectDir)wr.h;$(ProjectDir)shadow.h;$(ProjectDir)fader.h;$(ProjectDir)splicemap.h;$(ProjectDir)gc.h;%(ForcedIncludeFiles)</ForcedIncludeFiles>
     </ClCompile>
