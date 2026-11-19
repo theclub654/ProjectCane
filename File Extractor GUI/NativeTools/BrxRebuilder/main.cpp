@@ -16,8 +16,9 @@ int Run(int argc, Character** argv)
         const auto value = regionArgument.string();
         if (value == "pal") region = BrxSourceRegion::Pal;
         else if (value == "japanese") region = BrxSourceRegion::Japanese;
+        else if (value == "korean") region = BrxSourceRegion::Korean;
         else if (value == "ntsc") region = BrxSourceRegion::NtscU;
-        else throw std::runtime_error("region must be ntsc, pal, or japanese");
+        else throw std::runtime_error("region must be ntsc, pal, japanese, or korean");
     }
     BrxWalker walker(StringEncoding::Narrow, region);
     if (argc == 4) walker.LoadLevelIdentityMap(std::filesystem::path(argv[3]));
@@ -33,7 +34,7 @@ int Run(int argc, Character** argv)
 int wmain(int argc, wchar_t** argv)
 {
     if (argc < 2 || argc > 4) {
-        std::wcerr << L"Usage: Sly1BrxRebuilder <level.brx> [ntsc|pal|japanese] [level-identity-map]\n";
+        std::wcerr << L"Usage: Sly1BrxRebuilder <level.brx> [ntsc|pal|japanese|korean] [level-identity-map]\n";
         return 2;
     }
 
@@ -49,7 +50,7 @@ int wmain(int argc, wchar_t** argv)
 int main(int argc, char** argv)
 {
     if (argc < 2 || argc > 4) {
-        std::cerr << "Usage: Sly1BrxRebuilder <level.brx> [ntsc|pal|japanese] [level-identity-map]\n";
+        std::cerr << "Usage: Sly1BrxRebuilder <level.brx> [ntsc|pal|japanese|korean] [level-identity-map]\n";
         return 2;
     }
 

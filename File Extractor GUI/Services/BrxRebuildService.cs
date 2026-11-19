@@ -20,7 +20,12 @@ internal static class BrxRebuildService
         CancellationToken cancellationToken,
         string? levelIdentityMapPath = null)
     {
-        var expectedCount = region == Sly1DiscRegion.Japanese ? 2 : 5;
+        var expectedCount = region switch
+        {
+            Sly1DiscRegion.Japanese => 2,
+            Sly1DiscRegion.Korean => 1,
+            _ => 5
+        };
         if (languagePaths.Count != expectedCount)
             throw new ArgumentException($"A combined {region} level requires {expectedCount} inputs.", nameof(languagePaths));
 
@@ -42,12 +47,18 @@ internal static class BrxRebuildService
                 File.Copy(languagePath, temporaryPath, overwrite: true);
                 temporaryPaths.Add(temporaryPath);
             }
+            var rebuilderRegion = region switch
+            {
+                Sly1DiscRegion.Japanese => "japanese",
+                Sly1DiscRegion.Korean => "korean",
+                _ => "pal"
+            };
             foreach (var temporaryPath in temporaryPaths)
             {
                 var rebuiltPath = Path.Combine(outputDirectory,
                     Path.GetFileNameWithoutExtension(temporaryPath) + "_Rebuilt.brx");
                 await RunRebuilderAsync(new[] { temporaryPath }, rebuiltPath, cancellationToken,
-                    region == Sly1DiscRegion.Japanese ? "japanese" : "pal",
+                    rebuilderRegion,
                     levelIdentityMapPath);
                 await ValidatePcBrxAsync(rebuiltPath, requirePalLocalization: true,
                     expectedVersion: 17, cancellationToken: cancellationToken);
@@ -60,9 +71,12 @@ internal static class BrxRebuildService
             if (region == Sly1DiscRegion.Japanese)
                 await ValidateJapaneseLocalizationParityAsync(rebuiltPaths, cancellationToken);
 
-            var variantIds = region == Sly1DiscRegion.Japanese
-                ? new uint[] { 0, 1 }
-                : new uint[] { 0, 1, 2, 3, 4 };
+            var variantIds = region switch
+            {
+                Sly1DiscRegion.Japanese => new uint[] { 0, 1 },
+                Sly1DiscRegion.Korean => new uint[] { 0 },
+                _ => new uint[] { 0, 1, 2, 3, 4 }
+            };
             await WriteUnifiedContainerAsync(rebuiltPaths, outputPath,
                 variantIds, defaultLanguage: 0,
                 cancellationToken: cancellationToken);

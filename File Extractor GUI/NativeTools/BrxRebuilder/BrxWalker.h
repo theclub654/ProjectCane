@@ -20,7 +20,7 @@ struct WalkStats {
     std::uint64_t triangles{};
 };
 
-enum class BrxSourceRegion { Auto, NtscU, Pal, Japanese };
+enum class BrxSourceRegion { Auto, NtscU, Pal, Japanese, Korean };
 
 class BrxWalker {
 public:
@@ -46,6 +46,7 @@ public:
     void ConvertLocalizationReference(CBinaryInputStream& stream);
     [[nodiscard]] bool IsPal() const { return pal_; }
     [[nodiscard]] bool IsJapanese() const { return region_ == BrxSourceRegion::Japanese; }
+    [[nodiscard]] bool IsKorean() const { return region_ == BrxSourceRegion::Korean; }
 
 private:
     void WalkFileInternal(const std::filesystem::path& path);

@@ -9,7 +9,7 @@
 int wmain(int argc, wchar_t** argv) {
     try {
         if (argc != 4 || std::wstring_view(argv[1]) != L"extract") {
-            std::wcerr << L"Usage: Sly1PalExtractor extract <pal-or-japanese.iso> <output-folder>\n";
+            std::wcerr << L"Usage: Sly1PalExtractor extract <pal-japanese-or-korean.iso> <output-folder>\n";
             return 2;
         }
 
@@ -27,7 +27,7 @@ int wmain(int argc, wchar_t** argv) {
 int main(int argc, char** argv) {
     try {
         if (argc != 4 || std::string_view(argv[1]) != "extract") {
-            std::cerr << "Usage: Sly1PalExtractor extract <pal-or-japanese.iso> <output-folder>\n";
+            std::cerr << "Usage: Sly1PalExtractor extract <pal-japanese-or-korean.iso> <output-folder>\n";
             return 2;
         }
 

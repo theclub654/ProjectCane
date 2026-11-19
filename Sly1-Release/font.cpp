@@ -1,4 +1,5 @@
 #include "font.h"
+#include <cmath>
 
 namespace
 {
@@ -97,12 +98,135 @@ namespace
 		add(left,  bottom, u0, v1);
 	}
 
+	constexpr uint32_t kHangulSyllableBase = 0xAC00;
+	constexpr uint32_t kHangulSyllableCount = 0x2BA4; // 11172 (U+AC00..U+D7A3)
+	constexpr uint16_t kHangulChoseongBase = 0x1100;
+	constexpr uint16_t kHangulJungseongBase = 0x1161;
+	constexpr uint16_t kHangulJongseongBase = 0x11A7; // 0x11A7 = no jongseong
+
+	bool FHangulSyllable(uint32_t codepoint)
+	{
+		return codepoint >= kHangulSyllableBase &&
+			codepoint < kHangulSyllableBase + kHangulSyllableCount;
+	}
+
+	bool DecomposeHangulSyllable(uint32_t codepoint,
+		uint16_t& choseong, uint16_t& jungseong, uint16_t& jongseong)
+	{
+		if (!FHangulSyllable(codepoint))
+			return false;
+		const uint32_t index = codepoint - kHangulSyllableBase;
+		choseong = static_cast<uint16_t>(kHangulChoseongBase + (index / 588u));
+		jungseong = static_cast<uint16_t>(kHangulJungseongBase + ((index % 588u) / 28u));
+		jongseong = static_cast<uint16_t>(kHangulJongseongBase + (index % 28u));
+		return true;
+	}
+
+	bool FHorizontalHangulVowel(uint16_t jungseong)
+	{
+		// Matches SCKA_200.04 (0x0016A780): ㅗ, ㅛ, ㅜ, ㅠ, ㅡ
+		return jungseong == 0x1169 || jungseong == 0x116D ||
+			jungseong == 0x116E || jungseong == 0x1172 || jungseong == 0x1173;
+	}
+
+	bool FHasHorizontalHangulVowel(uint32_t codepoint)
+	{
+		uint16_t cho = 0, jung = 0, jong = 0;
+		return DecomposeHangulSyllable(codepoint, cho, jung, jong) &&
+			FHorizontalHangulVowel(jung);
+	}
+
+	struct HangulJamoQuad
+	{
+		uint16_t wch;
+		float left;
+		float top;
+		float right;
+		float bottom;
+	};
+
+	bool ComputeHangulJamoQuads(uint32_t codepoint, float x0, float y0, float x1, float y1,
+		HangulJamoQuad out[3])
+	{
+		uint16_t cho = 0, jung = 0, jong = 0;
+		if (!DecomposeHangulSyllable(codepoint, cho, jung, jong))
+			return false;
+
+		// Exact SCKA_200.04 jamo sub-boxes (VA 0x00262F88 / 0x00262F98 / 0x00262FA8).
+		struct JamoBox { float sx, sy, cx, cy; };
+		constexpr JamoBox kFull = { 1.0f, 1.0f, 0.0f, 0.0f };
+		constexpr JamoBox kJongHorizontal = { 1.0f, 0.7f, -0.3f, 0.14f };
+		constexpr JamoBox kJongVertical = { 1.0f, 0.8f, -0.14f, 0.14f };
+		constexpr JamoBox kEmpty = { 0.0f, 0.0f, 0.0f, 0.0f };
+
+		const uint16_t jamo[3] = { cho, jung, jong };
+		const JamoBox boxes[3] = {
+			kFull,
+			kFull,
+			jong == kHangulJongseongBase ? kEmpty :
+				(FHorizontalHangulVowel(jung) ? kJongHorizontal : kJongVertical)
+		};
+
+		const float parentSx = std::fabs(x1 - x0);
+		const float parentSy = std::fabs(y1 - y0);
+		const float parentCx = (x0 + x1) * 0.5f;
+		const float parentCy = (y0 + y1) * 0.5f;
+
+		for (int i = 0; i < 3; ++i)
+		{
+			const float sx = boxes[i].sx * parentSx;
+			const float sy = boxes[i].sy * parentSy;
+			const float cx = parentSx * boxes[i].cx + parentCx;
+			const float cy = parentSy * boxes[i].cy + parentCy;
+			out[i] = {
+				jamo[i],
+				cx - 0.5f * sx,
+				cy - 0.5f * sy,
+				cx + 0.5f * sx,
+				cy + 0.5f * sy
+			};
+		}
+		return true;
+	}
+
 	void AppendGlyph(GlyphVertices& vertices, CFontBrx* font, uint32_t codepoint,
 		float x, float y, const glm::vec4& color)
 	{
-		GLYFF* glyph = font->PglyffFromCodepoint(codepoint);
-		if (glyph == nullptr || font->m_pbmp == nullptr)
+		if (font == nullptr || font->m_pbmp == nullptr)
 			return;
+
+		GLYFF* glyph = font->PglyffFromCodepoint(codepoint);
+		if (glyph == nullptr)
+		{
+			// Korean SCKA_200.04 composes U+AC00..U+D7A3 syllables from the
+			// 67 Hangul Jamo glyphs (0x1100..0x11C2) stored in the font atlas.
+			GLYFF* baseJamo = FHangulSyllable(codepoint)
+				? font->PglyffFromCodepoint(kHangulChoseongBase) : nullptr;
+			if (baseJamo == nullptr)
+				return;
+
+			const float cellWidth = static_cast<float>(baseJamo->dx) * font->m_rxScale;
+			const float cellHeight = static_cast<float>(font->m_dyUnscaled) * font->m_ryScale;
+			HangulJamoQuad quads[3]{};
+			if (!ComputeHangulJamoQuads(codepoint, x, y, x + cellWidth, y + cellHeight, quads))
+				return;
+
+			const float invBmpW = 1.0f / static_cast<float>(font->m_pbmp->bmpWidth);
+			const float invBmpH = 1.0f / static_cast<float>(font->m_pbmp->bmpHeight);
+			for (int i = 0; i < 3; ++i)
+			{
+				GLYFF* jamoGlyph = font->PglyffFromCodepoint(quads[i].wch);
+				if (jamoGlyph == nullptr)
+					continue;
+				const float u0 = jamoGlyph->x * invBmpW;
+				const float v0 = jamoGlyph->y * invBmpH;
+				const float u1 = (jamoGlyph->x + jamoGlyph->dx) * invBmpW;
+				const float v1 = (jamoGlyph->y + font->m_dyUnscaled) * invBmpH;
+				AppendQuad(vertices, quads[i].left, quads[i].top,
+					quads[i].right, quads[i].bottom, u0, v0, u1, v1, color);
+			}
+			return;
+		}
 
 		// Retail draws the glyph's authored pixel width, then advances by one
 		// additional scaled pixel. Keeping that extra pixel out of the quad is
@@ -868,9 +992,18 @@ float CFontBrx::DxFromCh(char ch)
 float CFontBrx::DxFromCodepoint(uint32_t codepoint)
 {
 	GLYFF* glyph = PglyffFromCodepoint(codepoint);
-	return glyph != nullptr
-		? static_cast<float>(glyph->dx + 1) * m_rxScale
-		: static_cast<float>(m_dxSpaceUnscaled) * m_rxScale;
+	if (glyph != nullptr)
+		return static_cast<float>(glyph->dx + 1) * m_rxScale;
+
+	if (FHangulSyllable(codepoint))
+	{
+		if (FHasHorizontalHangulVowel(codepoint))
+			return static_cast<float>(m_dxCharUnscaled) * m_rxScale;
+		if (GLYFF* baseJamo = PglyffFromCodepoint(kHangulChoseongBase))
+			return static_cast<float>(baseJamo->dx + 1) * m_rxScale;
+	}
+
+	return static_cast<float>(m_dxSpaceUnscaled) * m_rxScale;
 }
 
 std::shared_ptr<CFontBrx> CFontBrx::PfontClone(float rx, float ry)
@@ -1155,11 +1288,13 @@ int CFontBrx::ClineWrapPchz(char* pchz, float dx)
 			continue;
 		}
 
-		lineWidth += DxFromCh(*cursor);
+		const char* next = cursor;
+		const uint32_t codepoint = DecodeUtf8(next);
+		lineWidth += DxFromCodepoint(codepoint);
 
 		if (dx == 0.0f)
 		{
-			++cursor;
+			cursor = const_cast<char*>(next);
 			continue;
 		}
 
@@ -1177,8 +1312,8 @@ int CFontBrx::ClineWrapPchz(char* pchz, float dx)
 					*breakPosition = '\n';
 					lineWidth = 0.0f;
 					++lineCount;
-					cursor = breakPosition;
-					break;
+					cursor = breakPosition + 1;
+					goto next_char;
 				}
 
 				--breakPosition;
@@ -1187,13 +1322,14 @@ int CFontBrx::ClineWrapPchz(char* pchz, float dx)
 			// No whitespace was found before the current character.
 			if (lineWidth != 0.0f)
 			{
-				*cursor = '\n';
-				lineWidth = 0.0f;
+				lineWidth = DxFromCodepoint(codepoint);
 				++lineCount;
 			}
 		}
 
-		++cursor;
+		cursor = const_cast<char*>(next);
+	next_char:
+		continue;
 	}
 
 	return lineCount;
@@ -1204,16 +1340,17 @@ float CFontBrx::DxMaxLine(char* pchz)
 	float currentLineWidth = 0.0f;
 	float maxLineWidth = 0.0f;
 
-	while (*pchz != '\0') {
-		if (*pchz == '\n') {
+	const char* cursor = pchz;
+	while (*cursor != '\0') {
+		if (*cursor == '\n') {
 			if (currentLineWidth > maxLineWidth)
 				maxLineWidth = currentLineWidth;
 			currentLineWidth = 0.0f;
+			++cursor;
 		}
 		else {
-			currentLineWidth += DxFromCh(*pchz);
+			currentLineWidth += DxFromCodepoint(DecodeUtf8(cursor));
 		}
-		++pchz;
 	}
 
 	// Final line (in case it doesn't end in '\n')
@@ -1321,11 +1458,32 @@ void CFontBrx::DrawGlyphRun(const char* text, const float* xPositions,
 	GlyphVertices glyphs;
 	glyphs.reserve(count * 6);
 	for (std::size_t i = 0; i < count; ++i)
-		AppendGlyph(glyphs, this, text[i], xPositions[i], y, color);
+		AppendGlyph(glyphs, this, static_cast<unsigned char>(text[i]), xPositions[i], y, color);
 
 	BeginGlyphDraw();
 	FlushGlyphs(glyphs, m_pbmp->glDiffuseMap, FGuiSpriteFont(this));
 	EndGlyphDraw();
+}
+
+void CFontBrx::DrawGlyphRun(const uint32_t* codepoints, const float* xPositions,
+	std::size_t count, float y, const glm::vec4& color)
+{
+	if (codepoints == nullptr || xPositions == nullptr || count == 0 || m_pbmp == nullptr)
+		return;
+
+	GlyphVertices glyphs;
+	glyphs.reserve(count * 6);
+	for (std::size_t i = 0; i < count; ++i)
+		AppendGlyph(glyphs, this, codepoints[i], xPositions[i], y, color);
+
+	BeginGlyphDraw();
+	FlushGlyphs(glyphs, m_pbmp->glDiffuseMap, FGuiSpriteFont(this));
+	EndGlyphDraw();
+}
+
+uint32_t DecodeFontTextCodepoint(const char*& cursor)
+{
+	return DecodeUtf8(cursor);
 }
 
 void CFontBrx::CleanUpDraw()

@@ -23,7 +23,8 @@ public enum Sly1DiscRegion
     Unknown,
     NtscU,
     Pal,
-    Japanese
+    Japanese,
+    Korean
 }
 
 public static partial class Sly1IsoDetector
@@ -36,6 +37,8 @@ public static partial class Sly1IsoDetector
     private const string PalExecutable = "SCES_509.17";
     private const string JapaneseSerial = "SCPS-15036";
     private const string JapaneseExecutable = "SCPS_150.36";
+    private const string KoreanSerial = "SCKA-20004";
+    private const string KoreanExecutable = "SCKA_200.04";
 
     public static async Task<Sly1IsoDetectionResult> DetectAsync(
         string isoPath,
@@ -114,6 +117,7 @@ public static partial class Sly1IsoDetector
                 NtscExecutable => Sly1DiscRegion.NtscU,
                 PalExecutable => Sly1DiscRegion.Pal,
                 JapaneseExecutable => Sly1DiscRegion.Japanese,
+                KoreanExecutable => Sly1DiscRegion.Korean,
                 _ => Sly1DiscRegion.Unknown
             };
             if (region == Sly1DiscRegion.Unknown)
@@ -140,6 +144,7 @@ public static partial class Sly1IsoDetector
             {
                 Sly1DiscRegion.Pal => ("Sly 1 PAL detected.", PalSerial),
                 Sly1DiscRegion.Japanese => ("Kaitou Sly Cooper Japanese release detected.", JapaneseSerial),
+                Sly1DiscRegion.Korean => ("Sly Cooper Korean release detected.", KoreanSerial),
                 _ => ("Sly 1 NTSC-U detected.", NtscSerial)
             };
             return new Sly1IsoDetectionResult(

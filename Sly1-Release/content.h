@@ -11,7 +11,8 @@ enum class CONTENT_REGION
     Unknown,
     NtscU,
     Pal,
-    NtscJ
+    NtscJ,
+    NtscK
 };
 
 enum class CONTENT_LANGUAGE
@@ -21,7 +22,8 @@ enum class CONTENT_LANGUAGE
     German,
     Spanish,
     Italian,
-    Japanese
+    Japanese,
+    Korean
 };
 
 struct CONTENT_PACKAGE
@@ -50,7 +52,9 @@ bool FPalContent();
 // NTSC-J, which shares PAL gameplay code but uses a 60 Hz video standard.
 bool FPalVideoStandard();
 bool FJapaneseContent();
+bool FKoreanContent();
 bool FLocalizedContent();
+bool FHasLanguageMenu();
 bool FContentLanguageAvailable(CONTENT_LANGUAGE language);
 void ConfigureContentLanguages(std::uint32_t languageMask, CONTENT_LANGUAGE defaultLanguage);
 const char* ContentLanguageDirectory();

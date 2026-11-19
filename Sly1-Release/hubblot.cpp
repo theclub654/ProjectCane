@@ -133,7 +133,7 @@ void UpdateHubBlotActive(HUBBLOT* phubblot, JOY* pjoy)
     }
     else
     {
-        const JOY_BUTTON confirmButton = FJapaneseContent() ? BTN_CIRCLE : BTN_CROSS;
+        const JOY_BUTTON confirmButton = (FJapaneseContent() || FKoreanContent()) ? BTN_CIRCLE : BTN_CROSS;
         if (pjoy->IsPressed(confirmButton))
         {
             pjoy->SetHandled(confirmButton);

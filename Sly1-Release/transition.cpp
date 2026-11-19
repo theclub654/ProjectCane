@@ -387,6 +387,8 @@ void CTransition::Execute(std::string& file)
                             fLoadSucceeded = false;
                         const std::uint32_t preferredLanguage = FJapaneseContent()
                             ? (ContentVoiceLanguage() == CONTENT_LANGUAGE::English ? 1u : 0u)
+                            : FKoreanContent()
+                            ? 0u
                             : static_cast<std::uint32_t>(ContentPackage().preferredLanguage);
                         const std::uint32_t selectedLanguage = preferredLanguage < 5 &&
                             (languageMask & (1u << preferredLanguage)) != 0

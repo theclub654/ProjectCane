@@ -299,7 +299,13 @@ void BrxWalker::DispatchObject(CBinaryInputStream& s, std::int16_t cid,
         s.ReadVector(); LoadOptionsFromBrx(s); return;
     }
     if (loader == "LoadScanFromBrx") {
-        s.ReadVector(); LoadOptionsFromBrx(s); ReadAndConvertString(s); return;
+        s.ReadVector();
+        LoadOptionsFromBrx(s);
+        if (IsKorean())
+            ReadAndConvertUtf16String(s);
+        else
+            ReadAndConvertString(s);
+        return;
     }
     if (loader == "LoadXfmFromBrx" || loader == "LoadHndFromBrx") {
         s.ReadMatrix3(); s.ReadVector(); LoadOptionsFromBrx(s); return;
@@ -451,7 +457,7 @@ void BrxWalker::DispatchObject(CBinaryInputStream& s, std::int16_t cid,
             case 1: case 2: s.S16Read(); s.S16Read(); break;
             case 3: s.F32Read(); s.F32Read(); s.U8Read(); s.U8Read();
                 s.S16Read(); s.S16Read(); s.S16Read(); s.S16Read();
-                if (IsJapanese()) ReadAndConvertUtf16String(s);
+                if (IsJapanese() || IsKorean()) ReadAndConvertUtf16String(s);
                 else ReadAndConvertString(s);
                 break;
             case 4: s.S16Read(); break;

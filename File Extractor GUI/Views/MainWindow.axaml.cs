@@ -110,6 +110,7 @@ public partial class MainWindow : Window
             {
                 Sly1DiscRegion.Pal => "PAL",
                 Sly1DiscRegion.Japanese => "NTSC-J",
+                Sly1DiscRegion.Korean => "NTSC-K",
                 _ => "NTSC-U"
             };
             DetectedSerialText.Text = $"{region} • {detection.Serial}";
@@ -129,7 +130,7 @@ public partial class MainWindow : Window
         DetectedGameText.Text = "Unsupported ISO";
         DetectedSerialText.Text = detection.Message;
         DropPromptText.Text = "That ISO is not supported";
-        DropSubtext.Text = "Select a supported NTSC-U or PAL Sly 1 disc image";
+        DropSubtext.Text = "Select a supported NTSC-U, PAL, NTSC-J, or Korean Sly 1 disc image";
         UpdateWorkflowState();
     }
 
@@ -160,6 +161,7 @@ public partial class MainWindow : Window
         {
             Sly1DiscRegion.Pal => "0 / 276 tasks",
             Sly1DiscRegion.Japanese => "0 / 138 tasks",
+            Sly1DiscRegion.Korean => "0 / 92 tasks",
             _ => "0 / 46 files"
         };
         ByteCountText.Text = "0 MB / 0 MB";
@@ -173,7 +175,7 @@ public partial class MainWindow : Window
             await Task.Run(
                 async () =>
                 {
-                    if (_isoDetection.Region is Sly1DiscRegion.Pal or Sly1DiscRegion.Japanese)
+                    if (_isoDetection.Region is Sly1DiscRegion.Pal or Sly1DiscRegion.Japanese or Sly1DiscRegion.Korean)
                     {
                         await new Sly1PalExtractionService().ExtractAsync(
                             _selectedIsoPath,
@@ -213,6 +215,7 @@ public partial class MainWindow : Window
             {
                 Sly1DiscRegion.Pal => "Extracted all five PAL languages, audio, and cutscenes",
                 Sly1DiscRegion.Japanese => "Extracted Japanese text, both voice tracks, audio, and cutscenes",
+                Sly1DiscRegion.Korean => "Extracted Korean levels, audio, and cutscenes",
                 _ => "Extracted Sly 1 levels, audio, and cutscenes"
             };
             ExtractButtonText.Text = "Extraction Complete";

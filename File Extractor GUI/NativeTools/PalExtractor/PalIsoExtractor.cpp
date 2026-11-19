@@ -19,14 +19,17 @@ namespace {
 constexpr std::uint32_t kSectorSize = 0x800;
 constexpr std::uint32_t kPalLevelTableVa = 0x002490F0;
 constexpr std::uint32_t kJapaneseLevelTableVa = 0x00249330;
+constexpr std::uint32_t kKoreanLevelTableVa = 0x00249C70;
 constexpr std::uint32_t kPalCutsceneTableVa = 0x0024B0F0;
 constexpr std::uint32_t kJapaneseCutsceneTableVa = 0x0024A210;
+constexpr std::uint32_t kKoreanCutsceneTableVa = 0x0024A570;
 constexpr std::size_t kLevelCount = 46;
 constexpr std::size_t kCutsceneCount = 16;
 constexpr std::size_t kLanguageCount = 5;
 constexpr std::size_t kDescriptorSize = 32;
 constexpr std::size_t kRecordSize = 172;
 constexpr std::size_t kJapaneseRecordSize = 76;
+constexpr std::size_t kKoreanRecordSize = 44;
 constexpr std::size_t kJapaneseSlotCount = 2;
 constexpr std::size_t kMaximumCompressedSize = 256u * 1024u * 1024u;
 
@@ -53,6 +56,16 @@ constexpr std::array<SoundBankLocation, 7> kJapaneseSoundBanks = {{
     {"Voodoo.bnk", 0x0AC27B},
     {"Snow.bnk", 0x0AEAD9},
     {"Clockwerk.bnk", 0x0A0A93}
+}};
+
+constexpr std::array<SoundBankLocation, 7> kKoreanSoundBanks = {{
+    {"Common.bnk", 0x0AA0A0},
+    {"Intro.bnk", 0x0BF5EA},
+    {"Underwater.bnk", 0x0AB70D},
+    {"Muggshot.bnk", 0x0AC1AF},
+    {"Voodoo.bnk", 0x0B0C2A},
+    {"Snow.bnk", 0x0B214C},
+    {"Clockwerk.bnk", 0x0A8F58}
 }};
 
 std::uint16_t U16(std::span<const std::byte> data, std::size_t at) {
@@ -117,15 +130,20 @@ const IsoFile& FindGameElf(const std::vector<IsoFile>& files) {
     const auto found = std::find_if(files.begin(), files.end(), [](const IsoFile& file) {
         return file.name.starts_with("SCES_") || file.name.starts_with("SCES-") ||
                file.name.starts_with("SCED_") || file.name.starts_with("SCED-") ||
-               file.name.starts_with("SCPS_") || file.name.starts_with("SCPS-");
+               file.name.starts_with("SCPS_") || file.name.starts_with("SCPS-") ||
+               file.name.starts_with("SCKA_") || file.name.starts_with("SCKA-");
     });
     if (found == files.end())
-        throw std::runtime_error("PAL/Japanese executable (SCES/SCED/SCPS) was not found");
+        throw std::runtime_error("PAL/Japanese/Korean executable (SCES/SCED/SCPS/SCKA) was not found");
     return *found;
 }
 
 bool IsJapaneseElf(const IsoFile& elf) {
     return elf.name.starts_with("SCPS_") || elf.name.starts_with("SCPS-");
+}
+
+bool IsKoreanElf(const IsoFile& elf) {
+    return elf.name.starts_with("SCKA_") || elf.name.starts_with("SCKA-");
 }
 
 std::size_t VaToIsoOffset(std::span<const std::byte> iso, const IsoFile& elf, std::uint32_t va) {
@@ -570,15 +588,6 @@ void ExtractPalCutscenes(std::span<const std::byte> iso, const IsoFile& elf,
         languages, "PAL", 1);
 }
 
-void ExtractJapaneseCutscenes(std::span<const std::byte> iso, const IsoFile& elf,
-    const std::filesystem::path& cutsceneDirectory) {
-    static constexpr std::array<std::string_view, 2> languages = {
-        "Japanese", "English"
-    };
-    ExtractCutscenes(iso, elf, cutsceneDirectory, kJapaneseCutsceneTableVa,
-        languages, "Japanese", 2);
-}
-
 constexpr std::array<std::string_view, kLevelCount> kLevelNames = {
     "Splash", "Paris", "The Hideout",
     "A Stealthy Approach", "Prowling the Grounds", "High Class Heist",
@@ -672,30 +681,71 @@ void ExtractSlot(std::span<const std::byte> iso, const IsoFile& elf, std::size_t
     }
 }
 
-void ExtractJapaneseSlot(std::span<const std::byte> iso, std::size_t table,
-    const std::filesystem::path& outputDirectory, std::size_t slot) {
-    if (slot >= kJapaneseSlotCount)
-        throw std::runtime_error("Japanese descriptor slot must be 0 or 1");
+struct RegionalReleaseSpec {
+    std::string_view label;
+    std::string_view detectedMessage;
+    BrxRegion brxRegion;
+    std::uint32_t levelTableVa;
+    std::size_t recordSize;
+    std::span<const std::string_view> slotNames;
+    std::span<const SoundBankLocation> soundBanks;
+    std::uint32_t cutsceneTableVa;
+};
 
-    static constexpr std::array<std::string_view, 2> slotNames = {
-        "Japanese", "English"
-    };
-    const auto slotName = slotNames[slot];
+constexpr std::array<std::string_view, kJapaneseSlotCount> kJapaneseSlotNames = {
+    "Japanese", "English"
+};
+
+constexpr std::array<std::string_view, 1> kKoreanSlotNames = {
+    "Korean"
+};
+
+constexpr RegionalReleaseSpec kJapaneseRelease = {
+    "Japanese",
+    "Detected Japanese SCPS release; extracting both voice slots.",
+    BrxRegion::Japanese,
+    kJapaneseLevelTableVa,
+    kJapaneseRecordSize,
+    kJapaneseSlotNames,
+    kJapaneseSoundBanks,
+    kJapaneseCutsceneTableVa
+};
+
+constexpr RegionalReleaseSpec kKoreanRelease = {
+    "Korean",
+    "Detected Korean SCKA release; extracting Korean levels and media.",
+    BrxRegion::Korean,
+    kKoreanLevelTableVa,
+    kKoreanRecordSize,
+    kKoreanSlotNames,
+    kKoreanSoundBanks,
+    kKoreanCutsceneTableVa
+};
+
+void ExtractRegionalSlot(std::span<const std::byte> iso, std::size_t table,
+    const std::filesystem::path& outputDirectory, const RegionalReleaseSpec& spec,
+    std::size_t slot) {
+    if (slot >= spec.slotNames.size())
+        throw std::runtime_error(std::string(spec.label) + " descriptor slot out of range");
+
+    const auto slotName = spec.slotNames[slot];
+    const auto metadataOffset = spec.slotNames.size() * kDescriptorSize;
     const auto worldsDirectory = outputDirectory / "Worlds";
     for (std::size_t i = 0; i < kLevelCount; ++i) {
-        const auto record = table + i * kJapaneseRecordSize;
+        const auto record = table + i * spec.recordSize;
         const auto descriptor = record + slot * kDescriptorSize;
         const auto sector = U32(iso, descriptor) ^ U32(iso, descriptor + 20);
         const auto compressedSize = U32(iso, descriptor + 4) ^ U32(iso, descriptor + 28);
         const auto identity = U32(iso, descriptor + 8) ^ U32(iso, descriptor + 24);
-        const auto levelId = U32(iso, record + 64);
-        const auto searchKey = U32(iso, record + 68);
-        const auto flags = U32(iso, record + 72);
+        const auto levelId = U32(iso, record + metadataOffset);
+        const auto searchKey = U32(iso, record + metadataOffset + 4);
+        const auto flags = U32(iso, record + metadataOffset + 8);
         const auto source = static_cast<std::size_t>(sector) * kSectorSize;
         if (compressedSize == 0 || compressedSize > kMaximumCompressedSize ||
             source > iso.size() || compressedSize > iso.size() - source) {
-            throw std::runtime_error("Invalid Japanese descriptor at table index " +
-                std::to_string(i) + ", slot " + std::to_string(slot));
+            throw std::runtime_error("Invalid " + std::string(spec.label) +
+                " descriptor at table index " + std::to_string(i) +
+                ", slot " + std::to_string(slot));
         }
 
         const auto decoded = Decompress(iso.subspan(source, compressedSize));
@@ -709,7 +759,7 @@ void ExtractJapaneseSlot(std::span<const std::byte> iso, std::size_t table,
         }
         output.close();
 
-        BrxWalker walker(StringEncoding::Auto, BrxRegion::Japanese);
+        BrxWalker walker(StringEncoding::Auto, spec.brxRegion);
         walker.WalkFile(path);
         ExtractAudio(iso, levelDirectory / "Dialogs", walker.AudioDescriptors());
         ExtractAudio(iso, levelDirectory / "Commentary", walker.CommentaryDescriptors());
@@ -727,8 +777,8 @@ void PalIsoExtractor::Extract(const std::filesystem::path& isoPath,
     const auto iso = ReadFile(isoPath);
     const auto rootFiles = RootFiles(iso);
     const auto& elf = FindGameElf(rootFiles);
-    if (IsJapaneseElf(elf))
-        throw std::runtime_error("A PAL language slot cannot be selected for a Japanese SCPS ISO");
+    if (IsJapaneseElf(elf) || IsKoreanElf(elf))
+        throw std::runtime_error("A PAL language slot cannot be selected for a Japanese or Korean ISO");
     const auto table = VaToIsoOffset(iso, elf, kPalLevelTableVa);
     const auto slot = static_cast<std::size_t>(language);
     if (table + kLevelCount * kRecordSize > iso.size()) throw std::runtime_error("PAL level table lies outside the executable");
@@ -743,8 +793,8 @@ void PalIsoExtractor::ExtractAllLanguages(const std::filesystem::path& isoPath,
     const auto iso = ReadFile(isoPath);
     const auto rootFiles = RootFiles(iso);
     const auto& elf = FindGameElf(rootFiles);
-    if (IsJapaneseElf(elf))
-        throw std::runtime_error("Use automatic extraction for a Japanese SCPS ISO");
+    if (IsJapaneseElf(elf) || IsKoreanElf(elf))
+        throw std::runtime_error("Use automatic extraction for a Japanese or Korean ISO");
     const auto table = VaToIsoOffset(iso, elf, kPalLevelTableVa);
     if (table + kLevelCount * kRecordSize > iso.size()) throw std::runtime_error("PAL level table lies outside the executable");
     WritePalLevelIdentityMap(iso, table, outputDirectory);
@@ -760,19 +810,22 @@ void PalIsoExtractor::ExtractDetectedRegion(const std::filesystem::path& isoPath
     const auto rootFiles = RootFiles(iso);
     const auto& elf = FindGameElf(rootFiles);
 
-    if (!IsJapaneseElf(elf)) {
+    const bool isKorean = IsKoreanElf(elf);
+    if (!isKorean && !IsJapaneseElf(elf)) {
         ExtractAllLanguages(isoPath, outputDirectory);
         return;
     }
 
-    const auto table = VaToIsoOffset(iso, elf, kJapaneseLevelTableVa);
-    if (table + kLevelCount * kJapaneseRecordSize > iso.size())
-        throw std::runtime_error("Japanese level table lies outside the executable");
+    const auto& spec = isKorean ? kKoreanRelease : kJapaneseRelease;
+    const auto table = VaToIsoOffset(iso, elf, spec.levelTableVa);
+    if (table + kLevelCount * spec.recordSize > iso.size())
+        throw std::runtime_error(std::string(spec.label) + " level table lies outside the executable");
 
-    std::cout << "Detected Japanese SCPS release; extracting both voice slots.\n";
+    std::cout << spec.detectedMessage << '\n';
     ExtractSoundBanks(iso, outputDirectory / "Worlds" / "Sound Banks",
-        kJapaneseSoundBanks, "Japanese");
-    ExtractJapaneseCutscenes(iso, elf, outputDirectory / "Cutscenes");
-    for (std::size_t slot = 0; slot < kJapaneseSlotCount; ++slot)
-        ExtractJapaneseSlot(iso, table, outputDirectory, slot);
+        spec.soundBanks, spec.label);
+    ExtractCutscenes(iso, elf, outputDirectory / "Cutscenes",
+        spec.cutsceneTableVa, spec.slotNames, spec.label, spec.slotNames.size());
+    for (std::size_t slot = 0; slot < spec.slotNames.size(); ++slot)
+        ExtractRegionalSlot(iso, table, outputDirectory, spec, slot);
 }

@@ -28,8 +28,10 @@ void BrxWalker::LoadSwFromBrx(CBinaryInputStream& stream) {
     stream.S16Read();
     LoadNameTableFromBrx(stream, debugInfo);
     pal_ = region_ == BrxRegion::Pal || region_ == BrxRegion::Japanese ||
+        region_ == BrxRegion::Korean ||
         (region_ == BrxRegion::Auto && HasPalLocalizationTable(stream));
-    if (region_ == BrxRegion::Japanese) LoadJapaneseLocalizationTable(stream);
+    if (region_ == BrxRegion::Japanese || region_ == BrxRegion::Korean)
+        LoadJapaneseLocalizationTable(stream);
     else if (pal_) LoadPalLocalizationTable(stream);
     LoadSwSpliceFromBrx(stream); LoadOptionsFromBrx(stream);
     {
@@ -55,6 +57,7 @@ void BrxWalker::LoadSwFromBrx(CBinaryInputStream& stream) {
         const auto localizedAssetsBegin = stream.GetOffset();
         for (int i = 0; i < 14; ++i) stream.ReadFixedString32();
         Trace(region_ == BrxRegion::Japanese ? "Japanese fixed localization assets" :
+            region_ == BrxRegion::Korean ? "Korean fixed localization assets" :
             "PAL fixed localization assets", localizedAssetsBegin, stream.GetOffset());
     }
     LoadShadersFromBrx(stream); LoadSwObjectsFromBrx(stream);

@@ -63,9 +63,10 @@ void BrxWalker::LoadSwFromBrx(CBinaryInputStream& stream) {
     RemoveNameTableFromBrx(stream, debugInfo);
     RecordReplacement(nameTableBegin, stream.GetOffset(), {});
     pal_ = region_ == BrxSourceRegion::Pal || region_ == BrxSourceRegion::Japanese ||
+        region_ == BrxSourceRegion::Korean ||
         (region_ == BrxSourceRegion::Auto && HasPalLocalizationTable(stream));
     if (pal_) {
-        if (region_ == BrxSourceRegion::Japanese)
+        if (region_ == BrxSourceRegion::Japanese || region_ == BrxSourceRegion::Korean)
             RemoveJapaneseLocalizationTables(stream);
         else
             RemovePalLocalizationTable(stream);
@@ -289,7 +290,8 @@ void BrxWalker::ConvertCutsceneDescriptor(CBinaryInputStream& stream) {
         if (cutscene == identities.size()) {
             std::ostringstream error;
             error << "unknown " << (region_ == BrxSourceRegion::Japanese
-                    ? "Japanese" : pal_ ? "PAL" : "NTSC")
+                    ? "Japanese" : region_ == BrxSourceRegion::Korean
+                    ? "Korean" : pal_ ? "PAL" : "NTSC")
                   << " cutscene descriptor identity=0x" << std::hex << identity
                   << " sector=0x" << sector << " at offset 0x" << begin;
             throw std::runtime_error(error.str());
@@ -374,6 +376,13 @@ void BrxWalker::ConvertLevelDescriptor(CBinaryInputStream& stream) {
         94, 100, 104, 106, 108, 110, 112, 114, 116, 118
     };
 
+    constexpr std::array<std::uint32_t, 46> koreanLevelIdentities = {
+        27, 28, 29, 30, 31, 32, 37, 34, 33, 36, 35, 38,
+        39, 40, 41, 45, 46, 42, 43, 44, 47, 48, 49, 51,
+        50, 54, 52, 53, 55, 56, 57, 58, 61, 59, 62, 64,
+        60, 63, 65, 66, 67, 68, 69, 70, 71, 72
+    };
+
     const auto begin = stream.GetOffset();
     std::array<std::uint32_t, 8> words{};
     bool present = false;
@@ -390,6 +399,13 @@ void BrxWalker::ConvertLevelDescriptor(CBinaryInputStream& stream) {
             for (std::size_t level = 0; level < palLevels.size(); ++level) {
                 if (searchKey == japaneseLevelIdentities[level] ||
                     searchKey == englishLevelIdentities[level]) {
+                    selectedFilename = palLevels[level];
+                    break;
+                }
+            }
+        } else if (region_ == BrxSourceRegion::Korean) {
+            for (std::size_t level = 0; level < palLevels.size(); ++level) {
+                if (searchKey == koreanLevelIdentities[level]) {
                     selectedFilename = palLevels[level];
                     break;
                 }

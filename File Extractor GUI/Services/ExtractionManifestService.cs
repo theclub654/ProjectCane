@@ -44,6 +44,14 @@ internal static class ExtractionManifestService
                 LevelFormatVersion: 19,
                 Languages: ["Japanese"],
                 VoiceLanguages: ["Japanese", "English"]),
+            Sly1DiscRegion.Korean => new ExtractionManifest(
+                SchemaVersion: 1,
+                Game: "Sly Cooper and the Thievius Raccoonus",
+                Region: "NTSC-K",
+                Serial: "SCKA-200.04",
+                LevelFormat: "PCBRX",
+                LevelFormatVersion: 19,
+                Languages: ["Korean"]),
             _ => throw new ArgumentOutOfRangeException(nameof(region), region, "Unsupported Sly 1 disc region.")
         };
 

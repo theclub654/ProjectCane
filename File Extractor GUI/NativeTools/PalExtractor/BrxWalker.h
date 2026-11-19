@@ -14,7 +14,7 @@ struct AudioDescriptor {
     std::uint32_t sector{}, size{}, identity{};
 };
 
-enum class BrxRegion { Auto, Pal, Japanese };
+enum class BrxRegion { Auto, Pal, Japanese, Korean };
 
 class BrxWalker {
 public:
