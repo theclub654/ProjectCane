@@ -122,8 +122,11 @@ void DrawTitle(TITLE* ptitle)
         return;
     }
 
-    const std::string& text = ptitle->achzDraw;
-    const size_t length = text.length();
+    std::vector<uint32_t> codepoints;
+    for (const char* cursor = ptitle->achzDraw; *cursor != '\0'; )
+        codepoints.push_back(DecodeFontTextCodepoint(cursor));
+
+    const size_t length = codepoints.size();
     if (length == 0) return;
 
     float uOn = ptitle->uOn;
@@ -164,15 +167,15 @@ void DrawTitle(TITLE* ptitle)
         ratio = std::clamp(ratio, 0.0f, 1.0f);
 
         float xChar = xCursorOff * (1.0f - ratio) + xCursorOn * ratio;
-        char ch = text[i];
+        const uint32_t codepoint = codepoints[i];
 
         xPositions[i] = xChar;
-        float dx = font->DxFromCh(ch);
+        float dx = font->DxFromCodepoint(codepoint);
         xCursorOn += dx;
         xCursorOff += dx;
     }
 
-    font->DrawGlyphRun(text.data(), xPositions.data(), length, y, ptitle->rgba);
+    font->DrawGlyphRun(codepoints.data(), xPositions.data(), length, y, ptitle->rgba);
     font->PopScaling();
 }
 

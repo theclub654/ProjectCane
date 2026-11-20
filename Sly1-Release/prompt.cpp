@@ -79,6 +79,53 @@ const char* PcText(const char* english, const char* french, const char* german,
 				return translation.japanese;
 		}
 	}
+	if (FKoreanContent())
+	{
+		struct KoreanPcText { const char* english; const char* korean; };
+		static constexpr KoreanPcText translations[] =
+		{
+			{"On", "켜짐"}, {"Off", "꺼짐"},
+			{"Video", "비디오"}, {"Sound", "사운드"}, {"Controls", "컨트롤"},
+			{"Keyboard Mapping", "키보드 설정"}, {"Controller Mapping", "컨트롤러 설정"},
+			{"Frame Rate", "프레임 레이트"}, {"Resolution", "해상도"},
+			{"Scaled", "스케일링"}, {"Native", "네이티브"}, {"Fog", "안개"},
+			{"Low", "낮음"}, {"Original", "오리지널"}, {"High", "높음"},
+			{"Very High", "매우 높음"}, {"Extreme", "최고"}, {"Draw Distance", "가시 거리"},
+			{"Custom", "사용자 지정"}, {"Windowed", "창 모드"},
+			{"Borderless", "테두리 없음"}, {"Fullscreen", "전체 화면"},
+			{"Window Mode", "화면 모드"}, {"Minimize When Unfocused", "비활성화 시 최소화"},
+			{"Anisotropic Filtering", "이방성 필터링"},
+			{"Brightness / Gamma", "밝기 / 감마"},
+			{"Texture Filtering", "텍스처 필터링"}, {"Monitor", "모니터"},
+			{"Trilinear", "삼선형"}, {"Bilinear", "이선형"},
+			{"Resolution Scale", "해상도 배율"},
+			{"Controller Deadzone", "컨트롤러 데드존"},
+			{"System Default", "시스템 기본값"}, {"Audio Output", "오디오 출력"},
+			{"Fit to Screen", "화면에 맞춤"}, {"Aspect Ratio", "화면 비율"},
+			{"GUI Scale", "GUI 크기"}, {"GUI Style", "GUI 스타일"}, {"Modern", "모던"},
+			{"Disable Controller When Unfocused", "비활성화 시 컨트롤러 끄기"},
+			{"Mouse Camera", "마우스 카메라"}, {"Mouse Sensitivity", "마우스 감도"},
+			{"Dialogue Skip Controls", "대화 건너뛰기"}, {"Camera Invert", "카메라 반전"},
+			{"Press a button", "버튼을 누르세요"},
+			{"Press a key or mouse button", "키 또는 마우스 버튼을 누르세요"},
+			{"Speakers", "스피커"}, {"Stereo", "스테레오"}, {"Mono", "모노"},
+			{"Music Volume", "음악 음량"},
+			{"Sound Effects", "효과음"}, {"Dialogue", "대화 음량"},
+			{"Video...", "비디오 설정"}, {"Sound...", "사운드 설정"},
+			{"Keyboard Mapping...", "키보드 설정"},
+			{"Controller Mapping...", "컨트롤러 설정"},
+			{"Reset Video Settings", "비디오 설정 초기화"},
+			{"Reset Mappings", "조작 설정 초기화"},
+			{"Exit to Desktop", "바탕화면으로 나가기"}, {"Are you sure?", "정말 종료하시겠습니까?"},
+			{"New Game", "새 게임"}, {"Empty", "비어있음"}, {"Unknown", "알 수 없음"},
+			{"Locked", "잠김"}
+		};
+		for (const KoreanPcText& translation : translations)
+		{
+			if (std::strcmp(english, translation.english) == 0)
+				return translation.korean;
+		}
+	}
 	return ContentUiText(english, french, german, spanish, italian);
 }
 
@@ -128,6 +175,12 @@ const char* PcKeyboardAction(int button)
 		"四角", "丸", "バツ", "三角", "START", "SELECT",
 		"L1", "R1", "L2", "R2", "L3", "R3"
 	};
+	static constexpr const char* korean[BTN_MAX] =
+	{
+		"위로 이동", "아래로 이동", "왼쪽으로 이동", "오른쪽으로 이동",
+		"네모", "동그라미", "엑스", "세모", "START", "SELECT",
+		"L1", "R1", "L2", "R2", "L3", "R3"
+	};
 
 	if (button < 0 || button >= BTN_MAX)
 		return PcText("Unknown", "Inconnu", "Unbekannt", "Desconocido", "Sconosciuto");
@@ -140,6 +193,7 @@ const char* PcKeyboardAction(int button)
 	case CONTENT_LANGUAGE::Spanish: return spanish[button];
 	case CONTENT_LANGUAGE::Italian: return italian[button];
 	case CONTENT_LANGUAGE::Japanese: return japanese[button];
+	case CONTENT_LANGUAGE::Korean: return korean[button];
 	default: return s_apchzKeyboardActions[button];
 	}
 }
@@ -2429,7 +2483,7 @@ void UpdatePromptActive(PROMPT* pprompt, JOY* pjoy)
         }
     }
 
-    const JOY_BUTTON confirmButton = FJapaneseContent() ? BTN_CIRCLE : BTN_CROSS;
+    const JOY_BUTTON confirmButton = (FJapaneseContent() || FKoreanContent()) ? BTN_CIRCLE : BTN_CROSS;
     const JOY_BUTTON cancelButton = FJapaneseContent() ? BTN_CROSS : BTN_TRIANGLE;
 
     if (pjoy->IsPressed(BTN_START) || pjoy->IsPressed(cancelButton))

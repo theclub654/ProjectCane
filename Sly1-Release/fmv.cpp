@@ -194,7 +194,7 @@ namespace
     {
         static constexpr const char* languageDirectories[] =
         {
-            "English", "French", "German", "Spanish", "Italian", "Japanese"
+            "English", "French", "German", "Spanish", "Italian", "Japanese", "Korean"
         };
         std::error_code error;
         for (const char* languageDirectory : languageDirectories)
@@ -997,7 +997,7 @@ void UpdateFmvMenuActive(FMVMENU* pfmvmenu, JOY* pjoy)
     if (pjoy == nullptr)
         return;
 
-    const JOY_BUTTON confirmButton = FJapaneseContent() ? BTN_CIRCLE : BTN_CROSS;
+    const JOY_BUTTON confirmButton = (FJapaneseContent() || FKoreanContent()) ? BTN_CIRCLE : BTN_CROSS;
     const JOY_BUTTON cancelButton = FJapaneseContent() ? BTN_CROSS : BTN_TRIANGLE;
     const bool exit = pjoy->IsPressed(cancelButton) || pjoy->IsPressed(BTN_SELECT) ||
                       pjoy->IsPressed(BTN_START) ||
@@ -1085,6 +1085,8 @@ void DrawFmvMenu(FMVMENU* pfmvmenu)
 
     const char* lockedTitle = FJapaneseContent()
         ? "未解除"
+        : FKoreanContent()
+        ? (ContentLocalizedText(172) != nullptr ? ContentLocalizedText(172) : "???")
         : ContentUiText("Locked", "Verrouillé", "Gesperrt", "Bloqueado", "Bloccato");
     char* title = const_cast<char*>(FFmvUnlocked(pfmvmenu->iCutscene)
         ? PchzFriendlyFromCid(pfmvmenu->iCutscene)

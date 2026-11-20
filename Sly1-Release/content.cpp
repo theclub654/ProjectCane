@@ -38,12 +38,13 @@ const char* LanguageName(CONTENT_LANGUAGE language)
         case CONTENT_LANGUAGE::Spanish: return "Spanish";
         case CONTENT_LANGUAGE::Italian: return "Italian";
         case CONTENT_LANGUAGE::Japanese: return "Japanese";
+        case CONTENT_LANGUAGE::Korean: return "Korean";
         default: return "English";
     }
 }
 CONTENT_LANGUAGE ParseLanguage(const std::string& value)
 {
-    for (int index = 0; index <= static_cast<int>(CONTENT_LANGUAGE::Japanese); ++index)
+    for (int index = 0; index <= static_cast<int>(CONTENT_LANGUAGE::Korean); ++index)
     {
         const auto language = static_cast<CONTENT_LANGUAGE>(index);
         if (value == LanguageName(language))
@@ -54,7 +55,7 @@ CONTENT_LANGUAGE ParseLanguage(const std::string& value)
 
 bool TryParseLanguage(const std::string& value, CONTENT_LANGUAGE& language)
 {
-    for (int index = 0; index <= static_cast<int>(CONTENT_LANGUAGE::Japanese); ++index)
+    for (int index = 0; index <= static_cast<int>(CONTENT_LANGUAGE::Korean); ++index)
     {
         const auto candidate = static_cast<CONTENT_LANGUAGE>(index);
         if (value == LanguageName(candidate))
@@ -69,7 +70,7 @@ bool TryParseLanguage(const std::string& value, CONTENT_LANGUAGE& language)
 std::uint32_t LanguageBit(CONTENT_LANGUAGE language)
 {
     const int index = static_cast<int>(language);
-    return index >= 0 && index <= static_cast<int>(CONTENT_LANGUAGE::Japanese)
+    return index >= 0 && index <= static_cast<int>(CONTENT_LANGUAGE::Korean)
         ? 1u << index : 0u;
 }
 
@@ -180,6 +181,8 @@ CONTENT_REGION ParseRegion(const std::string& value)
         return CONTENT_REGION::NtscU;
     if (normalized == "NTSC-J")
         return CONTENT_REGION::NtscJ;
+    if (normalized == "NTSC-K" || normalized == "KOREAN" || normalized == "KOR")
+        return CONTENT_REGION::NtscK;
     return CONTENT_REGION::Unknown;
 }
 }
@@ -242,7 +245,10 @@ void RefreshContentPackage(const std::filesystem::path& hint)
         if (s_contentPackage.languageMask == 0)
             s_contentPackage.languageMask = LanguageBit(CONTENT_LANGUAGE::English);
         s_contentPackage.defaultLanguage = region == CONTENT_REGION::NtscJ
-            ? CONTENT_LANGUAGE::Japanese : CONTENT_LANGUAGE::English;
+            ? CONTENT_LANGUAGE::Japanese
+            : region == CONTENT_REGION::NtscK
+                ? CONTENT_LANGUAGE::Korean
+                : CONTENT_LANGUAGE::English;
         s_contentPackage.voiceLanguageMask = 0;
         if (const auto voices = manifest.find("voiceLanguages");
             voices != manifest.end() && voices->is_array())
@@ -259,14 +265,19 @@ void RefreshContentPackage(const std::filesystem::path& hint)
         if (s_contentPackage.voiceLanguageMask == 0)
             s_contentPackage.voiceLanguageMask = s_contentPackage.languageMask;
         s_contentPackage.defaultVoiceLanguage = region == CONTENT_REGION::NtscJ
-            ? CONTENT_LANGUAGE::Japanese : s_contentPackage.defaultLanguage;
+            ? CONTENT_LANGUAGE::Japanese
+            : region == CONTENT_REGION::NtscK
+                ? CONTENT_LANGUAGE::Korean
+                : s_contentPackage.defaultLanguage;
         const CONTENT_LANGUAGE savedLanguage = LoadSavedLanguage(
             s_contentPackage.serial, s_contentPackage.defaultVoiceLanguage);
         s_contentPackage.preferredLanguage = savedLanguage;
         s_contentPackage.language = region == CONTENT_REGION::NtscJ
             ? CONTENT_LANGUAGE::Japanese
-            : (s_contentPackage.languageMask & LanguageBit(savedLanguage)) != 0
-                ? savedLanguage : s_contentPackage.defaultLanguage;
+            : region == CONTENT_REGION::NtscK
+                ? CONTENT_LANGUAGE::Korean
+                : (s_contentPackage.languageMask & LanguageBit(savedLanguage)) != 0
+                    ? savedLanguage : s_contentPackage.defaultLanguage;
         s_contentPackage.voiceLanguage =
             (s_contentPackage.voiceLanguageMask & LanguageBit(savedLanguage)) != 0
                 ? savedLanguage : s_contentPackage.defaultVoiceLanguage;
@@ -290,10 +301,11 @@ const CONTENT_PACKAGE& ContentPackage()
 
 bool FPalContent()
 {
-    // The Japanese executable is derived from the PAL gameplay branch even
-    // though its video standard/serial is NTSC-J.
+    // The Japanese and Korean executables are derived from the PAL gameplay
+    // branch even though their video standard is NTSC (60 Hz).
     return s_contentPackage.region == CONTENT_REGION::Pal ||
-        s_contentPackage.region == CONTENT_REGION::NtscJ;
+        s_contentPackage.region == CONTENT_REGION::NtscJ ||
+        s_contentPackage.region == CONTENT_REGION::NtscK;
 }
 
 bool FPalVideoStandard()
@@ -306,11 +318,23 @@ bool FJapaneseContent()
     return s_contentPackage.region == CONTENT_REGION::NtscJ;
 }
 
+bool FKoreanContent()
+{
+    return s_contentPackage.region == CONTENT_REGION::NtscK;
+}
+
 bool FLocalizedContent()
 {
-    if (FJapaneseContent())
+    if (FJapaneseContent() || FKoreanContent())
         return true;
     const std::uint32_t mask = s_contentPackage.languageMask;
+    return mask != 0 && (mask & (mask - 1)) != 0;
+}
+
+bool FHasLanguageMenu()
+{
+    const std::uint32_t mask = FJapaneseContent()
+        ? s_contentPackage.voiceLanguageMask : s_contentPackage.languageMask;
     return mask != 0 && (mask & (mask - 1)) != 0;
 }
 
@@ -339,13 +363,23 @@ void ConfigureContentLanguages(std::uint32_t languageMask, CONTENT_LANGUAGE defa
         s_contentPackage.language = CONTENT_LANGUAGE::Japanese;
         return;
     }
-    constexpr std::uint32_t validLanguages = (1u << 6) - 1;
+    if (FKoreanContent())
+    {
+        s_contentPackage.languageMask = LanguageBit(CONTENT_LANGUAGE::Korean);
+        s_contentPackage.defaultLanguage = CONTENT_LANGUAGE::Korean;
+        s_contentPackage.language = CONTENT_LANGUAGE::Korean;
+        s_contentPackage.voiceLanguageMask = LanguageBit(CONTENT_LANGUAGE::Korean);
+        s_contentPackage.defaultVoiceLanguage = CONTENT_LANGUAGE::Korean;
+        s_contentPackage.voiceLanguage = CONTENT_LANGUAGE::Korean;
+        return;
+    }
+    constexpr std::uint32_t validLanguages = (1u << 7) - 1;
     languageMask &= validLanguages;
     if (languageMask == 0)
         languageMask = LanguageBit(CONTENT_LANGUAGE::English);
     if ((languageMask & LanguageBit(defaultLanguage)) == 0)
     {
-        for (int index = 0; index <= static_cast<int>(CONTENT_LANGUAGE::Japanese); ++index)
+        for (int index = 0; index <= static_cast<int>(CONTENT_LANGUAGE::Korean); ++index)
         {
             const auto candidate = static_cast<CONTENT_LANGUAGE>(index);
             if ((languageMask & LanguageBit(candidate)) != 0)
@@ -574,7 +608,9 @@ const char* ContentUiText(const char* english, const char* french,
     case CONTENT_LANGUAGE::German: return german;
     case CONTENT_LANGUAGE::Spanish: return spanish;
     case CONTENT_LANGUAGE::Italian: return italian;
-    case CONTENT_LANGUAGE::Japanese: return english;
+    case CONTENT_LANGUAGE::Japanese:
+    case CONTENT_LANGUAGE::Korean:
+        return english;
     default: return english;
     }
 }

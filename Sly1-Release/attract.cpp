@@ -48,6 +48,8 @@ void UpdateAttractText(ATTRACT* pattract)
         pattract->rgba = glm::vec4(111.0f / 128.0f, 31.0f / 128.0f, 31.0f / 128.0f, 1.0f);
         const char* noControllerFallback = FJapaneseContent()
             ? "コントローラーがありません"
+            : FKoreanContent()
+            ? "컨트롤러 없음"
             : ContentUiText(
                 "No Controller", "Aucune manette", "Kein Controller", "No hay mando", "Nessun controller");
         std::snprintf(pattract->achzDraw, sizeof(pattract->achzDraw), "%s",
@@ -56,16 +58,21 @@ void UpdateAttractText(ATTRACT* pattract)
     else
     {
         pattract->rgba = glm::vec4(111.0f / 128.0f, 111.0f / 128.0f, 111.0f / 128.0f, 1.0f);
-        if (FLocalizedContent() && localizedPlay != nullptr && localizedMenu != nullptr &&
-            localizedLanguage != nullptr)
+        if (FLocalizedContent() && localizedPlay != nullptr && localizedMenu != nullptr)
         {
-            std::snprintf(pattract->achzDraw, sizeof(pattract->achzDraw), "%s\n%s\n%s",
-                localizedPlay, localizedMenu, localizedLanguage);
+            if (localizedLanguage != nullptr && localizedLanguage[0] != '\0')
+                std::snprintf(pattract->achzDraw, sizeof(pattract->achzDraw), "%s\n%s\n%s",
+                    localizedPlay, localizedMenu, localizedLanguage);
+            else
+                std::snprintf(pattract->achzDraw, sizeof(pattract->achzDraw), "%s\n%s",
+                    localizedPlay, localizedMenu);
         }
         else
         {
             const char* menuText = FJapaneseContent()
                 ? "SELECTボタン：メニュー\n&2T&.：ゲーム中セリフ音声"
+                : FKoreanContent()
+                ? "SELECT 버튼: 메뉴"
                 : FLocalizedContent()
                 ? ContentUiText(
                     "Press SELECT button for Menu\n&2T&. : Language",
@@ -76,6 +83,8 @@ void UpdateAttractText(ATTRACT* pattract)
                 : "Press SELECT button for Menu";
             const char* playText = FJapaneseContent()
                 ? (pattract->fReshow ? "STARTボタン：ゲームを続ける" : "STARTボタン：新しく始める")
+                : FKoreanContent()
+                ? (pattract->fReshow ? "START 버튼: 게임 계속하기" : "START 버튼: 새 게임 시작하기")
                 : pattract->fReshow
                 ? ContentUiText("Press START button to Resume Game", "Appuyez sur START pour reprendre",
                     "START drücken zum Fortsetzen", "Pulsa START para continuar", "Premi START per continuare")

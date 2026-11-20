@@ -278,7 +278,7 @@ void UpdateUi(UI* pui)
 
     case UIS_Attract:
     {
-        if (FLocalizedContent() && pjoy->IsPressed(BTN_TRIANGLE))
+        if (FHasLanguageMenu() && pjoy->IsPressed(BTN_TRIANGLE))
         {
             pjoy->SetHandled(BTN_TRIANGLE);
             SetPrompt(&g_prompt, PRP_Basic, PRK_LanguageMenu);

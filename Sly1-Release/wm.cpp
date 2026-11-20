@@ -696,7 +696,7 @@ void ShowWm(WM* pwm, WORLDLEVEL worldLevel, WMS wmsActive)
 
 void HideWm(WM* pwm)
 {
-    if ((pwm->wms < WMS_Warping) && (WMS_Hidden < pwm->wms)) 
+    if ((pwm->wms < WMS_Warping) && (WMS_Hidden < pwm->wms))
         SetWmWms(pwm, WMS_Disappearing);
 }
 
@@ -832,7 +832,7 @@ void PostWmcLoad(WMC* pwmc)
         pwmc->pte = &g_teWmc;
         g_teWmc.m_pfont = PfontFromFont(2);
     }
-    
+
     // Set initial visibility to hidden (uDt = 0.0)
     SetBlotDtVisible(pwmc, 0.0f);
 
@@ -846,6 +846,8 @@ void PostWmcLoad(WMC* pwmc)
     {
         const char* controls = FJapaneseContent()
             ? "&2X&.: 戻る\n&2(&.: 移動\n&2O&.: スタート"
+            : FKoreanContent()
+            ? "&2T&.: 나가기\n&2(&.: 이동\n&2O&.: 스타트"
             : ContentUiText(
             "&2T&.: Exit\n&2(&.: Move\n&2X&.: Warp",
             "&2T&.: Quitter\n&2(&.: Déplacer\n&2X&.: Voyager",
@@ -926,7 +928,7 @@ void OnWmcActive(WMC* pwmc, int fActive)
 
     pwmc->fRestoreLgnr = g_lgnr.blots != BLOTS_Hidden;
     ForceHideBlots();
-   
+
     WORLDLEVEL worldLevel = WorldLevelForWmDisplay();
 
     if (worldLevel == static_cast<WORLDLEVEL>(10))
@@ -969,7 +971,7 @@ void UpdateWmcActive(WMC* pwmc, JOY* pjoy)
         return;
 
     // Release mask 2320 maps to the menu-exit controls in the PC JOY layer.
-    const JOY_BUTTON confirmButton = FJapaneseContent() ? BTN_CIRCLE : BTN_CROSS;
+    const JOY_BUTTON confirmButton = (FJapaneseContent() || FKoreanContent()) ? BTN_CIRCLE : BTN_CROSS;
     const JOY_BUTTON cancelButton = FJapaneseContent() ? BTN_CROSS : BTN_TRIANGLE;
     const bool fExitPressed = pjoy->IsPressed(cancelButton) ||
                               pjoy->IsPressed(BTN_SELECT) ||
@@ -1244,7 +1246,7 @@ glm::vec4 g_rgbaBoC;
 glm::vec4 g_rgbaBoE;
 WORLDLEVEL g_worldlevelWmPlayed = WORLDLEVEL_Nil;
 int g_fWmReversePlayed = 0;
-int g_agrfwsSpecialMapUnlock[6] = 
+int g_agrfwsSpecialMapUnlock[6] =
 {
     0, 2, 4,
     4, 4, 0

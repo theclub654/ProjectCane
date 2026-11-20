@@ -913,9 +913,9 @@ void SetBinocAchzDraw(BINOC* pbinoc, char* pchz)
         // Reset parser and extract line break indices
         rt.Reset();
         int glyphIndex = 0;
-        char ch;
+        uint32_t ch;
         while ((ch = rt.ChNext()) != '\0') {
-            if (ch == '\n') {
+            if (ch == '\n' && pbinoc->cichLR < static_cast<int>(sizeof(pbinoc->aichLR) / sizeof(pbinoc->aichLR[0]))) {
                 pbinoc->aichLR[pbinoc->cichLR++] = glyphIndex;
             }
             glyphIndex++;

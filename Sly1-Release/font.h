@@ -147,10 +147,12 @@ class CFontBrx : public CFont
     float DyWrapPchz(char* pchz, float dx);
     void DrawPart(float x0, float y0, float x1, float y1, float s0, float t0, float s1, float t1, glm::vec4& color);
     void DrawPchz(char* pchz, CTextBox* ptbx);
-    void DrawGlyphRun(const char* text, const float* xPositions, std::size_t count,
-        float y, const glm::vec4& color);
+    void DrawGlyphRun(const char* text, const float* xPositions, std::size_t count, float y, const glm::vec4& color);
+    void DrawGlyphRun(const uint32_t* codepoints, const float* xPositions, std::size_t count, float y, const glm::vec4& color);
     void CleanUpDraw();
 };
+
+uint32_t DecodeFontTextCodepoint(const char*& cursor);
 
 CFontBrx* PfontFromFont(int fontk);
 bool FFontLoaded(int fontk);

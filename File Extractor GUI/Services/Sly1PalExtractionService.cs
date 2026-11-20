@@ -17,6 +17,7 @@ public sealed partial class Sly1PalExtractionService
     private static readonly string[] PalLanguages =
         { "English", "French", "German", "Spanish", "Italian" };
     private static readonly string[] JapaneseVoiceLanguages = { "Japanese", "English" };
+    private static readonly string[] KoreanLanguages = { "Korean" };
 
     public async Task ExtractAsync(
         string isoPath,
@@ -25,13 +26,22 @@ public sealed partial class Sly1PalExtractionService
         IProgress<Sly1ExtractionProgress>? progress,
         CancellationToken cancellationToken)
     {
-        if (region is not (Sly1DiscRegion.Pal or Sly1DiscRegion.Japanese))
+        if (region is not (Sly1DiscRegion.Pal or Sly1DiscRegion.Japanese or Sly1DiscRegion.Korean))
             throw new ArgumentOutOfRangeException(nameof(region));
-        var languages = region == Sly1DiscRegion.Japanese
-            ? JapaneseVoiceLanguages : PalLanguages;
+        var languages = region switch
+        {
+            Sly1DiscRegion.Japanese => JapaneseVoiceLanguages,
+            Sly1DiscRegion.Korean => KoreanLanguages,
+            _ => PalLanguages
+        };
         var extractedLevelCount = languages.Length * LevelCount;
         var totalWorkItems = extractedLevelCount + LevelCount;
-        var regionName = region == Sly1DiscRegion.Japanese ? "Japanese" : "PAL";
+        var regionName = region switch
+        {
+            Sly1DiscRegion.Japanese => "Japanese",
+            Sly1DiscRegion.Korean => "Korean",
+            _ => "PAL"
+        };
         var extractorPath = FindExtractor();
         var startInfo = new ProcessStartInfo
         {
@@ -185,6 +195,6 @@ public sealed partial class Sly1PalExtractionService
         throw new FileNotFoundException($"The bundled PAL extractor ({executable}) is missing. Rebuild the ProjectCane solution or reinstall the package.");
     }
 
-    [GeneratedRegex(@"^\[(English|French|German|Spanish|Italian|Japanese)\s+(\d+)/46\]")]
+    [GeneratedRegex(@"^\[(English|French|German|Spanish|Italian|Japanese|Korean)\s+(\d+)/46\]")]
     private static partial Regex LevelProgressRegex();
 }
